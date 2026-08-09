@@ -1,10 +1,7 @@
 import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { ProjectDomainEntity } from '../entities/project.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface ProjectRepository extends IBlockchainSyncRepository<ProjectDomainEntity> {
   create(project: Omit<ProjectDomainEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProjectDomainEntity>;
@@ -19,12 +16,12 @@ export interface ProjectRepository extends IBlockchainSyncRepository<ProjectDoma
   findByIdWithAllRelations(projectHash: string): Promise<ProjectDomainEntity | null>;
   findAllPaginated(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>>;
   findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>>;
   findByHashWithComponents(hash: string): Promise<ProjectDomainEntity | null>;
   findComponentsByParentHash(parentHash: string): Promise<ProjectDomainEntity[]>;
   update(entity: ProjectDomainEntity): Promise<ProjectDomainEntity>;

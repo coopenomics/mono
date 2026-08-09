@@ -10,7 +10,7 @@ import type {
   Ledger2BlockchainPort,
   WalmoveBlockchainDomainInterface,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн-адаптер ledger2 — пишет операции корректировок председателя.

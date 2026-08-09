@@ -5,8 +5,8 @@ import type { IDebtBlockchainData } from '../../../domain/interfaces/debt-blockc
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
 import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { CapitalContract } from 'cooptypes';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные долга

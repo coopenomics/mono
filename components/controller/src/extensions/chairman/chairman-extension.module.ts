@@ -1,5 +1,5 @@
 import { Inject, Module } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
@@ -39,7 +39,6 @@ import { ChairmanSyncInteractor } from './application/use-cases/chairman-sync.in
 // Resolvers
 import { ApprovalResolver } from './application/resolvers/approval.resolver';
 import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.resolver';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
 import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 

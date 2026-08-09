@@ -5,8 +5,8 @@ import type { IAgreementBlockchainData } from '~/domain/agreement/interfaces/agr
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { SovietContractInfoService } from '~/infrastructure/blockchain/services/soviet-contract-info.service';
 import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { SovietContract } from 'cooptypes';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные соглашения

@@ -22,6 +22,10 @@ export interface PlatformBlockchainSettings {
   rootGovernSymbol: string;
   /** Точность базового токена — знаков после запятой. */
   rootGovernPrecision: number;
+  /** Символ системного токена цепи, например `AXON`. */
+  rootSymbol: string;
+  /** Точность системного токена — знаков после запятой. */
+  rootPrecision: number;
 }
 
 export interface PlatformSettings {

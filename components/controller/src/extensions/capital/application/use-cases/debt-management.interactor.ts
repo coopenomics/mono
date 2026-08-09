@@ -5,11 +5,8 @@ import type { CreateDebtDomainInput } from '../../domain/actions/create-debt-dom
 import { DEBT_REPOSITORY, DebtRepository } from '../../domain/repositories/debt.repository';
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import type { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления долгами CAPITAL контракта
@@ -46,8 +43,8 @@ export class DebtManagementInteractor {
    */
   async getDebts(
     filter?: DebtFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<DebtDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<DebtDomainEntity>> {
     // Поскольку DebtRepository может не иметь findAllPaginated, используем findAll
     const debts = await this.debtRepository.findAll();
     return {

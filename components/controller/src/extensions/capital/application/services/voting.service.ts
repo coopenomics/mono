@@ -8,7 +8,6 @@ import type { TransactResult } from '@wharfkit/session';
 import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
@@ -56,7 +55,7 @@ export class VotingService {
    */
   async getVotes(filter?: VoteFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<VoteOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.votingInteractor.getVotes(filter, domainOptions);

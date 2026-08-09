@@ -30,6 +30,8 @@ configurePlatformSettings({
   blockchain: {
     rootGovernSymbol: config.blockchain.root_govern_symbol,
     rootGovernPrecision: config.blockchain.root_govern_precision,
+    rootSymbol: config.blockchain.root_symbol,
+    rootPrecision: config.blockchain.root_precision,
   },
 });
 

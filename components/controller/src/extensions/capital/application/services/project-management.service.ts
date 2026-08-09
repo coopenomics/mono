@@ -18,7 +18,6 @@ import type {
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
@@ -237,7 +236,7 @@ export class ProjectManagementService {
     currentUser?: IMonoAccount
   ): Promise<PaginationResult<ProjectOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.projectManagementInteractor.getProjects(filter, domainOptions);
@@ -266,7 +265,7 @@ export class ProjectManagementService {
     currentUser?: IMonoAccount
   ): Promise<PaginationResult<ProjectOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions);

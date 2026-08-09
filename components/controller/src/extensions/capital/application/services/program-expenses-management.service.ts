@@ -4,13 +4,7 @@ import type { TransactResult } from '@wharfkit/session';
 import { config } from '~/config';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import {
-  buildPaginationResult,
-  PaginationInputDTO,
-  paginationInputToOffset,
-  type PaginationResult,
-} from '@coopenomics/extension-kit';
+import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import type { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import type { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';
 import type {

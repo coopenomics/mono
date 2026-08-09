@@ -4,7 +4,6 @@ import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { ResultMapper } from './result.mapper';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import { SegmentOutputDTO } from '../../application/dto/segments/segment.dto';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
@@ -13,6 +12,7 @@ import { AppendixRepository } from '../../domain/repositories/appendix.repositor
 import { APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentBlockchainData>;

@@ -1,16 +1,13 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { RefreshSegmentDomainInput } from '../../domain/actions/refresh-segment-domain-input.interface';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSubmissionService } from '../services/result-submission.service';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления сегментами CAPITAL контракта
@@ -36,8 +33,8 @@ export class SegmentsInteractor {
    */
   async getSegments(
     filter?: SegmentFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SegmentDomainEntity>> {
     return await this.segmentRepository.findAllPaginated(filter, options);
   }
 

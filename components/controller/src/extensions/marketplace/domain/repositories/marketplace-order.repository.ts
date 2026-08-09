@@ -5,12 +5,9 @@ import type {
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');
 
@@ -95,8 +92,8 @@ export interface MarketplaceOrderDomainRepository
 
   list(
     filter: MarketplaceOrderListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOrderDomainEntity>>;
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOrderDomainEntity>>;
 
   /**
    * Backend-only status transition (например `ACCEPTED → CANCELLED_BY_ORDERER`,

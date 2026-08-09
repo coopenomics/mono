@@ -9,16 +9,12 @@ import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync'
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория сегментов
@@ -282,10 +278,10 @@ export class SegmentTypeormRepository
    */
   async findAllPaginated(
     filter?: SegmentFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SegmentDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

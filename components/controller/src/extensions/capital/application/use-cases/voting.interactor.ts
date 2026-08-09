@@ -8,14 +8,11 @@ import type { CalculateVotesDomainInput } from '../../domain/actions/calculate-v
 import { VOTE_REPOSITORY, VoteRepository } from '../../domain/repositories/vote.repository';
 import { VoteDomainEntity } from '../../domain/entities/vote.entity';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для голосования в CAPITAL контракте
@@ -100,8 +97,8 @@ export class VotingInteractor {
    */
   async getVotes(
     filter?: VoteFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<VoteDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<VoteDomainEntity>> {
     return await this.voteRepository.findAllPaginated(filter, options);
   }
 

@@ -11,7 +11,6 @@ import type { TimeEntriesByIssuesOutputDTO } from '../dto/time_tracker/time-entr
 import type { CapitalTimerSessionOutputDTO } from '../dto/time_tracker/worklog.dto';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
 /**
  * Сервис для учёта времени в CAPITAL контракте
@@ -103,8 +102,8 @@ export class TimeTrackingService {
     filter: TimeEntriesFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<TimeEntryOutputDTO>> {
-    // Конвертируем PaginationInputDTO в PaginationInputDomainInterface
-    const domainOptions: PaginationInputDomainInterface | undefined = options
+    // Конвертируем PaginationInputDTO в PaginationInputDTO
+    const domainOptions: PaginationInputDTO | undefined = options
       ? {
           page: options.page,
           limit: options.limit,
@@ -137,8 +136,8 @@ export class TimeTrackingService {
    * Гибкий запрос статистики времени с пагинацией
    */
   async getFlexibleTimeStats(data: TimeStatsInputDTO, options?: PaginationInputDTO): Promise<FlexibleTimeStatsOutputDTO> {
-    // Конвертируем PaginationInputDTO в PaginationInputDomainInterface
-    const domainOptions: PaginationInputDomainInterface | undefined = options
+    // Конвертируем PaginationInputDTO в PaginationInputDTO
+    const domainOptions: PaginationInputDTO | undefined = options
       ? {
           page: options.page,
           limit: options.limit,
@@ -164,8 +163,8 @@ export class TimeTrackingService {
     filter: TimeEntriesFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<TimeEntriesByIssuesOutputDTO>> {
-    // Конвертируем PaginationInputDTO в PaginationInputDomainInterface
-    const domainOptions: PaginationInputDomainInterface | undefined = options
+    // Конвертируем PaginationInputDTO в PaginationInputDTO
+    const domainOptions: PaginationInputDTO | undefined = options
       ? {
           page: options.page,
           limit: options.limit,

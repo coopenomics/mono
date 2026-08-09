@@ -9,11 +9,6 @@ import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositori
 import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import type { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -26,6 +21,8 @@ import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-pr
 import type { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
 import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallocation-limit.dto';
 import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -223,8 +220,8 @@ export class InvestsManagementInteractor {
    */
   async getInvests(
     filter?: InvestFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<InvestDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<InvestDomainEntity>> {
     return await this.investRepository.findAllPaginated(filter, options);
   }
 

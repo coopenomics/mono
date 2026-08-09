@@ -5,7 +5,6 @@ import httpStatus from 'http-status';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { HttpApiError } from '~/utils/httpApiError';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { KuBlockchainPort } from '../../../domain/interfaces/ku-blockchain.port';
 import type {
   ApproveKuTrustedInputDomainInterface,
@@ -19,6 +18,7 @@ import type {
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../../domain/interfaces/ku-action-inputs.interface';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Адаптер блокчейн-порта собраний и решений кооперативных участков.

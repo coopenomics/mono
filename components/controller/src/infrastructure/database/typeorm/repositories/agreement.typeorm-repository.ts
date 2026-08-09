@@ -13,7 +13,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationUtils } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория соглашений

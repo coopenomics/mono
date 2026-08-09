@@ -6,9 +6,9 @@ import { BlockchainService } from '~/infrastructure/blockchain/blockchain.servic
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ConfirmApproveDomainInput } from '../../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../../domain/actions/decline-approve-domain-input.interface';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CHAIRMAN

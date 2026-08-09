@@ -22,14 +22,9 @@ import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
 import type { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-generation-agreement-document.dto';
 import type { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
 import { config } from '~/config';
 import { HttpApiError } from '~/utils/httpApiError';
@@ -46,12 +41,10 @@ import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../doma
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте
@@ -675,8 +668,8 @@ export class ParticipationManagementInteractor {
    */
   async getContributors(
     filter?: ContributorFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ContributorDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ContributorDomainEntity>> {
     return await this.contributorRepository.findAllPaginated(filter, options);
   }
 

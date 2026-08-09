@@ -9,7 +9,6 @@ import type { TransactResult } from '@wharfkit/session';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { ContributorMapperService } from './contributor-mapper.service';
 import { ContributorSyncService } from '../syncers/contributor-sync.service';
@@ -132,7 +131,7 @@ export class ParticipationManagementService {
     options?: PaginationInputDTO
   ): Promise<PaginationResult<ContributorOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.participationManagementInteractor.getContributors(filter, domainOptions);

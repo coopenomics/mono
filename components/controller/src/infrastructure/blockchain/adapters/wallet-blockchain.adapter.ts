@@ -15,7 +15,7 @@ import type {
 } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
-import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для wallet

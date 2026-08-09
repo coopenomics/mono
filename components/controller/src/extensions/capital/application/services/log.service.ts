@@ -9,12 +9,9 @@ import {
   isFreeIssueParticipant,
   isLocalProjectOwner,
 } from '../../domain/utils/private-project-access';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { MutationLogMapperService, IMappedCapitalLog, LogEntityType } from './mutation-log-mapper.service';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерфейс фильтрации логов capital
@@ -73,8 +70,8 @@ export class LogService {
    */
   async getLogs(
     filter?: ICapitalLogFilterInput,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     // Получаем только мутации, относящиеся к capital расширению
     const mutationNames = this.mutationLogMapper.getCapitalMutationNames();
 
@@ -232,9 +229,9 @@ export class LogService {
    */
   async getLogsByProjectHash(
     projectHash: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ project_hash: projectHash, viewer_username: viewerUsername }, options);
   }
 
@@ -243,9 +240,9 @@ export class LogService {
    */
   async getLogsByIssueHash(
     issueHash: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ issue_hash: issueHash, viewer_username: viewerUsername }, options);
   }
 
@@ -254,9 +251,9 @@ export class LogService {
    */
   async getLogsByInitiator(
     initiator: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ initiator, viewer_username: viewerUsername }, options);
   }
 

@@ -41,12 +41,8 @@ import {
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
   type AvailableCategoryDomainService,
 } from '../../domain/services/available-category-domain.service';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
@@ -442,8 +438,8 @@ export class MarketplaceOfferService {
   async listMine(
     coopname: string,
     supplier_account: string,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list({ coopname, supplier_account }, pagination);
   }
 
@@ -452,8 +448,8 @@ export class MarketplaceOfferService {
   async listAll(
     coopname: string,
     filter: { statuses?: MarketplaceOfferStatus[]; supplier_account?: string },
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list(
       {
         coopname,

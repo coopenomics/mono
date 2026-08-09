@@ -5,7 +5,7 @@ import type { IExpenseProposalBlockchainData } from '../../../domain/interfaces/
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ExpenseContractInfoService } from '../../services/expense-contract-info.service';
 import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер дельт таблицы `expense::proposals` в блокчейн-данные расхода.

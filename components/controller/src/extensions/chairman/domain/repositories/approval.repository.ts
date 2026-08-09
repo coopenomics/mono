@@ -1,10 +1,7 @@
 import type { ApprovalDomainEntity } from '../entities/approval.entity';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ApprovalFilterInput } from '../../application/dto/approval-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const APPROVAL_REPOSITORY = Symbol('APPROVAL_REPOSITORY');
 
@@ -20,8 +17,8 @@ export interface ApprovalRepository extends IBlockchainSyncRepository<ApprovalDo
   // Пагинированный поиск с фильтрами
   findAllPaginated(
     filter?: ApprovalFilterInput,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ApprovalDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ApprovalDomainEntity>>;
 
   // Дополнительные методы репозитория одобрений
   findByCoopname(coopname: string): Promise<ApprovalDomainEntity[]>;

@@ -21,7 +21,6 @@ import type { ContributorProjectsTimeStatsDomainInterface } from '../../domain/i
 import type { TimeEntriesResultDomainInterface } from '../../domain/interfaces/time-entries-result-domain.interface';
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
 import type { FlexibleTimeStatsResultDomainInterface } from '../../domain/interfaces/flexible-time-stats-domain.interface';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectTimeStatsDomainInterface } from '../../domain/interfaces/project-time-stats-domain.interface';
 import type { TimeEntriesByIssuesResultDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
 import type {
@@ -35,6 +34,7 @@ import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
 import { EMPTY_HASH } from '~/shared/utils/constants';
 import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте
@@ -599,7 +599,7 @@ export class TimeTrackingInteractor {
    */
   async getTimeEntries(
     data: GetTimeEntriesDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<TimeEntriesResultDomainInterface> {
     // Если передан username, но не contributor_hash, находим contributor_hash
     let contributorHash = data.contributor_hash;
@@ -631,7 +631,7 @@ export class TimeTrackingInteractor {
    */
   async getFlexibleTimeStats(
     data: GetFlexibleTimeStatsDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<FlexibleTimeStatsResultDomainInterface> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -1203,7 +1203,7 @@ export class TimeTrackingInteractor {
    */
   async getTimeEntriesByIssues(
     data: GetTimeEntriesDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<TimeEntriesByIssuesResultDomainInterface> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;

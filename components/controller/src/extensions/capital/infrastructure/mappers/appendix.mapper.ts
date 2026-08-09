@@ -2,8 +2,8 @@ import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixDatabaseData>;
 /**

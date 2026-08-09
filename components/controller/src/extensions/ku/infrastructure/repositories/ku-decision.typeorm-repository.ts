@@ -4,11 +4,6 @@ import { Repository } from 'typeorm';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
-import type {
   KuDecisionFilterDomainInterface,
   KuDecisionPrivateDataDomainInterface,
   KuDecisionRepository,
@@ -20,6 +15,7 @@ import type {
   IKuDecisionBlockchainData,
   IKuDecisionDatabaseData,
 } from '../../domain/interfaces/ku-blockchain-data.interface';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class KuDecisionTypeormRepository
@@ -116,9 +112,9 @@ export class KuDecisionTypeormRepository
 
   async findAllPaginated(
     filter?: KuDecisionFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<KuDecisionDomainEntity>> {
-    const validatedOptions: PaginationInputDomainInterface = options
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<KuDecisionDomainEntity>> {
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortBy: undefined, sortOrder: 'ASC' as const };
 

@@ -3,12 +3,12 @@ import { ResultDomainEntity } from '../../domain/entities/result.entity';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultBlockchainData>;

@@ -1,11 +1,10 @@
 import { Inject, Module } from '@nestjs/common';
 import { z } from 'zod';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 
 // База данных
 import { KuDatabaseModule } from './infrastructure/database/ku-database.module';

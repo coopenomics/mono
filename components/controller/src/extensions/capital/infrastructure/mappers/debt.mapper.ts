@@ -2,8 +2,8 @@ import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtBlockchainData>;

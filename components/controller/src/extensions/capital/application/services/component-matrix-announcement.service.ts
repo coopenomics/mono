@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
-import { platformSettings } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { platformSettings, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import {
   MATRIX_ROOM_MESSAGING_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,

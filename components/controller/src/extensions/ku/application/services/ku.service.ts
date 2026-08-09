@@ -4,11 +4,10 @@ import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
-import type { GenerateDocumentOptionsInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
@@ -429,7 +428,7 @@ export class KuService {
 
   async getDecisions(
     filter?: KuDecisionFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<KuDecisionDTO>> {
     const result = await this.decisionRepository.findAllPaginated(filter, options);
 
@@ -474,7 +473,7 @@ export class KuService {
 
   async getTrustRequests(
     filter?: KuTrustRequestFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<KuTrustRequestDTO>> {
     const result = await this.trustRequestRepository.findAllPaginated(filter, options);
 

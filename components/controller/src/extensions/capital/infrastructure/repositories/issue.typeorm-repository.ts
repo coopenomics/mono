@@ -8,12 +8,8 @@ import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
 import { IssueMapper } from '../mappers/issue.mapper';
 import type { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {
@@ -243,10 +239,10 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<IssueDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<IssueDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

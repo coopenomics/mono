@@ -7,12 +7,8 @@ import { StoryDomainEntity } from '../../domain/entities/story.entity';
 import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 import { StoryMapper } from '../mappers/story.mapper';
 import type { StoryStatus } from '../../domain/enums/story-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class StoryTypeormRepository implements StoryRepository {
@@ -171,10 +167,10 @@ export class StoryTypeormRepository implements StoryRepository {
 
   async findAllPaginated(
     filter?: StoryFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<StoryDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<StoryDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

@@ -6,11 +6,7 @@ import { MetricContributionDomainEntity } from '../../domain/entities/metric-con
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
 import { MetricContributionMapper } from '../mappers/metric-contribution.mapper';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MetricContributionTypeormRepository implements MetricContributionRepository {
@@ -70,8 +66,8 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
 
   async findByMetricHashPaginated(
     metricHash: string,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MetricContributionDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<MetricContributionDomainEntity>> {
     const validated = options
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 20, sortOrder: 'DESC' as const };

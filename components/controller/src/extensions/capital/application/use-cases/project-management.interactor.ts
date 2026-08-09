@@ -14,13 +14,8 @@ import type { SetPlanDomainInput } from '../../domain/actions/set-plan-domain-in
 import type { StartProjectDomainInput } from '../../domain/actions/start-project-domain-input.interface';
 import type { StopProjectDomainInput } from '../../domain/actions/stop-project-domain-input.interface';
 import type { IFinalizeProjectDomainInput } from '../../domain/actions/finalize-project-domain-input.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
@@ -31,6 +26,8 @@ import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -358,8 +355,8 @@ export class ProjectManagementInteractor {
    */
   async getProjects(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     return await this.projectRepository.findAllPaginated(filter, options);
   }
 
@@ -368,8 +365,8 @@ export class ProjectManagementInteractor {
    */
   async getProjectsWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     if (filter?.parent_hash === '') {
       filter.parent_hash = DomainToBlockchainUtils.getEmptyHash();
     }

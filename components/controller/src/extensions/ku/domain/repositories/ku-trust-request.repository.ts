@@ -1,9 +1,6 @@
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { KuTrustRequestDomainEntity } from '../entities/ku-trust-request.entity';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface KuTrustRequestFilterDomainInterface {
   coopname?: string;
@@ -16,8 +13,8 @@ export interface KuTrustRequestRepository extends IBlockchainSyncRepository<KuTr
   findByHash(hash: string): Promise<KuTrustRequestDomainEntity | null>;
   findAllPaginated(
     filter?: KuTrustRequestFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<KuTrustRequestDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<KuTrustRequestDomainEntity>>;
 }
 
 export const KU_TRUST_REQUEST_REPOSITORY = Symbol('KuTrustRequestRepository');

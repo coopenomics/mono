@@ -2,8 +2,8 @@ import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
 import type { IApprovalDatabaseData } from '../../domain/interfaces/approval-database.interface';
 import type { IApprovalBlockchainData } from '../../domain/interfaces/approval-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalBlockchainData>;

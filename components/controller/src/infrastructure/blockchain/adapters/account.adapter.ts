@@ -7,7 +7,6 @@ import type { AccountBlockchainPort } from '~/domain/account/interfaces/account-
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Name } from '@wharfkit/antelope';
 import config from '~/config/config';
-import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
 import { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
 import { Classes } from '@coopenomics/sdk';
 import {
@@ -18,6 +17,7 @@ import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/comm
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {

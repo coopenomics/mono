@@ -3,7 +3,7 @@ import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/int
 import type { TransactResult } from '@wharfkit/session';
 import type { CreateProgramPropertyDomainInput } from '../../domain/actions/create-program-property-domain-input.interface';
 import type { CreateProjectPropertyDomainInput } from '../../domain/actions/create-project-property-domain-input.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления имущественными взносами CAPITAL контракта

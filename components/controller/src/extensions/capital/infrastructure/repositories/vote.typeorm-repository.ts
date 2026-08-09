@@ -9,12 +9,8 @@ import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync'
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IVoteDatabaseData } from '../../domain/interfaces/vote-database.interface';
 import type { IVoteBlockchainData } from '../../domain/interfaces/vote-blockchain.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { VoteFilterInputDTO } from '../../application/dto/voting/vote-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class VoteTypeormRepository
@@ -93,10 +89,10 @@ export class VoteTypeormRepository
 
   async findAllPaginated(
     filter?: VoteFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<VoteDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<VoteDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

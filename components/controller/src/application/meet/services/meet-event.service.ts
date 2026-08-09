@@ -4,10 +4,10 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MeetInteractor } from '../interactors/meet.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { MeetDecisionDomainInterface } from '~/domain/meet/interfaces/meet-decision-domain.interface';
 import { MeetContract } from 'cooptypes';
 import type { IAction } from '~/types';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Сервис обработки событий собраний

@@ -1,10 +1,7 @@
 import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { InvestDomainEntity } from '../entities/invest.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { InvestFilterInputDTO } from '../../application/dto/invests_management/invest-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface InvestRepository extends IBlockchainSyncRepository<InvestDomainEntity> {
   create(invest: Omit<InvestDomainEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<InvestDomainEntity>;
@@ -15,8 +12,8 @@ export interface InvestRepository extends IBlockchainSyncRepository<InvestDomain
   findByStatus(status: string): Promise<InvestDomainEntity[]>;
   findAllPaginated(
     filter?: InvestFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<InvestDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<InvestDomainEntity>>;
   update(entity: InvestDomainEntity): Promise<InvestDomainEntity>;
   delete(_id: string): Promise<void>;
 }

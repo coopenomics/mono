@@ -10,11 +10,7 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { ExpenseFilterInputDTO } from '../../application/dto/expenses_management/expense-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ExpenseTypeormRepository
@@ -71,10 +67,10 @@ export class ExpenseTypeormRepository
 
   async findAllPaginated(
     filter?: ExpenseFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ExpenseDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ExpenseDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

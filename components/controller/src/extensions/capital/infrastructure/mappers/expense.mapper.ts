@@ -2,8 +2,8 @@ import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseBlockchainData>;

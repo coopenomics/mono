@@ -5,7 +5,6 @@ import type { TransactResult } from '@wharfkit/session';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { Cooperative } from 'cooptypes';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
@@ -35,7 +34,7 @@ export class DebtManagementService {
    */
   async getDebts(filter?: DebtFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<DebtOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.debtManagementInteractor.getDebts(filter, domainOptions);

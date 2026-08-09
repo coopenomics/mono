@@ -10,17 +10,14 @@ import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { Classes } from '@coopenomics/sdk';
 import type { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для подведения результатов в CAPITAL контракте
@@ -125,8 +122,8 @@ export class ResultSubmissionInteractor {
    */
   async getResults(
     filter?: ResultFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ResultDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ResultDomainEntity>> {
     return await this.resultRepository.findAllPaginated(filter, options);
   }
 

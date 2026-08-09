@@ -2,7 +2,6 @@ import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ProjectStatus } from '../../domain/enums/project-status.enum';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import {
@@ -12,6 +11,7 @@ import {
   normalizeProjectPlan,
   normalizeProjectVoting,
 } from '../../domain/utils/empty-project-blockchain-pools';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceBlockchainData>;

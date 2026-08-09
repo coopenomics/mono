@@ -17,7 +17,6 @@ import { SovietBlockchainAdapter } from './adapters/soviet-blockchain.adapter';
 import { SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetBlockchainAdapter } from './adapters/meet-blockchain.adapter';
-import { DomainToBlockchainUtils } from '../../shared/utils/domain-to-blockchain.utils';
 import { GatewayBlockchainAdapter } from './adapters/gateway-blockchain.adapter';
 import { WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
 import { GATEWAY_BLOCKCHAIN_PORT } from '~/domain/gateway/ports/gateway-blockchain.port';
@@ -29,6 +28,7 @@ import { LEDGER2_BLOCKCHAIN_PORT } from '~/domain/ledger2/ports/ledger2-blockcha
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 @Global()
 @Module({

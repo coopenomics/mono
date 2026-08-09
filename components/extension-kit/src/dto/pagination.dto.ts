@@ -78,6 +78,72 @@ export function buildPaginationResult<T, U>(
 }
 
 /**
+ * Расчёт параметров пагинации для репозиториев, считающих выборку сами
+ * (TypeORM `findAndCount` и прямой SQL).
+ *
+ * Типизирован на `PaginationInputDTO`, но принимает любой объект той же формы:
+ * связь структурная, номинального `implements` между пакетом и ядром нет.
+ */
+export class PaginationUtils {
+  /** Собрать результат из выборки репозитория и параметров запроса. */
+  static createPaginationResult<T>(
+    items: T[],
+    totalCount: number,
+    options: PaginationInputDTO
+  ): PaginationResult<T> {
+    const { page = 1, limit = 10 } = options;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      items,
+      totalCount,
+      totalPages,
+      currentPage: page,
+    };
+  }
+
+  /** Перевести номер страницы в `LIMIT`/`OFFSET`. */
+  static getSqlPaginationParams(options: PaginationInputDTO): { limit: number; offset: number } {
+    const { page = 1, limit = 10 } = options;
+    const offset = (page - 1) * limit;
+
+    return {
+      limit,
+      offset,
+    };
+  }
+
+  /**
+   * Проверить параметры и подставить умолчания.
+   *
+   * Верхняя граница `limit` — защита от выгрузки всей таблицы одним запросом,
+   * поэтому проверка живёт здесь, а не в каждом репозитории.
+   */
+  static validatePaginationOptions(options: PaginationInputDTO): PaginationInputDTO {
+    const { page = 1, limit = 10, sortBy, sortOrder = 'ASC' } = options;
+
+    if (page < 1) {
+      throw new Error('Номер страницы должен быть больше 0');
+    }
+
+    if (limit < 1 || limit > 1000) {
+      throw new Error('Количество элементов на странице должно быть от 1 до 1000');
+    }
+
+    if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
+      throw new Error('Направление сортировки должно быть ASC или DESC');
+    }
+
+    return {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    };
+  }
+}
+
+/**
  * Канон-конверсия `PaginationInputDTO` → `{limit, offset, sortBy, sortOrder}`
  * для адаптеров портов innercoop / внешних read API, не принимающих page-form.
  */

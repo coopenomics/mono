@@ -9,12 +9,8 @@ import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync'
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IInvestDatabaseData } from '../../domain/interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../../domain/interfaces/invest-blockchain.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { InvestFilterInputDTO } from '../../application/dto/invests_management/invest-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class InvestTypeormRepository
@@ -70,10 +66,10 @@ export class InvestTypeormRepository
 
   async findAllPaginated(
     filter?: InvestFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<InvestDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<InvestDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

@@ -7,7 +7,6 @@ import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationRe
 import { UseGuards } from '@nestjs/common';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { ApprovalDTO } from '../dto/approval.dto';
-import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
 // Пагинированные результаты
 const paginatedApprovalsResult = createPaginationResult(ApprovalDTO, 'PaginatedChairmanApprovals');
@@ -33,7 +32,7 @@ export class ApprovalResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ApprovalDTO>> {
     // Конвертируем параметры пагинации в доменный формат
-    const domainOptions: PaginationInputDomainInterface | undefined = options
+    const domainOptions: PaginationInputDTO | undefined = options
       ? {
           page: options.page,
           limit: options.limit,

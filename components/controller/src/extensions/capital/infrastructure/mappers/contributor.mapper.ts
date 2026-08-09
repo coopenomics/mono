@@ -2,8 +2,8 @@ import { ContributorDomainEntity } from '../../domain/entities/contributor.entit
 import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import type { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
 import type { IContributorBlockchainData } from '../../domain/interfaces/contributor-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorBlockchainData>;

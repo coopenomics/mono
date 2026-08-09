@@ -4,8 +4,8 @@ import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
 import type { IApprovalBlockchainData } from '../../../domain/interfaces/approval-blockchain.interface';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { IBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { SovietContract } from 'cooptypes';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные одобрения

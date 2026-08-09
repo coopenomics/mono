@@ -6,12 +6,8 @@ import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
 import { ApprovalMapper } from '../mappers/approval.mapper';
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ApprovalRepository } from '../../domain/repositories/approval.repository';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ApprovalFilterInput } from '../../application/dto/approval-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория одобрений
@@ -47,10 +43,10 @@ export class ApprovalTypeormRepository
   // Пагинированный поиск с фильтрами
   async findAllPaginated(
     filter?: ApprovalFilterInput,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ApprovalDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ApprovalDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

@@ -8,8 +8,7 @@ import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { ChairmanBlockchainAdapter } from '../../infrastructure/blockchain/adapters/chairman-blockchain.adapter';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from '../../domain/interfaces/chairman-blockchain.port';
-import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationResult } from '@coopenomics/extension-kit';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { ConfirmApproveDomainInput } from '../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../domain/actions/decline-approve-domain-input.interface';
 
@@ -34,7 +33,7 @@ export class ApprovalService {
    */
   async getApprovals(
     filter?: ApprovalFilterInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<ApprovalDTO>> {
     this.logger.debug('Получение списка одобрений', { filter, options });
 

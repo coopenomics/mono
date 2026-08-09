@@ -2,9 +2,9 @@ import { ProgramPropertyDomainEntity } from '../../domain/entities/program-prope
 import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeorm-entity';
 import type { IProgramPropertyDatabaseData } from '../../domain/interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/program-property-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ProgramPropertyStatus } from '../../domain/enums/program-property-status.enum';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ProgramPropertyTypeormEntity>, keyof IProgramPropertyDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProgramPropertyTypeormEntity>, keyof IProgramPropertyBlockchainData>;

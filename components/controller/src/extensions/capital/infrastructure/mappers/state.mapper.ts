@@ -2,7 +2,7 @@ import { StateDomainEntity } from '../../domain/entities/state.entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import type { IStateDatabaseData } from '../../domain/interfaces/state-database.interface';
 import type { IStateBlockchainData } from '../../domain/interfaces/state-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<StateTypeormEntity>, keyof IStateDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<StateTypeormEntity>, keyof IStateBlockchainData>;
