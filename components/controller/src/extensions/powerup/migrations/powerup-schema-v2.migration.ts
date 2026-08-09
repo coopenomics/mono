@@ -1,6 +1,6 @@
 // extensions/powerup/migrations/powerup-schema-v2.migration.ts
 
-import { IExtensionSchemaMigration } from '~/domain/extension/services/extension-schema-migration.service';
+import type { IExtensionSchemaMigration } from '@coopenomics/extension-kit';
 
 /**
  * Старая конфигурация powerup (v1)

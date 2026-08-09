@@ -11,6 +11,13 @@
   },
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "sync": [
+        "./dist/sync/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
