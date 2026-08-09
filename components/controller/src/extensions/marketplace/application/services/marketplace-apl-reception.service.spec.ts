@@ -769,3 +769,58 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
     expect(action.unit_of_measurement).toBe('упак. 0,1 кг');
   });
 });
+
+/**
+ * Состав партии к приёмке ищется строго по владельцу кода передачи.
+ *
+ * Оператор сканирует код пайщика и видит то, что этот пайщик привёз. Если
+ * фильтр по поставщику потерять, по чужому коду откроется состав чужой
+ * поставки — оператор примет имущество на не того человека, и акт уйдёт не
+ * тому получателю выплаты. Заказы без заявки (cycle_id) отсеиваются: модель
+ * приёмки — per (заявка, участок), открывать нечего.
+ */
+describe('MarketplaceAplReceptionService.listSupplierPickupOrders', () => {
+  let mocks: ReturnType<typeof buildMocks>;
+  let service: MarketplaceAplReceptionService;
+
+  beforeEach(() => {
+    mocks = buildMocks();
+    service = buildService(mocks);
+  });
+
+  it('код пайщика, который ничего не привозил → пустой состав', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({ items: [] });
+
+    const orders = await service.listSupplierPickupOrders('voskhod', 'ku.krasn.1', 'not-a-supplier');
+
+    expect(orders).toEqual([]);
+    expect((mocks.orderRepo as any).list).toHaveBeenCalledWith(
+      expect.objectContaining({ supplier_account: 'not-a-supplier', delivery_braname: 'ku.krasn.1' }),
+      expect.anything()
+    );
+  });
+
+  it('заказы без заявки отсеиваются — приёмку по ним не открыть', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({
+      items: [
+        buildOrder({ id: 'order-1', cycle_id: 'cycle-1' }),
+        buildOrder({ id: 'order-2', cycle_id: null }),
+      ],
+    });
+
+    const orders = await service.listSupplierPickupOrders('voskhod', 'ku.krasn.1', 'supplier1');
+
+    expect(orders.map((o) => o.id)).toEqual(['order-1']);
+  });
+
+  it('фильтр несёт участок и владельца кода — иначе откроется чужая поставка', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({ items: [] });
+
+    await service.listSupplierPickupOrders('voskhod', 'ku.odn.2', 'supplier1');
+
+    const filter = (mocks.orderRepo as any).list.mock.calls[0][0];
+    expect(filter.supplier_account).toBe('supplier1');
+    expect(filter.delivery_braname).toBe('ku.odn.2');
+    expect(filter.coopname).toBe('voskhod');
+  });
+});

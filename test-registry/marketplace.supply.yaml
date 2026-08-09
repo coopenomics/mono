@@ -76,8 +76,8 @@ cases:
     kind: side
     scenario: Код передачи принадлежит пайщику, который не является поставщиком
     expect: приёмка не открывается, состав партии не показывается
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   # Вопрос «что с подписанными актами при пересборке» снят чтением кода
   # (2026-08-08): пересобрать можно только черновик до подписи поставщика.
