@@ -3,9 +3,9 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../chairman-extension.module';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import {

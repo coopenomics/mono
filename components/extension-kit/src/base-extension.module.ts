@@ -1,7 +1,11 @@
 import { OnModuleInit, Injectable } from '@nestjs/common';
 import { z, type ZodObject } from 'zod';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { ExtensionDomainEntity } from './entities/extension.entity';
 
+/**
+ * Базовый класс расширения. От него наследуется класс `<X>Extension` каждого расширения:
+ * он объявляет имя, схему и дефолты конфига и получает установленную запись расширения.
+ */
 @Injectable()
 export abstract class BaseExtensionModule implements OnModuleInit {
   abstract name: string;

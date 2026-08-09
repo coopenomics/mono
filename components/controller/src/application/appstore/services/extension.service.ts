@@ -11,12 +11,12 @@ import { ExtensionListingInteractor } from '~/application/appstore/interactors/e
 import {
   LOG_EXTENSION_REPOSITORY,
   LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
   LogExtensionPaginationResult,
-} from '~/domain/extension/interfaces/log-extension-domain.interface';
+} from '@coopenomics/extension-kit';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 /**

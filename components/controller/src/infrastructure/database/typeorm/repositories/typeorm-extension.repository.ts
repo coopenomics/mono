@@ -4,8 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type FindOptionsWhere } from 'typeorm';
 import { ExtensionEntity } from '../entities/extension.entity';
-import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class TypeOrmExtensionDomainRepository<TConfig = any> implements ExtensionDomainRepository<TConfig> {

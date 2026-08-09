@@ -9,8 +9,8 @@ import { MeetWorkflowNotificationService } from './meet-workflow-notification.se
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+} from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 import { default as config } from '~/config/config';

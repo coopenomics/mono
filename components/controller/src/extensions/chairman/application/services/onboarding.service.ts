@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+} from '@coopenomics/extension-kit';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import {
   ChairmanOnboardingAgendaInputDTO,
   ChairmanOnboardingAgendaStepEnum,

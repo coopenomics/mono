@@ -1,4 +1,4 @@
-import { BaseExtensionModule } from '~/extensions/base.extension.module';
+import { BaseExtensionModule } from '@coopenomics/extension-kit';
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import type { PaymentProviderPort } from '~/domain/gateway/ports/payment-provider.port';
 

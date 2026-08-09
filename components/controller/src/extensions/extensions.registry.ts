@@ -17,86 +17,19 @@ import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 
-/**
- * Конфигурация рабочего стола (workspace), который предоставляет расширение
- */
-export interface IDesktopConfig {
-  name: string; // уникальное имя workspace (например: 'soviet', 'chairman')
-  title: string; // отображаемое название (например: 'Стол Совета')
-  icon?: string; // иконка для меню
-  defaultRoute?: string; // маршрут по умолчанию для этого workspace
-}
+import {
+  ExtensionAvailability,
+  isExtensionAvailable,
+  type IRegistryExtension,
+} from '@coopenomics/extension-kit';
 
-/**
- * В каких сетях расширение разрешено ставить.
- *
- * Переключатель обкатки: приложение сначала открывают на тестовом контуре
- * (`NON_MAINNET_ONLY`), а когда оно готово к боевой эксплуатации — здесь же,
- * в реестре, переводят в `EVERYWHERE`.
- */
-export enum ExtensionAvailability {
-  /** Доступно в любой сети, включая основную. */
-  EVERYWHERE = 'everywhere',
-  /** Доступно только вне основной сети — тестовый и локальный контуры. */
-  NON_MAINNET_ONLY = 'non_mainnet_only',
-  /** Недоступно нигде — расширение ещё не открыто для установки. */
-  NOWHERE = 'nowhere',
-}
-
-/**
- * Вычисляет доступность расширения для сети, в которой работает узел.
- */
-export function isExtensionAvailable(availability: ExtensionAvailability, isMainnet: boolean): boolean {
-  switch (availability) {
-    case ExtensionAvailability.EVERYWHERE:
-      return true;
-    case ExtensionAvailability.NON_MAINNET_ONLY:
-      return !isMainnet;
-    case ExtensionAvailability.NOWHERE:
-      return false;
-  }
-}
-
-/**
- * Основной интерфейс для описания расширения в реестре.
- * Обрати внимание: сохраняем его тут, а не в домене, чтобы не тянуть поля readme, instructions и т.д. в домен.
- */
-export interface IRegistryExtension {
-  is_builtin: boolean; // признак, что расширение встроенное (?)
-  availability: ExtensionAvailability; // в каких сетях расширение разрешено ставить
-  is_internal: boolean; // признак, что расширение внутреннее
-  desktops?: IDesktopConfig[]; // массив рабочих столов, которые предоставляет расширение
-  external_url?: string; // ссылка на внешний ресурс
-  title: string; // заголовок/название расширения
-  description: string; // краткое описание
-  image: string; // URL к изображению
-  class: any; // класс модуля-расширения
-  extensionClass: any; // класс расширения (для миграций схемы)
-  schema: any; // Zod-схема (или другая), которая описывает конфиг
-  tags?: string[]; // список тегов
-  readme: Promise<string>; // README содержимое
-  instructions: Promise<string>; // INSTALL содержимое
-
-  // Канон авторизации/онбординга столов теперь выражается через grants:
-  // расширение публикует ExtensionDesktopGrantsProvider (см.
-  // domain/desktop/ports/extension-grants.port.ts), а гейтинг до принятия ЦПП
-  // сворачивается в вычисление грантов (нет прав → стол/страница не видны).
-  // Отдельные поля onboarding_route/onboarding_desktop/isOnboarded больше не
-  // нужны. Подробности — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
-
-  // Для обратной совместимости: если есть desktops, значит это desktop расширение
-  get is_desktop(): boolean;
-}
+// Форма записи реестра, enum доступности и её вычисление живут в @coopenomics/extension-kit —
+// расширению нужен этот контракт, чтобы типизировать свою запись. Здесь остаётся сам реестр:
+// перечисление конкретных расширений, то есть composition root.
 
 interface INamedExtension {
   [key: string]: IRegistryExtension;
 }
-
-/**
- * Запись реестра, у которой доступность уже вычислена под текущую сеть узла.
- * Именно её потребляет DTO — наружу отдаётся готовый `is_available`.
- */
-export type IResolvedRegistryExtension = Omit<IRegistryExtension, 'availability'> & { is_available: boolean };
 
 // Асинхронные функции для чтения Markdown
 function getReadmeContent(dirPath: string): Promise<string> {

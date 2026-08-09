@@ -54,7 +54,7 @@ import type { CompleteCapitalRegistrationDomainInput } from '../../domain/action
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 

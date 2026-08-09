@@ -1,8 +1,8 @@
 // domain/appstore/services/appstore-domain.service.ts
 
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository } from '../repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '../entities/extension-domain.entity';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { defaultConfig as chairmanDefaultConfig } from '~/extensions/chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from '~/extensions/powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from '~/extensions/qrpay/qrpay-extension.module';

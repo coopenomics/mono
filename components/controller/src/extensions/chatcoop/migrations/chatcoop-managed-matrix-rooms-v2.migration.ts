@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import type {
   IExtensionSchemaMigration,
   ExtensionSchemaMigrationAfterContext,
-} from '~/domain/extension/services/extension-schema-migration.service';
+} from '@coopenomics/extension-kit';
 import {
   CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
   type ChatcoopManagedMatrixRoomRepository,

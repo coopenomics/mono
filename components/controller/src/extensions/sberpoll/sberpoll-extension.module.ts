@@ -10,11 +10,11 @@ import { Inject, Module } from '@nestjs/common';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';

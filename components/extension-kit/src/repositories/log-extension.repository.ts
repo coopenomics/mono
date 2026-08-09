@@ -1,11 +1,9 @@
-// domain/extension/repositories/log-extension-domain.repository.interface.ts
-
-import { LogExtensionDomainEntity } from '../entities/log-extension-domain.entity';
+import { LogExtensionDomainEntity } from '../entities/log-extension.entity';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
   LogExtensionPaginationResult,
-} from '../interfaces/log-extension-domain.interface';
+} from '../entities/log-extension.entity';
 
 export interface LogExtensionDomainRepository<TLog = any> {
   push(name: string, data: TLog): Promise<LogExtensionDomainEntity<TLog>>;
@@ -16,4 +14,5 @@ export interface LogExtensionDomainRepository<TLog = any> {
   ): Promise<LogExtensionPaginationResult<TLog>>;
 }
 
-export const LOG_EXTENSION_REPOSITORY = Symbol('LogExtensionDomainRepository'); // Создаем уникальный токен
+/** DI-токен журнала расширений. См. пояснение про `Symbol.for` в `EXTENSION_REPOSITORY`. */
+export const LOG_EXTENSION_REPOSITORY = Symbol.for('ExtensionKit.Repository.LogExtension');

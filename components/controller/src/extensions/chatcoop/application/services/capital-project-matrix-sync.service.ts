@@ -7,7 +7,7 @@ import { ChatCoopApplicationService } from './chatcoop-application.service';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
 import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { IConfig } from '../../chatcoop-extension.module';

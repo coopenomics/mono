@@ -1,5 +1,5 @@
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule } from '../base.extension.module';
+import { BaseExtensionModule } from '@coopenomics/extension-kit';
 import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
@@ -21,8 +21,8 @@ import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
-import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
 import { VarsRepositoryImplementation } from '~/infrastructure/database/generator-repositories/repositories/vars-generator.repository';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
@@ -98,7 +98,7 @@ import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/type
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
-import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
+import { EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ChatCoopExtension extends BaseExtensionModule {

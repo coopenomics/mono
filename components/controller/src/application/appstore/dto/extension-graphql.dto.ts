@@ -1,8 +1,8 @@
 // ========== ./dto/extension-graphql.dto.ts ==========
 import { ObjectType, Field } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import type { IResolvedRegistryExtension, IDesktopConfig } from '~/extensions/extensions.registry';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { IResolvedRegistryExtension, IDesktopConfig } from '@coopenomics/extension-kit';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL тип для конфигурации рабочего стола

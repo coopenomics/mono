@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { BaseExtensionModule } from '../base.extension.module';
+import { BaseExtensionModule } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { Injectable } from '@nestjs/common';
@@ -13,7 +13,7 @@ import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { Inject } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -468,7 +468,7 @@ import { ContractManagementInteractor } from './application/use-cases/contract-m
 import { ExpensesManagementInteractor } from './application/use-cases/expenses-management.interactor';
 import { SegmentsInteractor } from './application/use-cases/segments.interactor';
 import { LogInteractor } from './application/use-cases/log.interactor';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { config as configEnv } from '~/config';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
 import { FreeDecisionDomainModule } from '~/domain/free-decision/free-decision.module';

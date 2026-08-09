@@ -4,7 +4,7 @@ import { Cooperative } from 'cooptypes';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import {
   FREE_DECISION_PORT,
   type FreeDecisionPort,

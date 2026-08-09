@@ -3,7 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {

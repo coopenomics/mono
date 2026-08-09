@@ -153,6 +153,19 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 **Имя `inter` больше не используется.** `innercoop` — внутренняя связь в контуре одного кооператива; `intercoop` зарезервировано за федерацией кооператив ↔ кооператив (v4). Пакет авторизации не содержит: права пайщика проверяются на границе API расширения, порт вызывается уже внутри авторизованного use-case.
 
+### Каркас расширения — `@coopenomics/extension-kit`
+
+Второй пакет, ортогональный `innercoop` (INV-007: друг от друга не зависят, контроллер и расширение зависят от обоих). Разделение по вопросу, на который пакет отвечает:
+
+- **`innercoop`** — «как расширение разговаривает с ядром и соседями»: порты, DTO, DI-токены. Зависимостей нет.
+- **`extension-kit`** — «чем нужно быть, чтобы считаться расширением»: `BaseExtensionModule`, `ExtensionDomainEntity` и `LogExtensionDomainEntity`, интерфейсы репозиториев с токенами `EXTENSION_REPOSITORY` / `LOG_EXTENSION_REPOSITORY`, контракт миграции схемы (`IExtensionSchemaMigration`, `ExtensionSchemaMigrationAfterContext`), событие `EXTENSION_APP_TERMINATE_EVENT`, контракт записи реестра (`IRegistryExtension`, `ExtensionAvailability`, `isExtensionAvailable`, `IDesktopConfig`). Peer-зависимости — `@nestjs/common` и `zod`.
+
+**Что осталось в контроллере и почему.** `domain/extension/services/*` и `extension-domain.module.ts` в кит не переехали: они знают о конкретных расширениях — реестр, дефолты конфигов шести расширений, список из двух десятков миграций, `nestApp` из `~/index`. Это composition root, а не переиспользуемый каркас. `ExtensionSchemaMigrationService` дополнительно завязан на `WinstonLoggerService`; он сможет переехать, когда появится `ILoggerPort`.
+
+**Токены — `Symbol.for`, не `Symbol()`.** Расширение и ядро резолвят токен каждый из своей копии пакета, совпасть они обязаны по глобальному реестру символов — иначе DI молча не найдёт провайдера.
+
+Новое расширение: класс `<X>Extension extends BaseExtensionModule` (импорт из `@coopenomics/extension-kit`), модуль `<X>ExtensionModule`, запись в `AppRegistry` c `extensionClass`. Слова «плагин» в коде и комментариях не используем — сущность называется расширением.
+
 ### Read-path (ADR-011) — СТРОГО
 
 - Queries / resolvers / application reads → **только Repository из Postgres**.

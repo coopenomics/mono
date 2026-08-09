@@ -11,7 +11,7 @@ import { AccountDomainEntity } from '~/domain/account/entities/account-domain.en
 import {
   ExtensionDomainRepository,
   EXTENSION_REPOSITORY,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
 import {
   CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,

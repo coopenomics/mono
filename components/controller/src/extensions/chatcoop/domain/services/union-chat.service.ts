@@ -8,7 +8,7 @@ import { AccountDomainEntity } from '~/domain/account/entities/account-domain.en
 import {
   ExtensionDomainRepository,
   EXTENSION_REPOSITORY,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
 import { OrganizationType } from '~/application/account/enum/organization-type.enum';
 

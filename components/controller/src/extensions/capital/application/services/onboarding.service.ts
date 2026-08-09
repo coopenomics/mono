@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+} from '@coopenomics/extension-kit';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';

@@ -145,7 +145,7 @@ src/
 │   └── wallet/                #   Кошельки
 │
 ├── extensions/                # 🟣 Система расширений (плагины)
-│   ├── base.extension.module.ts   # Абстрактный базовый класс расширения
+│   ├── innercoop-bridge.module.ts  # Биндинг портов @coopenomics/innercoop
 │   ├── extensions.module.ts       # Динамический модуль регистрации всех расширений
 │   ├── extensions.registry.ts     # Реестр расширений (AppRegistry)
 │   ├── builtin/               #   Встроенное расширение-заглушка
@@ -390,9 +390,9 @@ export class TypeOrmPaymentRepository implements PaymentRepository { ... }
 
 ### Архитектура
 
-Расширения — это модульные плагины, подключаемые к основному приложению. Каждое расширение:
+Расширения — это модульные приложения, подключаемые к контроллеру. Каждое расширение:
 
-1. **Наследует** `BaseExtModule` (или специализированный класс, например `PaymentProvider`, `IPNProvider`, `PollingProvider`)
+1. **Наследует** `BaseExtensionModule` (или специализированный класс, например `PaymentProvider`, `IPNProvider`, `PollingProvider`)
 2. **Реализует** `OnModuleInit` (NestJS lifecycle)
 3. **Регистрируется** в `AppRegistry` (`extensions.registry.ts`)
 4. **Загружается** через `ExtensionsModule.register()` (динамический NestJS-модуль)
@@ -402,9 +402,9 @@ export class TypeOrmPaymentRepository implements PaymentRepository { ... }
 
 ```typescript
 @Injectable()
-export abstract class BaseExtModule implements OnModuleInit {
+export abstract class BaseExtensionModule implements OnModuleInit {
   abstract name: string;                    // Уникальное имя
-  abstract plugin: ExtensionDomainEntity;   // Сущность из БД
+  abstract extension: ExtensionDomainEntity;   // Сущность из БД
   abstract defaultConfig: Record<string, any>;  // Дефолтная конфигурация
   public configSchemas: ZodObject<any>;     // Zod-схема конфигурации
   abstract initialize(): Promise<void>;     // Инициализация при старте
@@ -441,13 +441,13 @@ AppRegistry = {
 ### Иерархия платёжных провайдеров
 
 ```
-BaseExtModule
-├── PaymentProvider (extends BaseExtModule, implements PaymentProviderPort)
-│   └── QrPayPlugin — генерация QR-кода для оплаты
-├── IPNProvider (extends BaseExtModule)
-│   └── YookassaPlugin — приём IPN-уведомлений от ЮKassa
-└── PollingProvider (extends BaseExtModule)
-    └── SberpollPlugin — опрос API Сбербанка
+BaseExtensionModule
+├── PaymentProvider (extends BaseExtensionModule, implements PaymentProviderPort)
+│   └── QrPayExtension — генерация QR-кода для оплаты
+├── IPNProvider (extends BaseExtensionModule)
+│   └── YookassaExtension — приём IPN-уведомлений от ЮKassa
+└── PollingProvider (extends BaseExtensionModule)
+    └── SberpollExtension — опрос API Сбербанка
 ```
 
 ---

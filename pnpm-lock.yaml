@@ -26,6 +26,9 @@ importers:
       '@coopenomics/desktop':
         specifier: workspace:*
         version: link:components/desktop
+      '@coopenomics/extension-kit':
+        specifier: workspace:*
+        version: link:components/extension-kit
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:components/factory
@@ -265,6 +268,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1035.0
         version: 3.1046.0
+      '@coopenomics/extension-kit':
+        specifier: workspace:*
+        version: link:../extension-kit
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:../factory
@@ -1075,6 +1081,21 @@ importers:
       sharp:
         specifier: ^0.34.5
         version: 0.34.5
+
+  components/extension-kit:
+    devDependencies:
+      '@nestjs/common':
+        specifier: ^10.0.0
+        version: 10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      unbuild:
+        specifier: ^2.0.0
+        version: 2.0.0(sass@1.98.0)(typescript@5.9.3)(vue-tsc@2.2.12(typescript@5.9.3))
+      zod:
+        specifier: ^3.0.0
+        version: 3.25.76
 
   components/factory:
     dependencies:
@@ -24152,6 +24173,20 @@ snapshots:
       file-type: 20.4.1
       iterare: 1.2.1
       reflect-metadata: 0.1.14
+      rxjs: 7.8.2
+      tslib: 2.8.1
+      uid: 2.0.2
+    optionalDependencies:
+      class-transformer: 0.5.1
+      class-validator: 0.14.4
+    transitivePeerDependencies:
+      - supports-color
+
+  '@nestjs/common@10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+    dependencies:
+      file-type: 20.4.1
+      iterare: 1.2.1
+      reflect-metadata: 0.2.2
       rxjs: 7.8.2
       tslib: 2.8.1
       uid: 2.0.2

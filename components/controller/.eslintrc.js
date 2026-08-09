@@ -24,7 +24,6 @@ const COMPOSITION_ROOT = [
   'src/extensions/extensions.module.ts',
   'src/extensions/extensions.registry.ts',
   'src/extensions/innercoop-bridge.module.ts',
-  'src/extensions/base.extension.module.ts',
   'src/domain/extension/**/*.ts',
 ];
 

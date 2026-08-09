@@ -3,7 +3,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException, Optional } 
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import {
   AGREEMENT_REGISTRATION_PORT,
   AgreementRegistrationPort,

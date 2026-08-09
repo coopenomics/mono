@@ -7,7 +7,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { IConfig } from '../../capital-extension.module';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';

@@ -1,6 +1,4 @@
-// domain/appstore/repositories/appstore-domain.repository.interface.ts
-
-import { ExtensionDomainEntity } from '../entities/extension-domain.entity';
+import { ExtensionDomainEntity } from '../entities/extension.entity';
 
 export interface ExtensionDomainRepository<TConfig = any> {
   findByName(name: string): Promise<ExtensionDomainEntity<TConfig> | null>;
@@ -17,4 +15,10 @@ export interface ExtensionDomainRepository<TConfig = any> {
   patchConfig(name: string, patch: Partial<TConfig>): Promise<ExtensionDomainEntity<TConfig>>;
 }
 
-export const EXTENSION_REPOSITORY = Symbol('ExtensionDomainRepository'); // Создаем уникальный токен
+/**
+ * DI-токен репозитория расширений. Реализацию подставляет ядро контроллера.
+ *
+ * `Symbol.for`, а не `Symbol()`: расширение и ядро резолвят токен из своих копий пакета,
+ * и совпасть они обязаны по глобальному реестру символов, иначе DI молча не найдёт провайдера.
+ */
+export const EXTENSION_REPOSITORY = Symbol.for('ExtensionKit.Repository.Extension');

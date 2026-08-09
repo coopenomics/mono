@@ -1,7 +1,7 @@
 import type {
   IExtensionSchemaMigration,
   ExtensionSchemaMigrationAfterContext,
-} from '~/domain/extension/services/extension-schema-migration.service';
+} from '@coopenomics/extension-kit';
 import { IConfig } from '../types';
 import config from '~/config/config';
 import {

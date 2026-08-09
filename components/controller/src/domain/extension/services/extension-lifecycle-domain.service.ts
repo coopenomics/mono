@@ -9,7 +9,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
-} from '~/domain/extension/extension-app-lifecycle.events';
+} from '@coopenomics/extension-kit';
 import {
   ONBOARDING_COMPLETED_EVENT,
   type OnboardingCompletedPayload,

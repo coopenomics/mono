@@ -6,7 +6,7 @@ import { TrackedMeet, NotificationTypes, ILog } from './types';
 import {
   LOG_EXTENSION_REPOSITORY,
   LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';

@@ -3,7 +3,7 @@ import type { DataSource } from 'typeorm';
 import type {
   ExtensionSchemaMigrationAfterContext,
   IExtensionSchemaMigration,
-} from '~/domain/extension/services/extension-schema-migration.service';
+} from '@coopenomics/extension-kit';
 import { MARKETPLACE_STORAGE_CELL_LEGACY_LEVEL } from '../domain/entities/marketplace-storage-cell.types';
 import {
   MARKETPLACE_STORAGE_CELL_REPOSITORY,

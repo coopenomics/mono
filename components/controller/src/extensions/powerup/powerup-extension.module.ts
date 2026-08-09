@@ -1,18 +1,18 @@
 import cron from 'node-cron';
 import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule } from '../base.extension.module';
+import { BaseExtensionModule } from '@coopenomics/extension-kit';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import {
   LOG_EXTENSION_REPOSITORY,
   LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 

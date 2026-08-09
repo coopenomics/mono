@@ -1,0 +1,38 @@
+{
+  "name": "@coopenomics/extension-kit",
+  "type": "module",
+  "version": "2026.8.8-6",
+  "description": "Служебный каркас расширения цифрового кооператива: базовый модуль, сущности и репозитории расширения, контракт миграций схемы, контракт реестра",
+  "author": "Alex Ant <dacom.dark.sun@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0",
+    "zod": "^3.0.0"
+  }
+}

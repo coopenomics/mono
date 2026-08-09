@@ -7,12 +7,12 @@ import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/va
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '~/domain/extension/repositories/log-extension-domain.repository';
+} from '@coopenomics/extension-kit';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
 import config from '~/config/config';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 
 /**
