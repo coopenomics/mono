@@ -36,6 +36,7 @@ import { MarketplaceOnboardingService } from './onboarding/marketplace-onboardin
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
+import { ACCOUNT_PORT } from '@coopenomics/innercoop';
 import {
   MarketplaceSupplierRegistryService,
   MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
@@ -194,7 +195,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
     // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
     ExpensesExtensionModule,
-    // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
+    // ACCOUNT_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     AccountInfrastructureModule,
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
     // если AppModule тоже инициализирует его, NestJS использует singleton

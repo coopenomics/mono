@@ -7,7 +7,6 @@ import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
-import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
@@ -40,7 +39,7 @@ import type {
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис собраний и решений кооперативных участков.
@@ -55,7 +54,7 @@ export class KuService {
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly documentAggregator: DocumentAggregator
   ) {}

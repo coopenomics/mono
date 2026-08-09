@@ -1,12 +1,11 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { MEET_REPOSITORY, MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import type { TrackedMeet } from './types';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 
@@ -20,8 +19,8 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
     private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort,
     @Inject(MEET_REPOSITORY)
     private readonly meetPreRepository: MeetPreProcessingRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -44,10 +43,11 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
 
     const account = await this.accountPort.getAccount(platformSettings().coopname);
 
-    const shortName = account.private_account?.organization_data?.short_name;
+    const shortName: string | undefined = account.private_account?.organization_data?.short_name;
 
-    this.coopShortName = shortName ?? '';
-    return this.coopShortName;
+    const resolved = shortName ?? '';
+    this.coopShortName = resolved;
+    return resolved;
   }
 
   // Формирование URL для уведомлений

@@ -8,6 +8,7 @@ export * from './logger.port';
 export * from './message-channel.port';
 export * from './cooperative-vars.port';
 export * from './document.port';
+export * from './account.port';
 export * from './signed-document.port';
 export * from './signature-info.contract';
 export * from './meta-document.contract';

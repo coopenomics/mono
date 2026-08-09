@@ -2,15 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { config } from '~/config';
-import {
-  EXPENSE_CHASSIS_PORT,
-  type IExpenseChassisPort,
-  type InnerExpenseItem,
-  type InnerExpenseProposalRead,
-  type InnerExpenseProposalStatus,
-  type InnerExpenseRequisiteItemInput,
-} from '@coopenomics/innercoop';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import {
@@ -45,8 +37,8 @@ export class ProgramExpensesManagementService {
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
     @Inject(EXPENSE_CHASSIS_PORT)
     private readonly expenseChassis: IExpenseChassisPort,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
   ) {}
 

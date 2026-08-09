@@ -1,13 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { IConfig, TrackedMeet, defaultConfig } from './types';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity, platformSettings } from '@coopenomics/extension-kit';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 
 @Injectable()
@@ -16,7 +14,7 @@ export class MeetTrackerService {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     private readonly workflowNotificationService: MeetWorkflowNotificationService
   ) {
     this.logger.setContext(MeetTrackerService.name);
@@ -335,12 +333,12 @@ export class MeetTrackerService {
   }
 
   // Получение всех аккаунтов с использованием пакетной загрузки
-  async getAllAccounts(): Promise<AccountDomainEntity[]> {
+  async getAllAccounts(): Promise<InnerAccount[]> {
     try {
       const batchSize = 100;
       let currentPage = 1;
       let hasMorePages = true;
-      let allAccounts: AccountDomainEntity[] = [];
+      let allAccounts: InnerAccount[] = [];
 
       this.logger.debug(`Начало загрузки аккаунтов с размером пакета: ${batchSize}`);
 

@@ -1,6 +1,7 @@
 import { Global, Module, Scope } from '@nestjs/common';
 import {
   CHATCOOP_CALENDAR_PORT,
+  ACCOUNT_PORT,
   COOPERATIVE_VARS_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
@@ -16,6 +17,8 @@ import { RedisService } from '~/infrastructure/redis/redis.service';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/cooperative-vars-innercoop.adapter';
 import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
+import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-innercoop.adapter';
+import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -52,10 +55,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     SystemDomainModule,
     DocumentDomainModule,
     DocumentModule,
+    AccountInfrastructureModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
     DocumentInnercoopAdapter,
+    AccountInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -108,6 +113,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: DOCUMENT_PORT,
       useExisting: DocumentInnercoopAdapter,
     },
+    {
+      provide: ACCOUNT_PORT,
+      useExisting: AccountInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -120,6 +129,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     MESSAGE_CHANNEL_PORT,
     COOPERATIVE_VARS_PORT,
     DOCUMENT_PORT,
+    ACCOUNT_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

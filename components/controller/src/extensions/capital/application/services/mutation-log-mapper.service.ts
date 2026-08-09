@@ -1,12 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { MutationLogDomainEntity } from '~/domain/mutation-log/entities/mutation-log-domain.entity';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import { LogEventType } from '../../domain/enums/log-event-type.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
+import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 
 /**
  * Типы сущностей для логов
@@ -67,8 +67,8 @@ export class MutationLogMapperService {
     private readonly projectRepository: ProjectRepository,
     @Inject(STORY_REPOSITORY)
     private readonly storyRepository: StoryRepository,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort
   ) {}
 
   /**

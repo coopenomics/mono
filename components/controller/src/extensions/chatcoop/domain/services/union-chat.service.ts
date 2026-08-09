@@ -2,14 +2,13 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import config from '~/config/config';
 import { MatrixApiService } from '../../application/services/matrix-api.service';
 import { UNION_CHAT_REPOSITORY, UnionChatRepository } from '../repositories/union-chat.repository';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import {
   ExtensionDomainRepository,
   EXTENSION_REPOSITORY,
 } from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
 import { OrganizationType } from '~/application/account/enum/organization-type.enum';
-import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, type InnerAccount } from '@coopenomics/innercoop';
 
 @Injectable()
 export class UnionChatService {
@@ -26,7 +25,7 @@ export class UnionChatService {
    * Создает комнату связи кооператив ↔ союз и сохраняет запись.
    * Идемпотентность: проверяем по coopUsername.
    */
-  async ensureUnionChat(account: AccountDomainEntity, matrixUserId: string): Promise<void> {
+  async ensureUnionChat(account: InnerAccount, matrixUserId: string): Promise<void> {
     try {
       if (!config.union?.is_unioned) {
         return;

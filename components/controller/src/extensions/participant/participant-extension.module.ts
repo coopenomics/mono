@@ -1,9 +1,8 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
@@ -12,7 +11,6 @@ import { IConfig, defaultConfig, Schema, ILog } from './types';
 import { NotificationSenderService } from './notification-sender.service';
 import { MeetTrackerService } from './meet-tracker.service';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 
 @Injectable()
 export class ParticipantExtension extends BaseExtensionModule implements OnModuleDestroy {
@@ -22,7 +20,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     private readonly meetTracker: MeetTrackerService,
     private readonly notificationSender: NotificationSenderService
   ) {
@@ -37,7 +35,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
   public defaultConfig = defaultConfig;
 
   // Получение всех аккаунтов с использованием пакетной загрузки
-  async getAllAccounts(): Promise<AccountDomainEntity[]> {
+  async getAllAccounts(): Promise<InnerAccount[]> {
     return this.meetTracker.getAllAccounts();
   }
 

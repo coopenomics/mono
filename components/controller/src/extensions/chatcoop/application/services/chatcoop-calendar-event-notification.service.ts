@@ -4,9 +4,8 @@ import type {
   ICoopCalendarEventNotificationPort,
   IProjectCapitalClearancePort,
 } from '@coopenomics/innercoop';
-import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { DateUtils } from '~/shared/utils/date-utils';
@@ -25,7 +24,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
 
   constructor(
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(PROJECT_CAPITAL_CLEARANCE_PORT)
     private readonly projectCapitalClearance: IProjectCapitalClearancePort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -42,9 +41,10 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
       return this.coopShortName;
     }
     const account = await this.accountPort.getAccount(platformSettings().coopname);
-    const shortName = account.private_account?.organization_data?.short_name;
-    this.coopShortName = shortName ?? platformSettings().coopname;
-    return this.coopShortName;
+    const shortName: string | undefined = account.private_account?.organization_data?.short_name;
+    const resolved = shortName ?? platformSettings().coopname;
+    this.coopShortName = resolved;
+    return resolved;
   }
 
   private formatEndParts(endsAt: Date | null): { endDate: string; endTime: string } {

@@ -5,8 +5,6 @@ import { MatrixUserManagementService } from '../../domain/services/matrix-user-m
 import { UnionChatService } from '../../domain/services/union-chat.service';
 import { MatrixApiService } from './matrix-api.service';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import {
   ExtensionDomainRepository,
   EXTENSION_REPOSITORY,
@@ -26,7 +24,7 @@ import {
   type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload,
 } from '~/shared/constants/capital-project-matrix.events';
 import config from '~/config/config';
-import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
 
 // Расширяем тип config для доступа к matrix.client_url
 const extendedConfig = config as typeof config & {
@@ -36,7 +34,7 @@ const extendedConfig = config as typeof config & {
 /**
  * Извлекает display name из данных аккаунта и информации о кооперативе
  */
-function extractDisplayName(account: AccountDomainEntity, cooperativeName: string, logger: Logger): string {
+function extractDisplayName(account: InnerAccount, cooperativeName: string, logger: Logger): string {
   try {
     let userName = '';
 
@@ -75,7 +73,7 @@ function extractDisplayName(account: AccountDomainEntity, cooperativeName: strin
 /**
  * Извлекает контактные данные (телефон, email) из аккаунта
  */
-function extractContactInfo(account: AccountDomainEntity, logger: Logger): { phone?: string; email?: string } {
+function extractContactInfo(account: InnerAccount, logger: Logger): { phone?: string; email?: string } {
   try {
     const result: { phone?: string; email?: string } = {};
 
@@ -117,7 +115,7 @@ export class ChatCoopApplicationService {
     private readonly matrixApiService: MatrixApiService,
     private readonly unionChatService: UnionChatService,
     private readonly configService: ConfigService,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort,
     @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
@@ -425,7 +423,7 @@ export class ChatCoopApplicationService {
   /**
    * Добавляет пользователя в комнаты чаткооп на основе его роли
    */
-  private async addUserToChatCoopRooms(matrixUserId: string, account: AccountDomainEntity): Promise<void> {
+  private async addUserToChatCoopRooms(matrixUserId: string, account: InnerAccount): Promise<void> {
     try {
       // Получаем конфигурацию чаткооп
       const chatcoopConfig = await this.extensionRepository.findByName('chatcoop');

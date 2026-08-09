@@ -31,10 +31,6 @@ import type { ComponentGenerationContractGenerateDocumentInputDTO } from '~/appl
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import {
-  AccountDataPort,
-  ACCOUNT_DATA_PORT,
-} from '~/domain/account/ports/account-data.port';
 import { config } from '~/config';
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
@@ -48,7 +44,7 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 import { ProgramKey } from '~/domain/registration/enum';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import {
   EXTENSION_REPOSITORY,
@@ -72,8 +68,8 @@ export class ParticipationManagementInteractor {
     private readonly contributorRepository: ContributorRepository,
     @Inject(APPENDIX_REPOSITORY)
     private readonly appendixRepository: AppendixRepository,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort,
     @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepository: CandidateRepository,
     @Inject(UDATA_DOCUMENT_PARAMETERS_SERVICE)

@@ -3,9 +3,8 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
 import { ProgramKey } from '~/domain/registration/enum';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { IConfig } from '../../capital-extension.module';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
@@ -22,7 +21,7 @@ export class CapitalOnboardingEventsService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CONTRIBUTOR_REPOSITORY) private readonly contributorRepository: ContributorRepository,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {

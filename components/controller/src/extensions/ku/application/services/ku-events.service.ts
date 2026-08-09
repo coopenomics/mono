@@ -4,9 +4,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { INDIVIDUAL_REPOSITORY, type IndividualRepository } from '~/domain/common/repositories/individual.repository';
 import {
@@ -36,7 +35,7 @@ import {
 export class KuEventsService {
   constructor(
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
