@@ -35,11 +35,21 @@ export default boot(() => {
     const origin = window.location.origin;
     configureOidc({
       clientId: env.COOPID_CLIENT_ID,
-      // Статическая страница из public/: грузится мгновенно. Маршрут приложения
-        // здесь не годится — в скрытый кадр тянулось всё приложение, и вход падал
-        // по таймауту библиотеки (10 с).
-        redirectUri: `${origin}/auth/callback.html`,
-      silentRedirectUri: `${origin}/auth/silent-callback`,
+      // ОДИН адрес возврата на оба случая — и на обычный, и на тихий вход в
+      // скрытом кадре. Раньше у тихого был свой `/auth/silent-callback`, которого
+      // не существовало ни как страницы, ни в списке разрешённых адресов
+      // authentik: тот отвечал `redirect_uri_no_match` (400), кадр молчал, и вход
+      // валился по таймауту с невнятным «IFrame timed out without a response».
+      //
+      // Страница статическая (public/auth/callback.html) и делает ровно одно —
+      // передаёт адрес родительскому окну. Маршрут приложения тут не годится: в
+      // скрытый кадр тянулся весь рабочий стол, и это само по себе не укладывалось
+      // в десятисекундный таймаут библиотеки.
+      //
+      // Адрес обязан совпадать с разрешённым в authentik символ в символ — он
+      // задан там через COOPID_REDIRECT_URI.
+      redirectUri: `${origin}/auth/callback.html`,
+      silentRedirectUri: `${origin}/auth/callback.html`,
       scope: 'openid profile',
     });
   }

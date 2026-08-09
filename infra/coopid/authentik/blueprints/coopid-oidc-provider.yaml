@@ -65,10 +65,25 @@ entries:
       access_code_validity: minutes=1
       access_token_validity: minutes=5
       refresh_token_validity: days=30
+      # НЕЯВНОЕ согласие, а не явное.
+      #
+      # Этот провайдер обслуживает собственный рабочий стол кооператива — то есть
+      # приложение самого кооператива, а не стороннее. Спрашивать у пайщика
+      # «разрешаете ли вы кооперативу доступ к вашим данным в кооперативе» —
+      # бессмысленная формальность.
+      #
+      # Есть и техническая причина: вход по паролю доводится тихим запросом
+      # (prompt=none) в скрытом кадре. Экран согласия там показать некому, поэтому
+      # с явным согласием тихий вход не может завершиться в принципе — он либо
+      # отдаёт consent_required, либо молчит до таймаута.
+      #
+      # Внешние сервисы (gitea и прочие) получат СВОИ провайдеры, и там согласие
+      # уместно и остаётся явным — в том числе экран передачи данных при запросе
+      # удостоверения пайщика.
       authorization_flow:
         !Find [
           authentik_flows.flow,
-          [slug, default-provider-authorization-explicit-consent],
+          [slug, default-provider-authorization-implicit-consent],
         ]
       invalidation_flow:
         !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
