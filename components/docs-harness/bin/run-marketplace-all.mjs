@@ -44,6 +44,9 @@ const GROUPS = [
       'marketplace/onboarding/coop-accept-cpp',
       'marketplace/chairman/branches',
       'marketplace/chairman/category-whitelist',
+      // Обратная сторона белого списка — форма поставщика. Стоит до подачи
+      // предложения и возвращает каталог открытым, иначе подать будет нельзя.
+      'marketplace/chairman/category-disabled-in-offer-form',
     ],
   },
   {
@@ -59,6 +62,9 @@ const GROUPS = [
     name: 'Предложение поставщика и его модерация',
     scenarios: [
       'marketplace/offerer/offer-create',
+      // Между подачей и модерацией: единственное окно, когда витрина уже
+      // доступна заказчику, но одобренных предложений в ней ещё нет.
+      'marketplace/orderer/catalog-empty',
       'marketplace/chairman/offer-moderation',
       'marketplace/offerer/my-offers',
     ],
@@ -70,6 +76,9 @@ const GROUPS = [
       'marketplace/orderer/order-create',
       'marketplace/orderer/orders',
       'marketplace/orderer/orders-empty',
+      // Пока заказ не выдан: проверка возврата до выдачи возможна только здесь,
+      // дальше по цепочке тот же заказ станет полученным.
+      'marketplace/orderer/order-no-return-yet',
       'marketplace/orderer/consolidated',
     ],
   },
@@ -105,12 +114,19 @@ const GROUPS = [
     scenarios: [
       'marketplace/orderer/returns',
       'marketplace/operator/returns',
+      'marketplace/operator/return-accept',
     ],
   },
   {
+    // Строго ПОСЛЕ возврата: обезличенный остаток на складе участка, который
+    // председатель выделяет к списанию, появляется именно из принятого
+    // гарантийного возврата — без него список кандидатов пуст.
     name: 'Списание',
     scenarios: [
       'marketplace/chairman/writeoff-propose',
+      'marketplace/chairman/writeoff-submit',
+      'marketplace/chairman/writeoff-authorize',
+      'marketplace/operator/writeoff-confirm',
     ],
   },
   {

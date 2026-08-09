@@ -48,16 +48,16 @@ cases:
     kind: side
     scenario: Проект списания без указания причины
     expect: отказ — причина обязательна
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: written
 
   - id: mkt.wof.side.02
     level: backend
     kind: side
     scenario: К списанию выбрано имущество чужого кооперативного участка
     expect: отказ доступа
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: written
 
   - id: mkt.wof.side.03
     level: backend
@@ -66,14 +66,29 @@ cases:
     expect: отказ — выданное списать нельзя
     test: ~
     status: missing
+    # ДЕФЕКТ ПРОДУКТА, подтверждён чтением кода (2026-08-09).
+    # Состав проекта списания сервер не сверяет с тем, что вообще подлежит
+    # списанию. `validateAndNormalizeItems` проверяет только заполненность
+    # полей (участок, наименование, сумма, причина) и принимает любые
+    # `inventory_ids`; ни `createDraft`, ни `submitToCouncil`, ни
+    # `confirmWriteoff` не проверяют, что эти позиции — обезличенный остаток
+    # кооператива на складе, а не имущество, уже выданное пайщику. На
+    # исполнении `applyStatusTransition(invId, 'WRITTEN_OFF')` — безусловный
+    # UPDATE без сверки исходного статуса, поэтому позиция в статусе ISSUED
+    # молча спишется.
+    # Единственная защита — фильтр `findWriteoffCandidates` в списке
+    # кандидатов, то есть подсказка интерфейса, а не правило сервера.
+    # Не чиню в этот заход: место проверки (черновик / подача в совет /
+    # подтверждение складом) — проектное решение, а правка идёт в
+    # controller/src, что рестартует контроллер посреди UI-прогона.
 
   - id: mkt.wof.side.04
     level: backend
     kind: side
     scenario: Проведение списания до утверждения советом
     expect: отказ — без протокола совета списание не проводится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: written
 
   - id: mkt.wof.side.05
     level: ui

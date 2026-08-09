@@ -229,14 +229,18 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-moderation-access.test.ts
     status: passing
 
+  # Уровень backend, а не ui: после первого одобрения предложение уходит из
+  # очереди модерации, и повторно нажать «Одобрить» в интерфейсе физически
+  # нечем. Защита живёт в сервисе (`requirePending`) и там же проверяется —
+  # второе обращение любым путём, включая прямой вызов API, отбивается 409.
   - id: mkt.offer.side.23
-    level: ui
+    level: backend
     kind: side
     scenario: >
-      Двойной клик по «Одобрить» на одном предложении (две отправки подряд)
+      Повторное одобрение уже одобренного предложения (двойная отправка)
     expect: одобрение применяется один раз, второе обращение отбивается конфликтом
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.24
     level: ui

@@ -11,6 +11,18 @@
 import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
 
 export const meta = {
+  mode: 'docs',
+  // Случая реестра у сценария нет намеренно. Приём ЦПП — решение совета
+  // (вынесение вопроса, три голоса, протокол, исполнение), и на стенде его
+  // делает фаза подготовки `marketplace:01-l1-accept`: без принятой ЦПП у
+  // председателя нет ни одного admin-права расширения и ВСЕ остальные экраны
+  // отдают «Недостаточно прав доступа». Фазы подготовки раннер выполняет один
+  // раз до всех сценариев, поэтому к моменту открытия этой страницы ЦПП уже
+  // принята, и нажать «Принять» здесь нельзя в принципе. Сценарий честно
+  // документирует итоговое состояние экрана; сам приём проверяется на уровне
+  // сервиса (marketplace-coop-acceptance-service.test.ts).
+  feature: 'marketplace.onboarding',
+  cases: [],
   title: 'L1 онбординг — приём ЦПП «Стол заказов» кооперативом',
   docPath: 'new/marketplace/onboarding/coop-accept-cpp.md',
   assetsDir: 'assets/new/marketplace/onboarding/coop-accept-cpp',
@@ -41,7 +53,7 @@ async function signAllAgreements(page) {
   }
 }
 
-export default async ({ page, context, shot, env }) => {
+export default async ({ page, context, shot, env, expect }) => {
   await loginAsChairman(page, context);
   await signAllAgreements(page);
   await dismissOnboardingDialogs(page);
@@ -82,11 +94,23 @@ export default async ({ page, context, shot, env }) => {
       await confirmBtn.click();
       await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
       await page.waitForTimeout(8000); // ждём parser обработает delta и migration отработает
-      await shot(
-        page,
-        '03-after-accept',
-        'Страница после принятия ЦПП «Стол заказов» — chip обновился в «Подключено», baseline-категории засеяны через bootstrap-миграцию.',
-      );
     }
   }
+
+  // Проверяем состояние экрана, а не факт клика: ЦПП принята советом, и
+  // страница обязана это показывать — вместе с оставшимися шагами подключения
+  // (участки и пункты выдачи). Если бы приём не состоялся, здесь была бы
+  // кнопка «Принять ЦПП Marketplace», и проверка это поймает.
+  await shot(
+    page,
+    '03-after-accept',
+    'Страница подключения при принятой ЦПП «Стол заказов»: совет утвердил Положение и шаблон оферты, оферта зарегистрирована, пайщики могут пользоваться столом. Ниже — оставшиеся шаги подключения: участки и пункты выдачи.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=«Стол заказов» подключена').first())
+          .toBeVisible({ timeout: 30000 });
+        await expect(p.locator('button:has-text("Принять ЦПП Marketplace")')).toHaveCount(0);
+      },
+    },
+  );
 };

@@ -19,15 +19,19 @@ sources:
     - components/desktop/src/pages/Marketplace/OperatorReturnClaimDetail/**
 
 cases:
+  # Уровень backend, а не ui: на стенде предложение одобряется с ненулевым
+  # гарантийным сроком (иначе вся ветка возврата недостижима — срок снимается
+  # в заказ при оформлении и на выдаче замораживается, задним числом его не
+  # поднять). Нулевой срок в одном и том же прогоне воспроизвести нельзя, а
+  # само правило живёт в сервисе и проверяется там.
   - id: mkt.ret.side.01
-    level: ui
+    level: backend
     kind: side
     scenario: >
-      Заказчик открывает карточку полученного заказа по предложению с нулевым гарантийным сроком.
-    expect: >
-      в блоке гарантийного возврата написано, что возврат не предусмотрен; действия подачи заявления нет
-    test: components/docs-harness/scenarios/marketplace/orderer/returns.mjs
-    status: passing
+      Заявление на возврат по заказу, у предложения которого гарантийный срок нулевой.
+    expect: отказ — по такому заказу гарантия не предусмотрена, заявление не заводится
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: written
 
   - id: mkt.ret.happy.01
     level: ui
@@ -37,8 +41,6 @@ cases:
     expect: заявление создано и видно оператору участка
     test: ~
     status: missing
-    # Требует предложения с ненулевым гарантийным сроком: на текущем стенде
-    # предложение одобрено с нулевым, поэтому сценарий пока не воспроизводится.
 
   - id: mkt.ret.happy.02
     level: ui
@@ -53,24 +55,24 @@ cases:
     kind: side
     scenario: Заявление подано после истечения гарантийного срока
     expect: отказ с указанием, что срок истёк
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: written
 
   - id: mkt.ret.side.03
     level: backend
     kind: side
     scenario: Заявление на возврат по чужому заказу
     expect: отказ доступа
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: written
 
   - id: mkt.ret.side.04
     level: backend
     kind: side
     scenario: Возвращается больше единиц, чем было получено
     expect: отказ — вернуть больше полученного нельзя
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: written
 
   # Решение заказчика (2026-08-08): частичный возврат серией заявлений
   # допустим — заявление не закрывает позицию целиком.
@@ -81,8 +83,8 @@ cases:
     expect: >
       заявление принимается, пока по заказу остаётся невозвращённый остаток;
       одновременно открытым может быть только одно заявление
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: written
 
   - id: mkt.ret.side.19
     level: backend

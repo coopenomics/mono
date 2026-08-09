@@ -68,6 +68,20 @@ docker compose up -d cooparser
 echo "Запускаем контроллер..."
 docker compose up -d --force-recreate coopback || true
 
+# `docker compose down` выше сносит ВСЕ контейнеры проекта, а не только
+# перечисленные (список сервисов эта подкоманда не принимает) — вместе с
+# фронтом. Сам он обратно не поднимается, и прогон падает на преflight'е
+# «desktop не отвечает» уже после успешного reboot'а, то есть --reboot
+# оказывается неработоспособным. Поднимаем обратно, но только если порт
+# свободен: фронт могли запустить с хоста через `quasar dev`, и тогда
+# контейнер лишь отобрал бы у него порт.
+if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${DESKTOP_HOST_PORT:-2999}"; then
+  echo "Фронт уже отвечает на ${DESKTOP_HOST_PORT:-2999} — оставляем как есть"
+else
+  echo "Запускаем фронт..."
+  docker compose up -d desktop || true
+fi
+
 # Контроллер создаёт marketplace-таблицы через TypeORM synchronize при старте.
 # Ждём появления marketplace_ku_details, затем засеваем 3 ПВЗ Подмосковья
 # (krg/odn/myt, ACTIVE) — иначе на свежем стенде таблица пуста, select ПВЗ
