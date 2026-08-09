@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { formatInventoryLocation } from '../../domain/entities/marketplace-inventory.types';
 import {
   ORGANIZATION_REPOSITORY,
@@ -111,10 +111,10 @@ export class MarketplaceOrderDisplayService {
         // «Сколько накоплено» по парам (offer × КУ) и по партиям считаем только
         // когда лента должна показать прогресс сбора (стол заказчика).
         opts?.withGroupProgress
-          ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
+          ? this.orderRepo.sumActiveByOfferBranch(platformSettings().coopname, offerIds)
           : Promise.resolve([]),
         cycleIds.length
-          ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
+          ? this.orderRepo.sumByCycleIds(platformSettings().coopname, cycleIds)
           : Promise.resolve([]),
         opts?.withWarehouseQuantity
           ? this.resolveWarehouseQuantity(orders)
@@ -332,10 +332,10 @@ export class MarketplaceOrderDisplayService {
     const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
     const [stockSums, regularSums] = await Promise.all([
       stockIds.length
-        ? this.inventoryRepo.sumReservedByOrders(config.coopname, stockIds)
+        ? this.inventoryRepo.sumReservedByOrders(platformSettings().coopname, stockIds)
         : Promise.resolve(new Map<string, number>()),
       regularIds.length
-        ? this.inventoryRepo.sumOnWarehouseByOrders(config.coopname, regularIds)
+        ? this.inventoryRepo.sumOnWarehouseByOrders(platformSettings().coopname, regularIds)
         : Promise.resolve(new Map<string, number>()),
     ]);
     return new Map([...stockSums, ...regularSums]);
@@ -352,7 +352,7 @@ export class MarketplaceOrderDisplayService {
     const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
     if (!regularIds.length) return new Map();
 
-    const raw = await this.inventoryRepo.locationsOnWarehouseByOrders(config.coopname, regularIds);
+    const raw = await this.inventoryRepo.locationsOnWarehouseByOrders(platformSettings().coopname, regularIds);
     const out = new Map<string, string[]>();
     for (const [order_id, locations] of raw) {
       out.set(order_id, locations.map(formatInventoryLocation));
@@ -387,7 +387,7 @@ export class MarketplaceOrderDisplayService {
 
   private async safeKu(braname: string) {
     try {
-      return await this.kuRepo.findByCoreBraname(config.coopname, braname);
+      return await this.kuRepo.findByCoreBraname(platformSettings().coopname, braname);
     } catch {
       return null;
     }

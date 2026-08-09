@@ -2,7 +2,7 @@ import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { MEET_REPOSITORY, MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import type { TrackedMeet } from './types';
@@ -42,7 +42,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       return this.coopShortName;
     }
 
-    const account = await this.accountPort.getAccount(config.coopname);
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
 
     const shortName = account.private_account?.organization_data?.short_name;
 
@@ -52,12 +52,12 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
 
   // Формирование URL для уведомлений
   private getNotificationUrl(meet: TrackedMeet): string {
-    return `${config.frontend_url}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
+    return `${platformSettings().frontendUrl}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
   }
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return config.timezone === 'Europe/Moscow' ? 'МСК' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
   }
 
   /**

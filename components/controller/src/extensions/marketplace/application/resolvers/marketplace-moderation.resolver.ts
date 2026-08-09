@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -60,7 +59,7 @@ export class MarketplaceModerationResolver {
       // пропускать давно ждущие офферы из-за свежих.
       sortOrder: (input?.sortOrder ?? 'ASC') as 'ASC' | 'DESC',
     };
-    const result = await this.service.listPending(config.coopname, pagination);
+    const result = await this.service.listPending(platformSettings().coopname, pagination);
     return {
       items: result.items.map(toOfferDTO),
       totalCount: result.totalCount,

@@ -6,10 +6,9 @@ import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/accou
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { IConfig, TrackedMeet, defaultConfig } from './types';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity, platformSettings } from '@coopenomics/extension-kit';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
-import { default as config } from '~/config/config';
 
 @Injectable()
 export class MeetTrackerService {
@@ -111,7 +110,7 @@ export class MeetTrackerService {
       this.ensureConfigDefaults();
 
       // Получаем все собрания из блокчейна через порт
-      const meets = await this.meetPort.getMeets({ coopname: config.coopname }, undefined);
+      const meets = await this.meetPort.getMeets({ coopname: platformSettings().coopname }, undefined);
       if (!meets || meets.length === 0) {
         this.logger.debug('Собрания не найдены');
         return;

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PubSub } from 'graphql-subscriptions';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import logger from '~/config/logger';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
@@ -145,7 +145,7 @@ export class MarketplaceRealtimeBridge {
       quantity_available: event.quantity_available,
       unlimited_flag: event.unlimited_flag,
     };
-    const topic = marketplaceCatalogTopic(config.coopname);
+    const topic = marketplaceCatalogTopic(platformSettings().coopname);
     logger.info(
       `[mp-ws] PUBLISH OFFER_STOCK_CHANGED → topic=${topic} offer=${event.offer_id} available=${event.quantity_available}`
     );
@@ -161,7 +161,7 @@ export class MarketplaceRealtimeBridge {
       offer_id: event.offer_id,
       category_id: event.category_id,
     };
-    const topic = marketplaceCatalogTopic(config.coopname);
+    const topic = marketplaceCatalogTopic(platformSettings().coopname);
     logger.info(
       `[mp-ws] PUBLISH OFFER_PUBLISHED → topic=${topic} offer=${event.offer_id} category=${event.category_id}`
     );
@@ -346,14 +346,14 @@ export class MarketplaceRealtimeBridge {
       offer_id,
       status,
     };
-    const moderationTopic = marketplaceModerationTopic(config.coopname);
+    const moderationTopic = marketplaceModerationTopic(platformSettings().coopname);
     logger.info(
       `[mp-ws] PUBLISH OFFER_MODERATION_CHANGED → topic=${moderationTopic} offer=${offer_id} status=${status}`
     );
     await this.pubSub.publish(moderationTopic, payload);
     if (supplier_account) {
       await this.pubSub.publish(
-        marketplaceMemberTopic(config.coopname, supplier_account),
+        marketplaceMemberTopic(platformSettings().coopname, supplier_account),
         payload
       );
     }

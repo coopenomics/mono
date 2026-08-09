@@ -4,7 +4,7 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { IDelta } from '~/types/common';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
@@ -46,7 +46,7 @@ export class ApprovalNotificationService implements OnModuleInit {
       const approvalData = delta.value as SovietContract.Tables.Approvals.IApproval;
 
       // Проверяем что это наш кооператив
-      if (approvalData.coopname !== config.coopname) {
+      if (approvalData.coopname !== platformSettings().coopname) {
         return;
       }
 
@@ -90,7 +90,7 @@ export class ApprovalNotificationService implements OnModuleInit {
         authorName,
         coopname: approvalData.coopname,
         approval_hash: approvalData.approval_hash,
-        approvalUrl: `${config.frontend_url}/${approvalData.coopname}/chairman/approvals`,
+        approvalUrl: `${platformSettings().frontendUrl}/${approvalData.coopname}/chairman/approvals`,
       };
 
       // Отправляем уведомление через Центр уведомлений

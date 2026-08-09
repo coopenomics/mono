@@ -17,7 +17,7 @@ import { IndividualDomainEntity } from '~/domain/branch/entities/individual-doma
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
 import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
@@ -52,7 +52,7 @@ export class KuEventsService {
   async handleVotingStarted(actionData: ActionDomainInterface): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision) {
@@ -69,7 +69,7 @@ export class KuEventsService {
         coopShortName,
         meetPlace: decision.meet_place || '',
         closeAtTime,
-        meetingUrl: `${config.frontend_url}/${action.coopname}/ku/meetings/${decision.hash}`,
+        meetingUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/meetings/${decision.hash}`,
       };
 
       let sent = 0;
@@ -105,7 +105,7 @@ export class KuEventsService {
     if (!subscriberId || !email) return false;
 
     await this.notificationPort.notify({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       workflowId,
       to: { subscriberId, email, username },
       payload,
@@ -124,14 +124,14 @@ export class KuEventsService {
 
       for (const meeting of meetings) {
         // окно [now, now+65m): шлём, когда до начала остался час или меньше
-        const coopShortName = await this.accountPort.getDisplayName(config.coopname).catch(() => config.coopname);
+        const coopShortName = await this.accountPort.getDisplayName(platformSettings().coopname).catch(() => platformSettings().coopname);
         const payload: Workflows.BranchMeetingReminder.IPayload = {
           coopShortName,
           meetPlace: meeting.meet_place || '',
           meetAtTime: meeting.meet_at
             ? new Date(meeting.meet_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
             : '',
-          meetingUrl: `${config.frontend_url}/${config.coopname}/ku/meetings/${meeting.hash}`,
+          meetingUrl: `${platformSettings().frontendUrl}/${platformSettings().coopname}/ku/meetings/${meeting.hash}`,
         };
 
         let sent = 0;
@@ -155,7 +155,7 @@ export class KuEventsService {
   async handleTrustedRequested(actionData: ActionDomainInterface): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; braname: string; username: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const branch = await this.branchBlockchainPort.getBranch(action.coopname, action.braname);
       if (!branch?.trustee) {
@@ -168,7 +168,7 @@ export class KuEventsService {
       const payload: Workflows.BranchTrustedRequested.IPayload = {
         coopShortName,
         applicantName,
-        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${action.braname}`,
+        branchUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/branches/${action.braname}`,
       };
 
       await this.notifyUser(branch.trustee, Workflows.BranchTrustedRequested.id, payload);
@@ -192,7 +192,7 @@ export class KuEventsService {
   private async notifyTrustedResolved(actionData: ActionDomainInterface, resolution: string): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const request = await this.trustRequestRepository.findByHash(action.hash);
       if (!request?.username) {
@@ -204,7 +204,7 @@ export class KuEventsService {
       const payload: Workflows.BranchTrustedResolved.IPayload = {
         coopShortName,
         resolution,
-        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${request.braname}`,
+        branchUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/branches/${request.braname}`,
       };
 
       await this.notifyUser(request.username, Workflows.BranchTrustedResolved.id, payload);
@@ -218,7 +218,7 @@ export class KuEventsService {
   async handleBranchEstablished(actionData: ActionDomainInterface): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision?.braname || !decision.chairman) {

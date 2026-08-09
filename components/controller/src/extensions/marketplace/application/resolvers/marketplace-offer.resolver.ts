@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -72,7 +71,7 @@ export class MarketplaceOfferResolver {
     // Полный справочник категорий кооператива: общие baseline + собственные.
     // Не фильтруется по доступности — нужен и для резолва имени категории у
     // уже опубликованных Offer'ов (в т.ч. если категорию позже выключили).
-    const cats = await this.categoryService.listForCoop(config.coopname);
+    const cats = await this.categoryService.listForCoop(platformSettings().coopname);
     return cats.map(
       (c) =>
         new MarketplaceCategoryDTO({
@@ -94,14 +93,14 @@ export class MarketplaceOfferResolver {
     // Категории, в которых поставщик может публиковать: список кооператива,
     // отфильтрованный по whitelist'у. Пустой whitelist = открытый каталог
     // (доступны все). Используется формой создания предложения.
-    const cats = await this.categoryService.listForCoop(config.coopname);
+    const cats = await this.categoryService.listForCoop(platformSettings().coopname);
     const hasRestrictions = await this.availableCategoryService.hasAvailabilityRestrictions(
-      config.coopname
+      platformSettings().coopname
     );
     const filtered = hasRestrictions
       ? await (async () => {
           const ids = new Set(
-            await this.availableCategoryService.getAvailableCategoryIds(config.coopname)
+            await this.availableCategoryService.getAvailableCategoryIds(platformSettings().coopname)
           );
           return cats.filter((c) => ids.has(c.id));
         })()
@@ -128,7 +127,7 @@ export class MarketplaceOfferResolver {
     @Args('input') input: MarketplaceCreateOfferInputDTO
   ): Promise<MarketplaceOfferDTO> {
     const offer = await this.offerService.create({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       supplier_account: member.username,
       vitrine_id: 'default',
       product_name: input.product_name,
@@ -209,7 +208,7 @@ export class MarketplaceOfferResolver {
       sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
     };
     const result = await this.offerService.listMine(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       pagination
     );
@@ -237,7 +236,7 @@ export class MarketplaceOfferResolver {
       sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
     };
     const result = await this.offerService.listAll(
-      config.coopname,
+      platformSettings().coopname,
       {
         statuses: input?.statuses?.length
           ? (input.statuses as unknown as MarketplaceOfferStatus[])

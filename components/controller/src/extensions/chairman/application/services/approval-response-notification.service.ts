@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
@@ -44,7 +44,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       const action = actionData.data as SovietContract.Actions.Approves.ConfirmApprove.IConfirmApprove;
 
       // Проверяем что это наш кооператив
-      if (action.coopname !== config.coopname) {
+      if (action.coopname !== platformSettings().coopname) {
         return;
       }
 
@@ -66,7 +66,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       const action = actionData.data as SovietContract.Actions.Approves.DeclineApprove.IDeclineApprove;
 
       // Проверяем что это наш кооператив
-      if (action.coopname !== config.coopname) {
+      if (action.coopname !== platformSettings().coopname) {
         return;
       }
 
@@ -91,8 +91,8 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
     }
 
     // Получаем кооператив для получения short_name
-    const coop = await this.accountPort.getAccount(config.coopname);
-    const coopShortName = coop.private_account?.organization_data?.short_name || config.coopname;
+    const coop = await this.accountPort.getAccount(platformSettings().coopname);
+    const coopShortName = coop.private_account?.organization_data?.short_name || platformSettings().coopname;
 
     const authorUsername = approval.username;
 
@@ -127,14 +127,14 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
         approvalStatusText: status === ApprovalStatus.APPROVED ? 'одобрен' : 'отклонён',
         requestTitle,
         approvalId: approvalHash,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         coopShortName,
-        approvalUrl: `${config.frontend_url}`,
+        approvalUrl: `${platformSettings().frontendUrl}`,
       };
 
       // Отправляем уведомление через Центр уведомлений
       await this.notificationPort.notify({
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         workflowId: Workflows.ApprovalResponse.id,
         to: {
           subscriberId: authorSubscriberId,

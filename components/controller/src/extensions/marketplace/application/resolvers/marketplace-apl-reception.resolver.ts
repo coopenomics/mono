@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -81,7 +80,7 @@ export class MarketplaceAplReceptionResolver {
     @Args('data') data: MarketplaceCreateAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.create({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       shipment_id: data.shipment_id,
       fact_quantity_per_order: data.fact_quantity_per_order,
@@ -102,7 +101,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateExpressReceptionInputDTO
   ): Promise<MarketplaceCreateExpressReceptionResultDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership: оператор может принимать только на своём КУ (как и плановая
@@ -144,7 +143,7 @@ export class MarketplaceAplReceptionResolver {
     @Args('data') data: MarketplaceSignAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.signAsSupplier({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       supplier_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
@@ -166,7 +165,7 @@ export class MarketplaceAplReceptionResolver {
     @Args('data') data: MarketplaceSignAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
     const result = await this.service.signAsChairman({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       chairman_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
@@ -189,7 +188,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     const reception = await this.receptionRepo.findById(data.apl_reception_id);
@@ -243,7 +242,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<GeneratedDocumentDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера. `sign:first` есть у
@@ -280,7 +279,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
   ): Promise<DocumentAggregateDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера (сервис игнорирует
@@ -322,7 +321,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
   ): Promise<MarketplaceAplReceptionDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера (matrix даёт только
@@ -356,7 +355,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListAplReceptionsByBranameInputDTO
   ): Promise<MarketplaceExpressPickupCandidateDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     if (!canAccess(roles, 'Receiving', 'read:all')) {
@@ -387,7 +386,7 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListSupplierPickupOrdersInputDTO
   ): Promise<MarketplaceOrderDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     if (!canAccess(roles, 'Receiving', 'read:all')) {
@@ -423,7 +422,7 @@ export class MarketplaceAplReceptionResolver {
   async marketplaceListAplReceptionsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceAplReceptionDTO[]> {
-    const list = await this.receptionRepo.listByOfferer(config.coopname, member.username);
+    const list = await this.receptionRepo.listByOfferer(platformSettings().coopname, member.username);
     return this.enrichReceptions(list);
   }
 

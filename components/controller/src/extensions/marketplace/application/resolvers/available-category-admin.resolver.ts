@@ -19,9 +19,8 @@ import { AddAvailableCategoryTypesInput } from '../dto/add-available-category-ty
 import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categories-input.dto';
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import config from '~/config/config';
 
 /**
  * GraphQL резолвер для администрирования доступных категорий и типов товаров marketplace
@@ -50,7 +49,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async listCoopCategories(): Promise<MarketplaceCategoryDTO[]> {
-    const cats = await this.categoryService.listForCoop(config.coopname);
+    const cats = await this.categoryService.listForCoop(platformSettings().coopname);
     return cats.map(
       (c) =>
         new MarketplaceCategoryDTO({
@@ -76,7 +75,7 @@ export class AvailableCategoryAdminResolver {
     input: CreateCustomCategoryInput
   ): Promise<MarketplaceCategoryDTO> {
     try {
-      const c = await this.categoryService.createCustom(config.coopname, input.displayName);
+      const c = await this.categoryService.createCustom(platformSettings().coopname, input.displayName);
       return new MarketplaceCategoryDTO({
         id: c.id,
         display_name: c.display_name,
@@ -101,12 +100,12 @@ export class AvailableCategoryAdminResolver {
   async deleteCustomCategory(
     @Args('categoryId', { type: () => Int }) categoryId: number
   ): Promise<boolean> {
-    const deleted = await this.categoryService.deleteCustom(config.coopname, categoryId);
+    const deleted = await this.categoryService.deleteCustom(platformSettings().coopname, categoryId);
     if (!deleted) {
       throw new BadRequestException('Базовую категорию удалить нельзя');
     }
     // Снимаем категорию из whitelist (если была там), чтобы не осталась ссылка на удалённую.
-    await this.availableCategoryService.removeAvailableCategory(config.coopname, categoryId);
+    await this.availableCategoryService.removeAvailableCategory(platformSettings().coopname, categoryId);
     return true;
   }
 
@@ -120,7 +119,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getAvailableCategories(): Promise<AvailableCategoryDTO[]> {
-    const availableCategories = await this.availableCategoryService.getAvailableCategories(config.coopname);
+    const availableCategories = await this.availableCategoryService.getAvailableCategories(platformSettings().coopname);
 
     return availableCategories.map((cat) => ({
       id: cat.id,
@@ -146,7 +145,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getAvailableCategoryTree(): Promise<CategoryDTO[]> {
-    const availableTree = await this.categoryTreeService.buildAvailableCategoryTree(config.coopname);
+    const availableTree = await this.categoryTreeService.buildAvailableCategoryTree(platformSettings().coopname);
     return availableTree.map((category) => CategoryDTO.fromDomain(category));
   }
 
@@ -160,7 +159,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getAvailabilityStats(): Promise<AvailabilityStatsDTO> {
-    const stats = await this.availableCategoryService.getAvailabilityStats(config.coopname);
+    const stats = await this.availableCategoryService.getAvailabilityStats(platformSettings().coopname);
     return {
       totalAvailable: stats.totalAvailable,
       categoriesCount: stats.categoriesCount,
@@ -184,7 +183,7 @@ export class AvailableCategoryAdminResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.addMultipleCategories(
-      config.coopname,
+      platformSettings().coopname,
       input.categoryIds,
       currentUser?.username ?? 'system'
     );
@@ -207,7 +206,7 @@ export class AvailableCategoryAdminResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.addMultipleCategoryTypes(
-      config.coopname,
+      platformSettings().coopname,
       input.categoryTypes,
       currentUser?.username ?? 'system'
     );
@@ -228,7 +227,7 @@ export class AvailableCategoryAdminResolver {
     @Args('input', { type: () => RemoveAvailableCategoriesInput })
     input: RemoveAvailableCategoriesInput
   ): Promise<boolean> {
-    await this.availableCategoryService.removeMultipleCategories(config.coopname, input.categoryIds);
+    await this.availableCategoryService.removeMultipleCategories(platformSettings().coopname, input.categoryIds);
     return true;
   }
 
@@ -245,7 +244,7 @@ export class AvailableCategoryAdminResolver {
     @Args('input', { type: () => RemoveAvailableCategoryTypesInput })
     input: RemoveAvailableCategoryTypesInput
   ): Promise<boolean> {
-    await this.availableCategoryService.removeMultipleCategoryTypes(config.coopname, input.categoryTypes);
+    await this.availableCategoryService.removeMultipleCategoryTypes(platformSettings().coopname, input.categoryTypes);
     return true;
   }
 
@@ -264,7 +263,7 @@ export class AvailableCategoryAdminResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.replaceAvailableItems(
-      config.coopname,
+      platformSettings().coopname,
       input.categoryIds,
       input.categoryTypes,
       currentUser?.username ?? 'system'
@@ -283,7 +282,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async clearAvailableCategories(@CurrentUser() currentUser: MonoAccountDomainInterface): Promise<boolean> {
-    await this.availableCategoryService.replaceAvailableItems(config.coopname, [], [], currentUser?.username ?? 'system');
+    await this.availableCategoryService.replaceAvailableItems(platformSettings().coopname, [], [], currentUser?.username ?? 'system');
     return true;
   }
 
@@ -297,7 +296,7 @@ export class AvailableCategoryAdminResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getCategoryRules(@Args('categoryId', { type: () => Int }) categoryId: number): Promise<AvailableCategoryDTO[]> {
-    const rules = await this.availableCategoryService.getCategoryRules(config.coopname, categoryId);
+    const rules = await this.availableCategoryService.getCategoryRules(platformSettings().coopname, categoryId);
     return this.mapToDTO(rules);
   }
 

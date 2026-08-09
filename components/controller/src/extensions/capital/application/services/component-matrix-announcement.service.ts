@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import {
   MATRIX_ROOM_MESSAGING_PORT,
@@ -154,7 +154,7 @@ export class ComponentMatrixAnnouncementService {
     const rawTitle =
       component.title && component.title.trim().length > 0 ? component.title.trim() : component.project_hash;
     const nameInQuotes = rawTitle.replace(/\r?\n/g, ' ').replace(/"/g, "'");
-    const baseUrl = config.frontend_url.replace(/\/$/, '');
+    const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/components/${encodeURIComponent(component.project_hash)}/description`;
     const desktopUrl = `${baseUrl}/#${path}`;
     return `${ComponentMatrixAnnouncementService.COMPONENT_ANNOUNCE_ICON} Создан новый компонент "${nameInQuotes}": ${desktopUrl}`;

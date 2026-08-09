@@ -3,7 +3,7 @@ import type {
   ExtensionSchemaMigrationAfterContext,
 } from '@coopenomics/extension-kit';
 import { IConfig } from '../types';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_VITRINE_REPOSITORY,
   type MarketplaceVitrineDomainRepository,
@@ -35,9 +35,9 @@ export const marketplaceBootstrapV3Migration: IExtensionSchemaMigration<Partial<
   },
 
   async afterMigrate(ctx: ExtensionSchemaMigrationAfterContext) {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     if (!coopname) {
-      ctx.logWarn('[BOOTSTRAP_V3] config.coopname не задан — data-bootstrap пропущен');
+      ctx.logWarn('[BOOTSTRAP_V3] platformSettings().coopname не задан — data-bootstrap пропущен');
       return;
     }
 

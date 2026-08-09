@@ -8,7 +8,7 @@ import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort } from '@
 import { Workflows } from '@coopenomics/notifications';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { isEligibleForActiveCoopCalendarBroadcast } from '~/domain/account/utils/participant-mass-notification.util';
 
@@ -34,16 +34,16 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
   }
 
   private getTimezoneLabel(): string {
-    return config.timezone === 'Europe/Moscow' ? 'Мск' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'Мск' : platformSettings().timezone;
   }
 
   private async getCoopShortName(): Promise<string> {
     if (this.coopShortName) {
       return this.coopShortName;
     }
-    const account = await this.accountPort.getAccount(config.coopname);
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
     const shortName = account.private_account?.organization_data?.short_name;
-    this.coopShortName = shortName ?? config.coopname;
+    this.coopShortName = shortName ?? platformSettings().coopname;
     return this.coopShortName;
   }
 
@@ -174,7 +174,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
     for (const user of users) {
       try {
         await this.notificationPort.notify({
-          coopname: config.coopname,
+          coopname: platformSettings().coopname,
           workflowId,
           to: { subscriberId: user.subscriberId, email: user.email, username: user.username },
           payload,

@@ -2,8 +2,7 @@ import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 import { Ledger2 } from 'cooptypes';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import {
   USER_WALLET_REPOSITORY,
   type UserWalletRepository,
@@ -70,7 +69,7 @@ export class MarketplaceMemberWalletResolver {
   async marketplaceMemberWallet(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceMemberWalletDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const rows = await this.userWalletRepository.findByUsername(coopname, currentMember.username);
 
     const wallets = MARKETPLACE_RELEVANT_WALLETS.map((target) => {

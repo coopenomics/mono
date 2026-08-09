@@ -1,5 +1,5 @@
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings } from '@coopenomics/extension-kit';
 import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
@@ -392,7 +392,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
         throw new Error('Не удалось получить переменные кооператива');
       }
 
-      const coopname = vars.coopname || config.coopname;
+      const coopname = vars.coopname || platformSettings().coopname;
 
       const existingState = await this.chatcoopState.getSingleton();
       if (existingState.secretaryUsername && existingState.secretaryPasswordEncrypted) {

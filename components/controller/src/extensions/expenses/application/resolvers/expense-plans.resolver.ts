@@ -1,7 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import {
   EXPENSE_PLANS_SERVICE,
@@ -39,7 +38,7 @@ export class ExpensePlansResolver {
   async listExpensePlans(
     @Args('data', { nullable: true }) data?: ListExpensePlansInputDTO
   ): Promise<ExpensePlanDTO[]> {
-    const plans = await this.plansService.listPlans(config.coopname, data?.braname ?? null);
+    const plans = await this.plansService.listPlans(platformSettings().coopname, data?.braname ?? null);
     return plans.map(toExpensePlanDTO);
   }
 
@@ -53,7 +52,7 @@ export class ExpensePlansResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface,
     @Args('data') data: CreateExpensePlanInputDTO
   ): Promise<ExpensePlanDTO> {
-    const plan = await this.plansService.createPlan(config.coopname, currentUser.username, {
+    const plan = await this.plansService.createPlan(platformSettings().coopname, currentUser.username, {
       braname: data.braname ?? null,
       title: data.title,
       amount: data.amount,
@@ -74,7 +73,7 @@ export class ExpensePlansResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface,
     @Args('data') data: DeleteExpensePlanInputDTO
   ): Promise<boolean> {
-    await this.plansService.deletePlan(config.coopname, currentUser.username, data.plan_id);
+    await this.plansService.deletePlan(platformSettings().coopname, currentUser.username, data.plan_id);
     return true;
   }
 }

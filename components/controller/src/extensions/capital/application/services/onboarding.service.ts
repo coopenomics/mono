@@ -1,15 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
-import config from '~/config/config';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
@@ -211,7 +207,7 @@ export class CapitalOnboardingService {
     const generatedDoc = await this.freeDecisionPort.generateProjectOfFreeDecisionDocument(
       {
         project_id,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: actor,
         registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
         title: normalizedTitle,
@@ -230,7 +226,7 @@ export class CapitalOnboardingService {
     };
 
     await this.freeDecisionPort.publishProjectOfFreeDecision({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: actor,
       meta: JSON.stringify({ step: data.step, project_id, title: normalizedTitle }),
       document: documentForPublish,

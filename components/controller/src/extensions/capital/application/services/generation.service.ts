@@ -34,7 +34,7 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, platformSettings } from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
@@ -74,7 +74,6 @@ import {
   type IMatrixRoomMessagingPort,
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
-import config from '~/config/config';
 import { EMPTY_HASH } from '~/shared/utils/constants';
 
 /**
@@ -376,7 +375,7 @@ export class GenerationService {
       return null;
     }
     const pathPrefix = project.isComponent() ? 'components' : 'projects';
-    const baseUrl = config.frontend_url.replace(/\/$/, '');
+    const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/${pathPrefix}/${encodeURIComponent(anchorProjectHash)}/requirements/${encodeURIComponent(story.story_hash)}`;
     const desktopUrl = `${baseUrl}/#${path}`;
     return [`${story.title}`, desktopUrl].join('\n');

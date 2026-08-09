@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import {
@@ -44,7 +43,7 @@ export class MarketplaceMembershipResolver {
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceCurrentMemberDTO> {
     const [branches, warehouse] = await Promise.all([
-      this.kuChairmanService.listBranamesForMember(config.coopname, currentMember.username),
+      this.kuChairmanService.listBranamesForMember(platformSettings().coopname, currentMember.username),
       this.warehouseSettings.get(),
     ]);
     return new MarketplaceCurrentMemberDTO({

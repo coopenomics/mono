@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -81,7 +80,7 @@ export class MarketplaceEconomyResolver {
   @RequireMarketplaceAccess('Economy', 'read')
   async marketplaceGetEconomyConfig(): Promise<MarketplaceEconomyConfigDTO> {
     const membership_fee_percent = await this.economyService.getMembershipFeePercent(
-      config.coopname
+      platformSettings().coopname
     );
     return { membership_fee_percent };
   }
@@ -97,7 +96,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceSetMembershipFeeInputDTO
   ): Promise<MarketplaceEconomyConfigDTO> {
     const membership_fee_percent = await this.economyService.setMembershipFee(
-      config.coopname,
+      platformSettings().coopname,
       data.membership_fee_percent
     );
     return { membership_fee_percent };
@@ -117,7 +116,7 @@ export class MarketplaceEconomyResolver {
     @Args('braname') braname: string
   ): Promise<MarketplaceBranchEconomyDTO> {
     await this.assertBranchScope(member, braname);
-    const view = await this.economyService.getBranchEconomy(config.coopname, braname);
+    const view = await this.economyService.getBranchEconomy(platformSettings().coopname, braname);
     return toMarketplaceBranchEconomyDTO(view);
   }
 
@@ -134,7 +133,7 @@ export class MarketplaceEconomyResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationDTO>> {
     await this.assertBranchScope(member, braname);
-    const result = await this.economyService.getBranchWalletHistory(config.coopname, braname, options);
+    const result = await this.economyService.getBranchWalletHistory(platformSettings().coopname, braname, options);
     return {
       ...result,
       items: result.items.map(toMarketplaceBranchWalletOperationDTO),
@@ -153,7 +152,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceDistributeBranchFundsInputDTO
   ): Promise<boolean> {
     await this.economyService.distributeBranchFunds(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       data.braname,
       data.amount
@@ -173,7 +172,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceSetTrusteeWeightInputDTO
   ): Promise<boolean> {
     await this.economyService.setTrusteeWeight(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       data.braname,
       data.username,
@@ -194,7 +193,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceDeleteTrusteeWeightInputDTO
   ): Promise<boolean> {
     await this.economyService.deleteTrusteeWeight(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       data.braname,
       data.username
@@ -215,7 +214,7 @@ export class MarketplaceEconomyResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplacePersonalEconomyDTO> {
     const personal_balance = await this.economyService.getPersonalBalance(
-      config.coopname,
+      platformSettings().coopname,
       member.username
     );
     return { personal_balance };
@@ -233,7 +232,7 @@ export class MarketplaceEconomyResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationDTO>> {
     const result = await this.economyService.getPersonalWalletHistory(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       options
     );
@@ -254,7 +253,7 @@ export class MarketplaceEconomyResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceConvertBranchFundsInputDTO
   ): Promise<boolean> {
-    await this.economyService.convertBranchFunds(config.coopname, member.username, data.amount);
+    await this.economyService.convertBranchFunds(platformSettings().coopname, member.username, data.amount);
     return true;
   }
 
@@ -270,7 +269,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceAidStatementSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const doc = await this.economyService.buildAidStatement(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       data.braname,
       data.amount
@@ -290,7 +289,7 @@ export class MarketplaceEconomyResolver {
     @Args('data') data: MarketplaceCreateAidInputDTO
   ): Promise<boolean> {
     await this.economyService.createAid(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       data.braname,
       data.amount,
@@ -312,7 +311,7 @@ export class MarketplaceEconomyResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: CreateBranchExpenseInputDTO
   ): Promise<string> {
-    return this.economyService.createBranchExpense(config.coopname, member.username, data);
+    return this.economyService.createBranchExpense(platformSettings().coopname, member.username, data);
   }
 
   @Query(() => [MarketplaceAidDTO], {
@@ -328,7 +327,7 @@ export class MarketplaceEconomyResolver {
   ): Promise<MarketplaceAidDTO[]> {
     const canReadAll = canAccess(member.marketplace_roles as MarketplaceRole[], 'Economy', 'read:all');
     const username = canReadAll ? data?.username : member.username;
-    const aids = await this.economyService.listAids(config.coopname, username);
+    const aids = await this.economyService.listAids(platformSettings().coopname, username);
     return aids.map(toMarketplaceAidDTO);
   }
 
@@ -341,7 +340,7 @@ export class MarketplaceEconomyResolver {
   ): Promise<void> {
     if (canAccess(member.marketplace_roles as MarketplaceRole[], 'Economy', 'read:all')) return;
     await this.kuChairmanService.assertIsMemberOfBranch(
-      config.coopname,
+      platformSettings().coopname,
       braname,
       member.username,
       'Экономика участка доступна его председателю и доверенным'

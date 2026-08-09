@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -45,7 +44,7 @@ export class MarketplaceContainerResolver {
   async marketplaceListContainerTypes(
     @Args('is_active', { nullable: true }) is_active?: boolean
   ): Promise<MarketplaceContainerTypeDTO[]> {
-    const types = await this.containerService.listTypes(config.coopname, is_active);
+    const types = await this.containerService.listTypes(platformSettings().coopname, is_active);
     return types.map(toMarketplaceContainerTypeDTO);
   }
 
@@ -59,7 +58,7 @@ export class MarketplaceContainerResolver {
     @Args('data') data: MarketplaceCreateContainerTypeInputDTO
   ): Promise<MarketplaceContainerTypeDTO> {
     const type = await this.containerService.createType({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       name: data.name,
       length_cm: data.length_cm,
       width_cm: data.width_cm,
@@ -80,7 +79,7 @@ export class MarketplaceContainerResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     let branameFilter: string | string[] | undefined = data?.braname;
@@ -108,7 +107,7 @@ export class MarketplaceContainerResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveContainerByCodeInputDTO
   ): Promise<MarketplaceContainerDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const container = await this.containerService.getByCode(coopname, data.code);
 
     const roles = member.marketplace_roles as MarketplaceRole[];
@@ -133,7 +132,7 @@ export class MarketplaceContainerResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.kuChairmanService.assertIsMemberOfBranch(coopname, data.braname, member.username);
 
     const containers = await this.containerService.createContainers({
@@ -157,7 +156,7 @@ export class MarketplaceContainerResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceMoveContainerInputDTO
   ): Promise<MarketplaceContainerDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const container = await this.containerService.getById(coopname, data.container_id);
     await this.kuChairmanService.assertIsMemberOfBranch(
       coopname,
@@ -184,7 +183,7 @@ export class MarketplaceContainerResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateContainerInputDTO
   ): Promise<MarketplaceContainerDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const container = await this.containerService.getById(coopname, data.container_id);
     await this.kuChairmanService.assertIsMemberOfBranch(
       coopname,

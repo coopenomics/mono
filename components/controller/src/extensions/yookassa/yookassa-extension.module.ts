@@ -2,8 +2,7 @@ import { Module, Inject } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import config from '~/config/config';
-import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { IPNProvider } from '~/application/gateway/providers/ipn-provider';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
@@ -169,7 +168,7 @@ export class YookassaExtension extends IPNProvider {
                 message: symbol_result.message,
               });
               await this.messageChannel.publish(
-                `${config.coopname}:orderStatusUpdate`,
+                `${platformSettings().coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
               );
             }
@@ -192,7 +191,7 @@ export class YookassaExtension extends IPNProvider {
             if (payment.id) {
               await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.PAID });
               await this.messageChannel.publish(
-                `${config.coopname}:orderStatusUpdate`,
+                `${platformSettings().coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatusEnum.PAID })
               );
             }
@@ -210,7 +209,7 @@ export class YookassaExtension extends IPNProvider {
                 message: result.message,
               });
               await this.messageChannel.publish(
-                `${config.coopname}:orderStatusUpdate`,
+                `${platformSettings().coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
               );
             }
@@ -222,7 +221,7 @@ export class YookassaExtension extends IPNProvider {
           if (payment.id) {
             await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.FAILED });
             this.messageChannel.publish(
-              `${config.coopname}:orderStatusUpdate`,
+              `${platformSettings().coopname}:orderStatusUpdate`,
               JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
             );
           }

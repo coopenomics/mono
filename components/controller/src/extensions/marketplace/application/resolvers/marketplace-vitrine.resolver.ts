@@ -1,8 +1,7 @@
 import { Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceVitrineDTO } from '../dto/marketplace-vitrine.dto';
@@ -33,7 +32,7 @@ export class MarketplaceVitrineResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Vitrine', 'read')
   async marketplaceDefaultVitrine(): Promise<MarketplaceVitrineDTO> {
-    const v = await this.service.getDefault(config.coopname);
+    const v = await this.service.getDefault(platformSettings().coopname);
     if (!v) {
       throw new NotFoundException(
         'Дефолтная витрина не найдена — расширение marketplace ещё не bootstrap-нуло данные (нужна миграция v3)'

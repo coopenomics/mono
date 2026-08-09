@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalContract } from 'cooptypes';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import type { IDelta } from '~/types/common';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import { ProgramShareRegistrationService } from '../services/program-share-registration.service';
@@ -36,7 +36,7 @@ export class ProgramShareRegistrationOnProjectDeltaListener {
   @OnEvent(`delta::${CapitalContract.contractName.production}::${CapitalContract.Tables.Projects.tableName}`)
   async handleProjectDelta(delta: IDelta): Promise<void> {
     if (!delta.present) return;
-    if (delta.scope !== config.coopname) return;
+    if (delta.scope !== platformSettings().coopname) return;
 
     const value = delta.value as CapitalContract.Tables.Projects.IProject | undefined;
     if (!value?.project_hash) return;

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import type {
   InnerCalendarEventWindow,
   InnerCoopCalendarEventNotificationInput,
@@ -102,8 +102,8 @@ export class ChatCoopCalendarApplicationService {
     const roomDisplayLabel = room?.displayLabel ?? ev.matrixRoomId;
     const roomKind = room?.kind ?? 'members';
     const projectHash = roomKind === 'capital_project' ? room?.projectHash ?? null : null;
-    const frontendBase = config.frontend_url.replace(/\/$/, '');
-    const eventUrl = `${frontendBase}/#/${config.coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
+    const frontendBase = platformSettings().frontendUrl.replace(/\/$/, '');
+    const eventUrl = `${frontendBase}/#/${platformSettings().coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
     return {
       title: ev.title,
       description: ev.description,
@@ -182,7 +182,7 @@ export class ChatCoopCalendarApplicationService {
     const rawSecret = crypto.randomBytes(32).toString('hex');
     const hash = sha256Hex(rawSecret);
     const sub = await this.icsSubs.rotateSecretForUser(coopUsername, hash);
-    const apiBase = config.backend_url.replace(/\/$/, '');
+    const apiBase = platformSettings().backendUrl.replace(/\/$/, '');
     return `${apiBase}/v1/extensions/chatcoop/calendar/feed.ics?id=${encodeURIComponent(sub.id)}&secret=${encodeURIComponent(rawSecret)}`;
   }
 
@@ -195,11 +195,11 @@ export class ChatCoopCalendarApplicationService {
       return null;
     }
     const all = await this.events.listAll();
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const vars = await this.cooperativeVars.get();
     // Как в Matrix-комнатах и display name: short_abbr + name из MongoDB vars
     const calendarDisplayName = vars ? `${vars.shortAbbr} ${vars.name}` : coopname;
-    const frontendBase = config.frontend_url.replace(/\/$/, '');
+    const frontendBase = platformSettings().frontendUrl.replace(/\/$/, '');
     const lines: string[] = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',

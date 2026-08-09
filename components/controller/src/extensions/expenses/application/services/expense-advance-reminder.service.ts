@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Workflows } from '@coopenomics/notifications';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   EXPENSE_PROPOSAL_REPOSITORY,
@@ -73,7 +73,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
     if (this.isRunning) return;
     this.isRunning = true;
     try {
-      await this.processCoop(config.coopname);
+      await this.processCoop(platformSettings().coopname);
     } catch (error: any) {
       this.logger.error(`Ошибка тика напоминателя авансов: ${error.message}`, error.stack);
     } finally {
@@ -117,13 +117,13 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
   }
 
   private async sendDigest(coopname: string, username: string, advances: OutstandingAdvance[]): Promise<void> {
-    const base = `${config.frontend_url}/${coopname}/expenses`;
+    const base = `${platformSettings().frontendUrl}/${coopname}/expenses`;
     // Один аванс — ведём прямо на сам расход; несколько — на личную страницу
     // «Платежи» пайщика (там строки авансов с панелью «приложить чек/отчитаться»).
     const link =
       advances.length === 1
         ? `${base}/${advances[0].proposal_hash}`
-        : `${config.frontend_url}/${coopname}/user/payments`;
+        : `${platformSettings().frontendUrl}/${coopname}/user/payments`;
 
     const payload: Workflows.ExpenseAdvanceReportReminder.IPayload = {
       coopName: coopname,

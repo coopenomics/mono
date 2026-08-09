@@ -1,4 +1,4 @@
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -7,7 +7,7 @@ import {
 export const marketplaceAssetConfigProvider = {
   provide: MARKETPLACE_ASSET_CONFIG,
   useFactory: (): MarketplaceAssetConfig => ({
-    symbol: config.blockchain.root_govern_symbol,
-    decimals: config.blockchain.root_govern_precision,
+    symbol: platformSettings().blockchain.rootGovernSymbol,
+    decimals: platformSettings().blockchain.rootGovernPrecision,
   }),
 };

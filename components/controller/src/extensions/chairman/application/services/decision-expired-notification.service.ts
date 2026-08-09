@@ -4,10 +4,9 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
-import config from '~/config/config';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 
@@ -156,7 +155,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
   async checkExpiredDecisions(extension: ExtensionDomainEntity): Promise<void> {
     try {
       // Получаем coopname из конфигурации
-      const coopname = config.coopname;
+      const coopname = platformSettings().coopname;
 
       this.logger.debug(`Проверка решений для кооператива ${coopname}`);
 

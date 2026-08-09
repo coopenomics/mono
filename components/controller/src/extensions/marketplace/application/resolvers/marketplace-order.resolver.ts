@@ -1,8 +1,7 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -76,7 +75,7 @@ export class MarketplaceOrderResolver {
     @Args('input') input: MarketplaceCancelOrderInputDTO
   ): Promise<MarketplaceCancelOrderResultDTO> {
     const result = await this.cancelService.execute({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
       order_id: input.order_id,
     });
@@ -98,7 +97,7 @@ export class MarketplaceOrderResolver {
     @Args('input') input: MarketplaceAcceptOrdersBatchInputDTO
   ): Promise<MarketplaceSupplierBatchActionResultDTO> {
     const result = await this.supplierActionService.acceptOrdersBatch({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       offerer_account: member.username,
       order_ids: input.order_ids,
     });
@@ -120,7 +119,7 @@ export class MarketplaceOrderResolver {
     @Args('input') input: MarketplaceDeclineOrdersBatchInputDTO
   ): Promise<MarketplaceSupplierBatchActionResultDTO> {
     const result = await this.supplierActionService.declineOrdersBatch({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       offerer_account: member.username,
       order_ids: input.order_ids,
       reason: input.reason,
@@ -144,7 +143,7 @@ export class MarketplaceOrderResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const filter: MarketplaceOrderListFilter = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
       supplier_account: input?.supplier_account,
       offer_id: input?.offer_id,
@@ -170,7 +169,7 @@ export class MarketplaceOrderResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const filter: MarketplaceOrderListFilter = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       supplier_account: member.username,
       orderer_account: input?.orderer_account,
       offer_id: input?.offer_id,
@@ -191,7 +190,7 @@ export class MarketplaceOrderResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     const filter: MarketplaceOrderListFilter = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: input?.orderer_account,
       supplier_account: input?.supplier_account,
       offer_id: input?.offer_id,
@@ -217,7 +216,7 @@ export class MarketplaceOrderResolver {
   ): Promise<MarketplaceOrderPaginationResultDTO> {
     await this.assertBranchScope(member, braname);
     const filter: MarketplaceOrderListFilter = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       delivery_braname: braname,
       orderer_account: input?.orderer_account,
       supplier_account: input?.supplier_account,
@@ -238,7 +237,7 @@ export class MarketplaceOrderResolver {
     @Args('input') input: MarketplaceGetOrderInputDTO
   ): Promise<MarketplaceOrderDTO> {
     const order = await this.orderRepo.findById(input.order_id);
-    if (!order || order.coopname !== config.coopname) {
+    if (!order || order.coopname !== platformSettings().coopname) {
       throw new NotFoundException('Заказ не найден.');
     }
     const roles = member.marketplace_roles as MarketplaceRole[];
@@ -254,7 +253,7 @@ export class MarketplaceOrderResolver {
       !canReadAll &&
       canAccess(roles, 'Order', 'read:own-KU') &&
       (await this.kuChairmanService.isMemberOfBranch(
-        config.coopname,
+        platformSettings().coopname,
         order.delivery_braname,
         member.username
       ));
@@ -273,7 +272,7 @@ export class MarketplaceOrderResolver {
   private async assertBranchScope(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
     if (canAccess(member.marketplace_roles as MarketplaceRole[], 'Order', 'read:all')) return;
     await this.kuChairmanService.assertIsMemberOfBranch(
-      config.coopname,
+      platformSettings().coopname,
       braname,
       member.username,
       'Реестр заказов участка доступен его председателю и доверенным'

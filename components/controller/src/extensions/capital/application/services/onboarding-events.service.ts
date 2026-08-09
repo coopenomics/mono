@@ -4,17 +4,13 @@ import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision
 import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
 import { ProgramKey } from '~/domain/registration/enum';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { IConfig } from '../../capital-extension.module';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import config from '~/config/config';
 import { generateRandomHash } from '~/utils/generate-hash.util';
 import {
   ONBOARDING_COMPLETED_EVENT,
@@ -106,7 +102,7 @@ export class CapitalOnboardingEventsService {
   async handleParticipantRegistered(event: ParticipantRegisteredEvent): Promise<void> {
     const { username, program_key, blagorost_offer_hash, generator_offer_hash } = event;
 
-    this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${config.coopname}`);
+    this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${platformSettings().coopname}`);
 
     // Создаем Contributor только если указана программа (для кооперативов, поддерживающих CAPITAL)
     if (!program_key) {
@@ -115,8 +111,8 @@ export class CapitalOnboardingEventsService {
     }
 
     // Проверяем наличие необходимых данных
-    if (!config.coopname) {
-      this.logger.error(`config.coopname не определен, невозможно создать Contributor для ${username}`);
+    if (!platformSettings().coopname) {
+      this.logger.error(`platformSettings().coopname не определен, невозможно создать Contributor для ${username}`);
       return;
     }
 
@@ -194,7 +190,7 @@ export class CapitalOnboardingEventsService {
         _id: '',
         present: false,
         username,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         display_name: displayName,
         program_key,
         status: ContributorStatus.PENDING,

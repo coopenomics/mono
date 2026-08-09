@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -56,7 +55,7 @@ export class MarketplaceCartResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.getCart({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
     });
   }
@@ -72,7 +71,7 @@ export class MarketplaceCartResolver {
     @Args('input') input: MarketplaceAddToCartInputDTO
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.addToCart(
-      { coopname: config.coopname, orderer_account: member.username },
+      { coopname: platformSettings().coopname, orderer_account: member.username },
       {
         offer_id: input.offer_id,
         quantity: input.quantity,
@@ -93,7 +92,7 @@ export class MarketplaceCartResolver {
     @Args('input') input: MarketplaceUpdateCartItemInputDTO
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.updateItem(
-      { coopname: config.coopname, orderer_account: member.username },
+      { coopname: platformSettings().coopname, orderer_account: member.username },
       { offer_id: input.offer_id, quantity: input.quantity, package_id: input.package_id ?? null }
     );
   }
@@ -109,7 +108,7 @@ export class MarketplaceCartResolver {
     @Args('input') input: MarketplaceRemoveFromCartInputDTO
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.removeItem(
-      { coopname: config.coopname, orderer_account: member.username },
+      { coopname: platformSettings().coopname, orderer_account: member.username },
       input.offer_id,
       input.package_id ?? null
     );
@@ -125,7 +124,7 @@ export class MarketplaceCartResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.clear({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
     });
   }
@@ -142,7 +141,7 @@ export class MarketplaceCartResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
     const lines = await this.checkoutService.getSignablePayloads({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
     });
     return lines.map((l) => {
@@ -176,7 +175,7 @@ export class MarketplaceCartResolver {
     @Args('input', { nullable: true }) input?: MarketplaceCheckoutCartInputDTO
   ): Promise<MarketplaceCheckoutResultDTO> {
     return this.checkoutService.execute(
-      { coopname: config.coopname, orderer_account: member.username },
+      { coopname: platformSettings().coopname, orderer_account: member.username },
       { checkout_id: input?.checkout_id ?? null, lines: input?.lines ?? null }
     );
   }
@@ -192,7 +191,7 @@ export class MarketplaceCartResolver {
     @Args('input') input: MarketplaceSetCartDeliveryPointInputDTO
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.setDeliveryPoint(
-      { coopname: config.coopname, orderer_account: member.username },
+      { coopname: platformSettings().coopname, orderer_account: member.username },
       input.delivery_braname
     );
   }

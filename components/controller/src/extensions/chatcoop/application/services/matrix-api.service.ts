@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 interface MatrixLoginResponse {
   user_id: string;
@@ -179,7 +180,7 @@ export class MatrixApiService {
         external_ids: [
           {
             auth_provider: 'coopenomics',
-            external_id: `${config.coopname}:${coopUsername}:${username}`,
+            external_id: `${platformSettings().coopname}:${coopUsername}:${username}`,
           },
         ],
       };

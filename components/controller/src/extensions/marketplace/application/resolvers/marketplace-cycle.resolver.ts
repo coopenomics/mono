@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -51,7 +50,7 @@ export class MarketplaceCycleResolver {
     };
     const result = await this.cycleRepo.list(
       {
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         // Поставщик видит только свои сводные заявки (read:to-self).
         // Без этого фильтра любой пайщик-поставщик получал весь
         // список консолидированных заявок кооператива.

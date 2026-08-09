@@ -1,8 +1,7 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -50,7 +49,7 @@ export class MarketplaceSupplierResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Supplier', 'manage')
   async marketplaceListSuppliers(): Promise<MarketplaceSupplierDTO[]> {
-    const entries = await this.service.list(config.coopname);
+    const entries = await this.service.list(platformSettings().coopname);
     return entries.map((e) => MarketplaceSupplierDTO.fromDomain(e));
   }
 
@@ -63,7 +62,7 @@ export class MarketplaceSupplierResolver {
   async marketplaceMySupplierState(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierDTO | null> {
-    const entry = await this.service.findByMember(config.coopname, currentMember.username);
+    const entry = await this.service.findByMember(platformSettings().coopname, currentMember.username);
     return entry ? MarketplaceSupplierDTO.fromDomain(entry) : null;
   }
 
@@ -77,7 +76,7 @@ export class MarketplaceSupplierResolver {
     @Args('input') input: MarketplaceRequestSupplierInputDTO
   ): Promise<MarketplaceSupplierDTO> {
     const entry = await this.service.requestMembership(
-      config.coopname,
+      platformSettings().coopname,
       currentMember.username,
       input.contract_number,
       input.contract_date
@@ -95,7 +94,7 @@ export class MarketplaceSupplierResolver {
     @Args('input') input: MarketplaceSwitchSupplierModelInputDTO
   ): Promise<MarketplaceSupplierDTO> {
     const entry = await this.service.switchModel(
-      config.coopname,
+      platformSettings().coopname,
       currentMember.username,
       input.model,
       input.contract_number ?? null,
@@ -115,7 +114,7 @@ export class MarketplaceSupplierResolver {
     @Args('input') input: MarketplaceAddSupplierInputDTO
   ): Promise<MarketplaceSupplierDTO> {
     const entry = await this.service.addSupplier(
-      config.coopname,
+      platformSettings().coopname,
       input.member_account,
       input.model ?? MarketplaceSupplierModel.MEMBERSHIP,
       input.contract_number ?? null,
@@ -137,7 +136,7 @@ export class MarketplaceSupplierResolver {
   ): Promise<MarketplaceSupplierDTO> {
     this.assertChairman(currentMember);
     const entry = await this.service.approve(
-      config.coopname,
+      platformSettings().coopname,
       input.member_account,
       currentMember.username
     );
@@ -156,7 +155,7 @@ export class MarketplaceSupplierResolver {
   ): Promise<MarketplaceSupplierDTO> {
     this.assertChairman(currentMember);
     const entry = await this.service.reject(
-      config.coopname,
+      platformSettings().coopname,
       input.member_account,
       currentMember.username
     );

@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -63,7 +62,7 @@ export class MarketplaceShipmentResolver {
     @Args('data') data: MarketplaceCreateShipmentInputDTO
   ): Promise<MarketplaceCreateShipmentResultDTO> {
     const result = await this.createService.execute({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       offerer_account: member.username,
       cycle_id: data.cycle_id,
       groups: data.groups.map((g) => ({
@@ -91,7 +90,7 @@ export class MarketplaceShipmentResolver {
     @Args('data', { nullable: true }) data?: MarketplaceListShipmentsInputDTO
   ): Promise<MarketplaceShipmentDTO[]> {
     const filter: MarketplaceShipmentListFilter = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       offerer_account: member.username,
       cycle_id: data?.cycle_id,
       braname: data?.braname,
@@ -114,7 +113,7 @@ export class MarketplaceShipmentResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListShipmentsByBranameInputDTO
   ): Promise<MarketplaceShipmentDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера (matrix даёт только
@@ -156,7 +155,7 @@ export class MarketplaceShipmentResolver {
     @Args('data') data: MarketplaceGetShipmentInputDTO
   ): Promise<MarketplaceShipmentDTO> {
     const shipment = await this.shipmentRepo.findById(data.shipment_id);
-    if (!shipment || shipment.coopname !== config.coopname) {
+    if (!shipment || shipment.coopname !== platformSettings().coopname) {
       throw new NotFoundException('Партия поставки не найдена.');
     }
     if (shipment.offerer_account !== member.username) {

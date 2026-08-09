@@ -4,15 +4,11 @@ import { getAmountPlusFee } from '~/shared/utils/payments';
 
 import { PaymentProvider } from '~/application/gateway/providers/payment-provider';
 import { Inject, Module } from '@nestjs/common';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import config from '~/config/config';
 import type { Cooperative } from 'cooptypes';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
@@ -76,13 +72,13 @@ export class QrPayExtension extends PaymentProvider {
     const amount = payment.quantity;
     const symbol = payment.symbol;
 
-    const cooperative = await this.generatorPort.constructCooperative(config.coopname);
+    const cooperative = await this.generatorPort.constructCooperative(platformSettings().coopname);
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
     const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
     const paymentMethod = (await this.generatorPort.get('paymentMethod', {
-      username: config.coopname,
+      username: platformSettings().coopname,
       method_type: 'bank_transfer',
       is_default: true,
     })) as Cooperative.Payments.IPaymentData;

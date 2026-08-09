@@ -1,12 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DateUtils } from '~/shared/utils/date-utils';
-import { default as config } from '~/config/config';
 import { TrackedMeet, NotificationTypes, ILog } from './types';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
@@ -58,7 +54,7 @@ export class NotificationSenderService {
       return this.coopShortName;
     }
 
-    const account = await this.accountPort.getAccount(config.coopname);
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
 
     const shortName = account.private_account?.organization_data?.short_name;
 
@@ -79,12 +75,12 @@ export class NotificationSenderService {
 
   // Формирование URL для уведомлений
   private getNotificationUrl(meet: TrackedMeet): string {
-    return `${config.frontend_url}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
+    return `${platformSettings().frontendUrl}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
   }
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return config.timezone === 'Europe/Moscow' ? 'МСК' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
   }
 
   // Функции отправки уведомлений

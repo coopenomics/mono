@@ -1,9 +1,8 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
-import config from '~/config/config';
 import logger from '~/config/logger';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
@@ -57,27 +56,27 @@ export class MarketplaceEventsResolver {
     @CurrentUser() user: { sub?: string; username?: string },
     @Args('input') input: MarketplaceEventsInputDTO
   ): Promise<AsyncIterator<MarketplaceEventPayload>> {
-    if (input.coopname !== config.coopname) {
+    if (input.coopname !== platformSettings().coopname) {
       throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
     }
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
-    const memberTopic = marketplaceMemberTopic(config.coopname, username);
-    const catalogTopic = marketplaceCatalogTopic(config.coopname);
+    const memberTopic = marketplaceMemberTopic(platformSettings().coopname, username);
+    const catalogTopic = marketplaceCatalogTopic(platformSettings().coopname);
     const topics = [memberTopic, catalogTopic];
     const role = await this.resolveRole(username);
     // Служебный канал КУ: персонал участка ИЛИ председатель — у него
     // marketplace-роль admin (read:all), надзорные столы (сводка склада,
     // списания) живут теми же операционными сигналами.
     if (role === 'chairman' || (await this.isBranchStaff(username))) {
-      topics.push(marketplaceStaffTopic(config.coopname));
+      topics.push(marketplaceStaffTopic(platformSettings().coopname));
     }
     if (role === 'chairman') {
-      topics.push(marketplaceModerationTopic(config.coopname));
+      topics.push(marketplaceModerationTopic(platformSettings().coopname));
     }
     // Канал совета: члены совета и председатель (повестка списаний).
     if (role === 'chairman' || role === 'member') {
-      topics.push(marketplaceBoardTopic(config.coopname));
+      topics.push(marketplaceBoardTopic(platformSettings().coopname));
     }
     logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topics);
@@ -112,7 +111,7 @@ export class MarketplaceEventsResolver {
    */
   private async isBranchStaff(username: string): Promise<boolean> {
     try {
-      const branches = await this.branchPort.getBranches(config.coopname);
+      const branches = await this.branchPort.getBranches(platformSettings().coopname);
       return branches.some(
         (b) => b.trustee === username || (b.trusted?.includes(username) ?? false)
       );

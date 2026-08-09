@@ -1,7 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -45,7 +44,7 @@ export class MarketplaceOutgoingPaymentResolver {
     filter?: MarketplaceListOutgoingPaymentsAsSupplierFilterInputDTO
   ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
     const list = await this.paymentRepo.listByPayee(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       filter?.statuses as MarketplaceOutgoingPaymentRequestStatus[] | undefined
     );
@@ -63,7 +62,7 @@ export class MarketplaceOutgoingPaymentResolver {
     @Args('filter', { nullable: true })
     filter?: MarketplaceListOutgoingPaymentsFilterInputDTO
   ): Promise<MarketplaceOutgoingPaymentRequestDTO[]> {
-    const list = await this.paymentRepo.listAll(config.coopname, {
+    const list = await this.paymentRepo.listAll(platformSettings().coopname, {
       payee_account: filter?.supplier_account ?? undefined,
       statuses: filter?.statuses as MarketplaceOutgoingPaymentRequestStatus[] | undefined,
     });
