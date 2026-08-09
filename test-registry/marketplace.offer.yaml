@@ -153,8 +153,8 @@ cases:
     kind: side
     scenario: Загружено пустое изображение товара (нет содержимого файла)
     expect: отказ, предложение не создаётся и не правится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-images-service.test.ts
+    status: passing
 
   # ── Права и статусы ─────────────────────────────────────────────────────
   - id: mkt.offer.side.14
