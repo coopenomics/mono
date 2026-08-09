@@ -19,7 +19,6 @@ import { useNotificationPermissionDialog } from 'src/features/NotificationPermis
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
-import { PinPrompt } from 'src/features/Security/PinPrompt';
 import { env, initOpenReplayTracker } from 'src/shared/config';
 // Start tracker
 const session = useSessionStore();
