@@ -14,13 +14,11 @@ import { TranscriptionResolver } from './application/resolvers/transcription.res
 import { ProjectCommunicationResolver } from './application/resolvers/project-communication.resolver';
 import { SecretaryRoomsResolver } from './application/resolvers/secretary-rooms.resolver';
 import { SecretaryRoomManagementService } from './application/services/secretary-room-management.service';
-import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
-import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
-import { VarsRepositoryImplementation } from '~/infrastructure/database/generator-repositories/repositories/vars-generator.repository';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { encrypt } from '~/utils/aes';
 import * as crypto from 'crypto';
@@ -98,7 +96,7 @@ import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.reposi
 export class ChatCoopExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
+    @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
@@ -247,12 +245,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
       this.logger.log('ChatCoop: в реестре нет комнаты пайщиков — создаём и синхронизируем пользователей');
       await this.matrixApiService.loginAdmin();
 
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива для комнаты пайщиков');
       }
 
-      const membersRoomName = `Комната пайщиков ${vars.short_abbr} ${vars.name}`;
+      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
       const membersMatrix = COOPERATIVE_MEMBERS_ROOM_MATRIX;
       const adminUserId = this.matrixApiService.getAdminUserId();
       const membersRoomPowerLevels = membersMatrix.buildPowerLevels(adminUserId);
@@ -292,14 +290,14 @@ export class ChatCoopExtension extends BaseExtensionModule {
       this.logger.log('Инициализация пространства и комнат кооператива...');
 
       // Получаем переменные кооператива
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива');
       }
 
-      const spaceName = `${vars.short_abbr} ${vars.name.toUpperCase()}`;
-      const membersRoomName = `Комната пайщиков ${vars.short_abbr} ${vars.name}`;
-      const councilRoomName = `Комната совета ${vars.short_abbr} ${vars.name}`;
+      const spaceName = `${vars.shortAbbr} ${vars.name.toUpperCase()}`;
+      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
+      const councilRoomName = `Комната совета ${vars.shortAbbr} ${vars.name}`;
 
       // Получаем user_id администратора Matrix
       const adminUserId = this.matrixApiService.getAdminUserId();
@@ -389,7 +387,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       this.logger.log('Инициализация сервисного аккаунта секретаря...');
 
       // Получаем имя кооператива для формирования username
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива');
       }
@@ -410,7 +408,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       const randomSuffix = Math.random().toString(36).substring(2, 5);
       const secretaryUsername = `secretary-${coopname}-${randomSuffix}`;
       const secretaryPassword = crypto.randomBytes(32).toString('hex');
-      const displayName = `Секретарь | ${vars.short_abbr} ${vars.name}`;
+      const displayName = `Секретарь | ${vars.shortAbbr} ${vars.name}`;
 
       this.logger.log(`Создание Matrix аккаунта секретаря: ${secretaryUsername}`);
 
@@ -542,10 +540,6 @@ export class ChatCoopExtension extends BaseExtensionModule {
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
-    },
-    {
-      provide: VARS_REPOSITORY,
-      useClass: VarsRepositoryImplementation,
     },
 
     // Domain Services

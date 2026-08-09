@@ -15,7 +15,7 @@ import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from '../../domain/repositories/ca
 import type { ChatCoopCalendarIcsSubscriptionRepository } from '../../domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from '../../domain/repositories/calendar-ics-subscription.repository';
 import type { ChatCoopCalendarEventDomainEntity } from '../../domain/entities/calendar-event.entity';
-import { VARS_REPOSITORY, type VarsRepository } from '~/domain/common/repositories/vars.repository';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 
 function sha256Hex(plain: string): string {
   return crypto.createHash('sha256').update(plain, 'utf8').digest('hex');
@@ -79,8 +79,8 @@ export class ChatCoopCalendarApplicationService {
     private readonly events: ChatCoopCalendarEventRepository,
     @Inject(CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY)
     private readonly icsSubs: ChatCoopCalendarIcsSubscriptionRepository,
-    @Inject(VARS_REPOSITORY)
-    private readonly varsRepository: VarsRepository,
+    @Inject(COOPERATIVE_VARS_PORT)
+    private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(COOP_CALENDAR_EVENT_NOTIFICATION_PORT)
     private readonly calendarEventNotifications: ICoopCalendarEventNotificationPort
   ) {}
@@ -196,9 +196,9 @@ export class ChatCoopCalendarApplicationService {
     }
     const all = await this.events.listAll();
     const coopname = config.coopname;
-    const vars = await this.varsRepository.get();
+    const vars = await this.cooperativeVars.get();
     // Как в Matrix-комнатах и display name: short_abbr + name из MongoDB vars
-    const calendarDisplayName = vars ? `${vars.short_abbr} ${vars.name}` : coopname;
+    const calendarDisplayName = vars ? `${vars.shortAbbr} ${vars.name}` : coopname;
     const frontendBase = config.frontend_url.replace(/\/$/, '');
     const lines: string[] = [
       'BEGIN:VCALENDAR',

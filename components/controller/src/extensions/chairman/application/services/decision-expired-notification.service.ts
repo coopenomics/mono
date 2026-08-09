@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
@@ -22,8 +22,8 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
     private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
-    @Inject(VARS_REPOSITORY)
-    private readonly varsRepository: VarsRepository,
+    @Inject(COOPERATIVE_VARS_PORT)
+    private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(LOG_EXTENSION_REPOSITORY)
@@ -112,13 +112,13 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       const userName = await this.accountPort.getDisplayName(username);
 
       // Получаем данные кооператива из Vars
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         this.logger.warn(`Vars для кооператива ${coopname} не найдены`);
         return;
       }
 
-      const short_abbr = vars.short_abbr;
+      const short_abbr = vars.shortAbbr;
       const name = vars.name;
 
       // Формируем данные для workflow

@@ -1,7 +1,7 @@
 import { PollingProvider } from '~/application/gateway/providers/polling-provider';
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { REDIS_PORT, RedisPort } from '~/domain/common/ports/redis.port';
+import { MESSAGE_CHANNEL_PORT, type IMessageChannelPort } from '@coopenomics/innercoop';
 import { PAYMENT_STATE_REPOSITORY, PaymentStateRepository } from '~/domain/gateway/repositories/payment-state.repository';
 import axios from 'axios';
 import { checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '~/shared/utils/payments';
@@ -13,7 +13,6 @@ import {
 } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { RedisModule } from '~/infrastructure/redis/redis.module';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
@@ -83,7 +82,7 @@ export class SberpollExtension extends PollingProvider {
     @Inject(PAYMENT_STATE_REPOSITORY) private readonly paymentStateRepository: PaymentStateRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
-    @Inject(REDIS_PORT) private readonly redisPort: RedisPort
+    @Inject(MESSAGE_CHANNEL_PORT) private readonly messageChannel: IMessageChannelPort
   ) {
     super();
     this.logger.setContext(SberpollExtension.name);
@@ -269,7 +268,7 @@ export class SberpollExtension extends PollingProvider {
                 status: PaymentStatusEnum.FAILED,
                 message: symbol_check.message,
               });
-              await this.redisPort.publish(
+              await this.messageChannel.publish(
                 `${config.coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
               );
@@ -291,7 +290,7 @@ export class SberpollExtension extends PollingProvider {
                 status: PaymentStatusEnum.FAILED,
                 message: amount_check.message,
               });
-              await this.redisPort.publish(
+              await this.messageChannel.publish(
                 `${config.coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
               );
@@ -302,7 +301,7 @@ export class SberpollExtension extends PollingProvider {
           // Отмечаем платеж оплаченным если все проверки пройдены
           if (payment.id) {
             await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.PAID });
-            await this.redisPort.publish(
+            await this.messageChannel.publish(
               `${config.coopname}:orderStatusUpdate`,
               JSON.stringify({ id: payment.id, status: PaymentStatusEnum.PAID })
             );
@@ -338,7 +337,7 @@ export class SberpollExtension extends PollingProvider {
 }
 
 @Module({
-  imports: [RedisModule],
+  imports: [],
   providers: [
     SberpollExtension,
     {

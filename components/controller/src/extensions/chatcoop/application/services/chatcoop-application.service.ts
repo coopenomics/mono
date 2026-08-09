@@ -6,7 +6,6 @@ import { UnionChatService } from '../../domain/services/union-chat.service';
 import { MatrixApiService } from './matrix-api.service';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
 import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
-import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import {
   ExtensionDomainRepository,
@@ -27,6 +26,7 @@ import {
   type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload,
 } from '~/shared/constants/capital-project-matrix.events';
 import config from '~/config/config';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 
 // Расширяем тип config для доступа к matrix.client_url
 const extendedConfig = config as typeof config & {
@@ -118,7 +118,7 @@ export class ChatCoopApplicationService {
     private readonly unionChatService: UnionChatService,
     private readonly configService: ConfigService,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
-    @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
+    @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
@@ -226,7 +226,7 @@ export class ChatCoopApplicationService {
     }
 
     // Получаем данные аккаунта и кооператива
-    const [account, vars] = await Promise.all([this.accountDataPort.getAccount(coopUsername), this.varsRepository.get()]);
+    const [account, vars] = await Promise.all([this.accountDataPort.getAccount(coopUsername), this.cooperativeVars.get()]);
 
     // Извлекаем контактные данные
     const contactInfo = extractContactInfo(account, this.logger);
@@ -236,7 +236,7 @@ export class ChatCoopApplicationService {
     if (!vars) {
       throw new Error('Unable to get cooperative information');
     }
-    const cooperativeName = `${vars.short_abbr} ${vars.name}`;
+    const cooperativeName = `${vars.shortAbbr} ${vars.name}`;
     const displayName = extractDisplayName(account, cooperativeName, this.logger);
 
     // Используем переданное имя пользователя без суффикса кооператива

@@ -5,3 +5,5 @@
 export * from './file-storage.port';
 export * from './ledger2-history.port';
 export * from './logger.port';
+export * from './message-channel.port';
+export * from './cooperative-vars.port';
