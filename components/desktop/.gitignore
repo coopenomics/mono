@@ -35,6 +35,12 @@ yarn-error.log*
 
 # local .env files
 .env
+# Резервные копии окружения (.env.backup-prod и подобные) — в репозиторий не
+# кладём: там боевые адреса и ключи. Ловушка реальная — такой файл лежал в дереве
+# неотслеживаемым и однажды чуть не уехал в коммит вместе с `git add`.
+.env.*
+!.env-example
+!.env-testnet
 src/shared/config/Env.ts
 
 # Рантайм-конфиг SPA-dev, генерируется docs-harness из .env (см. lib/desktop-config.mjs).

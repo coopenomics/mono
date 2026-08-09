@@ -21,6 +21,15 @@ import { PasswordCard } from 'src/features/Security/SetPassword';
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-  max-width: 720px;
+  /* Ширину не ограничиваем и отступы берём как на остальных страницах стола
+     (см. ProfilePage, PaymentsPage, PersonnelPage) — иначе экран выглядит
+     зажатым в колонку слева, а справа остаётся пустое поле. */
+  padding: var(--p-6, 24px);
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: var(--p-4, 16px);
+  }
 }
 </style>

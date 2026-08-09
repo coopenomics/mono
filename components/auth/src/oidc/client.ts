@@ -73,18 +73,6 @@ function userManager(issuer: string): UserManager {
  * prompt=none через скрытый iframe `silent_redirect_uri`) — без попапа и без
  * повторного ввода пароля.
  */
-/**
- * Завершает тихую переавторизацию на странице возврата.
- *
- * `signinSilent` грузит адрес возврата в скрытом кадре и ждёт от него ответа.
- * Отвечает как раз этот вызов: он разбирает параметры из адресной строки и
- * отдаёт результат родительскому окну. Без страницы, которая его дёргает,
- * вход по паролю просто виснет до таймаута — вины authentik в этом нет.
- */
-export async function completeSilentSignin(issuer: string): Promise<void> {
-  await userManager(issuer).signinSilentCallback()
-}
-
 export async function authenticateWithAuthentik(params: { issuer: string, email: string, password: string, flowSlug?: string }): Promise<User> {
   // Фактор-1: учётные данные уходят в authentik (а не в наш backend) — ROPC не используется.
   await authenticateWithFlowExecutor({ issuer: params.issuer, email: params.email, password: params.password, flowSlug: params.flowSlug })

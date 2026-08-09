@@ -58,7 +58,7 @@ entries:
       # кооператива. Формат — список правил сопоставления (authentik 2026.x).
       redirect_uris:
         - matching_mode: strict
-          url: !Env [COOPID_REDIRECT_URI, "http://localhost:8108/auth/callback"]
+          url: !Env [COOPID_REDIRECT_URI, "http://localhost:8108/auth/callback.html"]
       sub_mode: user_uuid
       issuer_mode: per_provider
       include_claims_in_id_token: true

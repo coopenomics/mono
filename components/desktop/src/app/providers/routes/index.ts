@@ -13,7 +13,6 @@ import { RecoverRequestPage, RecoverConfirmPage } from 'src/pages/Registrator/Re
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { PrivacyPage } from 'src/pages/Privacy';
-import { SilentCallbackPage } from 'src/pages/Auth/SilentCallback';
 import { TermsPage } from 'src/pages/Terms';
 import { defineComponent, h } from 'vue';
 
@@ -124,26 +123,6 @@ const baseRoutes: RouteRecordRaw[] = [
           icon: 'key',
           widget: {
             title: 'Восстановление доступа',
-            hideHeader: true,
-          },
-        },
-      },
-      {
-        // Адрес возврата контура CoopID. БЕЗ префикса кооператива и без входа:
-        // страница грузится в скрытом кадре при тихой переавторизации, там нет
-        // ни сессии, ни маршрутных параметров. Совпадает с redirectUri из
-        // boot/coopid.ts — расходиться им нельзя, authentik сверяет адрес точно.
-        path: 'auth/callback',
-        name: 'coopid-silent-callback',
-        component: SilentCallbackPage,
-        children: [],
-        meta: {
-          title: 'Вход',
-          icon: 'key',
-          requiresAuth: false,
-          hidden: true,
-          widget: {
-            title: 'Вход',
             hideHeader: true,
           },
         },

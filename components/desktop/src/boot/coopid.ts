@@ -35,7 +35,10 @@ export default boot(() => {
     const origin = window.location.origin;
     configureOidc({
       clientId: env.COOPID_CLIENT_ID,
-      redirectUri: `${origin}/auth/callback`,
+      // Статическая страница из public/: грузится мгновенно. Маршрут приложения
+        // здесь не годится — в скрытый кадр тянулось всё приложение, и вход падал
+        // по таймауту библиотеки (10 с).
+        redirectUri: `${origin}/auth/callback.html`,
       silentRedirectUri: `${origin}/auth/silent-callback`,
       scope: 'openid profile',
     });
