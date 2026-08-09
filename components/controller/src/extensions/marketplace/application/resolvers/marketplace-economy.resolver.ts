@@ -3,12 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import {
-  createPaginationResult,
-  PaginationInputDTO,
-  type PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+import { GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';

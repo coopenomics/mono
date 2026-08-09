@@ -1,8 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
 import { DetailKUInputDTO } from '../dto/detail-ku-input.dto';
 import { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
 import { KuDetailsDTO } from '../dto/ku-details.dto';

@@ -3,10 +3,8 @@ import { ContractManagementService } from '../services/contract-management.servi
 import { SetConfigInputDTO } from '../dto/contract_management/set-config-input.dto';
 import { GetCapitalConfigInputDTO } from '../dto/contract_management/get-config-input.dto';
 import { StateOutputDTO } from '../dto/contract_management/config-output.dto';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '@coopenomics/extension-kit';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 
 /**

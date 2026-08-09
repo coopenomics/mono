@@ -1,10 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';

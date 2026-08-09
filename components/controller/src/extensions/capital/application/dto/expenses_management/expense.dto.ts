@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ExpenseStatus } from '../../../domain/enums/expense-status.enum';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 /**
  * GraphQL Output DTO для сущности Expense

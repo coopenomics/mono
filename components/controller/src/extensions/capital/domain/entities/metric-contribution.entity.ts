@@ -1,6 +1,6 @@
 import { MetricContributionSource } from '../enums/metric-contribution-source.enum';
 import type { IMetricContributionDatabaseData } from '../interfaces/metric-contribution-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 export class MetricContributionDomainEntity extends BaseDomainEntity<IMetricContributionDatabaseData> {
   public contribution_hash: string;

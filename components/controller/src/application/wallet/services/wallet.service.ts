@@ -14,7 +14,7 @@ import { CreateWithdrawResponseDTO } from '../dto/create-withdraw-response.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
 import type { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-payment-input.dto';
 import type { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';

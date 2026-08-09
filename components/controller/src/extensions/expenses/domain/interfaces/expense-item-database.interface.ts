@@ -1,4 +1,4 @@
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 import { ExpenseItemStatus } from '../enums/expense-item-status.enum';
 
 /**

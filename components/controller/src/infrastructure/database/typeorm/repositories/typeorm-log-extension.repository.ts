@@ -4,14 +4,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LogExtensionEntity } from '../entities/log-extension.entity';
-import { LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { LogExtensionDomainRepository, LogExtensionDomainEntity } from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
   LogExtensionPaginationResult,
 } from '@coopenomics/extension-kit';
-import { LogExtensionDomainEntity } from '@coopenomics/extension-kit';
-
 @Injectable()
 export class TypeOrmLogExtensionDomainRepository<TLog = any> implements LogExtensionDomainRepository<TLog> {
   constructor(

@@ -1,5 +1,5 @@
 import type { IIssueMetricBindingDatabaseData } from '../interfaces/issue-metric-binding-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 export class IssueMetricBindingDomainEntity extends BaseDomainEntity<IIssueMetricBindingDatabaseData> {
   public issue_hash: string;

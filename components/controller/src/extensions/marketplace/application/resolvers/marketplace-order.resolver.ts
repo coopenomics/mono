@@ -2,9 +2,7 @@ import { Inject, Injectable, NotFoundException, ForbiddenException, UseGuards } 
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-
+import { GqlJwtAuthGuard, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';

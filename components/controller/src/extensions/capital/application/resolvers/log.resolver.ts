@@ -1,14 +1,11 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { LogInteractor } from '../use-cases/log.interactor';
 import { LogOutputDTO } from '../dto/logs/log.dto';
 import { GetLogsInputDTO } from '../dto/logs/get-logs.input';
 import { GetIssueLogsInputDTO } from '../dto/logs/get-issue-logs.input';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-
 // Пагинированные результаты
 const paginatedLogsResult = createPaginationResult(LogOutputDTO, 'PaginatedCapitalLogs');
 

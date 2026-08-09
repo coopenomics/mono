@@ -4,7 +4,7 @@ import { ExpenseProposalDomainEntity } from '../../../domain/entities/expense-pr
 import type { IExpenseProposalBlockchainData } from '../../../domain/interfaces/expense-proposal-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ExpenseContractInfoService } from '../../services/expense-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 
 /**

@@ -1,4 +1,4 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { DebtDomainEntity } from '../entities/debt.entity';
 
 export interface DebtRepository extends IBlockchainSyncRepository<DebtDomainEntity> {

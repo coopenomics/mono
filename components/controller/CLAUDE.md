@@ -233,7 +233,8 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 **Paths (жёстко):**
 - Per-contract: `extensions/{contract}/{domain|infrastructure|application}/...`.
-- Kernel: `shared/sync/...`, `shared/decorators/...`, `shared/pubsub/...`, `shared/mappers/...`.
+- Каркас синхронизации: `@coopenomics/extension-kit/sync` (базовые сущность/маппер/репозиторий/синкер, версионирование). Каталога `shared/sync/` больше нет — расширение обязано собираться за пределами монолита, а от классов ядра оно там наследоваться не может.
+- Kernel: `shared/decorators/...`, `shared/pubsub/...`, `shared/mappers/...`.
 - Transport: `infrastructure/blockchain/`, `infrastructure/parser2/`, `infrastructure/redis/`.
 - Cross-cutting domain: `domain/pending-tx/`, `domain/breach/`, `domain/reconciliation/`.
 
@@ -269,7 +270,7 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - В `@Field`/`@InputType` всё, что enum в коде, регистрируется через `registerEnumType` и приходит/уходит typed, не `string`.
 
 **Пагинация (жёстко) — стандартный паттерн:**
-- Входные параметры: `PaginationInputDTO` из `~/application/common/dto/pagination.dto.ts` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
+- Входные параметры: `PaginationInputDTO` из `@coopenomics/extension-kit` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
 - Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
 - Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
 - Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.

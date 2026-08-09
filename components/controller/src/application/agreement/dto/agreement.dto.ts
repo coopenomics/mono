@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { AgreementStatus } from '~/domain/agreement/enums/agreement-status.enum';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 

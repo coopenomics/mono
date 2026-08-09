@@ -4,7 +4,7 @@ import { StateDomainEntity } from '../../../domain/entities/state.entity';
 import type { IStateBlockchainData } from '../../../domain/interfaces/state-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные состояния

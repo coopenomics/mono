@@ -1,14 +1,10 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ChatCoopApplicationService } from '../services/chatcoop-application.service';
 import { CreateMatrixAccountInputDTO, CheckMatrixUsernameInput } from '../dto/create-matrix-account.dto';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-
 @Resolver()
 export class ChatCoopResolver {
   constructor(private readonly chatcoopAppService: ChatCoopApplicationService) {}

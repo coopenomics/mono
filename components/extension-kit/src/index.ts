@@ -9,6 +9,9 @@
  * Сервисы жизненного цикла, листинга и применения миграций остаются в контроллере:
  * они знают о конкретных расширениях (реестр, дефолты конфигов, список миграций),
  * то есть являются composition root, а не переиспользуемым каркасом.
+ *
+ * Каркас синхронизации состояния блокчейна — отдельная точка входа
+ * `@coopenomics/extension-kit/sync`, см. комментарий в `src/sync/index.ts`.
  */
 export * from './auth';
 export * from './base-extension.module';
@@ -19,3 +22,4 @@ export * from './repositories/log-extension.repository';
 export * from './migrations/schema-migration.contract';
 export * from './lifecycle/events';
 export * from './registry/registry.contract';
+export * from './dto/pagination.dto';

@@ -5,9 +5,8 @@ import { SegmentRepository } from '../../domain/repositories/segment.repository'
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { SegmentMapper } from '../mappers/segment.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type {

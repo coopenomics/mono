@@ -26,7 +26,7 @@ import type {
 import {
   PaginationInputDTO,
   PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+} from '@coopenomics/extension-kit';
 
 const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.

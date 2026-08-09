@@ -12,13 +12,9 @@ import {
   CapitalGetOpenTimerInputDTO,
   CapitalTimerSessionOutputDTO,
 } from '../dto/time_tracker/worklog.dto';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
 
 const paginatedTimeEntriesResult = createPaginationResult(TimeEntryOutputDTO, 'PaginatedCapitalTimeEntries');

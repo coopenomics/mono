@@ -3,14 +3,10 @@ import { ApprovalService } from '../services/approval.service';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
 import { ConfirmApproveInputDTO } from '../dto/confirm-approve-input.dto';
 import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
 import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ApprovalDTO } from '../dto/approval.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
 // Пагинированные результаты

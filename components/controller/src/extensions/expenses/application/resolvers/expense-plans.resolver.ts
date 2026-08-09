@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import {
   EXPENSE_PLANS_SERVICE,

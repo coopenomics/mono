@@ -1,8 +1,6 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '@coopenomics/extension-kit';
 import { AccountDTO } from '~/application/account/dto/account.dto';
 import { ParticipantService } from '../services/participant.service';
 import { AddParticipantInputDTO } from '../dto/add-participant-input.dto';

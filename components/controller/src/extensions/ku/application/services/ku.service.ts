@@ -13,7 +13,7 @@ import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/bran
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import type { PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationResult } from '@coopenomics/extension-kit';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {

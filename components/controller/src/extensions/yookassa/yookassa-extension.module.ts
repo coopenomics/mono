@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
 import config from '~/config/config';
-import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { IPNProvider } from '~/application/gateway/providers/ipn-provider';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
@@ -18,10 +18,6 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import { checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '~/shared/utils/payments';
 

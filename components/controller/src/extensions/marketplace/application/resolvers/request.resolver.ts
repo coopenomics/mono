@@ -2,8 +2,7 @@ import { Resolver, Mutation, Query, Args, Int } from '@nestjs/graphql';
 import { Injectable, Inject, UseGuards } from '@nestjs/common';
 import { RequestDomainService, REQUEST_DOMAIN_SERVICE } from '../../domain/services/request-domain.service';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { RolesGuard, AuthRoles, GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
 import { RequestDTO } from '../dto/request.dto';
 import { CreateRequestInput, RequestTypeInput, RequestImageTypeInput } from '../dto/create-request-input.dto';
 import { GetCoopRequestsInput } from '../dto/get-coop-requests-input.dto';
@@ -17,8 +16,6 @@ import { GetRequestInput } from '../dto/get-request-input.dto';
 import { GetRequestByHashInput } from '../dto/get-request-by-hash-input.dto';
 import { RequestType, RequestStatus } from '../../domain/entities/request-domain.entity';
 import { RequestImageType } from '../../domain/entities/request-image-domain.entity';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 /**

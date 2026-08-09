@@ -1,6 +1,6 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
 import { MetricContributionSource } from '../../../domain/enums/metric-contribution-source.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 @ObjectType('CapitalMetricContribution', {
   description: 'Запись журнала вкладов в метрику',

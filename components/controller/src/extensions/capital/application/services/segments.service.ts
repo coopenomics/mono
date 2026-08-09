@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SegmentsInteractor } from '../use-cases/segments.interactor';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { RefreshSegmentDomainInput } from '../../domain/actions/refresh-segment-domain-input.interface';
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';

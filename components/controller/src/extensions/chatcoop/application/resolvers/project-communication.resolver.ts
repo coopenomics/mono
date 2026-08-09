@@ -4,11 +4,7 @@ import {
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
-import { ActiveUserStatusGuard } from '@coopenomics/extension-kit';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,

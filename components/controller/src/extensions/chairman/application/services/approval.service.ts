@@ -10,7 +10,7 @@ import { ChairmanBlockchainAdapter } from '../../infrastructure/blockchain/adapt
 import { CHAIRMAN_BLOCKCHAIN_PORT } from '../../domain/interfaces/chairman-blockchain.port';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationResult } from '@coopenomics/extension-kit';
 import { ConfirmApproveDomainInput } from '../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../domain/actions/decline-approve-domain-input.interface';
 

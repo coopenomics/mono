@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProgramWalletDomainEntity } from '../../domain/entities/program-wallet.entity';
 import { ProgramWalletRepository, PROGRAM_WALLET_REPOSITORY } from '../../domain/repositories/program-wallet.repository';
 import { ProgramWalletDeltaMapper } from '../../infrastructure/blockchain/mappers/program-wallet-delta.mapper';

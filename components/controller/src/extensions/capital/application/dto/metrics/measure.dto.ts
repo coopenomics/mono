@@ -3,7 +3,7 @@ import { MeasureCatalogTag } from '../../../domain/enums/measure-catalog-tag.enu
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
 import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../../domain/enums/metric-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 @ObjectType('CapitalMeasure', {
   description: 'Мера: что измеряем (справочник без целевого значения)',

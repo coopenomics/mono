@@ -2,8 +2,8 @@ import { AgreementStatus } from '../enums/agreement-status.enum';
 import type { IAgreementDatabaseData } from '../interfaces/agreement-database.interface';
 import type { IAgreementBlockchainData } from '../interfaces/agreement-blockchain.interface';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность соглашения

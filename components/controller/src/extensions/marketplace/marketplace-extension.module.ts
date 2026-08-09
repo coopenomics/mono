@@ -1,9 +1,5 @@
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';

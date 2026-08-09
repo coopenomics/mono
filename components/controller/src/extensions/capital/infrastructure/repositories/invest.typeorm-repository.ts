@@ -5,9 +5,8 @@ import { InvestRepository } from '../../domain/repositories/invest.repository';
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import { InvestTypeormEntity } from '../entities/invest.typeorm-entity';
 import { InvestMapper } from '../mappers/invest.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IInvestDatabaseData } from '../../domain/interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../../domain/interfaces/invest-blockchain.interface';
 import type {

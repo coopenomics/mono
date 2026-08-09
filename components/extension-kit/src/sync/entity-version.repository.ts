@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { EntityVersionTypeormEntity } from '../entities/entity-version.typeorm-entity';
+import type { Repository } from 'typeorm';
+import { EntityVersionTypeormEntity } from './entity-version.typeorm-entity';
 
 /**
  * Репозиторий для работы с версиями сущностей.

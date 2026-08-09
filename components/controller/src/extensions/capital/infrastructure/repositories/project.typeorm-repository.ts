@@ -5,9 +5,8 @@ import { ProjectRepository } from '../../domain/repositories/project.repository'
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { ProjectMapper } from '../mappers/project.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type {

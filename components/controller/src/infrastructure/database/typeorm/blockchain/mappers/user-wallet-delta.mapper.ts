@@ -5,7 +5,7 @@ import { UserWalletDomainEntity } from '~/domain/wallet/entities/user-wallet-dom
 import type { IUserWalletBlockchainData } from '~/domain/wallet/interfaces/user-wallet-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { Ledger2ContractInfoService } from '~/infrastructure/blockchain/services/ledger2-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 
 /**
  * Маппер дельт `ledger2::userwallets` → blockchain-данные L3 кошелька.

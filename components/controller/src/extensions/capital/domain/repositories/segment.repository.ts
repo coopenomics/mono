@@ -1,5 +1,5 @@
 import type { SegmentDomainEntity } from '../entities/segment.entity';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,

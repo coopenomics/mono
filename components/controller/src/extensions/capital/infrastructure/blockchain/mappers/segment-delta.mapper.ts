@@ -4,7 +4,7 @@ import { SegmentDomainEntity } from '../../../domain/entities/segment.entity';
 import type { ISegmentBlockchainData } from '../../../domain/interfaces/segment-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import type { CapitalContract } from 'cooptypes';
 
 /**

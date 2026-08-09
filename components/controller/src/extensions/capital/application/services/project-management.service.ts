@@ -17,7 +17,7 @@ import type {
 } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { ProjectMapperService } from './project-mapper.service';

@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { KuDecisionQuestionRepository } from '../../domain/repositories/ku-decision-question.repository';
 import { KuDecisionQuestionDomainEntity } from '../../domain/entities/ku-decision-question.entity';
 import { KuDecisionQuestionTypeormEntity } from '../entities/ku-decision-question.typeorm-entity';

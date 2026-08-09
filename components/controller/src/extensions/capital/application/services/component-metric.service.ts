@@ -67,7 +67,7 @@ import {
   type SuperpositionContributionInput,
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Меры (справочник) и цели по мерам на компонентах.

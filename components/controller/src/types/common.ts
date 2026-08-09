@@ -1,5 +1,12 @@
 import { IEntrepreneurData, IGeneratedDocument, IIndividualData, IOrganizationData } from '@coopenomics/factory';
 import { Cooperative, SovietContract } from 'cooptypes';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
+
+// Дельта таблицы блокчейна описана в каркасе синхронизации: с неё начинается
+// работа мапперов и синкеров, а каркас живёт в пакете, чтобы расширения могли
+// наследоваться от него за пределами монолита. Здесь — реэкспорт, чтобы
+// исторический путь `~/types/common` продолжал работать и описание было одно.
+export type { IDelta };
 
 export type IGetResponse<T> = Cooperative.Document.IGetResponse<T>;
 
@@ -13,18 +20,6 @@ export interface IGetTables<T> {
   results: IDelta[];
   page: number;
   limit: number;
-}
-
-export interface IDelta {
-  chain_id: string;
-  block_num: number;
-  block_id: string;
-  present: boolean;
-  code: string;
-  scope: string;
-  table: string;
-  primary_key: string;
-  value?: any;
 }
 
 export interface IAction {

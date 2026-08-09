@@ -1,11 +1,9 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ParticipationManagementService } from '../services/participation-management.service';
 import { ImportContributorInputDTO } from '../dto/participation_management/import-contributor-input.dto';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '@coopenomics/extension-kit';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { RegisterContributorInputDTO } from '../dto/participation_management/register-contributor-input.dto';
@@ -13,7 +11,6 @@ import { EditContributorInputDTO } from '../dto/participation_management/edit-co
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
 import { GetContributorInputDTO } from '../dto/participation_management/get-contributor-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-agreement-document.dto';

@@ -224,7 +224,7 @@ Marketplace в монорепе живёт в **двух контурах**:
 ### Пагинация — единый паттерн
 
 В controller-resolver'ах пагинация делается единым каноническим паттерном:
-- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `~/application/common/dto/pagination.dto.ts`, поля page/limit/sortBy/sortOrder).
+- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `@coopenomics/extension-kit`, поля page/limit/sortBy/sortOrder).
 - Выход: `createPaginationResult(ItemDTO, 'PaginatedXxx')` + сигнатура `Promise<PaginationResult<T>>` (items / totalCount / totalPages / currentPage).
 - Repository принимает `PaginationInputDTO`, сам считает offset/limit/sort через TypeORM `findAndCount`.
 

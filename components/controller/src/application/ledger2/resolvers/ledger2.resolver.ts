@@ -1,8 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { Ledger2Service } from '../services/ledger2.service';
 import { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
 import { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';

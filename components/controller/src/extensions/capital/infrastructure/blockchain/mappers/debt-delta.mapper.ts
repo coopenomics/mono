@@ -4,7 +4,7 @@ import { DebtDomainEntity } from '../../../domain/entities/debt.entity';
 import type { IDebtBlockchainData } from '../../../domain/interfaces/debt-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { CapitalContract } from 'cooptypes';
 

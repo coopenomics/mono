@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
 import {

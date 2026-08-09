@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { ProjectPropertyStatus } from '../../domain/enums/project-property-status.enum';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_project_properties';
 @Entity(EntityName)

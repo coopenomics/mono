@@ -5,8 +5,8 @@ import type {
   IProjectMatrixComponentAnnouncementEvent,
 } from '../interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
 /**
  * Доменная сущность проекта

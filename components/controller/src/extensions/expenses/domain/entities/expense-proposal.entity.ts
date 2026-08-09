@@ -1,5 +1,5 @@
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { IExpenseProposalDatabaseData } from '../interfaces/expense-proposal-database.interface';
 import type {

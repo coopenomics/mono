@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ProjectStatus } from '../../../domain/enums/project-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ProjectPermissionsOutputDTO } from './project-permissions.dto';
 
 /**

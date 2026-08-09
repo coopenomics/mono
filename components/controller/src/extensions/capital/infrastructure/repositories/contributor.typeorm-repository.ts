@@ -5,9 +5,8 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import { ContributorMapper } from '../mappers/contributor.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
 import type {
   PaginationInputDomainInterface,

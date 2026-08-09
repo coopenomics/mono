@@ -6,11 +6,7 @@ import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/accou
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { IConfig, TrackedMeet, defaultConfig } from './types';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
-import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 import { default as config } from '~/config/config';

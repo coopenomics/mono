@@ -20,7 +20,7 @@ import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { PaginationInputDTO, type PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,

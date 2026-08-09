@@ -3,7 +3,7 @@ import type { IDelta } from '~/types/common';
 import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
 import type { IApprovalBlockchainData } from '../../../domain/interfaces/approval-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { IBlockchainDeltaMapper } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { SovietContract } from 'cooptypes';
 

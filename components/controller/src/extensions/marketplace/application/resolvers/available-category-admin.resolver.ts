@@ -19,10 +19,7 @@ import { AddAvailableCategoryTypesInput } from '../dto/add-available-category-ty
 import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categories-input.dto';
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import config from '~/config/config';
 

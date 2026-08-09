@@ -23,7 +23,7 @@ import { CoopAgreementDTO } from '../dto/coop-agreement.dto';
 import { AgreementTemplateDTO } from '../dto/agreement-template.dto';
 import { CooperativeProgramDTO } from '../dto/cooperative-program.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationResult } from '@coopenomics/extension-kit';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';

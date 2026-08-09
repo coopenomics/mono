@@ -1,4 +1,4 @@
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 import type { ITimeEntryDatabaseData, TimeEntryType } from '../interfaces/time-entry-database.interface';
 
 /**

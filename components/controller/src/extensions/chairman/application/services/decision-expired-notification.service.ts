@@ -4,11 +4,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
-import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
 import config from '~/config/config';

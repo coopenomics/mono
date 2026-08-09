@@ -1,4 +1,4 @@
-import type { IBaseDatabaseData } from '../interfaces/base-database.interface';
+import type { IBaseDatabaseData } from './base-database.interface';
 import { randomUUID } from 'crypto';
 
 /**

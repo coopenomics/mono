@@ -9,7 +9,7 @@ import type { FlexibleTimeStatsOutputDTO } from '../dto/time_tracker/flexible-ti
 import type { TimeEntryOutputDTO } from '../dto/time_tracker/time-entries.dto';
 import type { TimeEntriesByIssuesOutputDTO } from '../dto/time_tracker/time-entries-by-issues.dto';
 import type { CapitalTimerSessionOutputDTO } from '../dto/time_tracker/worklog.dto';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 

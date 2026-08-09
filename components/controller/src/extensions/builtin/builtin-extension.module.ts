@@ -1,13 +1,8 @@
 import { Inject, Module } from '@nestjs/common';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
-
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
 

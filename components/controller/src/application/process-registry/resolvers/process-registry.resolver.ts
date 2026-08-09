@@ -1,13 +1,6 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import {
-  createPaginationResult,
-  PaginationInputDTO,
-  PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { ProcessRegistryService } from '~/domain/process-registry/services/process-registry.service';
 import { ProcessViewDTO } from '../dto/process-view.dto';
 import { ProcessSummaryDTO } from '../dto/process-summary.dto';

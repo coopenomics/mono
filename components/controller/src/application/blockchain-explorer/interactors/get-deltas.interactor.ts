@@ -3,7 +3,7 @@ import type { DeltaRepositoryPort } from '~/domain/parser/ports/delta-repository
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import type { DeltaFilterDomainInterface } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import type { DeltaDomainInterface } from '~/domain/parser/interfaces/delta-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор приложения для получения дельт с фильтрацией и пагинацией

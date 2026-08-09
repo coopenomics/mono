@@ -2,8 +2,8 @@ import { AppendixStatus } from '../enums/appendix-status.enum';
 import type { IAppendixDatabaseData } from '../interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../interfaces/appendix-blockchain.interface';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность приложения

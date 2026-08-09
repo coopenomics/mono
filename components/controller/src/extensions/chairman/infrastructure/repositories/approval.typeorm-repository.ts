@@ -4,8 +4,7 @@ import { Repository } from 'typeorm';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
 import { ApprovalMapper } from '../mappers/approval.mapper';
-import { BaseBlockchainRepository } from './base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ApprovalRepository } from '../../domain/repositories/approval.repository';
 import type {
   PaginationInputDomainInterface,

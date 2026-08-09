@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { InvestStatus } from '../../domain/enums/invest-status.enum';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_invests';
 @Entity(EntityName)

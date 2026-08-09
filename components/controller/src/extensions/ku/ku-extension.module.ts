@@ -1,12 +1,8 @@
 import { Inject, Module } from '@nestjs/common';
 import { z } from 'zod';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';

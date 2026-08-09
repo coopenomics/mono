@@ -5,9 +5,8 @@ import { ResultRepository } from '../../domain/repositories/result.repository';
 import { ResultDomainEntity } from '../../domain/entities/result.entity';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { ResultMapper } from '../mappers/result.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type {

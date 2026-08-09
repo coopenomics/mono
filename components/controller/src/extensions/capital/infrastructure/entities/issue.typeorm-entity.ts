@@ -5,7 +5,7 @@ import { ProjectTypeormEntity } from './project.typeorm-entity';
 import { CycleTypeormEntity } from './cycle.typeorm-entity';
 import { CommentTypeormEntity } from './comment.typeorm-entity';
 import { StoryTypeormEntity } from './story.typeorm-entity';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_issues';
 @Entity(EntityName)

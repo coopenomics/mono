@@ -1,15 +1,7 @@
 import { Inject, Module } from '@nestjs/common';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';

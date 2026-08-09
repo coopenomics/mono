@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { IDelta } from '~/types/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import { KuTrustRequestDomainEntity } from '../../../domain/entities/ku-trust-request.entity';
 import type { IKuTrustRequestBlockchainData } from '../../../domain/interfaces/ku-blockchain-data.interface';
 import { KuContractInfoService } from '../../services/ku-contract-info.service';

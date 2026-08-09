@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ContributorStatus } from '../../../domain/enums/contributor-status.enum';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
 

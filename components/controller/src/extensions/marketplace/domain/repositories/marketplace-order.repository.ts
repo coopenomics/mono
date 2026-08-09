@@ -9,7 +9,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');

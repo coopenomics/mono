@@ -8,11 +8,8 @@ import { IndividualCertificateDTO } from '~/application/common/dto/individual-ce
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IsArray, IsJSON, IsString } from 'class-validator';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-
 @ObjectType('Branch')
 export class BranchDTO implements BranchDomainInterface {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })

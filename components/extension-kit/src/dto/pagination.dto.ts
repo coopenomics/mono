@@ -55,7 +55,7 @@ export function createPaginationResult<T>(ItemType: new (...args: any[]) => T, n
 }
 
 /**
- * Сборка `PaginationResult<U>` для consumer'ов, читающих через inter-порт
+ * Сборка `PaginationResult<U>` для consumer'ов, читающих через порт innercoop
  * (нет своего Repository.findAndCount, доступен только raw `{items, totalCount}`).
  *
  * Зачем: вычисление `totalPages`/`currentPage` из `PaginationInputDTO` — общая
@@ -79,7 +79,7 @@ export function buildPaginationResult<T, U>(
 
 /**
  * Канон-конверсия `PaginationInputDTO` → `{limit, offset, sortBy, sortOrder}`
- * для адаптеров inter-портов / внешних read API, не принимающих page-form.
+ * для адаптеров портов innercoop / внешних read API, не принимающих page-form.
  */
 export function paginationInputToOffset(options?: PaginationInputDTO): {
   limit?: number;

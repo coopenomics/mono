@@ -1,4 +1,4 @@
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**

@@ -1,13 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
-import {
-  createPaginationResult,
-  PaginationInputDTO,
-  PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { NotificationJournalService } from './notification-journal.service';
 import { NotificationDTO, NotificationDetailDTO } from './graphql/notification.dto';
 import { NotificationsFilterInput } from './graphql/notifications-filter.input';

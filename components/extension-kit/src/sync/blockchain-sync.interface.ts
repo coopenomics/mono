@@ -1,4 +1,4 @@
-import type { IDelta } from '~/types/common';
+import type { IDelta } from './delta';
 
 /**
  * Интерфейс для данных с привязкой к блоку

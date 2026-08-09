@@ -3,7 +3,7 @@ import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
 import { MetricSeriesPeriod } from '../enums/metric-series-period.enum';
 import { MetricStatus } from '../enums/metric-status.enum';
 import type { IMeasureDatabaseData } from '../interfaces/measure-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 export class MeasureDomainEntity extends BaseDomainEntity<IMeasureDatabaseData> {
   public measure_hash: string;

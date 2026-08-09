@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import { MarketplaceWriteoffProposalDomainEntity } from '../../domain/entities/marketplace-writeoff-proposal.entity';
 import {
   MarketplaceWriteoffProposalStatuses,

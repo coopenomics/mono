@@ -1,8 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '@coopenomics/extension-kit';
 import { AgendaService } from '../services/agenda.service';
 import { AgendaWithDocumentsDTO } from '../dto/agenda-with-documents.dto';
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
+import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import config from '~/config/config';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LogService, ICapitalLogFilterInput } from '../services/log.service';
 import { LogOutputDTO } from '../dto/logs/log.dto';
 import { GetLogsInputDTO } from '../dto/logs/get-logs.input';
-import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
 /**

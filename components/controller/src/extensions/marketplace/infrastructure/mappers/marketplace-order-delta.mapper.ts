@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import type { IDelta } from '~/types/common';
 import { Interfaces } from 'cooptypes';
 type IOrderRow = Interfaces.Marketplace.IOrder;

@@ -1,4 +1,4 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { VoteDomainEntity } from '../entities/vote.entity';
 import type {
   PaginationInputDomainInterface,

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import type { IDelta } from './delta';
+import type { ISyncLogger } from './sync-logger';
 import type {
   IBlockchainSynchronizable,
   IBlockchainDeltaMapper,
   IBlockchainSyncRepository,
   ISyncResult,
-} from '~/shared/interfaces/blockchain-sync.interface';
+} from './blockchain-sync.interface';
 
 /**
  * Абстрактный сервис для синхронизации сущностей с блокчейном
@@ -23,7 +23,7 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
   constructor(
     protected readonly repository: IBlockchainSyncRepository<TEntity>,
     protected readonly mapper: IBlockchainDeltaMapper<TBlockchainData>,
-    protected readonly logger: WinstonLoggerService
+    protected readonly logger: ISyncLogger
   ) {
     this.logger.setContext(`${this.constructor.name}`);
   }

@@ -1,5 +1,5 @@
-import type { IBlockchainDeltaMapper } from './interfaces/blockchain-sync.interface';
-import type { IDelta } from '~/types/common';
+import type { IBlockchainDeltaMapper } from './blockchain-sync.interface';
+import type { IDelta } from './delta';
 
 /**
  * Абстрактный базовый класс для всех блокчейн дельта-мапперов

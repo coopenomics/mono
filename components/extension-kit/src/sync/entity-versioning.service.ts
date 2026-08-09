@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { EntityVersionRepository } from '../repositories/entity-version.repository';
-import type { IBaseDatabaseData } from '../interfaces/base-database.interface';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Repository } from 'typeorm';
+import { EntityVersionRepository } from './entity-version.repository';
+import type { IBaseDatabaseData } from './base-database.interface';
 
 /**
  * Сервис для версионирования сущностей.
@@ -9,7 +9,10 @@ import type { IBaseDatabaseData } from '../interfaces/base-database.interface';
  */
 @Injectable()
 export class EntityVersioningService {
-  constructor(private readonly entityVersionRepository: EntityVersionRepository) {}
+  // Токен зависимости указан явно, а не выведен из типа: пакет собирается
+  // unbuild/esbuild, а esbuild не умеет `emitDecoratorMetadata`. Без `@Inject`
+  // Nest не нашёл бы `design:paramtypes` и упал бы на инстанцировании сервиса.
+  constructor(@Inject(EntityVersionRepository) private readonly entityVersionRepository: EntityVersionRepository) {}
 
   /**
    * Сохранить версию сущности перед её изменением

@@ -1,6 +1,6 @@
 import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 import { ContributorTypeormEntity } from './contributor.typeorm-entity';
 import { ResultTypeormEntity } from './result.typeorm-entity';
 import { ProjectTypeormEntity } from './project.typeorm-entity';

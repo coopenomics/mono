@@ -1,5 +1,5 @@
 import { Field, Float, ObjectType } from '@nestjs/graphql';
-import { createPaginationResult } from '~/application/common/dto/pagination.dto';
+import { createPaginationResult } from '@coopenomics/extension-kit';
 import type { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 
 @ObjectType('MarketplaceConsolidatedRequest')

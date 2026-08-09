@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, MoreThan } from 'typeorm';
-import type { IBlockchainSyncRepository, IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import type { IBaseDatabaseData } from '../interfaces/base-database.interface';
-import { EntityVersioningService } from '../services/entity-versioning.service';
+// Только тип: из typeorm здесь намеренно не берётся ни одного значения.
+// Пакет резолвит typeorm из собственного node_modules, и в монорепе это может
+// оказаться второй экземпляр модуля (peer-набор у пакета и у контроллера
+// разный, pnpm разводит их по разным каталогам). Декораторы такое переживают —
+// TypeORM держит хранилище метаданных в global, — а вот значения нет:
+// `MoreThan()` из второго экземпляра не пройдёт `instanceof FindOperator`
+// внутри первого и молча выродится в сравнение с объектом. Поэтому условия
+// «больше блока» собраны query builder'ом самого репозитория.
+import type { Repository } from 'typeorm';
+import type { IBlockchainSyncRepository, IBlockchainSynchronizable } from './blockchain-sync.interface';
+import type { IBaseDatabaseData } from './base-database.interface';
+import { EntityVersioningService } from './entity-versioning.service';
 
 /**
  * Базовый абстрактный класс для репозиториев блокчейн-сущностей
@@ -63,9 +71,10 @@ export abstract class BaseBlockchainRepository<
    * Найти сущности с номером блока больше указанного
    */
   async findByBlockNumGreaterThan(blockNum: number): Promise<TDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { block_num: MoreThan(blockNum) } as any,
-    });
+    const entities = await this.repository
+      .createQueryBuilder('entity')
+      .where('entity.block_num > :blockNum', { blockNum })
+      .getMany();
 
     return entities.map((entity) => this.getMapper().toDomain(entity));
   }
@@ -106,9 +115,11 @@ export abstract class BaseBlockchainRepository<
    * Удалить сущности с номером блока больше указанного (для обработки форков)
    */
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {
-    await this.repository.delete({
-      block_num: MoreThan(blockNum),
-    } as any);
+    await this.repository
+      .createQueryBuilder()
+      .delete()
+      .where('block_num > :blockNum', { blockNum })
+      .execute();
   }
 
   /**

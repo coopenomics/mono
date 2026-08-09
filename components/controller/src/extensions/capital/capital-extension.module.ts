@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { Injectable } from '@nestjs/common';
@@ -10,10 +10,6 @@ import { DocumentInfrastructureModule } from '~/infrastructure/document/document
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
 import { Inject } from '@nestjs/common';
 import { z } from 'zod';
 

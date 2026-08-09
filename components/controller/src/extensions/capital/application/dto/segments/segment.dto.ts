@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { SegmentStatus } from '../../../domain/enums/segment-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 /**
  * GraphQL Output DTO для сегмента участника в проекте CAPITAL

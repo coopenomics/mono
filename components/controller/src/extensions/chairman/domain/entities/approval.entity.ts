@@ -1,9 +1,9 @@
 import { ApprovalStatus } from '../enums/approval-status.enum';
 import type { IApprovalDatabaseData } from '../interfaces/approval-database.interface';
 import type { IApprovalBlockchainData } from '../interfaces/approval-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность одобрения

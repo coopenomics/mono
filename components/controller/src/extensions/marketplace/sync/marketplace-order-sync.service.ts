@@ -1,8 +1,8 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
-import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
+import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { MarketplaceOrderDomainEntity } from '../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderBlockchainData } from '../domain/entities/marketplace-order.entity';
 import {

@@ -18,7 +18,7 @@ import {
   PaginationInputDTO,
   paginationInputToOffset,
   type PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+} from '@coopenomics/extension-kit';
 import type { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import type { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';
 import type {

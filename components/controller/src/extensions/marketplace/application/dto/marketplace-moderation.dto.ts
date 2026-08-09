@@ -1,6 +1,6 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsInt, IsNotEmpty, IsString, MaxLength, Min } from 'class-validator';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 @InputType('MarketplaceListPendingOffersInput')
 export class MarketplaceListPendingOffersInputDTO extends PaginationInputDTO {}

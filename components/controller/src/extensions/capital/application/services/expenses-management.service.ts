@@ -4,7 +4,7 @@ import type { TransactResult } from '@wharfkit/session';
 import type { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
 import type { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
 import type { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-input.dto';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
 import type { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';

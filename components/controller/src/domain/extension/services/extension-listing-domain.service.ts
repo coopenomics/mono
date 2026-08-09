@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
-import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, isExtensionAvailable, type IResolvedRegistryExtension } from '@coopenomics/extension-kit';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
 import { AppRegistry } from '~/extensions/extensions.registry';
-import { isExtensionAvailable, type IResolvedRegistryExtension } from '@coopenomics/extension-kit';
 import zodToJsonSchema from 'zod-to-json-schema';
 import type { GetExtensionsGraphQLInput } from '~/application/appstore/dto/get-extensions-input.dto';
 import appConfig from '~/config/config';

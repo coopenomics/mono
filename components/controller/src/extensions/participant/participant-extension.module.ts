@@ -1,16 +1,8 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule } from '@coopenomics/extension-kit';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';

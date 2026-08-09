@@ -1,14 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
-import {
-  createPaginationResult,
-  PaginationInputDTO,
-  PaginationResult,
-} from '~/application/common/dto/pagination.dto';
 import { ProgramExpensesManagementService } from '../services/program-expenses-management.service';
 import { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';

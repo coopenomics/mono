@@ -1,8 +1,8 @@
 import { CommitStatus } from '../enums/commit-status.enum';
 import type { ICommitDatabaseData } from '../interfaces/commit-database.interface';
 import type { ICommitBlockchainData } from '../interfaces/commit-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Интерфейс для данных Git-коммита

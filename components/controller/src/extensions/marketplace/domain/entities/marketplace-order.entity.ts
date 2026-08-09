@@ -6,7 +6,7 @@ import type {
 } from './marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 
 /**
  * Story 4.1: домен Order'а Стола заказов. Backend-only представление

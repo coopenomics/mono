@@ -1,10 +1,7 @@
 import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import { RolesGuard } from '@coopenomics/extension-kit';
-import { ActiveUserStatusGuard } from '@coopenomics/extension-kit';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, createPaginationResult, PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
@@ -17,8 +14,6 @@ import { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { createPaginationResult, PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-
 // Пагинированные результаты для программных кошельков
 const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, 'ProgramWallets');
 

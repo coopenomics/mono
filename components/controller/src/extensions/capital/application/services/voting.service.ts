@@ -7,7 +7,7 @@ import type { CalculateVotesInputDTO } from '../dto/voting/calculate-votes-input
 import type { TransactResult } from '@wharfkit/session';
 import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';

@@ -8,17 +8,12 @@ import { ExtensionLogDTO } from '../dto/extension-log.dto';
 import { GetExtensionLogsInputDTO } from '../dto/get-extension-logs-input.dto';
 import { ExtensionInteractor } from '~/application/appstore/interactors/extension.interactor';
 import { ExtensionListingInteractor } from '~/application/appstore/interactors/extension-listing.interactor';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, PaginationInputDTO } from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
   LogExtensionPaginationResult,
 } from '@coopenomics/extension-kit';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-
 /**
  * Application-слой, который:
  *  1) делегирует установку/удаление в старый интерактор

@@ -32,7 +32,7 @@ import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeo
 import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
 import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
 import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
-import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
+import { EntityVersionTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 // Константа для имени подключения к базе данных capital (сохранена для обратной совместимости импортов, но не используется)
 export const CAPITAL_DATABASE_CONNECTION = undefined as any;

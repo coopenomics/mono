@@ -13,7 +13,7 @@ import http from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { KuDecisionQuestionDomainEntity } from '../../domain/entities/ku-decision-question.entity';
 import { KuDecisionQuestionRepository, KU_DECISION_QUESTION_REPOSITORY } from '../../domain/repositories/ku-decision-question.repository';
 import { KuDecisionQuestionDeltaMapper } from '../../infrastructure/blockchain/mappers/ku-decision-question-delta.mapper';

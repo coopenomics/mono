@@ -7,7 +7,7 @@ import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-propo
 import {
   PaginationInputDTO,
   PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+} from '@coopenomics/extension-kit';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 
