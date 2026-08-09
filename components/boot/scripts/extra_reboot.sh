@@ -103,7 +103,12 @@ fi
 # приходит пустым/disabled и harness-сценарии ломаются. Сидер идемпотентен.
 echo "Ждём создания marketplace_ku_details контроллером..."
 KU_READY=""
-for _ in $(seq 1 60); do
+# 300 попыток по 2 с = 10 минут. Прежних двух минут не хватало: контроллер
+# поднимается через ts-node, и на загруженной машине компиляция вместе с
+# миграциями TypeORM занимает дольше. Пропуск сидинга тихо ломает весь прогон —
+# без ПВЗ select пунктов выдачи приходит пустым, и сценарии не доходят до своих
+# экранов. Тот же порог, что у преflight'а раннера, который ждёт контроллер.
+for _ in $(seq 1 300); do
   if docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}" -tAc "SELECT to_regclass('public.marketplace_ku_details')" 2>/dev/null | grep -q marketplace_ku_details; then
     KU_READY=1
     break

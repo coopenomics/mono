@@ -93,7 +93,10 @@ export default async ({ page, shot, expect }) => {
   // ── Ступень 1: удалённое решение ────────────────────────────────────────
   await page.locator('button:has-text("Принять решение")').first().click({ timeout: 20000 });
 
-  const remoteDialog = page.locator('.mp-takeover').first();
+  // Диалоги двух ступеней различаем по заголовку, а не по `.first()`: на
+  // переходе между ними в разметке недолго живут оба, и безымянный селектор
+  // может поймать закрывающийся.
+  const remoteDialog = page.locator('.mp-takeover').filter({ hasText: 'Удалённое решение' }).first();
   await remoteDialog.waitFor({ state: 'visible', timeout: 20000 });
   await page.waitForTimeout(600);
 
@@ -126,7 +129,7 @@ export default async ({ page, shot, expect }) => {
   // ── Ступень 2: очный осмотр и приём ─────────────────────────────────────
   await onSiteBtn.click();
 
-  const onSiteDialog = page.locator('.mp-takeover').first();
+  const onSiteDialog = page.locator('.mp-takeover').filter({ hasText: 'Очный осмотр по заявлению' }).first();
   await onSiteDialog.waitFor({ state: 'visible', timeout: 20000 });
   await page.waitForTimeout(600);
 
