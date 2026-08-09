@@ -34,8 +34,15 @@ export class SessionsService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Список активных (не истёкших, не отозванных) сессий пайщика. */
-  async list(userId: string, currentRefreshToken?: string | null): Promise<ActiveSession[]> {
+  /**
+   * Список активных (не истёкших, не отозванных) сессий пайщика.
+   *
+   * Текущая сессия опознаётся по `sid` из access-токена. Раньше — только сравнением
+   * с refresh-токеном, который фронт для этого должен был слать заголовком и не слал:
+   * ни одна сессия не помечалась текущей, кнопка «Завершить» появлялась и у своей,
+   * а «Завершить все остальные» считало своими чужими все до единой.
+   */
+  async list(userId: string, currentRefreshToken?: string | null, currentSessionId?: string | null): Promise<ActiveSession[]> {
     const rows = await this.tokens.findActiveByUser(userId, tokenTypes.REFRESH);
     const now = Date.now();
     const active = rows.filter((r) => !r.blacklisted && new Date(r.expires).getTime() > now);
@@ -50,7 +57,7 @@ export class SessionsService {
           ip: m?.ip ?? SESSION_IP_UNKNOWN,
           createdAt,
           lastSeenAt: m?.lastSeenAt ?? createdAt,
-          current: currentRefreshToken ? r.token === currentRefreshToken : false,
+          current: currentSessionId ? r.id === currentSessionId : currentRefreshToken ? r.token === currentRefreshToken : false,
         };
       }),
     );
@@ -67,9 +74,14 @@ export class SessionsService {
     await this.safeAudit({ event: 'coopid.session.revoked', subjectId: userId, actor: userId, result: 'success', context: { session_id: sessionId }, ip });
   }
 
-  /** Отозвать все сессии пайщика («Завершить все», в т.ч. текущую). */
-  async revokeAll(userId: string, ip: string | null): Promise<RevokeAllResult> {
-    const rows = await this.tokens.findActiveByUser(userId, tokenTypes.REFRESH);
+  /**
+   * Отозвать сессии пайщика, кроме текущей — ровно то, что обещает кнопка
+   * «Завершить все остальные». Текущая сохраняется: пайщик разлогинивал сам себя,
+   * нажимая кнопку, которая этого не обещала.
+   */
+  async revokeAll(userId: string, ip: string | null, exceptSessionId?: string | null): Promise<RevokeAllResult> {
+    const all = await this.tokens.findActiveByUser(userId, tokenTypes.REFRESH);
+    const rows = exceptSessionId ? all.filter((r) => r.id !== exceptSessionId) : all;
     for (const r of rows) {
       if (r.id) await this.tokens.deleteById(r.id);
       await this.safeDeleteMeta(r.token);

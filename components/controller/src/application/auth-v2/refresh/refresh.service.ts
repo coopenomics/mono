@@ -28,9 +28,11 @@ export class RefreshService {
 
   async refresh(refreshToken: string): Promise<RefreshResult> {
     let userId: string;
+    let sessionId: string | undefined;
     try {
       const doc = await this.tokens.verifyToken({ token: refreshToken, types: [tokenTypes.REFRESH] });
       userId = doc.userId;
+      sessionId = doc.id;
     } catch {
       throw new UnauthorizedException('refresh_token недействителен или отозван');
     }
@@ -39,9 +41,19 @@ export class RefreshService {
     const user = (await this.userDomainService.findUserById(userId)) ?? (await this.userDomainService.findUserByLegacyMongoId(userId));
     if (!user) throw new UnauthorizedException('Пользователь не найден');
 
-    // Ротация: старый refresh «сгорает», выпускается новая пара.
-    await this.tokens.findOneAndDelete(refreshToken, tokenTypes.REFRESH);
-    const pair = await this.tokens.generateAuthTokens(user.id);
+    // Ротация: старый refresh «сгорает», выпускается новая пара. Строку токена при
+    // этом переиспользуем — её id и есть id сессии, он стоит в выданных access-токенах
+    // claim'ом `sid`. Пересоздание строки выглядело бы как новая сессия в списке
+    // устройств и обесценивало бы токены, выданные до обновления.
+    let pair;
+    if (sessionId) {
+      pair = await this.tokens.rotateAuthTokens(user.id, sessionId);
+    } else {
+      // Строка без id — теоретический случай (первичный ключ есть всегда); тогда
+      // ведём себя как раньше: старую гасим, выпускаем новую сессию.
+      await this.tokens.findOneAndDelete(refreshToken, tokenTypes.REFRESH);
+      pair = await this.tokens.generateAuthTokens(user.id);
+    }
 
     return { access_token: pair.access.token, refresh_token: pair.refresh.token };
   }

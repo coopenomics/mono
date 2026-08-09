@@ -86,6 +86,31 @@ describe('SessionsService (Story 3.7 — активные сессии)', () => 
       expect(byId.other).toBe(false);
     });
 
+    it('помечает текущую сессию по sid из access-токена', async () => {
+      const { service, tokens, meta } = setup();
+      tokens.findActiveByUser.mockResolvedValueOnce([
+        row({ id: 'this', token: 'refresh-this' }),
+        row({ id: 'other', token: 'refresh-other' }),
+      ]);
+      meta.get.mockResolvedValue(null);
+
+      const res = await service.list('u1', null, 'this');
+
+      const byId = Object.fromEntries(res.map((s) => [s.id, s.current]));
+      expect(byId.this).toBe(true);
+      expect(byId.other).toBe(false);
+    });
+
+    it('без sid и без refresh-токена ни одна сессия не текущая — и завершить можно любую', async () => {
+      const { service, tokens, meta } = setup();
+      tokens.findActiveByUser.mockResolvedValueOnce([row({ id: 'mine' })]);
+      meta.get.mockResolvedValue(null);
+
+      const res = await service.list('u1');
+
+      expect(res[0].current).toBe(false);
+    });
+
     it('сбой метаданных не валит список (best-effort)', async () => {
       const { service, tokens, meta } = setup();
       tokens.findActiveByUser.mockResolvedValueOnce([row()]);
@@ -138,6 +163,31 @@ describe('SessionsService (Story 3.7 — активные сессии)', () => 
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({ event: 'coopid.session.revoked_all', context: { revoked_count: 2 } }),
       );
+    });
+
+    it('текущую сессию не трогает — кнопка обещает «все остальные»', async () => {
+      const { service, tokens, meta } = setup();
+      tokens.findActiveByUser.mockResolvedValueOnce([
+        row({ id: 'mine', token: 'r-mine' }),
+        row({ id: 'other', token: 'r-other' }),
+      ]);
+
+      const res = await service.revokeAll('u1', null, 'mine');
+
+      expect(res).toEqual({ revoked: 1 });
+      expect(tokens.deleteById).toHaveBeenCalledWith('other');
+      expect(tokens.deleteById).not.toHaveBeenCalledWith('mine');
+      expect(meta.delete).not.toHaveBeenCalledWith('r-mine');
+    });
+
+    it('кроме текущей завершать нечего → не удаляет ничего', async () => {
+      const { service, tokens } = setup();
+      tokens.findActiveByUser.mockResolvedValueOnce([row({ id: 'mine', token: 'r-mine' })]);
+
+      const res = await service.revokeAll('u1', null, 'mine');
+
+      expect(res).toEqual({ revoked: 0 });
+      expect(tokens.deleteById).not.toHaveBeenCalled();
     });
   });
 });

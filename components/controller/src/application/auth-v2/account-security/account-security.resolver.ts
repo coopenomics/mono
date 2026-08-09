@@ -22,6 +22,8 @@ interface ICurrentUser {
   id: string;
   username: string;
   role?: string;
+  /** Сессия, которой выдан access-токен (claim `sid`); null у токенов старого выпуска. */
+  session_id?: string | null;
 }
 
 /**
@@ -52,7 +54,7 @@ export class AccountSecurityResolver {
     @CurrentUser() user: ICurrentUser,
     @RefreshTokenHeader() currentRefreshToken: string | null,
   ): Promise<AccountSessionDTO[]> {
-    const sessions = await this.sessions.list(user.id, currentRefreshToken);
+    const sessions = await this.sessions.list(user.id, currentRefreshToken, user.session_id);
     return sessions.map((s) => ({
       id: s.id,
       device: s.device,
@@ -88,14 +90,14 @@ export class AccountSecurityResolver {
 
   @Mutation(() => RevokedSessionsResultDTO, {
     name: 'revokeAllSessions',
-    description: 'Завершить все сессии пайщика',
+    description: 'Завершить все сессии пайщика, кроме текущей',
   })
   @UseGuards(GqlJwtAuthGuard)
   async revokeAllSessions(
     @CurrentUser() user: ICurrentUser,
     @ClientIp() ip: string | null,
   ): Promise<RevokedSessionsResultDTO> {
-    return this.sessions.revokeAll(user.id, ip);
+    return this.sessions.revokeAll(user.id, ip, user.session_id);
   }
 
   @Mutation(() => TwoFactorEnrollmentDTO, {

@@ -31,6 +31,13 @@ export interface TokenRepository {
   findByUserIdAndType(userId: string, type: TokenType): Promise<TokenDomainInterface[]>;
 
   /**
+   * Находит токен по ID
+   * @param id - ID токена
+   * @returns токен или null, если не найден
+   */
+  findById(id: string): Promise<TokenDomainInterface | null>;
+
+  /**
    * Удаляет токен по ID
    * @param id - ID токена
    * @returns true, если токен был удален

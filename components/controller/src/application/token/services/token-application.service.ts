@@ -24,6 +24,16 @@ export class TokenApplicationService {
   }
 
   /**
+   * Обновляет пару токенов, не меняя личность сессии
+   * @param userId - ID пользователя
+   * @param sessionId - ID существующей сессии (строки refresh-токена)
+   * @returns Пара токенов
+   */
+  async rotateAuthTokens(userId: string, sessionId: string): Promise<TokenPairDomainInterface> {
+    return this.tokenDomainService.rotateAuthTokens(userId, sessionId);
+  }
+
+  /**
    * Генерирует сервисный токен доступа для пользователя
    * @param userId - ID пользователя
    * @returns Сервисный токен
