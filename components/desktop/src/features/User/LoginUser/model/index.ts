@@ -1,4 +1,5 @@
 import { useSessionStore } from 'src/entities/Session';
+import { useAccountStore } from 'src/entities/Account/model';
 import { useGlobalStore } from 'src/shared/store';
 import { api } from '../api';
 import { client } from 'src/shared/api/client';
@@ -134,6 +135,23 @@ export function useLoginUser() {
     if (!ok) {
       throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
     }
+
+    // Данные пайщика приходится запрашивать отдельно: обычный вход получает их
+    // вместе с ответом на логин, а здесь ответ даёт authentik, и о пайщике он
+    // ничего не знает. Без этого приложение считает регистрацию незавершённой и
+    // уводит на страницу регистрации — ровно это и происходило после успешного
+    // входа по паролю.
+    // Стор отдаёт имя и для легаси-контура, и для CoopID — здесь это второе.
+    const username = session.username;
+    if (username) {
+      const accounts = useAccountStore();
+      const account = await accounts.getAccount(username);
+      session.setCurrentUserAccount(account);
+    }
+
+    // Фоновая загрузка кошелька — как в обычном входе.
+    const { run } = useInitWalletProcess();
+    await run();
   }
 
   return {
