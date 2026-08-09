@@ -163,11 +163,9 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Массовый приём, где один из заказов непроходной (чужой, не найден
-      или уже не активен)
+      Массовый приём, где один из заказов непроходной (чужой, не найден или уже не активен)
     expect: >
-      отказ до первого обращения к цепи; ни один заказ не принят,
-      партия не создаётся
+      отказ до первого обращения к цепи; ни один заказ не принят, партия не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
     status: passing
 
@@ -178,7 +176,6 @@ cases:
     expect: отказ до первого обращения к цепи; ни один отказ не отправлен
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
     status: passing
-
     # ── Отмена заказчиком ───────────────────────────────────────────────────
   - id: mkt.order.side.15
     level: backend
@@ -217,8 +214,8 @@ cases:
     kind: side
     scenario: «Мои заказы» у пайщика без единого заказа
     expect: пустое состояние с пояснением, без ошибок
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/orders-empty.mjs
+    status: passing
 
   # ── Отказ инфраструктуры ────────────────────────────────────────────────
   - id: mkt.order.break.01

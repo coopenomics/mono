@@ -69,6 +69,7 @@ const GROUPS = [
       'marketplace/orderer/catalog',
       'marketplace/orderer/order-create',
       'marketplace/orderer/orders',
+      'marketplace/orderer/orders-empty',
       'marketplace/orderer/consolidated',
     ],
   },
