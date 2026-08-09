@@ -50,8 +50,7 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Создание собственной категории с именем, которое уже есть в пределах
-      кооператива (его собственная либо базовая категория платформы)
+      Создание собственной категории с именем, которое уже есть в пределах кооператива (его собственная либо базовая категория платформы)
     expect: отказ «Категория с таким названием уже существует», дубликат не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
     status: passing
@@ -115,8 +114,8 @@ cases:
     scenario: >
       Публикация предложения в категории, выключенной кооперативом
     expect: категория недоступна в форме предложения
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/chairman/category-disabled-in-offer-form.mjs
+    status: passing
 
   - id: mkt.cat.side.05
     level: backend
@@ -132,10 +131,8 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Роль с правом над всеми объектами открывает страницу, требующую права в
-      более узком охвате (участок, свои объекты).
+      Роль с правом над всеми объектами открывает страницу, требующую права в более узком охвате (участок, свои объекты).
     expect: >
-      широкое право разворачивается в подмножества охвата и покрывает узкое
-      требование; узкое право роли при этом не расширяется до всех объектов
+      широкое право разворачивается в подмножества охвата и покрывает узкое требование; узкое право роли при этом не расширяется до всех объектов
     test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
     status: passing

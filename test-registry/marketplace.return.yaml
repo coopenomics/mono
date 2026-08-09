@@ -31,7 +31,7 @@ cases:
       Заявление на возврат по заказу, у предложения которого гарантийный срок нулевой.
     expect: отказ — по такому заказу гарантия не предусмотрена, заявление не заводится
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.ret.happy.01
     level: ui
@@ -39,8 +39,8 @@ cases:
     scenario: >
       Заказчик подаёт заявление на гарантийный возврат по заказу, у которого гарантийный срок не истёк.
     expect: заявление создано и видно оператору участка
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/returns.mjs
+    status: passing
 
   - id: mkt.ret.happy.02
     level: ui
@@ -78,7 +78,7 @@ cases:
     scenario: Заявление подано после истечения гарантийного срока
     expect: отказ с указанием, что срок истёк
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.ret.side.03
     level: backend
@@ -86,7 +86,7 @@ cases:
     scenario: Заявление на возврат по чужому заказу
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.ret.side.04
     level: backend
@@ -94,7 +94,7 @@ cases:
     scenario: Возвращается больше единиц, чем было получено
     expect: отказ — вернуть больше полученного нельзя
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
-    status: written
+    status: passing
 
   # Решение заказчика (2026-08-08): частичный возврат серией заявлений
   # допустим — заявление не закрывает позицию целиком.
@@ -103,20 +103,17 @@ cases:
     kind: side
     scenario: Новое заявление по заказу, у которого прежнее уже закрыто
     expect: >
-      заявление принимается, пока по заказу остаётся невозвращённый остаток;
-      одновременно открытым может быть только одно заявление
+      заявление принимается, пока по заказу остаётся невозвращённый остаток; одновременно открытым может быть только одно заявление
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.ret.side.19
     level: backend
     kind: break
     scenario: >
-      Серия заявлений, суммарно превышающая выданное количество: выдано 10,
-      первое заявление на 6 принято на визите, второе подаётся ещё на 10
+      Серия заявлений, суммарно превышающая выданное количество: выдано 10, первое заявление на 6 принято на визите, второе подаётся ещё на 10
     expect: >
-      отказ — суммарно нельзя вернуть больше выданного; остаток к возврату
-      считается за вычетом уже принятых возвратов
+      отказ — суммарно нельзя вернуть больше выданного; остаток к возврату считается за вычетом уже принятых возвратов
     test: ~
     status: missing
     # ДЕФЕКТ ПРОДУКТА, подтверждён чтением кода (2026-08-08).
@@ -134,8 +131,8 @@ cases:
     kind: side
     scenario: Заявление на возврат по заказу, который ещё не получен
     expect: действие недоступно до факта выдачи
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/order-no-return-yet.mjs
+    status: written
 
   - id: mkt.ret.side.07
     level: ui

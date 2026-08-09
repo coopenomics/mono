@@ -247,5 +247,5 @@ cases:
     kind: side
     scenario: Каталог витрины при отсутствии одобренных предложений
     expect: пустое состояние с пояснением, без ошибок в интерфейсе
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/catalog-empty.mjs
+    status: passing

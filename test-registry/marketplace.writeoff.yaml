@@ -58,7 +58,7 @@ cases:
     scenario: Проект списания без указания причины
     expect: отказ — причина обязательна
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.wof.side.02
     level: backend
@@ -66,7 +66,7 @@ cases:
     scenario: К списанию выбрано имущество чужого кооперативного участка
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.wof.side.03
     level: backend
@@ -97,12 +97,12 @@ cases:
     scenario: Проведение списания до утверждения советом
     expect: отказ — без протокола совета списание не проводится
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
-    status: written
+    status: passing
 
   - id: mkt.wof.side.05
     level: ui
     kind: side
     scenario: Проект списания без единой выбранной позиции
     expect: подписание Заявления недоступно
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
+    status: written

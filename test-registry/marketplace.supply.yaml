@@ -117,8 +117,8 @@ cases:
     kind: side
     scenario: Партия, собранная на один участок, открывается оператором другого участка
     expect: партия не видна в ожидаемых поставках чужого участка
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/incoming-shipments-foreign.mjs
+    status: passing
 
   - id: mkt.supply.side.08
     level: ui
