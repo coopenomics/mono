@@ -24,6 +24,26 @@ if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket as any
 }
 
+/**
+ * Адрес GraphQL → адрес вебсокета.
+ *
+ * `api_url` может быть относительным (`/backend/v1/graphql`) — так фронт и бэкенд
+ * живут на одном адресе за общим прокси, и запрос не зависит от того, открыт стенд
+ * по localhost, по IP или по домену. Простая замена схемы на относительном пути
+ * ничего не делает, а конструктор WebSocket с относительным адресом ведёт себя
+ * по-разному в разных браузерах. Поэтому достраиваем адрес до абсолютного от
+ * origin страницы и только потом меняем схему.
+ */
+function toWebSocketUrl(apiUrl: string): string {
+  const absolute
+    = /^https?:\/\//.test(apiUrl)
+      ? apiUrl
+      : typeof window !== 'undefined' && window.location
+        ? new URL(apiUrl, window.location.origin).toString()
+        : apiUrl
+  return absolute.replace(/^http/, 'ws')
+}
+
 export class Client {
   private currentHeaders: Record<string, string> = {}
   private accessTokenProvider?: () => Promise<string>
@@ -208,7 +228,7 @@ export class Client {
       // headers как getter — Authorization актуален на каждом (ре)коннекте.
       // Не сгенерированный Zeus-Subscription: тот теряет variables (см.
       // utils/wsSubscription.ts), а правки генерята стирает регенерация.
-      this.subscriptionApi = wsSubscription(this.options.api_url.replace(/^http/, 'ws'), {
+      this.subscriptionApi = wsSubscription(toWebSocketUrl(this.options.api_url), {
         headers: () => this.currentHeaders,
       })
     }
