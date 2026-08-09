@@ -8,6 +8,7 @@ import {
   configureTokenStorage,
   getWallet,
   isWalletUnlocked,
+  exportUnlockedKeyForDocumentSigning,
   lockWallet,
   persistPinCache,
   restoreSession,
@@ -150,7 +151,28 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const armAutoLock = () => {
     if (!coopIdAccount.value) return;
     if (autoLockTimer) clearTimeout(autoLockTimer);
-    autoLockTimer = setTimeout(() => lockWallet(), AUTO_LOCK_MS);
+    autoLockTimer = setTimeout(() => {
+      lockWallet();
+      // Ключ уходит из памяти целиком: и из хранилища контура, и из общего стора,
+      // куда он выдан для подписи документов.
+      globalStore.clearSessionKey();
+    }, AUTO_LOCK_MS);
+  };
+
+  /**
+   * Выдаёт ключ разблокированной сессии в общий стор — оттуда его берёт подпись
+   * документов кооператива (повестка совета, заявления, акты). В памяти, без записи
+   * в браузерное хранилище.
+   *
+   * Нужно потому, что подпись документов собирается классом SDK, принимающим ключ
+   * строкой, тогда как подпись транзакций уже ходит через мост и ключа не видит.
+   * Пока класс не научится подписывать чужими руками, вход по паролю без этой выдачи
+   * оставляет пайщика без единой доступной подписи.
+   */
+  const publishSessionKey = async (): Promise<void> => {
+    if (!isWalletUnlocked()) return;
+    const wallet = await getWallet();
+    globalStore.useSessionKey(wallet.account, exportUnlockedKeyForDocumentSigning());
   };
 
   /**
@@ -181,6 +203,8 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
           throw new Error('CoopID keystore заперт: войдите заново (нет локального ключа)');
       }
     }
+    // После любой разблокировки ключ снова доступен подписи документов.
+    await publishSessionKey();
     armAutoLock();
   };
 
@@ -215,6 +239,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     }
     pinError.value = '';
     pinUnlockPending.value = false;
+    await publishSessionKey();
     return true;
   };
 
@@ -252,6 +277,9 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     });
     coopIdAccount.value = wallet.account;
     isAuth.value = true;
+    // Документы кооператива подписываются ключом из общего стора — выдаём его туда,
+    // иначе вход по паролю не даёт подписать ничего.
+    await publishSessionKey();
     armAutoLock();
     return true;
   };

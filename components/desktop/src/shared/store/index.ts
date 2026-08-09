@@ -17,6 +17,8 @@ interface IGlobalStore {
   tokens: Ref<ITokens | undefined>;
   wif: Ref<PrivateKey | undefined>;
   setWif: (newUsername: string, key: string) => Promise<void>;
+  useSessionKey: (account: string, key: string) => void;
+  clearSessionKey: () => void;
   setTokens: (newTokens: ITokens) => Promise<void>;
   logout: () => Promise<void>;
   init: () => void;
@@ -105,6 +107,30 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
 
     wif.value = PrivateKey.fromString(key);
     username.value = newUsername;
+  };
+
+  /**
+   * Кладёт ключ входа по паролю в память приложения — БЕЗ записи в браузерное
+   * хранилище (этим `useSessionKey` и отличается от `setWif`).
+   *
+   * Зачем: подпись документов кооператива собирается классом из SDK, который берёт
+   * ключ строкой отсюда. При входе по паролю ключ живёт в отдельном хранилище нового
+   * контура и сюда не попадал — поэтому любая подпись (повестка совета, заявления,
+   * акты) падала с «Приватный ключ не установлен».
+   *
+   * Почему не `setWif`: тот шифрует ключ константой и кладёт в IndexedDB. Для нового
+   * контура это ровно та копия, от которой мы уходим: ключ обязан лежать на сервере
+   * зашифрованным паролем пайщика и подниматься в память только на время сессии.
+   */
+  const useSessionKey = (account: string, key: string) => {
+    wif.value = PrivateKey.fromString(key);
+    username.value = account;
+    client.setWif(account, key);
+  };
+
+  /** Убирает ключ из памяти, не трогая браузерное хранилище (авто-лок, запирание). */
+  const clearSessionKey = () => {
+    wif.value = undefined;
   };
 
   const setTokens = async (newTokens: ITokens) => {
@@ -211,6 +237,8 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     hasCreditials,
     tokens,
     setWif,
+    useSessionKey,
+    clearSessionKey,
     setTokens,
     logout,
     signDigest,
