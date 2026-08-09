@@ -32,8 +32,9 @@
     <!-- Шаг миграции: вошли по ключу — предлагаем задать пароль -->
     <template v-else>
       <BaseBanner variant="info">
-        Вы вошли по ключу доступа. Задайте пароль — дальше входите им, а ключ
-        останется запасным способом восстановления.
+        Придумайте пароль. Ваш ключ доступа будет зашифрован им и сохранён на
+        сервере — держать его у себя больше не нужно. Дальше вход в кооператив
+        только по паролю.
       </BaseBanner>
       <BaseInput
         v-model="newPassword"
@@ -61,15 +62,6 @@
       >
         Задать пароль и войти
       </BaseButton>
-      <BaseButton
-        type="button"
-        variant="ghost"
-        block
-        :disabled="loading"
-        @click="skipMigration"
-      >
-        Войти без пароля
-      </BaseButton>
     </template>
   </BaseForm>
 </template>
@@ -94,7 +86,7 @@ const router = useRouter();
 const system = useSystemStore();
 const session = useSessionStore();
 const { showDialog } = useNotificationPermissionDialog();
-const { login, migrateAndLogin, loginWithPassword } = useLoginUser();
+const { migrateAndLogin, loginWithPassword } = useLoginUser();
 
 const email = ref('');
 const secret = ref('');
@@ -119,11 +111,6 @@ const canMigrate = computed(
     newPassword.value.length >= MIN_PASSWORD_LENGTH &&
     repeatPassword.value === newPassword.value,
 );
-
-/** Уже мигрировал на пароль (по email на этом устройстве) — не навязываем мастер повторно. */
-function alreadyMigrated(): boolean {
-  return LocalStorage.getItem(`coopid:migrated:${email.value}`) === true;
-}
 
 function navigateToSavedUrl(): boolean {
   if (!process.env.CLIENT) return false;
@@ -195,7 +182,6 @@ const submit = async (): Promise<void> => {
         privateKey: secret.value,
         newPassword: newPassword.value,
       });
-      LocalStorage.set(`coopid:migrated:${email.value}`, true);
     });
     return;
   }
@@ -203,26 +189,16 @@ const submit = async (): Promise<void> => {
   // Шаг входа.
   if (!secret.value || !email.value) return;
 
-  // Вставлен ключ доступа: действующий пайщик ещё без пароля → мастер миграции.
-  // Уже мигрировавший по этому email — входит ключом как запасным способом (легаси).
-  if (looksLikeWif(secret.value) && !alreadyMigrated()) {
+  // Вставлен ключ доступа — значит пароля у пайщика ещё нет. Ведём на установку
+  // пароля БЕЗ возможности пропустить: вход по одному ключу мы больше не даём,
+  // иначе переход растянулся бы навсегда и пришлось бы вечно тянуть два контура.
+  if (looksLikeWif(secret.value)) {
     mode.value = 'migrate';
     return;
   }
 
   await runLogin(async () => {
-    if (looksLikeWif(secret.value)) {
-      await login(email.value, secret.value);
-    } else {
-      await loginWithPassword(email.value, secret.value);
-    }
-  });
-};
-
-/** Войти по ключу без установки пароля (пропустить мастер миграции). */
-const skipMigration = async (): Promise<void> => {
-  await runLogin(async () => {
-    await login(email.value, secret.value);
+    await loginWithPassword(email.value, secret.value);
   });
 };
 
