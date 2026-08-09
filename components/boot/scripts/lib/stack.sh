@@ -160,7 +160,24 @@ stack_up_app() {
   docker compose up -d --force-recreate coopback || true
   docker compose up -d desktop nginx
   stack_wait_coopback || true
+  stack_migrate_controller
   stack_wait_desktop || true
+}
+
+# Миграции контроллера на старте НЕ выполняются — их гоняет отдельный cli.
+# Без них база coop_domain_db остаётся пустой, и CoopID молча ломается по частям:
+# пароль в authentik ставится, а сохранить зашифрованный ключ и записать аудит
+# уже некуда — «relation "vaults" does not exist», HTTP 500 на ровном месте.
+# Поэтому прогоняем их как часть подъёма: стенд обязан подниматься целиком.
+# Идемпотентно — применённые миграции пропускаются.
+stack_migrate_controller() {
+  echo "▸ Прогоняем миграции контроллера..."
+  if docker compose exec -T coopback sh -c 'cd /app/components/controller && pnpm run migration:run' >/dev/null 2>&1; then
+    echo "  ✅ миграции применены"
+  else
+    echo "  ⚠ миграции не прошли — CoopID будет падать на сохранении ключа."
+    echo "    Посмотреть: docker compose exec coopback sh -c 'cd /app/components/controller && pnpm run migration:status'"
+  fi
 }
 
 # ── Итог ─────────────────────────────────────────────────────────────────────
