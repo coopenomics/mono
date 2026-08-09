@@ -31,6 +31,9 @@ export class AppManagementService<TConfig = any> {
   async installApp(data: ExtensionGraphQLInput<TConfig>): Promise<ExtensionDTO<TConfig>> {
     // Приложение должно быть открыто для установки в текущей сети
     this.listingInteractor.assertInstallable(data.name);
+    // Возвращаем на место секреты, пришедшие маркером «задано» — до валидации:
+    // маркер не пройдёт проверку формата, а сохранение затёрло бы ключ.
+    data = { ...data, config: await this.listingInteractor.prepareConfigForSave(data.name, data.config) };
     // Валидируем конфиг
     this.listingInteractor.validateConfig(data.name, data.config);
     // Устанавливаем
@@ -48,6 +51,7 @@ export class AppManagementService<TConfig = any> {
 
   // Обновление
   async updateApp(data: ExtensionGraphQLInput<TConfig>): Promise<ExtensionDTO<TConfig>> {
+    data = { ...data, config: await this.listingInteractor.prepareConfigForSave(data.name, data.config) };
     this.listingInteractor.validateConfig(data.name, data.config);
     await this.extensionInteractor.updateApp(data);
 

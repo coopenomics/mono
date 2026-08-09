@@ -19,6 +19,7 @@ import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-exte
 
 import {
   ExtensionAvailability,
+  ExtensionConfigSuppliedBy,
   isExtensionAvailable,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
@@ -199,6 +200,13 @@ export const AppRegistry: INamedExtension = {
     class: YookassaExtensionModule,
     extensionClass: YookassaExtension,
     schema: YookassaSchema,
+    // Реквизиты магазина ЮKassa принадлежат кооперативу, но значением наружу не
+    // уходят: `getExtensions` отдаёт «задано»/«не задано». До этого секретный
+    // ключ кассы возвращался председателю в открытом виде.
+    configPolicy: {
+      client: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+      secret: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+    },
     tags: ['платежи'],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),

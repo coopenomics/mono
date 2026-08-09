@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
-import { ExtensionDomainEntity, isExtensionAvailable, type IResolvedRegistryExtension } from '@coopenomics/extension-kit';
+import {
+  ExtensionDomainEntity,
+  isExtensionAvailable,
+  mergeSecretConfig,
+  type IResolvedRegistryExtension,
+} from '@coopenomics/extension-kit';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -80,6 +85,22 @@ export class ExtensionDomainListingService<TConfig = any> {
     if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet)) {
       throw new Error(`Приложение ${name} недоступно для установки`);
     }
+  }
+
+  /**
+   * Подготовить пришедший конфиг к сохранению: вернуть на место секреты,
+   * которые интерфейс получил маркером и маркером же прислал обратно.
+   *
+   * Обязательно вызывать ДО `validateConfig`: маркер не пройдёт проверку по
+   * Zod-схеме, если у поля есть формат. И обязательно — до сохранения, иначе
+   * любое открытие и сохранение формы настроек затирало бы ключ.
+   */
+  async prepareConfigForSave(name: string, incoming: any): Promise<any> {
+    const ext = AppRegistry[name];
+    if (!ext?.configPolicy) return incoming;
+
+    const installed = await this.extensionDomainService.getAppByName(name);
+    return mergeSecretConfig(incoming, installed?.config as any, ext.configPolicy);
   }
 
   /**

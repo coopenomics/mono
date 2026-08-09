@@ -23,3 +23,4 @@ export * from './migrations/schema-migration.contract';
 export * from './lifecycle/events';
 export * from './registry/registry.contract';
 export * from './dto/pagination.dto';
+export * from './config/config-policy';

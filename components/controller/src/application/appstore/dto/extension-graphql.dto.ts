@@ -2,6 +2,7 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 import type { IResolvedRegistryExtension, IDesktopConfig, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { redactSecretConfig } from '@coopenomics/extension-kit';
 /**
  * GraphQL тип для конфигурации рабочего стола
  */
@@ -99,7 +100,12 @@ export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtens
     this.is_installed = !!installedExtension;
     this.desktops = registryData.desktops;
     this.enabled = installedExtension?.enabled ?? false;
-    this.config = installedExtension?.config ?? ({} as TConfig);
+    // Секретные параметры наружу не уходят: председатель видит «задано», а не
+    // значение. До этого конфиг отдавался целиком, вместе с ключом кассы.
+    this.config = redactSecretConfig(
+      (installedExtension?.config ?? {}) as TConfig & Record<string, any>,
+      registryData.configPolicy
+    );
     this.created_at = installedExtension?.created_at ?? new Date(0);
     this.updated_at = installedExtension?.updated_at ?? new Date(0);
     this.schema = registryData.schema ?? null;

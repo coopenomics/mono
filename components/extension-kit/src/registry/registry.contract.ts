@@ -1,3 +1,5 @@
+import type { ExtensionConfigPolicy } from '../config/config-policy';
+
 /**
  * Контракт записи реестра расширений. Сам реестр (`AppRegistry` с перечислением
  * конкретных расширений) остаётся в контроллере — это composition root; сюда вынесена
@@ -57,6 +59,11 @@ export interface IRegistryExtension {
   class: any; // класс модуля расширения
   extensionClass: any; // класс расширения (для миграций схемы)
   schema: any; // Zod-схема конфига
+  /**
+   * Политика по параметрам конфига: что секретно и кто заполняет.
+   * Необязательна — расширение без политики ведёт себя как раньше.
+   */
+  configPolicy?: ExtensionConfigPolicy;
   tags?: string[];
   readme: Promise<string>;
   instructions: Promise<string>;
