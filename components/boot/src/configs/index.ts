@@ -164,6 +164,13 @@ export default {
     {
       name: provider,
       code_permissions_to: ['registrator'],
+      // Публичная часть ключа, которым кооператив заверяет удостоверения пайщиков.
+      // Парная приватная лежит у контроллера (секрет `coop_cert_key`); на стенде это
+      // ключ из поставки, в боевом контуре задаётся переменной. Без публикации
+      // удостоверение выпустить нечем — цепь доверия обрывается на кооперативе.
+      cert_public_key:
+        process.env.COOP_CERT_PUBLIC_KEY
+        || 'PUB_K1_5HMTPppTwsL5D9mq9shhMV8G88PHHTg4x1aEHUHfL8pMawA132',
     },
   ],
   contracts,

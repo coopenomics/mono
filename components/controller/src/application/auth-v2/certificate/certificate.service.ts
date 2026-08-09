@@ -17,8 +17,13 @@ import { CertSettingsService } from '~/application/auth-v2/certificate/cert-sett
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
 
-/** Звенья cert-цепи доверия CoopID (миграция 052): ano → voskhod → vostok. */
-const CERT_CHAIN_ACCOUNTS = ['ano', 'voskhod', 'vostok'] as const;
+/**
+ * Якорь доверия CoopID — АНО, заверяющая кооперативы. Звено необязательное: пока
+ * её аккаунт не заведён в цепи (или не имеет ключа заверения), цепь начинается с
+ * самого кооператива. Это осознанно более слабая, но честная картина: лучше
+ * показать реальную цепь из одного звена, чем не выпустить удостоверение вовсе.
+ */
+const TRUST_ANCHOR_ACCOUNT = 'ano';
 /** Лимит размера JWS — Vision/MIFARE DESFire EV3 (AC Story 1.8). */
 const MAX_CERT_BYTES = 5 * 1024;
 
@@ -29,9 +34,9 @@ export interface CoopChainLink {
 
 /**
  * Выпуск participant_certificate (CoopID, Story 1.8): compact JWS alg=ES256K,
- * подписанный ключом permission `cert` аккаунта vostok (PEM из Docker Secret
+ * подписанный ключом права `cert` самого кооператива (PEM из Docker Secret
  * `coop_cert_key`). Сертификат самодостаточен — несёт цепь доверия `coop_chain`
- * [ano,voskhod,vostok] для offline-верификации от вшитого trust anchor (ano).
+ * (якорь → кооператив) для offline-верификации.
  * Подпись ES256K через jose + Node KeyObject — wharfkit в application не нужен.
  */
 @Injectable()
@@ -57,7 +62,8 @@ export class CertificateService {
     const identification = await this.resolveIdentification(username);
     const coopname = config.coopname;
     const coopChain = await this.getCoopChain();
-    const vostokKey = coopChain[coopChain.length - 1]?.public_key;
+    // Подписывает последнее звено цепи — сам кооператив; его ключ и уходит в `kid`.
+    const signingPublicKey = coopChain[coopChain.length - 1]?.public_key;
     // Типы верификации выводятся из реального членства (Story 4.1). В claim идёт
     // структурная форма {type, verified_at, source} (Story 4.3) — без status (форма AC,
     // экономия байт под лимит 5 КБ). RP получает её через OIDC userinfo в Epic 5.
@@ -83,7 +89,7 @@ export class CertificateService {
       data_retention_contract: DATA_RETENTION_CONTRACT,
       retention_deadline_ts: nowSeconds + RETENTION_PERIOD_SECONDS,
     })
-      .setProtectedHeader({ alg: 'ES256K', typ: 'JWT', kid: vostokKey })
+      .setProtectedHeader({ alg: 'ES256K', typ: 'JWT', kid: signingPublicKey })
       .setIssuer(`https://${coopname}.coop`)
       .setSubject(user.id)
       .setJti(randomUUID()) // серийный номер удостоверения (ЛК показывает его, Story 1.9)
@@ -114,24 +120,43 @@ export class CertificateService {
   }
 
   /**
-   * Цепь cert-ключей [ano,voskhod,vostok] из COOPOS. Кэшируется (ключи cert
-   * меняются крайне редко; ротация — рестарт/инвалидция в будущих историях).
+   * Цепь ключей заверения из COOPOS: якорь (если он есть) → кооператив, чьим ключом
+   * удостоверение и подписывается. Кэшируется (ключи заверения меняются крайне
+   * редко; ротация — рестарт/инвалидация в будущих историях).
+   *
+   * Раньше цепь была константой `[ano, voskhod, vostok]`. Это было неверно дважды:
+   * имя кооператива оказалось вшито в код (у любого другого кооператива цепь
+   * указывала бы на чужой), а `vostok` в ней был лишним звеном. Теперь кооператив
+   * берётся из настроек, а якорь подключается сам, как только появится в цепи.
    */
   private async getCoopChain(): Promise<CoopChainLink[]> {
     if (this.coopChain) return this.coopChain;
+
     const links: CoopChainLink[] = [];
-    for (const account of CERT_CHAIN_ACCOUNTS) {
-      let key: string | null;
-      try {
-        key = await this.blockchainPort.getCertPublicKey(account);
-      } catch {
-        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, `COOPOS недоступен: cert-ключ ${account} не получен`);
-      }
-      if (!key)
-        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, `cert-permission аккаунта ${account} отсутствует или не single-key`);
-      links.push({ account, public_key: key });
-    }
+    const anchorKey = await this.certKey(TRUST_ANCHOR_ACCOUNT);
+    if (anchorKey) links.push({ account: TRUST_ANCHOR_ACCOUNT, public_key: anchorKey });
+
+    // Кооператив — звено обязательное: именно его ключом подписан сертификат, и без
+    // публикации соответствующего публичного ключа проверить подпись невозможно.
+    const coopname = config.coopname;
+    const coopKey = await this.certKey(coopname);
+    if (!coopKey)
+      throw new AuthV2Error(
+        AuthV2ErrorCode.ChainVerificationFailed,
+        `у кооператива ${coopname} нет права заверения (permission «cert» с одним ключом) — удостоверение выпустить нечем`,
+      );
+    links.push({ account: coopname, public_key: coopKey });
+
     this.coopChain = links;
     return links;
+  }
+
+  /** Публичный ключ заверения аккаунта; `null` — права нет. Недоступность цепи — отдельная ошибка. */
+  private async certKey(account: string): Promise<string | null> {
+    try {
+      return await this.blockchainPort.getCertPublicKey(account);
+    } catch {
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, `COOPOS недоступен: ключ заверения ${account} не получен`);
+    }
   }
 }

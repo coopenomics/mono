@@ -116,6 +116,11 @@ export async function startInfra() {
     }
   }
 
+  // публикуем права заверения — ими подписываются удостоверения пайщиков
+  for (const account of config.accounts.filter(el => !!el.cert_public_key)) {
+    await blockchain.setCertPermission(account.name, account.cert_public_key as string)
+  }
+
   await sleep(1000)
 
   // инициализируем системный контракт

@@ -850,6 +850,56 @@ export default class Blockchain {
     }
   }
 
+  /**
+   * Публикует право заверения `cert` — отдельное разрешение аккаунта с ровно одним
+   * ключом. Им кооператив подписывает удостоверения пайщиков, а публичная часть
+   * лежит в цепи, чтобы подпись можно было проверить, ни у кого ничего не спрашивая.
+   *
+   * Отдельное разрешение, а не `active`: подписывать удостоверения и распоряжаться
+   * средствами кооператива — разные полномочия, и ключи у них разные.
+   *
+   * Строго один ключ без делегирования — контроллер иначе такое право не примет
+   * (цепь доверия должна вести к конкретному ключу, а не к набору подписантов).
+   */
+  async setCertPermission(account: string, publicKey: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'cert',
+                parent: 'active',
+                auth: {
+                  threshold: 1,
+                  keys: [{ key: publicKey, weight: 1 }],
+                  accounts: [],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Опубликовано право заверения: ${account}@cert -> ${publicKey}`)
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
   async votefor(
     params: SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
   ) {

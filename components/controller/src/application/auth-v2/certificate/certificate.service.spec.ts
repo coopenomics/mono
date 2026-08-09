@@ -6,11 +6,13 @@ import { UserCertificateDomainService } from '~/domain/user/services/user-certif
 import { CertificateService } from './certificate.service';
 
 const COOPNAME = config.coopname;
-const VOSTOK_KEY = 'PUB_K1_vostokcertkey00000000000000000000000000000000000';
+// Цепь заверения: якорь (АНО) → сам кооператив. Имя кооператива берём из настроек,
+// а не из списка: раньше оно было вшито в код и на другом кооперативе цепь указывала
+// бы на чужой. Подписывает последнее звено — кооператив, его ключ и стоит в `kid`.
+const COOP_KEY = 'PUB_K1_voskhodcertkey0000000000000000000000000000000000';
 const CHAIN: Record<string, string> = {
   ano: 'PUB_K1_anocertkey0000000000000000000000000000000000000000',
-  voskhod: 'PUB_K1_voskhodcertkey0000000000000000000000000000000000',
-  vostok: VOSTOK_KEY,
+  [COOPNAME]: COOP_KEY,
 };
 
 let pubKey: KeyObject;
@@ -70,7 +72,7 @@ describe('CertificateService.issueForUsername', () => {
 
     const header = decodeProtectedHeader(jws);
     expect(header.alg).toBe('ES256K');
-    expect(header.kid).toBe(VOSTOK_KEY);
+    expect(header.kid).toBe(COOP_KEY);
 
     const { payload } = await jwtVerify(jws, pubKey, { algorithms: ['ES256K'] });
     expect(payload.iss).toBe(`https://${COOPNAME}.coop`);
@@ -86,8 +88,7 @@ describe('CertificateService.issueForUsername', () => {
     ]);
     expect(payload.coop_chain).toEqual([
       { account: 'ano', public_key: CHAIN.ano },
-      { account: 'voskhod', public_key: CHAIN.voskhod },
-      { account: 'vostok', public_key: VOSTOK_KEY },
+      { account: COOPNAME, public_key: COOP_KEY },
     ]);
     expect(payload.identification).toMatchObject({ type: 'individual', username: 'ant', first_name: 'Иван' });
   });
@@ -151,10 +152,16 @@ describe('CertificateService.issueForUsername', () => {
     await expect(service.issueForUsername('ant')).rejects.toThrow(/COOP_CERT_KEY/);
   });
 
-  it('разрыв cert-цепи (нет ключа звена) → ChainVerificationFailed', async () => {
-    const { service } = makeService({ certKeyFor: (acc) => (acc === 'voskhod' ? null : CHAIN[acc]) });
+  it('у кооператива нет права заверения → ChainVerificationFailed', async () => {
+    const { service } = makeService({ certKeyFor: (acc) => (acc === COOPNAME ? null : CHAIN[acc]) });
     await expect(service.issueForUsername('ant')).rejects.toMatchObject({
       code: AuthV2ErrorCode.ChainVerificationFailed,
     });
+  });
+
+  it('якоря ещё нет в цепи → выпускаем с цепью из одного звена, а не отказываем', async () => {
+    const { service } = makeService({ certKeyFor: (acc) => (acc === 'ano' ? null : CHAIN[acc]) });
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect(payload.coop_chain).toEqual([{ account: COOPNAME, public_key: COOP_KEY }]);
   });
 });

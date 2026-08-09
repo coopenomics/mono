@@ -156,6 +156,7 @@
 
 <script lang="ts" setup>
 import { useSessionStore } from 'src/entities/Session';
+import { useSystemStore } from 'src/entities/System/model';
 import type {
   IEntrepreneurData,
   IIndividualData,
@@ -176,6 +177,7 @@ import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
 const session = useSessionStore();
+const system = useSystemStore();
 
 // ── Криптографическое удостоверение пайщика (CoopID, Story 1.9) ──
 const certificate = ref<ParticipantCertificate | null>(null);
@@ -201,14 +203,20 @@ const certStatus = computed<{ label: string; variant: BaseChipVariant }>(() => {
 });
 
 // Человекочитаемые имена звеньев цепи подписей + сам пайщик в конце.
+// Имена кооперативов не перечисляем списком: свой берём из настроек кооператива,
+// чужие показываем как есть. Прежний список знал ровно два имени и на любом другом
+// кооперативе показал бы чужие названия.
 const CHAIN_LABELS: Record<string, string> = {
   ano: 'АНО',
-  voskhod: 'Восход',
-  vostok: 'Восток',
 };
+function chainLabel(account: string): string {
+  if (CHAIN_LABELS[account]) return CHAIN_LABELS[account];
+  if (account === system.info.coopname) return system.cooperativeDisplayName || account;
+  return account;
+}
 const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() => {
   const links = (certificate.value?.coop_chain ?? []).map((l) => ({
-    label: CHAIN_LABELS[l.account] ?? l.account,
+    label: chainLabel(l.account),
     variant: 'neutral' as BaseChipVariant,
   }));
   return [...links, { label: 'Вы', variant: 'accent' as BaseChipVariant }];
