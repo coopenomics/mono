@@ -75,6 +75,13 @@ export interface VerifyOfflineOptions {
    * `trustedKeys['ano']`, затем вшитый release-pinned `TRUST_ANCHOR_ANO_CERT_PUBKEY`.
    */
   trustAnchor?: string
+  /**
+   * Аккаунт, которым цепь обязана начинаться. По умолчанию `ano` — АНО, заверяющая
+   * кооперативы. Пока её аккаунта нет в цепи, удостоверения укореняются на самом
+   * кооперативе, и проверяющий обязан назвать его здесь явно: иначе укоренение
+   * ничего не значит — цепь из одного звена подтверждает сама себя.
+   */
+  trustAnchorAccount?: string
   /** «Сейчас» в мс для проверки exp (инъекция для детерминизма/тестов). */
   now?: number
   /**
@@ -161,8 +168,9 @@ export async function verifyOffline(certificate: string, options: VerifyOfflineO
 
   // Якорь: цепь обязана начинаться с известного `ano`.
   const root = chain[0]
-  const anchor = options.trustAnchor ?? options.trustedKeys?.ano ?? TRUST_ANCHOR_ANO_CERT_PUBKEY
-  if (!anchor || root.account !== 'ano' || root.public_key !== anchor)
+  const anchorAccount = options.trustAnchorAccount ?? 'ano'
+  const anchor = options.trustAnchor ?? options.trustedKeys?.[anchorAccount] ?? TRUST_ANCHOR_ANO_CERT_PUBKEY
+  if (!anchor || root.account !== anchorAccount || root.public_key !== anchor)
     return { valid: false, reason: 'untrusted_anchor' }
 
   // Звенья: при наличии кэша каждое звено должно совпасть с доверенным ключом.

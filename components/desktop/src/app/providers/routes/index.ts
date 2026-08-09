@@ -217,6 +217,16 @@ if (process.env.DEV) {
   });
 }
 
+// Считыватель удостоверений — отдельная страница для устройства проверяющего
+// (планшет на входе), а не раздел кабинета. Намеренно не выведена ни в одно меню:
+// пайщику она не нужна, а тому, кто проверяет, достаточно знать адрес.
+baseRoutes.push({
+  path: '/verify',
+  name: 'verify-certificate',
+  component: () => import('src/pages/Verify/VerifyCertificatePage.vue'),
+  meta: { title: 'Проверка удостоверения' },
+});
+
 const rs = baseRoutes;
 
 export { rs as routes };
