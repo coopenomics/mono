@@ -66,14 +66,14 @@ export class ExtensionOnboardingEventsService {
     }
 
     try {
-      const plugin = await this.extensionRepository.findByName(extension_name);
-      if (!plugin) {
+      const extension = await this.extensionRepository.findByName(extension_name);
+      if (!extension) {
         this.logger.warn(`Расширение ${extension_name} не найдено в репозитории`);
         return;
       }
 
       const flagKey = doneKey(step_key);
-      const wasAlreadyDone = Boolean(plugin.config[flagKey]);
+      const wasAlreadyDone = Boolean(extension.config[flagKey]);
       if (wasAlreadyDone) return;
 
       // Атомарный merge одного флага: два решения совета по РАЗНЫМ шагам,

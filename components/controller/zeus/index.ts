@@ -14735,7 +14735,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -28620,7 +28620,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -43117,7 +43117,7 @@ export type ModelTypes = {
 	response?: ModelTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: ModelTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: ModelTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: ModelTypes["JSON"] | undefined | null,
@@ -58456,7 +58456,7 @@ export type GraphQLTypes = {
 	response?: GraphQLTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: GraphQLTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: GraphQLTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: GraphQLTypes["JSON"] | undefined | null,

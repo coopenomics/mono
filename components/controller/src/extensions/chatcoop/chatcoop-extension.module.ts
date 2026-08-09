@@ -1,5 +1,5 @@
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
@@ -101,7 +101,7 @@ import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.reposi
 import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
 
 @Injectable()
-export class ChatCoopPlugin extends BaseExtModule {
+export class ChatCoopExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
@@ -113,25 +113,25 @@ export class ChatCoopPlugin extends BaseExtModule {
     private readonly chatCoopApplicationService: ChatCoopApplicationService
   ) {
     super();
-    this.logger.setContext(ChatCoopPlugin.name);
+    this.logger.setContext(ChatCoopExtension.name);
   }
 
   name = 'chatcoop';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
   configSchemas = Schema;
   defaultConfig = defaultConfig;
 
   /** В JSON расширения храним только публичные настройки (интервал cron и т.д.). */
   private async persistExtensionPublicConfig(): Promise<void> {
     const interval =
-      this.plugin?.config?.messageHistorySyncIntervalMinutes ?? defaultConfig.messageHistorySyncIntervalMinutes;
+      this.extension?.config?.messageHistorySyncIntervalMinutes ?? defaultConfig.messageHistorySyncIntervalMinutes;
     await this.extensionRepository.update({
       name: this.name,
       config: { messageHistorySyncIntervalMinutes: interval },
     });
     const refreshed = await this.extensionRepository.findByName(this.name);
     if (refreshed) {
-      this.plugin = refreshed;
+      this.extension = refreshed;
     }
   }
 
@@ -139,11 +139,11 @@ export class ChatCoopPlugin extends BaseExtModule {
     try {
       this.logger.log('Инициализация модуля чаткооп...');
 
-      // Получаем конфигурацию плагина
-      const pluginData = await this.extensionRepository.findByName(this.name);
-      if (!pluginData) throw new Error('Конфиг чаткооп не найден');
+      // Получаем конфигурацию расширения
+      const extensionData = await this.extensionRepository.findByName(this.name);
+      if (!extensionData) throw new Error('Конфиг чаткооп не найден');
 
-      this.plugin = pluginData;
+      this.extension = extensionData;
 
       // Выполняем логин администратора при инициализации
       await this.matrixApiService.loginAdmin();
@@ -168,7 +168,7 @@ export class ChatCoopPlugin extends BaseExtModule {
           }
           const refreshed = await this.extensionRepository.findByName(this.name);
           if (refreshed) {
-            this.plugin = refreshed;
+            this.extension = refreshed;
           }
           await this.ensureSecretaryInEligibleMatrixRoomsIfConfigured();
           this.logger.log('Модуль чаткооп успешно инициализирован');
@@ -190,13 +190,13 @@ export class ChatCoopPlugin extends BaseExtModule {
 
   /**
    * Отложенная инициализация секретаря после того, как генератор будет готов.
-   * Выполняется только если расширение установлено (this.plugin задаётся в initialize()).
+   * Выполняется только если расширение установлено (this.extension задаётся в initialize()).
    */
   async onModuleInit(): Promise<void> {
     setTimeout(async () => {
       try {
         // Расширение не установлено — initialize() не вызывался, пропускаем
-        if (!this.plugin?.config) {
+        if (!this.extension?.config) {
           return;
         }
         const st = await this.chatcoopState.getSingleton();
@@ -214,7 +214,7 @@ export class ChatCoopPlugin extends BaseExtModule {
         }
         const refreshed = await this.extensionRepository.findByName(this.name);
         if (refreshed) {
-          this.plugin = refreshed;
+          this.extension = refreshed;
         }
         await this.ensureSecretaryInEligibleMatrixRoomsIfConfigured();
       } catch (error) {
@@ -232,7 +232,7 @@ export class ChatCoopPlugin extends BaseExtModule {
       if (!latest) {
         return;
       }
-      this.plugin = latest;
+      this.extension = latest;
       const st = await this.chatcoopState.getSingleton();
       if (!st.isInitialized) {
         return;
@@ -388,7 +388,7 @@ export class ChatCoopPlugin extends BaseExtModule {
    * Создает Matrix-аккаунт, шифрует credentials и сохраняет в Vault
    */
   private async initializeSecretary(): Promise<void> {
-    if (!this.plugin?.config) {
+    if (!this.extension?.config) {
       return;
     }
     try {
@@ -521,8 +521,8 @@ export class ChatCoopPlugin extends BaseExtModule {
     ChatCoopCalendarFeedController,
   ],
   providers: [
-    // Plugin
-    ChatCoopPlugin,
+    // Extension
+    ChatCoopExtension,
 
     // Application Services
     ChatCoopApplicationService,
@@ -608,7 +608,7 @@ export class ChatCoopPlugin extends BaseExtModule {
     SecretaryRoomsResolver,
   ],
   exports: [
-    ChatCoopPlugin,
+    ChatCoopExtension,
     ChatCoopApplicationService,
     ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
     ChatcoopInnercoopMatrixRoomMessagingAdapter,
@@ -617,10 +617,10 @@ export class ChatCoopPlugin extends BaseExtModule {
     COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
   ],
 })
-export class ChatCoopPluginModule {
-  constructor(private readonly chatcoopPlugin: ChatCoopPlugin) {}
+export class ChatCoopExtensionModule {
+  constructor(private readonly chatcoopExtension: ChatCoopExtension) {}
 
   async initialize() {
-    await this.chatcoopPlugin.initialize();
+    await this.chatcoopExtension.initialize();
   }
 }

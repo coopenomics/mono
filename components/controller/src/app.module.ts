@@ -80,7 +80,7 @@ import { OnboardingApplicationModule } from './application/onboarding/onboarding
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
-import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
+import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
 import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
@@ -175,7 +175,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     SearchModule,
     SignedDocumentsModule,
     // Marketplace extensions
-    MarketplacePluginModule,
+    MarketplaceExtensionModule,
     MarketplaceCardsModule,
   ],
   providers: [

@@ -67,16 +67,16 @@ interface StatementTransactionsV2 {
   transactions: StatementTransactionV2[];
 }
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export const Schema = z.object({});
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export type IConfig = z.infer<typeof Schema>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class SberpollPlugin extends PollingProvider {
+export class SberpollExtension extends PollingProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
@@ -86,11 +86,11 @@ export class SberpollPlugin extends PollingProvider {
     @Inject(REDIS_PORT) private readonly redisPort: RedisPort
   ) {
     super();
-    this.logger.setContext(SberpollPlugin.name);
+    this.logger.setContext(SberpollExtension.name);
   }
 
   name = 'sberpoll';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
@@ -99,13 +99,13 @@ export class SberpollPlugin extends PollingProvider {
   public fee_percent = 0; ///%
 
   async initialize(): Promise<void> {
-    const pluginData = await this.extensionRepository.findByName(this.name);
+    const extensionData = await this.extensionRepository.findByName(this.name);
 
-    if (!pluginData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension);
   }
 
   public async createPayment(hash: string): Promise<PaymentDetailsDomainInterface> {
@@ -340,7 +340,7 @@ export class SberpollPlugin extends PollingProvider {
 @Module({
   imports: [RedisModule],
   providers: [
-    SberpollPlugin,
+    SberpollExtension,
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
@@ -349,13 +349,13 @@ export class SberpollPlugin extends PollingProvider {
       provide: PAYMENT_REPOSITORY,
       useClass: TypeOrmPaymentRepository,
     },
-  ], // Регистрируем SberpollPlugin как провайдер
-  exports: [SberpollPlugin], // Экспортируем его для доступа в других модулях
+  ], // Регистрируем SberpollExtension как провайдер
+  exports: [SberpollExtension], // Экспортируем его для доступа в других модулях
 })
-export class SberpollPluginModule {
-  constructor(private readonly sberpollPlugin: SberpollPlugin) {}
+export class SberpollExtensionModule {
+  constructor(private readonly sberpollExtension: SberpollExtension) {}
 
   async initialize() {
-    await this.sberpollPlugin.initialize();
+    await this.sberpollExtension.initialize();
   }
 }

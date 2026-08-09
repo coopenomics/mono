@@ -26,13 +26,13 @@ export const defaultConfig = {};
 export const Schema = z.object({});
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export type IConfig = z.infer<typeof Schema>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class QrPayPlugin extends PaymentProvider {
+export class QrPayExtension extends PaymentProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
@@ -41,12 +41,12 @@ export class QrPayPlugin extends PaymentProvider {
     @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
   ) {
     super();
-    this.logger.setContext(QrPayPlugin.name);
+    this.logger.setContext(QrPayExtension.name);
   }
 
   name = 'qrpay';
 
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
@@ -54,12 +54,12 @@ export class QrPayPlugin extends PaymentProvider {
   public fee_percent = 0; ///%
 
   async initialize(): Promise<void> {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension);
 
     this.providerPort.registerProvider(this.name, this);
     this.logger.log(`Платежный провайдер ${this.name} успешно зарегистрирован.`);
@@ -114,7 +114,7 @@ export class QrPayPlugin extends PaymentProvider {
 @Module({
   imports: [GatewayDomainModule, GatewayInfrastructureModule],
   providers: [
-    QrPayPlugin,
+    QrPayExtension,
     {
       provide: EXTENSION_REPOSITORY, // токен для инъекции
       useClass: TypeOrmExtensionDomainRepository, // Реализация для интерфейса
@@ -123,13 +123,13 @@ export class QrPayPlugin extends PaymentProvider {
       provide: PAYMENT_REPOSITORY,
       useClass: TypeOrmPaymentRepository,
     },
-  ], // Регистрируем PowerupPlugin как провайдер
-  exports: [QrPayPlugin], // Экспортируем его для доступа в других модулях
+  ], // Регистрируем PowerupExtension как провайдер
+  exports: [QrPayExtension], // Экспортируем его для доступа в других модулях
 })
-export class QrPayPluginModule {
-  constructor(private readonly qrPayPlugin: QrPayPlugin) {}
+export class QrPayExtensionModule {
+  constructor(private readonly qrPayExtension: QrPayExtension) {}
 
   async initialize() {
-    await this.qrPayPlugin.initialize();
+    await this.qrPayExtension.initialize();
   }
 }

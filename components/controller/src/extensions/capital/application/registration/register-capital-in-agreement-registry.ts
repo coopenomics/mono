@@ -15,7 +15,7 @@ import type { IConfig } from '../../capital-extension.module';
 /**
  * Регистрация оферт и программ Capital в платформенном AgreementRegistry.
  *
- * Чистая функция, не имеющая зависимостей от плагина или nest-контейнера:
+ * Чистая функция, не имеющая зависимостей от расширения или nest-контейнера:
  * принимает `port` и `config`, выполняет series of register-вызовов.
  * Это упрощает unit-тестирование (не требует boot всей капитал-graph
  * с @octokit/rest, GitHub-схемами, базой и т.д.).

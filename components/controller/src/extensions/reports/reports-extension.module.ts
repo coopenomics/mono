@@ -85,7 +85,7 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
 })
 export class ReportsExtensionModule {
   // Lifecycle-сервис вызывает moduleInstance.initialize(config) после миграций схемы.
-  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinPluginModule.
+  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinExtensionModule.
   async initialize(): Promise<void> {
     // no-op: reports-extension не имеет собственного crontab/state'а.
   }

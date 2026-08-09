@@ -107,4 +107,4 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     EXPENSE_PLANS_SERVICE,
   ],
 })
-export class ExpensesPluginModule {}
+export class ExpensesExtensionModule {}

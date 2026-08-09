@@ -86,7 +86,7 @@ export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtens
   updated_at: Date;
 
   // Внутреннее поле для миграций (не экспортируется в GraphQL)
-  pluginClass: any;
+  extensionClass: any;
 
   constructor(
     name: string,
@@ -111,7 +111,7 @@ export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtens
     this.tags = registryData.tags ?? [];
     this.readme = '';
     this.instructions = '';
-    this.pluginClass = registryData.pluginClass;
+    this.extensionClass = registryData.extensionClass;
   }
 
   /**

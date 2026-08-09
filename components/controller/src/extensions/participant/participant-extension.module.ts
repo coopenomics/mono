@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
@@ -23,7 +23,7 @@ import { MeetWorkflowNotificationService } from './meet-workflow-notification.se
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 
 @Injectable()
-export class ParticipantPlugin extends BaseExtModule implements OnModuleDestroy {
+export class ParticipantExtension extends BaseExtensionModule implements OnModuleDestroy {
   private cronJob: cron.ScheduledTask | null = null;
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
@@ -35,11 +35,11 @@ export class ParticipantPlugin extends BaseExtModule implements OnModuleDestroy 
     private readonly notificationSender: NotificationSenderService
   ) {
     super();
-    this.logger.setContext(ParticipantPlugin.name);
+    this.logger.setContext(ParticipantExtension.name);
   }
 
   name = 'participant';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
@@ -67,35 +67,35 @@ export class ParticipantPlugin extends BaseExtModule implements OnModuleDestroy 
   }
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
     // Применяем глубокий мердж дефолтных параметров с существующими
-    this.plugin = {
-      ...pluginData,
-      config: merge({}, defaultConfig, pluginData.config),
+    this.extension = {
+      ...extensionData,
+      config: merge({}, defaultConfig, extensionData.config),
     };
 
     // Убедимся, что у всех собраний есть поле restartNotification
-    for (const meet of this.plugin.config.trackedMeets) {
+    for (const meet of this.extension.config.trackedMeets) {
       if (meet.notifications.restartNotification === undefined) {
         meet.notifications.restartNotification = false;
       }
     }
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin.config);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
 
     // Настраиваем сервис отправки уведомлений
     this.notificationSender.setGetUserEmailsFunction(() => this.getAllUserEmails());
 
     // Инициализируем трекер собраний
-    await this.meetTracker.initialize(this.plugin);
+    await this.meetTracker.initialize(this.extension);
 
     // Запускаем проверку сразу при инициализации
     await this.meetTracker.checkMeets();
 
     // Регистрация cron-задачи для проверки собраний
-    const cronExpression = `*/${this.plugin.config.checkIntervalMinutes} * * * *`;
+    const cronExpression = `*/${this.extension.config.checkIntervalMinutes} * * * *`;
     this.cronJob = cron.schedule(cronExpression, () => {
       this.meetTracker.checkMeets();
     });
@@ -115,13 +115,13 @@ export class ParticipantPlugin extends BaseExtModule implements OnModuleDestroy 
     AccountInfrastructureModule,
     MeetInfrastructureModule, // Импортируем инфраструктурные модули для портов
   ],
-  providers: [NotificationSenderService, MeetTrackerService, MeetWorkflowNotificationService, ParticipantPlugin],
-  exports: [ParticipantPlugin],
+  providers: [NotificationSenderService, MeetTrackerService, MeetWorkflowNotificationService, ParticipantExtension],
+  exports: [ParticipantExtension],
 })
-export class ParticipantPluginModule {
-  constructor(private readonly participantPlugin: ParticipantPlugin) {}
+export class ParticipantExtensionModule {
+  constructor(private readonly participantExtension: ParticipantExtension) {}
 
   async initialize() {
-    await this.participantPlugin.initialize();
+    await this.participantExtension.initialize();
   }
 }

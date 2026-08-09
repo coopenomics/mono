@@ -7,9 +7,9 @@ import {
   PROJECT_CAPITAL_CLEARANCE_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
-import { ChatCoopPluginModule } from './chatcoop/chatcoop-extension.module';
-import { CapitalPluginModule } from './capital/capital-extension.module';
-import { ExpensesPluginModule } from './expenses/expenses-extension.module';
+import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
+import { CapitalExtensionModule } from './capital/capital-extension.module';
+import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
@@ -31,7 +31,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
  */
 @Global()
 @Module({
-  imports: [CapitalPluginModule, ChatCoopPluginModule, ExpensesPluginModule, Ledger2Module],
+  imports: [CapitalExtensionModule, ChatCoopExtensionModule, ExpensesExtensionModule, Ledger2Module],
   providers: [
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,

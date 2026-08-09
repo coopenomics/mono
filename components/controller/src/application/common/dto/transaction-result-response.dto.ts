@@ -24,7 +24,7 @@ export class TransactionDTO {
   @Field(() => GraphQLJSON, { description: 'Возвращаемые значения после выполнения транзакции', nullable: true })
   returns?: any;
 
-  @Field(() => GraphQLJSON, { description: 'Ревизии транзакции, измененные плагинами в ESR формате', nullable: true })
+  @Field(() => GraphQLJSON, { description: 'Ревизии транзакции, измененные расширениями в ESR формате', nullable: true })
   revisions?: any;
 
   @Field(() => GraphQLJSON, { description: 'Подписи транзакции', nullable: true })

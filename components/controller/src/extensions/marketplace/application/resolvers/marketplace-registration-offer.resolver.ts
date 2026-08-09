@@ -17,9 +17,9 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
  * Открыт всем активным пайщикам (admin UI использует, чтобы рисовать
  * статус «Оферта зарегистрирована в registration-flow»).
  *
- * Запись попадает в реестр автоматически из `MarketplacePlugin.initialize`
+ * Запись попадает в реестр автоматически из `MarketplaceExtension.initialize`
  * (Story 1.2 + Story 1.7 — `port.registerAgreement`). Story 1.9.accept также
- * делает re-register на случай, если до установки template (Story 1.7) Plugin
+ * делает re-register на случай, если до установки template (Story 1.7) Extension
  * уже отработал init и пропустил регистрацию.
  */
 @Resolver()

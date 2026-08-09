@@ -107,7 +107,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
   }
 
   /**
-   * Matrix MXID секретаря из `chatcoop_state` (пишется при инициализации в ChatCoopPlugin).
+   * Matrix MXID секретаря из `chatcoop_state` (пишется при инициализации в ChatCoopExtension).
    * Для LiveKit/Element identity должен совпадать с этим пользователем, иначе клиент не сопоставит участника и E2EE.
    */
   private async resolveSecretaryLiveKitParticipant(): Promise<{ identity: string; name: string }> {

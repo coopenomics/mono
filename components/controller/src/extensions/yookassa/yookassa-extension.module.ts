@@ -101,7 +101,7 @@ export type IConfig = z.infer<typeof Schema>;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class YookassaPlugin extends IPNProvider {
+export class YookassaExtension extends IPNProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: TypeOrmPaymentRepository,
@@ -111,19 +111,19 @@ export class YookassaPlugin extends IPNProvider {
     @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
   ) {
     super();
-    this.logger.setContext(YookassaPlugin.name);
+    this.logger.setContext(YookassaExtension.name);
   }
 
   name = 'yookassa';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   async initialize(): Promise<void> {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin.config);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
 
     this.providerPort.registerProvider(this.name, this);
     this.logger.info(`Платежный провайдер ${this.name} успешно зарегистрирован.`);
@@ -261,8 +261,8 @@ export class YookassaPlugin extends IPNProvider {
     }
 
     const checkout = new YooCheckout({
-      shopId: this.plugin.config.client,
-      secretKey: this.plugin.config.secret,
+      shopId: this.extension.config.client,
+      secretKey: this.extension.config.secret,
     });
 
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
@@ -306,7 +306,7 @@ export class YookassaPlugin extends IPNProvider {
 @Module({
   imports: [TypeOrmModule.forFeature([PaymentEntity]), RedisModule, GatewayDomainModule, GatewayInfrastructureModule],
   providers: [
-    YookassaPlugin,
+    YookassaExtension,
     {
       provide: PAYMENT_REPOSITORY,
       useClass: TypeOrmPaymentRepository,
@@ -316,12 +316,12 @@ export class YookassaPlugin extends IPNProvider {
       useClass: TypeOrmExtensionDomainRepository,
     },
   ],
-  exports: [YookassaPlugin],
+  exports: [YookassaExtension],
 })
-export class YookassaPluginModule {
-  constructor(private readonly yookassaPlugin: YookassaPlugin) {}
+export class YookassaExtensionModule {
+  constructor(private readonly yookassaExtension: YookassaExtension) {}
 
   async initialize() {
-    await this.yookassaPlugin.initialize();
+    await this.yookassaExtension.initialize();
   }
 }

@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { Injectable } from '@nestjs/common';
@@ -479,7 +479,7 @@ import { WalletModule } from '~/application/wallet/wallet.module';
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
 @Injectable()
-export class CapitalPlugin extends BaseExtModule {
+export class CapitalExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     private readonly contractManagementService: ContractManagementService,
@@ -495,12 +495,12 @@ export class CapitalPlugin extends BaseExtModule {
     private readonly onboardingStepRegistration: OnboardingStepRegistrationPort
   ) {
     super();
-    this.logger.setContext(CapitalPlugin.name);
+    this.logger.setContext(CapitalExtension.name);
   }
 
 
   name = 'capital';
-  plugin!: ExtensionDomainEntity<IConfig>; // ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>; // ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
@@ -510,21 +510,21 @@ export class CapitalPlugin extends BaseExtModule {
     this.capitalDevelopmentRepositoryGitSync.abortAllInFlightRepositorySyncs();
 
     // Загружаем конфигурацию расширения
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) {
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) {
       this.logger.error(`Конфигурация расширения ${this.name} не найдена`);
       return;
     }
 
     // Сливаем загруженную конфигурацию с дефолтными значениями
-    this.plugin = {
-      ...pluginData,
-      config: { ...defaultConfig, ...pluginData.config },
+    this.extension = {
+      ...extensionData,
+      config: { ...defaultConfig, ...extensionData.config },
     };
 
     // Если передана новая конфигурация через параметр (при restart), используем её
     // Сливаем с дефолтными значениями для обеспечения корректных типов
-    const extensionConfig = { ...defaultConfig, ...(config || this.plugin.config) };
+    const extensionConfig = { ...defaultConfig, ...(config || this.extension.config) };
 
     const { github_api_token_encrypted: _ghEnc, ...extensionConfigLogSafe } = extensionConfig;
     this.logger.log(`Инициализация ${this.name} с конфигурацией`, {
@@ -716,8 +716,8 @@ export class CapitalPlugin extends BaseExtModule {
     RegistrationInfrastructureModule,
   ],
   providers: [
-    // Plugin
-    CapitalPlugin,
+    // Extension
+    CapitalExtension,
     CapitalRegistrationService,
     CapitalRegistrationResolver,
 
@@ -978,12 +978,12 @@ IssueIdGenerationService,
     },
     CapitalInnercoopProjectCapitalClearanceAdapter,
   ],
-  exports: [CapitalPlugin, UDATA_DOCUMENT_PARAMETERS_PORT, CapitalInnercoopProjectCapitalClearanceAdapter],
+  exports: [CapitalExtension, UDATA_DOCUMENT_PARAMETERS_PORT, CapitalInnercoopProjectCapitalClearanceAdapter],
 })
-export class CapitalPluginModule {
-  constructor(private readonly capitalPlugin: CapitalPlugin) {}
+export class CapitalExtensionModule {
+  constructor(private readonly capitalExtension: CapitalExtension) {}
 
   async initialize(config?: IConfig) {
-    await this.capitalPlugin.initialize(config);
+    await this.capitalExtension.initialize(config);
   }
 }

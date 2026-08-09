@@ -1,5 +1,5 @@
 /**
- * Unit-тесты MarketplacePlugin.initialize (Story 1.1).
+ * Unit-тесты MarketplaceExtension.initialize (Story 1.1).
  *
  * Покрывают AC-логи:
  *   (a) file-storage порт не подключён → warn-лог про PR #359, остальные шаги
@@ -10,7 +10,7 @@
  *   (c) в БД нет записи `market` → initialize бросает «Конфиг не найден».
  */
 
-import { MarketplacePlugin } from '~/extensions/marketplace/marketplace-extension.module';
+import { MarketplaceExtension } from '~/extensions/marketplace/marketplace-extension.module';
 
 const makeLogger = () =>
   ({
@@ -40,13 +40,13 @@ const makeOnboardingPort = () =>
     unregisterStepsByExtension: jest.fn(),
   } as any);
 
-describe('MarketplacePlugin.initialize', () => {
+describe('MarketplaceExtension.initialize', () => {
   it('пишет info о fallback и продолжает install, если file-storage не подключён', async () => {
     const logger = makeLogger();
     const repo = makeRepo();
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
 
-    await plugin.initialize();
+    await extension.initialize();
 
     expect(logger.info).toHaveBeenCalledWith(
       'File storage отключён конфигурацией — пропускаем bucket init'
@@ -61,9 +61,9 @@ describe('MarketplacePlugin.initialize', () => {
     const logger = makeLogger();
     const repo = makeRepo();
     const fileStorage = { ensureBucket: jest.fn().mockResolvedValue(undefined) };
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), fileStorage);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), fileStorage);
 
-    await plugin.initialize();
+    await extension.initialize();
 
     expect(fileStorage.ensureBucket).toHaveBeenCalledTimes(1);
     expect(fileStorage.ensureBucket.mock.calls[0][0]).toMatch(/^coop-/);
@@ -75,13 +75,13 @@ describe('MarketplacePlugin.initialize', () => {
   it('бросает «Конфиг не найден» если в БД нет записи market', async () => {
     const logger = makeLogger();
     const repo = makeRepo(null);
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
 
-    await expect(plugin.initialize()).rejects.toThrow('Конфиг не найден');
+    await expect(extension.initialize()).rejects.toThrow('Конфиг не найден');
   });
 
   it('расширение зарегистрировано под именем `market` (совпадает с ключом AppRegistry)', () => {
-    const plugin = new MarketplacePlugin(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), null);
-    expect(plugin.name).toBe('market');
+    const extension = new MarketplaceExtension(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), null);
+    expect(extension.name).toBe('market');
   });
 });

@@ -69,12 +69,12 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     if (AppClass) {
       this.logger.debug(`[RUN_APP] Запуск миграции схемы для расширения ${appName}`);
 
-      if (AppClass.pluginClass) {
-        const pluginInstance = this.appContext.get(AppClass.pluginClass);
-        if (pluginInstance?.defaultConfig) {
+      if (AppClass.extensionClass) {
+        const extensionInstance = this.appContext.get(AppClass.extensionClass);
+        if (extensionInstance?.defaultConfig) {
           const migratedExtension = await this.migrationService.migrateAndUpdateExtension(
             appName,
-            pluginInstance.defaultConfig,
+            extensionInstance.defaultConfig,
             this.appContext
           );
           if (migratedExtension) {

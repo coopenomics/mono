@@ -54,14 +54,14 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
   /**
    * Инициализирует cron-задачу для проверки истекших решений
    */
-  async initialize(plugin: ExtensionDomainEntity): Promise<void> {
+  async initialize(extension: ExtensionDomainEntity): Promise<void> {
 
     // Регистрация cron-задачи для проверки истекших решений
-    const cronExpression = `*/${plugin.config.checkInterval || 5} * * * *`; // каждые N минут, значение по умолчанию 5
+    const cronExpression = `*/${extension.config.checkInterval || 5} * * * *`; // каждые N минут, значение по умолчанию 5
     this.cronJob = cron.schedule(cronExpression, async () => {
       this.logger.debug('Запуск задачи проверки истекших решений');
       try {
-        await this.checkExpiredDecisions(plugin);
+        await this.checkExpiredDecisions(extension);
       } catch (error) {
         const errorObj = error as Error;
         this.logger.error(
@@ -157,7 +157,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
   /**
    * Проверяет и отменяет истекшие решения
    */
-  async checkExpiredDecisions(plugin: ExtensionDomainEntity): Promise<void> {
+  async checkExpiredDecisions(extension: ExtensionDomainEntity): Promise<void> {
     try {
       // Получаем coopname из конфигурации
       const coopname = config.coopname;
@@ -255,14 +255,14 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       }
 
       // Обновляем дату последней проверки. ВАЖНО: read-modify-write по СВЕЖЕМУ
-      // config из БД, а не по захваченному при initialize() снимку `plugin`.
+      // config из БД, а не по захваченному при initialize() снимку `extension`.
       // Cron-замыкание держит in-memory снимок с момента boot; за время между
       // boot и тиком онбординг-флаги (`onboarding_*_done/_hash`) и прочие поля
       // могли быть записаны в БД другими сервисами. Перезапись устаревшего
       // снимка стёрла бы их (lost update). Поэтому берём актуальный config и
       // трогаем только lastCheckDate.
       const fresh = await this.extensionRepository.findByName('chairman');
-      const baseConfig = fresh?.config ?? plugin.config;
+      const baseConfig = fresh?.config ?? extension.config;
       const updatedConfig = {
         ...baseConfig,
         lastCheckDate: new Date().toISOString(),

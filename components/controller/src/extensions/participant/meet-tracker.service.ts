@@ -29,17 +29,17 @@ export class MeetTrackerService {
 
   // Сервисное имя и конфигурация
   private readonly extensionName = 'participant';
-  private pluginConfig!: ExtensionDomainEntity<IConfig>;
+  private extensionConfig!: ExtensionDomainEntity<IConfig>;
 
   private ensureConfigDefaults(): void {
-    if (!this.pluginConfig?.config) {
-      this.pluginConfig = {
-        ...this.pluginConfig,
+    if (!this.extensionConfig?.config) {
+      this.extensionConfig = {
+        ...this.extensionConfig,
         config: { ...defaultConfig },
       };
     }
 
-    const config = this.pluginConfig.config;
+    const config = this.extensionConfig.config;
 
     config.trackedMeets = Array.isArray(config.trackedMeets) ? config.trackedMeets : [];
     config.closedMeetIds = Array.isArray(config.closedMeetIds) ? config.closedMeetIds : [];
@@ -59,15 +59,15 @@ export class MeetTrackerService {
   }
 
   // Инициализация сервиса
-  async initialize(pluginConfig: ExtensionDomainEntity<IConfig>): Promise<void> {
-    this.pluginConfig = pluginConfig;
+  async initialize(extensionConfig: ExtensionDomainEntity<IConfig>): Promise<void> {
+    this.extensionConfig = extensionConfig;
     this.logger.info('MeetTrackerService инициализирован');
   }
 
   /**
    * Сохраняет состояние трекинга собраний read-modify-write по СВЕЖЕМУ config.
    *
-   * `this.pluginConfig` — снимок, захваченный при initialize() (boot), а
+   * `this.extensionConfig` — снимок, захваченный при initialize() (boot), а
    * cron-проверка крутится часами; update() заменяет весь config JSONB целиком.
    * Если писать захваченный снимок, затрутся поля, записанные в БД после boot
    * другими сервисами (онбординг-флаги и т.п.) — это и есть наблюдавшийся
@@ -76,15 +76,15 @@ export class MeetTrackerService {
    */
   private async persistTrackedState(): Promise<void> {
     const fresh = await this.extensionRepository.findByName(this.extensionName);
-    const baseConfig = fresh?.config ?? this.pluginConfig.config;
+    const baseConfig = fresh?.config ?? this.extensionConfig.config;
     const nextConfig: IConfig = {
       ...baseConfig,
-      trackedMeets: this.pluginConfig.config.trackedMeets,
-      closedMeetIds: this.pluginConfig.config.closedMeetIds,
-      lastCheckTimestamp: this.pluginConfig.config.lastCheckTimestamp,
+      trackedMeets: this.extensionConfig.config.trackedMeets,
+      closedMeetIds: this.extensionConfig.config.closedMeetIds,
+      lastCheckTimestamp: this.extensionConfig.config.lastCheckTimestamp,
     };
     await this.extensionRepository.update({ name: this.extensionName, config: nextConfig });
-    this.pluginConfig = { ...this.pluginConfig, config: nextConfig };
+    this.extensionConfig = { ...this.extensionConfig, config: nextConfig };
   }
 
   // Приватная функция для обновления trackedMeet на основе свежих данных
@@ -104,10 +104,10 @@ export class MeetTrackerService {
       // Подтягиваем актуальный конфиг из базы
       const repo = await this.extensionRepository.findByName(this.extensionName);
       if (repo) {
-        this.pluginConfig = repo;
+        this.extensionConfig = repo;
       }
 
-      if (!this.pluginConfig) {
+      if (!this.extensionConfig) {
         this.logger.error('Конфигурация MeetTrackerService не инициализирована');
         return;
       }
@@ -125,11 +125,11 @@ export class MeetTrackerService {
       const now = new Date();
 
       // Инициализация closedMeetIds, если его нет
-      const closedMeetIds = this.pluginConfig.config.closedMeetIds;
+      const closedMeetIds = this.extensionConfig.config.closedMeetIds;
 
       // Создаем словарь всех отслеживаемых собраний по ID для отслеживания рестартов
       const meetsByID = new Map<number, { current: TrackedMeet | null; previous: TrackedMeet | null }>();
-      for (const trackedMeet of this.pluginConfig.config.trackedMeets) {
+      for (const trackedMeet of this.extensionConfig.config.trackedMeets) {
         meetsByID.set(trackedMeet.id, {
           current: trackedMeet,
           previous: null,
@@ -155,24 +155,24 @@ export class MeetTrackerService {
           existingMeet.previous = existingMeet.current;
           existingMeet.current = null;
         }
-        const trackedMeetIndex = this.pluginConfig.config.trackedMeets.findIndex((tm) => tm.hash === meetHash);
+        const trackedMeetIndex = this.extensionConfig.config.trackedMeets.findIndex((tm) => tm.hash === meetHash);
         const isTracked = trackedMeetIndex !== -1;
 
         // Если собрание в статусе CLOSED, обрабатываем его и удаляем из списка отслеживаемых
         if (extendedStatus === ExtendedMeetStatus.CLOSED && isTracked) {
-          let trackedMeet = this.pluginConfig.config.trackedMeets[trackedMeetIndex];
+          let trackedMeet = this.extensionConfig.config.trackedMeets[trackedMeetIndex];
           trackedMeet = this.getUpdatedTrackedMeet(trackedMeet, meetData, extendedStatus);
 
-          if (!this.pluginConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
+          if (!this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
             await this.workflowNotificationService.sendEndNotification(trackedMeet);
-            this.pluginConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
+            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
             if (!closedMeetIds.includes(meetID)) {
               closedMeetIds.push(meetID);
               await this.persistTrackedState();
             }
           }
           this.logger.info(`Удаление закрытого собрания ${meetHash} (№${meetID}) из списка отслеживаемых`);
-          this.pluginConfig.config.trackedMeets.splice(trackedMeetIndex, 1);
+          this.extensionConfig.config.trackedMeets.splice(trackedMeetIndex, 1);
           if (existingMeet.current === trackedMeet) {
             existingMeet.current = null;
           }
@@ -185,11 +185,11 @@ export class MeetTrackerService {
             extendedStatus === ExtendedMeetStatus.VOTING_COMPLETED) &&
           isTracked
         ) {
-          let trackedMeet = this.pluginConfig.config.trackedMeets[trackedMeetIndex];
+          let trackedMeet = this.extensionConfig.config.trackedMeets[trackedMeetIndex];
           trackedMeet = this.getUpdatedTrackedMeet(trackedMeet, meetData, extendedStatus);
-          if (!this.pluginConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
+          if (!this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
             await this.workflowNotificationService.sendEndNotification(trackedMeet);
-            this.pluginConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
+            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
           }
           continue;
         }
@@ -201,7 +201,7 @@ export class MeetTrackerService {
             continue;
           }
           // Удаляем все старые собрания с тем же id перед добавлением нового
-          this.pluginConfig.config.trackedMeets = this.pluginConfig.config.trackedMeets.filter((tm) => tm.id !== meetID);
+          this.extensionConfig.config.trackedMeets = this.extensionConfig.config.trackedMeets.filter((tm) => tm.id !== meetID);
           // Создаем новое отслеживаемое собрание
           const newTrackedMeet: TrackedMeet = {
             id: meetID,
@@ -225,7 +225,7 @@ export class MeetTrackerService {
           const isRestart = existingMeet.previous !== null;
 
           // Добавляем в список отслеживаемых и обновляем словарь
-          this.pluginConfig.config.trackedMeets.push(newTrackedMeet);
+          this.extensionConfig.config.trackedMeets.push(newTrackedMeet);
           existingMeet.current = newTrackedMeet;
           meetsByID.set(meetID, existingMeet);
 
@@ -254,7 +254,7 @@ export class MeetTrackerService {
         }
 
         // Обновляем существующее собрание
-        const trackedMeet = this.pluginConfig.config.trackedMeets[trackedMeetIndex];
+        const trackedMeet = this.extensionConfig.config.trackedMeets[trackedMeetIndex];
 
         // Обновляем данные собрания
         const oldStatus = trackedMeet.extendedStatus;
@@ -303,7 +303,7 @@ export class MeetTrackerService {
         // Проверяем, нужно ли отправить уведомление за указанное время до начала
         if (!trackedMeet.notifications.threeDaysBeforeStart && extendedStatus === ExtendedMeetStatus.WAITING_FOR_OPENING) {
           // Вычисляем время, за которое нужно отправить уведомление
-          const minutesBeforeStart = this.pluginConfig.config.minutesBeforeStartNotification;
+          const minutesBeforeStart = this.extensionConfig.config.minutesBeforeStartNotification;
           const msBeforeStart = minutesBeforeStart * 60 * 1000;
           const notificationTime = new Date(openAt.getTime() - msBeforeStart);
 
@@ -317,7 +317,7 @@ export class MeetTrackerService {
         // Проверяем, нужно ли отправить уведомление за указанное время до завершения
         if (!trackedMeet.notifications.oneDayBeforeEnd && extendedStatus === ExtendedMeetStatus.VOTING_IN_PROGRESS) {
           // Вычисляем время, за которое нужно отправить уведомление
-          const minutesBeforeEnd = this.pluginConfig.config.minutesBeforeEndNotification;
+          const minutesBeforeEnd = this.extensionConfig.config.minutesBeforeEndNotification;
           const msBeforeEnd = minutesBeforeEnd * 60 * 1000;
           const notificationTime = new Date(closeAt.getTime() - msBeforeEnd);
 
@@ -330,7 +330,7 @@ export class MeetTrackerService {
       }
 
       // Обновляем время последней проверки
-      this.pluginConfig.config.lastCheckTimestamp = now.toISOString();
+      this.extensionConfig.config.lastCheckTimestamp = now.toISOString();
 
       // Сохраняем изменения в конфигурации
       await this.persistTrackedState();

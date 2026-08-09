@@ -122,21 +122,21 @@ export class CapitalOnboardingService {
     return Array.isArray(value) ? value.filter((item) => this.isSignatureInfo(item)) : [];
   }
 
-  private async loadPlugin(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
-    const plugin = await this.extensionRepository.findByName('capital');
-    if (!plugin) throw new Error('Конфигурация расширения capital не найдена');
-    const pluginConfig: CapitalOnboardingConfig = { ...plugin.config };
+  private async loadExtension(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
+    const extension = await this.extensionRepository.findByName('capital');
+    if (!extension) throw new Error('Конфигурация расширения capital не найдена');
+    const extensionConfig: CapitalOnboardingConfig = { ...extension.config };
 
     const patch: Partial<CapitalOnboardingConfig> = {};
-    if (!pluginConfig.onboarding_init_at) {
-      pluginConfig.onboarding_init_at = new Date().toISOString();
-      patch.onboarding_init_at = pluginConfig.onboarding_init_at;
+    if (!extensionConfig.onboarding_init_at) {
+      extensionConfig.onboarding_init_at = new Date().toISOString();
+      patch.onboarding_init_at = extensionConfig.onboarding_init_at;
     }
 
-    if (!pluginConfig.onboarding_expire_at) {
-      const start = new Date(pluginConfig.onboarding_init_at);
-      pluginConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
-      patch.onboarding_expire_at = pluginConfig.onboarding_expire_at;
+    if (!extensionConfig.onboarding_expire_at) {
+      const start = new Date(extensionConfig.onboarding_init_at);
+      extensionConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
+      patch.onboarding_expire_at = extensionConfig.onboarding_expire_at;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -144,37 +144,37 @@ export class CapitalOnboardingService {
       // целиком (как раньше) конкурирует с параллельными записями других шагов
       // онбординга (флаги, хэши) и теряет их изменения (lost update).
       const updated = await this.extensionRepository.patchConfig('capital', patch);
-      return { ...plugin, config: updated.config };
+      return { ...extension, config: updated.config };
     }
 
-    return { ...plugin, config: pluginConfig };
+    return { ...extension, config: extensionConfig };
   }
 
-  private buildState(pluginConfig: CapitalOnboardingConfig): CapitalOnboardingStateDTO {
+  private buildState(extensionConfig: CapitalOnboardingConfig): CapitalOnboardingStateDTO {
     return {
-      generator_program_template_done: !!pluginConfig.onboarding_generator_program_template_done,
-      onboarding_generator_program_template_hash: pluginConfig.onboarding_generator_program_template_hash || null,
-    generation_contract_template_done: !!pluginConfig.onboarding_generation_contract_template_done,
-    onboarding_generation_contract_template_hash: pluginConfig.onboarding_generation_contract_template_hash || null,
-    generator_offer_template_done: !!pluginConfig.onboarding_generator_offer_template_done,
-    onboarding_generator_offer_template_hash: pluginConfig.onboarding_generator_offer_template_hash || null,
-      blagorost_provision_done: !!pluginConfig.onboarding_blagorost_provision_done,
-      onboarding_blagorost_provision_hash: pluginConfig.onboarding_blagorost_provision_hash || null,
-      blagorost_offer_template_done: !!pluginConfig.onboarding_blagorost_offer_template_done,
-      onboarding_blagorost_offer_template_hash: pluginConfig.onboarding_blagorost_offer_template_hash || null,
-      capital_program_doc_data_hash: pluginConfig.capital_program_doc_data_hash || null,
-      onboarding_init_at: pluginConfig.onboarding_init_at || '',
-      onboarding_expire_at: pluginConfig.onboarding_expire_at || '',
+      generator_program_template_done: !!extensionConfig.onboarding_generator_program_template_done,
+      onboarding_generator_program_template_hash: extensionConfig.onboarding_generator_program_template_hash || null,
+    generation_contract_template_done: !!extensionConfig.onboarding_generation_contract_template_done,
+    onboarding_generation_contract_template_hash: extensionConfig.onboarding_generation_contract_template_hash || null,
+    generator_offer_template_done: !!extensionConfig.onboarding_generator_offer_template_done,
+    onboarding_generator_offer_template_hash: extensionConfig.onboarding_generator_offer_template_hash || null,
+      blagorost_provision_done: !!extensionConfig.onboarding_blagorost_provision_done,
+      onboarding_blagorost_provision_hash: extensionConfig.onboarding_blagorost_provision_hash || null,
+      blagorost_offer_template_done: !!extensionConfig.onboarding_blagorost_offer_template_done,
+      onboarding_blagorost_offer_template_hash: extensionConfig.onboarding_blagorost_offer_template_hash || null,
+      capital_program_doc_data_hash: extensionConfig.capital_program_doc_data_hash || null,
+      onboarding_init_at: extensionConfig.onboarding_init_at || '',
+      onboarding_expire_at: extensionConfig.onboarding_expire_at || '',
     };
   }
 
   public async getState(): Promise<CapitalOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
-    return this.buildState(plugin.config);
+    const extension = await this.loadExtension();
+    return this.buildState(extension.config);
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
-    await this.loadPlugin();
+    await this.loadExtension();
     const normalizedHash = docDataHash.trim();
 
     if (!normalizedHash) {
@@ -189,13 +189,13 @@ export class CapitalOnboardingService {
   }
 
   public async completeStep(data: CapitalOnboardingStepInputDTO, username: string): Promise<CapitalOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
     const flagKey = this.mapStepToFlag(data.step);
     const hashKey = this.mapStepToHash(data.step);
     const normalizedTitle = data.title?.trim().substring(0, 200) || undefined;
 
-    if (plugin.config[flagKey]) {
-      return this.buildState(plugin.config);
+    if (extension.config[flagKey]) {
+      return this.buildState(extension.config);
     }
     const project_id = uuid();
     const actor = username;

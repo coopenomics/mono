@@ -36,7 +36,7 @@ export interface IAcceptCppInput {
  * Story 1.9: L1-онбординг marketplace.
  *
  * Хранит флаг `coopAcceptance.accepted` в `extensions.config` (JSONB на
- * `marketplace`-плагине). MVP-stub: председатель сам отмечает принятие
+ * `marketplace`-расширении). MVP-stub: председатель сам отмечает принятие
  * положения Советом, передавая `accepted_by_board_decision_id`. В Эпике 8
  * (FR40 «повестка совета») интеграция станет реальной — Mutation будет
  * валидировать существование решения и его статус CONFIRMED.
@@ -131,7 +131,7 @@ export class MarketplaceCoopAcceptanceService {
 
     // Story 1.10 side-effect: re-register оферту в core AgreementRegistry
     // (идемпотентно). Покрывает кейс, когда Story 1.7 поставила template
-    // позже restart-а расширения и `MarketplacePlugin.initialize` пропустил
+    // позже restart-а расширения и `MarketplaceExtension.initialize` пропустил
     // регистрацию (placeholder=0).
     if (this.agreementRegistrationPort) {
       try {

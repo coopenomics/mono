@@ -57,8 +57,8 @@ export class CapitalOnboardingEventsService {
     this.logger.info(`Получено событие завершения онбординга capital для шага: ${step}`);
 
     try {
-      const plugin = await this.extensionRepository.findByName('capital');
-      if (!plugin) {
+      const extension = await this.extensionRepository.findByName('capital');
+      if (!extension) {
         this.logger.error('Конфигурация расширения capital не найдена');
         return;
       }
@@ -71,7 +71,7 @@ export class CapitalOnboardingEventsService {
         return;
       }
 
-      const wasAlreadyDone = !!(plugin.config as any)[flagKey];
+      const wasAlreadyDone = !!(extension.config as any)[flagKey];
 
       // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
       // config целиком: два решения совета по разным шагам, утверждённые почти

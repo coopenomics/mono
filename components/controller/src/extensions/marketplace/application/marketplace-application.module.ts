@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
-import { ExpensesPluginModule } from '../../expenses/expenses-extension.module';
+import { ExpensesExtensionModule } from '../../expenses/expenses-extension.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
@@ -193,7 +193,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceInfrastructureModule,
     // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
     // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
-    ExpensesPluginModule,
+    ExpensesExtensionModule,
     // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     AccountInfrastructureModule,
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
@@ -226,7 +226,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     PubSubModule,
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
     // импортировать ExtensionDomainModule сюда нельзя (цикл AppModule → ExtensionDomainModule →
-    // ExtensionsModule → MarketplacePluginModule → MarketplaceExtensionApplicationModule).
+    // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
   ],
   providers: [
     // GraphQL резолверы

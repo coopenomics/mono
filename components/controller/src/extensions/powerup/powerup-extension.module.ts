@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import {
   EXTENSION_REPOSITORY,
@@ -129,7 +129,7 @@ export interface ILog {
   };
 }
 
-export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
+export class PowerupExtension extends BaseExtensionModule implements OnModuleDestroy {
   private dailyCronJob: cron.ScheduledTask | null = null;
   private resourceCronJob: cron.ScheduledTask | null = null;
 
@@ -140,24 +140,24 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
   ) {
     super();
-    this.logger.setContext(PowerupPlugin.name);
+    this.logger.setContext(PowerupExtension.name);
   }
 
   name = 'powerup';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
     // Проверяем, было ли ежедневное пополнение в последние 24 часа
-    const lastDate = this.plugin.config.lastDailyReplenishmentDate
-      ? new Date(this.plugin.config.lastDailyReplenishmentDate)
+    const lastDate = this.extension.config.lastDailyReplenishmentDate
+      ? new Date(this.extension.config.lastDailyReplenishmentDate)
       : null;
 
     const now = new Date();
@@ -197,12 +197,12 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   }
 
   private getQuantity(amount: number): string {
-    return `${amount.toFixed(this.plugin.config.systemPrecision)} ${this.plugin.config.systemSymbol}`;
+    return `${amount.toFixed(this.extension.config.systemPrecision)} ${this.extension.config.systemSymbol}`;
   }
 
   // Ежедневная задача пополнения
   private async runDailyTask() {
-    const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
+    const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
@@ -216,17 +216,17 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       await this.blockchainPort.powerUp(username, quantity);
 
       // read-modify-write по СВЕЖЕМУ config: daily-cron держит in-memory снимок
-      // `this.plugin` с момента boot, а update() заменяет весь config JSONB
+      // `this.extension` с момента boot, а update() заменяет весь config JSONB
       // целиком. Перезапись устаревшего снимка стёрла бы поля, записанные за
       // сутки другими сервисами (онбординг и т.п.). Берём актуальный config и
       // трогаем только lastDailyReplenishmentDate.
       const fresh = await this.extensionRepository.findByName(this.name);
       const nextConfig = {
-        ...(fresh?.config ?? this.plugin.config),
+        ...(fresh?.config ?? this.extension.config),
         lastDailyReplenishmentDate: new Date().toISOString(),
       };
       await this.extensionRepository.update({ name: this.name, config: nextConfig });
-      this.plugin = { ...this.plugin, config: nextConfig };
+      this.extension = { ...this.extension, config: nextConfig };
 
       await this.log({
         type: 'daily',
@@ -280,21 +280,21 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       // Проверяем пороги и пополняем при необходимости
       let needPowerUp = false;
 
-      if (cpuUsagePercent >= this.plugin.config.thresholds.cpu) {
+      if (cpuUsagePercent >= this.extension.config.thresholds.cpu) {
         needPowerUp = true;
       }
 
-      if (netUsagePercent >= this.plugin.config.thresholds.net) {
+      if (netUsagePercent >= this.extension.config.thresholds.net) {
         needPowerUp = true;
       }
 
-      if (ramUsagePercent >= this.plugin.config.thresholds.ram) {
+      if (ramUsagePercent >= this.extension.config.thresholds.ram) {
         needPowerUp = true;
       }
 
       if (needPowerUp) {
         // Выполняем пополнение ресурсов на сумму ежедневной аренды
-        const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
+        const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
         await this.blockchainPort.powerUp(username, quantity);
 
         // Получаем актуальные данные после пополнения для логирования
@@ -323,13 +323,13 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 }
 
 @Module({
-  providers: [PowerupPlugin], // Регистрируем PowerupPlugin как провайдер
-  exports: [PowerupPlugin], // Экспортируем его для доступа в других модулях
+  providers: [PowerupExtension], // Регистрируем PowerupExtension как провайдер
+  exports: [PowerupExtension], // Экспортируем его для доступа в других модулях
 })
-export class PowerupPluginModule {
-  constructor(public readonly powerupPlugin: PowerupPlugin) {}
+export class PowerupExtensionModule {
+  constructor(public readonly powerupExtension: PowerupExtension) {}
 
   async initialize() {
-    await this.powerupPlugin.initialize();
+    await this.powerupExtension.initialize();
   }
 }

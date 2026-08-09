@@ -80,43 +80,43 @@ export class ExtensionOnboardingService {
     private readonly stepsRegistry: OnboardingStepQueryPort
   ) {}
 
-  private async loadPlugin(extension_name: string) {
-    const plugin = await this.extensionRepository.findByName(extension_name);
-    if (!plugin) {
+  private async loadExtension(extension_name: string) {
+    const extension = await this.extensionRepository.findByName(extension_name);
+    if (!extension) {
       throw new Error(`Расширение не найдено: ${extension_name}`);
     }
-    const pluginConfig: Record<string, unknown> = { ...plugin.config };
+    const extensionConfig: Record<string, unknown> = { ...extension.config };
     let needUpdate = false;
 
-    if (!pluginConfig.onboarding_init_at) {
-      pluginConfig.onboarding_init_at = new Date().toISOString();
+    if (!extensionConfig.onboarding_init_at) {
+      extensionConfig.onboarding_init_at = new Date().toISOString();
       needUpdate = true;
     }
-    if (!pluginConfig.onboarding_expire_at) {
-      const start = new Date(pluginConfig.onboarding_init_at as string);
-      pluginConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
+    if (!extensionConfig.onboarding_expire_at) {
+      const start = new Date(extensionConfig.onboarding_init_at as string);
+      extensionConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
       needUpdate = true;
     }
     if (needUpdate) {
       await this.extensionRepository.patchConfig(extension_name, {
-        onboarding_init_at: pluginConfig.onboarding_init_at,
-        onboarding_expire_at: pluginConfig.onboarding_expire_at,
+        onboarding_init_at: extensionConfig.onboarding_init_at,
+        onboarding_expire_at: extensionConfig.onboarding_expire_at,
       });
     }
-    return { ...plugin, config: pluginConfig };
+    return { ...extension, config: extensionConfig };
   }
 
   public async getState(
     extension_name: string
   ): Promise<IExtensionOnboardingState> {
-    const plugin = await this.loadPlugin(extension_name);
+    const extension = await this.loadExtension(extension_name);
     const specs = this.stepsRegistry.getStepsByExtension(extension_name);
 
     const steps: IExtensionOnboardingStepState[] = specs.map((spec) => ({
       step_key: spec.step_key,
-      done: Boolean(plugin.config[doneKey(spec.step_key)]),
+      done: Boolean(extension.config[doneKey(spec.step_key)]),
       hash:
-        (plugin.config[hashKey(spec.step_key)] as string | undefined) || null,
+        (extension.config[hashKey(spec.step_key)] as string | undefined) || null,
       order: spec.order,
       default_title: spec.default_title ?? null,
     }));
@@ -125,9 +125,9 @@ export class ExtensionOnboardingService {
       extension_name,
       steps,
       onboarding_init_at:
-        (plugin.config.onboarding_init_at as string | undefined) || '',
+        (extension.config.onboarding_init_at as string | undefined) || '',
       onboarding_expire_at:
-        (plugin.config.onboarding_expire_at as string | undefined) || '',
+        (extension.config.onboarding_expire_at as string | undefined) || '',
       all_done: steps.length > 0 && steps.every((s) => s.done),
     };
   }
@@ -146,8 +146,8 @@ export class ExtensionOnboardingService {
       );
     }
 
-    const plugin = await this.loadPlugin(input.extension_name);
-    if (plugin.config[doneKey(spec.step_key)]) {
+    const extension = await this.loadExtension(input.extension_name);
+    if (extension.config[doneKey(spec.step_key)]) {
       return this.getState(input.extension_name);
     }
 

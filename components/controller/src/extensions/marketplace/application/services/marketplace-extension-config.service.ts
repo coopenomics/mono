@@ -8,7 +8,7 @@ import type { IConfig } from '../../types';
  *
  * Почему через `ModuleRef`, а не обычной инъекцией: `ExtensionDomainModule`
  * нельзя импортировать в модуль расширения — получается цикл
- * `AppModule → ExtensionDomainModule → ExtensionsModule → MarketplacePluginModule
+ * `AppModule → ExtensionDomainModule → ExtensionsModule → MarketplaceExtensionModule
  * → MarketplaceExtensionApplicationModule`. Прежний обход — `@Optional()`
  * инъекция — цикл действительно разрывал, но молча подставлял `null`: сервис
  * никогда не видел конфига и всегда отдавал значения по умолчанию. Для

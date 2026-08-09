@@ -1,5 +1,5 @@
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
@@ -38,7 +38,7 @@ export interface IMarketplaceFileStoragePort {
 }
 
 @Injectable()
-export class MarketplacePlugin extends BaseExtModule {
+export class MarketplaceExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     private readonly logger: WinstonLoggerService,
@@ -51,25 +51,25 @@ export class MarketplacePlugin extends BaseExtModule {
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
   ) {
     super();
-    this.logger.setContext(MarketplacePlugin.name);
+    this.logger.setContext(MarketplaceExtension.name);
   }
 
   // Имя в реестре расширений совпадает с ключом AppRegistry['market']
   // (extensions.registry.ts). При установке из Каталога приложений именно это
   // имя приходит в `installExtension({name: "market", ...})`.
   name = 'market';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = {
-      ...pluginData,
-      config: merge({}, defaultConfig, pluginData.config),
+    this.extension = {
+      ...extensionData,
+      config: merge({}, defaultConfig, extensionData.config),
     };
 
     // Декларируем шаги L1-онбординга в платформенном реестре. Дальше весь flow
@@ -98,13 +98,13 @@ export class MarketplacePlugin extends BaseExtModule {
    * реально отреканному ончейн-решению совета, без stub-кнопки.
    */
   private async syncCoopAcceptanceFromOnboarding(): Promise<void> {
-    const cfg = this.plugin.config as unknown as Record<string, unknown>;
+    const cfg = this.extension.config as unknown as Record<string, unknown>;
     const allStepsDone =
       Boolean(cfg.onboarding_marketplace_provision_done) &&
       Boolean(cfg.onboarding_marketplace_offer_template_done);
 
     if (!allStepsDone) return;
-    if (this.plugin.config.coopAcceptance?.accepted) return;
+    if (this.extension.config.coopAcceptance?.accepted) return;
 
     const acceptedAt =
       (cfg.onboarding_marketplace_offer_template_at as string | undefined) ||
@@ -123,7 +123,7 @@ export class MarketplacePlugin extends BaseExtModule {
         accepted_by_board_decision_id: boardDecisionRef,
       },
     });
-    this.plugin = { ...this.plugin, config: merged.config };
+    this.extension = { ...this.extension, config: merged.config };
     this.logger.info(
       '[MARKETPLACE.L1] coopAcceptance.accepted выставлен по завершению онбординга совета'
     );
@@ -183,18 +183,18 @@ export class MarketplacePlugin extends BaseExtModule {
     MarketplaceExtensionApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],
   providers: [
-    MarketplacePlugin,
+    MarketplaceExtension,
     {
       provide: MARKETPLACE_UDATA_PARAMETERS_PORT,
       useClass: MarketplaceUdataParametersAdapter,
     },
   ],
-  exports: [MarketplacePlugin, MARKETPLACE_UDATA_PARAMETERS_PORT],
+  exports: [MarketplaceExtension, MARKETPLACE_UDATA_PARAMETERS_PORT],
 })
-export class MarketplacePluginModule {
-  constructor(private readonly marketplacePlugin: MarketplacePlugin) {}
+export class MarketplaceExtensionModule {
+  constructor(private readonly marketplaceExtension: MarketplaceExtension) {}
 
   async initialize() {
-    await this.marketplacePlugin.initialize();
+    await this.marketplaceExtension.initialize();
   }
 }

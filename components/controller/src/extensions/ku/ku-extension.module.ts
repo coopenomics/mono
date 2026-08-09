@@ -6,7 +6,7 @@ import {
 } from '~/domain/extension/repositories/extension-domain.repository';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule } from '../base.extension.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
@@ -46,23 +46,23 @@ export const defaultConfig = {};
 
 export const Schema = z.object({});
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export type IConfig = z.infer<typeof Schema>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class KuPlugin extends BaseExtModule {
+export class KuExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     private readonly logger: WinstonLoggerService
   ) {
     super();
-    this.logger.setContext(KuPlugin.name);
+    this.logger.setContext(KuExtension.name);
   }
 
   name = 'trustee';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
@@ -75,8 +75,8 @@ export class KuPlugin extends BaseExtModule {
 @Module({
   imports: [KuDatabaseModule, DocumentDomainModule, VaultDomainModule, AccountInfrastructureModule],
   providers: [
-    // Plugin
-    KuPlugin,
+    // Extension
+    KuExtension,
 
     // Репозитории
     {
@@ -119,13 +119,13 @@ export class KuPlugin extends BaseExtModule {
     KuEventsService,
     KuResolver,
   ],
-  exports: [KuPlugin, KuDecisionSyncService, KuDecisionQuestionSyncService, KuTrustRequestSyncService],
+  exports: [KuExtension, KuDecisionSyncService, KuDecisionQuestionSyncService, KuTrustRequestSyncService],
 })
-export class KuPluginModule {
-  constructor(private readonly kuPlugin: KuPlugin) {}
+export class KuExtensionModule {
+  constructor(private readonly kuExtension: KuExtension) {}
 
   async initialize(config?: IConfig) {
-    await this.kuPlugin.initialize();
+    await this.kuExtension.initialize();
     void config;
   }
 }

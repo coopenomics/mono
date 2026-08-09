@@ -1,21 +1,21 @@
 // ========== ./extensions.registry.ts ==========
 
-import { PowerupPluginModule, PowerupPlugin, Schema as PowerupSchema } from './powerup/powerup-extension.module';
-import { ChatCoopPluginModule, ChatCoopPlugin, Schema as ChatCoopSchema } from './chatcoop/chatcoop-extension.module';
+import { PowerupExtensionModule, PowerupExtension, Schema as PowerupSchema } from './powerup/powerup-extension.module';
+import { ChatCoopExtensionModule, ChatCoopExtension, Schema as ChatCoopSchema } from './chatcoop/chatcoop-extension.module';
 import fs from 'node:fs/promises';
-import { YookassaPluginModule, YookassaPlugin, Schema as YookassaSchema } from './yookassa/yookassa-extension.module';
-import { SberpollPluginModule, SberpollPlugin, Schema as SberpollSchema } from './sberpoll/sberpoll-extension.module';
-import { QrPayPluginModule, QrPayPlugin, Schema as QRPaySchema } from './qrpay/qrpay-extension.module';
+import { YookassaExtensionModule, YookassaExtension, Schema as YookassaSchema } from './yookassa/yookassa-extension.module';
+import { SberpollExtensionModule, SberpollExtension, Schema as SberpollSchema } from './sberpoll/sberpoll-extension.module';
+import { QrPayExtensionModule, QrPayExtension, Schema as QRPaySchema } from './qrpay/qrpay-extension.module';
 import path from 'path';
-import { BuiltinPluginModule, BuiltinPlugin, Schema as BuiltinSchema } from './builtin/builtin-extension.module';
-import { ChairmanPluginModule, ChairmanPlugin, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
-import { ParticipantPluginModule } from './participant/participant-extension.module';
+import { BuiltinExtensionModule, BuiltinExtension, Schema as BuiltinSchema } from './builtin/builtin-extension.module';
+import { ChairmanExtensionModule, ChairmanExtension, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
+import { ParticipantExtensionModule } from './participant/participant-extension.module';
 import { Schema as ParticipantSchema } from './participant/types';
-import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
+import { CapitalExtensionModule, CapitalExtension, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
-import { MarketplacePluginModule, MarketplacePlugin } from './marketplace/marketplace-extension.module';
+import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/marketplace-extension.module';
 import { Schema as MarketplaceSchema } from './marketplace/types';
-import { KuPluginModule, KuPlugin, Schema as KuSchema } from './ku/ku-extension.module';
+import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -71,7 +71,7 @@ export interface IRegistryExtension {
   description: string; // краткое описание
   image: string; // URL к изображению
   class: any; // класс модуля-расширения
-  pluginClass: any; // класс плагина-расширения (для миграций схемы)
+  extensionClass: any; // класс расширения (для миграций схемы)
   schema: any; // Zod-схема (или другая), которая описывает конфиг
   tags?: string[]; // список тегов
   readme: Promise<string>; // README содержимое
@@ -125,8 +125,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол Совета',
     description: 'Приложение для управления решениями в кооперативе.',
     image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
+    class: BuiltinExtensionModule,
+    extensionClass: BuiltinExtension,
     schema: BuiltinSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./yookassa'),
@@ -149,8 +149,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Благорост',
     description: 'Приложение для управления интеллектуальными и имущественными вкладами по целевой программе "Благорост".',
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
-    class: CapitalPluginModule,
-    pluginClass: CapitalPlugin,
+    class: CapitalExtensionModule,
+    extensionClass: CapitalExtension,
     schema: CapitalSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./capital'),
@@ -173,8 +173,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол Председателя',
     description: 'Приложение для председателя совета кооператива.',
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
-    class: ChairmanPluginModule,
-    pluginClass: ChairmanPlugin,
+    class: ChairmanExtensionModule,
+    extensionClass: ChairmanExtension,
     schema: ChairmanSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./chairman'),
@@ -197,8 +197,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Кооперативный участок',
     description: 'Собрания пайщиков кооперативных участков: учреждение участков решением собрания с утверждением советом, свободные решения и приём доверенных лиц по заявлению.',
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
-    class: KuPluginModule,
-    pluginClass: KuPlugin,
+    class: KuExtensionModule,
+    extensionClass: KuExtension,
     schema: KuSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./ku'),
@@ -221,8 +221,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол Пайщика',
     description: 'Приложение для управления персональным членством пайщика в кооперативе и отслеживания общих собраний.',
     image: 'https://i.ibb.co/gFHMX4s9/Chat-GPT-Image-11-2025-18-17-27.png',
-    class: ParticipantPluginModule,
-    pluginClass: BuiltinPlugin, // Participant использует тот же BuiltinPlugin
+    class: ParticipantExtensionModule,
+    extensionClass: BuiltinExtension, // Participant использует тот же BuiltinExtension
     schema: ParticipantSchema,
     tags: ['стол', 'управление', 'уведомления'],
     readme: getReadmeContent('./participant'),
@@ -245,8 +245,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол вычислительных ресурсов',
     description: 'Приложение для управления вычислительными ресурсами кооператива.',
     image: 'https://i.ibb.co/7np8Bpm/DALL-E-Futuristic-Robot-Art-Nouveau.webp',
-    class: PowerupPluginModule,
-    pluginClass: PowerupPlugin,
+    class: PowerupExtensionModule,
+    extensionClass: PowerupExtension,
     schema: PowerupSchema,
     tags: ['утилиты', 'ресурсы'],
     readme: getReadmeContent('./powerup'),
@@ -263,8 +263,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Оплата по Yookassa',
     description: 'Приложение для приёма платежей с помощью ЮКасса. Для использования необходимо установить API-ключ.',
     image: 'https://i.ibb.co/Hq6CJFj/Yookassa-Image.png',
-    class: YookassaPluginModule,
-    pluginClass: YookassaPlugin,
+    class: YookassaExtensionModule,
+    extensionClass: YookassaExtension,
     schema: YookassaSchema,
     tags: ['платежи'],
     readme: getReadmeContent('./yookassa'),
@@ -281,8 +281,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Приём платежей на р/с в Сбере',
     description: 'Приложение для автоматического приёма паевых взносов в Сбербанке.',
     image: 'https://i.ibb.co/5rQTPLN/sber.png',
-    class: SberpollPluginModule,
-    pluginClass: SberpollPlugin,
+    class: SberpollExtensionModule,
+    extensionClass: SberpollExtension,
     schema: SberpollSchema,
     tags: ['платежи'],
     readme: getReadmeContent('./sberpoll'),
@@ -299,8 +299,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Оплата по QR',
     description: 'Приложение для выставления QR-счёта на оплату из любого банковского приложения.',
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
-    class: QrPayPluginModule,
-    pluginClass: QrPayPlugin,
+    class: QrPayExtensionModule,
+    extensionClass: QrPayExtension,
     schema: QRPaySchema,
     tags: ['платежи'],
     readme: getReadmeContent('./qrpay'),
@@ -323,8 +323,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол связи',
     description: 'Приложения для общения и звонков между участниками кооперативной экономики.',
     image: 'https://i.ibb.co/3yWV8Wdp/Chat-GPT-Image-8-2025-22-45-36.png',
-    class: ChatCoopPluginModule,
-    pluginClass: ChatCoopPlugin,
+    class: ChatCoopExtensionModule,
+    extensionClass: ChatCoopExtension,
     schema: ChatCoopSchema,
     tags: ['стол', 'общение'],
     readme: getReadmeContent('./chatcoop'),
@@ -348,7 +348,7 @@ export const AppRegistry: INamedExtension = {
     description: 'Двойная бухгалтерия кооператива: реестры операций, проводок, кошельков и счетов; календарь и формы налоговой отчётности (бухбаланс, 6-НДФЛ, РСВ, ПСВ, декларация УСН, уведомления ФНС).',
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ReportsExtensionModule,
-    pluginClass: BuiltinPlugin,
+    extensionClass: BuiltinExtension,
     schema: BuiltinSchema,
     tags: ['бухгалтерия', 'отчётность', 'ФНС'],
     readme: getReadmeContent('./reports'),
@@ -398,8 +398,8 @@ export const AppRegistry: INamedExtension = {
     title: 'Стол заказов',
     description: 'Приложение для заказа и поставки имущества в кооперативе.',
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
-    class: MarketplacePluginModule,
-    pluginClass: MarketplacePlugin,
+    class: MarketplaceExtensionModule,
+    extensionClass: MarketplaceExtension,
     schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),

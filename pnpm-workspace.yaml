@@ -1,5 +1,4 @@
 link-workspace-packages: true
 packages:
   - 'components/*'
-  - 'components/coopback/src/plugins/*'
   - 'components/contracts/standards-site'

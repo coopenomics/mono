@@ -68,8 +68,8 @@ export class ChairmanOnboardingEventsService {
 
       this.logger.debug(`Получено событие отслеживания решения для онбординга chairman: ${result.vars_field}`);
 
-      const plugin = await this.load();
-      if (!plugin) {
+      const extension = await this.load();
+      if (!extension) {
         this.logger.warn('Конфигурация расширения chairman не найдена');
         return;
       }
@@ -82,7 +82,7 @@ export class ChairmanOnboardingEventsService {
         return;
       }
 
-      const wasAlreadyDone = !!(plugin.config as any)[flagKey];
+      const wasAlreadyDone = !!(extension.config as any)[flagKey];
 
       // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
       // config целиком: несколько DecisionTrackedEvent (согласия/подписи), обработанные

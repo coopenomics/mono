@@ -30,7 +30,7 @@ export class NotificationSenderService {
   private coopShortName: string | null = null;
 
   //TODO: разобраться с этим и упростить - чет тут усложнено все
-  // Функция для получения адресов - будет заменена на реальную в ParticipantPlugin
+  // Функция для получения адресов - будет заменена на реальную в ParticipantExtension
   private _getUserEmailsFunction: (() => Promise<Array<{ email: string; subscriberId: string }>>) | null = null;
 
   // Установка функции для получения email адресов и subscriberId

@@ -1,4 +1,4 @@
-// Миграция схемы chatcoop v2: заполнение реестра Matrix-комнат проектов Capital из таблицы capital_projects (members/council не мигрируем — комната пайщиков создаётся при отсутствии в реестре на старте плагина; совет — в v3).
+// Миграция схемы chatcoop v2: заполнение реестра Matrix-комнат проектов Capital из таблицы capital_projects (members/council не мигрируем — комната пайщиков создаётся при отсутствии в реестре на старте расширения; совет — в v3).
 
 import { DataSource } from 'typeorm';
 import type {

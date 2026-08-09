@@ -94,10 +94,10 @@ export class ChairmanOnboardingService {
     }
   }
 
-  private async loadPlugin(): Promise<ExtensionDomainEntity<IConfig>> {
-    const plugin = await this.extensionRepository.findByName('chairman');
-    if (!plugin) throw new Error('Конфигурация расширения chairman не найдена');
-    const config = { ...plugin.config };
+  private async loadExtension(): Promise<ExtensionDomainEntity<IConfig>> {
+    const extension = await this.extensionRepository.findByName('chairman');
+    if (!extension) throw new Error('Конфигурация расширения chairman не найдена');
+    const config = { ...extension.config };
 
     const patch: Partial<IConfig> = {};
     if (!config.onboarding_init_at) {
@@ -117,10 +117,10 @@ export class ChairmanOnboardingService {
       // целиком конкурирует с параллельными записями флагов/хэшей других шагов
       // онбординга и теряет их изменения (lost update на общем jsonb-блобе).
       const updated = await this.extensionRepository.patchConfig('chairman', patch);
-      return { ...plugin, config: updated.config };
+      return { ...extension, config: updated.config };
     }
 
-    return plugin;
+    return extension;
   }
 
   private buildState(config: IConfig): ChairmanOnboardingStateDTO {
@@ -145,21 +145,21 @@ export class ChairmanOnboardingService {
   }
 
   public async getState(): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
-    return this.buildState(plugin.config);
+    const extension = await this.loadExtension();
+    return this.buildState(extension.config);
   }
 
   public async completeAgendaStep(
     data: ChairmanOnboardingAgendaInputDTO,
     username: string
   ): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
     const flagKey = this.mapStepToFlag(data.step);
     const hashKey = this.mapStepToHash(data.step);
     const normalizedTitle = data.title?.trim().substring(0, 200) || undefined;
 
-    if ((plugin.config as any)[flagKey]) {
-      return this.buildState(plugin.config);
+    if ((extension.config as any)[flagKey]) {
+      return this.buildState(extension.config);
     }
     const project_id = uuid();
     const actor = username;
@@ -227,14 +227,14 @@ export class ChairmanOnboardingService {
 
   // Сохраняем hash общего собрания, флаг закроется после newresolved
   public async completeGeneralMeet(proposal_hash: string, _username?: string): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
 
-    if (plugin.config.onboarding_general_meet_done) {
-      return this.buildState(plugin.config);
+    if (extension.config.onboarding_general_meet_done) {
+      return this.buildState(extension.config);
     }
 
     // Если hash не пришёл (не должно быть), не затираем существующее значение
-    const meetHash = proposal_hash || plugin.config.onboarding_general_meet_hash || '';
+    const meetHash = proposal_hash || extension.config.onboarding_general_meet_hash || '';
 
     const updated = await this.extensionRepository.patchConfig('chairman', {
       onboarding_general_meet_hash: meetHash,
