@@ -33,10 +33,10 @@
           ) {{ label }}
 
       .cert__actions
-        BaseButton(variant='secondary', @click='onDownloadQr')
+        BaseButton(variant='secondary', :loading='exporting', @click='askExport')
           template(#icon-left)
-            q-icon(name='qr_code', size='18px')
-          | Скачать как QR
+            q-icon(name='badge', size='18px')
+          | Скачать удостоверение
     //- Прежний текст звал войти в кооператив — но карточка видна только тому, кто
     //- уже вошёл, и совет читался как издевательство. Удостоверение выпускается
     //- на входе и требует ключей заверения кооператива; если их нет, войти можно,
@@ -46,6 +46,14 @@
       title='Удостоверение ещё не выпущено',
       body='Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.'
     )
+
+  //- Выгрузка удостоверения выносит персональные данные из приложения наружу,
+  //- где ходить файлу мы уже не помешаем — поэтому спрашиваем явно.
+  BaseDialog(v-model='exportConfirm', title='Скачать удостоверение?', size='sm')
+    p.cert__confirm В файле будут ваши фамилия, имя и отчество, а также код, по которому проверяется подлинность. Он пригоден для распечатки и предъявления.
+    template(#footer)
+      BaseButton(variant='secondary', @click='exportConfirm = false') Отмена
+      BaseButton(:loading='exporting', @click='onExport') Скачать
 
   //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
   //- моноширинные (это технические идентификаторы блокчейн-аккаунта).
@@ -163,7 +171,6 @@ import type {
   IOrganizationData,
 } from 'src/shared/lib/types/user/IUserData';
 import { computed, onMounted, ref } from 'vue';
-import { Notify } from 'quasar';
 import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { IdentityPanel } from 'src/shared/ui/domain/IdentityPanel';
 import type { Identity } from 'src/shared/ui/domain/IdentityPanel';
@@ -173,6 +180,9 @@ import { BaseChip } from 'src/shared/ui/base/BaseChip';
 import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { FailAlert } from 'src/shared/api';
+import { useExportCertificate } from 'src/features/User/ExportCertificate';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -243,13 +253,42 @@ const formatExp = (exp: number): string => {
   });
 };
 
-// Экспорт в QR — функция Vision (SDK exportToQR пока stub); сообщаем мягко.
-const onDownloadQr = () => {
-  Notify.create({
-    type: 'info',
-    message: 'Экспорт удостоверения в QR станет доступен в составе приложения Vision.',
-  });
-};
+// Выгрузка удостоверения картинкой: слева — кто это, справа — код для проверки.
+// Прежде кнопка показывала всплывающее «станет доступно в составе Vision» и не
+// делала ничего — обещание без срока вместо документа.
+const exportConfirm = ref(false);
+const exporting = ref(false);
+
+function askExport(): void {
+  exportConfirm.value = true;
+}
+
+async function onExport(): Promise<void> {
+  const cert = certificate.value;
+  if (!cert) return;
+  exporting.value = true;
+  try {
+    const { download } = useExportCertificate();
+    await download(
+      {
+        jws: cert.jws,
+        fullName: identity.value.fullName,
+        role: identity.value.role,
+        coopName: system.cooperativeDisplayName || cert.coopname,
+        account: session.username,
+        serial: cert.jti,
+        validUntil: formatExp(cert.exp),
+      },
+      // Согласие уже дано нажатием в диалоге — SDK требует его как функцию.
+      async () => true,
+    );
+    exportConfirm.value = false;
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    exporting.value = false;
+  }
+}
 
 const userType = computed(() => {
   return session.privateAccount?.type;
@@ -415,6 +454,10 @@ const getRepresentativeName = (representative: any) => {
   color: var(--p-ink-3);
 }
 
+.cert__confirm {
+  color: var(--p-ink-2);
+  margin: 0;
+}
 .cert__actions {
   margin-top: var(--p-4, 16px);
 }

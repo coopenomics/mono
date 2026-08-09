@@ -15,6 +15,8 @@ export interface VerificationTypeClaim {
 
 /** Claims удостоверения пайщика (payload participant_certificate, Story 1.8). */
 export interface ParticipantCertificate {
+  /** Само удостоверение как выдал сервер — им наполняется код для предъявления. */
+  jws: string;
   jti: string;
   sub: string;
   iat: number;
@@ -54,6 +56,7 @@ function decodePayload(jws: string): ParticipantCertificate {
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
   const raw = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
   return {
+    jws,
     jti: String(raw.jti ?? ''),
     sub: String(raw.sub ?? ''),
     iat: Number(raw.iat ?? 0),
