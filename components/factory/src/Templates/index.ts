@@ -112,3 +112,4 @@ export * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorne
 export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 export * from './registry'
+export * from './versions'

@@ -310,6 +310,46 @@ jobs:
           echo "---"
           docker run --rm "dicoop/contracts:$CONTRACTS_TAG" sha256
 
+      # === Этап 1.5: bootstrap-образ ===
+      # `dicoop/bootcoop:<branch>` несёт CLI раскатки сети: деплой контрактов
+      # на чистую цепь (`boot:remote`) и синхронизацию реестра документов
+      # (`drafts:sync`), который playbook деплоя контрактов запускает на каждой
+      # раскатке. Собирается здесь, а не только в build-bootstrap.yaml, чтобы
+      # к моменту деплой-вебхука образ гарантированно содержал шаблоны из
+      # этого релиза: build-bootstrap.yaml идёт отдельным workflow и на
+      # порядок относительно вебхука не завязан.
+      # FROM dicoop/contracts:<branch> берётся из локального демона — образ
+      # собран и запушен шагом выше.
+      - name: Build and push bootstrap image
+        run: |
+          dpush() {
+            local ref="$1" n=1
+            until docker push "$ref"; do
+              [ "$n" -ge 3 ] && { echo "::error::docker push $ref не удался после $n попыток"; return 1; }
+              echo "::warning::docker push $ref упал (попытка $n/3) — повтор через 10с"
+              n=$((n+1)); sleep 10
+            done
+          }
+
+          IMAGE="dicoop/bootcoop"
+          SHORT_SHA="${SHA::7}"
+          docker build \
+            --build-arg "CONTRACTS_TAG=$CONTRACTS_TAG" \
+            --label "org.opencontainers.image.revision=$SHA" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -f components/boot/Dockerfile \
+            -t "$IMAGE:$CONTRACTS_TAG" \
+            .
+          dpush "$IMAGE:$CONTRACTS_TAG"
+
+          docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+          dpush "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+
+          if [ -n "$CONTRACTS_EXTRA" ]; then
+            docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_EXTRA"
+            dpush "$IMAGE:$CONTRACTS_EXTRA"
+          fi
+
       # === Этап 2: контейнеры приложений ===
 
       - name: Build and push base image

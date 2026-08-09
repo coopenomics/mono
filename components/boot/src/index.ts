@@ -13,6 +13,7 @@ import { checkHealth } from './docker/health'
 import { clearDB, clearDirectory, deleteFile } from './docker/purge'
 import { deployCommand } from './docker/deploy'
 import { addTestUser } from './scripts/add-test-user'
+import { waitForRpc } from './utils/waitForRpc'
 
 config()
 
@@ -335,23 +336,7 @@ program
     const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 120000)
 
     console.log(`Waiting for RPC at ${url} (timeout ${timeoutMs}ms)...`)
-    const deadline = Date.now() + timeoutMs
-    let ready = false
-    while (Date.now() < deadline) {
-      try {
-        const r = await fetch(`${url}/v1/chain/get_info`, {
-          signal: AbortSignal.timeout(2000),
-        } as RequestInit)
-        if (r.ok) {
-          ready = true
-          break
-        }
-      }
-      catch {
-        // RPC ещё не готов — пробуем снова
-      }
-      await sleep(1000)
-    }
+    const ready = await waitForRpc(url, timeoutMs)
     if (!ready) {
       console.error(`RPC ${url} not ready within ${timeoutMs}ms`)
       process.exit(1)
@@ -377,6 +362,70 @@ program
     }
     catch (e) {
       console.error('boot:remote failed:', e)
+      process.exit(1)
+    }
+  })
+
+/**
+ * Синхронизация реестра шаблонов документов с сетью.
+ *
+ * Локальный реестр документов (`@coopenomics/factory`) — источник истины:
+ * команда доливает недостающие шаблоны, переписывает разошедшееся
+ * содержание и поднимает версию там, где реестр её объявил выше сетевой.
+ * Ничего не удаляет и не понижает.
+ *
+ * Запускается в раскатке сети сразу после деплоя контрактов (образ
+ * `dicoop/drafts:<branch>`), а вручную — так:
+ *
+ *   CHAIN_URL=... EOSIO_PRV_KEY=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run
+ *
+ * Окружение:
+ *   CHAIN_URL           — endpoint ноды
+ *   EOSIO_PRV_KEY       — ключ системного аккаунта (реестр правит eosio)
+ *   RPC_WAIT_TIMEOUT_MS — сколько ждать готовности RPC, default 60000
+ */
+program
+  .command('drafts:sync')
+  .description('Привести реестр документов в сети к локальному реестру шаблонов')
+  .option('--dry-run', 'Показать план изменений, не отправляя транзакций')
+  .action(async (options: { dryRun?: boolean }) => {
+    const config = (await import('./configs')).default
+    const { syncDrafts } = await import('./init/drafts')
+    const { default: Blockchain } = await import('./blockchain')
+
+    const dryRun = options.dryRun === true
+
+    if (!dryRun && !process.env.EOSIO_PRV_KEY) {
+      console.error('Не задан EOSIO_PRV_KEY — реестр документов правит системный аккаунт')
+      process.exit(1)
+    }
+
+    const url = `${config.network.protocol}://${config.network.host}${config.network.port}`
+    const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 60000)
+
+    console.log(`Реестр документов: ${url}`)
+
+    if (!await waitForRpc(url, timeoutMs)) {
+      console.error(`RPC ${url} не ответил за ${timeoutMs}ms`)
+      process.exit(1)
+    }
+
+    try {
+      const blockchain = new Blockchain(config.network, config.private_keys)
+      await blockchain.update_pass_instance()
+
+      const report = await syncDrafts(blockchain, { dryRun })
+
+      if (report.failed.length > 0) {
+        console.error(`Синхронизация завершена с ошибками: ${report.failed.length}`)
+        process.exit(1)
+      }
+
+      console.log('Реестр документов синхронизирован')
+      process.exit(0)
+    }
+    catch (e) {
+      console.error('Синхронизация реестра документов не удалась:', e)
       process.exit(1)
     }
   })
