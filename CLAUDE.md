@@ -312,6 +312,34 @@ await sendPOST('/v1/graphql', { query: QUERY, variables });
 
 Эталоны: `p.mkt.return.standard.yaml`, `p.cap.rid.standard.yaml`, `reg.coop.standard.yaml`. Антипример — `p.mkt.wroff.standard.yaml` в PR #399 review 2026-05-18 (был забит callback-описаниями и «type=mktwroff»).
 
+## Реестр документов раскатывается релизом, не миграциями
+
+Шаблоны документов больше **не правятся миграциями мигратора**. Локальный реестр
+(`components/factory/src/Templates/registry.ts`) — источник истины; команда
+`pnpm -F @coopenomics/boot run drafts:sync` сверяет его с `draft::drafts` /
+`draft::translations` и доливает недостающее, переписывает разошедшееся,
+поднимает версию по объявлению. Playbook деплоя контрактов
+(`coopenomics/playbooks`, `contracts/setup-contracts.yaml`) запускает её из
+`dicoop/bootcoop:<branch>` сразу после установки контрактов.
+
+**Версия шаблона — требование к подписи, а не номер редакции.** Рабочий стол
+сверяет версию шаблона с версией подписи пайщика (`RequireAgreements`) и при
+расхождении просит подписать заново. Поэтому:
+
+- правка текста/вёрстки/опечатки — просто меняем шаблон, `editdraft` версию не
+  трогает, переподписей нет;
+- смысловое изменение — дополнительно поднимаем число в
+  `components/factory/src/Templates/versions.ts`, синхронизатор вызовет
+  `upversion`.
+
+Синхронизатор ничего не удаляет, версию не понижает и идемпотентен. Проверить
+план без транзакций: `CHAIN_URL=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run`.
+
+**Известное ограничение контракта:** `draft::createtrans` заводит строку перевода,
+не заполняя `draft_id`/`lang`/`data`. Поэтому синхронизируется только перевод по
+умолчанию (`ru`), создаваемый вместе с шаблоном. Второй язык до починки контракта
+поставить нечем.
+
 ## Vault & SERVER_SECRET
 
 WIF админ-аккаунта (например `voskhod`) хранится в `vaults` PostgreSQL зашифрованным AES-256-CBC с ключом `sha256(SERVER_SECRET)`. Если `SERVER_SECRET` потом меняли — **старые записи разрушаются**, `decipher.final()` бросает `error:1C800064:Provider routines::bad decrypt`.
