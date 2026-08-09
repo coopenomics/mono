@@ -8,13 +8,14 @@
 #   bash infra/coopid/scripts/coopid-oidc-smoke.sh
 #   BASE=https://voskhod.coop bash infra/coopid/scripts/coopid-oidc-smoke.sh
 #
-# По умолчанию бьёт в caddy на localhost:8443 (dev). Нужны: curl, jq.
+# По умолчанию бьёт в единый вход dev-контура (nginx) на localhost. Нужны: curl, jq.
+# Caddy убран 2026-08-09: маршрутизацию и в dev, и на проде делает nginx.
 set -euo pipefail
 
-BASE="${BASE:-https://localhost:8443}"
-CADDY_PORT="${CADDY_HTTPS_PORT:-8443}"
-# localhost → self-signed caddy, SNI обязателен (иначе TLS internal error).
-CURL=(curl -sk --tlsv1.3 --resolve "localhost:${CADDY_PORT}:127.0.0.1")
+NGINX_PORT="${NGINX_HOST_PORT:-8108}"
+BASE="${BASE:-http://localhost:${NGINX_PORT}}"
+# В dev вход по http на localhost — TLS живёт на прод-edge (L7), не здесь.
+CURL=(curl -s)
 
 for bin in curl jq; do
   command -v "$bin" >/dev/null 2>&1 || { echo "ОШИБКА: нужен $bin"; exit 2; }
@@ -54,7 +55,7 @@ echo "$JWKS" | jq -e '.keys[] | select(.alg=="RS256" or .kty=="RSA")' >/dev/null
   || fail "в jwks нет RS256/RSA-ключа"
 ok "jwks содержит RS256-ключ"
 
-# Алиас /.well-known/jwks.json (caddy rewrite) тоже жив.
+# Алиас /.well-known/jwks.json (rewrite в nginx) тоже жив.
 ALIAS="$("${CURL[@]}" "${BASE}/.well-known/jwks.json")" || fail "jwks-алиас недоступен"
 echo "$ALIAS" | jq -e '.keys | length > 0' >/dev/null || fail "jwks-алиас пустой"
 ok "/.well-known/jwks.json (алиас) работает"
