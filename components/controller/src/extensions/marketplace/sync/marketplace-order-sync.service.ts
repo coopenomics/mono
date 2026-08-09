@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { MarketplaceOrderDomainEntity } from '../domain/entities/marketplace-order.entity';
@@ -30,7 +30,7 @@ export class MarketplaceOrderSyncService
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     repo: MarketplaceOrderDomainRepository,
     deltaMapper: MarketplaceOrderDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService

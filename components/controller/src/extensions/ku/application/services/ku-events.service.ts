@@ -4,7 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
@@ -43,7 +43,7 @@ export class KuEventsService {
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
     @Inject(PAYMENT_METHOD_REPOSITORY) private readonly paymentMethodRepository: PaymentMethodRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(KuEventsService.name);
   }

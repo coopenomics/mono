@@ -16,7 +16,7 @@ import type {
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { InvestSyncService } from '../syncers/invest-sync.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
@@ -48,7 +48,7 @@ export class InvestsManagementInteractor {
     private readonly segmentRepository: SegmentRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(InvestsManagementInteractor.name);
   }

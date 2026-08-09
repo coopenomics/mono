@@ -8,7 +8,7 @@ import {
   AGREEMENT_REGISTRATION_PORT,
   AgreementRegistrationPort,
 } from '~/domain/registration/ports/agreement-registration.port';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from '../registration/register-marketplace-in-agreement-registry';
@@ -53,7 +53,7 @@ export class MarketplaceCoopAcceptanceService {
   constructor(
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     // Story 1.10: side-effect — re-register marketplace-оферту в core
     // AgreementRegistry после accept. Идемпотентно: AgreementRegistryService
     // не дублирует записи по (id, extension_name). @Optional для unit-тестов

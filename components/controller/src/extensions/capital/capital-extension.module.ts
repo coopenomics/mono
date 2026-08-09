@@ -1,16 +1,14 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { forwardRef, Module, Injectable, Inject } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
-import { Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
-import { Inject } from '@nestjs/common';
 import { z } from 'zod';
 
 // Функция для проверки и сериализации FieldDescription
@@ -479,7 +477,7 @@ export class CapitalExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     private readonly contractManagementService: ContractManagementService,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly syncInteractor: CapitalSyncInteractor,
     private readonly githubSyncScheduler: GitHubSyncSchedulerService,
     private readonly programShareRegistrationScheduler: ProgramShareRegistrationSchedulerService,

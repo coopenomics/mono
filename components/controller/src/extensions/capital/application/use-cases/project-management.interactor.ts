@@ -19,7 +19,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
@@ -43,7 +43,7 @@ export class ProjectManagementInteractor {
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly projectSyncService: ProjectSyncService,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService

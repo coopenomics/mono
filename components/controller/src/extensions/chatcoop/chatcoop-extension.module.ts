@@ -14,11 +14,10 @@ import { TranscriptionResolver } from './application/resolvers/transcription.res
 import { ProjectCommunicationResolver } from './application/resolvers/project-communication.resolver';
 import { SecretaryRoomsResolver } from './application/resolvers/secretary-rooms.resolver';
 import { SecretaryRoomManagementService } from './application/services/secretary-room-management.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
 import { VarsRepositoryImplementation } from '~/infrastructure/database/generator-repositories/repositories/vars-generator.repository';
@@ -103,7 +102,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly matrixApiService: MatrixApiService,
     private readonly chatCoopApplicationService: ChatCoopApplicationService
   ) {

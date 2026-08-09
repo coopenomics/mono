@@ -6,7 +6,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { RefreshSegmentDomainInput } from '../../domain/actions/refresh-segment-domain-input.interface';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
@@ -23,7 +23,7 @@ export class SegmentsInteractor {
     private readonly segmentRepository: SegmentRepository,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly segmentSyncService: SegmentSyncService,
     @Inject(forwardRef(() => ResultSubmissionService))
     private readonly resultSubmissionService: ResultSubmissionService

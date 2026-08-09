@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { default as config } from '~/config/config';
 import { TrackedMeet, NotificationTypes, ILog } from './types';
@@ -15,7 +15,7 @@ import { Workflows } from '@coopenomics/notifications';
 @Injectable()
 export class NotificationSenderService {
   constructor(
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort

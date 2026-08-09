@@ -2,7 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentTypeEnum, PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
@@ -45,7 +45,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
     private readonly snapshots: Repository<ExpenseRequisiteSnapshotTypeormEntity>,
     @InjectRepository(ExpenseProposalTypeormEntity)
     private readonly proposalEntities: Repository<ExpenseProposalTypeormEntity>,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ExpensePaymentsListener.name);
   }

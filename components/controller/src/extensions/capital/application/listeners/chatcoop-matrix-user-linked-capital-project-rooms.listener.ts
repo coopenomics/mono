@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { APPENDIX_REPOSITORY, type AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
 import {
@@ -20,7 +20,7 @@ export class ChatCoopMatrixUserLinkedCapitalProjectRoomsListener {
     @Inject(APPENDIX_REPOSITORY) private readonly appendixRepository: AppendixRepository,
     @Inject(PROJECT_REPOSITORY) private readonly projectRepository: ProjectRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ChatCoopMatrixUserLinkedCapitalProjectRoomsListener.name);
   }

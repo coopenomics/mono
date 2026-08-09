@@ -2,7 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThanOrEqual, Repository } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import config from '~/config/config';
 import type { MarketContract } from 'cooptypes';
 import { MarketplaceOrderEntity } from '../../infrastructure/entities/marketplace-order.entity';
@@ -35,7 +35,7 @@ export class MarketplaceOrderCloseCronService implements OnModuleInit {
     private readonly orderRepo: Repository<MarketplaceOrderEntity>,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOrderCloseCronService.name);
   }

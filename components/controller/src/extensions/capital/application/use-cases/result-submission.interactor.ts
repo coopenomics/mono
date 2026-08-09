@@ -17,7 +17,7 @@ import type {
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
@@ -40,7 +40,7 @@ export class ResultSubmissionInteractor {
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly resultSyncService: ResultSyncService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionInteractor.name);
   }

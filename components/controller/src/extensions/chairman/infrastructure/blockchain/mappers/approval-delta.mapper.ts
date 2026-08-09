@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { IDelta } from '~/types/common';
 import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
 import type { IApprovalBlockchainData } from '../../../domain/interfaces/approval-blockchain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { IBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { SovietContract } from 'cooptypes';
@@ -12,7 +12,7 @@ import type { SovietContract } from 'cooptypes';
  */
 @Injectable()
 export class ApprovalDeltaMapper implements IBlockchainDeltaMapper<IApprovalBlockchainData, ApprovalDomainEntity> {
-  constructor(private readonly logger: WinstonLoggerService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort) {
     this.logger.setContext(ApprovalDeltaMapper.name);
   }
 

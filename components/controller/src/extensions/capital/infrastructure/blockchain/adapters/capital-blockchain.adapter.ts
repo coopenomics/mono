@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort } from '../../../domain/interfaces/capital-blockchain.port';
 import { Checksum256, Name, UInt128, type TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
-import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';

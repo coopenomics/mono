@@ -12,7 +12,7 @@ import type { CapitalContract } from 'cooptypes';
 import { PermissionsService } from '../services/permissions.service';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
 import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
@@ -48,7 +48,7 @@ export class GenerationInteractor {
     private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)
     private readonly issueLinkedGitCommitRepository: IssueLinkedGitCommitRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(GenerationInteractor.name);
   }

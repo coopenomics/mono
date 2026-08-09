@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import type { IDelta } from '~/types/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../../domain/repositories/approval.repository';
@@ -25,7 +25,7 @@ export class ApprovalSyncService
     @Inject(APPROVAL_REPOSITORY)
     approvalRepository: ApprovalRepository,
     approvalDeltaMapper: ApprovalDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(approvalRepository, approvalDeltaMapper, logger);

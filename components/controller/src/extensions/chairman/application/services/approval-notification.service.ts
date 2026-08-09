@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { IDelta } from '~/types/common';
@@ -22,7 +22,7 @@ export class ApprovalNotificationService implements OnModuleInit {
     private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ApprovalNotificationService.name);
   }

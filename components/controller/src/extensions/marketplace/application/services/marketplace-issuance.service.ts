@@ -10,7 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import {
   MARKETPLACE_ASSET_CONFIG,
@@ -120,7 +120,7 @@ export class MarketplaceIssuanceService {
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceIssuanceService.name);
   }

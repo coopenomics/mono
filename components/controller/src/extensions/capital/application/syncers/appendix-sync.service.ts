@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { AppendixRepository, APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
@@ -27,7 +27,7 @@ export class AppendixSyncService
     @Inject(APPENDIX_REPOSITORY)
     appendixRepository: AppendixRepository,
     appendixDeltaMapper: AppendixDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     private readonly clearanceManagementInteractor: ClearanceManagementInteractor
   ) {

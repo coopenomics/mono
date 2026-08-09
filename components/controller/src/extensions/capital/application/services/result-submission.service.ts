@@ -49,7 +49,7 @@ import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
@@ -78,7 +78,7 @@ export class ResultSubmissionService {
     private readonly issueRepository: IssueRepository,
     @Inject(DOCUMENT_REPOSITORY)
     private readonly documentRepository: DocumentRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionService.name);
   }

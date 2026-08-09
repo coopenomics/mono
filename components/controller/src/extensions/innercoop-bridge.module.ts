@@ -1,12 +1,14 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Module, Scope } from '@nestjs/common';
 import {
   CHATCOOP_CALENDAR_PORT,
   EXPENSE_CHASSIS_PORT,
   LEDGER2_HISTORY_PORT,
+  LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
@@ -57,6 +59,18 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: LEDGER2_HISTORY_PORT,
       useExisting: Ledger2InnercoopHistoryAdapter,
     },
+    {
+      // Единственный порт здесь, привязанный `useClass`, а не `useExisting`.
+      // `setContext` мутирует логгер, поэтому `WinstonLoggerService` объявлен
+      // транзиентным — каждый потребитель обязан получить свой инстанс.
+      // Алиас через `useExisting` разрешался бы по самому алиасу, а не по
+      // потребителю, и все 106 инжекторов делили бы один контекст: строки
+      // приписывались бы чужим классам, причём молча. `useClass` с явным
+      // Scope.TRANSIENT воспроизводит исходную семантику точно.
+      provide: LOGGER_PORT,
+      useClass: WinstonLoggerService,
+      scope: Scope.TRANSIENT,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -65,6 +79,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROJECT_CAPITAL_CLEARANCE_PORT,
     EXPENSE_CHASSIS_PORT,
     LEDGER2_HISTORY_PORT,
+    LOGGER_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

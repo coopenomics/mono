@@ -3,7 +3,7 @@ import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
@@ -128,7 +128,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
   ) {
     super();

@@ -29,7 +29,7 @@ import type {
   ContributorProjectTimeStatsDomainInterface,
 } from '../../domain/interfaces/time-stats-domain.interface';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { config } from '~/config';
 import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../domain/utils/hours-float';
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
@@ -53,7 +53,7 @@ export class TimeTrackingInteractor {
     private readonly issueRepository: IssueRepository,
     @Inject(TIMER_SESSION_REPOSITORY)
     private readonly timerSessionRepository: TimerSessionRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(TimeTrackingInteractor.name);
   }

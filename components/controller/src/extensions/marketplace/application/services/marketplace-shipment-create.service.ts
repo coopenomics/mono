@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { Cooperative } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
@@ -112,7 +112,7 @@ export class MarketplaceShipmentCreateService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceShipmentCreateService.name);
   }

@@ -11,7 +11,7 @@ import { createHash, randomUUID } from 'crypto';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { toQuantityAsset } from '../shared/quantity.util';
 import {
@@ -194,7 +194,7 @@ export class MarketplaceReturnClaimService {
     private readonly documentDomainService: DocumentDomainService,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceReturnClaimService.name);
   }

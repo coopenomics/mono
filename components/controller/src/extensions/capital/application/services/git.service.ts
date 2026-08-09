@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { resolveCapitalGithubApiPlainToken } from '../utils/capital-github-token';
 
 /**
@@ -63,7 +63,7 @@ interface IParsedGitUrl {
 export class GitService {
   private octokit: Octokit;
 
-  constructor(private readonly logger: WinstonLoggerService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort) {
     this.logger.setContext(GitService.name);
     this.octokit = new Octokit({ auth: undefined });
     this.reconfigureWithCapitalExtensionEncrypted(undefined);

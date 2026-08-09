@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SovietContract } from 'cooptypes';
 import { ChairmanBlockchainPort } from '../../../domain/interfaces/chairman-blockchain.port';
 import { type TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
-import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';

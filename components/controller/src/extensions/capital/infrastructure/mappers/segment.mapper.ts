@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { ResultMapper } from './result.mapper';
@@ -12,7 +12,6 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
-import { Inject } from '@nestjs/common';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 type toEntityDatabasePart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentDatabaseData>;

@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { MEET_REPOSITORY, MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import config from '~/config/config';
 import { DateUtils } from '~/shared/utils/date-utils';
@@ -24,7 +24,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
     private readonly accountPort: AccountDataPort,
     @Inject(MEET_REPOSITORY)
     private readonly meetPreRepository: MeetPreProcessingRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MeetWorkflowNotificationService.name);
   }

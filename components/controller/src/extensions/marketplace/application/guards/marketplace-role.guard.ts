@@ -1,9 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { Inject, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import config from '~/config/config';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 
 import { canAccess } from '../access/marketplace-access-matrix';
 import {
@@ -34,7 +34,7 @@ import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 export class MarketplaceRoleGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceRoleGuard.name);
   }

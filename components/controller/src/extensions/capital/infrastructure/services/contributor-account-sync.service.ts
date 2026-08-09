@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { ParticipationManagementInteractor } from '../../application/use-cases/participation-management.interactor';
@@ -17,7 +17,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
     private readonly participationManagementInteractor: ParticipationManagementInteractor,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ContributorAccountSyncService.name);
   }

@@ -11,11 +11,7 @@ import { createHash, randomBytes } from 'crypto';
 import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import {
-  LEDGER2_HISTORY_PORT,
-  type ILedger2HistoryPort,
-  type InnerLedger2HistoryResult,
-} from '@coopenomics/innercoop';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
@@ -52,7 +48,6 @@ import {
   PAYMENT_METHOD_REPOSITORY,
   type PaymentMethodRepository,
 } from '~/domain/common/repositories/payment-method.repository';
-import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';

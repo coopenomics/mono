@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import {
   DOCUMENT_VALIDATION_SERVICE,
@@ -207,7 +207,7 @@ export class MarketplaceStockProposalService {
     private readonly documentValidationService: DocumentValidationService,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceStockProposalService.name);
   }

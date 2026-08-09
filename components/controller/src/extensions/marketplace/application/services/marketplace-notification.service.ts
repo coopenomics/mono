@@ -2,7 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
@@ -68,7 +68,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly accountPort: AccountDataPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }

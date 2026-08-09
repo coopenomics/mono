@@ -4,9 +4,8 @@ import type {
   ICoopCalendarEventNotificationPort,
   IProjectCapitalClearancePort,
 } from '@coopenomics/innercoop';
-import { PROJECT_CAPITAL_CLEARANCE_PORT } from '@coopenomics/innercoop';
+import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import config from '~/config/config';
@@ -29,7 +28,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     @Inject(PROJECT_CAPITAL_CLEARANCE_PORT)
     private readonly projectCapitalClearance: IProjectCapitalClearancePort,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ChatcoopCalendarEventNotificationService.name);
   }

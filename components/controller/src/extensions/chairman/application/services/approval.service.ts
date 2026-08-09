@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
@@ -24,7 +24,7 @@ export class ApprovalService {
     private readonly approvalRepository: ApprovalRepository,
     @Inject(CHAIRMAN_BLOCKCHAIN_PORT)
     private readonly blockchainAdapter: ChairmanBlockchainAdapter,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly documentAggregationService: DocumentAggregationService
   ) {
     this.logger.setContext(ApprovalService.name);

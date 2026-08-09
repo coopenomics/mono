@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
@@ -47,7 +47,7 @@ export class MarketplacePayoutSyncService {
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplacePayoutSyncService.name);
   }

@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -293,7 +293,7 @@ export class MarketplaceAplReceptionService {
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceAplReceptionService.name);
     // chainPort и offerCounters сохраняются для будущих recipients

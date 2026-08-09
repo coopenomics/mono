@@ -1,6 +1,6 @@
 import { Inject, Module } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
@@ -185,7 +185,7 @@ export class ChairmanExtension extends BaseExtensionModule {
     @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
     private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     super();
     this.logger.setContext(ChairmanExtension.name);

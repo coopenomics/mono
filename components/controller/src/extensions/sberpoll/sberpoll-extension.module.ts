@@ -12,7 +12,7 @@ import {
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
@@ -81,7 +81,7 @@ export class SberpollExtension extends PollingProvider {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
     @Inject(PAYMENT_STATE_REPOSITORY) private readonly paymentStateRepository: PaymentStateRepository,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     @Inject(REDIS_PORT) private readonly redisPort: RedisPort
   ) {

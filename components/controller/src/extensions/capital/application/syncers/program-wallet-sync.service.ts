@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProgramWalletDomainEntity } from '../../domain/entities/program-wallet.entity';
 import { ProgramWalletRepository, PROGRAM_WALLET_REPOSITORY } from '../../domain/repositories/program-wallet.repository';
@@ -24,7 +24,7 @@ export class ProgramWalletSyncService
     @Inject(PROGRAM_WALLET_REPOSITORY)
     programWalletRepository: ProgramWalletRepository,
     programWalletDeltaMapper: ProgramWalletDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(programWalletRepository, programWalletDeltaMapper, logger);

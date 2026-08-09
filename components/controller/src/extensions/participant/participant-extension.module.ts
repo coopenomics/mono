@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
@@ -20,7 +20,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     private readonly meetTracker: MeetTrackerService,

@@ -11,7 +11,7 @@ import { Cooperative, MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
@@ -166,7 +166,7 @@ export class MarketplaceWriteoffService {
     private readonly documentDomainService: DocumentDomainService,
     private readonly orderDisplay: MarketplaceOrderDisplayService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffService.name);
   }

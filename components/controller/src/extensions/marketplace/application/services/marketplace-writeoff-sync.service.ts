@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
 import type { IAction } from '~/types';
 
@@ -22,7 +22,7 @@ import type { IAction } from '~/types';
 export class MarketplaceWriteoffSyncService {
   constructor(
     private readonly writeoffService: MarketplaceWriteoffService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffSyncService.name);
   }

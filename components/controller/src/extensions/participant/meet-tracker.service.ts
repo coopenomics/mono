@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DateUtils } from '~/shared/utils/date-utils';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
@@ -14,7 +14,7 @@ import { default as config } from '~/config/config';
 @Injectable()
 export class MeetTrackerService {
   constructor(
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,

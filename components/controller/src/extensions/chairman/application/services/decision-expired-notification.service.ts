@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import cron from 'node-cron';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
@@ -30,7 +30,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
     private readonly logExtensionRepository: LogExtensionDomainRepository,
     @Inject(SOVIET_BLOCKCHAIN_PORT)
     private readonly sovietBlockchainPort: SovietBlockchainPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(DecisionExpiredNotificationService.name);
   }

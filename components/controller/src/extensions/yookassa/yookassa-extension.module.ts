@@ -5,7 +5,7 @@ import { z } from 'zod';
 import config from '~/config/config';
 import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { IPNProvider } from '~/application/gateway/providers/ipn-provider';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
 import { PaymentEntity } from '~/infrastructure/database/typeorm/entities/payment.entity';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
@@ -102,7 +102,7 @@ export class YookassaExtension extends IPNProvider {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: TypeOrmPaymentRepository,
     @Inject(IPN_REPOSITORY) private readonly ipnRepository: IpnRepository,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(REDIS_PORT) private readonly redisPort: RedisPort,
     @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
   ) {

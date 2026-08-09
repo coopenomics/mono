@@ -3,7 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
 import { ProgramKey } from '~/domain/registration/enum';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
@@ -27,7 +27,7 @@ export class CapitalOnboardingEventsService {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CONTRIBUTOR_REPOSITORY) private readonly contributorRepository: ContributorRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(CapitalOnboardingEventsService.name);

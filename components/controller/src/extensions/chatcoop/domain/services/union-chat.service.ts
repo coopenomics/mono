@@ -1,7 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import config from '~/config/config';
 import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
-import { Inject } from '@nestjs/common';
 import { MatrixApiService } from '../../application/services/matrix-api.service';
 import { UNION_CHAT_REPOSITORY, UnionChatRepository } from '../repositories/union-chat.repository';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';

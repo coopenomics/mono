@@ -6,7 +6,7 @@ import {
 } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../chairman-extension.module';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import {
   ONBOARDING_COMPLETED_EVENT,
@@ -21,7 +21,7 @@ import {
 export class ChairmanOnboardingEventsService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(ChairmanOnboardingEventsService.name);

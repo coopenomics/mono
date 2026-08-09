@@ -1,11 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import * as cron from 'node-cron';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { config } from '~/config';
-import { Inject } from '@nestjs/common';
-
 /**
  * Сервис планировщика для автоматического обновления энергии участников (геймификация)
  * Управляет cron задачами для периодического применения decay к энергии участников

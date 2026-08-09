@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { IDelta } from '~/types/common';
 import { ProgramWalletDomainEntity } from '../../../domain/entities/program-wallet.entity';
 import type { IProgramWalletBlockchainData } from '../../../domain/interfaces/program-wallet-blockchain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
 import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import type { CapitalContract } from 'cooptypes';
@@ -15,7 +15,7 @@ export class ProgramWalletDeltaMapper extends AbstractBlockchainDeltaMapper<
   IProgramWalletBlockchainData,
   ProgramWalletDomainEntity
 > {
-  constructor(private readonly logger: WinstonLoggerService, private readonly contractInfo: CapitalContractInfoService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort, private readonly contractInfo: CapitalContractInfoService) {
     super();
     this.logger.setContext(ProgramWalletDeltaMapper.name);
   }

@@ -13,7 +13,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { MutationLogMapperService, IMappedCapitalLog, LogEntityType } from './mutation-log-mapper.service';
 
 /**
@@ -63,7 +63,7 @@ export class LogService {
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
     private readonly mutationLogMapper: MutationLogMapperService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(LogService.name);
   }

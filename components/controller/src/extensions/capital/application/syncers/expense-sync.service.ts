@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { ExpenseRepository, EXPENSE_REPOSITORY } from '../../domain/repositories/expense.repository';
@@ -24,7 +24,7 @@ export class ExpenseSyncService
     @Inject(EXPENSE_REPOSITORY)
     expenseRepository: ExpenseRepository,
     expenseDeltaMapper: ExpenseDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(expenseRepository, expenseDeltaMapper, logger);
