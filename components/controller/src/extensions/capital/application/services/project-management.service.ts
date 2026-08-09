@@ -19,7 +19,6 @@ import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
@@ -38,7 +37,6 @@ export class ProjectManagementService {
 
   constructor(
     private readonly projectManagementInteractor: ProjectManagementInteractor,
-    private readonly documentInteractor: DocumentInteractor,
     private readonly projectMapperService: ProjectMapperService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService
   ) {}

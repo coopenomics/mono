@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExpensesManagementInteractor } from '../use-cases/expenses-management.interactor';
 import type { TransactResult } from '@wharfkit/session';
 import type { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
@@ -7,10 +7,9 @@ import type { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
 import type { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
-import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления расходами CAPITAL
@@ -20,9 +19,8 @@ import { Cooperative } from 'cooptypes';
 export class ExpensesManagementService {
   constructor(
     private readonly expensesManagementInteractor: ExpensesManagementInteractor,
-    private readonly documentAggregationService: DocumentAggregationService,
-    private readonly documentInteractor: DocumentInteractor
-  ) {}
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+      ) {}
 
   /**
    * Создание расхода в CAPITAL контракте
@@ -64,13 +62,13 @@ export class ExpensesManagementService {
     // Асинхронная обработка документов с использованием DocumentAggregationService
     const [expense_statement, approved_statement, authorization] = await Promise.all([
       expense.expense_statement
-        ? this.documentAggregationService.buildDocumentAggregate(expense.expense_statement)
+        ? this.documentPort.buildAggregate(expense.expense_statement)
         : Promise.resolve(null),
       expense.approved_statement
-        ? this.documentAggregationService.buildDocumentAggregate(expense.approved_statement)
+        ? this.documentPort.buildAggregate(expense.approved_statement)
         : Promise.resolve(null),
       expense.authorization
-        ? this.documentAggregationService.buildDocumentAggregate(expense.authorization)
+        ? this.documentPort.buildAggregate(expense.authorization)
         : Promise.resolve(null),
     ]);
 
@@ -106,7 +104,7 @@ export class ExpensesManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.ExpenseStatement.registry_id,
@@ -123,7 +121,7 @@ export class ExpensesManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.ExpenseDecision.registry_id,

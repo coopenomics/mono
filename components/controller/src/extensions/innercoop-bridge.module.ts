@@ -2,6 +2,7 @@ import { Global, Module, Scope } from '@nestjs/common';
 import {
   CHATCOOP_CALENDAR_PORT,
   COOPERATIVE_VARS_PORT,
+  DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
@@ -14,6 +15,9 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { RedisService } from '~/infrastructure/redis/redis.service';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/cooperative-vars-innercoop.adapter';
+import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
+import { DocumentDomainModule } from '~/domain/document/document.module';
+import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
@@ -46,9 +50,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     Ledger2Module,
     RedisModule,
     SystemDomainModule,
+    DocumentDomainModule,
+    DocumentModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
+    DocumentInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -97,6 +104,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: COOPERATIVE_VARS_PORT,
       useExisting: CooperativeVarsInnercoopAdapter,
     },
+    {
+      provide: DOCUMENT_PORT,
+      useExisting: DocumentInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -108,6 +119,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     LOGGER_PORT,
     MESSAGE_CHANNEL_PORT,
     COOPERATIVE_VARS_PORT,
+    DOCUMENT_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

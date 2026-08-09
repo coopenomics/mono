@@ -11,11 +11,9 @@ import { Cooperative, MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
@@ -163,7 +161,7 @@ export class MarketplaceWriteoffService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly orderDisplay: MarketplaceOrderDisplayService,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -481,11 +479,11 @@ export class MarketplaceWriteoffService {
    * `protocol_doc` = signed-документ из callback'а onmktwoauth. Канон —
    * issuance/return-claim. null, если протокола ещё нет (проект не одобрен).
    */
-  async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
+  async getProtocolDocumentAggregate(id: string): Promise<InnerDocumentAggregate | null> {
     const proposal = await this.getProposal(id);
     const signed = proposal.protocol_doc as ISignedDocument | null;
     if (!signed) return null;
-    return this.documentDomainService.buildDocumentAggregate(signed);
+    return this.documentPort.buildAggregate(signed);
   }
 
   // ── DRAFT pipeline ─────────────────────────────────────────────────

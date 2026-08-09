@@ -11,7 +11,7 @@ import { createHash, randomUUID } from 'crypto';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { toQuantityAsset } from '../shared/quantity.util';
 import {
@@ -20,9 +20,6 @@ import {
   proRataByMoney,
   proRataByQuantity,
 } from '../shared/cost.util';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -191,7 +188,7 @@ export class MarketplaceReturnClaimService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -234,7 +231,7 @@ export class MarketplaceReturnClaimService {
     order_id: string;
     actual_quantity?: number;
     reason_text?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const quantity = this.resolveActualQuantity(order, input.actual_quantity);
     return this.generateStatementDocument({
@@ -255,7 +252,7 @@ export class MarketplaceReturnClaimService {
   async getChairmanReturnSignablePayload(
     coopname: string,
     claim_id: string
-  ): Promise<DocumentDomainAggregate> {
+  ): Promise<InnerDocumentAggregate> {
     const claim = await this.findById(coopname, claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
       throw new ConflictException(
@@ -267,7 +264,7 @@ export class MarketplaceReturnClaimService {
         `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
       );
     }
-    const aggregate = await this.documentDomainService.buildDocumentAggregate(claim.statement);
+    const aggregate = await this.documentPort.buildAggregate(claim.statement);
     if (!aggregate) {
       throw new ConflictException(
         `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
@@ -903,7 +900,7 @@ export class MarketplaceReturnClaimService {
     orderer: string;
     actual_quantity: number;
     reason_text?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
     // Артикул/наименование/единица/цена — из заказа и его оферты, не из
     // заглушки фабрики (см. review 2026-07-27: заглушка возвращала одни и те
@@ -938,7 +935,7 @@ export class MarketplaceReturnClaimService {
       // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
       skip_save: false,
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   private async uploadPhotos(input: {

@@ -7,8 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { Cooperative } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
@@ -111,7 +110,7 @@ export class MarketplaceShipmentCreateService {
     private readonly ttnRepo: MarketplaceTtnDocumentDomainRepository,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceShipmentCreateService.name);
@@ -369,7 +368,7 @@ export class MarketplaceShipmentCreateService {
       delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate ?? '',
     };
 
-    const { hash: doc_data_hash } = await this.documentDomainService.saveDocData(
+    const { hash: doc_data_hash } = await this.documentPort.saveData(
       privatePayload as unknown as Record<string, unknown>,
       Cooperative.Registry.MarketplaceTransportNote.registry_id
     );
@@ -389,7 +388,7 @@ export class MarketplaceShipmentCreateService {
       skip_save: true,
     };
 
-    const document = await this.documentDomainService.generateDocument({ data: action });
+    const document = await this.documentPort.generate({ data: action });
 
     const stored = await this.ttnRepo.create({
       coopname: input.coopname,

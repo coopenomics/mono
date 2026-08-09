@@ -3,8 +3,6 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
 import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -33,8 +31,9 @@ import {
 } from '../dto/marketplace-writeoff.dto';
 import { MarketplaceWriteoffService } from '../services/marketplace-writeoff.service';
 import { toMarketplaceWriteoffProposalDTO } from './marketplace-writeoff.mapper';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;
@@ -67,7 +66,7 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 export class MarketplaceWriteoffResolver {
   constructor(
     private readonly service: MarketplaceWriteoffService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
@@ -227,7 +226,7 @@ export class MarketplaceWriteoffResolver {
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(draft.total_amount)),
     };
-    const document = await this.documentDomainService.generateDocument({
+    const document = await this.documentPort.generate({
       data: action,
     });
     return toGeneratedDocumentDTO(document);
@@ -321,7 +320,7 @@ export class MarketplaceWriteoffResolver {
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(memo.total_amount)),
     };
-    const document = await this.documentDomainService.generateDocument({ data: action });
+    const document = await this.documentPort.generate({ data: action });
     return toGeneratedDocumentDTO(document);
   }
 

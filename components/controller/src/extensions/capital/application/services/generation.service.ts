@@ -55,7 +55,6 @@ import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import { IssuePermissionsService } from './issue-permissions.service';
@@ -66,12 +65,7 @@ import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/reposit
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import {
-  MATRIX_ROOM_MESSAGING_PORT,
-  PROJECT_COMMUNICATION_ARTIFACTS_PORT,
-  type IMatrixRoomMessagingPort,
-  type IProjectCommunicationArtifactsPort,
-} from '@coopenomics/innercoop';
+import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { EMPTY_HASH } from '~/shared/utils/constants';
 
 /**
@@ -99,7 +93,7 @@ export class GenerationService {
     @Inject(CYCLE_REPOSITORY)
     private readonly cycleRepository: CycleRepository,
     private readonly issueIdGenerationService: IssueIdGenerationService,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly investsManagementInteractor: InvestsManagementInteractor,
     private readonly issuePermissionsService: IssuePermissionsService,
     private readonly permissionsService: PermissionsService,
@@ -1506,7 +1500,7 @@ export class GenerationService {
     // Подготавливаем данные через интерактор
     const enrichedData = await this.investsManagementInteractor.prepareGenerationMoneyInvestStatementData(data, currentUser);
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
         registry_id: Cooperative.Registry.GenerationMoneyInvestStatement.registry_id,
@@ -1525,7 +1519,7 @@ export class GenerationService {
   ): Promise<GeneratedDocumentDTO> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестирования');
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,

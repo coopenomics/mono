@@ -10,14 +10,12 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
@@ -118,7 +116,7 @@ export class MarketplaceIssuanceService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -137,7 +135,7 @@ export class MarketplaceIssuanceService {
     chairman_account: string,
     actual_quantity?: number,
     actual_unit_price?: string
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     const order = await this.loadOrder(coopname, order_id);
     if (order.status !== 'ACCEPTED_TO_COOP') {
       throw new ConflictException(
@@ -547,7 +545,7 @@ export class MarketplaceIssuanceService {
     transmitter: string;
     actual_quantity: number;
     actual_unit_price?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const unit_price = input.actual_unit_price ?? input.order.price_per_unit;
     // Артикул/наименование/единица — из оферты заказа: акт выдачи несёт ИМЕННО
     // заказ заказчика (его СКУ, кол-во и стоимость), а не заглушку фабрики.
@@ -596,7 +594,7 @@ export class MarketplaceIssuanceService {
     /** Количество в БАЗОВОЙ единице (не число упаковок) — как и у обычного заказа. */
     quantity: number;
     unit_price: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     return this.buildIssueActDocument({
       coopname: input.coopname,
       orderer_account: input.orderer_account,
@@ -635,7 +633,7 @@ export class MarketplaceIssuanceService {
     transmitter: string;
     actual_quantity: number;
     unit_price: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     // Эпик 18: акт ведётся в единицах отпуска. По мере — количество в базовой
     // единице, цена за базовую единицу. Упаковкой — количество = число упаковок,
     // единица = «упак. 0,5 л», цена = за упаковку; сумма считается от числа
@@ -669,7 +667,7 @@ export class MarketplaceIssuanceService {
       // наложить вторую подпись поверх подписи председателя (канон 2-подписи).
       skip_save: false,
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   private buildIssuanceFactSnapshot(

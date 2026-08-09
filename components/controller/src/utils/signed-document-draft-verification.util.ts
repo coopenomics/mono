@@ -1,7 +1,6 @@
 import httpStatus from 'http-status';
 import { Classes } from '@coopenomics/sdk';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { InnerGeneratedDocument, ISignedDocument } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 
@@ -20,7 +19,7 @@ export interface SignedDocumentMetaVerification {
 /**
  * Загрузка сгенерированного черновика из хранилища по `doc_hash` подписанного документа.
  */
-export type LoadGeneratedDocumentByDocHash = (docHash: string) => Promise<DocumentDomainEntity | null>;
+export type LoadGeneratedDocumentByDocHash = (docHash: string) => Promise<InnerGeneratedDocument | null>;
 
 /**
  * 1) Находит в БД черновик по `signed.doc_hash`.
@@ -42,7 +41,7 @@ export async function verifySignedDocumentAgainstStoredDraft(
     );
   }
 
-  // DocumentDomainEntity по сути совместим с IGeneratedDocument для compareDocuments (см. ResultSubmissionService)
+  // InnerGeneratedDocument по сути совместим с IGeneratedDocument для compareDocuments (см. ResultSubmissionService)
   const comparison = await Classes.Document.compareDocuments(signed as any, generated as any);
   if (!comparison.isValid) {
     const differences = Object.entries(comparison.differences)

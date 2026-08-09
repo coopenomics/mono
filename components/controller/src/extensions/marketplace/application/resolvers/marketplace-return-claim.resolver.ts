@@ -6,7 +6,6 @@ import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decor
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import {
   MarketplaceAcceptReturnAtVisitInputDTO,
   MarketplaceApproveReturnVisitInputDTO,
@@ -34,8 +33,9 @@ import {
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;

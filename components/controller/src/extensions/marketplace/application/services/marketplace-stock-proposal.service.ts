@@ -8,8 +8,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import {
   DOCUMENT_VALIDATION_SERVICE,
   type DocumentValidationService,
@@ -19,8 +18,6 @@ import {
   USER_WALLET_REPOSITORY,
   type UserWalletRepository,
 } from '~/domain/wallet/repositories/user-wallet.repository';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
@@ -122,7 +119,7 @@ export interface MarketplaceStockIssuanceOperatorLine {
   package_id: string | null;
   /** Содержимое упаковки в базовой единице; 0 — отпуск по мере. */
   package_size: number;
-  signiss1_document: DocumentDomainEntity;
+  signiss1_document: InnerGeneratedDocument;
 }
 
 /**
@@ -133,7 +130,7 @@ export interface MarketplaceStockIssuanceOperatorLine {
 export interface MarketplaceStockAcceptOrderLine {
   offer_id: string;
   order_hash: string;
-  signiss1_aggregate: DocumentDomainAggregate;
+  signiss1_aggregate: InnerDocumentAggregate;
 }
 
 /**
@@ -157,7 +154,7 @@ export interface MarketplaceStockAcceptPayload {
   convert: {
     amount: string;
     convert_hash: string;
-    document: DocumentDomainEntity;
+    document: InnerGeneratedDocument;
   } | null;
 }
 
@@ -205,7 +202,7 @@ export class MarketplaceStockProposalService {
     private readonly userWalletRepo: UserWalletRepository,
     @Inject(DOCUMENT_VALIDATION_SERVICE)
     private readonly documentValidationService: DocumentValidationService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -243,7 +240,7 @@ export class MarketplaceStockProposalService {
           'Докладка сформирована в устаревшем формате (без подписи оператора) — переформируйте её у стойки.'
         );
       }
-      const signiss1_aggregate = await this.documentDomainService.buildDocumentAggregate(
+      const signiss1_aggregate = await this.documentPort.buildAggregate(
         item.signiss1_act
       );
       if (!signiss1_aggregate) {
@@ -288,7 +285,7 @@ export class MarketplaceStockProposalService {
       amount,
       skip_save: false,
     };
-    const document = await this.documentDomainService.generateDocument({ data: action });
+    const document = await this.documentPort.generate({ data: action });
     return { member_amount, order_lines, convert: { amount, convert_hash, document } };
   }
 

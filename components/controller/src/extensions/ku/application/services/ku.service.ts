@@ -2,10 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentOptionsInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
@@ -42,6 +40,7 @@ import type {
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 
 /**
  * Сервис собраний и решений кооперативных участков.
@@ -57,7 +56,7 @@ export class KuService {
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly documentAggregator: DocumentAggregator
   ) {}
 
@@ -270,78 +269,78 @@ export class KuService {
     data: Cooperative.Document.IGenerate,
     registry_id: number,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     data.registry_id = registry_id;
-    return await this.documentDomainService.generateDocument({ data, options: options || {} });
+    return await this.documentPort.generate({ data, options: options || {} });
   }
 
   async generateBranchMeetingProposal(
     data: Cooperative.Registry.BranchMeetingProposal.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingProposal.registry_id, options);
   }
 
   async generateBranchMeetingBallot(
     data: Cooperative.Registry.BranchMeetingBallot.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingBallot.registry_id, options);
   }
 
   async generateBranchMeetingDecision(
     data: Cooperative.Registry.BranchMeetingDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingDecision.registry_id, options);
   }
 
   async generateBranchEstablishmentPetition(
     data: Cooperative.Registry.BranchEstablishmentPetition.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchEstablishmentPetition.registry_id, options);
   }
 
   async generateBranchEstablishmentDecision(
     data: Cooperative.Registry.BranchEstablishmentSovietDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchEstablishmentSovietDecision.registry_id, options);
   }
 
   async generateBranchTrustedStatement(
     data: Cooperative.Registry.BranchTrustedStatement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedStatement.registry_id, options);
   }
 
   async generateBranchTrustedLiabilityAgreement(
     data: Cooperative.Registry.BranchTrustedLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteeLiabilityAgreement(
     data: Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteePowerOfAttorney(
     data: Cooperative.Registry.BranchTrusteePowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id, options);
   }
 
   async generateBranchTrustedPowerOfAttorney(
     data: Cooperative.Registry.BranchTrustedPowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id, options);
   }
 

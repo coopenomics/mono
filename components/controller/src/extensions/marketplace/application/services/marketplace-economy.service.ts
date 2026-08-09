@@ -11,11 +11,9 @@ import { createHash, randomBytes } from 'crypto';
 import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -161,7 +159,7 @@ export class MarketplaceEconomyService {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(EXPENSE_PLANS_SERVICE)
     private readonly expensePlansService: ExpensePlansService,
     @Inject(LEDGER2_HISTORY_PORT)
@@ -556,7 +554,7 @@ export class MarketplaceEconomyService {
     username: string,
     braname: string,
     amount: number
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
     }
@@ -578,7 +576,7 @@ export class MarketplaceEconomyService {
       braname,
       amount: this.formatAsset(amount),
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   async createAid(

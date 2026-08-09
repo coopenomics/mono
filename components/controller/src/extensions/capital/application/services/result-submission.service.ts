@@ -15,7 +15,6 @@ import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/
 import { ResultContributionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-statement-document.dto';
 import { ResultContributionDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-decision-document.dto';
 import { ResultContributionActGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-act-document.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import { Classes } from '@coopenomics/sdk';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
@@ -47,7 +46,7 @@ import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
@@ -57,7 +56,7 @@ import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repos
 export class ResultSubmissionService {
   constructor(
     private readonly resultSubmissionInteractor: ResultSubmissionInteractor,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly segmentMapper: SegmentMapper,
     private readonly resultMapper: ResultMapper,
     @Inject(PROJECT_REPOSITORY)
@@ -627,7 +626,7 @@ export class ResultSubmissionService {
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -747,7 +746,7 @@ export class ResultSubmissionService {
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -846,7 +845,7 @@ export class ResultSubmissionService {
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });

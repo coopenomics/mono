@@ -38,7 +38,6 @@ import {
 import { config } from '~/config';
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import { EMPTY_HASH } from '~/shared/utils/constants';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
@@ -49,6 +48,7 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 import { ProgramKey } from '~/domain/registration/enum';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import {
   EXTENSION_REPOSITORY,
@@ -80,7 +80,7 @@ export class ParticipationManagementInteractor {
     private readonly udataDocumentParametersService: UdataDocumentParametersService,
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
   ) { }
@@ -190,7 +190,7 @@ export class ParticipationManagementInteractor {
     data: RegisterContributorDomainInput
   ): Promise<TransactResult> {
     // Извлекаем документ из базы данных для верификации
-    const document = await this.documentInteractor.getDocumentByHash(
+    const document = await this.documentPort.getByHash(
       data.contract.doc_hash
     );
 
@@ -322,7 +322,7 @@ export class ParticipationManagementInteractor {
   async makeClearance(data: MakeClearanceInputDTO): Promise<TransactResult> {
 
     // Извлекаем документ из базы данных для верификации
-    const document = await this.documentInteractor.getDocumentByHash(
+    const document = await this.documentPort.getByHash(
       data.document.doc_hash
     );
 
@@ -554,7 +554,7 @@ export class ParticipationManagementInteractor {
     };
 
     // 6. Генерируем документ
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options: options || {},
     });
@@ -664,7 +664,7 @@ export class ParticipationManagementInteractor {
     };
 
     // 9. Генерируем документ
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options: options || {},
     });
@@ -767,7 +767,7 @@ export class ParticipationManagementInteractor {
       // Генерируем параметры для договора УХД
       await this.udataDocumentParametersService.generateGenerationContractParametersIfNotExist(data.coopname, data.username);
 
-      generationContract = await this.documentInteractor.generateDocument({
+      generationContract = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -792,7 +792,7 @@ export class ParticipationManagementInteractor {
       // Для StorageAgreement также нужны параметры GeneratorOffer
       await this.udataDocumentParametersService.generateGeneratorOfferParametersIfNotExist(data.coopname, data.username);
 
-      storageAgreement = await this.documentInteractor.generateDocument({
+      storageAgreement = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -821,7 +821,7 @@ export class ParticipationManagementInteractor {
       await this.udataDocumentParametersService.generateBlagorostAgreementParametersIfNotExist(data.coopname, data.username);
       const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
-      blagorostAgreement = await this.documentInteractor.generateDocument({
+      blagorostAgreement = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -854,7 +854,7 @@ export class ParticipationManagementInteractor {
       await this.udataDocumentParametersService.generateGeneratorOfferParametersIfNotExist(data.coopname, data.username);
       const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
-      generatorOffer = await this.documentInteractor.generateDocument({
+      generatorOffer = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -939,7 +939,7 @@ export class ParticipationManagementInteractor {
     }
 
     for (const doc of documentsToValidate) {
-      const document = await this.documentInteractor.getDocumentByHash(doc.hash);
+      const document = await this.documentPort.getByHash(doc.hash);
       if (!document) {
         throw new HttpApiError(
           httpStatus.BAD_REQUEST,

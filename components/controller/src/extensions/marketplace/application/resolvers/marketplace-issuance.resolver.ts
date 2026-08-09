@@ -7,6 +7,7 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -30,9 +31,8 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;

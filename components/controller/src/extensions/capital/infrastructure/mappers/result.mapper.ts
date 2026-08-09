@@ -8,7 +8,7 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import { DocumentDataPort, DOCUMENT_DATA_PORT } from '~/domain/document/ports/document-data.port';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultBlockchainData>;
@@ -22,8 +22,8 @@ type toDomainBlockchainPart = RequireFields<Partial<ResultDomainEntity>, keyof I
 @Injectable()
 export class ResultMapper {
   constructor(
-    @Inject(DOCUMENT_DATA_PORT)
-    private readonly documentDataPort: DocumentDataPort
+    @Inject(DOCUMENT_PORT)
+    private readonly documentPort: IDocumentPort
   ) {}
   /**
    * Преобразование TypeORM сущности в доменную сущность
@@ -134,17 +134,17 @@ export class ResultMapper {
     // Обогащаем документы в result
     const enrichedStatement =
       domain.statement && domain.statement.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.statement)
+        ? await this.documentPort.buildAggregate(domain.statement)
         : null;
 
     const enrichedAuthorization =
       domain.authorization && domain.authorization.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.authorization)
+        ? await this.documentPort.buildAggregate(domain.authorization)
         : null;
 
     const enrichedAct =
       domain.act && domain.act.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.act)
+        ? await this.documentPort.buildAggregate(domain.act)
         : null;
 
     // Создаем ResultOutputDTO с обогащенными документами

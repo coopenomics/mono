@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
@@ -8,6 +7,7 @@ import { Cooperative } from 'cooptypes';
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
 import { ProgramType, getProgramId } from '~/domain/wallet/enums/program-type.enum';
 import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей участников в DTO
@@ -15,7 +15,7 @@ import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports
 @Injectable()
 export class ContributorMapperService {
   constructor(
-    private readonly documentAggregationService: DocumentAggregationService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(UDATA_REPOSITORY) private readonly udataRepository: UdataRepository,
     @Inject(WALLET_DOMAIN_PORT) private readonly walletDomainPort: WalletDomainPort
   ) {}
@@ -26,7 +26,7 @@ export class ContributorMapperService {
   async mapContributorToOutputDTO(contributor: ContributorDomainEntity): Promise<ContributorOutputDTO> {
     // Асинхронная обработка контракта с использованием DocumentAggregationService
     const contract = contributor.contract
-      ? await this.documentAggregationService.buildDocumentAggregate(contributor.contract)
+      ? await this.documentPort.buildAggregate(contributor.contract)
       : null;
 
     // Загружаем параметры документов из UData и программные кошельки параллельно

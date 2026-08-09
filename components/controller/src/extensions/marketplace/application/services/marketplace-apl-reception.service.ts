@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -78,9 +78,6 @@ import { Cooperative, type MarketContract } from 'cooptypes';
 import { HttpApiError } from '~/utils/httpApiError';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
@@ -291,7 +288,7 @@ export class MarketplaceAplReceptionService {
     private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -310,14 +307,14 @@ export class MarketplaceAplReceptionService {
   async getSupplierSignablePayloads(
     coopname: string,
     apl_reception_id: string
-  ): Promise<DocumentDomainEntity[]> {
+  ): Promise<InnerGeneratedDocument[]> {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const groupOrders = await this.loadGroupOrders(reception);
     // Поставщик подписывает акт только по принятым позициям (факт > 0). Снятые
     // оператором позиции (факт = 0, некондиция) в акт не попадают — они уходят
     // отказом в приёмке (declineorder) на шаге подписи поставщика.
     const { accepted } = this.splitGroupByFact(reception, groupOrders);
-    const docs: DocumentDomainEntity[] = [];
+    const docs: InnerGeneratedDocument[] = [];
     for (const order of accepted) {
       docs.push(
         await this.generateReceptionDocument({
@@ -343,7 +340,7 @@ export class MarketplaceAplReceptionService {
     coopname: string,
     apl_reception_id: string,
     chairman_account: string
-  ): Promise<DocumentDomainAggregate[]> {
+  ): Promise<InnerDocumentAggregate[]> {
     void chairman_account;
     const reception = await this.loadReception(coopname, apl_reception_id);
     const signedDocs = reception.supplier_signed_documents;
@@ -352,9 +349,9 @@ export class MarketplaceAplReceptionService {
         `АПП ${reception.id}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.`
       );
     }
-    const aggregates: DocumentDomainAggregate[] = [];
+    const aggregates: InnerDocumentAggregate[] = [];
     for (const signed of signedDocs) {
-      const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
+      const aggregate = await this.documentPort.buildAggregate(signed);
       if (!aggregate) {
         throw new ConflictException(
           `АПП ${reception.id}: исходный документ по doc_hash ${signed.doc_hash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).`
@@ -370,7 +367,7 @@ export class MarketplaceAplReceptionService {
     order: MarketplaceOrderDomainEntity;
     username: string;
     chairman_account?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const fact = input.reception.fact_quantity_per_order.find(
       (f) => f.order_id === input.order.id
     );
@@ -425,7 +422,7 @@ export class MarketplaceAplReceptionService {
       // On-chain meta-строка переупорядочена и для re-sign непригодна.
       skip_save: false,
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   async create(

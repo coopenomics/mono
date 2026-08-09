@@ -3,7 +3,6 @@ import type { TransactResult } from '@wharfkit/session'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity'
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-decision-document.dto'
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository'
@@ -34,6 +33,7 @@ import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0
@@ -62,7 +62,7 @@ export class ExpensesMutationsService {
   async generateExpenseProposalStatementDocument(
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     const registry_id = Cooperative.Registry.ExpenseProposalStatement.registry_id
 
     // Фонд списания — параметр шасси, фронт его не передаёт
@@ -120,7 +120,7 @@ export class ExpensesMutationsService {
   async generateExpenseProposalDecisionDocument(
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     data.registry_id = Cooperative.Registry.ExpenseProposalDecision.registry_id
     return this.generator.generateDocument({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
   }

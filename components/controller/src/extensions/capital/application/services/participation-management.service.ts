@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ParticipationManagementInteractor } from '../use-cases/participation-management.interactor';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { ImportContributorInputDTO } from '../dto/participation_management/import-contributor-input.dto';
@@ -11,7 +11,6 @@ import { ContributorFilterInputDTO } from '../dto/participation_management/contr
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { ContributorMapperService } from './contributor-mapper.service';
 import { ContributorSyncService } from '../syncers/contributor-sync.service';
 import { Cooperative } from 'cooptypes';
@@ -21,6 +20,7 @@ import { ComponentGenerationContractGenerateDocumentInputDTO } from '~/applicati
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления участием в CAPITAL
@@ -33,7 +33,7 @@ export class ParticipationManagementService {
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly contributorMapperService: ContributorMapperService,
     private readonly contributorSyncService: ContributorSyncService,
-    private readonly documentInteractor: DocumentInteractor
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) { }
 
   /**
@@ -180,7 +180,7 @@ export class ParticipationManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
@@ -197,7 +197,7 @@ export class ParticipationManagementService {
     data: GenerationContractGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.GenerationContract.registry_id,

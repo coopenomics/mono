@@ -41,9 +41,9 @@ import {
 } from '../../domain/repositories/marketplace-apl-reception.repository';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;

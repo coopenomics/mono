@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import type { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
@@ -16,11 +16,11 @@ import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.in
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import { generateRandomHash } from '~/utils/generate-hash.util';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-draft-verification.util';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления инвестициями CAPITAL
@@ -30,7 +30,7 @@ import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-
 export class InvestsManagementService {
   constructor(
     private readonly investsManagementInteractor: InvestsManagementInteractor,
-    private readonly documentInteractor: DocumentInteractor
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   /**
@@ -42,7 +42,7 @@ export class InvestsManagementService {
   ): Promise<TransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
-      (docHash) => this.documentInteractor.getDocumentByHash(docHash),
+      (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
       [
         { field: 'amount', expected: data.amount, mode: 'currency_amount' },
@@ -71,7 +71,7 @@ export class InvestsManagementService {
   ): Promise<TransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме программной инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
-      (docHash) => this.documentInteractor.getDocumentByHash(docHash),
+      (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
       [{ field: 'amount', expected: data.amount, mode: 'currency_amount' }],
     );
@@ -159,7 +159,7 @@ export class InvestsManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,

@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DistributionManagementInteractor } from '../use-cases/distribution-management.interactor';
 import type { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import type { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
 import type { TransactResult } from '@wharfkit/session';
 import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import type { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL
@@ -18,7 +18,7 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 export class DistributionManagementService {
   constructor(
     private readonly distributionManagementInteractor: DistributionManagementInteractor,
-    private readonly documentInteractor: DocumentInteractor
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   /**
@@ -49,7 +49,7 @@ export class DistributionManagementService {
     currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     const enrichedData = await this.distributionManagementInteractor.prepareGenerationConvertStatementData(data, currentUser);
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
         registry_id: Cooperative.Registry.GenerationConvertStatement.registry_id,
@@ -66,7 +66,7 @@ export class DistributionManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationToMainWalletConvertStatement.registry_id,
