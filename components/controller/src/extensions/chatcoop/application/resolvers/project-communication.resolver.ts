@@ -1,9 +1,9 @@
 import { Args, Float, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, Optional, UseGuards } from '@nestjs/common';
 import {
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
+  PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+  type IProjectCommunicationArtifactsPort,
+} from '@coopenomics/innercoop';
 import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
@@ -21,13 +21,13 @@ import {
   NonProjectRoomKindGql,
   RoomMessageKindGql,
 } from '../dto/project-communication.dto';
-import type { InterNonProjectRoomKind } from '@coopenomics/inter';
+import type { InnerNonProjectRoomKind } from '@coopenomics/innercoop';
 
 function mapKind(kind: 'text' | 'audio'): RoomMessageKindGql {
   return kind === 'text' ? RoomMessageKindGql.TEXT : RoomMessageKindGql.AUDIO;
 }
 
-function mapNonProjectKind(kind: InterNonProjectRoomKind): NonProjectRoomKindGql {
+function mapNonProjectKind(kind: InnerNonProjectRoomKind): NonProjectRoomKindGql {
   switch (kind) {
     case 'members':
       return NonProjectRoomKindGql.MEMBERS;
@@ -40,7 +40,7 @@ function mapNonProjectKind(kind: InterNonProjectRoomKind): NonProjectRoomKindGql
 
 /**
  * Доступ к данным переписки Capital↔Matrix для синхронизации (blago-cli, секретарь).
- * Источник — порт `INTER_PROJECT_COMMUNICATION_ARTIFACTS` (пакет inter).
+ * Источник — порт `PROJECT_COMMUNICATION_ARTIFACTS_PORT` (пакет inter).
  *
  * {@link ActiveUserStatusGuard} — только `users.status === active`; inter-service обход по `server-secret`.
  */
@@ -51,8 +51,8 @@ export class ProjectCommunicationResolver {
 
   constructor(
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly comm: InterProjectCommunicationArtifactsPort | undefined
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly comm: IProjectCommunicationArtifactsPort | undefined
   ) {}
 
   @Query(() => [ChatcoopProjectCommunicationRoomDTO], {
@@ -151,7 +151,7 @@ export class ProjectCommunicationResolver {
 
   private ensureComm(): void {
     if (!this.comm) {
-      throw new Error('Порт артефактов переписки Capital (INTER_PROJECT_COMMUNICATION_ARTIFACTS) недоступен');
+      throw new Error('Порт артефактов переписки Capital (PROJECT_COMMUNICATION_ARTIFACTS_PORT) недоступен');
     }
   }
 }

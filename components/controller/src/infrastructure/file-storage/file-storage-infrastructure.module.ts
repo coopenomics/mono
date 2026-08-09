@@ -1,5 +1,5 @@
 import { DynamicModule, Global, Module, type Type } from '@nestjs/common';
-import { INTER_FILE_STORAGE, type InterFileStoragePort } from '@coopenomics/inter';
+import { FILE_STORAGE_PORT, type IFileStoragePort } from '@coopenomics/innercoop';
 import { BucketRegistry } from './bucket-registry';
 import {
   FILE_STORAGE_OPTIONS,
@@ -12,11 +12,11 @@ import { bucketTokenFor } from './use-bucket.decorator';
 /**
  * Динамический модуль файлового хранилища.
  *
- * - `forRoot(options)` — провайдит адаптер `InterFileStoragePort` (токен `INTER_FILE_STORAGE`)
+ * - `forRoot(options)` — провайдит адаптер `IFileStoragePort` (токен `FILE_STORAGE_PORT`)
  *   и стартует `OnApplicationBootstrap` хук с `ensureBucketExists`. Глобальный — токен
  *   доступен `forFeature`-ам без явного импорта.
  * - `forFeature(consumers)` — для каждого `@UseBucket`-класса регистрирует фабрику
- *   `bucketTokenFor(class)`, которая отдаёт `InterFileStorageBucket`. Импортируется в модуле
+ *   `bucketTokenFor(class)`, которая отдаёт `InnerFileStorageBucket`. Импортируется в модуле
  *   расширения, где живут эти сервисы.
  */
 @Global()
@@ -29,9 +29,9 @@ export class FileStorageInfrastructureModule {
       providers: [
         { provide: FILE_STORAGE_OPTIONS, useValue: options },
         MinioFileStorageAdapter,
-        { provide: INTER_FILE_STORAGE, useExisting: MinioFileStorageAdapter },
+        { provide: FILE_STORAGE_PORT, useExisting: MinioFileStorageAdapter },
       ],
-      exports: [INTER_FILE_STORAGE, MinioFileStorageAdapter],
+      exports: [FILE_STORAGE_PORT, MinioFileStorageAdapter],
     };
   }
 
@@ -45,8 +45,8 @@ export class FileStorageInfrastructureModule {
       }
       return {
         provide: bucketTokenFor(cls),
-        useFactory: (port: InterFileStoragePort) => port.getBucket(spec),
-        inject: [INTER_FILE_STORAGE],
+        useFactory: (port: IFileStoragePort) => port.getBucket(spec),
+        inject: [FILE_STORAGE_PORT],
       };
     });
     return {

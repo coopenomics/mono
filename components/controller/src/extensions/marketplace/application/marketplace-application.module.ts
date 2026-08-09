@@ -213,7 +213,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
     // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
     // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
-    // метадату и провайдит ему `InterFileStorageBucket`.
+    // метадату и провайдит ему `InnerFileStorageBucket`.
     FileStorageInfrastructureModule.forFeature([
       MarketplaceReturnClaimImagesService,
       // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.

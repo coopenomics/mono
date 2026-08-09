@@ -4,7 +4,7 @@ import { ExpenseMechanics } from '~/extensions/expenses/domain/enums/expense-mec
 import { ExpenseRecipientType } from '~/extensions/expenses/domain/enums/expense-recipient-type.enum';
 import { ExpenseItemStatus } from '~/extensions/expenses/domain/enums/expense-item-status.enum';
 
-/** Owner-callback из шасси (зеркало InterExpenseCallbackHandler). */
+/** Owner-callback из шасси (зеркало InnerExpenseCallbackHandler). */
 @ObjectType('CapitalProgramExpenseCallback')
 export class ProgramExpenseCallbackOutputDTO {
   @Field(() => String) contract!: string;
@@ -12,7 +12,7 @@ export class ProgramExpenseCallbackOutputDTO {
   @Field(() => String) data!: string;
 }
 
-/** Item в выводе (зеркало InterExpenseItem). */
+/** Item в выводе (зеркало InnerExpenseItem). */
 @ObjectType('CapitalProgramExpenseItem')
 export class ProgramExpenseItemOutputDTO {
   @Field(() => String) item_hash!: string;
@@ -30,7 +30,7 @@ export class ProgramExpenseItemOutputDTO {
 /**
  * Программный расход в проекции Капитала — те же данные шасси, спроецированные
  * под consumer-extension. Capital НЕ хранит свой mirror items/total — берёт через
- * inter-порт INTER_EXPENSE_CHASSIS.
+ * inter-порт EXPENSE_CHASSIS_PORT.
  */
 @ObjectType('CapitalProgramExpense')
 export class ProgramExpenseOutputDTO {

@@ -8,6 +8,11 @@ title: Предложение поставщика — публикация, м�
 #
 # Статусы предложения: PENDING_MODERATION → ACTIVE | REJECTED,
 # ACTIVE → WITHDRAWN → PENDING_MODERATION (возврат на публикацию).
+#
+# Изображения предложения хранятся через порт файлового хранилища
+# (`FILE_STORAGE_PORT` из `@coopenomics/innercoop/core-ports`, ранее
+# `INTER_FILE_STORAGE` из `@coopenomics/inter`). Переименование 2026-08-09 —
+# только имена, поведение и набор случаев не менялись.
 
 sources:
   backend:

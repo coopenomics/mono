@@ -27,7 +27,7 @@ import { MarketplaceUdataParametersAdapter } from './application/registration/ma
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
- * подключается к bucket через `@coopenomics/inter` (см. AR31 в epics.md).
+ * подключается к bucket через `@coopenomics/innercoop` (см. AR31 в epics.md).
  * Адаптер file-storage подключается опционально через DI — поэтому через
  * `@Optional` и опциональный токен.
  */

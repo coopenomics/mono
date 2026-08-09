@@ -12,10 +12,10 @@ import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import {
-  INTER_LEDGER2_HISTORY,
-  type InterLedger2HistoryPort,
-  type InterLedger2HistoryResult,
-} from '@coopenomics/inter';
+  LEDGER2_HISTORY_PORT,
+  type ILedger2HistoryPort,
+  type InnerLedger2HistoryResult,
+} from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
@@ -52,7 +52,7 @@ import {
   PAYMENT_METHOD_REPOSITORY,
   type PaymentMethodRepository,
 } from '~/domain/common/repositories/payment-method.repository';
-import { INTER_EXPENSE_CHASSIS, type InterExpenseChassisPort } from '@coopenomics/inter';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
@@ -170,16 +170,16 @@ export class MarketplaceEconomyService {
     private readonly documentDomainService: DocumentDomainService,
     @Inject(EXPENSE_PLANS_SERVICE)
     private readonly expensePlansService: ExpensePlansService,
-    @Inject(INTER_LEDGER2_HISTORY)
-    private readonly ledger2History: InterLedger2HistoryPort,
+    @Inject(LEDGER2_HISTORY_PORT)
+    private readonly ledger2History: ILedger2HistoryPort,
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
     @Inject(PAYMENT_METHOD_REPOSITORY)
     private readonly paymentMethodRepo: PaymentMethodRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(INTER_EXPENSE_CHASSIS)
-    private readonly expenseChassis: InterExpenseChassisPort
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -330,7 +330,7 @@ export class MarketplaceEconomyService {
   /**
    * Движения по общему кошельку КУ (`w.brn.common`) — членские взносы с
    * исполненных заказов, изъятия в распределение, оплата плановых расходов.
-   * Читается через `INTER_LEDGER2_HISTORY` (ядро ledger2, журнал
+   * Читается через `LEDGER2_HISTORY_PORT` (ядро ledger2, журнал
    * blockchain_actions) — только apply-записи: они несут operation_code +
    * memo (человекочитаемое назначение, например «по заказу № 123»),
    * walletop/debit/credit того же apply в UI-журнале избыточны.
@@ -392,7 +392,7 @@ export class MarketplaceEconomyService {
    */
   private async toWalletHistoryResult(
     coopname: string,
-    result: InterLedger2HistoryResult
+    result: InnerLedger2HistoryResult
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const hashes = result.items
       .map((op) => op.processHash)

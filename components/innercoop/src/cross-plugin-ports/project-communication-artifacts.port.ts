@@ -2,17 +2,17 @@
  * Сообщения Matrix в истории (текст и расшифрованное аудио).
  * Календарные сутки UTC: YYYY-MM-DD.
  */
-export type InterRoomMessageKind = 'text' | 'audio';
+export type InnerRoomMessageKind = 'text' | 'audio';
 
-export interface InterRoomMessageLine {
+export interface InnerRoomMessageLine {
   originServerTs: number;
   authorLabel: string;
   coopUsername: string | null;
-  kind: InterRoomMessageKind;
+  kind: InnerRoomMessageKind;
   bodyText: string;
 }
 
-export interface InterCompletedCallTranscriptionHead {
+export interface InnerCompletedCallTranscriptionHead {
   id: string;
   matrixRoomId: string;
   roomName: string;
@@ -21,42 +21,50 @@ export interface InterCompletedCallTranscriptionHead {
 }
 
 /** Комната проекта Capital в реестре ChatCoop (kind capital_project). */
-export interface InterProjectCommunicationRoomRef {
+export interface InnerProjectCommunicationRoomRef {
   matrixRoomId: string;
   displayLabel: string;
 }
 
 /** Тип непроектной комнаты ChatCoop, синхронизируемой в blago отдельной верхней папкой. */
-export type InterNonProjectRoomKind = 'members' | 'council' | 'secretary';
+export type InnerNonProjectRoomKind = 'members' | 'council' | 'secretary';
 
 /** Комната ChatCoop вне проекта Capital (пайщики/совет/секретарь) — для синхронизации переписки и транскрипций в blago. */
-export interface InterNonProjectCommunicationRoomRef {
+export interface InnerNonProjectCommunicationRoomRef {
   matrixRoomId: string;
   displayLabel: string;
-  kind: InterNonProjectRoomKind;
+  kind: InnerNonProjectRoomKind;
 }
 
-export interface InterProjectCommunicationArtifactsPort {
-  listCommunicationRoomsForProject(projectHash: string): Promise<InterProjectCommunicationRoomRef[]>;
+export interface IProjectCommunicationArtifactsPort {
+  listCommunicationRoomsForProject(projectHash: string): Promise<InnerProjectCommunicationRoomRef[]>;
 
   /** Комнаты вне проектов Capital (пайщики/совет/секретарь) — синхронизируются в blago отдельной верхней папкой. */
-  listNonProjectCommunicationRooms(): Promise<InterNonProjectCommunicationRoomRef[]>;
+  listNonProjectCommunicationRooms(): Promise<InnerNonProjectCommunicationRoomRef[]>;
 
   listUtcDatesWithNewMessages(
     matrixRoomId: string,
     afterOriginServerTsExclusive: number
   ): Promise<string[]>;
 
-  getMessagesForRoomAndUtcDate(matrixRoomId: string, utcDate: string): Promise<InterRoomMessageLine[]>;
+  getMessagesForRoomAndUtcDate(matrixRoomId: string, utcDate: string): Promise<InnerRoomMessageLine[]>;
 
   getMaxOriginServerTsForRoom(matrixRoomId: string): Promise<number | null>;
 
   listCompletedTranscriptionsEndedAfter(
     matrixRoomIds: string[],
     endedAfterExclusive: Date
-  ): Promise<InterCompletedCallTranscriptionHead[]>;
+  ): Promise<InnerCompletedCallTranscriptionHead[]>;
 
   getMaxCompletedEndedAtForRooms(matrixRoomIds: string[]): Promise<Date | null>;
 
   renderCompletedCallTranscriptionMarkdown(transcriptionId: string): Promise<string | null>;
 }
+
+// ─── DI-токен ──────────────────────────────────────────────────────────────────
+
+/**
+ * Артефакты переписки и транскрипций комнат. Провайдер — chatcoop.
+ * Реализацию подставляет composition root (`InnercoopBridgeModule`).
+ */
+export const PROJECT_COMMUNICATION_ARTIFACTS_PORT = Symbol.for('Innercoop.CrossPlugin.ProjectCommunicationArtifacts');

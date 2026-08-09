@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
-import type { InterFileStorageBucket } from '@coopenomics/inter';
+import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import type { MarketplaceReturnClaimPhoto } from '../../domain/entities/marketplace-return-claim.types';
 
 const MB = 1024 * 1024;
@@ -46,7 +46,7 @@ export interface MarketplaceReturnClaimImageUploadInput {
 })
 @Injectable()
 export class MarketplaceReturnClaimImagesService {
-  constructor(@InjectBucket() private readonly bucket: InterFileStorageBucket) {}
+  constructor(@InjectBucket() private readonly bucket: InnerFileStorageBucket) {}
 
   /**
    * Сохраняет один файл в bucket и возвращает доменный снапшот фото

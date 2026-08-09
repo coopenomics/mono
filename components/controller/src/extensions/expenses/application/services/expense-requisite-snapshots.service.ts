@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import type { InterExpenseRequisiteItemInput } from '@coopenomics/inter'
+import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { PAYMENT_METHOD_REPOSITORY, PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity'
@@ -24,11 +24,11 @@ export class ExpenseRequisiteSnapshotsService {
     private readonly repository: Repository<ExpenseRequisiteSnapshotTypeormEntity>
   ) {}
 
-  async validate(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     await this.resolve(coopname, items)
   }
 
-  async snapshot(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async snapshot(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     const snapshots = await this.resolve(coopname, items)
     if (snapshots.length === 0) return
     try {
@@ -94,7 +94,7 @@ export class ExpenseRequisiteSnapshotsService {
 
   private async resolve(
     coopname: string,
-    items: InterExpenseRequisiteItemInput[]
+    items: InnerExpenseRequisiteItemInput[]
   ): Promise<ExpenseRequisiteSnapshotTypeormEntity[]> {
     return Promise.all(
       items.map(async (it) => {

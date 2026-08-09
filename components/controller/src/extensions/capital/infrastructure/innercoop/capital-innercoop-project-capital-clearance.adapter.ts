@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { InterProjectCapitalClearancePort } from '@coopenomics/inter';
+import type { IProjectCapitalClearancePort } from '@coopenomics/innercoop';
 import {
   APPENDIX_REPOSITORY,
   type AppendixRepository,
 } from '../../domain/repositories/appendix.repository';
 
 @Injectable()
-export class CapitalInterProjectCapitalClearanceAdapter implements InterProjectCapitalClearancePort {
+export class CapitalInnercoopProjectCapitalClearanceAdapter implements IProjectCapitalClearancePort {
   constructor(
     @Inject(APPENDIX_REPOSITORY)
     private readonly appendixRepository: AppendixRepository

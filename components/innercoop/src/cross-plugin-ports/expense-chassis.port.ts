@@ -1,7 +1,7 @@
 /**
  * Шасси расходов (контракт `expense`): read-side для приложений-потребителей
  * (capital, marketplace, EMP). Реализация — расширение `expense-chassis`;
- * токен `INTER_EXPENSE_CHASSIS` регистрируется в InterCommunicationBridgeModule.
+ * токен `EXPENSE_CHASSIS_PORT` регистрируется в InnercoopBridgeModule.
  *
  * Mutations approve/authorize/pay/report/close/decline — это прямые GraphQL
  * endpoints шасси; consumer-extension'ы их НЕ оборачивают, чтобы не дублировать
@@ -10,7 +10,7 @@
  */
 
 /** Lifecycle-статус proposal'а шасси (зеркало `ExpenseProposalStatus` в `extensions/expenses`). */
-export type InterExpenseProposalStatus =
+export type InnerExpenseProposalStatus =
   | 'CREATED'
   | 'AUTHORIZED'
   | 'PARTIALLY_PAID'
@@ -20,7 +20,7 @@ export type InterExpenseProposalStatus =
   | 'UNDEFINED';
 
 /** Item — одна строка СЗ-расхода (зеркало `IExpenseItemBlockchainData`). */
-export interface InterExpenseItem {
+export interface InnerExpenseItem {
   itemHash: string;
   /** ExpenseMechanics: 0=ADVANCE / 1=DIRECT / 2=POST_FACT (узнать у consumer'а). */
   mechanics: number;
@@ -37,14 +37,14 @@ export interface InterExpenseItem {
   status: number;
 }
 
-export interface InterExpenseCallbackHandler {
+export interface InnerExpenseCallbackHandler {
   /** Owner-контракт consumer'а (для capital'а — `capital`). Пусто = standalone. */
   contract: string;
   action: string;
   data: string;
 }
 
-export interface InterExpenseProposalRead {
+export interface InnerExpenseProposalRead {
   coopname: string;
   /** Хэш СЗ-расхода (он же `expense_hash` в capital::progexpenses). */
   proposalHash: string;
@@ -52,10 +52,10 @@ export interface InterExpenseProposalRead {
   sourceWalletCode: string;
   /** Инициатор (creator) — username председателя, оформившего расход. */
   creator: string;
-  status: InterExpenseProposalStatus;
+  status: InnerExpenseProposalStatus;
   /** Callback consumer-контракта: пустой `contract` ⇒ standalone-расход без owner'а. */
-  callback?: InterExpenseCallbackHandler;
-  items: InterExpenseItem[];
+  callback?: InnerExpenseCallbackHandler;
+  items: InnerExpenseItem[];
   /** Сумма-резерв по items (raw asset). */
   totalPlanned: string;
   /** Фактически потрачено после `reportexp` (raw asset; "0.0000 RUB" пока не отчитались). */
@@ -67,7 +67,7 @@ export interface InterExpenseProposalRead {
 }
 
 /** Пагинация — нейтральная (не зависит от Nest/TypeORM DTO). */
-export interface InterExpensePagination {
+export interface InnerExpensePagination {
   limit?: number;
   offset?: number;
   /** Поле сортировки. По умолчанию `updatedAt`. */
@@ -76,14 +76,14 @@ export interface InterExpensePagination {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export interface InterExpensePaginatedResult<T> {
+export interface InnerExpensePaginatedResult<T> {
   items: T[];
   totalCount: number;
 }
 
 
 /** Строка СЗ для снимка реквизитов получателя (фиксация «куда платить» на момент создания). */
-export interface InterExpenseRequisiteItemInput {
+export interface InnerExpenseRequisiteItemInput {
   proposalHash: string;
   itemHash: string;
   /** Получатель: username пайщика (владелец платёжного метода) либо пусто для организации. */
@@ -104,18 +104,18 @@ export interface InterExpenseRequisiteItemInput {
   paymentPurpose?: string;
 }
 
-export interface InterExpenseChassisPort {
+export interface IExpenseChassisPort {
   /**
    * Чтение proposal'а по хэшу. Возвращает null, если шасси не видит
    * (либо хэш чужого кооператива, либо ещё не долетел из parser-stream'а).
    */
-  readProposalByHash(coopname: string, proposalHash: string): Promise<InterExpenseProposalRead | null>;
+  readProposalByHash(coopname: string, proposalHash: string): Promise<InnerExpenseProposalRead | null>;
 
   /**
    * Batch-чтение для list-view (страница «Управление расходами программы» в Капитале).
    * Order не гарантируется — вызывающий сам индексирует по proposalHash.
    */
-  readProposalsByHashes(coopname: string, proposalHashes: string[]): Promise<InterExpenseProposalRead[]>;
+  readProposalsByHashes(coopname: string, proposalHashes: string[]): Promise<InnerExpenseProposalRead[]>;
 
   /**
    * Список proposals по owner'у (значение `callback.contract`) + опц. action.
@@ -126,21 +126,21 @@ export interface InterExpenseChassisPort {
     coopname: string,
     ownerContract: string,
     ownerAction?: string,
-    pagination?: InterExpensePagination,
-  ): Promise<InterExpensePaginatedResult<InterExpenseProposalRead>>;
+    pagination?: InnerExpensePagination,
+  ): Promise<InnerExpensePaginatedResult<InnerExpenseProposalRead>>;
 
   /**
    * Валидация реквизитов строк СЗ ДО постановки on-chain заявки: у каждой
    * строки с получателем-пайщиком должен существовать указанный платёжный метод.
    */
-  validateRequisites(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void>;
+  validateRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void>;
 
   /**
    * Снимок реквизитов ПОСЛЕ успешной on-chain заявки: данные платёжного метода
    * копируются в хранилище шасси на момент создания СЗ — последующее изменение
    * метода пайщиком не меняет то, куда платить по уже поданной смете.
    */
-  snapshotRequisites(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void>;
+  snapshotRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void>;
 
   /**
    * On-chain оплата позиции СЗ (`expense::payexp`) под подписью кооператива.
@@ -174,3 +174,11 @@ export interface InterExpenseChassisPort {
    */
   reportItem(coopname: string, proposalHash: string, itemHash: string): Promise<void>;
 }
+
+// ─── DI-токен ──────────────────────────────────────────────────────────────────
+
+/**
+ * Шасси расходов (контракт expense): read-side и on-chain операции по позициям. Провайдер — expenses.
+ * Реализацию подставляет composition root (`InnercoopBridgeModule`).
+ */
+export const EXPENSE_CHASSIS_PORT = Symbol.for('Innercoop.CrossPlugin.ExpenseChassis');

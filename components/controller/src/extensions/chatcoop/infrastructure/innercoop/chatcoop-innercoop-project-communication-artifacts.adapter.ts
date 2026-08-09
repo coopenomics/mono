@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
-  InterCompletedCallTranscriptionHead,
-  InterNonProjectCommunicationRoomRef,
-  InterNonProjectRoomKind,
-  InterProjectCommunicationArtifactsPort,
-  InterProjectCommunicationRoomRef,
-  InterRoomMessageLine,
-} from '@coopenomics/inter';
+  InnerCompletedCallTranscriptionHead,
+  InnerNonProjectCommunicationRoomRef,
+  InnerNonProjectRoomKind,
+  IProjectCommunicationArtifactsPort,
+  InnerProjectCommunicationRoomRef,
+  InnerRoomMessageLine,
+} from '@coopenomics/innercoop';
 import { MatrixApiService } from '../../application/services/matrix-api.service';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
@@ -28,7 +28,7 @@ import {
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
 
 @Injectable()
-export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterProjectCommunicationArtifactsPort {
+export class ChatcoopInnercoopProjectCommunicationArtifactsAdapter implements IProjectCommunicationArtifactsPort {
   constructor(
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedRooms: ChatcoopManagedMatrixRoomRepository,
@@ -42,7 +42,7 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
     private readonly transcriptionManagement: TranscriptionManagementService
   ) {}
 
-  async listCommunicationRoomsForProject(projectHash: string): Promise<InterProjectCommunicationRoomRef[]> {
+  async listCommunicationRoomsForProject(projectHash: string): Promise<InnerProjectCommunicationRoomRef[]> {
     const rooms = await this.managedRooms.findByProjectHash(projectHash);
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
@@ -50,10 +50,10 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
     }));
   }
 
-  async listNonProjectCommunicationRooms(): Promise<InterNonProjectCommunicationRoomRef[]> {
+  async listNonProjectCommunicationRooms(): Promise<InnerNonProjectCommunicationRoomRef[]> {
     const rooms = await this.managedRooms.findNonProjectCommunicationRooms();
     return rooms
-      .filter((r): r is typeof r & { kind: InterNonProjectRoomKind } =>
+      .filter((r): r is typeof r & { kind: InnerNonProjectRoomKind } =>
         r.kind === 'members' || r.kind === 'council' || r.kind === 'secretary'
       )
       .map((r) => ({
@@ -73,7 +73,7 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
     );
   }
 
-  async getMessagesForRoomAndUtcDate(matrixRoomId: string, utcDate: string): Promise<InterRoomMessageLine[]> {
+  async getMessagesForRoomAndUtcDate(matrixRoomId: string, utcDate: string): Promise<InnerRoomMessageLine[]> {
     const rows = await this.messageHistory.listMessagesForRoomOnUtcDate(matrixRoomId, utcDate);
     return rows
       .filter((m) => m.messageKind !== ChatcoopRoomMessageKind.AUDIO_STT_FAIL)
@@ -93,7 +93,7 @@ export class ChatcoopInterProjectCommunicationArtifactsAdapter implements InterP
   async listCompletedTranscriptionsEndedAfter(
     matrixRoomIds: string[],
     endedAfterExclusive: Date
-  ): Promise<InterCompletedCallTranscriptionHead[]> {
+  ): Promise<InnerCompletedCallTranscriptionHead[]> {
     const list = await this.callTranscriptions.findCompletedByMatrixRoomIdsEndedAfter(
       matrixRoomIds,
       endedAfterExclusive

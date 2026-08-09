@@ -2,12 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import config from '~/config/config';
 import type {
-  InterCalendarEventWindow,
-  InterCoopCalendarEventNotificationInput,
-  InterCoopCalendarEventNotificationPort,
-  InterCoopCalendarEventRead,
-} from '@coopenomics/inter';
-import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
+  InnerCalendarEventWindow,
+  InnerCoopCalendarEventNotificationInput,
+  ICoopCalendarEventNotificationPort,
+  InnerCoopCalendarEventRead,
+} from '@coopenomics/innercoop';
+import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatCoopCalendarEventRepository } from '../../domain/repositories/calendar-event.repository';
@@ -81,8 +81,8 @@ export class ChatCoopCalendarApplicationService {
     private readonly icsSubs: ChatCoopCalendarIcsSubscriptionRepository,
     @Inject(VARS_REPOSITORY)
     private readonly varsRepository: VarsRepository,
-    @Inject(INTER_COOP_CALENDAR_EVENT_NOTIFICATION)
-    private readonly calendarEventNotifications: InterCoopCalendarEventNotificationPort
+    @Inject(COOP_CALENDAR_EVENT_NOTIFICATION_PORT)
+    private readonly calendarEventNotifications: ICoopCalendarEventNotificationPort
   ) {}
 
   async listPlaintextRoomsForPicker(): Promise<{ matrixRoomId: string; displayLabel: string }[]> {
@@ -97,7 +97,7 @@ export class ChatCoopCalendarApplicationService {
   private async buildCalendarNotificationInput(
     ev: ChatCoopCalendarEventDomainEntity,
     actorUsername: string
-  ): Promise<InterCoopCalendarEventNotificationInput> {
+  ): Promise<InnerCoopCalendarEventNotificationInput> {
     const room = await this.managedRooms.findByMatrixRoomId(ev.matrixRoomId);
     const roomDisplayLabel = room?.displayLabel ?? ev.matrixRoomId;
     const roomKind = room?.kind ?? 'members';
@@ -239,8 +239,8 @@ export class ChatCoopCalendarApplicationService {
 
   async listEventsForInterPort(
     projectHash: string,
-    window?: InterCalendarEventWindow
-  ): Promise<InterCoopCalendarEventRead[]> {
+    window?: InnerCalendarEventWindow
+  ): Promise<InnerCoopCalendarEventRead[]> {
     const w =
       window !== undefined
         ? { from: new Date(window.fromInclusive), to: new Date(window.toExclusive) }

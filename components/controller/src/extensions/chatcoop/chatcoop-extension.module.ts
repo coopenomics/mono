@@ -19,7 +19,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
+import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
 import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
@@ -50,9 +50,9 @@ import { RoomMessageHistoryTypeormRepository } from './infrastructure/repositori
 import { MatrixRoomMessageHistoryIngestService } from './application/services/matrix-room-message-history-ingest.service';
 import { ChatCoopSecretaryMatrixTokenService } from './application/services/chatcoop-secretary-matrix-token.service';
 import { MatrixRoomMessageHistoryCronService } from './application/services/matrix-room-message-history-cron.service';
-import { ChatcoopInterProjectCommunicationArtifactsAdapter } from './infrastructure/inter/chatcoop-inter-project-communication-artifacts.adapter';
-import { ChatcoopInterMatrixRoomMessagingAdapter } from './infrastructure/inter/chatcoop-inter-matrix-room-messaging.adapter';
-import { ChatcoopInterChatCoopCalendarAdapter } from './infrastructure/inter/chatcoop-inter-chatcoop-calendar.adapter';
+import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
+import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
+import { ChatcoopInnercoopChatCoopCalendarAdapter } from './infrastructure/innercoop/chatcoop-innercoop-chatcoop-calendar.adapter';
 import { ChatCoopCalendarApplicationService } from './application/services/chatcoop-calendar-application.service';
 import { CalendarEventTypeormRepository } from './infrastructure/repositories/calendar-event.typeorm-repository';
 import { CalendarIcsSubscriptionTypeormRepository } from './infrastructure/repositories/calendar-ics-subscription.typeorm-repository';
@@ -534,13 +534,13 @@ export class ChatCoopPlugin extends BaseExtModule {
     WhisperSttService,
     MatrixRoomMessageHistoryIngestService,
     MatrixRoomMessageHistoryCronService,
-    ChatcoopInterProjectCommunicationArtifactsAdapter,
-    ChatcoopInterMatrixRoomMessagingAdapter,
-    ChatcoopInterChatCoopCalendarAdapter,
+    ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
+    ChatcoopInnercoopMatrixRoomMessagingAdapter,
+    ChatcoopInnercoopChatCoopCalendarAdapter,
     ChatCoopCalendarApplicationService,
     ChatcoopCalendarEventNotificationService,
     {
-      provide: INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
+      provide: COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
       useExisting: ChatcoopCalendarEventNotificationService,
     },
 
@@ -610,11 +610,11 @@ export class ChatCoopPlugin extends BaseExtModule {
   exports: [
     ChatCoopPlugin,
     ChatCoopApplicationService,
-    ChatcoopInterProjectCommunicationArtifactsAdapter,
-    ChatcoopInterMatrixRoomMessagingAdapter,
-    ChatcoopInterChatCoopCalendarAdapter,
+    ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
+    ChatcoopInnercoopMatrixRoomMessagingAdapter,
+    ChatcoopInnercoopChatCoopCalendarAdapter,
     ChatcoopCalendarEventNotificationService,
-    INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
+    COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
   ],
 })
 export class ChatCoopPluginModule {

@@ -11,19 +11,19 @@ const extensions = fs
 
 const BOUNDARY_MESSAGE =
   'Граница расширения: прямой импорт чужого расширения запрещён. ' +
-  'Межрасширенческое взаимодействие — только через @coopenomics/inter ' +
-  '(порт+токен в components/inter, биндинг в InterCommunicationBridgeModule).';
+  'Межрасширенческое взаимодействие — только через @coopenomics/innercoop ' +
+  '(порт+токен в components/innercoop, биндинг в InnercoopBridgeModule).';
 
 const CORE_MESSAGE =
   'Ядро не знает про расширения: импорт из ~/extensions/** в ядре запрещён. ' +
-  'Расширение подключается через реестр и inter, а не прямой ссылкой.';
+  'Расширение подключается через реестр и innercoop, а не прямой ссылкой.';
 
 // Точки сборки. Им по определению нужно знать обо всех расширениях —
 // это composition root, а не нарушение границы.
 const COMPOSITION_ROOT = [
   'src/extensions/extensions.module.ts',
   'src/extensions/extensions.registry.ts',
-  'src/extensions/inter-communication-bridge.module.ts',
+  'src/extensions/innercoop-bridge.module.ts',
   'src/extensions/base.extension.module.ts',
   'src/domain/extension/**/*.ts',
 ];

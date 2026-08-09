@@ -3,13 +3,13 @@ import { CapitalContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { config } from '~/config';
 import {
-  INTER_EXPENSE_CHASSIS,
-  type InterExpenseChassisPort,
-  type InterExpenseItem,
-  type InterExpenseProposalRead,
-  type InterExpenseProposalStatus,
-  type InterExpenseRequisiteItemInput,
-} from '@coopenomics/inter';
+  EXPENSE_CHASSIS_PORT,
+  type IExpenseChassisPort,
+  type InnerExpenseItem,
+  type InnerExpenseProposalRead,
+  type InnerExpenseProposalStatus,
+  type InnerExpenseRequisiteItemInput,
+} from '@coopenomics/innercoop';
 import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
@@ -35,7 +35,7 @@ import { ExpenseItemStatus } from '~/extensions/expenses/domain/enums/expense-it
  * Управление программными расходами Капитала.
  *
  * Тонкое расширение: write — `capital::createpgexp` / `topupprogexp` через
- * `CapitalBlockchainPort`; read — через inter-порт `INTER_EXPENSE_CHASSIS`
+ * `CapitalBlockchainPort`; read — через inter-порт `EXPENSE_CHASSIS_PORT`
  * (шасси-extension отвечает за хранение proposals).
  */
 @Injectable()
@@ -43,8 +43,8 @@ export class ProgramExpensesManagementService {
   constructor(
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
-    @Inject(INTER_EXPENSE_CHASSIS)
-    private readonly expenseChassis: InterExpenseChassisPort,
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountDataPort: AccountDataPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
@@ -53,7 +53,7 @@ export class ProgramExpensesManagementService {
   async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<TransactResult> {
     // Реквизиты получателей: валидация ДО on-chain заявки, снимок в шасси —
     // ПОСЛЕ (фиксация «куда платить» на момент создания СЗ).
-    const requisiteItems: InterExpenseRequisiteItemInput[] = data.items.map((it) => ({
+    const requisiteItems: InnerExpenseRequisiteItemInput[] = data.items.map((it) => ({
       proposalHash: data.expense_hash,
       itemHash: it.item_hash,
       recipient: it.recipient,
@@ -130,7 +130,7 @@ export class ProgramExpensesManagementService {
   }
 
   /** Получатели-пайщики СЗ (у ORG-строк recipient — уже название организации). */
-  private memberRecipients(p: InterExpenseProposalRead): string[] {
+  private memberRecipients(p: InnerExpenseProposalRead): string[] {
     return p.items
       .filter((it) => this.mapRecipientType(it.recipientType) !== ExpenseRecipientType.ORG)
       .map((it) => it.recipient);
@@ -152,7 +152,7 @@ export class ProgramExpensesManagementService {
     return new Map(entries);
   }
 
-  private toOutput(p: InterExpenseProposalRead, names: Map<string, string>): ProgramExpenseOutputDTO {
+  private toOutput(p: InnerExpenseProposalRead, names: Map<string, string>): ProgramExpenseOutputDTO {
     return {
       coopname: p.coopname,
       expense_hash: p.proposalHash,
@@ -169,7 +169,7 @@ export class ProgramExpensesManagementService {
     };
   }
 
-  private toItemOutput(it: InterExpenseItem, names: Map<string, string>): ProgramExpenseItemOutputDTO {
+  private toItemOutput(it: InnerExpenseItem, names: Map<string, string>): ProgramExpenseItemOutputDTO {
     const recipientType = this.mapRecipientType(it.recipientType);
     return {
       item_hash: it.itemHash,
@@ -191,7 +191,7 @@ export class ProgramExpensesManagementService {
     return { contract: cb.contract, action: cb.action, data: cb.data };
   }
 
-  private mapStatus(status: InterExpenseProposalStatus): ExpenseProposalStatus {
+  private mapStatus(status: InnerExpenseProposalStatus): ExpenseProposalStatus {
     switch (status) {
       case 'CREATED':
         return ExpenseProposalStatus.CREATED;

@@ -3,11 +3,11 @@ import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface'
 import config from '~/config/config';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import {
-  INTER_MATRIX_ROOM_MESSAGING,
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterMatrixRoomMessagingPort,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
+  MATRIX_ROOM_MESSAGING_PORT,
+  PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+  type IMatrixRoomMessagingPort,
+  type IProjectCommunicationArtifactsPort,
+} from '@coopenomics/innercoop';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { IProjectMatrixComponentAnnouncementEvent } from '../../domain/interfaces/project-database.interface';
@@ -22,11 +22,11 @@ export class ComponentMatrixAnnouncementService {
 
   constructor(
     @Optional()
-    @Inject(INTER_MATRIX_ROOM_MESSAGING)
-    private readonly matrixRoomMessaging: InterMatrixRoomMessagingPort | undefined,
+    @Inject(MATRIX_ROOM_MESSAGING_PORT)
+    private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly projectCommArtifacts: InterProjectCommunicationArtifactsPort | undefined,
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository
   ) {}

@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import type { InterFileStorageBucketSpec } from '@coopenomics/inter';
+import type { InnerFileStorageBucketSpec } from '@coopenomics/innercoop';
 import { BucketRegistry } from './bucket-registry';
 
 /**
@@ -19,18 +19,18 @@ export function bucketTokenFor(cls: { name: string }): string {
  * @UseBucket({ name: 'stol-zakazov:images', maxBytes: 10*MB, allowedMime: ['image/jpeg'] })
  * @Injectable()
  * export class OrderImagesService {
- *   constructor(@InjectBucket() private readonly bucket: InterFileStorageBucket) {}
+ *   constructor(@InjectBucket() private readonly bucket: InnerFileStorageBucket) {}
  * }
  * ```
  */
-export function UseBucket(spec: InterFileStorageBucketSpec): ClassDecorator {
+export function UseBucket(spec: InnerFileStorageBucketSpec): ClassDecorator {
   return (target) => {
     BucketRegistry.add(target as unknown as { name: string }, spec);
   };
 }
 
 /**
- * Параметр-декоратор: инжектит `InterFileStorageBucket` для текущего класса.
+ * Параметр-декоратор: инжектит `InnerFileStorageBucket` для текущего класса.
  * Резолвится в DI-токен `bucketTokenFor(<ClassName>)`, который провайдится через
  * `FileStorageInfrastructureModule.forFeature([ThisClass])`.
  */

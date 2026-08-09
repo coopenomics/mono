@@ -1,8 +1,8 @@
 /**
  * Универсальное файловое хранилище контура кооператива.
- * Реализация — адаптер `MinioFileStorageAdapter` поверх MinIO/S3 SDK; токен `INTER_FILE_STORAGE`
+ * Реализация — адаптер `MinioFileStorageAdapter` поверх MinIO/S3 SDK; токен `FILE_STORAGE_PORT`
  * регистрируется в composition root контроллера. Расширения декларируют свои бакеты декоратором
- * `@UseBucket(spec)` и получают типизированный `InterFileStorageBucket` через DI.
+ * `@UseBucket(spec)` и получают типизированный `InnerFileStorageBucket` через DI.
  *
  * Per-bucket изоляция: каждый бакет принадлежит одному расширению, физический путь объектов —
  * `<extension>-<purpose>/<caller-defined-key>` внутри одного MinIO/S3-бакета на кооператив.
@@ -11,18 +11,18 @@
  */
 
 /** Тело загрузки. ReadableStream — для больших файлов через graphql-upload, Uint8Array — для мелочей. */
-export type InterFileStorageBody = ReadableStream<Uint8Array> | Uint8Array;
+export type InnerFileStorageBody = ReadableStream<Uint8Array> | Uint8Array;
 
 /**
  * Декларация бакета. Передаётся в `@UseBucket` и далее в `getBucket` порта.
  * Поля валидации (`maxBytes`, `allowedMime`, `metadataSchema`) проверяются адаптером на каждом `put`.
  */
-export interface InterFileStorageBucketSpec {
+export interface InnerFileStorageBucketSpec {
   /** Логическое имя в формате `<extension>:<purpose>`. */
   name: string;
   /** Жёсткий лимит размера на один put (байт). */
   maxBytes: number;
-  /** Allowlist MIME-типов. Адаптер сравнивает с `InterFileStoragePutOptions.contentType`. */
+  /** Allowlist MIME-типов. Адаптер сравнивает с `InnerFileStoragePutOptions.contentType`. */
   allowedMime: readonly string[];
   /** Схема пользовательских метаданных. Адаптер валидирует на put и возвращает в head. */
   metadataSchema?: Readonly<Record<string, 'required' | 'optional'>>;
@@ -30,25 +30,25 @@ export interface InterFileStorageBucketSpec {
   defaultUrlTtlSeconds?: number;
 }
 
-export interface InterFileStoragePutOptions {
+export interface InnerFileStoragePutOptions {
   /** MIME-тип содержимого. Должен быть в `allowedMime` бакета. */
   contentType: string;
   /** Custom user-metadata. Должна соответствовать `metadataSchema` бакета. */
   metadata?: Readonly<Record<string, string>>;
 }
 
-export interface InterFileStoragePutResult {
+export interface InnerFileStoragePutResult {
   key: string;
   etag: string;
   size: number;
 }
 
-export interface InterFileStorageGetReadUrlOptions {
+export interface InnerFileStorageGetReadUrlOptions {
   /** Перекрывает `defaultUrlTtlSeconds` бакета. */
   ttlSeconds?: number;
 }
 
-export interface InterFileStorageObjectMetadata {
+export interface InnerFileStorageObjectMetadata {
   size: number;
   etag: string;
   contentType: string;
@@ -60,19 +60,19 @@ export interface InterFileStorageObjectMetadata {
  * Хэндл одного зарегистрированного бакета. Расширение получает его через DI и работает только с ним.
  * Префикс `<extension>-<purpose>` инкапсулирован адаптером — наружу ключи остаются caller-defined.
  */
-export interface InterFileStorageBucket {
+export interface InnerFileStorageBucket {
   /**
    * Загружает объект под caller-defined ключом. Перезапись по тому же ключу — overwrite, как в S3.
-   * @throws InterFileStorageObjectTooLargeError — размер превышает `maxBytes` бакета.
-   * @throws InterFileStorageMimeRejectedError — `contentType` не входит в `allowedMime`.
-   * @throws InterFileStorageMetadataValidationError — отсутствует обязательное поле `metadataSchema`.
-   * @throws InterFileStorageBackendUnavailableError — недоступен MinIO/S3.
+   * @throws InnerFileStorageObjectTooLargeError — размер превышает `maxBytes` бакета.
+   * @throws InnerFileStorageMimeRejectedError — `contentType` не входит в `allowedMime`.
+   * @throws InnerFileStorageMetadataValidationError — отсутствует обязательное поле `metadataSchema`.
+   * @throws InnerFileStorageBackendUnavailableError — недоступен MinIO/S3.
    */
   put(
     key: string,
-    body: InterFileStorageBody,
-    opts: InterFileStoragePutOptions,
-  ): Promise<InterFileStoragePutResult>;
+    body: InnerFileStorageBody,
+    opts: InnerFileStoragePutOptions,
+  ): Promise<InnerFileStoragePutResult>;
 
   /**
    * Возвращает короткоживущий URL для скачивания объекта.
@@ -82,51 +82,59 @@ export interface InterFileStorageBucket {
    */
   getReadUrl(
     key: string,
-    opts?: InterFileStorageGetReadUrlOptions,
+    opts?: InnerFileStorageGetReadUrlOptions,
   ): Promise<string>;
 
   /**
    * Идемпотентное удаление: отсутствие объекта — успех (как DELETE в S3).
-   * @throws InterFileStorageBackendUnavailableError — недоступен MinIO/S3.
+   * @throws InnerFileStorageBackendUnavailableError — недоступен MinIO/S3.
    */
   delete(key: string): Promise<void>;
 
   /**
    * Метаданные объекта без скачивания тела.
-   * @throws InterFileStorageObjectNotFoundError — объекта нет.
-   * @throws InterFileStorageBackendUnavailableError — недоступен MinIO/S3.
+   * @throws InnerFileStorageObjectNotFoundError — объекта нет.
+   * @throws InnerFileStorageBackendUnavailableError — недоступен MinIO/S3.
    */
-  head(key: string): Promise<InterFileStorageObjectMetadata>;
+  head(key: string): Promise<InnerFileStorageObjectMetadata>;
 }
 
 /**
- * Корневой порт. Получается через `@Inject(INTER_FILE_STORAGE)` в реестре бакетов контроллера;
- * прикладной код ходит не в порт напрямую, а в `InterFileStorageBucket` от `@UseBucket`.
+ * Корневой порт. Получается через `@Inject(FILE_STORAGE_PORT)` в реестре бакетов контроллера;
+ * прикладной код ходит не в порт напрямую, а в `InnerFileStorageBucket` от `@UseBucket`.
  */
-export interface InterFileStoragePort {
+export interface IFileStoragePort {
   /**
    * Возвращает типизированный хэндл для данной спеки.
    * Синхронно — обеспечение существования физического бакета у бэкенда происходит отдельно
    * (хук `OnApplicationBootstrap` адаптера, идемпотентно).
    *
-   * @throws InterFileStorageBucketNotConfiguredError — спека не валидна.
+   * @throws InnerFileStorageBucketNotConfiguredError — спека не валидна.
    */
-  getBucket(spec: InterFileStorageBucketSpec): InterFileStorageBucket;
+  getBucket(spec: InnerFileStorageBucketSpec): InnerFileStorageBucket;
 }
 
 // ─── Ошибки ────────────────────────────────────────────────────────────────────
 
 /** Базовый класс ошибок порта. Доменный код ловит конкретные подклассы. */
-export class InterFileStorageError extends Error {
+export class InnerFileStorageError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
     this.name = new.target.name;
   }
 }
 
-export class InterFileStorageObjectNotFoundError extends InterFileStorageError {}
-export class InterFileStorageObjectTooLargeError extends InterFileStorageError {}
-export class InterFileStorageMimeRejectedError extends InterFileStorageError {}
-export class InterFileStorageMetadataValidationError extends InterFileStorageError {}
-export class InterFileStorageBackendUnavailableError extends InterFileStorageError {}
-export class InterFileStorageBucketNotConfiguredError extends InterFileStorageError {}
+export class InnerFileStorageObjectNotFoundError extends InnerFileStorageError {}
+export class InnerFileStorageObjectTooLargeError extends InnerFileStorageError {}
+export class InnerFileStorageMimeRejectedError extends InnerFileStorageError {}
+export class InnerFileStorageMetadataValidationError extends InnerFileStorageError {}
+export class InnerFileStorageBackendUnavailableError extends InnerFileStorageError {}
+export class InnerFileStorageBucketNotConfiguredError extends InnerFileStorageError {}
+
+// ─── DI-токен ──────────────────────────────────────────────────────────────────
+
+/**
+ * Универсальное файловое хранилище контура кооператива (MinIO в v1, S3 в v2). Провайдер — ядро.
+ * Реализацию подставляет composition root (`InnercoopBridgeModule`).
+ */
+export const FILE_STORAGE_PORT = Symbol.for('Innercoop.CorePort.FileStorage');

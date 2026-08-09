@@ -1,8 +1,8 @@
 /**
  * Ledger2 (ядро): read-only контракт истории операций/движений по кошельку
  * из журнала `blockchain_actions`. Реализация — адаптер над `Ledger2Service`
- * в ядре контроллера (`application/ledger2`); токен `INTER_LEDGER2_HISTORY`
- * регистрируется в `InterCommunicationBridgeModule`.
+ * в ядре контроллера (`application/ledger2`); токен `LEDGER2_HISTORY_PORT`
+ * регистрируется в `InnercoopBridgeModule`.
  *
  * Ядро ledger2 не знает доменных понятий consumer-extension'ов (КУ, проект,
  * программа) — авторизацию (кто вправе смотреть историю ЭТОГО кошелька)
@@ -12,7 +12,7 @@
  */
 
 /** Одна запись журнала — apply (несёт operationCode) либо walletop/debit/credit (без него). */
-export interface InterLedger2Operation {
+export interface InnerLedger2Operation {
   /** global_sequence блокчейна (строка — значения до 2^53 переполняют number). */
   globalSequence: string;
   blockNum: number;
@@ -37,7 +37,7 @@ export interface InterLedger2Operation {
   createdAt: Date;
 }
 
-export interface InterLedger2HistoryFilter {
+export interface InnerLedger2HistoryFilter {
   coopname: string;
   /** Бух.счёт (×1000). */
   accountId?: number;
@@ -62,13 +62,21 @@ export interface InterLedger2HistoryFilter {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export interface InterLedger2HistoryResult {
-  items: InterLedger2Operation[];
+export interface InnerLedger2HistoryResult {
+  items: InnerLedger2Operation[];
   totalCount: number;
   totalPages: number;
   currentPage: number;
 }
 
-export interface InterLedger2HistoryPort {
-  getHistory(filter: InterLedger2HistoryFilter): Promise<InterLedger2HistoryResult>;
+export interface ILedger2HistoryPort {
+  getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>;
 }
+
+// ─── DI-токен ──────────────────────────────────────────────────────────────────
+
+/**
+ * Ledger2 (ядро): read-only история операций/движений по кошельку из blockchain_actions.
+ * Реализацию подставляет composition root (`InnercoopBridgeModule`).
+ */
+export const LEDGER2_HISTORY_PORT = Symbol.for('Innercoop.CorePort.Ledger2History');

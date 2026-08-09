@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
-import type { InterFileStorageBucket } from '@coopenomics/inter';
+import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
 
 const MB = 1024 * 1024;
@@ -41,7 +41,7 @@ export interface MarketplaceOfferImageUploadInput {
 })
 @Injectable()
 export class MarketplaceOfferImagesService {
-  constructor(@InjectBucket() private readonly bucket: InterFileStorageBucket) {}
+  constructor(@InjectBucket() private readonly bucket: InnerFileStorageBucket) {}
 
   /**
    * Сохраняет один файл в bucket и возвращает доменный снапшот изображения

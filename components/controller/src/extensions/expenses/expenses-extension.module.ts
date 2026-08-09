@@ -25,7 +25,7 @@ import { ExpenseFilesService } from './application/services/expense-files.servic
 import { ExpenseProposalResolver } from './application/resolvers/expense-proposal.resolver';
 import { ExpenseMutationsResolver } from './application/resolvers/expense-mutations.resolver';
 import { ExpenseFilesResolver } from './application/resolvers/expense-files.resolver';
-import { ExpensesInterExpenseChassisAdapter } from './infrastructure/inter/expenses-inter-expense-chassis.adapter';
+import { ExpensesInnercoopExpenseChassisAdapter } from './infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
 import {
   EXPENSE_PLANS_SERVICE,
@@ -88,7 +88,7 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpenseProposalResolver,
     ExpenseMutationsResolver,
     ExpenseFilesResolver,
-    ExpensesInterExpenseChassisAdapter,
+    ExpensesInnercoopExpenseChassisAdapter,
     ExpensePlansService,
     { provide: EXPENSE_PLANS_SERVICE, useExisting: ExpensePlansService },
     ExpensePlansResolver,
@@ -102,7 +102,7 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpensesManagementService,
     ExpensesMutationsService,
     ExpenseFilesService,
-    ExpensesInterExpenseChassisAdapter,
+    ExpensesInnercoopExpenseChassisAdapter,
     ExpensePlansService,
     EXPENSE_PLANS_SERVICE,
   ],

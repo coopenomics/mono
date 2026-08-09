@@ -2,9 +2,9 @@
 
 Кратко, как устроено без привязки capital → chatcoop в коде.
 
-## Зачем пакет `@coopenomics/inter`
+## Зачем пакет `@coopenomics/innercoop`
 
-В нём только контракт: типы сообщений/транскрипций и токен Nest `INTER_PROJECT_COMMUNICATION_ARTIFACTS`. Capital знает интерфейс порта; chatcoop подставляет реализацию (адаптер к своим репозиториям). Сборка контроллера связывает токен с адаптером через глобальный модуль-мост (`InterCommunicationBridgeModule`).
+В нём только контракт: типы сообщений/транскрипций и токен Nest `INTER_PROJECT_COMMUNICATION_ARTIFACTS`. Capital знает интерфейс порта; chatcoop подставляет реализацию (адаптер к своим репозиториям). Сборка контроллера связывает токен с адаптером через глобальный модуль-мост (`InnercoopBridgeModule`).
 
 ## Откуда данные
 
@@ -34,6 +34,6 @@
 
 ## Где смотреть код
 
-- Порт и типы: `components/inter/src/`.
+- Порт и типы: `components/innercoop/src/`.
 - Реализация порта: `controller/.../chatcoop/.../chatcoop-inter-project-communication-artifacts.adapter.ts`.
 - Пуш и курсоры: `GitHubSyncService` (методы `pushCommunicationArtifactsIncremental`, `pushCommunicationArtifactsForProject`), `GithubCommunicationCursorService`, сущности `github-comm-*-cursor`.

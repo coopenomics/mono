@@ -1,4 +1,4 @@
-import type { InterFileStorageBucketSpec } from '@coopenomics/inter';
+import type { InnerFileStorageBucketSpec } from '@coopenomics/innercoop';
 
 /**
  * Глобальный реестр бакетов, наполняется декоратором `@UseBucket` на этапе загрузки модулей.
@@ -7,13 +7,13 @@ import type { InterFileStorageBucketSpec } from '@coopenomics/inter';
  */
 export interface RegisteredBucket {
   readonly cls: { readonly name: string };
-  readonly spec: InterFileStorageBucketSpec;
+  readonly spec: InnerFileStorageBucketSpec;
 }
 
-const REGISTERED = new Map<{ name: string }, InterFileStorageBucketSpec>();
+const REGISTERED = new Map<{ name: string }, InnerFileStorageBucketSpec>();
 
 export const BucketRegistry = {
-  add(cls: { name: string }, spec: InterFileStorageBucketSpec): void {
+  add(cls: { name: string }, spec: InnerFileStorageBucketSpec): void {
     const existing = REGISTERED.get(cls);
     if (existing && existing.name !== spec.name) {
       throw new Error(
@@ -24,7 +24,7 @@ export const BucketRegistry = {
     REGISTERED.set(cls, spec);
   },
 
-  get(cls: { name: string }): InterFileStorageBucketSpec | undefined {
+  get(cls: { name: string }): InnerFileStorageBucketSpec | undefined {
     return REGISTERED.get(cls);
   },
 

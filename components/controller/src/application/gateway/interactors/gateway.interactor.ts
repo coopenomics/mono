@@ -27,7 +27,7 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/common/repositories/payment-method.repository';
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
-import { INTER_EXPENSE_CHASSIS, type InterExpenseChassisPort } from '@coopenomics/inter';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена gateway для управления платежами (просмотр, изменение статуса и создание)
@@ -57,8 +57,8 @@ export class GatewayInteractor {
     private readonly accountDomainService: AccountDomainService,
     @Inject(PAYMENT_METHOD_REPOSITORY)
     private readonly paymentMethodRepository: PaymentMethodRepository,
-    @Inject(INTER_EXPENSE_CHASSIS)
-    private readonly expenseChassis: InterExpenseChassisPort
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort
   ) {}
 
   /**

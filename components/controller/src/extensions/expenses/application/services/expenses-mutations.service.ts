@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import type { TransactResult } from '@wharfkit/session'
-import type { InterExpenseRequisiteItemInput } from '@coopenomics/inter'
+import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity'
@@ -410,7 +410,7 @@ function parseAssetToMinor(asset: string): { minor: number; symbol: string; prec
   return { minor: Math.round(amount * 10 ** precision), symbol, precision }
 }
 
-function toRequisiteItems(proposalHash: string, items: ExpenseItemInputDTO[]): InterExpenseRequisiteItemInput[] {
+function toRequisiteItems(proposalHash: string, items: ExpenseItemInputDTO[]): InnerExpenseRequisiteItemInput[] {
   return items.map((it) => ({
     proposalHash,
     itemHash: it.item_hash,

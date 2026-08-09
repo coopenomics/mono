@@ -2,14 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import type {
-  InterExpenseChassisPort,
-  InterExpenseItem,
-  InterExpensePagination,
-  InterExpensePaginatedResult,
-  InterExpenseProposalRead,
-  InterExpenseProposalStatus,
-  InterExpenseRequisiteItemInput,
-} from '@coopenomics/inter';
+  IExpenseChassisPort,
+  InnerExpenseItem,
+  InnerExpensePagination,
+  InnerExpensePaginatedResult,
+  InnerExpenseProposalRead,
+  InnerExpenseProposalStatus,
+  InnerExpenseRequisiteItemInput,
+} from '@coopenomics/innercoop';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
@@ -21,17 +21,17 @@ import {
 } from '../../domain/interfaces/expenses-blockchain.port';
 
 /**
- * Реализация `InterExpenseChassisPort` для consumer-расширений (capital, marketplace, EMP)
+ * Реализация `IExpenseChassisPort` для consumer-расширений (capital, marketplace, EMP)
  * и реестра платежей (gateway).
  *
  * Adapter — тонкий: читает из локального TypeORM-зеркала proposals + items, проектирует
- * во внешний нейтральный DTO `@coopenomics/inter`. Write-методы (`payItem` /
+ * во внешний нейтральный DTO `@coopenomics/innercoop`. Write-методы (`payItem` /
  * `returnItem` / `overspendItem` / `reportItem`) — on-chain действия шасси при
  * подтверждении кассиром платежей расчёта (payexp / returnexp / overspendexp /
  * reportexp), под подписью кооператива.
  */
 @Injectable()
-export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPort {
+export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPort {
   constructor(
     @InjectRepository(ExpenseProposalTypeormEntity)
     private readonly repository: Repository<ExpenseProposalTypeormEntity>,
@@ -85,22 +85,22 @@ export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPo
     }
   }
 
-  async validateRequisites(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async validateRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     await this.requisiteSnapshots.validate(coopname, items);
   }
 
-  async snapshotRequisites(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async snapshotRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     await this.requisiteSnapshots.snapshot(coopname, items);
   }
 
-  async readProposalByHash(coopname: string, proposalHash: string): Promise<InterExpenseProposalRead | null> {
+  async readProposalByHash(coopname: string, proposalHash: string): Promise<InnerExpenseProposalRead | null> {
     const entity = await this.repository.findOne({
       where: { coopname, proposal_hash: proposalHash.toLowerCase() },
     });
     return entity ? this.toRead(entity) : null;
   }
 
-  async readProposalsByHashes(coopname: string, proposalHashes: string[]): Promise<InterExpenseProposalRead[]> {
+  async readProposalsByHashes(coopname: string, proposalHashes: string[]): Promise<InnerExpenseProposalRead[]> {
     if (proposalHashes.length === 0) return [];
     const normalized = proposalHashes.map((h) => h.toLowerCase());
     const entities = await this.repository.find({
@@ -113,8 +113,8 @@ export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPo
     coopname: string,
     ownerContract: string,
     ownerAction?: string,
-    pagination?: InterExpensePagination,
-  ): Promise<InterExpensePaginatedResult<InterExpenseProposalRead>> {
+    pagination?: InnerExpensePagination,
+  ): Promise<InnerExpensePaginatedResult<InnerExpenseProposalRead>> {
     const sortBy = pagination?.sortBy === 'createdAt' ? 'expense_proposal.created_at' : 'expense_proposal.updated_at';
     const sortOrder = pagination?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
     const limit = pagination?.limit ?? 50;
@@ -134,7 +134,7 @@ export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPo
     return { items: entities.map((e) => this.toRead(e)), totalCount };
   }
 
-  private toRead(e: ExpenseProposalTypeormEntity): InterExpenseProposalRead {
+  private toRead(e: ExpenseProposalTypeormEntity): InnerExpenseProposalRead {
     return {
       coopname: e.coopname,
       proposalHash: e.proposal_hash,
@@ -144,7 +144,7 @@ export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPo
       callback: e.callback
         ? { contract: e.callback.contract, action: e.callback.action, data: e.callback.data }
         : undefined,
-      items: (e.items ?? []).map((it): InterExpenseItem => ({
+      items: (e.items ?? []).map((it): InnerExpenseItem => ({
         itemHash: it.item_hash,
         mechanics: it.mechanics,
         recipientType: it.recipient_type,
@@ -161,7 +161,7 @@ export class ExpensesInterExpenseChassisAdapter implements InterExpenseChassisPo
     };
   }
 
-  private mapStatus(status: ExpenseProposalStatus | undefined): InterExpenseProposalStatus {
+  private mapStatus(status: ExpenseProposalStatus | undefined): InnerExpenseProposalStatus {
     switch (status) {
       case ExpenseProposalStatus.CREATED:
         return 'CREATED';
