@@ -17,14 +17,16 @@
         template(v-if='certificate')
           DataRow(label='Цепочка подписей')
             template(#value-override)
-              .cert__chips
-                template(v-for='(step, i) in chainSteps', :key='i')
-                  BaseChip(:variant='step.variant') {{ step.label }}
-                  q-icon.cert__chain-arrow(
-                    v-if='i < chainSteps.length - 1',
-                    name='arrow_forward',
-                    size='16px'
-                  )
+              .cert__chain-cell
+                .cert__chips
+                  template(v-for='(step, i) in chainSteps', :key='i')
+                    BaseChip(:variant='step.variant') {{ step.label }}
+                    q-icon.cert__chain-arrow(
+                      v-if='i < chainSteps.length - 1',
+                      name='arrow_forward',
+                      size='16px'
+                    )
+                .cert__warn(v-if='!isEndorsed') Удостоверение не утверждено АНО
           DataRow(v-if='verificationLabels.length', label='Уровень верификации')
             template(#value-override)
               .cert__chips
@@ -59,6 +61,11 @@
       CertificateQr.cert-show__qr(:jws='certificate.jws', :size='qrShowSize')
       .cert-show__name {{ identity.fullName }}
       .cert-show__meta {{ system.cooperativeDisplayName || certificate.coopname }}
+      //- Годность кода: проверяющий должен видеть, что предъявляемое свежее, а
+      //- предъявляющий — сколько у него осталось времени.
+      .cert-show__validity
+        span.cert-show__until Годен до {{ validUntil }}
+        span.cert-show__left(:class='{ "cert-show__left--low": secondsLeft <= 60 }') {{ countdown }}
       .cert-show__hint Поднесите код к сканеру проверяющего
 
   //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
@@ -176,7 +183,7 @@ import type {
   IIndividualData,
   IOrganizationData,
 } from 'src/shared/lib/types/user/IUserData';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { IdentityPanel } from 'src/shared/ui/domain/IdentityPanel';
 import type { Identity } from 'src/shared/ui/domain/IdentityPanel';
@@ -211,20 +218,43 @@ onMounted(async () => {
 // Имена кооперативов не перечисляем списком: свой берём из настроек кооператива,
 // чужие показываем как есть. Прежний список знал ровно два имени и на любом другом
 // кооперативе показал бы чужие названия.
+/** Якорь доверия сети: с него обязана начинаться цепочка подписей. */
+const TRUST_ANCHOR_ACCOUNT = 'ano';
+
+// Полное имя, а не аббревиатура: рядом стоит «ПК Восход», и «АНО» одиноким
+// сокращением читалось бы как обрезанное название.
 const CHAIN_LABELS: Record<string, string> = {
-  ano: 'АНО',
+  [TRUST_ANCHOR_ACCOUNT]: 'АНО Кооперативная экономика',
 };
 function chainLabel(account: string): string {
   if (CHAIN_LABELS[account]) return CHAIN_LABELS[account];
   if (account === system.info.coopname) return system.cooperativeDisplayName || account;
   return account;
 }
+/**
+ * Утверждено ли удостоверение якорем доверия. Цепь обязана начинаться с АНО: она
+ * заверяет кооперативы, кооперативы — пайщиков. Если якоря в цепи нет, кооператив
+ * оказывается сам себе и издателем, и подтверждающим, а такое подтверждение ничего
+ * не стоит.
+ *
+ * Проверять существование аккаунта отдельным запросом не нужно: цепь собирает
+ * сервер, читая ключи заверения прямо из блокчейна, и звено якоря появляется в ней
+ * тогда и только тогда, когда аккаунт заведён и его ключ опубликован.
+ */
+const isEndorsed = computed(() => (certificate.value?.coop_chain ?? [])[0]?.account === TRUST_ANCHOR_ACCOUNT);
+
+/**
+ * Цепочка целиком одного цвета: зелёная, когда удостоверение утверждено, красная,
+ * когда нет. Половинчатой раскраски здесь быть не может — цепь либо ведёт к якорю,
+ * либо не ведёт, и промежуточных состояний у доверия нет.
+ */
 const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() => {
+  const variant: BaseChipVariant = isEndorsed.value ? 'pos' : 'neg';
   const links = (certificate.value?.coop_chain ?? []).map((l) => ({
     label: chainLabel(l.account),
-    variant: 'neutral' as BaseChipVariant,
+    variant,
   }));
-  return [...links, { label: 'Вы', variant: 'accent' as BaseChipVariant }];
+  return [...links, { label: 'Вы', variant }];
 });
 
 // Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).
@@ -246,6 +276,33 @@ const verificationLabels = computed(() =>
 const showQr = ref(false);
 const qrShowSize = ref(320);
 
+// ── Годность показанного кода ────────────────────────────────────────────────
+// Код годен ограниченное время, и это единственная величина, которую проверяющему
+// важно видеть рядом с самим кодом: свежий он или уже просрочен. Пайщику тот же
+// счётчик отвечает на вопрос «успею ли дойти».
+const now = ref(Date.now());
+let tick: ReturnType<typeof setInterval> | null = null;
+
+const secondsLeft = computed(() => {
+  const exp = (certificate.value?.exp ?? 0) * 1000;
+  if (!exp) return 0;
+  return Math.max(0, Math.floor((exp - now.value) / 1000));
+});
+
+const validUntil = computed(() => {
+  const exp = (certificate.value?.exp ?? 0) * 1000;
+  if (!exp) return '';
+  return new Date(exp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+});
+
+const countdown = computed(() => {
+  const left = secondsLeft.value;
+  if (left <= 0) return 'обновляем…';
+  const m = Math.floor(left / 60);
+  const sec = left % 60;
+  return `осталось ${m}:${String(sec).padStart(2, '0')}`;
+});
+
 /**
  * Размер кода на весь экран считаем по меньшей стороне — чтобы влезал и в портрет,
  * и в ландшафт. Пересчитываем при каждом открытии: экран могли повернуть, а
@@ -256,7 +313,47 @@ function openQr(): void {
     qrShowSize.value = Math.min(Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.7), 520);
   }
   showQr.value = true;
+  startTicking();
 }
+
+/**
+ * Счётчик идёт, только пока код на экране: держать его постоянно незачем, а по
+ * исчерпании годности удостоверение перевыпрашивается сразу — иначе пайщик стоит
+ * перед проверяющим с кодом, который уже не примут.
+ */
+function startTicking(): void {
+  if (tick) return;
+  now.value = Date.now();
+  tick = setInterval(() => {
+    now.value = Date.now();
+    if (secondsLeft.value <= 0) void renewCertificate();
+  }, 1000);
+}
+
+function stopTicking(): void {
+  if (tick) clearInterval(tick);
+  tick = null;
+}
+
+let renewing = false;
+async function renewCertificate(): Promise<void> {
+  if (renewing) return;
+  renewing = true;
+  try {
+    certificate.value = await fetchParticipantCertificate();
+  } catch {
+    // Сеть недоступна — оставляем прежний код и счётчик на нуле: врать «годен»
+    // нельзя, а показать нечего.
+  } finally {
+    renewing = false;
+  }
+}
+
+watch(showQr, (open) => {
+  if (!open) stopTicking();
+});
+
+onBeforeUnmount(stopTicking);
 
 const userType = computed(() => {
   return session.privateAccount?.type;
@@ -467,6 +564,42 @@ const getRepresentativeName = (representative: any) => {
 .cert-show__meta {
   color: var(--p-ink-2);
 }
+.cert-show__validity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--p-3);
+  margin-top: var(--p-2);
+}
+.cert-show__until {
+  color: var(--p-ink-2);
+}
+.cert-show__left {
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
+}
+/* Последняя минута — предупреждением: успеть показать или дождаться перевыпуска. */
+.cert-show__left--low {
+  color: var(--p-warn);
+}
+.cert__chain-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-1);
+}
+/* Неутверждённое удостоверение — красным и словами: цепочка из одного звена
+   выглядит как обычная, и без надписи её несостоятельность не видна. */
+.cert__warn {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-neg);
+}
+@media (max-width: 599px) {
+  .cert__chain-cell {
+    align-items: flex-start;
+  }
+}
+
 .cert-show__hint {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
