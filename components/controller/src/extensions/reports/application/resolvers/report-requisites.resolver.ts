@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { config } from '~/config';
 import {
   ReportRequisitesViewDTO,
@@ -39,7 +39,7 @@ export class ReportRequisitesResolver {
   @AuthRoles(['chairman'])
   async updateReportRequisites(
     @Args('input', { type: () => UpdateReportRequisitesInputDTO }) input: UpdateReportRequisitesInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportRequisitesViewDTO> {
     const merged = await this.service.upsert({
       coopname: config.coopname,

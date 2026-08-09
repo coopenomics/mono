@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CANDIDATE_DATA_PORT, CandidateDataPort } from '~/domain/registration/ports/candidate-data.port';
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
 import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '~/extensions/capital/domain/repositories/contributor.repository';
 
@@ -19,7 +19,7 @@ export class CapitalRegistrationService {
    * Получение кандидатов ядра, обогащенных данными благороста
    */
   async getCapitalCandidates(
-    currentUser: MonoAccountDomainInterface,
+    currentUser: IMonoAccount,
     filter?: CandidateFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<CapitalCandidateOutputDTO>> {

@@ -3,7 +3,7 @@ import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import type { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { IssuePermissionsOutputDTO } from '../dto/generation/issue-permissions.dto';
 import { ProjectPermissionsOutputDTO } from '../dto/project_management/project-permissions.dto';
 import { IssuePermissionsService, IssueAction, ProjectAction } from './issue-permissions.service';
@@ -32,7 +32,7 @@ export class PermissionsService {
    * @param currentUser - текущий пользователь (может быть undefined для гостей)
    * @returns true если пользователь имеет роль chairman или member
    */
-  private isBoardMember(currentUser?: MonoAccountDomainInterface): boolean {
+  private isBoardMember(currentUser?: IMonoAccount): boolean {
     const role = currentUser?.role;
     return role === 'chairman' || role === 'member';
   }
@@ -42,7 +42,7 @@ export class PermissionsService {
    * @param currentUser - текущий пользователь (может быть undefined для гостей)
    * @returns true если пользователь имеет роль chairman
    */
-  private isChairman(currentUser?: MonoAccountDomainInterface): boolean {
+  private isChairman(currentUser?: IMonoAccount): boolean {
     return currentUser?.role === 'chairman';
   }
 
@@ -114,7 +114,7 @@ export class PermissionsService {
    */
   async filterProjectHashesWithArtifactAccess(
     candidateHashes: string[],
-    currentUser?: MonoAccountDomainInterface,
+    currentUser?: IMonoAccount,
     parentProjectHash?: string
   ): Promise<string[]> {
     if (this.isBoardMember(currentUser)) {
@@ -152,7 +152,7 @@ export class PermissionsService {
    */
   async canViewProjectArtifacts(
     project: ProjectDomainEntity,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<boolean> {
     if (this.isBoardMember(currentUser)) {
       return true;
@@ -180,7 +180,7 @@ export class PermissionsService {
    */
   async calculateIssuePermissions(
     issue: IssueDomainEntity,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssuePermissionsOutputDTO> {
     // Для гостей (неавторизованных пользователей) все права false
     if (!currentUser?.username) {
@@ -333,7 +333,7 @@ export class PermissionsService {
    */
   async calculateProjectPermissions(
     project: ProjectDomainEntity,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectPermissionsOutputDTO> {
     // Для гостей (неавторизованных пользователей) все права false
     if (!currentUser?.username) {
@@ -465,7 +465,7 @@ export class PermissionsService {
    */
   async calculateBatchIssuePermissions(
     issues: IssueDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<Map<string, IssuePermissionsOutputDTO>> {
     const permissionsMap = new Map<string, IssuePermissionsOutputDTO>();
 
@@ -487,7 +487,7 @@ export class PermissionsService {
    */
   async calculateBatchProjectPermissions(
     projects: ProjectDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<Map<string, ProjectPermissionsOutputDTO>> {
     const permissionsMap = new Map<string, ProjectPermissionsOutputDTO>();
 

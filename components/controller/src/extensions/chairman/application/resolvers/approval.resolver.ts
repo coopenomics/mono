@@ -5,7 +5,7 @@ import { ConfirmApproveInputDTO } from '../dto/confirm-approve-input.dto';
 import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
@@ -71,7 +71,7 @@ export class ApprovalResolver {
   @AuthRoles(['chairman'])
   async confirmApprove(
     @Args('data', { type: () => ConfirmApproveInputDTO }) data: ConfirmApproveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ApprovalDTO> {
     return await this.approvalService.confirmApprove(data, currentUser.username);
   }
@@ -87,7 +87,7 @@ export class ApprovalResolver {
   @AuthRoles(['chairman'])
   async declineApprove(
     @Args('data', { type: () => DeclineApproveInputDTO }) data: DeclineApproveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ApprovalDTO> {
     return await this.approvalService.declineApprove(data, currentUser.username);
   }

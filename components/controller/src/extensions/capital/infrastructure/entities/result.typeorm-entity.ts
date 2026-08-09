@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { ResultStatus } from '../../domain/enums/result-status.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_results';
@@ -44,13 +44,13 @@ export class ResultTypeormEntity extends BaseTypeormEntity {
   total_amount!: string;
 
   @Column({ type: 'json', nullable: true })
-  statement!: ISignedDocumentDomainInterface;
+  statement!: ISignedDocument;
 
   @Column({ type: 'json', nullable: true })
-  authorization!: ISignedDocumentDomainInterface;
+  authorization!: ISignedDocument;
 
   @Column({ type: 'json', nullable: true })
-  act!: ISignedDocumentDomainInterface;
+  act!: ISignedDocument;
 
   @Column({ type: 'text', nullable: true })
   data?: string;

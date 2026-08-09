@@ -14,7 +14,7 @@ import {
 } from '../dto/time_tracker/worklog.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
 
 const paginatedTimeEntriesResult = createPaginationResult(TimeEntryOutputDTO, 'PaginatedCapitalTimeEntries');
@@ -79,7 +79,7 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getOpenTimer(
     @Args('data') data: CapitalGetOpenTimerInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalTimerSessionOutputDTO | null> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.getOpenTimer(data);
@@ -93,7 +93,7 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async addWorklog(
     @Args('data') data: CapitalAddWorklogInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TimeEntryOutputDTO> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.addWorklog(data);
@@ -107,7 +107,7 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async startTimer(
     @Args('data') data: CapitalStartTimerInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalTimerSessionOutputDTO> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.startTimer(data);
@@ -122,7 +122,7 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async stopTimer(
     @Args('data') data: CapitalStopTimerInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TimeEntryOutputDTO | null> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.stopTimer(data);
@@ -136,7 +136,7 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async pauseTimer(
     @Args('data') data: CapitalPauseTimerInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalTimerSessionOutputDTO> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.pauseTimer(data);
@@ -150,13 +150,13 @@ export class TimeTrackerResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async resumeTimer(
     @Args('data') data: CapitalResumeTimerInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalTimerSessionOutputDTO> {
     this.assertSelfOrElevated(data.username, currentUser);
     return this.timeTrackingService.resumeTimer(data);
   }
 
-  private assertSelfOrElevated(username: string, currentUser: MonoAccountDomainInterface): void {
+  private assertSelfOrElevated(username: string, currentUser: IMonoAccount): void {
     if (username === currentUser.username) return;
     const role = (currentUser as { role?: string }).role;
     if (role === 'chairman' || role === 'member') return;

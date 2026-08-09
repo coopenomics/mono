@@ -26,7 +26,7 @@ import type {
 } from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOrderMapper } from '../mappers/marketplace-order.mapper';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 @Injectable()
 export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomainRepository {
@@ -434,7 +434,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocumentDomainInterface;
+      issue_act_signiss1_document: ISignedDocument;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
     const before = await this.repo.findOneOrFail({ where: { id } });

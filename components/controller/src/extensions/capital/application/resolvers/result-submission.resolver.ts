@@ -13,7 +13,7 @@ import { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
 // Пагинированные результаты
@@ -37,7 +37,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async pushCapitalResult(
     @Args('data', { type: () => PushResultInputDTO }) data: PushResultInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.pushResult(data, currentUser);
     return result;
@@ -54,7 +54,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member'])
   async convertCapitalSegment(
     @Args('data', { type: () => ConvertSegmentInputDTO }) data: ConvertSegmentInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.convertSegment(data, currentUser);
     return result;
@@ -109,7 +109,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionStatementGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionStatement(data, options, currentUser);
   }
@@ -129,7 +129,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionDecisionGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionDecision(data, options, currentUser);
   }
@@ -149,7 +149,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionActGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionAct(data, options, currentUser);
   }
@@ -167,7 +167,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async signActAsContributor(
     @Args('data', { type: () => SignActAsContributorInputDTO }) data: SignActAsContributorInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.signActAsContributor(data, currentUser);
     return result;
@@ -184,7 +184,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman'])
   async signActAsChairman(
     @Args('data', { type: () => SignActAsChairmanInputDTO }) data: SignActAsChairmanInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.signActAsChairman(data, currentUser);
     return result;

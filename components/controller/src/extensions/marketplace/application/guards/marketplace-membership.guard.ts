@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, 
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import { platformSettings, hasServerSecret } from '@coopenomics/extension-kit';
-import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
+import { MonoAccountStatus } from '@coopenomics/innercoop';
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
@@ -60,7 +60,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
       throw new UnauthorizedException('Требуется авторизованный пользователь');
     }
 
-    if (user.status !== MonoAccountStatusDomainInterface.Active) {
+    if (user.status !== MonoAccountStatus.Active) {
       throw new ForbiddenException('Доступ только для пайщиков кооператива');
     }
 

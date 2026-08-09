@@ -81,7 +81,7 @@ import http from 'http-status';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
@@ -758,7 +758,7 @@ export class MarketplaceAplReceptionService {
       // Сохраняем supplier-подписанные документы, чтобы при закрывающей
       // подписи отдать председателю подпись поставщика (Capital-паттерн
       // приёма РИД); фронт цепь не читает.
-      supplier_signed_documents: input.signed_documents as ISignedDocumentDomainInterface[],
+      supplier_signed_documents: input.signed_documents as ISignedDocument[],
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
     });
 
@@ -1677,7 +1677,7 @@ export class MarketplaceAplReceptionService {
     return new SignedDigitalDocumentInputDTO(signed).toDocument();
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) {
       throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');

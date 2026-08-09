@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 /**
  * Доменный интерфейс для действия создания долга CAPITAL контракта
  */
@@ -22,5 +22,5 @@ export interface CreateDebtDomainInput {
   repaid_at: string;
 
   /** Заявление */
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }

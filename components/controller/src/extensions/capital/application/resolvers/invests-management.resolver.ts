@@ -16,7 +16,7 @@ import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.in
 import { GetInvestInputDTO } from '../dto/invests_management/get-invest-input.dto';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 // Пагинированные результаты
 const paginatedInvestsResult = createPaginationResult(InvestOutputDTO, 'PaginatedCapitalInvests');
@@ -39,7 +39,7 @@ export class InvestsManagementResolver {
   @AuthRoles(['participant'])
   async createCapitalProjectInvest(
     @Args('data', { type: () => CreateProjectInvestInputDTO }) data: CreateProjectInvestInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.investsManagementService.createProjectInvest(data, currentUser);
     return result;
@@ -56,7 +56,7 @@ export class InvestsManagementResolver {
   @AuthRoles(['participant'])
   async createCapitalProgramInvest(
     @Args('data', { type: () => CreateProgramInvestInputDTO }) data: CreateProgramInvestInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return await this.investsManagementService.createProgramInvest(data, currentUser);
   }

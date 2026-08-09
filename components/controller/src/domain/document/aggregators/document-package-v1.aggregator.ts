@@ -12,7 +12,7 @@ import type { DocumentPackageAggregateDomainInterface } from '../interfaces/docu
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
 import type { DecisionDetailAggregateDomainInterface } from '../interfaces/decision-detail-aggregate-domain.interface';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/interfaces/extended-blockchain-action-domain.interface';
 
 @Injectable()
@@ -97,7 +97,7 @@ export class DocumentPackageV1Aggregator {
     };
 
     // signatures уже есть в rawData.document
-    const signedMainDoc: ISignedDocumentDomainInterface = {
+    const signedMainDoc: ISignedDocument = {
       version: rawData.document.version,
       hash: rawData.document.hash,
       doc_hash: rawData.document.doc_hash,
@@ -164,7 +164,7 @@ export class DocumentPackageV1Aggregator {
     }
 
     // signatures уже есть в decisionAction.data.document
-    const signedDecisionDoc: ISignedDocumentDomainInterface = {
+    const signedDecisionDoc: ISignedDocument = {
       version: decisionAction.data?.document?.version,
       hash: decisionAction.data?.document?.hash,
       doc_hash: decisionAction.data?.document?.doc_hash,
@@ -234,7 +234,7 @@ export class DocumentPackageV1Aggregator {
       }
 
       // signatures уже есть в actAction.data.document
-      const signedActDoc: ISignedDocumentDomainInterface = {
+      const signedActDoc: ISignedDocument = {
         version: actAction.data?.document?.version,
         hash: actAction.data?.document?.hash,
         doc_hash: actAction.data?.document?.doc_hash,
@@ -287,7 +287,7 @@ export class DocumentPackageV1Aggregator {
     const agreementDocument = await this.findLinkedAgreementDocument(linkHash);
     if (!agreementDocument) return null;
 
-    const signedLinkedDoc: ISignedDocumentDomainInterface = {
+    const signedLinkedDoc: ISignedDocument = {
       version,
       hash: linkedDoc.hash,
       doc_hash: linkedDoc.hash,

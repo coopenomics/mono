@@ -9,7 +9,7 @@ import type {
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
 import { AssetUtils } from '~/shared/utils/asset.utils';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
@@ -38,7 +38,7 @@ export class InvestsManagementService {
    */
   async createProjectInvest(
     data: CreateProjectInvestInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
@@ -67,7 +67,7 @@ export class InvestsManagementService {
    */
   async createProgramInvest(
     data: CreateProgramInvestInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме программной инвестиции');
     await verifySignedDocumentAgainstStoredDraft(

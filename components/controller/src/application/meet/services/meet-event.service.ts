@@ -25,7 +25,7 @@ export class MeetEventService {
   @OnEvent(`action::${MeetContract.contractName.production}::${MeetContract.Actions.NewDecision.actionName}`)
   async handleMeetDecision(event: IAction): Promise<void> {
     try {
-      // Преобразуем блокчейн-документ в формат ISignedDocumentDomainInterface
+      // Преобразуем блокчейн-документ в формат ISignedDocument
       const decisionDocument = DomainToBlockchainUtils.convertChainDocumentToSignedDocument2(event.data.decision);
 
       // Нормализуем числовые значения

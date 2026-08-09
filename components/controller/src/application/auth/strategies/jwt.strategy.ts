@@ -27,7 +27,7 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
 
     const user = await resolveUserBySub(payload.sub, this.userRepository, this.userDomainService);
 
-    // Возвращаем объект в формате, совместимом с MonoAccountDomainInterface
+    // Возвращаем объект в формате, совместимом с IMonoAccount
     return {
       id: user.id,
       username: user.username,

@@ -3,7 +3,7 @@ import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity
 import type { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
 import type { IContributorBlockchainData } from '../../domain/interfaces/contributor-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorBlockchainData>;
@@ -112,7 +112,7 @@ export class ContributorMapper {
         status: domain.status as any,
         memo: domain.memo as string,
         is_external_contract: domain.is_external_contract as boolean,
-        contract: domain.contract as ISignedDocumentDomainInterface,
+        contract: domain.contract as ISignedDocument,
         appendixes: domain.appendixes as string[],
         rate_per_hour: domain.rate_per_hour as string,
         hours_per_day: domain.hours_per_day as number,

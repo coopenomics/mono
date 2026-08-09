@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type {
   IExpenseItemBlockchainData,
   IExpenseProposalCallbackHandler,
@@ -51,10 +51,10 @@ export class ExpenseProposalTypeormEntity extends BaseTypeormEntity {
   callback!: IExpenseProposalCallbackHandler | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  statement_doc!: ISignedDocumentDomainInterface | null;
+  statement_doc!: ISignedDocument | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  decision_doc!: ISignedDocumentDomainInterface | null;
+  decision_doc!: ISignedDocument | null;
 
   @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;

@@ -5,7 +5,7 @@ import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '../interfac
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 import config from '~/config/config';
 import { AccountDomainEntity } from '../entities/account-domain.entity';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import type { RegisterAccountDomainInterface } from '../interfaces/register-account-input.interface';
 import { ENTREPRENEUR_REPOSITORY, EntrepreneurRepository } from '~/domain/common/repositories/entrepreneur.repository';
@@ -143,7 +143,7 @@ export class AccountDomainService {
     }
   }
 
-  async addProviderAccount(data: RegisterAccountDomainInterface): Promise<MonoAccountDomainInterface> {
+  async addProviderAccount(data: RegisterAccountDomainInterface): Promise<IMonoAccount> {
     // Создаем пользователя
     const user = await this.createUser({ ...data, role: 'user' });
     if (!user) {
@@ -175,7 +175,7 @@ export class AccountDomainService {
       is_email_verified: updatedUser.is_email_verified,
       subscriber_id: updatedUser.subscriber_id,
       subscriber_hash: updatedUser.subscriber_hash,
-    } as MonoAccountDomainInterface;
+    } as IMonoAccount;
   }
 
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
@@ -233,7 +233,7 @@ export class AccountDomainService {
           is_email_verified: user.is_email_verified,
           subscriber_id: user.subscriber_id,
           subscriber_hash: user.subscriber_hash,
-        } as MonoAccountDomainInterface)
+        } as IMonoAccount)
       : null;
 
     let individual_data, organization_data, entrepreneur_data;

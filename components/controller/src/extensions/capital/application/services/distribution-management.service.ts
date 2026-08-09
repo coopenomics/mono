@@ -8,7 +8,7 @@ import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/applicatio
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import type { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL
@@ -46,7 +46,7 @@ export class DistributionManagementService {
   async generateGenerationConvertStatement(
     data: GenerationConvertStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     const enrichedData = await this.distributionManagementInteractor.prepareGenerationConvertStatementData(data, currentUser);
     const document = await this.documentInteractor.generateDocument({

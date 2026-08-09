@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TranscriptionManagementService } from '../../domain/services/transcription-management.service';
 import { MatrixApiService } from '../services/matrix-api.service';
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
@@ -108,7 +108,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscriptions(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionsInputDTO, nullable: true })
     data?: GetTranscriptionsInputDTO
   ): Promise<CallTranscriptionResponseDTO[]> {
@@ -136,7 +136,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscription(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionInputDTO }) data: GetTranscriptionInputDTO
   ): Promise<CallTranscriptionWithSegmentsDTO | null> {
     this.logger.log(`Запрос транскрипции ${data.id}: user=${currentUser.username}, role=${currentUser.role}`);
@@ -162,7 +162,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async updateTranscriptionMemo(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => UpdateCallTranscriptionMemoInputDTO }) data: UpdateCallTranscriptionMemoInputDTO
   ): Promise<CallTranscriptionResponseDTO> {
     this.logger.log(

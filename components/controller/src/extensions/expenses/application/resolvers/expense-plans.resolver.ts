@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlJwtAuthGuard, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   EXPENSE_PLANS_SERVICE,
   ExpensePlansService,
@@ -49,7 +49,7 @@ export class ExpensePlansResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async createExpensePlan(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: CreateExpensePlanInputDTO
   ): Promise<ExpensePlanDTO> {
     const plan = await this.plansService.createPlan(platformSettings().coopname, currentUser.username, {
@@ -70,7 +70,7 @@ export class ExpensePlansResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async deleteExpensePlan(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: DeleteExpensePlanInputDTO
   ): Promise<boolean> {
     await this.plansService.deletePlan(platformSettings().coopname, currentUser.username, data.plan_id);

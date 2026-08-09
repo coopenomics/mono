@@ -5,7 +5,7 @@
  * зависимостей нет, а расширению путь `~/domain/**` недоступен.
  */
 // Новые интерфейсы для обновленной версии документов
-export interface ISignatureInfoDomainInterface {
+export interface ISignatureInfo {
   id: number;
   signed_hash: string;
   signer: string; // eosio::name в виде строки

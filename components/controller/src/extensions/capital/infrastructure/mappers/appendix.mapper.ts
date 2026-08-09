@@ -3,7 +3,7 @@ import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixDatabaseData>;
 /**
@@ -84,7 +84,7 @@ export class AppendixMapper {
         appendix_hash: domain.appendix_hash,
         blockchain_status: domain.blockchain_status as string,
         created_at: domain.created_at ? new Date(domain.created_at) : new Date(),
-        appendix: domain.appendix as ISignedDocumentDomainInterface,
+        appendix: domain.appendix as ISignedDocument,
       };
     }
 

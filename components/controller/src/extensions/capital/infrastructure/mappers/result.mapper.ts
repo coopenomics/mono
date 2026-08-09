@@ -4,7 +4,7 @@ import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
@@ -100,9 +100,9 @@ export class ResultMapper {
         created_at: new Date(domain.created_at ?? new Date()),
         debt_amount: domain.debt_amount as string,
         total_amount: domain.total_amount as string,
-        statement: domain.statement as ISignedDocumentDomainInterface,
-        authorization: domain.authorization as ISignedDocumentDomainInterface,
-        act: domain.act as ISignedDocumentDomainInterface,
+        statement: domain.statement as ISignedDocument,
+        authorization: domain.authorization as ISignedDocument,
+        act: domain.act as ISignedDocument,
       };
     }
 

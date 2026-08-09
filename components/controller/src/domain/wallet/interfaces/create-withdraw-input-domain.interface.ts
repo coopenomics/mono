@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для создания вывода средств (withdraw)
@@ -9,6 +9,6 @@ export interface CreateWithdrawInputDomainInterface {
   quantity: number;
   symbol: string;
   method_id: string;
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
   payment_hash: string; // Хеш платежа, генерируется на фронтенде
 }

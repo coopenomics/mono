@@ -5,7 +5,7 @@ import { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-p
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
@@ -69,7 +69,7 @@ export class DistributionManagementResolver {
     data: GenerationConvertStatementGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.distributionManagementService.generateGenerationConvertStatement(data, options, currentUser);
   }

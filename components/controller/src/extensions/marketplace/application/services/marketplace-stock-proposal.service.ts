@@ -21,7 +21,7 @@ import {
 } from '~/domain/wallet/repositories/user-wallet.repository';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
@@ -73,7 +73,7 @@ export interface MarketplaceStockProposalCreateLine {
   /** Детерминированный order_hash (из payloads оператора). */
   order_hash: string;
   /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
-  signiss1_act: ISignedDocumentDomainInterface;
+  signiss1_act: ISignedDocument;
 }
 
 /**
@@ -88,7 +88,7 @@ export interface MarketplaceOrderProposalCreateLine {
   /** Фактическая цена за единицу (оператор мог скорректировать). */
   actual_unit_price: string;
   /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
-  signiss1_act: ISignedDocumentDomainInterface;
+  signiss1_act: ISignedDocument;
 }
 
 export interface MarketplaceStockProposalCreateInput {
@@ -809,7 +809,7 @@ export class MarketplaceStockProposalService {
     member_account: string
   ): Promise<void> {
     const stored = item.signiss1_act!;
-    const sub = submitted as unknown as ISignedDocumentDomainInterface;
+    const sub = submitted as unknown as ISignedDocument;
     const label = item.product_name || item.offer_id;
 
     // 1. Тот же документ, что подписал оператор: тело и мета НЕ подменены.

@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { KuService } from '../services/ku.service';
 import { KuDecisionDTO, KuDecisionFilterInputDTO } from '../dto/ku-decision.dto';
@@ -54,7 +54,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuCreateDecision(
     @Args('data', { type: () => CreateKuDecisionInputDTO }) data: CreateKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.createDecision(data, currentUser);
   }
@@ -67,7 +67,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuJoinDecision(
     @Args('data', { type: () => JoinKuDecisionInputDTO }) data: JoinKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.joinDecision(data, currentUser);
   }
@@ -80,7 +80,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuStartDecision(
     @Args('data', { type: () => StartKuDecisionInputDTO }) data: StartKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.startDecision(data, currentUser);
   }
@@ -93,7 +93,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuVoteOnDecision(
     @Args('data', { type: () => VoteOnKuDecisionInputDTO }) data: VoteOnKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.voteOnDecision(data, currentUser);
   }
@@ -106,7 +106,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuCloseDecision(
     @Args('data', { type: () => CloseKuDecisionInputDTO }) data: CloseKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.closeDecision(data, currentUser);
   }
@@ -119,7 +119,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuExecDecision(
     @Args('data', { type: () => ExecKuDecisionInputDTO }) data: ExecKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.execDecision(data, currentUser);
   }
@@ -132,7 +132,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuCancelDecision(
     @Args('data', { type: () => CancelKuDecisionInputDTO }) data: CancelKuDecisionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.cancelDecision(data, currentUser);
   }
@@ -149,7 +149,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuRequestTrusted(
     @Args('data', { type: () => RequestKuTrustedInputDTO }) data: RequestKuTrustedInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.requestTrusted(data, currentUser);
   }
@@ -162,7 +162,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuApproveTrusted(
     @Args('data', { type: () => ApproveKuTrustedInputDTO }) data: ApproveKuTrustedInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.approveTrusted(data, currentUser);
   }
@@ -175,7 +175,7 @@ export class KuResolver {
   @AuthRoles(['user', 'member', 'chairman'])
   async kuDeclineTrusted(
     @Args('data', { type: () => DeclineKuTrustedInputDTO }) data: DeclineKuTrustedInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.declineTrusted(data, currentUser);
   }

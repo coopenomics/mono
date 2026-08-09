@@ -13,7 +13,7 @@ import { PermissionsService } from '../services/permissions.service';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
 import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
@@ -58,7 +58,7 @@ export class GenerationInteractor {
    * Проверяет доступность указанного количества часов и фиксирует время
    * commit_hash: из Git diff, из привязанных GitHub-коммитов или из off-chain взноса без Git (nonce в meta)
    */
-  async createCommit(data: CreateCommitDomainInput, _currentUser: MonoAccountDomainInterface): Promise<CommitDomainEntity> {
+  async createCommit(data: CreateCommitDomainInput, _currentUser: IMonoAccount): Promise<CommitDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     assertBlockchainProject(project, 'фиксацию коммита');
 

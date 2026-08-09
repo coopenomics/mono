@@ -16,7 +16,7 @@ import { GetRequestInput } from '../dto/get-request-input.dto';
 import { GetRequestByHashInput } from '../dto/get-request-by-hash-input.dto';
 import { RequestType, RequestStatus } from '../../domain/entities/request-domain.entity';
 import { RequestImageType } from '../../domain/entities/request-image-domain.entity';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
  * GraphQL resolver для работы с заявками marketplace.
@@ -45,7 +45,7 @@ export class RequestResolver {
   async createRequest(
     @Args('data', { type: () => CreateRequestInput })
     data: CreateRequestInput,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<RequestDTO> {
     // Преобразуем входные данные в параметры для доменного сервиса
     const requestParams = {
@@ -136,7 +136,7 @@ export class RequestResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['member', 'chairman'])
   async getUserRequests(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetUserRequestsInput, nullable: true })
     data?: GetUserRequestsInput
   ): Promise<RequestDTO[]> {
@@ -209,7 +209,7 @@ export class RequestResolver {
   // async publishRequest(
   //   @Args('data', { type: () => PublishRequestInput })
   //   data: PublishRequestInput,
-  //   @CurrentUser() user: MonoAccountDomainInterface
+  //   @CurrentUser() user: IMonoAccount
   // ): Promise<RequestDTO> {
   //   // Проверяем, что заявка принадлежит пользователю
   //   const request = await this.requestService.findById(data.id);

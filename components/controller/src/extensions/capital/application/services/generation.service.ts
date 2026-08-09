@@ -65,7 +65,7 @@ import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   MATRIX_ROOM_MESSAGING_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -199,7 +199,7 @@ export class GenerationService {
    * Создание коммита в CAPITAL контракте
    * Возвращает полный объект коммита с обогащенными данными
    */
-  async createCommit(data: CreateCommitInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async createCommit(data: CreateCommitInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const commitEntity = await this.generationInteractor.createCommit(data, currentUser);
     return await this.commitMapperService.toDTO(commitEntity, currentUser);
   }
@@ -207,7 +207,7 @@ export class GenerationService {
   /**
    * Одобрение коммита в CAPITAL контракте
    */
-  async approveCommit(data: CommitApproveInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async approveCommit(data: CommitApproveInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitApproveDomainInput = {
       ...data,
       master: currentUser.username,
@@ -220,7 +220,7 @@ export class GenerationService {
   /**
    * Отклонение коммита в CAPITAL контракте
    */
-  async declineCommit(data: CommitDeclineInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async declineCommit(data: CommitDeclineInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitDeclineDomainInput = {
       ...data,
       master: currentUser.username,
@@ -235,7 +235,7 @@ export class GenerationService {
   /**
    * Создание истории
    */
-  async createStory(data: CreateStoryInputDTO, currentUser: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async createStory(data: CreateStoryInputDTO, currentUser: IMonoAccount): Promise<StoryOutputDTO> {
     // Проверяем права доступа на создание требования
     if (data.project_hash) {
       // Получаем проект и проверяем права на создание требования
@@ -492,7 +492,7 @@ export class GenerationService {
    */
   private async assertCanEditStoryRequirement(
     anchor: { project_hash?: string | null; issue_hash?: string | null },
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
       throw new Error('Требуется авторизация');
@@ -529,7 +529,7 @@ export class GenerationService {
    */
   private async assertCanDeleteStoryRequirement(
     story: Pick<StoryDomainEntity, 'project_hash' | 'issue_hash'>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     const projectHash = story.project_hash?.trim();
     if (projectHash) {
@@ -561,7 +561,7 @@ export class GenerationService {
   /**
    * Обновление истории
    */
-  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: IMonoAccount): Promise<StoryOutputDTO> {
     // Получаем существующую историю
     const existingStory = await this.storyRepository.findByStoryHash(data.story_hash);
 
@@ -642,7 +642,7 @@ export class GenerationService {
   async getStories(
     filter?: StoryFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<StoryOutputDTO>> {
     const emptyResult: PaginationResult<StoryOutputDTO> = {
       items: [],
@@ -823,7 +823,7 @@ export class GenerationService {
    */
   async getStoryByHash(
     storyHash: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<StoryOutputDTO | null> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
@@ -849,7 +849,7 @@ export class GenerationService {
   /**
    * Удаление истории по хэшу
    */
-  async deleteStoryByHash(storyHash: string, currentUser: MonoAccountDomainInterface): Promise<boolean> {
+  async deleteStoryByHash(storyHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
       throw new Error(`История с хэшем ${storyHash} не найдена`);
@@ -871,7 +871,7 @@ export class GenerationService {
   async createIssue(
     data: CreateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const projectHash = data.project_hash?.trim() || null;
     const isFree = !projectHash;
@@ -995,7 +995,7 @@ export class GenerationService {
    */
   async moveIssueToComponent(
     data: MoveCapitalIssueToComponentInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const targetHash = data.target_project_hash.toLowerCase();
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1121,7 +1121,7 @@ export class GenerationService {
   async updateIssue(
     data: UpdateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     // Получаем существующую задачу
     const existingIssue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1288,7 +1288,7 @@ export class GenerationService {
   async getIssues(
     filter?: IssueFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<IssueOutputDTO>> {
     // Получаем результат с пагинацией из домена
     const result = await this.issueRepository.findAllPaginated(filter, options);
@@ -1323,7 +1323,7 @@ export class GenerationService {
   /**
    * Получение задачи по ID
    */
-  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findById(data.id);
 
     if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
@@ -1344,7 +1344,7 @@ export class GenerationService {
   /**
    * Получение задачи по хэшу
    */
-  async getIssueByHash(issueHash: string, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueByHash(issueHash: string, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
 
     if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
@@ -1387,7 +1387,7 @@ export class GenerationService {
   async getCommits(
     filter?: CommitFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<CommitOutputDTO>> {
     const resolvedFilter = this.resolveCommitFilterForViewer(filter, currentUser);
 
@@ -1404,7 +1404,7 @@ export class GenerationService {
 
   private resolveCommitFilterForViewer(
     filter: CommitFilterInputDTO | undefined,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): CommitFilterInputDTO | undefined {
     if (!filter) {
       return filter;
@@ -1439,7 +1439,7 @@ export class GenerationService {
    */
   async getCommitById(
     data: GetCommitByIdInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findById(data.id);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
@@ -1448,7 +1448,7 @@ export class GenerationService {
   /**
    * Получение коммита по хэшу
    */
-  async getCommitByHash(commitHash: string, currentUser?: MonoAccountDomainInterface): Promise<CommitOutputDTO | null> {
+  async getCommitByHash(commitHash: string, currentUser?: IMonoAccount): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findByCommitHash(commitHash);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
   }
@@ -1501,7 +1501,7 @@ export class GenerationService {
   async generateGenerationMoneyInvestStatement(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Подготавливаем данные через интерактор
     const enrichedData = await this.investsManagementInteractor.prepareGenerationMoneyInvestStatementData(data, currentUser);

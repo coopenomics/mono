@@ -1,7 +1,7 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { config } from '~/config';
 import { ReportType } from '../../domain/enums/report-type.enum';
@@ -68,7 +68,7 @@ export class ReportCalendarResolver {
   @AuthRoles(['chairman'])
   async getReportCalendar(
     @Args('year', { type: () => Int }) year: number,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportCalendarRowDTO[]> {
     const coopname = config.coopname;
     const ownerUsername = currentUser.username;
@@ -135,7 +135,7 @@ export class ReportCalendarResolver {
   @AuthRoles(['chairman'])
   async markReportPeriod(
     @Args('data', { type: () => MarkReportPeriodInputDTO }) data: MarkReportPeriodInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
     const coopname = config.coopname;
     const period = data.period ?? null;

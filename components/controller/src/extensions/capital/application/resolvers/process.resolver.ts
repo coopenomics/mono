@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ProcessService } from '../services/process.service';
 import { ProcessTemplateDTO, CreateProcessTemplateInputDTO, UpdateProcessTemplateInputDTO } from '../dto/process/process-template.dto';
 import { ProcessInstanceDTO, StartProcessInputDTO, CompleteProcessStepInputDTO } from '../dto/process/process-instance.dto';
@@ -21,7 +21,7 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member'])
   async createProcessTemplate(
     @Args('data') data: CreateProcessTemplateInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessTemplateDTO> {
     return this.processService.createTemplate({
       coopname: config.coopname,
@@ -93,7 +93,7 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async startProcess(
     @Args('data') data: StartProcessInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessInstanceDTO> {
     return this.processService.startProcess({
       template_id: data.template_id,

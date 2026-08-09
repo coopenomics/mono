@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { InvestStatus } from '../../domain/enums/invest-status.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_invests';
@@ -41,7 +41,7 @@ export class InvestTypeormEntity extends BaseTypeormEntity {
   invested_at!: Date;
 
   @Column({ type: 'json' })
-  statement!: ISignedDocumentDomainInterface;
+  statement!: ISignedDocument;
 
   @Column({ type: 'varchar', length: 12, nullable: true })
   coordinator!: string;

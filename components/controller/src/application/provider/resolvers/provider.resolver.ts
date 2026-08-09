@@ -4,7 +4,7 @@ import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
 import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
 import { Throttle } from '@nestjs/throttler';
@@ -20,7 +20,7 @@ export class ProviderResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['member', 'chairman', 'user'])
   async getProviderSubscriptions(
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ProviderSubscriptionDTO[]> {
     return this.providerService.getUserSubscriptions(currentUser.username);
   }
@@ -42,7 +42,7 @@ export class ProviderResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['member', 'chairman', 'user'])
-  async getCurrentInstance(@CurrentUser() currentUser: MonoAccountDomainInterface): Promise<CurrentInstanceDTO | null> {
+  async getCurrentInstance(@CurrentUser() currentUser: IMonoAccount): Promise<CurrentInstanceDTO | null> {
     return this.providerService.getCurrentInstance(currentUser.username);
   }
 

@@ -4,7 +4,7 @@
  * Переехал из контроллера вместе с контрактом подписанного документа:
  * зависимостей нет, а расширению путь `~/domain/**` недоступен.
  */
-export enum MonoAccountStatusDomainInterface {
+export enum MonoAccountStatus {
   'Created' = 'created',
   'Joined' = 'joined',
   'Payed' = 'payed',
@@ -16,9 +16,9 @@ export enum MonoAccountStatusDomainInterface {
   'Blocked' = 'blocked',
 }
 
-export interface MonoAccountDomainInterface {
+export interface IMonoAccount {
   username: string;
-  status: MonoAccountStatusDomainInterface;
+  status: MonoAccountStatus;
   message?: string;
   is_registered: boolean;
   has_account: boolean;

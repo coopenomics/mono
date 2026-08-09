@@ -1,9 +1,9 @@
 import type { SovietContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 export type SelectBranchInputDomainInterface = Omit<
   SovietContract.Actions.Branches.SelectBranch.ISelectBranch,
   'document'
 > & {
-  document: ISignedDocumentDomainInterface;
+  document: ISignedDocument;
 };

@@ -4,7 +4,7 @@ import type { IProgramWithdrawDatabaseData } from '../../domain/interfaces/progr
 import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/program-withdraw-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ProgramWithdrawStatus } from '../../domain/enums/program-withdraw-status.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawBlockchainData>;
@@ -75,7 +75,7 @@ export class ProgramWithdrawMapper {
         username: domain.username as string,
         status: domain.status as ProgramWithdrawStatus,
         amount: domain.amount as string,
-        statement: domain.statement as ISignedDocumentDomainInterface,
+        statement: domain.statement as ISignedDocument,
         created_at: new Date(domain.created_at ?? new Date()),
       };
     }

@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { Classes } from '@coopenomics/sdk';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 
@@ -31,7 +31,7 @@ export type LoadGeneratedDocumentByDocHash = (docHash: string) => Promise<Docume
  */
 export async function verifySignedDocumentAgainstStoredDraft(
   loadGeneratedByDocHash: LoadGeneratedDocumentByDocHash,
-  signed: ISignedDocumentDomainInterface,
+  signed: ISignedDocument,
   metaVerifications?: SignedDocumentMetaVerification[],
 ): Promise<void> {
   const generated = await loadGeneratedByDocHash(signed.doc_hash);

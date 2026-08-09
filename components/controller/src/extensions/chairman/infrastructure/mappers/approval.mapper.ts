@@ -3,7 +3,7 @@ import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
 import type { IApprovalDatabaseData } from '../../domain/interfaces/approval-database.interface';
 import type { IApprovalBlockchainData } from '../../domain/interfaces/approval-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalBlockchainData>;
@@ -26,7 +26,7 @@ export class ApprovalMapper {
       _created_at: entity._created_at,
       _updated_at: entity._updated_at,
       approval_hash: entity.approval_hash,
-      approved_document: entity.approved_document as ISignedDocumentDomainInterface,
+      approved_document: entity.approved_document as ISignedDocument,
     };
 
     let blockchainData: IApprovalBlockchainData | undefined;
@@ -62,7 +62,7 @@ export class ApprovalMapper {
       _created_at: domain._created_at,
       _updated_at: domain._updated_at,
       approval_hash: domain.approval_hash,
-      approved_document: domain.approved_document as ISignedDocumentDomainInterface,
+      approved_document: domain.approved_document as ISignedDocument,
     };
 
     let blockchainPart: toEntityBlockchainPart | undefined;

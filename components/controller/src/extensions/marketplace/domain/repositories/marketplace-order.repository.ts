@@ -10,7 +10,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');
 
@@ -185,7 +185,7 @@ export interface MarketplaceOrderDomainRepository
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocumentDomainInterface;
+      issue_act_signiss1_document: ISignedDocument;
     }
   ): Promise<MarketplaceOrderDomainEntity>;
 

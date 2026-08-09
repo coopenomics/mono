@@ -10,7 +10,7 @@ import { SubmitVoteInputDTO } from '../dto/voting/submit-vote-input.dto';
 import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { GetVoteInputDTO } from '../dto/voting/get-vote-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
 // Пагинированные результаты
@@ -48,7 +48,7 @@ export class VotingResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async submitCapitalVote(
     @Args('data', { type: () => SubmitVoteInputDTO }) data: SubmitVoteInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.votingService.submitVote(data, currentUser?.username ?? '');
     return result;

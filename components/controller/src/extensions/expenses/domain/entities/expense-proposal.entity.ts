@@ -1,6 +1,6 @@
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IExpenseProposalDatabaseData } from '../interfaces/expense-proposal-database.interface';
 import type {
   IExpenseProposalBlockchainData,
@@ -36,8 +36,8 @@ export class ExpenseProposalDomainEntity
   public total_planned?: string;
   public total_actual?: string;
   public callback?: IExpenseProposalCallbackHandler;
-  public statement_doc?: ISignedDocumentDomainInterface;
-  public decision_doc?: ISignedDocumentDomainInterface;
+  public statement_doc?: ISignedDocument;
+  public decision_doc?: ISignedDocument;
   public created_at?: string;
   public updated_at?: string;
 

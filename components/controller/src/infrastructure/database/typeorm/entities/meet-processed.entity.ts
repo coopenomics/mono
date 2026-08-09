@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
 import type { MeetQuestionResultDomainInterface } from '~/domain/meet/interfaces/meet-decision-domain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 @Entity('meet_processed')
 export class MeetProcessedEntity {
@@ -29,5 +29,5 @@ export class MeetProcessedEntity {
   quorum_passed!: boolean;
 
   @Column({ type: 'jsonb', nullable: false })
-  decision!: ISignedDocumentDomainInterface;
+  decision!: ISignedDocument;
 }

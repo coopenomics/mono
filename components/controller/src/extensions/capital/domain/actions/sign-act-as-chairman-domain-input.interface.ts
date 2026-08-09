@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для действия подписания акта председателем CAPITAL контракта
@@ -14,5 +14,5 @@ export interface SignActAsChairmanDomainInput {
   result_hash: string;
 
   /** Акт о вкладе результатов */
-  act: ISignedDocumentDomainInterface;
+  act: ISignedDocument;
 }

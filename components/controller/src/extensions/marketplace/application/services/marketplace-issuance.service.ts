@@ -18,7 +18,7 @@ import {
 } from './marketplace-asset.config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
@@ -252,7 +252,7 @@ export class MarketplaceIssuanceService {
       // канон 2-подписи: сохраняем подписанный председателем документ, чтобы
       // заказчик получил его как DocumentAggregate и наложил вторую подпись.
       issue_act_signiss1_document:
-        input.signed_document as unknown as ISignedDocumentDomainInterface,
+        input.signed_document as unknown as ISignedDocument,
     });
 
     this.logger.log(
@@ -707,7 +707,7 @@ export class MarketplaceIssuanceService {
     return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     if (!document.signatures || document.signatures.length === 0) {
       throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
     }

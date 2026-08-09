@@ -1,11 +1,11 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для документа заявления о взносе результатов
  * Расширяет базовый интерфейс подписанного документа специфическими полями
  */
-export interface ResultContributionStatementDocumentDomainInterface extends ISignedDocumentDomainInterface {
-  meta: ISignedDocumentDomainInterface['meta'] & {
+export interface ResultContributionStatementDocumentDomainInterface extends ISignedDocument {
+  meta: ISignedDocument['meta'] & {
     project_name: string;
     component_name: string;
     result_hash: string;

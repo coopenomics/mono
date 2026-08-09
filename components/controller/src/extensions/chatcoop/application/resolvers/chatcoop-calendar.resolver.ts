@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, CurrentUser, AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ChatCoopCalendarApplicationService } from '../services/chatcoop-calendar-application.service';
 import {
   ChatCoopCalendarEventDTO,
@@ -75,7 +75,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async create(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => CreateChatCoopCalendarEventInputDTO }) data: CreateChatCoopCalendarEventInputDTO
   ): Promise<ChatCoopCalendarEventDTO> {
     const ev = await this.calendar.createEvent(user.username, {
@@ -95,7 +95,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async update(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => UpdateChatCoopCalendarEventInputDTO }) data: UpdateChatCoopCalendarEventInputDTO
   ): Promise<ChatCoopCalendarEventDTO> {
     const ev = await this.calendar.updateEvent({
@@ -128,7 +128,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async createIcs(
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ChatCoopCalendarIcsUrlResponseDTO> {
     const url = await this.calendar.createOrRotatePersonalIcsUrl(user.username);
     const dto = new ChatCoopCalendarIcsUrlResponseDTO();

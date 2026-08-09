@@ -16,7 +16,7 @@ import { AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO } from '~/appl
 import { AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-soviet-decision-document.dto';
 import { AnnualGeneralMeetingDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-decision-document.dto';
 import { AnnualGeneralMeetingNotificationGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-notification-document.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { NotifyOnAnnualGeneralMeetInputDTO } from '../dto/notify-on-annual-general-meet-input.dto';
 
 @Resolver()
@@ -32,7 +32,7 @@ export class MeetResolver {
   async getMeet(
     @Args('data', { type: () => GetMeetInputDTO })
     data: GetMeetInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeetAggregateDTO> {
     return this.meetService.getMeet(data, currentUser?.username ?? null);
   }
@@ -45,7 +45,7 @@ export class MeetResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMeets(
     @Args('data', { type: () => GetMeetsInputDTO }) data: GetMeetsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeetAggregateDTO[]> {
     return this.meetService.getMeets(data, currentUser?.username ?? null);
   }

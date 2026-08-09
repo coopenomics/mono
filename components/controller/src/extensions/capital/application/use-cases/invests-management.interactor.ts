@@ -14,7 +14,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
@@ -59,7 +59,7 @@ export class InvestsManagementInteractor {
    */
   async prepareGenerationMoneyInvestStatementData(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
@@ -124,7 +124,7 @@ export class InvestsManagementInteractor {
    */
   async createProjectInvest(
     data: CreateProjectInvestDomainInput,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<TransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     assertBlockchainProject(project, 'инвестирование');
@@ -146,7 +146,7 @@ export class InvestsManagementInteractor {
    */
   async createProgramInvest(
     data: CreateProgramInvestDomainInput,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<TransactResult> {
     const blockchainData = {
       coopname: data.coopname,

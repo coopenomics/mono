@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { DocumentAggregator } from '../aggregators/document.aggregator';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
 
 /**
@@ -16,11 +16,11 @@ export class DocumentAggregationService {
   constructor(@Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator) {}
 
   /**
-   * Создает агрегат документа из формата ISignedDocumentDomainInterface
+   * Создает агрегат документа из формата ISignedDocument
    * @param signedDocument Подписанный документ
    * @returns Агрегат документа
    */
-  async buildDocumentAggregate(signedDocument: ISignedDocumentDomainInterface): Promise<DocumentDomainAggregate | null> {
+  async buildDocumentAggregate(signedDocument: ISignedDocument): Promise<DocumentDomainAggregate | null> {
     if (!signedDocument) return null;
 
     // Проверяем, что хеш документа не пустой

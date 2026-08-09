@@ -5,7 +5,7 @@ import {
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
 import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface, InnerNonProjectRoomKind } from '@coopenomics/innercoop';
+import type { IMonoAccount, InnerNonProjectRoomKind } from '@coopenomics/innercoop';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,
   ChatcoopProjectCommunicationRoomDTO,
@@ -55,7 +55,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listProjectCommunicationRooms(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetProjectCommunicationRoomsInputDTO }) data: GetProjectCommunicationRoomsInputDTO
   ): Promise<ChatcoopProjectCommunicationRoomDTO[]> {
     this.ensureComm();
@@ -75,7 +75,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listNonProjectCommunicationRooms(
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ChatcoopNonProjectCommunicationRoomDTO[]> {
     this.ensureComm();
     this.logger.debug(`chatcoopListNonProjectCommunicationRooms user=${user.username}`);
@@ -94,7 +94,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listUtcDatesWithNewRoomMessages(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => ListUtcDatesWithNewRoomMessagesInputDTO })
     data: ListUtcDatesWithNewRoomMessagesInputDTO
   ): Promise<string[]> {
@@ -111,7 +111,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async getRoomMessagesForUtcDate(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetRoomMessagesForUtcDateInputDTO }) data: GetRoomMessagesForUtcDateInputDTO
   ): Promise<ChatcoopRoomMessageLineDTO[]> {
     this.ensureComm();
@@ -135,7 +135,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async getMaxOriginServerTsForRoom(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetMaxOriginServerTsForRoomInputDTO }) data: GetMaxOriginServerTsForRoomInputDTO
   ): Promise<number | null> {
     this.ensureComm();

@@ -1,8 +1,8 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 export interface ConvertToAxonInputDomainInterface {
   coopname: string;
   username: string;
-  document: ISignedDocumentDomainInterface;
+  document: ISignedDocument;
   convert_amount: string;
 }

@@ -11,7 +11,7 @@ import type { IConfig } from '../../chairman-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 
@@ -181,7 +181,7 @@ export class ChairmanOnboardingService {
 
     // Публикуем проект решения в блокчейн сразу после генерации
     // TODO: ну это конечно убирать надо.
-    const documentForPublish: ISignedDocumentDomainInterface = {
+    const documentForPublish: ISignedDocument = {
       version: (generatedDoc.meta as any)?.version || '1.0',
       hash: generatedDoc.hash,
       doc_hash: (generatedDoc.meta as any)?.doc_hash || generatedDoc.hash,

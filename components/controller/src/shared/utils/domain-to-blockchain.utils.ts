@@ -3,7 +3,7 @@ import { Name } from '@wharfkit/antelope';
 import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import config from '~/config/config';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Утилитарный класс для конвертации доменных объектов в инфраструктурные типы блокчейна
@@ -15,7 +15,7 @@ export class DomainToBlockchainUtils {
    * @param document Доменный объект подписанного документа
    * @returns Объект документа в формате блокчейна
    */
-  convertSignedDocumentToBlockchainFormat(document: ISignedDocumentDomainInterface): Cooperative.Document.IChainDocument2 {
+  convertSignedDocumentToBlockchainFormat(document: ISignedDocument): Cooperative.Document.IChainDocument2 {
     return {
       version: document.version,
       hash: document.hash,
@@ -31,7 +31,7 @@ export class DomainToBlockchainUtils {
    * @param chainDoc Документ из блокчейна
    * @returns Документ в доменном формате
    */
-  convertBlockchainDocumentToDomainFormat(chainDoc: Cooperative.Document.IChainDocument2): ISignedDocumentDomainInterface {
+  convertBlockchainDocumentToDomainFormat(chainDoc: Cooperative.Document.IChainDocument2): ISignedDocument {
     return {
       version: chainDoc.version,
       hash: chainDoc.hash,
@@ -155,7 +155,7 @@ export class DomainToBlockchainUtils {
    * @param chainDoc Документ из блокчейна
    * @returns Документ в доменном формате
    */
-  static convertChainDocumentToDomainFormat(chainDoc: Cooperative.Document.IChainDocument2): ISignedDocumentDomainInterface {
+  static convertChainDocumentToDomainFormat(chainDoc: Cooperative.Document.IChainDocument2): ISignedDocument {
     return {
       version: chainDoc.version,
       hash: chainDoc.hash,

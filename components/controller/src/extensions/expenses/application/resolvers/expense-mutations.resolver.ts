@@ -2,7 +2,7 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-decision-document.dto';
@@ -37,7 +37,7 @@ export class ExpenseMutationsResolver {
    * пайщик может отчитаться только по своей строке, совет — по любой.
    */
   private async assertCanReportItem(
-    user: MonoAccountDomainInterface,
+    user: IMonoAccount,
     proposalHash: string,
     itemHash: string
   ): Promise<void> {
@@ -95,7 +95,7 @@ export class ExpenseMutationsResolver {
   @AuthRoles(['chairman', 'member'])
   async createExpenseProposal(
     @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
     // RolesGuard пропускает запрос при data.username === user.username независимо
     // от роли — здесь это сломало бы ограничение «СЗ подаёт совет», поэтому роль
@@ -126,7 +126,7 @@ export class ExpenseMutationsResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async reportExpenseItem(
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
     await this.assertCanReportItem(user, data.proposal_hash, data.item_hash);
     return this.expensesMutations.reportExpenseItem(data);

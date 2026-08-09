@@ -14,7 +14,7 @@ import {
   type DecisionTrackingPort,
 } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '../constants/onboarding-ttl';
 import {
   ONBOARDING_STEP_QUERY_PORT,
@@ -209,7 +209,7 @@ export class ExtensionOnboardingService {
         {}
       );
 
-    const documentForPublish: ISignedDocumentDomainInterface = {
+    const documentForPublish: ISignedDocument = {
       version: (generatedDoc.meta as any)?.version || '1.0',
       hash: generatedDoc.hash,
       doc_hash: (generatedDoc.meta as any)?.doc_hash || generatedDoc.hash,

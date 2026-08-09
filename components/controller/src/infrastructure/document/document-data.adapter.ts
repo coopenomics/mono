@@ -4,7 +4,7 @@ import { GetDocumentsDataInputInterface } from '~/domain/document/interfaces/get
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 
@@ -30,7 +30,7 @@ export class DocumentDataAdapter implements DocumentDataPort {
     });
   }
 
-  async buildDocumentAggregate(document: ISignedDocumentDomainInterface): Promise<DocumentAggregateDomainInterface | null> {
+  async buildDocumentAggregate(document: ISignedDocument): Promise<DocumentAggregateDomainInterface | null> {
     return this.documentAggregationService.buildDocumentAggregate(document);
   }
 }

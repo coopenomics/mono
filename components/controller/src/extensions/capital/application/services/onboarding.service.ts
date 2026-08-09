@@ -6,7 +6,7 @@ import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboar
 import type { IConfig } from '../../capital-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
@@ -98,7 +98,7 @@ export class CapitalOnboardingService {
     return typeof value === 'string' ? value : undefined;
   }
 
-  private isSignatureInfo(value: unknown): value is ISignedDocumentDomainInterface['signatures'][number] {
+  private isSignatureInfo(value: unknown): value is ISignedDocument['signatures'][number] {
     if (!this.isRecord(value)) return false;
 
     return (
@@ -112,7 +112,7 @@ export class CapitalOnboardingService {
     );
   }
 
-  private getMetaSignatures(meta: unknown): ISignedDocumentDomainInterface['signatures'] {
+  private getMetaSignatures(meta: unknown): ISignedDocument['signatures'] {
     if (!this.isRecord(meta)) return [];
     const value = meta.signatures;
     return Array.isArray(value) ? value.filter((item) => this.isSignatureInfo(item)) : [];
@@ -216,7 +216,7 @@ export class CapitalOnboardingService {
     );
 
     // Публикуем проект решения в блокчейн сразу после генерации
-    const documentForPublish: ISignedDocumentDomainInterface = {
+    const documentForPublish: ISignedDocument = {
       version: this.getMetaString(generatedDoc.meta, 'version') || '1.0',
       hash: generatedDoc.hash,
       doc_hash: this.getMetaString(generatedDoc.meta, 'doc_hash') || generatedDoc.hash,

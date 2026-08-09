@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import type { ExtendedSignedDocumentDomainInterface } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
-import type { SignatureInfoDomainInterface } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
+import type { IExtendedSignedDocument } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
+import type { IExtendedSignatureInfo } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
 import { UserCertificateUnion } from '../unions/user-certificate.union';
 import GraphQLJSON from 'graphql-type-json';
 import { IsString, ValidateNested } from 'class-validator';
@@ -11,7 +11,7 @@ import { OrganizationCertificateDTO } from '~/application/common/dto/organizatio
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 
 @ObjectType('SignatureInfo')
-export class SignatureInfoDTO implements SignatureInfoDomainInterface {
+export class SignatureInfoDTO implements IExtendedSignatureInfo {
   @Field(() => Number)
   public readonly id!: number;
 
@@ -50,7 +50,7 @@ export class SignatureInfoDTO implements SignatureInfoDomainInterface {
 }
 
 @ObjectType('SignedDigitalDocument')
-export class SignedDigitalDocumentDTO implements ExtendedSignedDocumentDomainInterface {
+export class SignedDigitalDocumentDTO implements IExtendedSignedDocument {
   @Field(() => String)
   @IsString()
   public readonly version!: string;
@@ -120,7 +120,7 @@ export class SignedDigitalDocumentDTO implements ExtendedSignedDocumentDomainInt
   /**
    * Преобразует доменную SignatureInfo в DTO
    */
-  private static mapSignatureInfoToDTO(signatureInfo: SignatureInfoDomainInterface): SignatureInfoDTO {
+  private static mapSignatureInfoToDTO(signatureInfo: IExtendedSignatureInfo): SignatureInfoDTO {
     return {
       id: signatureInfo.id,
       signer: signatureInfo.signer,
@@ -134,7 +134,7 @@ export class SignedDigitalDocumentDTO implements ExtendedSignedDocumentDomainInt
     };
   }
 
-  constructor(data: ExtendedSignedDocumentDomainInterface) {
+  constructor(data: IExtendedSignedDocument) {
     this.version = data.version;
     this.hash = data.hash;
     this.doc_hash = data.doc_hash;

@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards, Logger, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
 import { ReportRequisitesService } from '../../domain/services/report-requisites.service';
@@ -209,7 +209,7 @@ export class ReportResolver {
     @Args('year', { type: () => Int }) year: number,
     @Args('period', { type: () => Int, nullable: true }) period: number | null | undefined,
     @Args('editsJson') editsJson: string,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<GeneratedReportDTO> {
     const coopname = config.coopname;
 

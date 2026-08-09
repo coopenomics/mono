@@ -7,7 +7,7 @@ import {
   ChairmanOnboardingStateDTO,
 } from '../dto/onboarding.dto';
 import { ChairmanOnboardingService } from '../services/onboarding.service';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 @Resolver()
 export class ChairmanOnboardingResolver {
@@ -31,7 +31,7 @@ export class ChairmanOnboardingResolver {
   @AuthRoles(['chairman'])
   async completeAgendaStep(
     @Args('data', { type: () => ChairmanOnboardingAgendaInputDTO }) data: ChairmanOnboardingAgendaInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ChairmanOnboardingStateDTO> {
     // Используем текущего пользователя как инициатора повестки
     return this.onboardingService.completeAgendaStep(data, currentUser?.username);
@@ -45,7 +45,7 @@ export class ChairmanOnboardingResolver {
   @AuthRoles(['chairman'])
   async completeGeneralMeetStep(
     @Args('data', { type: () => ChairmanOnboardingGeneralMeetInputDTO }) data: ChairmanOnboardingGeneralMeetInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ChairmanOnboardingStateDTO> {
     return this.onboardingService.completeGeneralMeet(data.proposal_hash, currentUser?.username);
   }

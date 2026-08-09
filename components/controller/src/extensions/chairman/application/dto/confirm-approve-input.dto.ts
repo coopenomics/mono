@@ -2,7 +2,7 @@ import { InputType, Field } from '@nestjs/graphql';
 import { IsString, IsNotEmpty, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * GraphQL Input DTO для мутации подтверждения одобрения
@@ -32,5 +32,5 @@ export class ConfirmApproveInputDTO {
   @IsOptional()
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
-  approved_document?: ISignedDocumentDomainInterface;
+  approved_document?: ISignedDocument;
 }

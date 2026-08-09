@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Входные данные подачи заявления на выход пайщика из кооператива.
@@ -7,5 +7,5 @@ export interface CreateMembershipExitInputDomainInterface {
   coopname: string;
   username: string;
   exit_hash: string;
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }

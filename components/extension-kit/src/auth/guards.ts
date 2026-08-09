@@ -123,7 +123,7 @@ export class RolesGuard implements CanActivate {
 /**
  * Статус пайщика, дающий доступ. Литерал, а не enum домена: каркас расширения
  * не зависит от доменных пакетов (INV-007), а в JWT статус и так приезжает строкой.
- * Доменный источник значения — `MonoAccountStatusDomainInterface.Active` в ядре.
+ * Доменный источник значения — `MonoAccountStatus.Active` в ядре.
  */
 const ACTIVE_USER_STATUS = 'active';
 

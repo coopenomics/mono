@@ -8,7 +8,7 @@ import {
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { config } from '~/config';
 
 import {
@@ -124,7 +124,7 @@ export class MarketplaceOnboardingService {
   async signOnboardingOffer(input: {
     coopname: string;
     username: string;
-    document: ISignedDocumentDomainInterface;
+    document: ISignedDocument;
   }): Promise<TransactResult> {
     if (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID <= 0) {
       throw new BadRequestException(

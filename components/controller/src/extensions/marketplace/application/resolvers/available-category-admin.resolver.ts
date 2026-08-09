@@ -20,7 +20,7 @@ import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categori
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
  * GraphQL резолвер для администрирования доступных категорий и типов товаров marketplace
@@ -180,7 +180,7 @@ export class AvailableCategoryAdminResolver {
   async addAvailableCategories(
     @Args('input', { type: () => AddAvailableCategoriesInput })
     input: AddAvailableCategoriesInput,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.addMultipleCategories(
       platformSettings().coopname,
@@ -203,7 +203,7 @@ export class AvailableCategoryAdminResolver {
   async addAvailableCategoryTypes(
     @Args('input', { type: () => AddAvailableCategoryTypesInput })
     input: AddAvailableCategoryTypesInput,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.addMultipleCategoryTypes(
       platformSettings().coopname,
@@ -260,7 +260,7 @@ export class AvailableCategoryAdminResolver {
   async replaceAvailableItems(
     @Args('input', { type: () => ReplaceAvailableItemsInput })
     input: ReplaceAvailableItemsInput,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AvailableCategoryDTO[]> {
     const availableCategories = await this.availableCategoryService.replaceAvailableItems(
       platformSettings().coopname,
@@ -281,7 +281,7 @@ export class AvailableCategoryAdminResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
-  async clearAvailableCategories(@CurrentUser() currentUser: MonoAccountDomainInterface): Promise<boolean> {
+  async clearAvailableCategories(@CurrentUser() currentUser: IMonoAccount): Promise<boolean> {
     await this.availableCategoryService.replaceAvailableItems(platformSettings().coopname, [], [], currentUser?.username ?? 'system');
     return true;
   }

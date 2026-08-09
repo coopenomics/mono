@@ -7,7 +7,7 @@ import type { PaginationResultDomainInterface } from '~/domain/common/interfaces
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import { UseGuards, UnauthorizedException } from '@nestjs/common';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 
@@ -31,7 +31,7 @@ export class DocumentResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async generateDocument(
     @Args('input', { type: () => GenerateAnyDocumentInputDTO }) input: GenerateAnyDocumentInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь авторизован
     if (!currentUser?.username) {

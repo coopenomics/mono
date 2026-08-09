@@ -5,7 +5,7 @@
  * зависимостей нет, а расширению путь `~/domain/**` недоступен.
  */
 // Определение базового интерфейса для мета-информации
-export interface IMetaDocumentDomainInterface {
+export interface IMetaDocument {
   title: string;
   registry_id: number;
   lang: string;

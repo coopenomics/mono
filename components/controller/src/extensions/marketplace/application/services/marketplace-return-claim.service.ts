@@ -23,7 +23,7 @@ import {
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -374,7 +374,7 @@ export class MarketplaceReturnClaimService {
       fact_cost,
       fee_refund,
       photos,
-      statement: input.signed_statement as ISignedDocumentDomainInterface,
+      statement: input.signed_statement as ISignedDocument,
       submretrn_tx_hash: txHash,
       status: MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW,
     });
@@ -987,7 +987,7 @@ export class MarketplaceReturnClaimService {
     });
   }
 
-  private verifySignatures(document: ISignedDocumentDomainInterface): void {
+  private verifySignatures(document: ISignedDocument): void {
     if (!document.signatures || document.signatures.length === 0) {
       throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
     }

@@ -7,7 +7,7 @@ import {
   SaveCapitalProgramDocDataInputDTO,
 } from '../dto/onboarding.dto';
 import { CapitalOnboardingService } from '../services/onboarding.service';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 @Resolver()
 export class CapitalOnboardingResolver {
@@ -31,7 +31,7 @@ export class CapitalOnboardingResolver {
   @AuthRoles(['chairman'])
   async completeStep(
     @Args('data', { type: () => CapitalOnboardingStepInputDTO }) data: CapitalOnboardingStepInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalOnboardingStateDTO> {
     return this.onboardingService.completeStep(data, currentUser?.username);
   }

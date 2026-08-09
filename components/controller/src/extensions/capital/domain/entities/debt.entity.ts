@@ -1,7 +1,7 @@
 import { DebtStatus } from '../enums/debt-status.enum';
 import type { IDebtDatabaseData } from '../interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../interfaces/debt-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
@@ -33,9 +33,9 @@ export class DebtDomainEntity
   public blockchain_status?: IDebtBlockchainData['status']; // Статус из блокчейна
   public repaid_at?: IDebtBlockchainData['repaid_at'];
   public amount?: IDebtBlockchainData['amount'];
-  public statement?: ISignedDocumentDomainInterface;
-  public approved_statement?: ISignedDocumentDomainInterface;
-  public authorization?: ISignedDocumentDomainInterface;
+  public statement?: ISignedDocument;
+  public approved_statement?: ISignedDocument;
+  public authorization?: ISignedDocument;
   public memo?: IDebtBlockchainData['memo'];
 
   /**

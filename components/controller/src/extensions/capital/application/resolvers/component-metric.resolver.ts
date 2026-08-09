@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ComponentMetricService } from '../services/component-metric.service';
 import { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
 import { MeasureOutputDTO } from '../dto/metrics/measure.dto';
@@ -48,7 +48,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman'])
   async createMeasure(
     @Args('data', { type: () => CreateMeasureInputDTO }) data: CreateMeasureInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
     return this.componentMetricService.createMeasure(data, currentUser);
   }
@@ -61,7 +61,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman'])
   async updateMeasure(
     @Args('data', { type: () => UpdateMeasureInputDTO }) data: UpdateMeasureInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
     return this.componentMetricService.updateMeasure(data, currentUser);
   }
@@ -74,7 +74,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMeasures(
     @Args('data') data: GetMeasuresInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO[]> {
     return this.componentMetricService.getMeasures(data.coopname, data.status, currentUser);
   }
@@ -87,7 +87,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async createComponentMetric(
     @Args('data', { type: () => CreateComponentMetricInputDTO }) data: CreateComponentMetricInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     return this.componentMetricService.createMetric(data, currentUser);
   }
@@ -100,7 +100,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async updateComponentMetric(
     @Args('data', { type: () => UpdateComponentMetricInputDTO }) data: UpdateComponentMetricInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     return this.componentMetricService.updateMetric(data, currentUser);
   }
@@ -113,7 +113,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async archiveComponentMetric(
     @Args('data', { type: () => ArchiveComponentMetricInputDTO }) data: ArchiveComponentMetricInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     return this.componentMetricService.archiveMetric(data.metric_hash, currentUser);
   }
@@ -126,7 +126,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getComponentMetrics(
     @Args('data') data: GetComponentMetricsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO[]> {
     return this.componentMetricService.getComponentMetrics(data.project_hash, data.status, currentUser);
   }
@@ -139,7 +139,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async setIssueMetricBindings(
     @Args('data', { type: () => SetIssueMetricBindingsInputDTO }) data: SetIssueMetricBindingsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     return this.componentMetricService.setIssueMetricBindings(data, currentUser);
   }
@@ -152,7 +152,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getIssueMetricBindings(
     @Args('data') data: GetIssueMetricBindingsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     return this.componentMetricService.getIssueMetricBindings(data.issue_hash, currentUser);
   }
@@ -165,7 +165,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async logMetricContribution(
     @Args('data', { type: () => LogMetricContributionInputDTO }) data: LogMetricContributionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MetricContributionOutputDTO> {
     return this.componentMetricService.logMetricContribution(data, currentUser);
   }
@@ -179,7 +179,7 @@ export class ComponentMetricResolver {
   async getMetricContributions(
     @Args('data', { type: () => GetMetricContributionsInputDTO }) data: GetMetricContributionsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
     return this.componentMetricService.getMetricContributions(data.metric_hash, options, currentUser!);
   }
@@ -192,7 +192,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMetricSeries(
     @Args('data', { type: () => GetMetricSeriesInputDTO }) data: GetMetricSeriesInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MetricSeriesOutputDTO> {
     return this.componentMetricService.getMetricSeries(data, currentUser);
   }
@@ -205,7 +205,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMetricWave(
     @Args('data', { type: () => GetMetricWaveInputDTO }) data: GetMetricWaveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MetricWaveOutputDTO> {
     return this.componentMetricService.getMetricWave(data, currentUser);
   }
@@ -218,7 +218,7 @@ export class ComponentMetricResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMetricSuperposition(
     @Args('data', { type: () => GetMetricSuperpositionInputDTO }) data: GetMetricSuperpositionInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MetricSuperpositionOutputDTO> {
     return this.componentMetricService.getMetricSuperposition(data, currentUser);
   }
@@ -232,7 +232,7 @@ export class ComponentMetricResolver {
   async getMetricSuperpositionHistory(
     @Args('data', { type: () => GetMetricSuperpositionHistoryInputDTO })
     data: GetMetricSuperpositionHistoryInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MetricSuperpositionHistoryOutputDTO> {
     return this.componentMetricService.getMetricSuperpositionHistory(data, currentUser);
   }

@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для действия конвертации сегмента CAPITAL контракта
@@ -23,5 +23,5 @@ export interface ConvertSegmentDomainInput {
   capital_amount: string;
 
   /** Заявление */
-  convert_statement: ISignedDocumentDomainInterface;
+  convert_statement: ISignedDocument;
 }

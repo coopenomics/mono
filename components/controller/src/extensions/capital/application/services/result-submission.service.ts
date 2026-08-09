@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import type { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
 import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
@@ -84,7 +84,7 @@ export class ResultSubmissionService {
   /**
    * Внесение результата в CAPITAL контракте
    */
-  async pushResult(data: PushResultInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async pushResult(data: PushResultInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     // Проверяем, что пользователь может вносить результаты только для себя
     if (data.username !== currentUser.username) {
       throw new Error('Вы можете вносить результаты только для себя');
@@ -167,7 +167,7 @@ export class ResultSubmissionService {
   /**
    * Конвертация сегмента в CAPITAL контракте
    */
-  async convertSegment(data: ConvertSegmentInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async convertSegment(data: ConvertSegmentInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     const segmentEntity = await this.resultSubmissionInteractor.convertSegment(data, currentUser);
     return await this.segmentMapper.toDTO(segmentEntity);
   }
@@ -534,7 +534,7 @@ export class ResultSubmissionService {
   async generateResultContributionStatement(
     data: ResultContributionStatementGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь может генерировать документы только для себя
     if (data.username !== currentUser.username) {
@@ -644,7 +644,7 @@ export class ResultSubmissionService {
   async generateResultContributionDecision(
     data: ResultContributionDecisionGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
 
     // Находим результат по result_hash
@@ -761,7 +761,7 @@ export class ResultSubmissionService {
   async generateResultContributionAct(
     data: ResultContributionActGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
@@ -860,7 +860,7 @@ export class ResultSubmissionService {
    */
   async signActAsContributor(
     data: SignActAsContributorInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,
@@ -877,7 +877,7 @@ export class ResultSubmissionService {
    */
   async signActAsChairman(
     data: SignActAsChairmanInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,

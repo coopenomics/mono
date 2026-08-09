@@ -6,7 +6,7 @@
  */
 
 import type { MarketplaceShipmentTTNData } from './marketplace-shipment.types';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Вариант приёмки: А — поставщик лично прибыл; Б — экспедитор + ТТН
@@ -91,7 +91,7 @@ export interface MarketplaceAplReceptionProps {
    * председателю подпись поставщика (поле `document` агрегата) — фронт цепь
    * не читает. Тело документа достаётся отдельно по doc_hash из стора.
    */
-  supplier_signed_documents: ISignedDocumentDomainInterface[] | null;
+  supplier_signed_documents: ISignedDocument[] | null;
   chairman_signed_at: Date | null;
   chairman_account: string | null;
   chairman_signchair_tx_hash: string | null;

@@ -14,7 +14,7 @@ import { HttpApiError } from '~/utils/httpApiError';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
@@ -483,7 +483,7 @@ export class MarketplaceWriteoffService {
    */
   async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
     const proposal = await this.getProposal(id);
-    const signed = proposal.protocol_doc as ISignedDocumentDomainInterface | null;
+    const signed = proposal.protocol_doc as ISignedDocument | null;
     if (!signed) return null;
     return this.documentDomainService.buildDocumentAggregate(signed);
   }
@@ -1049,7 +1049,7 @@ export class MarketplaceWriteoffService {
     );
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) throw new HttpApiError(http.BAD_REQUEST, 'Заявление не подписано');
     const publicKey = PublicKey.from(sig.public_key);

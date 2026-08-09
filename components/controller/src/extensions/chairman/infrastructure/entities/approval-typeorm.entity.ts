@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { ApprovalStatus } from '../../domain/enums/approval-status.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'chairman_approvals';
@@ -26,7 +26,7 @@ export class ApprovalTypeormEntity extends BaseTypeormEntity {
   username!: string;
 
   @Column({ type: 'json' })
-  document!: ISignedDocumentDomainInterface;
+  document!: ISignedDocument;
 
   @Column({ type: 'varchar', length: 64 })
   approval_hash!: string;
@@ -47,7 +47,7 @@ export class ApprovalTypeormEntity extends BaseTypeormEntity {
   created_at!: Date;
 
   @Column({ type: 'json', nullable: true })
-  approved_document?: ISignedDocumentDomainInterface;
+  approved_document?: ISignedDocument;
 
   // Доменные поля (расширения) - переопределяем status с enum
   @Column({

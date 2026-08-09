@@ -1,5 +1,5 @@
 import type { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
-import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
+import { MonoAccountStatus } from '@coopenomics/innercoop';
 
 /**
  * Кого включать в массовые уведомления «для пайщиков» (собрания, календарь и т.д.).
@@ -16,15 +16,15 @@ export function isEligibleForParticipantMassNotification(account: AccountDomainE
 
   const status = p.status;
   if (
-    status === MonoAccountStatusDomainInterface.Failed ||
-    status === MonoAccountStatusDomainInterface.Refunded ||
-    status === MonoAccountStatusDomainInterface.Blocked
+    status === MonoAccountStatus.Failed ||
+    status === MonoAccountStatus.Refunded ||
+    status === MonoAccountStatus.Blocked
   ) {
     return false;
   }
 
   return (
-    status === MonoAccountStatusDomainInterface.Active || status === MonoAccountStatusDomainInterface.Registered
+    status === MonoAccountStatus.Active || status === MonoAccountStatus.Registered
   );
 }
 
@@ -42,12 +42,12 @@ export function isEligibleForActiveCoopCalendarBroadcast(account: AccountDomainE
 
   const status = p.status;
   if (
-    status === MonoAccountStatusDomainInterface.Failed ||
-    status === MonoAccountStatusDomainInterface.Refunded ||
-    status === MonoAccountStatusDomainInterface.Blocked
+    status === MonoAccountStatus.Failed ||
+    status === MonoAccountStatus.Refunded ||
+    status === MonoAccountStatus.Blocked
   ) {
     return false;
   }
 
-  return status === MonoAccountStatusDomainInterface.Active;
+  return status === MonoAccountStatus.Active;
 }

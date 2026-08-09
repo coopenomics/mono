@@ -3,7 +3,7 @@ import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ExpenseTypeormEntity>, keyof IExpenseBlockchainData>;
@@ -82,9 +82,9 @@ export class ExpenseMapper {
         status: domain.blockchain_status as any,
         amount: domain.amount as string,
         description: domain.description as string,
-        expense_statement: domain.expense_statement as ISignedDocumentDomainInterface,
-        approved_statement: domain.approved_statement as ISignedDocumentDomainInterface,
-        authorization: domain.authorization as ISignedDocumentDomainInterface,
+        expense_statement: domain.expense_statement as ISignedDocument,
+        approved_statement: domain.approved_statement as ISignedDocument,
+        authorization: domain.authorization as ISignedDocument,
         spended_at: new Date(domain.spended_at ?? new Date()),
       };
     }

@@ -1,7 +1,7 @@
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import type { GetDocumentsDataInputInterface } from '~/domain/document/interfaces/get-documents-data-input-domain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
 
 /**
@@ -23,7 +23,7 @@ export interface DocumentDataPort {
    * @param document Подписанный документ домена
    * @returns Агрегат документа или null, если документ не найден
    */
-  buildDocumentAggregate(document: ISignedDocumentDomainInterface): Promise<DocumentAggregateDomainInterface | null>;
+  buildDocumentAggregate(document: ISignedDocument): Promise<DocumentAggregateDomainInterface | null>;
 }
 
 export const DOCUMENT_DATA_PORT = Symbol('DocumentDataPort');

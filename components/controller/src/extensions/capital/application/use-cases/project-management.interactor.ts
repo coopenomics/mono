@@ -23,7 +23,7 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
 import { buildLocalProjectRow } from '../../domain/utils/build-local-project-row';
 import { assertBlockchainProject, isLocalProject } from '../../domain/utils/assert-blockchain-project';
@@ -60,7 +60,7 @@ export class ProjectManagementInteractor {
   /**
    * Создание проекта в CAPITAL контракте
    */
-  async createProject(data: CreateProjectDomainInput, _currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
+  async createProject(data: CreateProjectDomainInput, _currentUser: IMonoAccount): Promise<TransactResult> {
     // Вызываем блокчейн порт для создания проекта
     const transactResult = await this.capitalBlockchainPort.createProject(data);
 
@@ -80,7 +80,7 @@ export class ProjectManagementInteractor {
    */
   async createLocalProject(
     data: CreateProjectDomainInput,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ProjectDomainEntity> {
     if (!currentUser?.username) {
       throw new Error('Требуется авторизация');
@@ -183,7 +183,7 @@ export class ProjectManagementInteractor {
   /**
    * Установка мастера проекта CAPITAL контракта
    */
-  async setMaster(data: SetMasterDomainInput, _currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
+  async setMaster(data: SetMasterDomainInput, _currentUser: IMonoAccount): Promise<TransactResult> {
     await this.requireBlockchainProject(data.project_hash, 'назначение мастера');
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.setMaster(data);
@@ -201,7 +201,7 @@ export class ProjectManagementInteractor {
   /**
    * Добавление автора проекта CAPITAL контракта
    */
-  async addAuthor(data: AddAuthorDomainInput, _currentUser: MonoAccountDomainInterface): Promise<ProjectDomainEntity> {
+  async addAuthor(data: AddAuthorDomainInput, _currentUser: IMonoAccount): Promise<ProjectDomainEntity> {
     await this.requireBlockchainProject(data.project_hash, 'добавление автора');
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.addAuthor(data);
@@ -314,7 +314,7 @@ export class ProjectManagementInteractor {
    */
   async finalizeProject(
     data: IFinalizeProjectDomainInput,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<ProjectDomainEntity> {
     await this.requireBlockchainProject(data.project_hash, 'финализацию');
     // Вызываем блокчейн порт

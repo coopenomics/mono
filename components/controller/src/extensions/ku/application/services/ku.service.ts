@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
-import type { ISignedDocumentDomainInterface, MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentOptionsInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
@@ -65,7 +65,7 @@ export class KuService {
   // Проверки прав
   // ───────────────────────────────────────────────────────────────────────────
 
-  private assertSameUser(currentUser: MonoAccountDomainInterface, username: string): void {
+  private assertSameUser(currentUser: IMonoAccount, username: string): void {
     if (currentUser.username !== username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
     }
@@ -79,21 +79,21 @@ export class KuService {
     return decision;
   }
 
-  private async assertIsDecisionChairman(currentUser: MonoAccountDomainInterface, hash: string): Promise<void> {
+  private async assertIsDecisionChairman(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.chairman !== currentUser.username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только председателю собрания');
     }
   }
 
-  private async assertIsDecisionInitiator(currentUser: MonoAccountDomainInterface, hash: string): Promise<void> {
+  private async assertIsDecisionInitiator(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.initiator !== currentUser.username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только инициатору собрания');
     }
   }
 
-  private async assertIsBranchTrustee(currentUser: MonoAccountDomainInterface, requestHash: string): Promise<void> {
+  private async assertIsBranchTrustee(currentUser: IMonoAccount, requestHash: string): Promise<void> {
     const request = await this.trustRequestRepository.findByHash(requestHash);
     if (!request?.braname) {
       throw new HttpApiError(httpStatus.NOT_FOUND, 'Заявка доверенного не найдена');
@@ -115,7 +115,7 @@ export class KuService {
 
   async createDecision(
     data: CreateKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.initiator);
     const result = await this.kuBlockchainPort.createDecision(data);
@@ -136,7 +136,7 @@ export class KuService {
 
   async joinDecision(
     data: JoinKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.joinDecision(data);
@@ -145,7 +145,7 @@ export class KuService {
 
   async startDecision(
     data: StartKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // Голосование открывает организатор собрания, назначая председателя
     // из числа присоединившихся участников
@@ -186,7 +186,7 @@ export class KuService {
 
   async voteOnDecision(
     data: VoteOnKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.voteOnDecision(data);
@@ -195,7 +195,7 @@ export class KuService {
 
   async closeDecision(
     data: CloseKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // протокол утверждает председатель собрания — им автоматически является организатор
     await this.assertIsDecisionInitiator(currentUser, data.hash);
@@ -205,7 +205,7 @@ export class KuService {
 
   async execDecision(
     data: ExecKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // Заявление в совет и договор о материальной ответственности подписывает
     // избранный собранием председатель участка (он же сторона договора)
@@ -216,7 +216,7 @@ export class KuService {
 
   async cancelDecision(
     data: CancelKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsDecisionInitiator(currentUser, data.hash);
     const result = await this.kuBlockchainPort.cancelDecision(data);
@@ -237,7 +237,7 @@ export class KuService {
 
   async requestTrusted(
     data: RequestKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.requestTrusted(data);
@@ -246,7 +246,7 @@ export class KuService {
 
   async approveTrusted(
     data: ApproveKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsBranchTrustee(currentUser, data.hash);
     const result = await this.kuBlockchainPort.approveTrusted(data);
@@ -255,7 +255,7 @@ export class KuService {
 
   async declineTrusted(
     data: DeclineKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsBranchTrustee(currentUser, data.hash);
     const result = await this.kuBlockchainPort.declineTrusted(data);
@@ -460,13 +460,13 @@ export class KuService {
     // содержат паспортные данные и сюда НЕ выносятся.
     if (decision.protocol) {
       const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.protocol as unknown as ISignedDocumentDomainInterface)
+        .buildDocumentAggregate(decision.protocol as unknown as ISignedDocument)
         .catch(() => null);
       dto.protocol_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
     if (decision.authorization) {
       const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.authorization as unknown as ISignedDocumentDomainInterface)
+        .buildDocumentAggregate(decision.authorization as unknown as ISignedDocument)
         .catch(() => null);
       dto.authorization_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
@@ -490,14 +490,14 @@ export class KuService {
         // и накладывает встречную подпись на него же, без регенерации
         if (item.application) {
           const aggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.application as unknown as ISignedDocumentDomainInterface)
+            .buildDocumentAggregate(item.application as unknown as ISignedDocument)
             .catch(() => null);
           dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
         }
         // доверенность доверенному лицу — председатель так же накладывает встречную подпись
         if (item.authority) {
           const authorityAggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.authority as unknown as ISignedDocumentDomainInterface)
+            .buildDocumentAggregate(item.authority as unknown as ISignedDocument)
             .catch(() => null);
           dto.authority_document = authorityAggregate ? new DocumentAggregateDTO(authorityAggregate) : undefined;
         }

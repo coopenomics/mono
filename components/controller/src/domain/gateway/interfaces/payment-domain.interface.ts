@@ -1,6 +1,6 @@
 import type { PaymentStatusEnum } from '../enums/payment-status.enum';
 import type { PaymentTypeEnum, PaymentDirectionEnum } from '../enums/payment-type.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Детали платежа
@@ -91,7 +91,7 @@ export interface PaymentDomainInterface {
   blockchain_data?: any;
 
   /** Подписанный документ заявления (для исходящих платежей) */
-  statement?: ISignedDocumentDomainInterface;
+  statement?: ISignedDocument;
 
   /**
    * Расширение, инициировавшее платёж (например, `marketplace`). Заполняется

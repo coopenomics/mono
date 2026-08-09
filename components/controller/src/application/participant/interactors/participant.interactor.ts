@@ -18,7 +18,7 @@ import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import http from 'http-status';
 import { PublicKey, Signature } from '@wharfkit/antelope';
-import { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import { ISignedDocument } from '@coopenomics/innercoop';
 import { GatewayInteractorPort, GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
@@ -98,7 +98,7 @@ export class ParticipantInteractor {
    * Проверяет подпись документа
    * @private
    */
-  private verifyDocumentSignature(public_key: string, document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(public_key: string, document: ISignedDocument): void {
     const { signatures } = document;
     const doc_public_key = signatures[0].public_key;
     const signature = signatures[0].signature;
@@ -201,7 +201,7 @@ export class ParticipantInteractor {
 
     for (const agreement of linkedAgreements) {
       const doc = data[agreement.id as keyof RegisterParticipantDomainInterface] as
-        | ISignedDocumentDomainInterface
+        | ISignedDocument
         | undefined;
       if (doc) {
         expectedLinks.push(doc.doc_hash);
@@ -230,7 +230,7 @@ export class ParticipantInteractor {
     // Сохраняем все требуемые соглашения динамически на основе конфигурации
     for (const agreementId of requiredAgreements) {
       const doc = data[agreementId as keyof RegisterParticipantDomainInterface] as
-        | ISignedDocumentDomainInterface
+        | ISignedDocument
         | undefined;
       if (!doc) continue;
 
@@ -299,7 +299,7 @@ export class ParticipantInteractor {
   private async saveRegistrationAgreement(
     username: string,
     agreementId: string,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void> {
     if (isGenericProgramAgreementId(agreementId)) {
       await this.candidateRepository.saveProgramAgreement(username, agreementId, document);

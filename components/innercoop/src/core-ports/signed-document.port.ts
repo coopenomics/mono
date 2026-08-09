@@ -6,19 +6,17 @@
  * ссылались 79 файлов расширений, а этого пути за пределами монолита нет.
  * Зависимостей у него нет — только два соседних контракта здесь же.
  *
- * Имена сохранены как были (`I...DomainInterface`). Суффикс избыточен и канону
- * пакета не соответствует, но переименование затронуло бы больше двухсот точек
- * в ядре и расширениях; это отдельная механическая правка, а не побочный
- * эффект переезда.
+ * Суффикс `DomainInterface` снят при переезде: тип и `I`-префиксом помечен, и
+ * «интерфейсом» назван — повтор ни о чём не говорит.
  */
-import type { IMetaDocumentDomainInterface } from './meta-document.contract';
-import type { ISignatureInfoDomainInterface } from './signature-info.contract';
+import type { IMetaDocument } from './meta-document.contract';
+import type { ISignatureInfo } from './signature-info.contract';
 
-export type ISignedDocumentDomainInterface = {
+export type ISignedDocument = {
   version: string;
   hash: string;
   doc_hash: string;
   meta_hash: string;
-  meta: IMetaDocumentDomainInterface & { [key: string]: any };
-  signatures: ISignatureInfoDomainInterface[];
+  meta: IMetaDocument & { [key: string]: any };
+  signatures: ISignatureInfo[];
 };

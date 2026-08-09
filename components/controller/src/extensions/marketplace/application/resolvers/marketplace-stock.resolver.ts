@@ -45,7 +45,7 @@ import {
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -192,13 +192,13 @@ export class MarketplaceStockResolver {
         quantity: i.quantity,
         package_id: i.package_id ?? null,
         order_hash: i.order_hash,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
       order_items: (data.order_items ?? []).map((i) => ({
         order_id: i.order_id,
         actual_quantity: i.actual_quantity,
         actual_unit_price: i.actual_unit_price,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
     });
     return toMarketplaceStockProposalDTO(proposal);

@@ -1,7 +1,7 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
 import { CapitalRegistrationService } from '../services/capital-registration.service';
@@ -18,7 +18,7 @@ export class CapitalRegistrationResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async getCapitalCandidates(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: CandidateFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<CapitalCandidateOutputDTO>> {

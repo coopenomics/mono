@@ -13,7 +13,7 @@ import { AccountDTO } from '~/application/account/dto/account.dto';
 import { RegisterParticipantInputDTO } from '../dto/register-participant-input.dto';
 import { GatewayPaymentDTO } from '~/application/gateway/dto/gateway-payment.dto';
 import { CreateInitialPaymentInputDTO } from '~/application/gateway/dto/create-initial-payment-input.dto';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
@@ -36,7 +36,7 @@ export class RegistrationResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async getCandidates(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: CandidateFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<CandidateOutputDTO>> {

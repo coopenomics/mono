@@ -9,7 +9,7 @@
  * (`pendrev / approvvisit / accepted / rejremote / rejatku`).
  */
 
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Категория дефекта — опциональный признак для фасеточной аналитики
@@ -168,7 +168,7 @@ export interface MarketplaceReturnClaimProps {
    * чтобы председатель мог наложить вторую подпись при принятии возврата
    * (агрегат для со-подписи строится из этого документа).
    */
-  statement: ISignedDocumentDomainInterface | null;
+  statement: ISignedDocument | null;
   /** tx_hash on-chain submretrn (хранится для трассировки). */
   submretrn_tx_hash: string;
   decision_log: MarketplaceReturnClaimDecisionLogEntry[];

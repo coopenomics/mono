@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 export type MarketplaceOrderStatus =
@@ -154,7 +154,7 @@ export interface MarketplaceOrderProps {
    * (`signiss1`). Заказчик получает его как DocumentAggregate и накладывает
    * вторую подпись поверх — backend цепь не читает (канон двухподписного акта).
    */
-  issue_act_signiss1_document: ISignedDocumentDomainInterface | null;
+  issue_act_signiss1_document: ISignedDocument | null;
   /** Время финальной подписи заказчика (получение имущества — `signiss2`). */
   orderer_signed_at: Date | null;
   /** Backend account стороны кооператива при `signiss2` (председатель/доверенный). */

@@ -4,14 +4,14 @@ import { RegistrationService } from '~/application/registration/services/registr
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
 import { CandidateOutputDTO } from '~/application/registration/dto/candidate.dto';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 
 @Injectable()
 export class CandidateDataAdapter implements CandidateDataPort {
   constructor(private readonly registrationService: RegistrationService) {}
 
   async getCandidates(
-    currentUser: MonoAccountDomainInterface,
+    currentUser: IMonoAccount,
     filter?: CandidateFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<CandidateOutputDTO>> {

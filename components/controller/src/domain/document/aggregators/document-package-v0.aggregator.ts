@@ -12,7 +12,7 @@ import type { DocumentPackageAggregateDomainInterface } from '../interfaces/docu
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
 import type { DecisionDetailAggregateDomainInterface } from '../interfaces/decision-detail-aggregate-domain.interface';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/interfaces/extended-blockchain-action-domain.interface';
 
 @Injectable()
@@ -82,7 +82,7 @@ export class DocumentPackageV0Aggregator {
       for (const linkHash of mainDocument.meta.links) {
         const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
         if (linkedDoc) {
-          const signedLinkedDoc: ISignedDocumentDomainInterface = {
+          const signedLinkedDoc: ISignedDocument = {
             version: '0',
             hash: linkedDoc.hash,
             doc_hash: linkedDoc.hash,
@@ -107,7 +107,7 @@ export class DocumentPackageV0Aggregator {
         actor_certificate,
       };
 
-      const signedMainDoc: ISignedDocumentDomainInterface = {
+      const signedMainDoc: ISignedDocument = {
         version: '0',
         hash: mainDocument.hash,
         doc_hash: mainDocument.hash,
@@ -179,7 +179,7 @@ export class DocumentPackageV0Aggregator {
       for (const linkHash of decisionDocument.meta.links) {
         const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
         if (linkedDoc) {
-          const signedLinkedDoc: ISignedDocumentDomainInterface = {
+          const signedLinkedDoc: ISignedDocument = {
             version: '0',
             hash: linkedDoc.hash,
             doc_hash: linkedDoc.hash,
@@ -195,7 +195,7 @@ export class DocumentPackageV0Aggregator {
       }
     }
 
-    const signedDecisionDoc: ISignedDocumentDomainInterface = {
+    const signedDecisionDoc: ISignedDocument = {
       version: '0',
       hash: decisionDocument.hash,
       doc_hash: decisionDocument.hash,

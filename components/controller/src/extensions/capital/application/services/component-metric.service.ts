@@ -33,7 +33,7 @@ import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/cat
 import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
@@ -93,7 +93,7 @@ export class ComponentMetricService {
 
   async createMeasure(
     _data: CreateMeasureInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
     throw new Error(
       'Справочник мер централизован. Новые меры добавляются только через деплой и миграции.'
@@ -102,7 +102,7 @@ export class ComponentMetricService {
 
   async updateMeasure(
     data: UpdateMeasureInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
     const existing = await this.measureRepository.findByMeasureHash(data.measure_hash);
     if (!existing) {
@@ -153,7 +153,7 @@ export class ComponentMetricService {
   async getMeasures(
     coopname: string,
     status: MetricStatus | undefined,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO[]> {
     await this.ensureDefaultMeasures(coopname);
     const measures = await this.measureRepository.findByCoopname(coopname, status);
@@ -196,7 +196,7 @@ export class ComponentMetricService {
 
   async createMetric(
     data: CreateComponentMetricInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
@@ -226,7 +226,7 @@ export class ComponentMetricService {
 
   async updateMetric(
     data: UpdateComponentMetricInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!existing) {
@@ -267,7 +267,7 @@ export class ComponentMetricService {
 
   async archiveMetric(
     metricHash: string,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(metricHash);
     if (!existing) {
@@ -289,7 +289,7 @@ export class ComponentMetricService {
   async getComponentMetrics(
     projectHash: string,
     status: MetricStatus | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO[]> {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -316,7 +316,7 @@ export class ComponentMetricService {
 
   async setIssueMetricBindings(
     data: SetIssueMetricBindingsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
     if (!issue) {
@@ -370,7 +370,7 @@ export class ComponentMetricService {
 
   async getIssueMetricBindings(
     issueHash: string,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(issueHash);
     if (!issue) {
@@ -391,7 +391,7 @@ export class ComponentMetricService {
 
   async logMetricContribution(
     data: LogMetricContributionInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricContributionOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
@@ -435,7 +435,7 @@ export class ComponentMetricService {
   async getMetricContributions(
     metricHash: string,
     options: PaginationInputDTO | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
     const metric = await this.metricRepository.findByMetricHash(metricHash);
     if (!metric) {
@@ -461,7 +461,7 @@ export class ComponentMetricService {
    */
   async getMetricSeries(
     data: GetMetricSeriesInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSeriesOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
@@ -513,7 +513,7 @@ export class ComponentMetricService {
    */
   async getMetricWave(
     data: GetMetricWaveInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricWaveOutputDTO> {
     const series = await this.getMetricSeries(
       {
@@ -560,7 +560,7 @@ export class ComponentMetricService {
    */
   async getMetricSuperposition(
     data: GetMetricSuperpositionInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSuperpositionOutputDTO> {
     const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
     const to = new Date();
@@ -613,7 +613,7 @@ export class ComponentMetricService {
    */
   async getMetricSuperpositionHistory(
     data: GetMetricSuperpositionHistoryInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSuperpositionHistoryOutputDTO> {
     const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
     const to = new Date();
@@ -660,7 +660,7 @@ export class ComponentMetricService {
   private async loadSuperpositionContext(
     projectHash: string,
     periodInput: MetricSeriesPeriod | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ) {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -792,7 +792,7 @@ export class ComponentMetricService {
    */
   private async assertCanViewMetrics(
     project: ProjectDomainEntity,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
       throw new Error('Нет прав на просмотр метрик компонента');
@@ -808,7 +808,7 @@ export class ComponentMetricService {
 
   private async assertCanManageMetrics(
     project: Awaited<ReturnType<ProjectRepository['findByHash']>>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     if (!project) {
       throw new Error('Компонент не найден');
@@ -822,7 +822,7 @@ export class ComponentMetricService {
   private async assertCanEditIssueMetrics(
     project: NonNullable<Awaited<ReturnType<ProjectRepository['findByHash']>>>,
     issue: NonNullable<Awaited<ReturnType<IssueRepository['findByIssueHash']>>>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     const projectPermissions = await this.permissionsService.calculateProjectPermissions(
       project,
@@ -849,7 +849,7 @@ export class ComponentMetricService {
 
   private async resolveMeasureForCreate(
     data: CreateComponentMetricInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<MeasureDomainEntity> {
     if (!data.measure_hash) {
       throw new Error(
@@ -867,7 +867,7 @@ export class ComponentMetricService {
     data: UpdateComponentMetricInputDTO,
     existing: ComponentMetricDomainEntity,
     currentMeasure: MeasureDomainEntity,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<MeasureDomainEntity> {
     if (data.title !== undefined || data.unit !== undefined || data.series_mode !== undefined) {
       throw new Error(

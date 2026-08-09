@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 /**
  * Доменный интерфейс для действия инвестирования в проект CAPITAL контракта
  */
@@ -19,5 +19,5 @@ export interface CreateProjectInvestDomainInput {
   amount: string;
 
   /** Заявление на инвестирование */
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }

@@ -13,7 +13,7 @@ import { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-input.dt
 import { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
 import { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
 @Resolver(() => BranchDTO)
 export class BranchResolver {
@@ -26,7 +26,7 @@ export class BranchResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async getBranches(
     @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<BranchDTO[]> {
     // имя текущего пайщика нужно, чтобы вычислить доступность приватных участков (is_available)
     return this.branchService.getBranches(data, currentUser?.username);

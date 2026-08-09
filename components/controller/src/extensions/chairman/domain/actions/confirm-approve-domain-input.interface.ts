@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для действия подтверждения одобрения документа CHAIRMAN контракта
@@ -14,5 +14,5 @@ export interface ConfirmApproveDomainInput {
   approval_hash: string;
 
   /** Одобренный документ */
-  approved_document?: ISignedDocumentDomainInterface;
+  approved_document?: ISignedDocument;
 }

@@ -13,7 +13,7 @@ import type {
   GenerateReturnStatementDomainInterface,
   SignProgramAgreementDomainInterface,
 } from '~/domain/wallet/ports/wallet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
 import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
 
@@ -98,7 +98,7 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
   /**
    * Генерация заявления на возврат паевого взноса
    */
-  async generateReturnStatement(_data: GenerateReturnStatementDomainInterface): Promise<ISignedDocumentDomainInterface> {
+  async generateReturnStatement(_data: GenerateReturnStatementDomainInterface): Promise<ISignedDocument> {
     // TODO: Реализовать генерацию заявления через документный сервис
     // Пока возвращаем заглушку
     throw new Error('Метод generateReturnStatement еще не реализован');

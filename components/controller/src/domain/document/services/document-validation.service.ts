@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { Classes } from '@coopenomics/sdk';
 
 export const DOCUMENT_VALIDATION_SERVICE = Symbol('DocumentValidationService');
@@ -30,7 +30,7 @@ export interface IDocumentToValidate {
   /** Идентификатор документа */
   id: string;
   /** Подписанный документ */
-  document: ISignedDocumentDomainInterface;
+  document: ISignedDocument;
 }
 
 /**
@@ -51,7 +51,7 @@ export class DocumentValidationService {
    * @param signedDoc - подписанный документ
    * @returns результат валидации
    */
-  async validateSignedDocument(id: string, signedDoc: ISignedDocumentDomainInterface): Promise<IDocumentValidationResult> {
+  async validateSignedDocument(id: string, signedDoc: ISignedDocument): Promise<IDocumentValidationResult> {
     const result: IDocumentValidationResult = {
       id,
       is_valid: false,
@@ -110,7 +110,7 @@ export class DocumentValidationService {
    * @param signedDoc - подписанный документ
    * @returns true если все подписи валидны
    */
-  verifySignatures(signedDoc: ISignedDocumentDomainInterface): boolean {
+  verifySignatures(signedDoc: ISignedDocument): boolean {
     if (!signedDoc.signatures || signedDoc.signatures.length === 0) {
       return false;
     }
@@ -130,7 +130,7 @@ export class DocumentValidationService {
    * @param signedDoc - подписанный документ
    * @returns объект с флагами found и matches
    */
-  async verifyDocumentHash(signedDoc: ISignedDocumentDomainInterface): Promise<{ found: boolean; matches: boolean }> {
+  async verifyDocumentHash(signedDoc: ISignedDocument): Promise<{ found: boolean; matches: boolean }> {
     const { doc_hash } = signedDoc;
 
     // Пустой хеш - документ не был сохранен

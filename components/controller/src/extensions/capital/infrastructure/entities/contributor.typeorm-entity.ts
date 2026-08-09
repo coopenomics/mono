@@ -1,6 +1,6 @@
 import { Entity, Column, CreateDateColumn, Index, ManyToMany, OneToMany } from 'typeorm';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 import { IssueTypeormEntity } from './issue.typeorm-entity';
 import { SegmentTypeormEntity } from './segment.typeorm-entity';
@@ -44,7 +44,7 @@ export class ContributorTypeormEntity extends BaseTypeormEntity {
   is_external_contract!: boolean;
 
   @Column({ type: 'json', nullable: true })
-  contract!: ISignedDocumentDomainInterface;
+  contract!: ISignedDocument;
 
   @Column({ type: 'json', nullable: true })
   appendixes!: string[];

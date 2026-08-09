@@ -19,7 +19,7 @@ import { USER_CERTIFICATE_DOMAIN_PORT, UserCertificateDomainPort } from '~/domai
 import { ParticipantApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-document.dto';
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { AGREEMENT_QUERY_PORT, AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -70,7 +70,7 @@ export class RegistrationService {
    * Получение списка кандидатов с пагинацией
    */
   async getCandidates(
-    currentUser: MonoAccountDomainInterface,
+    currentUser: IMonoAccount,
     filter?: CandidateFilterInputDTO,
     options: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }
   ): Promise<PaginationResult<CandidateOutputDTO>> {

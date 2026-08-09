@@ -1,7 +1,7 @@
 import { ContributorStatus } from '../enums/contributor-status.enum';
 import type { IContributorDatabaseData } from '../interfaces/contributor-database.interface';
 import type { IContributorBlockchainData } from '../interfaces/contributor-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
@@ -47,7 +47,7 @@ export class ContributorDomainEntity
   public blockchain_status!: IContributorBlockchainData['status']; // Статус из блокчейна
   public memo!: IContributorBlockchainData['memo'];
   public is_external_contract!: IContributorBlockchainData['is_external_contract'];
-  public contract!: ISignedDocumentDomainInterface;
+  public contract!: ISignedDocument;
   public appendixes!: IContributorBlockchainData['appendixes'];
   public rate_per_hour!: string;
   public hours_per_day!: number;

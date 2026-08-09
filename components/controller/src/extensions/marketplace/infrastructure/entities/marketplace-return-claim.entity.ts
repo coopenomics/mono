@@ -15,7 +15,7 @@ import type {
   MarketplaceReturnClaimPhoto,
   MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Эпик 7: TypeORM-сущность заявления на гарантийный возврат. Один Order
@@ -95,7 +95,7 @@ export class MarketplaceReturnClaimEntity {
   public photos!: MarketplaceReturnClaimPhoto[];
 
   @Column({ type: 'jsonb', nullable: true })
-  public statement!: ISignedDocumentDomainInterface | null;
+  public statement!: ISignedDocument | null;
 
   @Column({ type: 'varchar', length: 128 })
   public submretrn_tx_hash!: string;

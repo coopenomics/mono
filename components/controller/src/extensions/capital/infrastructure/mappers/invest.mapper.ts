@@ -3,7 +3,7 @@ import { InvestTypeormEntity } from '../entities/invest.typeorm-entity';
 import type { IInvestDatabaseData } from '../../domain/interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../../domain/interfaces/invest-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestBlockchainData>;
@@ -79,7 +79,7 @@ export class InvestMapper {
         status: domain.blockchain_status as any,
         amount: domain.amount as string,
         invested_at: new Date(domain.invested_at ?? new Date()),
-        statement: domain.statement as ISignedDocumentDomainInterface,
+        statement: domain.statement as ISignedDocument,
         coordinator: domain.coordinator as string,
         coordinator_amount: domain.coordinator_amount as string,
       };

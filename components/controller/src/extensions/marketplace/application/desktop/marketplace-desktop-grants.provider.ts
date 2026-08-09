@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 
-import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
+import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import type {
   IDesktopGrantsContext,
@@ -83,7 +83,7 @@ export class MarketplaceDesktopGrantsProvider
 
   async resolveGrants(ctx: IDesktopGrantsContext): Promise<string[]> {
     if (!ctx.username) return [];
-    if (ctx.userStatus !== MonoAccountStatusDomainInterface.Active) return [];
+    if (ctx.userStatus !== MonoAccountStatus.Active) return [];
 
     const coreRoles = mapUserRoleToCoreRoles(ctx.userRole);
     if (coreRoles.length === 0) return [];

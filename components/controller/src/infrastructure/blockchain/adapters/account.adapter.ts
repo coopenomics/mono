@@ -15,7 +15,7 @@ import {
   AgreementConfigurationService,
 } from '~/domain/registration/services/agreement-configuration.service';
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
 
@@ -157,7 +157,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   /**
    * soviet::sndagreement — для непрограммных соглашений (program_id == 0).
    */
-  private createSendAgreementAction(username: string, agreementType: string, document: ISignedDocumentDomainInterface): any {
+  private createSendAgreementAction(username: string, agreementType: string, document: ISignedDocument): any {
     const agreementData: SovietContract.Actions.Agreements.SendAgreement.ISendAgreement = {
       coopname: config.coopname,
       administrator: config.coopname,
@@ -188,7 +188,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     username: string,
     programId: number,
     draftId: number,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): any {
     const data: WalletContract.Actions.SignAgreement.ISignAgreement = {
       coopname: config.coopname,

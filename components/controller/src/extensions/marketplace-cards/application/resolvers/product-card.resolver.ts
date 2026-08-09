@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CreateProductCardInputDTO, ProductCardDTO } from '../dto/product-card.dto';
 import { ProductCardType, ProductCardStatus } from '../../domain/entities/product-card.entity';
 
@@ -41,7 +41,7 @@ export class ProductCardResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async getMyProductCards(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProductCardDTO[]> {
     return [];
   }
@@ -53,7 +53,7 @@ export class ProductCardResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async createProductCard(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data') data: CreateProductCardInputDTO,
   ): Promise<ProductCardDTO> {
     return {} as ProductCardDTO;

@@ -3,7 +3,7 @@ import { BadRequestException, Inject, NotFoundException, UseGuards } from '@nest
 import { plainToInstance } from 'class-transformer';
 import { validate, type ValidationError } from 'class-validator';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { config } from '~/config';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {
@@ -43,7 +43,7 @@ export class ReportDraftResolver {
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
     @Args('period', { type: () => Int, nullable: true }) period: number | null | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<BuildInitialReportEditsDTO> {
     const coopname = config.coopname;
     const [defaults, draft] = await Promise.all([
@@ -77,7 +77,7 @@ export class ReportDraftResolver {
   @AuthRoles(['chairman'])
   async saveReportDraft(
     @Args('input') input: SaveReportDraftInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO> {
     const parsedEdits = this.parseEditsJson(input.editsJson);
     const record = await this.draftRepo.save({
@@ -103,7 +103,7 @@ export class ReportDraftResolver {
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
     @Args('period', { type: () => Int, nullable: true }) period: number | null | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO | null> {
     const record = await this.draftRepo.findOne(
       config.coopname,
@@ -124,7 +124,7 @@ export class ReportDraftResolver {
   async listReportDrafts(
     @Args('filter', { type: () => ListReportDraftsFilterInputDTO, nullable: true })
     filter: ListReportDraftsFilterInputDTO | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO[]> {
     const records = await this.draftRepo.list({
       coopname: config.coopname,
@@ -169,7 +169,7 @@ export class ReportDraftResolver {
   @AuthRoles(['chairman'])
   async deleteReportDraft(
     @Args('id') id: string,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
     const record = await this.draftRepo.findById(id);
     if (!record) throw new NotFoundException(`Draft ${id} not found`);
