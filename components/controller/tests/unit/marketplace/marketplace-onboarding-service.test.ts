@@ -157,3 +157,85 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     expect(state.requires_gate).toBe(true);
   });
 });
+
+/**
+ * Подписание оферты ЦПП пайщиком (L3).
+ *
+ * Оферта подписывается через `wallet::signagree` в программу ЦПП, поэтому
+ * подписание невозможно, пока у соглашения нет программного кошелька: без
+ * program_id подпись некуда положить, и пайщик остался бы с гейтом навсегда,
+ * не понимая причины. Отказ обязан быть внятным и до обращения к цепи.
+ */
+describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
+  const signedDocument = { hash: 'doc-hash', signatures: [{ signer: 'alice' }] } as never;
+
+  async function loadService(coagreement: unknown, wallet = makeWalletPort()) {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
+    const { MarketplaceOnboardingService } = await import(
+      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
+    );
+    const service = new MarketplaceOnboardingService(
+      makeUserAgreementRepo(null),
+      makeSovietPort(coagreement),
+      wallet,
+      makeLogger()
+    );
+    return { service, wallet };
+  }
+
+  it('соглашение ЦПП без программного кошелька → отказ, цепь не трогаем', async () => {
+    const { service, wallet } = await loadService({ ...COAGREEMENT, program_id: 0 });
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не имеет программного wallet');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('соглашение ЦПП вообще не настроено → отказ с указанием, что выполнить', async () => {
+    const { service, wallet } = await loadService(null);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не настроено соглашение типа');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('цепь недоступна в момент подписи → ошибка наружу, состояние не меняется', async () => {
+    // Подпись — единственное действие этого пути: локально фиксировать нечего,
+    // поэтому отказ цепи просто поднимается вызывающему, и пайщик увидит гейт
+    // при следующем заходе.
+    const wallet = {
+      signProgramAgreement: jest.fn().mockRejectedValue(new Error('chain timeout')),
+    } as never as ReturnType<typeof makeWalletPort>;
+    const { service } = await loadService(COAGREEMENT, wallet);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('chain timeout');
+  });
+
+  it('настроенное соглашение → подпись уходит в цепь с program_id и draft_id из коагримента', async () => {
+    const wallet = {
+      signProgramAgreement: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
+    } as never as ReturnType<typeof makeWalletPort>;
+    const { service } = await loadService(COAGREEMENT, wallet);
+
+    await service.signOnboardingOffer({
+      coopname: 'voskhod',
+      username: 'alice',
+      document: signedDocument,
+    });
+
+    expect(wallet.signProgramAgreement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coopname: 'voskhod',
+        username: 'alice',
+        program_id: PROGRAM_ID,
+        draft_id: 1100,
+      })
+    );
+  });
+});

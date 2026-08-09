@@ -117,8 +117,8 @@ cases:
     kind: side
     scenario: Соглашение ЦПП настроено, но у него нет программного кошелька
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.08
     level: backend
@@ -152,5 +152,5 @@ cases:
     scenario: Цепь недоступна в момент подписания оферты
     expect: >
       пайщику показывается ошибка, состояние не считается подписанным, повторная попытка возможна
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
