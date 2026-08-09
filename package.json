@@ -51,6 +51,8 @@
     "setup": "lerna run setup --scope @coopenomics/setup",
     "boot": "lerna run boot --scope @coopenomics/boot",
     "reboot": "cd components/boot/scripts && bash reboot.sh",
+    "start": "cd components/boot/scripts && bash up.sh",
+    "stop": "cd components/boot/scripts && bash down.sh",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
     "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
