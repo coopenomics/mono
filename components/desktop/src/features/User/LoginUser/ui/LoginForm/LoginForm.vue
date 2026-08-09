@@ -15,7 +15,6 @@
         label="Пароль или ключ доступа"
         type="password"
         autocomplete="current-password"
-        hint="Введите пароль. Действующие пайщики могут войти по ключу доступа."
         required
       />
       <BaseButton
