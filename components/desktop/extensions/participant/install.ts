@@ -4,6 +4,7 @@ import { MembershipExitPage } from 'src/pages/User/MembershipExitPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
 import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
+import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
@@ -71,6 +72,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'profile',
             name: 'profile',
             component: markRaw(ProfilePage),
+            children: [],
+          },
+          {
+            // Страница была написана, но в стол пайщика её забыли завести — на
+            // столе её просто не существовало. Здесь живут пароль, активные
+            // сессии, устройства и PIN-код: место рядом с удостоверением.
+            meta: {
+              title: 'Настройки',
+              // Material-иконка: канон запрещает FontAwesome в новых правках,
+              // соседние fa-* — легаси и меняются попутно при их правке.
+              icon: 'settings',
+              roles: [],
+              agreements: agreementsBase,
+            },
+            path: 'settings',
+            name: 'user-settings',
+            component: markRaw(UserSettingsPage),
             children: [],
           },
           {
