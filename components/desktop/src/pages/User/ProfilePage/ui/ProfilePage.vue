@@ -7,17 +7,20 @@
     .cert__identity
       IdentityPanel.cert__person(:identity='identity')
       .cert__qr(v-if='certificate')
-        CertificateQr(:jws='certificate.jws', :size='128')
+        CertificateQr(:jws='certificate.jws', :size='112')
         BaseButton(variant='ghost', size='sm', @click='openQr')
           template(#icon-left)
             q-icon(name='fullscreen', size='18px')
           | Показать
 
     template(v-if='certificate')
-      .cert__head
-        BaseChip(:variant='certStatus.variant') {{ certStatus.label }}
-      DataRow(label='Серийный номер', :value='certificate.jti', copyable, mono)
-      DataRow(label='Действует до', :value='formatExp(certificate.exp)')
+      //- Серийный номер убран: пайщику он ни о чём не говорит, а проверяющий читает
+      //- его из кода. Состояние стоит рядом со сроком — это про один и тот же факт.
+      DataRow(label='Действует до')
+        template(#value-override)
+          .cert__validity
+            span {{ formatExp(certificate.exp) }}
+            BaseChip(:variant='certStatus.variant') {{ certStatus.label }}
 
       .cert__block
         .cert__block-label Цепочка подписей
@@ -31,7 +34,7 @@
             )
 
       .cert__block(v-if='verificationLabels.length')
-        .cert__block-label Подтверждения
+        .cert__block-label Уровень верификации
         .cert__verifications
           BaseChip(
             v-for='(label, i) in verificationLabels',
@@ -204,14 +207,16 @@ onMounted(async () => {
   }
 });
 
-// Статус по сроку действия (зеркало @coopenomics/auth.certificateStatus).
-const EXPIRING_WINDOW_MS = 60 * 60 * 1000;
+/**
+ * Состояние удостоверения. Промежуточного «истекает» здесь нет намеренно: окно
+ * предупреждения совпадало со всем сроком жизни, поэтому оранжевое «Истекает»
+ * горело всегда и пугало на пустом месте. Удостоверение выпускается заново при
+ * каждом открытии страницы, так что приближение срока — не событие для пайщика.
+ */
 const certStatus = computed<{ label: string; variant: BaseChipVariant }>(() => {
   const exp = (certificate.value?.exp ?? 0) * 1000;
-  const now = Date.now();
-  if (!exp || now >= exp) return { label: 'Истекло', variant: 'neg' };
-  if (exp - now <= EXPIRING_WINDOW_MS) return { label: 'Истекает', variant: 'warn' };
-  return { label: 'Активно', variant: 'pos' };
+  if (!exp || Date.now() >= exp) return { label: 'Истекло', variant: 'neg' };
+  return { label: 'Действует', variant: 'pos' };
 });
 
 // Человекочитаемые имена звеньев цепи подписей + сам пайщик в конце.
@@ -235,8 +240,10 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
 });
 
 // Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).
+// Уровни верификации: сейчас есть только базовый — членство подтверждено самим
+// кооперативом. Дальше добавятся уровни, подтверждённые документами.
 const VERIFICATION_LABELS: Record<string, string> = {
-  coop_baseline: 'Базовое подтверждение кооперативом',
+  coop_baseline: 'Базовый',
 };
 // Структурная форма claim (Story 4.3): отображаем лейбл по типу; verified_at/source —
 // в UI пока не выводим (отдельная verstka-история).
@@ -439,8 +446,15 @@ const getRepresentativeName = (representative: any) => {
 
 .cert__identity {
   display: flex;
-  align-items: flex-start;
+  /* По центру, а не по верху: колонка с кодом выше панели личности, и при
+     выравнивании по верху под именем зиял пустой блок в половину экрана. */
+  align-items: center;
   gap: var(--p-4);
+}
+.cert__validity {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
 }
 .cert__person {
   flex: 1;
