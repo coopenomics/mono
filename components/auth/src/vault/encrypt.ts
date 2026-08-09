@@ -53,7 +53,7 @@ export async function encryptWithPassword(
 ): Promise<EncryptedVaultBlob> {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN))
   const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LEN))
-  const keyBytes = deriveKey(password, salt)
+  const keyBytes = await deriveKey(password, salt)
 
   const key = await crypto.subtle.importKey('raw', buf(keyBytes), { name: 'AES-GCM' }, false, ['encrypt'])
   const sealed = new Uint8Array(
@@ -84,7 +84,7 @@ export async function decryptWithPassword(
   password: string,
   additionalData: string,
 ): Promise<string> {
-  const keyBytes = deriveKey(password, fromB64Url(blob.salt))
+  const keyBytes = await deriveKey(password, fromB64Url(blob.salt))
   const key = await crypto.subtle.importKey('raw', buf(keyBytes), { name: 'AES-GCM' }, false, ['decrypt'])
   const sealed = new Uint8Array([...fromB64Url(blob.ciphertext), ...fromB64Url(blob.auth_tag)])
   try {

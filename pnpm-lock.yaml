@@ -90,6 +90,9 @@ importers:
       cooptypes:
         specifier: workspace:*
         version: link:../cooptypes
+      hash-wasm:
+        specifier: 4.12.0
+        version: 4.12.0
       jose:
         specifier: ^6.2.2
         version: 6.2.8
@@ -12350,6 +12353,9 @@ packages:
 
   hash-sum@1.0.2:
     resolution: {integrity: sha512-fUs4B4L+mlt8/XAtSOGMUO1TXmAelItBPtJG7CyHJfYTdDjwisntGO2JQz7oUsatOY9o68+57eziUVNw/mRHmA==}
+
+  hash-wasm@4.12.0:
+    resolution: {integrity: sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==}
 
   hash.js@1.1.7:
     resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
@@ -33787,6 +33793,8 @@ snapshots:
       to-buffer: 1.2.2
 
   hash-sum@1.0.2: {}
+
+  hash-wasm@4.12.0: {}
 
   hash.js@1.1.7:
     dependencies:
