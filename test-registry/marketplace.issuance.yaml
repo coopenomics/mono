@@ -39,8 +39,8 @@ cases:
     kind: side
     scenario: Оператор пытается открыть выдачу без кода получателя
     expect: выдача не открывается
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
+    status: passing
 
   - id: mkt.iss.side.02
     level: backend

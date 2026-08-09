@@ -96,6 +96,7 @@ const GROUPS = [
     scenarios: [
       'marketplace/operator/issuance-open',
       'marketplace/operator/issuance',
+      'marketplace/operator/issuance-no-code',
       'marketplace/orderer/ready-to-receive',
       'marketplace/operator/issuance-finalize',
     ],
