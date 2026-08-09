@@ -1,11 +1,18 @@
 <template lang="pug">
 .profile-page(v-if='currentProfile')
-  //- Шапка-удостоверение: ФИО/наименование пайщика + роль в кооперативе.
-  IdentityPanel(:identity='identity')
-
-  //- Криптографическое удостоверение пайщика (CoopID): серийник, срок,
-  //- статус, цепочка подписей и собранные подтверждения.
+  //- Удостоверение — одна форма: кто это (фото, имя, роль) и код, которым это
+  //- проверяется. Раньше личность и удостоверение были двумя разными карточками,
+  //- и предъявить их вместе было нечем.
   BaseCard(title='Удостоверение пайщика')
+    .cert__identity
+      IdentityPanel.cert__person(:identity='identity')
+      .cert__qr(v-if='certificate')
+        CertificateQr(:jws='certificate.jws', :size='128')
+        BaseButton(variant='ghost', size='sm', @click='openQr')
+          template(#icon-left)
+            q-icon(name='fullscreen', size='18px')
+          | Показать
+
     template(v-if='certificate')
       .cert__head
         BaseChip(:variant='certStatus.variant') {{ certStatus.label }}
@@ -32,11 +39,6 @@
             variant='info'
           ) {{ label }}
 
-      .cert__actions
-        BaseButton(variant='secondary', :loading='exporting', @click='askExport')
-          template(#icon-left)
-            q-icon(name='badge', size='18px')
-          | Скачать удостоверение
     //- Прежний текст звал войти в кооператив — но карточка видна только тому, кто
     //- уже вошёл, и совет читался как издевательство. Удостоверение выпускается
     //- на входе и требует ключей заверения кооператива; если их нет, войти можно,
@@ -47,13 +49,14 @@
       body='Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.'
     )
 
-  //- Выгрузка удостоверения выносит персональные данные из приложения наружу,
-  //- где ходить файлу мы уже не помешаем — поэтому спрашиваем явно.
-  BaseDialog(v-model='exportConfirm', title='Скачать удостоверение?', size='sm')
-    p.cert__confirm В файле будут ваши фамилия, имя и отчество, а также код, по которому проверяется подлинность. Он пригоден для распечатки и предъявления.
-    template(#footer)
-      BaseButton(variant='secondary', @click='exportConfirm = false') Отмена
-      BaseButton(:loading='exporting', @click='onExport') Скачать
+  //- Показ во весь экран: код должен читаться сканером с чужого устройства, а
+  //- рядом — имя, чтобы предъявление было осмысленным без пояснений.
+  BaseDialog(v-model='showQr', maximized)
+    .cert-show(v-if='certificate')
+      CertificateQr.cert-show__qr(:jws='certificate.jws', :size='qrShowSize')
+      .cert-show__name {{ identity.fullName }}
+      .cert-show__meta {{ system.cooperativeDisplayName || certificate.coopname }}
+      .cert-show__hint Поднесите код к сканеру проверяющего
 
   //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
   //- моноширинные (это технические идентификаторы блокчейн-аккаунта).
@@ -181,8 +184,7 @@ import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
-import { FailAlert } from 'src/shared/api';
-import { useExportCertificate } from 'src/features/User/ExportCertificate';
+import { CertificateQr } from 'src/features/User/ShowCertificate';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -253,41 +255,22 @@ const formatExp = (exp: number): string => {
   });
 };
 
-// Выгрузка удостоверения картинкой: слева — кто это, справа — код для проверки.
-// Прежде кнопка показывала всплывающее «станет доступно в составе Vision» и не
-// делала ничего — обещание без срока вместо документа.
-const exportConfirm = ref(false);
-const exporting = ref(false);
+// Показ удостоверения. Скачивания намеренно нет: удостоверение несёт персональные
+// данные, и файл, однажды покинувший приложение, дальше ходит сам по себе. Показать
+// с экрана достаточно — проверяющий сканирует код и получает всё, что ему нужно.
+const showQr = ref(false);
+const qrShowSize = ref(320);
 
-function askExport(): void {
-  exportConfirm.value = true;
-}
-
-async function onExport(): Promise<void> {
-  const cert = certificate.value;
-  if (!cert) return;
-  exporting.value = true;
-  try {
-    const { download } = useExportCertificate();
-    await download(
-      {
-        jws: cert.jws,
-        fullName: identity.value.fullName,
-        role: identity.value.role,
-        coopName: system.cooperativeDisplayName || cert.coopname,
-        account: session.username,
-        serial: cert.jti,
-        validUntil: formatExp(cert.exp),
-      },
-      // Согласие уже дано нажатием в диалоге — SDK требует его как функцию.
-      async () => true,
-    );
-    exportConfirm.value = false;
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    exporting.value = false;
+/**
+ * Размер кода на весь экран считаем по меньшей стороне — чтобы влезал и в портрет,
+ * и в ландшафт. Пересчитываем при каждом открытии: экран могли повернуть, а
+ * вычисленное однажды значение так и осталось бы от прежней ориентации.
+ */
+function openQr(): void {
+  if (typeof window !== 'undefined') {
+    qrShowSize.value = Math.min(Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.7), 520);
   }
+  showQr.value = true;
 }
 
 const userType = computed(() => {
@@ -454,9 +437,54 @@ const getRepresentativeName = (representative: any) => {
   color: var(--p-ink-3);
 }
 
-.cert__confirm {
+.cert__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-4);
+}
+.cert__person {
+  flex: 1;
+  min-width: 0;
+}
+.cert__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--p-2);
+  flex: none;
+}
+/* На узком экране код уходит под имя: рядом он сжимает ФИО до нечитаемого. */
+@media (max-width: 599px) {
+  .cert__identity {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cert__qr {
+    align-items: flex-start;
+  }
+}
+
+.cert-show {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-3);
+  min-height: 70vh;
+  text-align: center;
+}
+.cert-show__name {
+  font-size: var(--p-fs-h4, 20px);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-top: var(--p-2);
+}
+.cert-show__meta {
   color: var(--p-ink-2);
-  margin: 0;
+}
+.cert-show__hint {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
 }
 .cert__actions {
   margin-top: var(--p-4, 16px);
