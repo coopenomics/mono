@@ -68,7 +68,17 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Сканировать QR заказа")').first().click();
+  // В сюите этот сценарий идёт после выдачи заказа, и на столе может висеть
+  // открытый диалог или всплывающее уведомление от предыдущего шага. Кнопка
+  // при этом находится, но клик по ней не проходит — перекрыта оверлеем.
+  // Точечный прогон этого не показывает: там стол чистый.
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(600);
+  await page.locator('.q-notification').first().waitFor({ state: 'detached', timeout: 8000 })
+    .catch(() => {});
+  await cleanViteOverlays(page);
+
+  await page.locator('button:has-text("Сканировать QR заказа")').first().click({ timeout: 20000 });
   const dialog = page
     .locator('.q-dialog__inner:visible')
     .filter({ hasText: 'Сканирование QR' })
