@@ -4,9 +4,10 @@ import { RefreshService } from './refresh.service';
 
 function build(overrides: { tokens?: any; userDomain?: any } = {}) {
   const tokens = {
-    verifyToken: jest.fn().mockResolvedValue({ userId: 'uuid-1' }),
+    verifyToken: jest.fn().mockResolvedValue({ userId: 'uuid-1', id: 'sess-1' }),
     findOneAndDelete: jest.fn().mockResolvedValue(null),
     generateAuthTokens: jest.fn().mockResolvedValue({ access: { token: 'A' }, refresh: { token: 'R' } }),
+    rotateAuthTokens: jest.fn().mockResolvedValue({ access: { token: 'A' }, refresh: { token: 'R' } }),
     ...overrides.tokens,
   };
   const userDomain = {
@@ -18,13 +19,26 @@ function build(overrides: { tokens?: any; userDomain?: any } = {}) {
 }
 
 describe('RefreshService (Эпик 7, REST /coop/refresh)', () => {
-  it('валидный refresh → ротация (старый удаляется, выпускается новая пара)', async () => {
+  it('валидный refresh → ротация в той же сессии (строка переиспользуется)', async () => {
     const { svc, tokens } = build();
 
     const res = await svc.refresh('refresh-token');
 
     expect(res).toEqual({ access_token: 'A', refresh_token: 'R' });
     expect(tokens.verifyToken).toHaveBeenCalledWith({ token: 'refresh-token', types: [tokenTypes.REFRESH] });
+    expect(tokens.rotateAuthTokens).toHaveBeenCalledWith('uuid-1', 'sess-1');
+    // Личность сессии обязана сохраниться: её id стоит в выданных токенах доступа,
+    // и пересоздание строки обесценило бы их и «размножило» сессию в списке устройств.
+    expect(tokens.findOneAndDelete).not.toHaveBeenCalled();
+    expect(tokens.generateAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it('строка без id → прежнее поведение: старую гасим, выпускаем новую сессию', async () => {
+    const { svc, tokens } = build({ tokens: { verifyToken: jest.fn().mockResolvedValue({ userId: 'uuid-1' }) } });
+
+    const res = await svc.refresh('refresh-token');
+
+    expect(res).toEqual({ access_token: 'A', refresh_token: 'R' });
     expect(tokens.findOneAndDelete).toHaveBeenCalledWith('refresh-token', tokenTypes.REFRESH);
     expect(tokens.generateAuthTokens).toHaveBeenCalledWith('uuid-1');
   });
@@ -41,7 +55,7 @@ describe('RefreshService (Эпик 7, REST /coop/refresh)', () => {
 
     expect(res).toEqual({ access_token: 'A', refresh_token: 'R' });
     expect(userDomain.findUserByLegacyMongoId).toHaveBeenCalled();
-    expect(tokens.generateAuthTokens).toHaveBeenCalledWith('mongo-1');
+    expect(tokens.rotateAuthTokens).toHaveBeenCalledWith('mongo-1', 'sess-1');
   });
 
   it('невалидный/отозванный refresh (verifyToken бросает) → UnauthorizedException', async () => {
