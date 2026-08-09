@@ -73,7 +73,13 @@ export interface BlockchainPort {
    * Подписывает сам кооператив своим действующим ключом. Вызывается при старте, когда
    * право отсутствует или разошлось с ключом, который держит приложение.
    */
-  publishCertPermission(coopname: string, publicKey: string): Promise<void>;
+  publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void>;
+  /**
+   * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
+   * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).
+   * Так кооператив получает возможность вести аккаунт АНО, не владея её ключами.
+   */
+  canManageAccount(account: string, steward: string): Promise<boolean>;
   getCooperative(coopname: string): Promise<any>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 

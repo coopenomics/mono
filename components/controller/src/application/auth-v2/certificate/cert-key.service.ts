@@ -10,6 +10,20 @@ import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/service
 import { wifPermissions } from '~/domain/vault/types/vault.types';
 
 /**
+ * Аккаунт АНО — якорь доверия всей сети: он заверяет кооперативы, а те заверяют
+ * пайщиков. Пока его нет в цепи, удостоверения укореняются на самом кооперативе.
+ */
+const TRUST_ANCHOR_ACCOUNT = 'ano';
+
+/**
+ * Кооператив, который ведёт аккаунт АНО. Имя задано прямо здесь намеренно: якорь
+ * доверия сети один, и подменять его настройкой конкретной установки нельзя —
+ * иначе любой кооператив объявит себя якорем и станет заверять сам себя.
+ * Остальные кооперативы заверяют только себя.
+ */
+const TRUST_ANCHOR_STEWARD = 'voskhod';
+
+/**
  * Ключ, которым кооператив заверяет удостоверения пайщиков: выпуск, хранение и
  * публикация публичной части в цепи.
  *
@@ -45,6 +59,7 @@ export class CertKeyService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     try {
       await this.ensurePublished();
+      await this.ensureAnchorPublished();
     } catch (e) {
       this.logger.warn(
         `Право заверения удостоверений не настроено: ${e instanceof Error ? e.message : String(e)}. Удостоверения выпускаться не будут.`,
@@ -72,6 +87,53 @@ export class CertKeyService implements OnApplicationBootstrap {
 
     await this.blockchainPort.publishCertPermission(coopname, publicKey);
     this.logger.log(`Опубликовано право заверения кооператива ${coopname}`, 'CertKeyService');
+    return { published: true, publicKey };
+  }
+
+  /**
+   * Доводит до рабочего состояния право заверения АНО — но только у кооператива,
+   * который её ведёт, и только когда цепь это подтверждает.
+   *
+   * Три условия, и все обязательны: установка принадлежит ведущему кооперативу,
+   * аккаунт АНО заведён в цепи, и распорядительные права на него переданы этому
+   * кооперативу по имени. Не выполнено любое — тихо выходим: это не сбой, а «ещё
+   * не завели». Как только аккаунт появится и права передадут, ближайший запуск
+   * доделает остальное сам.
+   *
+   * Зачем вообще: без якоря цепь доверия состоит из одного звена, и кооператив
+   * подтверждает сам себя. С якорем проверяющий укореняется на АНО, и чужой
+   * кооператив себя уже не подтвердит.
+   */
+  async ensureAnchorPublished(): Promise<{ published: boolean; publicKey?: string }> {
+    if (config.coopname !== TRUST_ANCHOR_STEWARD) return { published: false };
+
+    const account = await this.blockchainPort.getAccount(TRUST_ANCHOR_ACCOUNT);
+    if (!account) {
+      this.logger.log(`Аккаунт ${TRUST_ANCHOR_ACCOUNT} в цепи не заведён — якорь доверия пока не подключаем`, 'CertKeyService');
+      return { published: false };
+    }
+
+    const canManage = await this.blockchainPort.canManageAccount(TRUST_ANCHOR_ACCOUNT, config.coopname);
+    if (!canManage) {
+      this.logger.warn(
+        `Аккаунт ${TRUST_ANCHOR_ACCOUNT} есть в цепи, но распорядительные права на него не переданы ${config.coopname} — право заверения якоря не публикуем`,
+        'CertKeyService',
+      );
+      return { published: false };
+    }
+
+    const wif = (await this.vault.getWif(TRUST_ANCHOR_ACCOUNT, wifPermissions.Cert)) ?? (await this.issueAndStore(TRUST_ANCHOR_ACCOUNT));
+    const publicKey = this.crypto.publicKeyOf(wif);
+
+    const onChain = await this.blockchainPort.getCertPublicKey(TRUST_ANCHOR_ACCOUNT);
+    if (onChain && this.crypto.normalizePublicKey(onChain) === this.crypto.normalizePublicKey(publicKey)) {
+      return { published: false, publicKey };
+    }
+
+    // Подписывает кооператив своим ключом; полномочие указывается от имени АНО —
+    // цепь принимает подпись по переданным правам.
+    await this.blockchainPort.publishCertPermission(TRUST_ANCHOR_ACCOUNT, publicKey, config.coopname);
+    this.logger.log(`Опубликовано право заверения якоря ${TRUST_ANCHOR_ACCOUNT}`, 'CertKeyService');
     return { published: true, publicKey };
   }
 
@@ -122,10 +184,10 @@ export class CertKeyService implements OnApplicationBootstrap {
   }
 
   /** Выпускает новый ключ и кладёт его в хранилище рядом с ключом кооператива. */
-  private async issueAndStore(): Promise<string> {
+  private async issueAndStore(account: string = config.coopname): Promise<string> {
     const wif = this.crypto.generate();
     const saved = await this.vault.setWif({
-      username: config.coopname,
+      username: account,
       wif,
       permission: wifPermissions.Cert,
     });

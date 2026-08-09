@@ -231,18 +231,22 @@ export class BlockchainService implements BlockchainPort {
    * Подписывает сам кооператив своим распорядительным ключом; право заверения отдельно
    * именно затем, чтобы подпись удостоверений и распоряжение средствами не совпадали.
    */
-  public async publishCertPermission(coopname: string, publicKey: string): Promise<void> {
-    const coopWif = await this.vaultDomainService.getWif(coopname);
-    if (!coopWif)
-      throw new Error(`Нет ключа кооператива ${coopname} — опубликовать право заверения нечем`);
+  public async publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void> {
+    // Подписывает либо сам аккаунт, либо кооператив, которому переданы его
+    // распорядительные права: цепь разрешает подпись по делегированию, а полномочие
+    // указывается всё равно от имени аккаунта, которому меняют право.
+    const signerAccount = signer ?? account;
+    const signerWif = await this.vaultDomainService.getWif(signerAccount);
+    if (!signerWif)
+      throw new Error(`Нет ключа кооператива ${signerAccount} — опубликовать право заверения нечем`);
 
-    this.initialize(coopname, coopWif);
+    this.initialize(signerAccount, signerWif);
     await this.transact({
       account: 'eosio',
       name: 'updateauth',
-      authorization: [{ actor: coopname, permission: 'active' }],
+      authorization: [{ actor: account, permission: 'active' }],
       data: {
-        account: coopname,
+        account,
         permission: 'cert',
         parent: 'active',
         auth: {
@@ -253,6 +257,22 @@ export class BlockchainService implements BlockchainPort {
         },
       },
     });
+  }
+
+  /**
+   * Указан ли `steward` в распорядительных правах аккаунта как аккаунт. Именно так
+   * кооператив ведёт чужой аккаунт, не владея его ключами: права передаются по
+   * имени, и подпись кооператива удовлетворяет полномочие.
+   */
+  public async canManageAccount(account: string, steward: string): Promise<boolean> {
+    const acc = await this.getAccount(account);
+    if (!acc) return false;
+    const json = JSON.parse(JSON.stringify(acc)) as {
+      permissions?: { perm_name?: string; required_auth?: { accounts?: { permission?: { actor?: string } }[] } }[];
+    };
+    return (json.permissions ?? [])
+      .filter((p) => p.perm_name === 'owner' || p.perm_name === 'active')
+      .some((p) => (p.required_auth?.accounts ?? []).some((a) => a.permission?.actor === steward));
   }
 
   public recoverPublicKey(message: string, signature: string): string {
