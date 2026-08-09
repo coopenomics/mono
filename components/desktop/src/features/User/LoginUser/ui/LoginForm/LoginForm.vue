@@ -66,7 +66,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LocalStorage } from 'quasar';
 import { useSessionStore } from 'src/entities/Session';
@@ -75,9 +75,10 @@ import { useNotificationPermissionDialog } from 'src/features/NotificationPermis
 import { FailAlert } from 'src/shared/api';
 import { BaseBanner, BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { updateOpenReplayUser } from 'src/shared/config';
+import { env, updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
 import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
+import { warmUpAuthentik } from '@coopenomics/auth';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -94,6 +95,13 @@ const newPassword = ref('');
 const repeatPassword = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
+
+// Пока пайщик заполняет форму, открываем flow authentik и тянем метаданные OIDC.
+// Оба запроса всё равно нужны при входе, но первое обращение к authentik заметно
+// медленнее последующих — выполненные заранее, они уходят из времени ожидания.
+onMounted(() => {
+  if (env.COOPID_ISSUER) void warmUpAuthentik({ issuer: env.COOPID_ISSUER });
+});
 
 const passwordError = computed(() =>
   newPassword.value && newPassword.value.length < MIN_PASSWORD_LENGTH

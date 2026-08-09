@@ -11,7 +11,7 @@ import { authenticateWithAuthentik, coopIdApiUrl } from './client'
 import { performTimestampHandshake } from './handshake'
 import { clearSession, getAccessToken as getStoredAccessToken } from './tokens'
 
-export { authenticateWithAuthentik, configureCoopId, configureOidc } from './client'
+export { authenticateWithAuthentik, configureCoopId, configureOidc, warmUpAuthentik } from './client'
 export { authenticateWithFlowExecutor, DEFAULT_AUTHENTICATION_FLOW } from './flow-executor'
 export type { FlowExecutorParams } from './flow-executor'
 export type { HandshakeResult } from './handshake'

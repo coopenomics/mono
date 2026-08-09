@@ -115,6 +115,18 @@ async function postChallenge(url: string, body: Record<string, unknown>): Promis
 }
 
 /**
+ * Открывает flow входа заранее, не отправляя учётных данных: обычный GET, тот же,
+ * с которого начинается `authenticateWithFlowExecutor`. Ответ не используется —
+ * смысл в прогреве authentik и в получении CSRF-cookie до того, как пайщик нажмёт
+ * «Войти». Challenge намеренно НЕ переиспользуется: он отражает состояние flow на
+ * момент запроса, а между прогревом и вводом пароля проходит сколько угодно времени.
+ */
+export async function warmUpFlow(issuer: string, flowSlug?: string): Promise<void> {
+  const base = new URL(issuer).origin
+  await getChallenge(flowUrl(base, flowSlug ?? DEFAULT_AUTHENTICATION_FLOW))
+}
+
+/**
  * Проводит фактор-1 (email+password) через flow-executor authentik и устанавливает
  * сессионную cookie. Возвращает `void` при успехе (сессия — побочный эффект cookie),
  * бросает `AuthV2Error(InvalidCredentials)` при неверных учётных данных / отказе и

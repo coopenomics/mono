@@ -230,7 +230,12 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     }
     // PIN-кэш пишем ТОЛЬКО при свежем входе: на reload перешифровка дефолтным ПИН
     // затёрла бы кастомный ПИН пользователя.
-    if (opts?.persistPin) await persistPinCache({ storage }).catch(() => undefined);
+    //
+    // Намеренно БЕЗ await: кэш нужен следующей загрузке страницы, а не этой, и
+    // держать вход из-за него незачем — это ещё одна деривация Argon2id поверх
+    // той, что уже отработала на расшифровке серверного vault'а. Ошибку глотаем:
+    // нет кэша — следующий вход просто спросит пароль.
+    if (opts?.persistPin) void persistPinCache({ storage }).catch(() => undefined);
 
     const wallet = await getWallet();
     session.value = new Session({
@@ -280,6 +285,14 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   };
 
   const init = async () => {
+    // Сессия CoopID уже установлена — восстанавливать нечего, и трогать её нельзя.
+    // Ниже идёт ветка легаси-контура: она первым делом присваивает `isAuth`
+    // результат проверки легаси-ключа, а у входа по паролю такого ключа нет — и
+    // живая сессия на мгновение становилась неавторизованной. Кабинет на это
+    // мгновение разбирался и собирался заново: весь набор запросов кабинета
+    // уходил на сервер дважды подряд, вход растягивался на лишние секунды.
+    if (isAuth.value && coopIdAccount.value) return;
+
     if (!globalStore.hasCreditials) {
       await globalStore.init();
       isAuth.value = globalStore.hasCreditials;

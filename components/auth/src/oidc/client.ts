@@ -13,7 +13,7 @@
  */
 import { type User, UserManager, type UserManagerSettings } from 'oidc-client-ts'
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
-import { authenticateWithFlowExecutor } from './flow-executor'
+import { authenticateWithFlowExecutor, warmUpFlow } from './flow-executor'
 
 interface OidcClientConfig {
   clientId: string
@@ -50,11 +50,24 @@ export function coopIdApiUrl(): string {
   return coopApiUrl
 }
 
+/**
+ * UserManager'ы по issuer. Раньше на каждый вход создавался новый — вместе с ним
+ * заново создавался и кэш метаданных, поэтому `.well-known/openid-configuration`
+ * запрашивался при каждом входе, добавляя round-trip к authentik прямо в момент,
+ * когда пайщик ждёт. Общий экземпляр позволяет прогреть метаданные заранее
+ * (`warmUpAuthentik`), пока пайщик ещё печатает.
+ */
+const managers = new Map<string, UserManager>()
+
 function userManager(issuer: string): UserManager {
   if (!oidcConfig)
     throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'OIDC не сконфигурирован: вызовите configureOidc({ clientId, redirectUri }) на старте приложения')
+  const authority = issuer.replace(/\/$/, '')
+  const cached = managers.get(authority)
+  if (cached)
+    return cached
   const settings: UserManagerSettings = {
-    authority: issuer.replace(/\/$/, ''),
+    authority,
     client_id: oidcConfig.clientId,
     redirect_uri: oidcConfig.redirectUri,
     silent_redirect_uri: oidcConfig.silentRedirectUri ?? oidcConfig.redirectUri,
@@ -62,7 +75,34 @@ function userManager(issuer: string): UserManager {
     post_logout_redirect_uri: oidcConfig.postLogoutRedirectUri,
     response_type: 'code', // Authorization Code + PKCE; oidc-client-ts включает PKCE по умолчанию.
   }
-  return new UserManager(settings)
+  const um = new UserManager(settings)
+  managers.set(authority, um)
+  return um
+}
+
+/**
+ * Прогрев authentik: тянет метаданные OIDC и открывает flow входа, пока пайщик
+ * заполняет форму. Обе операции — обычные GET'ы, побочных эффектов у них нет
+ * (сессию устанавливает только отправка пароля), поэтому вызывать безопасно и
+ * повторно.
+ *
+ * Зачем: authentik отвечает на первый запрос заметно дольше, чем на последующие
+ * (прогрев воркера), а метаданные и стартовый challenge всё равно потребуются.
+ * Выполненные заранее, они уходят из времени ожидания пайщика целиком.
+ *
+ * Ошибки намеренно гасятся: прогрев — оптимизация, его провал не должен мешать
+ * входу, все те же запросы будут честно повторены в `authenticateWithAuthentik`.
+ */
+export async function warmUpAuthentik(params: { issuer: string, flowSlug?: string }): Promise<void> {
+  try {
+    await Promise.all([
+      userManager(params.issuer).metadataService.getMetadata(),
+      warmUpFlow(params.issuer, params.flowSlug),
+    ])
+  }
+  catch {
+    // намеренно молча — см. док-комментарий
+  }
 }
 
 /**
