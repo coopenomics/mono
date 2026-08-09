@@ -10,9 +10,24 @@ if [ -f "$ROOT_DIR/.env" ]; then
   set +a
 fi
 
-# Останавливаем и удаляем контейнеры вместе с volumes
+# Останавливаем и удаляем контейнеры вместе с volumes.
+#
+# Именно `rm -svf` по списку, а не `docker compose down -v`: подкоманда `down`
+# список сервисов не принимает и сносит ВСЕ контейнеры проекта — вместе с
+# фронтом. Фронт при этом теряется дважды: reboot его обратно не поднимал
+# (прогон падал на преflight'е «desktop не отвечает» уже после успешного
+# reboot), а поднятый заново `quasar dev` компилирует маршруты с нуля — кэш
+# трансформаций живёт в памяти процесса, на диск не ложится. Холодный фронт
+# не успевает отдать страницу за таймауты сценариев, и прогон разваливается
+# на середине цепочки. Фронт данных не хранит, чистить его незачем.
+#
+# `rm -v` снимает только анонимные тома, поэтому именованные удаляем явно —
+# иначе БД и цепь переживут «перезапуск с чистого листа».
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+docker compose rm -svf mongo postgres monoredis minio cooparser coopback || true
+for vol in postgres_data mongo_data minio_data; do
+  docker volume rm -f "${COMPOSE_PROJECT_NAME:-mono-ai-4}_${vol}" >/dev/null 2>&1 || true
+done
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."

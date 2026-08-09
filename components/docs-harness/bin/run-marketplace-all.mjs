@@ -93,6 +93,8 @@ const GROUPS = [
     name: 'Приёмка на участке',
     scenarios: [
       'marketplace/operator/incoming-shipments',
+      // Сразу следом: та же партия глазами председателя соседнего участка.
+      'marketplace/operator/incoming-shipments-foreign',
       'marketplace/operator/apl-reception-create',
       'marketplace/offerer/apl-reception-sign',
       'marketplace/operator/apl-reception-chairman-sign',
