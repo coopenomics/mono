@@ -57,6 +57,10 @@
                 p.t-muted для замены председателя участка — измените его имя аккаунта в карточке участка на аккаунт одного из пайщиков.
               div.q-mt-md.flex.justify-center
                 DeleteBranchButton(:branch="props.row")
+          div.row
+            div.col-12.q-pa-sm
+              p.text-center.text-overline доступ к участку
+              BranchPrivacyManager(:branch="props.row")
 </template>
 
 <script lang="ts" setup>
@@ -65,6 +69,7 @@ import { useBranchStore } from 'src/entities/Branch/model';
 import { useEditableTableRows } from 'src/shared/lib/composables/useEditableTableRows';
 import { CreateBranchButton } from 'src/features/Branch/CreateBranch';
 import { DeleteBranchButton } from 'src/features/Branch/DeleteBranch';
+import { BranchPrivacyManager } from 'src/features/Branch/BranchPrivacy';
 import { getNameFromUserData } from 'src/shared/lib/utils/getNameFromUserData';
 import { BranchCard } from 'src/widgets/BranchCard';
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard';

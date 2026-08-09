@@ -38,9 +38,11 @@ export const useContributorStore = defineStore(
       contributors.value = loadedData;
     };
 
+    // `| null`: запрос одного участника может его не найти. Интерфейс стора
+    // это уже допускал, расходилась только реализация.
     const loadContributor = async (
       data: IGetContributorInput,
-    ): Promise<IContributor> => {
+    ): Promise<IContributor | null> => {
       const loadedData = await api.loadContributor(data);
       contributor.value = loadedData;
       return loadedData;
@@ -48,7 +50,7 @@ export const useContributorStore = defineStore(
 
     const loadSelf = async (
       data: IGetContributorInput,
-    ): Promise<IContributor> => {
+    ): Promise<IContributor | null> => {
       const loadedData = await api.loadContributor(data);
       self.value = loadedData;
       return loadedData;

@@ -29,6 +29,7 @@
 #include "src/board/updateboard.cpp"
 
 #include "src/branch/deletebranch.cpp"
+#include "src/branch/setbranch.cpp"
 
 #include "src/decision/authorize.cpp"
 #include "src/decision/freedecision.cpp"
@@ -49,6 +50,7 @@
 #include "src/fund/fundwithdraw.cpp"
 
 #include "src/participant/addparticipant.cpp"
+#include "src/participant/delparticipant.cpp"
 #include "src/participant/setminamt.cpp"
 #include "src/participant/block.cpp"
 #include "src/participant/cancelreg.cpp"

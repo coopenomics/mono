@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/wallet_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/wallet_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/wallet_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"wallet_contract"
+		],
+		"name" : "wallet_contract"
+	}
+}

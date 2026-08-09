@@ -7,6 +7,7 @@ import type { PaymentDomainEntity } from '~/domain/gateway/entities/payment-doma
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { Workflows } from '@coopenomics/notifications';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 
 /**
  * Сервис для отправки уведомлений о статусе платежей
@@ -70,7 +71,7 @@ export class PaymentNotificationService implements OnModuleInit {
       // Формируем данные для workflow (без приватных данных)
       const payload: Workflows.PaymentPaid.IPayload | Workflows.PaymentCancelled.IPayload = {
         userName,
-        paymentAmount: payment.quantity.toFixed(2),
+        paymentAmount: AmountFormatterUtils.formatAmountSafe(String(payment.quantity)),
         paymentCurrency: payment.symbol,
         paymentDate: payment.created_at.toLocaleString('ru-RU'),
         paymentUrl: `${config.frontend_url}`, //TODO: точную ссылку потом

@@ -12,6 +12,7 @@ import type { PaginationResultDomainInterface } from '~/domain/common/interfaces
 import { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
 import { RegisteredAccountDTO } from '../dto/registered-account.dto';
 import { UpdateAccountInputDTO } from '../dto/update-account-input.dto';
+import { PassportInputDTO } from '../dto/passport-input.dto';
 import { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
@@ -110,5 +111,18 @@ export class AccountResolver {
     data: UpdateAccountInputDTO
   ): Promise<AccountDTO> {
     return await this.accountService.updateAccount(data);
+  }
+
+  @Mutation(() => AccountDTO, {
+    name: 'saveMyPassport',
+    description:
+      'Сохранить собственные паспортные данные в реестре пайщиков. Применяется, когда паспорт ранее не был указан (например, при подписании договора материальной ответственности председателем кооперативного участка или доверенным лицом). Если паспортные данные уже установлены — они не перезаписываются.',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async saveMyPassport(
+    @Args('passport', { type: () => PassportInputDTO }) passport: PassportInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<AccountDTO> {
+    return await this.accountService.saveOwnPassport(currentUser.username, passport);
   }
 }

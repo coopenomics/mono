@@ -34,6 +34,8 @@ export class AppManagementService<TConfig = any> {
 
   // Установка
   async installApp(data: ExtensionGraphQLInput<TConfig>): Promise<ExtensionDTO<TConfig>> {
+    // Приложение должно быть открыто для установки в текущей сети
+    this.listingInteractor.assertInstallable(data.name);
     // Валидируем конфиг
     this.listingInteractor.validateConfig(data.name, data.config);
     // Устанавливаем

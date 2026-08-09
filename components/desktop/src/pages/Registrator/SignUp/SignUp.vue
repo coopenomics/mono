@@ -1,7 +1,14 @@
 <template lang="pug">
 .signup-page
   AuthCard.signup-page__card(:max-width='720', title='Вступить в пайщики')
+    template(v-if='isRegistrationClosed')
+      EmptyState.signup-page__closed(
+        title='Регистрация временно недоступна',
+        body='Кооператив завершает подготовку к приёму новых пайщиков. Пожалуйста, зайдите позже.'
+      )
+
     q-stepper.signup-page__stepper(
+      v-else,
       v-model='store.step',
       vertical,
       animated,
@@ -12,7 +19,7 @@
 
       SetUserData
 
-      SelectProgram
+      SelectProgram(v-if='registratorStore.requiresProgramSelection')
 
       GenerateAccount
 
@@ -26,7 +33,7 @@
 
       WaitingRegistration
 
-  .signup-page__restart
+  .signup-page__restart(v-if='!isRegistrationClosed')
     q-btn(@click='out', dense, size='sm', flat color='grey') начать с начала
 </template>
 
@@ -42,6 +49,7 @@ import PayInitial from './PayInitial.vue';
 import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { useLogoutUser } from 'src/features/User/Logout';
@@ -58,12 +66,15 @@ import { updateOpenReplayUser } from 'src/shared/config';
 
 const session = useSessionStore();
 const router = useRouter();
-const { state, clearUserData, steps } = useRegistratorStore();
+const registratorStore = useRegistratorStore();
+const { state, clearUserData, steps } = registratorStore;
 const store = state;
 const agreementer = useAgreementStore();
 const desktops = useDesktopStore();
 const system = useSystemStore();
 const { info } = system;
+
+const isRegistrationClosed = computed(() => info.settings?.is_registration_open === false);
 
 // Диалог разрешения уведомлений
 const { showDialog } = useNotificationPermissionDialog();
@@ -82,19 +93,25 @@ onMounted(() => {
       store.step = steps.WaitingRegistration;
       return;
     }
-    // Есть незавершённый вступительный платёж (ожидание подтверждения денег или
-    // отклонение председателем) — восстанавливаем экран ожидания/отказа даже
-    // после перезагрузки и в любой вкладке. Процесс может тянуться днями.
+    // Незавершённый вступительный платёж. PENDING означает «счёт выставлен», а НЕ
+    // «деньги получены»: строку счёта мы создаём сразу при заходе на шаг оплаты.
+    // Поэтому на экран ожидания/отказа ведём ТОЛЬКО когда деньги уже поступили
+    // (PAID/COMPLETED) либо платёж в терминальном статусе (отказ/отмена/возврат).
     // Приоритет над статусом: при отказе платежа показываем причину, а не гоним
     // «оплатить заново».
-    if (session.registrationPayment) {
+    const regPaymentStatus = session.registrationPayment?.status;
+    if (regPaymentStatus && regPaymentStatus !== Zeus.PaymentStatus.PENDING) {
       store.step = steps.WaitingRegistration;
       return;
     }
-    // Сервер — источник истины о шаге: заявление уже подписано (Joined), но
-    // оплаты ещё нет → возвращаем на шаг оплаты. Так процесс переживает
-    // перезагрузку и открытие в другой вкладке, не завися от localStorage.
-    if (userStatus === Zeus.UserStatus.Joined) {
+    // Сервер — источник истины о шаге: заявление подписано (Joined) либо счёт
+    // выставлен, но не оплачен (PENDING) → возвращаем на шаг оплаты (там QR +
+    // поллинг приёма денег). Так процесс переживает перезагрузку и открытие в
+    // другой вкладке, не завися от localStorage.
+    if (
+      regPaymentStatus === Zeus.PaymentStatus.PENDING ||
+      userStatus === Zeus.UserStatus.Joined
+    ) {
       store.step = steps.PayInitial;
       return;
     }
@@ -299,5 +316,8 @@ const isBranched = computed(() => info.cooperator_account.is_branched);
 .signup-page__restart {
   margin-top: var(--p-4, 16px);
   text-align: center;
+}
+.signup-page__closed {
+  padding: var(--p-4, 16px) 0;
 }
 </style>

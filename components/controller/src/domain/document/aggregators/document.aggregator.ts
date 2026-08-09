@@ -35,7 +35,14 @@ export class DocumentAggregator {
     // Получаем полный документ по хешу
     if (signedDoc.doc_hash === this.EMPTY_HASH) return null;
 
-    const document = await this.getDocumentByHash(signedDoc.doc_hash);
+    // Точная версия исходного документа по block_num подписанной meta:
+    // одно тело (doc_hash) может иметь несколько версий черновика с разным
+    // meta.block_num. Второй подписант обязан re-sign'ить ровно ту версию,
+    // которую подписал первый, иначе meta_hash не сойдётся.
+    const document = await this.getDocumentByHash(
+      signedDoc.doc_hash,
+      typeof signedDoc.meta?.block_num === 'number' ? signedDoc.meta.block_num : undefined
+    );
 
     // Массив для хранения информации о подписантах
     const signatureInfos: SignatureInfoDomainInterface[] = [];
@@ -86,8 +93,8 @@ export class DocumentAggregator {
    * @param hash Хеш документа
    * @returns Документ
    */
-  private async getDocumentByHash(hash: string): Promise<DocumentDomainEntity | null> {
-    const document = await this.documentRepository.findByHash(hash);
+  private async getDocumentByHash(hash: string, block_num?: number): Promise<DocumentDomainEntity | null> {
+    const document = await this.documentRepository.findByHash(hash, block_num);
     return document;
   }
 }

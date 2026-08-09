@@ -125,6 +125,57 @@ export interface NavItem {
   to?: string;
 }
 
+// Эвристика «happy-path»: action-имена, которые уводят на ветку отмены/отказа.
+// Сюда же относится legacy-поле `actions[].role === 'reject'` (если задано).
+// Когда из текущего статуса несколько transitions, при выборе следующего шага
+// штрафуем reject-кандидатов и предпочитаем тех, чей target имеет продолжение.
+const REJECT_ACTION_KEYWORDS = [
+  'cancel',
+  'decline',
+  'expire',
+  'reject',
+  'abort',
+  'abandon',
+  'fail',
+  'revoke',
+  'discard',
+];
+
+function looksLikeRejectAction(actionName: string): boolean {
+  const short = actionShort(actionName).toLowerCase();
+  return REJECT_ACTION_KEYWORDS.some((kw) => short.includes(kw));
+}
+
+function pickHappyTransition(
+  outs: Transition[],
+  allTransitions: Transition[],
+  virtualSet: Set<string>,
+  rejectActionNames: Set<string>,
+): Transition {
+  if (outs.length === 1) return outs[0];
+  const scored = outs.map((t, idx) => {
+    const isReject = rejectActionNames.has(t.action) || looksLikeRejectAction(t.action);
+    // Самопетля (from === to) — внутренний sub-step, не двигает цепочку:
+    // walk-loop сразу остановится на visited.has(to). Штрафуем.
+    const isSelfLoop = t.from === t.to;
+    // Если из target-статуса есть исходящие переходы — путь продолжается,
+    // это аргумент в пользу happy-ветки (отказы обычно сразу терминальны).
+    const targetHasContinuation = allTransitions.some(
+      (next) => next.from === t.to && !virtualSet.has(next.to),
+    );
+    return { t, idx, isReject, isSelfLoop, targetHasContinuation };
+  });
+  scored.sort((a, b) => {
+    if (a.isReject !== b.isReject) return a.isReject ? 1 : -1;
+    if (a.isSelfLoop !== b.isSelfLoop) return a.isSelfLoop ? 1 : -1;
+    if (a.targetHasContinuation !== b.targetHasContinuation) {
+      return a.targetHasContinuation ? -1 : 1;
+    }
+    return a.idx - b.idx;
+  });
+  return scored[0].t;
+}
+
 export function computeProcessFlow(standard: Standard): NavItem[] {
   const items: NavItem[] = [];
   const transitions = standard.transitions ?? [];
@@ -132,6 +183,12 @@ export function computeProcessFlow(standard: Standard): NavItem[] {
   const virtualStateNames = new Set(states.filter(isVirtual).map((s) => s.name));
   const hasTerminal = states.some((s) =>
     isTerminalSuccess(s, transitions, virtualStateNames),
+  );
+  // legacy: actions[].role === 'reject' — явная пометка отказа в манифесте
+  const rejectActionNames = new Set(
+    (standard.actions ?? [])
+      .filter((a) => a.role === 'reject')
+      .map((a) => a.name),
   );
 
   const hasStart = transitions.some((t) => t.from === INITIAL_MARKER);
@@ -152,7 +209,12 @@ export function computeProcessFlow(standard: Standard): NavItem[] {
       (t) => t.from === current && !virtualStateNames.has(t.to),
     );
     if (outs.length === 0) break;
-    const chosen = outs[0];
+    const chosen = pickHappyTransition(
+      outs,
+      transitions,
+      virtualStateNames,
+      rejectActionNames,
+    );
     const actionNodeId = actionNodeIdFor(chosen);
     items.push({
       kind: 'action',
@@ -255,8 +317,7 @@ function buildLayout(standard: Standard): LayoutResult {
       data: {
         label: INITIAL_MARKER,
         title: standard.title,
-        summary: standard.summary,
-        purpose: standard.purpose ?? '',
+        purpose: standard.purpose,
         isFocus: false,
       },
       draggable: false,
@@ -300,9 +361,7 @@ function buildLayout(standard: Standard): LayoutResult {
       data: {
         label: '●',
         title: standard.title,
-        summary: standard.summary,
-        purpose: standard.purpose ?? '',
-        hasRelated: (standard.related ?? []).length > 0,
+        purpose: standard.purpose,
         isFocus: false,
       },
       draggable: false,

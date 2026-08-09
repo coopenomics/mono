@@ -42,7 +42,14 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 
   // marketplace
-  { type: 'p.mkt.reqst',    contract: 'marketplace',  name: 'REQUEST',     human_name: 'Запрос маркетплейса' },
+  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка и приобретение имущества пайщика' },
+  { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
+  { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
+
+  // branch — экономика кооперативного участка (requirement b6)
+  { type: 'p.brn.fees',     contract: 'branch',       name: 'FEES',        human_name: 'Членские взносы кооперативного участка' },
+  { type: 'p.brn.aid',      contract: 'branch',       name: 'AID',         human_name: 'Материальная помощь доверенного кооперативного участка' },
+  { type: 'p.brn.spend',    contract: 'branch',       name: 'SPEND',       human_name: 'Оплата расхода кооперативного участка' },
 
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },

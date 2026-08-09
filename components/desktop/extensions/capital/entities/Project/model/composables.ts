@@ -23,15 +23,14 @@ export function useProjectLoader() {
     if (!projectHash.value) return;
 
     try {
-      // Всегда загружаем проект с сервера
-      await projectStore.loadProject({
+      // Всегда загружаем с сервера; компоненты кэшируются в entities, не в items мастерской
+      const loaded = await projectStore.loadProject({
         hash: projectHash.value,
       });
-      // После загрузки ищем его в store
-      const loadedProject = projectStore.projects.items.find(
-        p => p.project_hash === projectHash.value
-      );
-      project.value = loadedProject || null;
+      project.value =
+        (loaded as IProject | undefined) ??
+        projectStore.getProject(projectHash.value) ??
+        null;
     } catch (error) {
       console.error('Ошибка при загрузке проекта:', error);
       FailAlert('Не удалось загрузить проект');
@@ -46,15 +45,13 @@ export function useProjectLoader() {
     }
   });
 
-  // Watcher для синхронизации с изменениями в store
-  watch(() => projectStore.projects.items, (newItems) => {
-    if (newItems && projectHash.value) {
-      const foundProject = newItems.find(p => p.project_hash === projectHash.value);
-      if (foundProject) {
-        project.value = foundProject;
-      }
-    }
-  }, { deep: true });
+  // Синхронизация с кэшем (в т.ч. компоненты, которых нет в items мастерской)
+  watch(
+    () => projectStore.entities[projectHash.value],
+    (entity) => {
+      if (entity) project.value = entity;
+    },
+  );
 
   // Возвращаем интерфейс composable
   return {

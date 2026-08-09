@@ -1,0 +1,14 @@
+# Target labels
+ system_contract
+# Source files and their labels
+/project/build/CMakeFiles/system_contract
+/project/build/CMakeFiles/system_contract.rule
+/project/build/CMakeFiles/system_contract-complete.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-build.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-configure.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-download.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-install.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-mkdir.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-patch.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-test.rule
+/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-update.rule

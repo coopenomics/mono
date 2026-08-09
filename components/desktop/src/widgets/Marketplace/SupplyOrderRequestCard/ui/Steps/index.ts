@@ -1,8 +1,0 @@
-export { default as FirstStep } from './FirstStep.vue'
-export { default as SecondStep } from './SecondStep.vue'
-export { default as ThirdStep } from './ThirdStep.vue'
-export { default as FourthStep } from './FourthStep.vue'
-export { default as FifthStep } from './FifthStep.vue'
-export { default as SixthStep } from './SixthStep.vue'
-export { default as SeventhStep } from './SeventhStep.vue'
-export { default as EightStep } from './EightStep.vue'

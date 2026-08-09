@@ -1,0 +1,316 @@
+feature: capital.project-contributors
+title: Список участников проекта и компонента
+
+# Кто числится в проекте или компоненте и с каким взносом. Список строится из
+# долей участников: доля заводится при допуске к работам, при добавлении
+# соавтора и при приёме результата.
+#
+# Сам приём результата и подписание актов — соседний слайс
+# (capital.result-submission), здесь заводятся только последствия для списка.
+#
+# Список догружается по мере прокрутки: первая порция появляется сразу,
+# остальные подтягиваются, пока пользователь листает. Номеров страниц в
+# интерфейсе нет — счёт страниц список ведёт у себя.
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/project_managment/add_author/**
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/segments.resolver.ts
+    - components/controller/src/extensions/capital/application/services/segments.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/segments.interactor.ts
+    - components/controller/src/extensions/capital/application/use-cases/project-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/segment-sync.service.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
+  ui:
+    - components/desktop/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue
+    - components/desktop/extensions/capital/pages/ProjectContributorsPage/**
+    - components/desktop/extensions/capital/pages/ComponentContributorsPage/**
+    - components/desktop/extensions/capital/features/Project/AddAuthor/**
+    - components/desktop/extensions/capital/entities/Segment/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.contrib.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель добавляет соавтора проекта из числа допущенных к работам
+      участников.
+    expect: >
+      участнику заводится доля с авторским признаком; если доля у него уже
+      была — признак добавляется к существующей, вторая доля не создаётся
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.01
+    level: contract
+    kind: side
+    scenario: добавление соавтором того, кто уже числится соавтором проекта
+    expect: отказ «Пользователь уже является автором проекта»
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.02
+    level: contract
+    kind: side
+    scenario: добавление соавтором того, кто не допущен к работам по проекту
+    expect: отказ — соавтором можно назначить только участника проекта
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.03
+    level: contract
+    kind: side
+    scenario: добавление соавтора сверх предельного количества соавторов
+    expect: отказ «Превышено максимальное количество соавторов в проекте»
+    test: ~
+    status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.contrib.happy.02
+    level: backend
+    kind: happy
+    scenario: запрос списка участников компонента
+    expect: >
+      возвращаются доли только этого компонента, с именами пайщиков и
+      состоянием их ролей
+    test: ~
+    status: missing
+
+  - id: cap.contrib.happy.03
+    level: backend
+    kind: happy
+    scenario: запрос списка участников проекта, у которого есть компоненты
+    expect: >
+      доли всех компонентов и самого проекта объединяются по пайщику: один
+      человек — одна строка, взносы суммируются
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.04
+    level: backend
+    kind: side
+    scenario: >
+      постраничный вывод при объединении долей по проекту с компонентами
+    expect: >
+      страница отрезается уже после объединения, и общее количество считается
+      по объединённым строкам. Отрезать до объединения означало бы неверное
+      общее количество и потерянные строки на границе страниц
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.01
+    level: backend
+    kind: break
+    scenario: запрошено больше тысячи участников на страницу
+    expect: >
+      отказ с указанием допустимых границ. Список участников берёт порции
+      заметно меньше предела, но предел остаётся защитой от запроса, который
+      вытянул бы всех участников кооператива разом
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.05
+    level: backend
+    kind: side
+    scenario: запрошены участники по хэшу, которого нет среди проектов
+    expect: доли ищутся напрямую по хэшу, объединение не применяется
+    test: ~
+    status: missing
+
+  - id: cap.contrib.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      После добавления соавтора его доля сразу читается из цепи и попадает
+      в базу.
+    expect: >
+      следующий запрос списка участников уже показывает нового соавтора.
+      Прежде добавление обновляло только сам проект, а доля попадала в базу
+      лишь очередным сообщением от парсера — до тех пор список оставался
+      без нового соавтора
+    test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    status: passing
+
+  - id: cap.contrib.side.06
+    level: backend
+    kind: side
+    scenario: >
+      доля соавтора не читается из цепи сразу после добавления
+      (запись ещё не видна)
+    expect: >
+      добавление соавтора всё равно считается успешным — проект обновлён,
+      доля дойдёт до базы сообщением от парсера. Падение здесь означало бы
+      отказ уже совершённого действия
+    test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    status: passing
+
+  # ── Уровень интерфейса ────────────────────────────────────────────────────
+
+  - id: cap.contrib.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель открывает «Участники» у компонента и добавляет соавтора.
+    expect: >
+      новый соавтор появляется в списке сразу после подтверждения, без
+      перехода на другую страницу и обратно
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.02
+    level: ui
+    kind: break
+    scenario: >
+      Прежнее поведение: список запоминал полученные доли у себя, а обработчик
+      добавления соавтора был пустой заглушкой.
+    expect: >
+      список берёт доли из общего хранилища и обновляется вслед за ним.
+      Прежде новый соавтор не появлялся вовсе: обновлённый список ложился
+      в хранилище, а показывалась запомненная копия
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.07
+    level: ui
+    kind: side
+    scenario: >
+      пересчёт доли, подписание акта и конвертация доли из соседних действий
+    expect: >
+      строка участника обновляется на месте — эти действия кладут долю в то же
+      хранилище, из которого список читает
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.08
+    level: ui
+    kind: side
+    scenario: у проекта или компонента ещё нет ни одного участника
+    expect: вместо списка показывается пустое состояние
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.09
+    level: ui
+    kind: side
+    scenario: >
+      участник заявил роль, но ещё не выполнял её, и участник, который её
+      действительно исполняет
+    expect: >
+      заявленная роль отмечена приглушённо, исполняемая — выделена; роль,
+      которая не заявлена и не исполняется, не показывается вовсе
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.10
+    level: ui
+    kind: side
+    scenario: взнос участника равен нулю
+    expect: >
+      строка показывается наравне с остальными — нулевой взнос у соавтора,
+      который ещё не сдавал результат, это норма, а не отсутствие участия
+    test: ~
+    status: missing
+
+  - id: cap.contrib.happy.06
+    level: ui
+    kind: happy
+    scenario: >
+      Участников в проекте больше, чем помещается в одну порцию. Пользователь
+      прокручивает список до конца.
+    expect: >
+      следующая порция подгружается сама, участники дописываются в конец
+      списка. Прежде список запрашивался одной порцией и всё, что не влезло
+      в предел запроса, не показывалось вовсе — ни строкой, ни счётчиком
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.11
+    level: ui
+    kind: side
+    scenario: >
+      первая порция не заполнила видимую область, а участники ещё остались
+    expect: >
+      следующая порция подтягивается сама, без прокрутки — иначе список
+      выглядел бы полным, хотя часть участников не показана и докрутить
+      до них нечем
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.12
+    level: ui
+    kind: side
+    scenario: все участники уместились в одну порцию
+    expect: >
+      догрузка не запрашивается вовсе: ни одного лишнего обращения к серверу
+      при прокрутке до конца списка
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.03
+    level: ui
+    kind: break
+    scenario: >
+      Между запросами порций состав участников изменился, поэтому в новой
+      порции пришёл участник, уже показанный в предыдущей.
+    expect: >
+      участник остаётся в списке один раз. Порции отрезаются по смещению,
+      поэтому сдвиг границы приводит к повтору; две строки на одного участника
+      сбили бы и нумерацию, и сопоставление строк при обновлении
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.04
+    level: ui
+    kind: break
+    scenario: >
+      Соавтора добавляют, когда список уже прокручен и догружено несколько
+      порций.
+    expect: >
+      список перечитывается с первой порции, счёт загруженных порций
+      сбрасывается. Подменить содержимое, не сбросив счёт, значило бы
+      пропустить порцию при следующей прокрутке
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.05
+    level: ui
+    kind: break
+    scenario: сервер ответил ошибкой на догрузку очередной порции
+    expect: >
+      прокрутка выходит из состояния загрузки и не запрашивает ту же порцию
+      снова по кругу; уже показанные участники остаются на месте
+    test: ~
+    status: missing
+
+  - id: cap.contrib.break.06
+    level: ui
+    kind: break
+    scenario: >
+      Пользователь прокручивает список участников вниз на вкладке проекта
+      или компонента.
+    expect: >
+      прокручивается только список; меню вкладок и шапка вкладки остаются
+      на месте. Список держит прокрутку в собственной области и берёт высоту
+      от вкладки — иначе он вырастает выше видимой области и вниз уезжает
+      вся страница целиком, оставляя пустое поле вместо участников
+    test: ~
+    status: missing
+
+  - id: cap.contrib.side.13
+    level: backend
+    kind: side
+    scenario: >
+      Список участников компонента запрашивается целиком, без постраничного
+      вывода — так его читает расчёт предела возврата средств
+      (см. capital.fund-allocation, cap.dealloc.side.13).
+    expect: >
+      возвращаются все участники именно этого компонента, без агрегации
+      дочерних проектов. Постраничная выборка исказила бы расчёт: он идёт
+      по самому «дорогому» заёмщику, и пропущенный участник дал бы сумму,
+      которую цепь отклонит
+    test: ~
+    status: missing
+

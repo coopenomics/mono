@@ -1,60 +1,48 @@
 <template lang="pug">
 .participant-actions
-  // Отображаем статус для всех пользователей
-  p.text-caption {{ statusLabel }}
+  p.participant-actions__hint.t-sm.t-muted {{ statusLabel }}
 
-  // GENERATION - кнопка обновления сегмента (доступна всем пользователям)
-  template(v-if='segment.status === Zeus.SegmentStatus.GENERATION')
-    RefreshSegmentButton(
-      :segment='segment',
-      @click.stop
-    )
-
-  // READY - кнопка расчета голосов (доступна всем пользователям)
-  template(v-if='segment.status === Zeus.SegmentStatus.READY && segment.has_vote && segment.is_votes_calculated === false')
-    CalculateVotesButton(
-      :coopname='coopname',
-      :project-hash='segment.project_hash',
-      :username='segment.username'
-    )
-
-  // Действия для владельца сегмента
-  template(v-if='segment.username === currentUsername')
-
-    // READY - если голоса рассчитаны (при их наличии) - показываем следующее действие
-    template(v-if='segment.status === Zeus.SegmentStatus.READY && (!segment.has_vote || segment.is_votes_calculated === true)')
-      // Все участники видят кнопку внесения результата
-      PushResultButton(
-        :segment='segment'
+  .participant-actions__btns
+    template(v-if='segment.status === Zeus.SegmentStatus.GENERATION')
+      RefreshSegmentButton(
+        :segment='segment',
         @click.stop
       )
 
-    // AUTHORIZED - кнопка подписания акта участником
-    template(v-if='segment.status === Zeus.SegmentStatus.AUTHORIZED')
-      SignActButton(
-        :segment='segment'
-        :coopname='coopname'
-        @click.stop
+    template(v-if='segment.status === Zeus.SegmentStatus.READY && segment.has_vote && segment.is_votes_calculated === false')
+      CalculateVotesButton(
+        :coopname='coopname',
+        :project-hash='segment.project_hash',
+        :username='segment.username'
       )
 
-    // CONTRIBUTED - кнопка конвертации сегмента
-    template(v-if='segment.status === Zeus.SegmentStatus.CONTRIBUTED && !segment.is_completed')
-      ConvertSegmentButton(
-        @click.stop='showConvertDialog = true'
-      )
+    template(v-if='segment.username === currentUsername')
+      template(v-if='segment.status === Zeus.SegmentStatus.READY && (!segment.has_vote || segment.is_votes_calculated === true)')
+        PushResultButton(
+          :segment='segment',
+          @click.stop
+        )
 
-  // Действия для председателя
-  template(v-if='isChairman')
-    // ACT1 - кнопка подписания акта председателем
-    template(v-if='segment.status === Zeus.SegmentStatus.ACT1')
-      SignActButtonByChairman(
-        :segment='segment'
-        :coopname='coopname'
-        @click.stop
-      )
+      template(v-if='segment.status === Zeus.SegmentStatus.AUTHORIZED')
+        SignActButton(
+          :segment='segment',
+          :coopname='coopname',
+          @click.stop
+        )
 
+      template(v-if='segment.status === Zeus.SegmentStatus.CONTRIBUTED && !segment.is_completed')
+        ConvertSegmentButton(
+          @click.stop='showConvertDialog = true'
+        )
 
-  // Диалог конвертации сегмента
+    template(v-if='isChairman')
+      template(v-if='segment.status === Zeus.SegmentStatus.ACT1')
+        SignActButtonByChairman(
+          :segment='segment',
+          :coopname='coopname',
+          @click.stop
+        )
+
   ConvertSegmentDialog(
     v-model='showConvertDialog',
     :segment='segment'
@@ -100,6 +88,38 @@ const statusLabel = computed(() => getSegmentStatusLabel(props.segment.status, p
 
 <style lang="scss" scoped>
 .participant-actions {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-2);
+  max-width: 280px;
+}
+
+.participant-actions__hint {
+  margin: 0;
+  text-align: right;
+  line-height: 1.35;
+}
+
+.participant-actions__btns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+
+@media (max-width: 640px) {
+  .participant-actions {
+    align-items: stretch;
+    max-width: none;
+  }
+
+  .participant-actions__hint {
+    text-align: left;
+  }
+
+  .participant-actions__btns {
+    justify-content: flex-start;
+  }
 }
 </style>

@@ -28,7 +28,7 @@ export interface ZeroReportOrganizationShape {
   orgName: string;
   inn: string;
   kpp: string;
-  /** ОКТМО — обязателен для NDFL6/DUSN/UUSN (в СвНП). */
+  /** ОКТМО — обязателен для NDFL6/DUSN/UUSN/RSV (в СвНП / ОбязПлатСВ). */
   oktmo: string | null;
   /** ОКВЭД — для ЕФС-1 (УТ8:КодПоОКВЭД). */
   okved: string | null;
@@ -38,6 +38,8 @@ export interface ZeroReportOrganizationShape {
   /** ОГРН — для ЕФС-1 (ЕФС8:ОГРН). */
   ogrn: string | null;
   address: string | null;
+  /** Контактный телефон — СвНП @Тлф (обязателен для RSV/PSV при приёме ФНС). */
+  phone: string | null;
 }
 
 export interface ZeroReportSignerShape {
@@ -51,6 +53,14 @@ export interface ZeroReportSignerShape {
   snils: string | null;
   /** Регистрационный номер в СФР — обязателен для ЕФС-1. */
   sfrRegNumber: string | null;
+  /**
+   * Регистрационный номер в ПФР (XXX-XXX-XXXXXX) — обязателен для ЕФС-1,
+   * попадает и в <ЕФС8:РегНомер>, и в имя файла. Отдельное поле от
+   * sfrRegNumber: сторонние бухгалтерские системы (СБИС и др.) при приёме
+   * ЕФС-1 сверяют номер отправителя именно с рег. номером ПФР организации,
+   * не с 10-значным номером СФР.
+   */
+  pfrRegNumber: string | null;
   /** Должность председателя — для ЕФС-1 (<УТ8:Должность>). */
   chairmanPosition: string | null;
 }

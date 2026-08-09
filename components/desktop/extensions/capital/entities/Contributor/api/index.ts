@@ -20,9 +20,11 @@ async function loadContributors(
   return output;
 }
 
+// Запрос одного участника может не найти его — отсюда `| null`.
+// Вызывающие это уже предполагают (ProjectsFilterPanel пишет `?? null`).
 async function loadContributor(
   data: IGetContributorInput,
-): Promise<IContributor> {
+): Promise<IContributor | null> {
   const { [Queries.Capital.GetContributor.name]: output } = await client.Query(
     Queries.Capital.GetContributor.query,
     {
@@ -31,7 +33,7 @@ async function loadContributor(
       },
     },
   );
-  return output;
+  return output ?? null;
 }
 
 export const api = {

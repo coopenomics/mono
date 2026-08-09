@@ -1,0 +1,3 @@
+/project/build/contracts/ledger2/CMakeFiles/ledger2.dir
+/project/build/contracts/ledger2/CMakeFiles/edit_cache.dir
+/project/build/contracts/ledger2/CMakeFiles/rebuild_cache.dir

@@ -29,6 +29,7 @@ import {
   workspaceBasePath,
 } from './layout.js'
 import { pullNonProjectCommunicationArtifacts, pullProjectCommunicationArtifacts } from './pull-communication.js'
+import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
 import { scaffoldBmadWorkspacesAfterPull } from './scaffold-bmad-workspace.js'
 import { syncEntityFile } from './sync-entity-file.js'
 import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
@@ -60,6 +61,8 @@ interface CapitalIssueRow {
   created_by?: string | null
   submaster?: string | null
   creators?: string[] | null
+  fact?: number | null
+  fact_by_contributor?: Array<{ contributor_hash: string, hours: number }> | null
   metadata?: unknown
   sort_order?: number | null
   _created_at?: Date | string | null
@@ -240,6 +243,8 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     issueByHash.set(i.issue_hash, i)
   }
 
+  const usernameByHash = await loadContributorUsernameByHash(ctx, coopname)
+
   for (const i of issues) {
     const proj = projectByHash.get(i.project_hash)
     if (!proj) {
@@ -250,7 +255,8 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     const issueCapitalId = i.id !== undefined && i.id !== null && String(i.id).trim() !== '' ? String(i.id) : i.issue_hash
     const rel = issueFileRelativePath(i.title, basePath, issueCapitalId)
     const workspace = issueWorkspaceTitlesFromProjects(i.project_hash, projectRowByHash)
-    const { data, body } = issueToFrontmatterAndBody(i, workspace)
+    const fact_hours = factHoursForIssueFile(i.fact_by_contributor, usernameByHash, `задача ${i.issue_hash}`)
+    const { data, body } = issueToFrontmatterAndBody({ ...i, fact_hours }, workspace)
     const content = serializeBlagoMarkdown(data, body)
     await syncEntityFile({
       root: ctx.root,

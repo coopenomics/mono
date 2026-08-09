@@ -23,6 +23,9 @@ import { TrackingRuleRepository } from '../repositories/tracking-rule.repository
  */
 @Injectable()
 export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleInit {
+  /** Сериализует patch vars — иначе параллельные newdecision перезаписывают друг друга. */
+  private varsUpdateChain: Promise<void> = Promise.resolve();
+
   constructor(
     private readonly repository: TrackingRuleRepository,
     @Inject(VARS_DATA_PORT) private readonly varsPort: VarsDataPort,
@@ -239,10 +242,11 @@ export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleIn
   }
 
   /**
-   * Обновляет поле в vars
+   * Обновляет одно поле vars. Запросы идут в очереди: при быстром утверждении
+   * нескольких решений подряд каждый patch читает актуальный snapshot.
    */
   private async updateVars(varsField: string, decisionId: string, decisionDate: string): Promise<void> {
-    try {
+    const applyPatch = async (): Promise<void> => {
       const currentVars = await this.varsPort.get();
       if (!currentVars) {
         this.logger.warn('Vars не найдены, пропускаем обновление');
@@ -261,6 +265,12 @@ export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleIn
 
       await this.varsPort.create(updatedVars);
       this.logger.info(`Обновлено поле vars: ${varsField} = ${decisionId} от ${decisionDate}`);
+    };
+
+    this.varsUpdateChain = this.varsUpdateChain.then(applyPatch, applyPatch);
+
+    try {
+      await this.varsUpdateChain;
     } catch (error: any) {
       this.logger.error(`Ошибка при обновлении vars: ${error.message}`, error.stack);
     }

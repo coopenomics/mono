@@ -99,22 +99,25 @@ export class ChairmanOnboardingService {
     if (!plugin) throw new Error('Конфигурация расширения chairman не найдена');
     const config = { ...plugin.config };
 
-    let needUpdate = false;
+    const patch: Partial<IConfig> = {};
     if (!config.onboarding_init_at) {
       config.onboarding_init_at = new Date().toISOString();
-      needUpdate = true;
+      patch.onboarding_init_at = config.onboarding_init_at;
     }
 
     if (!config.onboarding_expire_at) {
       const start = new Date(config.onboarding_init_at);
       const expire = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
       config.onboarding_expire_at = expire.toISOString();
-      needUpdate = true;
+      patch.onboarding_expire_at = config.onboarding_expire_at;
     }
 
-    if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config });
-      return { ...plugin, config };
+    if (Object.keys(patch).length > 0) {
+      // Точечный merge только изменившихся полей — полная перезапись config
+      // целиком конкурирует с параллельными записями флагов/хэшей других шагов
+      // онбординга и теряет их изменения (lost update на общем jsonb-блобе).
+      const updated = await this.extensionRepository.patchConfig('chairman', patch);
+      return { ...plugin, config: updated.config };
     }
 
     return plugin;
@@ -198,12 +201,12 @@ export class ChairmanOnboardingService {
       document: documentForPublish,
     });
 
-    // Сохраняем hash в конфиге для отображения на фронтенде
-    const updatedConfig: IConfig = {
-      ...plugin.config,
+    // Сохраняем hash в конфиге для отображения на фронтенде — точечный merge
+    // (не полная перезапись config), чтобы не потерять конкурентно записанные
+    // флаги/хэши других шагов онбординга (lost update на общем jsonb-блобе).
+    const updated = await this.extensionRepository.patchConfig('chairman', {
       [hashKey]: generatedDoc.hash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    } as Partial<IConfig>);
 
     // Регистрируем правило отслеживания в фабрике
     const varsField = this.mapStepToVarsField(data.step);
@@ -219,7 +222,7 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(updated.config);
   }
 
   // Сохраняем hash общего собрания, флаг закроется после newresolved
@@ -233,8 +236,9 @@ export class ChairmanOnboardingService {
     // Если hash не пришёл (не должно быть), не затираем существующее значение
     const meetHash = proposal_hash || plugin.config.onboarding_general_meet_hash || '';
 
-    const updatedConfig: IConfig = { ...plugin.config, onboarding_general_meet_hash: meetHash };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    const updated = await this.extensionRepository.patchConfig('chairman', {
+      onboarding_general_meet_hash: meetHash,
+    } as Partial<IConfig>);
 
     // Регистрируем правило отслеживания общего собрания
     await this.decisionTrackingPort.registerTrackingRule({
@@ -247,6 +251,6 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(updated.config);
   }
 }

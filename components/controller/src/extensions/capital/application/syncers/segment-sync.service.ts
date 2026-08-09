@@ -9,6 +9,7 @@ import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blo
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Сервис синхронизации сегментов с блокчейном
@@ -85,7 +86,7 @@ export class SegmentSyncService
     // Синхронизируем сегмент (createIfNotExists сам разберется - создать новый или обновить существующий)
     const segmentEntity = await this.repository.createIfNotExists(
       blockchainSegment,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 

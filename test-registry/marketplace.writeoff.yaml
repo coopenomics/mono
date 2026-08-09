@@ -1,0 +1,84 @@
+feature: marketplace.writeoff
+title: Списание скоропорта — проект председателя и утверждение советом
+
+# Механика: председатель выделяет имущество на складах участков, указывает
+# причину и подписывает Заявление — проект выносится на повестку совета. Совет
+# утверждает списание протоколом, после чего оно проводится.
+#
+# Списание — единственный путь снять имущество со склада помимо выдачи
+# заказчику, поэтому у него отдельный слайс.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-writeoff*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/AdminWriteoffs/**
+    - components/desktop/src/pages/Marketplace/PvzWriteoffs/**
+
+cases:
+  - id: mkt.wof.happy.01
+    level: ui
+    kind: happy
+    scenario: Председатель открывает раздел списаний скоропорта
+    expect: раздел доступен, объясняет порядок вынесения проекта на совет
+    test: components/docs-harness/scenarios/marketplace/chairman/writeoff-propose.mjs
+    status: passing
+
+  - id: mkt.wof.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель выделяет имущество к списанию, указывает причину и подписывает Заявление.
+    expect: проект списания появляется на повестке совета
+    test: ~
+    status: missing
+    # Требует имущества на складе участка: на текущем стенде всё выданное
+    # ушло заказчику, склад пуст.
+
+  - id: mkt.wof.happy.03
+    level: ui
+    kind: happy
+    scenario: Совет утверждает списание протоколом, председатель проводит его
+    expect: имущество списано со склада участка
+    test: ~
+    status: missing
+
+  - id: mkt.wof.side.01
+    level: backend
+    kind: side
+    scenario: Проект списания без указания причины
+    expect: отказ — причина обязательна
+    test: ~
+    status: missing
+
+  - id: mkt.wof.side.02
+    level: backend
+    kind: side
+    scenario: К списанию выбрано имущество чужого кооперативного участка
+    expect: отказ доступа
+    test: ~
+    status: missing
+
+  - id: mkt.wof.side.03
+    level: backend
+    kind: side
+    scenario: Списание имущества, уже выданного заказчику
+    expect: отказ — выданное списать нельзя
+    test: ~
+    status: missing
+
+  - id: mkt.wof.side.04
+    level: backend
+    kind: side
+    scenario: Проведение списания до утверждения советом
+    expect: отказ — без протокола совета списание не проводится
+    test: ~
+    status: missing
+
+  - id: mkt.wof.side.05
+    level: ui
+    kind: side
+    scenario: Проект списания без единой выбранной позиции
+    expect: подписание Заявления недоступно
+    test: ~
+    status: missing

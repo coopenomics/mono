@@ -73,6 +73,63 @@ module.exports = {
         '@typescript-eslint/no-require-imports': 'off',
       },
     },
+
+    // --- Границы ядра и расширений -------------------------------------
+    // Ядро (src/**) не знает про расширения. Исключения ровно два:
+    //  1. реестр установки — это composition root, он обязан их перечислять;
+    //  2. ConnectionAgreementPage.vue — известный долг, см. ниже.
+    {
+      files: ['src/**/*.{ts,js,vue}'],
+      excludedFiles: [
+        'src/processes/init-installed-extensions/**',
+        // Долг: страница ядра тянет виджет и стор из chatcoop напрямую.
+        // Лечится переносом в расширение либо выносом точки монтирования.
+        // Пока — здесь, на виду; новые такие импорты правило не пропустит.
+        'src/pages/Union/ConnectionAgreement/ConnectionAgreementPage.vue',
+      ],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/extensions/*/**'],
+                message:
+                  'Ядро не знает про расширения: прямой импорт из extensions/** запрещён. ' +
+                  'Точка подключения — реестр установки, взаимодействие — через inter.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    ...['capital', 'chairman', 'chatcoop', 'expenses', 'participant', 'powerup', 'reports', 'soviet'].map(
+      (name) => ({
+        files: [`extensions/${name}/**/*.{ts,js,vue}`],
+        // Долг: два прямых кросс-импорта в expenses через алиас app/extensions/**.
+        // Лечится портом в inter (api расходов + точка монтирования страницы).
+        // Список не растёт — любой новый такой импорт упрётся в правило.
+        excludedFiles: [
+          'extensions/capital/app/extensions.ts',
+          'extensions/soviet/install.ts',
+        ],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              patterns: [
+                {
+                  group: ['**/extensions/*/**', `!**/extensions/${name}/**`],
+                  message:
+                    'Граница расширения: прямой импорт чужого расширения запрещён. ' +
+                    'Межрасширенческое взаимодействие — только через inter.',
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ),
   ],
 
   // add your custom rules here
@@ -90,6 +147,7 @@ module.exports = {
     // The core 'no-unused-vars' rules (in the eslint:recommended ruleset)
     // does not work with type definitions
     'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
 
     '@typescript-eslint/no-explicit-any': 'off',
 

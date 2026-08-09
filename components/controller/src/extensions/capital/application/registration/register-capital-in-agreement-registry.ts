@@ -26,10 +26,17 @@ import type { IConfig } from '../../capital-extension.module';
  *   • при завершённом L1 — две оферты (generator/blagorost) и две
  *     программы (generation/capitalization);
  *   • идемпотентность гарантируется AgreementRegistryService.
+ *
+ * `resolveDocDataHash` — резолвер hash'а PrivateData параметров ЦПП,
+ * прикрепляется к обеим офертам: их фабричные шаблоны (#996/#1000) требуют
+ * doc_data. Сейчас все документы ЦПП читают единый набор параметров
+ * (capital_program_doc_data_hash); если параметры разделятся по программам,
+ * каждая спека получит собственный резолвер — ядро менять не потребуется.
  */
 export function registerCapitalInAgreementRegistry(
   port: AgreementRegistrationPort,
-  extensionConfig: IConfig
+  extensionConfig: IConfig,
+  resolveDocDataHash?: () => Promise<string | undefined>
 ): boolean {
   const onboardingDone =
     extensionConfig.onboarding_generator_program_template_done &&
@@ -52,6 +59,7 @@ export function registerCapitalInAgreementRegistry(
     applicable_account_types: [],
     order: 6,
     extension_name: CAPITAL_EXTENSION_NAME,
+    resolve_doc_data_hash: resolveDocDataHash,
   });
 
   port.registerAgreement({
@@ -70,6 +78,7 @@ export function registerCapitalInAgreementRegistry(
     applicable_account_types: [],
     order: 5,
     extension_name: CAPITAL_EXTENSION_NAME,
+    resolve_doc_data_hash: resolveDocDataHash,
   });
 
   port.registerProgram({

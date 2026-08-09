@@ -49,6 +49,10 @@ void capital::createdebt(name coopname, name username, checksum256 project_hash,
   
   // Обновляем debt_amount в сегменте
   Capital::Segments::increase_debt_amount(coopname, exist_segment.id, amount);
+
+  // Держим агрегат ссуд проекта в актуальном состоянии — от него зависит
+  // граница деаллокации (calculate_max_deallocatable)
+  Capital::Projects::sync_total_debt(coopname, project.id);
   
   // Создаем долг во внутренней таблице
   Capital::Debts::create_debt(coopname, username, project_hash, debt_hash, amount, repaid_at, statement);

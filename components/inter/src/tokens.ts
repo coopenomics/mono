@@ -22,3 +22,6 @@ export const INTER_FILE_STORAGE = Symbol.for('InterFileStorage');
 
 /** Шасси расходов (contract `expense`): read-side proposals для consumer-extension'ов (capital, marketplace, EMP). */
 export const INTER_EXPENSE_CHASSIS = Symbol.for('InterExpenseChassis');
+
+/** Ledger2 (ядро): read-only история операций/движений по кошельку из blockchain_actions. */
+export const INTER_LEDGER2_HISTORY = Symbol.for('InterLedger2History');

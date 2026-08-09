@@ -13,6 +13,8 @@ export interface RegisterParticipantDomainInterface {
   blagorost_offer?: ISignedDocumentDomainInterface;
   /** Опциональное соглашение по генератору (для программы generation) */
   generator_offer?: ISignedDocumentDomainInterface;
+  /** Опциональная оферта ЦПП «Стол заказов» (для программы marketplace) */
+  marketplace_offer?: ISignedDocumentDomainInterface;
   /** Ключ выбранной программы регистрации */
   program_key?: ProgramKey;
 }

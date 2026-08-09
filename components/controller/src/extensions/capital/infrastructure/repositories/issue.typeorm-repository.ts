@@ -51,6 +51,22 @@ export class IssueTypeormRepository implements IssueRepository {
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
+  async getNextFreeIssueId(coopname: string): Promise<string> {
+    const raw = await this.issueTypeormRepository
+      .createQueryBuilder('issue')
+      .select(
+        `MAX(CAST(SUBSTRING(issue.id FROM 5) AS INTEGER))`,
+        'max_num',
+      )
+      .where('issue.coopname = :coopname', { coopname })
+      .andWhere(`issue.id ~ '^000-[0-9]+$'`)
+      .getRawOne<{ max_num: string | number | null }>();
+
+    const maxNum = raw?.max_num == null ? 0 : Number(raw.max_num);
+    const next = Number.isFinite(maxNum) ? maxNum + 1 : 1;
+    return `000-${next}`;
+  }
+
   async findAll(): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository.find();
     return entities.map(IssueMapper.toDomain);
@@ -275,9 +291,9 @@ export class IssueTypeormRepository implements IssueRepository {
       queryBuilder = queryBuilder.andWhere('i.priority = ANY(:priorities)', { priorities: filter.priorities });
     }
 
-    // Фильтрация по массиву имен пользователей создателей
+    // Фильтрация по пересечению text[] creators с именами исполнителей
     if (filter?.creators?.length) {
-      queryBuilder = queryBuilder.andWhere('i.creators IN (:...creators)', {
+      queryBuilder = queryBuilder.andWhere('i.creators && :creators', {
         creators: filter.creators,
       });
     }

@@ -62,6 +62,15 @@ export class TokenApplicationService {
   }
 
   /**
+   * Генерирует токен подтверждения выхода из кооператива
+   * @param userId - ID пользователя
+   * @returns Токен подтверждения выхода
+   */
+  async generateConfirmExitToken(userId: string): Promise<string> {
+    return this.tokenDomainService.generateConfirmExitToken(userId);
+  }
+
+  /**
    * Верифицирует токен
    * @param input - данные для верификации
    * @returns Верифицированный токен

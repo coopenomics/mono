@@ -24,6 +24,8 @@ import type { Cooperative } from 'cooptypes';
 import { userStatus } from '~/types';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
+import { AccountKind } from '~/application/account/enum/account-kind.enum';
+import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 
 @Injectable()
@@ -32,6 +34,7 @@ export class AccountDomainService {
 
   constructor(
     @Inject(ACCOUNT_BLOCKCHAIN_PORT) private readonly accountBlockchainPort: AccountBlockchainPort,
+    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
     @Inject(ENTREPRENEUR_REPOSITORY) private readonly entrepreneurRepository: EntrepreneurRepository,
@@ -206,6 +209,7 @@ export class AccountDomainService {
         provider_account: null,
         participant_account,
         private_account,
+        account_kind: AccountKind.cooperative,
       });
     }
 
@@ -251,6 +255,29 @@ export class AccountDomainService {
       };
     }
 
+    let account_kind: AccountKind = provider_account ? AccountKind.participant : AccountKind.unknown;
+
+    // Кооперативный участок (КУ): это реальный аккаунт-подразделение кооператива
+    // без учётной записи пайщика (нет provider_account), его орг-данные хранятся
+    // в том же organizationRepository по braname (как у самого кооператива выше).
+    // Признак КУ — наличие записи в реестре участков. Резолвим имя через
+    // private_account.organization_data, чтобы getDisplayName/сертификаты/фронт
+    // получали человеческое имя участка тем же каналом, что и у организаций —
+    // без отдельной ветки у каждого потребителя.
+    if (!provider_account) {
+      const branch = await this.branchBlockchainPort.getBranch(config.coopname, username);
+      if (branch) {
+        const branch_organization_data = await this.organizationRepository.findByUsername(username);
+        private_account = {
+          type: AccountType.organization,
+          individual_data: undefined,
+          organization_data: branch_organization_data,
+          entrepreneur_data: undefined,
+        };
+        account_kind = AccountKind.branch;
+      }
+    }
+
     const finalAccount = new AccountDomainEntity({
       username,
       user_account,
@@ -258,6 +285,7 @@ export class AccountDomainService {
       provider_account: provider_account,
       participant_account,
       private_account,
+      account_kind,
     });
 
     return finalAccount;

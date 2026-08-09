@@ -139,6 +139,9 @@ public:
   //regaccount.cpp
   [[eosio::action]] void addpartcpnt(eosio::name coopname, eosio::name username, eosio::name braname, eosio::name type, eosio::time_point_sec created_at, eosio::asset initial, eosio::asset minimum, bool spread_initial);
 
+  //delparticipant.cpp
+  [[eosio::action]] void delpartcpnt(eosio::name coopname, eosio::name username);
+
   //setminamt.cpp
   [[eosio::action]] void setminamt(eosio::name coopname, eosio::name username, eosio::asset minimum);
 
@@ -235,6 +238,7 @@ public:
 
   //branch.cpp
   [[eosio::action]] void deletebranch(eosio::name coopname, eosio::name braname);
+  [[eosio::action]] void setbranch(eosio::name coopname, eosio::name username, eosio::name braname);
   
 };
   

@@ -65,6 +65,7 @@ export const rawSettingsSelector = {
   authorized_default_route: true,
   non_authorized_default_workspace: true,
   non_authorized_default_route: true,
+  is_registration_open: true,
   created_at: true,
   updated_at: true,
 }

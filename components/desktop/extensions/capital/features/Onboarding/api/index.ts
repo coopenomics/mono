@@ -22,7 +22,20 @@ const completeStep = async (
   return state;
 };
 
+const saveProgramDocDataHash = async (
+  data: Mutations.Capital.SaveCapitalProgramDocDataHash.IInput['data'],
+) => {
+  const { [Mutations.Capital.SaveCapitalProgramDocDataHash.name]: state } = await client.Mutation(
+    Mutations.Capital.SaveCapitalProgramDocDataHash.mutation,
+    {
+      variables: { data },
+    },
+  );
+  return state;
+};
+
 export const api = {
   loadOnboardingState,
   completeStep,
+  saveProgramDocDataHash,
 };

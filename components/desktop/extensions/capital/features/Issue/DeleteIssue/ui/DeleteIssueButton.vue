@@ -1,15 +1,14 @@
 <template lang="pug">
 div
-  q-btn(
+  BaseButton(
     v-if='canDelete'
-    flat
-    size="sm"
-    color='negative'
-    class='full-width q-mt-md'
-    :label='label'
-    @click='showDialog = true'
+    variant='danger'
+    size='sm'
+    block
+    aria-label='Удалить задачу'
     :loading='isSubmitting'
-  )
+    @click='showDialog = true'
+  ) {{ label }}
 
   BaseDialog(
     v-model='showDialog',
@@ -31,18 +30,21 @@ div
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton } from 'src/shared/ui/base';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useDeleteIssue } from '../model';
 
 interface Props {
   issueHash: string;
-  projectHash: string;
+  /** Для свободных задач может быть пустым — только сброс кэша списка */
+  projectHash?: string;
   canDelete?: boolean;
   label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  projectHash: '',
   canDelete: false,
   label: 'Удалить',
 });

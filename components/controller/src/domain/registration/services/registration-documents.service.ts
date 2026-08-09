@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger, forwardRef, Optional } from '@nestjs/common
 import { AgreementConfigurationService, AGREEMENT_CONFIGURATION_SERVICE } from './agreement-configuration.service';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { UdataDocumentParametersPort, UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
+import { MarketplaceUdataParametersPort, MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
 import type { IAgreementConfigItem } from '../config/agreement-config.interface';
 import type {
   IGenerateRegistrationDocumentsInput,
@@ -32,7 +33,10 @@ export class RegistrationDocumentsService {
     private readonly documentInteractor: DocumentInteractor,
     @Optional()
     @Inject(UDATA_DOCUMENT_PARAMETERS_PORT)
-    private readonly udataDocumentParametersPort?: UdataDocumentParametersPort
+    private readonly udataDocumentParametersPort?: UdataDocumentParametersPort,
+    @Optional()
+    @Inject(MARKETPLACE_UDATA_PARAMETERS_PORT)
+    private readonly marketplaceUdataParametersPort?: MarketplaceUdataParametersPort
   ) {}
 
   /**
@@ -92,34 +96,61 @@ export class RegistrationDocumentsService {
     username: string,
     program_key?: string
   ): Promise<void> {
-    // Проверяем наличие реализации порта
-    if (!this.udataDocumentParametersPort) {
-      this.logger.warn(
-        `UdataDocumentParametersPort не доступен. Пропуск генерации параметров документов для ${username}. ` +
-        `Убедитесь, что установлено соответствующее расширение (например, Capital).`
-      );
-      return;
-    }
-
     if (!program_key) {
       this.logger.warn(`Программа не выбрана для ${username}, параметры документов не генерируются`);
       return;
     }
 
     switch (program_key) {
-      case ProgramKey.CAPITALIZATION:
+      case ProgramKey.CAPITALIZATION: {
         // Путь Благороста: генерируем параметры для оферты Благорост
-        await this.udataDocumentParametersPort.generateBlagorostOfferParameters(coopname, username);
+        const capitalPort = this.requireCapitalPort(username);
+        if (!capitalPort) return;
+        await capitalPort.generateBlagorostOfferParameters(coopname, username);
         break;
+      }
 
-      case ProgramKey.GENERATION:
+      case ProgramKey.GENERATION: {
         // Путь Генератора: генерируем параметры для оферты Генератор
-        await this.udataDocumentParametersPort.generateGeneratorOfferParameters(coopname, username);
+        const capitalPort = this.requireCapitalPort(username);
+        if (!capitalPort) return;
+        await capitalPort.generateGeneratorOfferParameters(coopname, username);
+        break;
+      }
+
+      case ProgramKey.MARKETPLACE:
+        // Путь ЦПП «Стол заказов»: персональный номер+дата оферты пайщика в Udata,
+        // которые читает фабрика инстанса оферты (registry 1102). Отдельный порт,
+        // т.к. marketplace независим от capital.
+        if (!this.marketplaceUdataParametersPort) {
+          this.logger.warn(
+            `MarketplaceUdataParametersPort не доступен. Пропуск генерации параметров оферты «Стол заказов» для ${username}. ` +
+            `Убедитесь, что установлено расширение marketplace.`
+          );
+          return;
+        }
+        await this.marketplaceUdataParametersPort.generateMarketplaceOfferParameters(coopname, username);
         break;
 
       default:
         this.logger.warn(`Неизвестный ключ программы: ${program_key}`);
     }
+  }
+
+  /**
+   * Capital-порт обязателен для путей Благороста/Генератора. Если расширение не
+   * установлено — параметры не сгенерировать; логируем и возвращаем undefined
+   * (вызывающий пропускает генерацию, как раньше).
+   */
+  private requireCapitalPort(username: string): UdataDocumentParametersPort | undefined {
+    if (!this.udataDocumentParametersPort) {
+      this.logger.warn(
+        `UdataDocumentParametersPort не доступен. Пропуск генерации параметров документов для ${username}. ` +
+        `Убедитесь, что установлено соответствующее расширение (например, Capital).`
+      );
+      return undefined;
+    }
+    return this.udataDocumentParametersPort;
   }
 
   /**
@@ -132,11 +163,17 @@ export class RegistrationDocumentsService {
   ): Promise<IGeneratedRegistrationDocument> {
     this.logger.debug(`Генерация документа: ${config.id} (registry_id=${config.registry_id})`);
 
+    // Если шаблон оферты требует PrivateData, расширение-владелец предоставило
+    // резолвер hash'а в спеке регистрации — ядро не знает ни источника значения,
+    // ни того, какие registry_id этого требуют.
+    const doc_data_hash = config.resolve_doc_data_hash ? await config.resolve_doc_data_hash() : undefined;
+
     const document = await this.documentInteractor.generateDocument({
       data: {
         coopname,
         username,
         registry_id: config.registry_id,
+        ...(doc_data_hash ? { doc_data_hash } : {}),
       },
       options: {
         skip_save: false, // Сохраняем документ в базу для последующей сверки

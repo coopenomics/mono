@@ -1,0 +1,684 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "accrue",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "source_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "addtrusted",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "trusted",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "aidconfirm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "aiddecline",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "branch_aid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "branch_spend",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "branch_weight",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "weight",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "branch_weight_total",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "total_weight",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "branchstat",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "convert",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "convert_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "coobranch",
+            "base": "",
+            "fields": [
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "trustee",
+                    "type": "name"
+                },
+                {
+                    "name": "trusted",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "createaid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "aid_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createbranch",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "trustee",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "createspend",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "spend_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "deletebranch",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "deltrusted",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "trusted",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "delweight",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "distribute",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "source_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "round_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "editbranch",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "trustee",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "setweight",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "weight",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "spendconfirm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "spenddecline",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "accrue",
+            "type": "accrue",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addtrusted",
+            "type": "addtrusted",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "aidconfirm",
+            "type": "aidconfirm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "aiddecline",
+            "type": "aiddecline",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "convert",
+            "type": "convert",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createaid",
+            "type": "createaid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createbranch",
+            "type": "createbranch",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createspend",
+            "type": "createspend",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "deletebranch",
+            "type": "deletebranch",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "deltrusted",
+            "type": "deltrusted",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delweight",
+            "type": "delweight",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "distribute",
+            "type": "distribute",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editbranch",
+            "type": "editbranch",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setweight",
+            "type": "setweight",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "spendconfirm",
+            "type": "spendconfirm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "spenddecline",
+            "type": "spenddecline",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "aids",
+            "type": "branch_aid",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "branches",
+            "type": "coobranch",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "branchstat",
+            "type": "branchstat",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "spends",
+            "type": "branch_spend",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "weights",
+            "type": "branch_weight",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "weighttotals",
+            "type": "branch_weight_total",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

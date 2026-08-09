@@ -40,6 +40,7 @@ export const defaultConfig = {
   onboarding_generator_offer_template_done: false,
   onboarding_blagorost_provision_done: false,
   onboarding_blagorost_offer_template_done: false,
+  capital_program_doc_data_hash: '',
   /** Ветка для выборки коммитов (FR3 / PRD); URL репозитория — на проекте/компоненте (PRD §6.2.1). */
   github_sync_branch: 'dev',
   /** Интервал polling GitHub API в минутах (FR2); 0 — периодический опрос отключён. */
@@ -253,6 +254,10 @@ export const Schema = z.object({
     .boolean()
     .default(defaultConfig.onboarding_blagorost_offer_template_done)
     .describe(describeField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
+  capital_program_doc_data_hash: z
+    .string()
+    .default(defaultConfig.capital_program_doc_data_hash)
+    .describe(describeField({ label: 'PrivateData документов ЦПП', visible: false })),
 
 });
 
@@ -296,6 +301,10 @@ import { ProcessService } from './application/services/process.service';
 import { ProcessResolver } from './application/resolvers/process.resolver';
 import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
 import { StoryTypeormRepository } from './infrastructure/repositories/story.typeorm-repository';
+import { ComponentMetricTypeormRepository } from './infrastructure/repositories/component-metric.typeorm-repository';
+import { MeasureTypeormRepository } from './infrastructure/repositories/measure.typeorm-repository';
+import { IssueMetricBindingTypeormRepository } from './infrastructure/repositories/issue-metric-binding.typeorm-repository';
+import { MetricContributionTypeormRepository } from './infrastructure/repositories/metric-contribution.typeorm-repository';
 import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeorm-repository';
 import { DebtTypeormRepository } from './infrastructure/repositories/debt.typeorm-repository';
 import { ResultTypeormRepository } from './infrastructure/repositories/result.typeorm-repository';
@@ -303,6 +312,7 @@ import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.
 import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
 import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
 import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
+import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
 import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
 
 // GitHub (маркеры коммитов)
@@ -311,6 +321,7 @@ import { GitHubSyncSchedulerService } from './infrastructure/services/github-syn
 import { ProgramShareRegistrationSchedulerService } from './infrastructure/services/program-share-registration-scheduler.service';
 import { ProgramShareRegistrationService } from './application/services/program-share-registration.service';
 import { ProgramShareRegistrationOnUserWalletDeltaListener } from './application/listeners/program-share-registration-on-user-wallet-delta.listener';
+import { ProgramShareRegistrationOnProjectDeltaListener } from './application/listeners/program-share-registration-on-project-delta.listener';
 import { CapitalDevelopmentRepositoryGitSyncService } from './application/services/capital-development-repository-git-sync.service';
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
@@ -362,6 +373,7 @@ import { ProjectMapperService } from './application/services/project-mapper.serv
 import { CommitMapperService } from './application/services/commit-mapper.service';
 import { GitService } from './application/services/git.service';
 import { GenerationService } from './application/services/generation.service';
+import { ComponentMetricService } from './application/services/component-metric.service';
 import { ComponentMatrixAnnouncementService } from './application/services/component-matrix-announcement.service';
 import { IssuePermissionsService } from './application/services/issue-permissions.service';
 import { ProjectPermissionsService } from './application/services/project-permissions.service';
@@ -406,6 +418,10 @@ import { CYCLE_REPOSITORY } from './domain/repositories/cycle.repository';
 import { ISSUE_REPOSITORY } from './domain/repositories/issue.repository';
 import { COMMENT_REPOSITORY } from './domain/repositories/comment.repository';
 import { STORY_REPOSITORY } from './domain/repositories/story.repository';
+import { COMPONENT_METRIC_REPOSITORY } from './domain/repositories/component-metric.repository';
+import { MEASURE_REPOSITORY } from './domain/repositories/measure.repository';
+import { ISSUE_METRIC_BINDING_REPOSITORY } from './domain/repositories/issue-metric-binding.repository';
+import { METRIC_CONTRIBUTION_REPOSITORY } from './domain/repositories/metric-contribution.repository';
 import { VOTE_REPOSITORY } from './domain/repositories/vote.repository';
 import { DEBT_REPOSITORY } from './domain/repositories/debt.repository';
 import { RESULT_REPOSITORY } from './domain/repositories/result.repository';
@@ -413,12 +429,14 @@ import { EXPENSE_REPOSITORY } from './domain/repositories/expense.repository';
 import { COMMIT_REPOSITORY } from './domain/repositories/commit.repository';
 import { STATE_REPOSITORY } from './domain/repositories/state.repository';
 import { TIME_ENTRY_REPOSITORY } from './domain/repositories/time-entry.repository';
+import { TIMER_SESSION_REPOSITORY } from './domain/repositories/timer-session.repository';
 import { SEGMENT_REPOSITORY } from './domain/repositories/segment.repository';
 
 import { ContractManagementResolver } from './application/resolvers/contract-management.resolver';
 import { ParticipationManagementResolver } from './application/resolvers/participation-management.resolver';
 import { ProjectManagementResolver } from './application/resolvers/project-management.resolver';
 import { GenerationResolver } from './application/resolvers/generation.resolver';
+import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
@@ -576,8 +594,10 @@ export class CapitalPlugin extends BaseExtModule {
       } else {
         this.logger.log('Конфигурация контракта CAPITAL уже актуальна');
       }
-    } catch (error: any) {
-      this.logger.error(`Не удалось синхронизировать конфигурацию с контрактом CAPITAL: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Не удалось синхронизировать конфигурацию с контрактом CAPITAL: ${message}`, stack);
       // Не бросаем ошибку, чтобы не блокировать запуск модуля
     }
 
@@ -585,10 +605,12 @@ export class CapitalPlugin extends BaseExtModule {
     try {
       await this.syncInteractor.initializeSync();
       this.logger.log('Синхронизация благороста с блокчейном инициализирована');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Не удалось инициализировать синхронизацию благороста с блокчейном: ${error.message}`,
-        error.stack
+        `Не удалось инициализировать синхронизацию благороста с блокчейном: ${message}`,
+        stack
       );
       // Не бросаем ошибку, чтобы не блокировать запуск модуля
     }
@@ -644,7 +666,25 @@ export class CapitalPlugin extends BaseExtModule {
     // Если L1 ещё не завершён — реестр остаётся пустым, SignUp не предлагает
     // программы capital (раздел 4.1 req 44 проекта 13).
     try {
-      const registered = registerCapitalInAgreementRegistry(this.agreementRegistrationPort, extensionConfig as IConfig);
+      // Резолвер читает конфиг заново на каждую генерацию: совет может
+      // пересохранить параметры ЦПП (новый hash) без перезапуска расширения,
+      // а спека в реестре регистрируется один раз на initialize.
+      const resolveCapitalProgramDocDataHash = async (): Promise<string | undefined> => {
+        const ext = await this.extensionRepository.findByName(this.name);
+        const hash = ext?.config?.capital_program_doc_data_hash?.trim();
+        if (!hash) {
+          throw new Error(
+            'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
+          );
+        }
+        return hash;
+      };
+
+      const registered = registerCapitalInAgreementRegistry(
+        this.agreementRegistrationPort,
+        extensionConfig as IConfig,
+        resolveCapitalProgramDocDataHash
+      );
       if (registered) {
         this.logger.log('[CAPITAL.REGISTRY] зарегистрировано 2 оферты + 2 программы capital');
       } else {
@@ -700,6 +740,7 @@ IssueIdGenerationService,
     CommitMapperService,
     GitService,
     GenerationService,
+    ComponentMetricService,
     ComponentMatrixAnnouncementService,
     IssuePermissionsService,
     ProjectPermissionsService,
@@ -765,6 +806,7 @@ IssueIdGenerationService,
     ParticipationManagementResolver,
     ProjectManagementResolver,
     GenerationResolver,
+    ComponentMetricResolver,
     InvestsManagementResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
@@ -837,6 +879,22 @@ IssueIdGenerationService,
       useClass: StoryTypeormRepository,
     },
     {
+      provide: COMPONENT_METRIC_REPOSITORY,
+      useClass: ComponentMetricTypeormRepository,
+    },
+    {
+      provide: MEASURE_REPOSITORY,
+      useClass: MeasureTypeormRepository,
+    },
+    {
+      provide: ISSUE_METRIC_BINDING_REPOSITORY,
+      useClass: IssueMetricBindingTypeormRepository,
+    },
+    {
+      provide: METRIC_CONTRIBUTION_REPOSITORY,
+      useClass: MetricContributionTypeormRepository,
+    },
+    {
       provide: VOTE_REPOSITORY,
       useClass: VoteTypeormRepository,
     },
@@ -865,6 +923,10 @@ IssueIdGenerationService,
       useClass: TimeEntryTypeormRepository,
     },
     {
+      provide: TIMER_SESSION_REPOSITORY,
+      useClass: TimerSessionTypeormRepository,
+    },
+    {
       provide: SEGMENT_REPOSITORY,
       useClass: SegmentTypeormRepository,
     },
@@ -875,6 +937,7 @@ IssueIdGenerationService,
     ProgramShareRegistrationService,
     ProgramShareRegistrationSchedulerService,
     ProgramShareRegistrationOnUserWalletDeltaListener,
+    ProgramShareRegistrationOnProjectDeltaListener,
     GitCommitMarkersSyncService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,

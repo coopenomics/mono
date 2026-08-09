@@ -6,6 +6,8 @@ import * as CoopenomicsAgreement from './50.CoopenomicsAgreement'
 import * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 import * as ParticipantApplication from './100.ParticipantApplication'
 import * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+import * as ParticipantExitApplication from './200.ParticipantExitApplication'
+import * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 import * as SelectBranchStatement from './101.SelectBranchStatement'
 import * as ProjectFreeDecision from './599.ProjectFreeDecision'
 import * as FreeDecision from './600.FreeDecision'
@@ -63,6 +65,16 @@ import * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingS
 import * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNotification'
 import * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVotingBallot'
 import * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
+import * as BranchMeetingProposal from './320.BranchMeetingProposal'
+import * as BranchMeetingBallot from './322.BranchMeetingBallot'
+import * as BranchMeetingDecision from './323.BranchMeetingDecision'
+import * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
+import * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
+import * as BranchTrustedStatement from './326.BranchTrustedStatement'
+import * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
+import * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
+import * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
+import * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
@@ -71,6 +83,19 @@ import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
+import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+import * as MarketplaceOffer from './1102.MarketplaceOffer'
+import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+import * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
+import * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
+import * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
+import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
+import * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
+import * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
+import * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
+import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 
 export const Registry = {
   1: WalletAgreement,
@@ -81,11 +106,23 @@ export const Registry = {
   51: ConvertToAxonStatement,
   100: ParticipantApplication,
   101: SelectBranchStatement,
+  200: ParticipantExitApplication,
+  201: DecisionOfParticipantExit,
   300: AnnualGeneralMeetingAgenda,
   301: AnnualGeneralMeetingSovietDecision,
   302: AnnualGeneralMeetingNotification,
   303: AnnualGeneralMeetingVotingBallot,
   304: AnnualGeneralMeetingDecision,
+  320: BranchMeetingProposal,
+  322: BranchMeetingBallot,
+  323: BranchMeetingDecision,
+  324: BranchEstablishmentPetition,
+  325: BranchEstablishmentSovietDecision,
+  326: BranchTrustedStatement,
+  327: BranchTrustedLiabilityAgreement,
+  328: BranchTrusteeLiabilityAgreement,
+  329: BranchTrusteePowerOfAttorney,
+  330: BranchTrustedPowerOfAttorney,
   501: DecisionOfParticipantApplication,
   599: ProjectFreeDecision,
   600: FreeDecision,
@@ -130,6 +167,19 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  1100: MarketplaceProgramTemplate,
+  1101: MarketplaceOfferTemplate,
+  1102: MarketplaceOffer,
+  1103: MarketplaceTransportNote,
+  1104: MarketplaceAplReception,
+  1105: MarketplaceAplIssuance,
+  1106: MarketplaceReturnStatement,
+  1107: MarketplaceWriteoffProtocol,
+  1108: MarketplaceWriteoffStatement,
+  1109: BranchFinancialAidStatement,
+  1110: MarketplaceConvertStatement,
+  1111: MarketplaceWriteoffServiceMemo,
+  1112: BranchFinancialAidProtocol,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
 }

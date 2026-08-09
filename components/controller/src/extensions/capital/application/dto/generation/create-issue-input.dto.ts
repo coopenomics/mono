@@ -85,11 +85,13 @@ export class CreateIssueInputDTO {
   creators?: string[];
 
   @Field(() => String, {
-    description: 'Хеш проекта',
+    nullable: true,
+    description:
+      'Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту',
   })
-  @IsNotEmpty({ message: 'Хеш проекта не должен быть пустым' })
+  @IsOptional()
   @IsString({ message: 'Хеш проекта должен быть строкой' })
-  project_hash!: string;
+  project_hash?: string;
 
   @Field(() => String, {
     nullable: true,

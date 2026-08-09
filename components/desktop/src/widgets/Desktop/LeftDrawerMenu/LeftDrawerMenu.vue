@@ -25,10 +25,11 @@
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
+        balance-label='Главный паевой кошелёк',
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,
-        signout-label='Выйти',
+        signout-label='Выйти из кабинета',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
@@ -122,15 +123,15 @@ interface MenuMeta {
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
   const ctx = filterContext.value;
+  const wsName = desktop.activeWorkspaceName;
+  if (!wsName) return [];
   return (desktop.activeSecondLevelRoutes as RouteRecordRaw[]).filter((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
-    const rolesOk =
-      !meta.roles ||
-      meta.roles.length === 0 ||
-      meta.roles.includes(ctx.userRole);
-    const condOk = evalCondition(meta.conditions, ctx);
-    const visibleOk = !meta.hidden;
-    return rolesOk && condOk && visibleOk;
+    if (meta.hidden) return false;
+    if (!evalCondition(meta.conditions, ctx)) return false;
+    // Canon-grants: для grant-стола проверяется meta.requires против выданных
+    // бэкендом прав; для legacy-стола fallback на meta.roles по core-роли.
+    return desktop.isPageVisible(r.meta, wsName);
   });
 });
 
@@ -155,9 +156,6 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
-    if (r.name === 'projects-list' && currentName.startsWith('project-')) {
-      return String(r.name);
-    }
   }
   return undefined;
 });
@@ -198,8 +196,11 @@ const coopMeta = computed<string | undefined>(() =>
 
 // --- Footer: RailUserCard (canon .rail__usercard) --------------------------
 
-const mainWallet = computed(() =>
-  walletStore.program_wallets.find((w) => w.program_type === Zeus.ProgramType.MAIN),
+// Мини-кошелёк показывает ТОЛЬКО паевой (`w.wal.share`) — сырой кошелёк без
+// сворачивания с членской частью ЦК. Членские средства сюда не примешиваются
+// (для них — карточка «Членский кошелёк» на странице кошелька).
+const shareWallet = computed(() =>
+  walletStore.user_wallets.find((w) => w.wallet_name === 'w.wal.share'),
 );
 const walletReady = computed<boolean>(() => walletStore.program_wallets.length > 0);
 
@@ -210,13 +211,13 @@ function splitAsset(asset?: string | null): { amount: string; symbol: string } {
   return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
 }
 
-const walletAvail = computed(() => splitAsset(mainWallet.value?.available));
+const walletAvail = computed(() => splitAsset(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
   () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
-  const split = splitAsset(mainWallet.value?.blocked);
+  const split = splitAsset(shareWallet.value?.blocked);
   if (split.amount === '0,00' || split.amount === '0.00') return undefined;
   return split.amount;
 });
@@ -294,7 +295,7 @@ async function onLogout(): Promise<void> {
 .left-drawer-menu__hidden-dialogs {
   display: none;
 }
-/* Кнопка «Выйти» из RailUserCard — урезаем нижний padding, чтобы версия
+/* Кнопка «Выйти из кабинета» из RailUserCard — урезаем нижний padding, чтобы версия
    шла сразу под ней без лишнего вертикального зазора. */
 :deep(.rail__signout) {
   padding-bottom: var(--p-1, 4px);

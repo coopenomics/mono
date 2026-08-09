@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'fs';
+import { PLACEHOLDER_ENV_DEFAULTS } from './placeholder-env';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
@@ -9,28 +10,14 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 const isSchemaGeneration = process.env.CONTROLLER_SCHEMA_GEN === '1';
 
 /**
- * Заглушки только для режима генерации schema.gql: реальные сервисы не вызываются,
- * но Zod и импорты резолверов получают валидный объект env.
+ * Идентификатор основной сети Коопеномики.
+ *
+ * NODE_ENV различить контуры не может: в шаблоне docker-compose плейбука он
+ * жёстко выставлен в `production` и на тестовом узле, и на боевом. Единственный
+ * параметр, который реально приходит из inventory разным, — CHAIN_ID.
  */
-const SCHEMA_GEN_ENV_DEFAULTS: Record<string, string> = {
-  NODE_ENV: 'development',
-  BACKEND_URL: 'http://127.0.0.1:2998',
-  FRONTEND_URL: 'http://127.0.0.1:2999',
-  SERVER_SECRET: 'schema-gen-server-secret',
-  MONGODB_URL: 'mongodb://127.0.0.1:27017/schema-gen',
-  JWT_SECRET: 'schema-gen-jwt-secret-min-length-placeholder-32',
-  POSTGRES_USERNAME: 'postgres',
-  POSTGRES_PASSWORD: 'postgres',
-  POSTGRES_DATABASE: 'postgres',
-  REDIS_HOST: '127.0.0.1',
-  REDIS_PASSWORD: '',
-  BLOCKCHAIN_RPC: 'http://127.0.0.1:8888',
-  CHAIN_ID: 'cf057bbfb72640471fd910bcb67639c22df9f238706fab5919ce743a1f9efa38',
-  VAPID_PUBLIC_KEY: 'BM_schema_gen_placeholder_public_key____________________________',
-  VAPID_PRIVATE_KEY: 'schema_gen_placeholder_private_key',
-  MATRIX_ADMIN_USERNAME: 'schema-gen',
-  MATRIX_ADMIN_PASSWORD: 'schema-gen',
-};
+const MAINNET_CHAIN_ID = '6e37f9ac0f0ea717bfdbf57d1dd5d7f0e2d773227d9659a63bbf86eec0326c1b';
+
 
 const envVarsSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
@@ -211,6 +198,30 @@ const envVarsSchema = z.object({
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
+  // Параметры геокодера (провайдер-агностично; реализация выбирается через GEOCODER_PROVIDER)
+  GEOCODER_PROVIDER: z
+    .enum(['yandex', 'noop'])
+    .default('noop')
+    .describe('Провайдер геокодинга адресов: yandex | noop (отключён). Будущие: google, maps.me'),
+  GEOCODER_API_KEY: z
+    .string()
+    .optional()
+    .describe('API ключ выбранного провайдера геокодинга'),
+  GEOCODER_BASE_URL: z
+    .string()
+    .optional()
+    .describe('Базовый URL HTTP API геокодера (пусто — дефолт провайдера)'),
+  GEOCODER_RATE_LIMIT_RPS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .describe('Локальный rate-limit на запросы к провайдеру геокодинга (req/sec)'),
+  GEOCODER_TIMEOUT_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10))
+    .describe('Таймаут одиночного HTTP-запроса к провайдеру геокодинга (ms)'),
+
   // Параметры OpenAI Whisper для STT
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
@@ -238,9 +249,13 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
+  MIN_SOVIET_MEMBERS_COUNT: z
+    .string()
+    .optional()
+    .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
-const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
+const envInput = isSchemaGeneration ? { ...PLACEHOLDER_ENV_DEFAULTS, ...process.env } : process.env;
 
 // Валидация переменных окружения
 const envVars = envVarsSchema.safeParse(envInput);
@@ -254,7 +269,7 @@ if (!envVars.success) {
     .join('\n');
 
   const hint = isSchemaGeneration
-    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в SCHEMA_GEN_ENV_DEFAULTS в src/config/config.ts.)\n'
+    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в PLACEHOLDER_ENV_DEFAULTS в src/config/placeholder-env.ts.)\n'
     : '\n';
   console.error('❌ Ошибка конфигурации:\n', errorMessages, hint);
   process.exit(1); // Завершаем приложение в случае ошибки
@@ -350,6 +365,8 @@ export default {
     blockIntervalMs: envVars.data.BLOCKCHAIN_BLOCK_INTERVAL_MS,
     finalityMarginMs: envVars.data.BLOCKCHAIN_FINALITY_MARGIN_MS,
     id: envVars.data.CHAIN_ID,
+    /** Узел работает в основной сети. Любая другая цепь (тестовая, локальная) — false. */
+    is_mainnet: envVars.data.CHAIN_ID === MAINNET_CHAIN_ID,
     root_symbol: envVars.data.ROOT_SYMBOL,
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,
     root_precision: envVars.data.ROOT_PRECISION,
@@ -388,6 +405,11 @@ export default {
     },
   },
   coopname: envVars.data.COOPNAME,
+  min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
+    ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
+    : envVars.data.NODE_ENV === 'production'
+      ? 3
+      : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
   union: {
@@ -436,6 +458,13 @@ export default {
     base_url: envVars.data.OPENAI_BASE_URL,
     whisper_model: envVars.data.WHISPER_MODEL,
     whisper_language: envVars.data.WHISPER_LANGUAGE,
+  },
+  geocoder: {
+    provider: envVars.data.GEOCODER_PROVIDER,
+    api_key: envVars.data.GEOCODER_API_KEY,
+    base_url: envVars.data.GEOCODER_BASE_URL,
+    rate_limit_rps: envVars.data.GEOCODER_RATE_LIMIT_RPS,
+    timeout_ms: envVars.data.GEOCODER_TIMEOUT_MS,
   },
   file_storage: {
     endpoint: envVars.data.MINIO_ENDPOINT,

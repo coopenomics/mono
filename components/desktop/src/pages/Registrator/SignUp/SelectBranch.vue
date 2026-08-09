@@ -55,7 +55,7 @@ watch(() => store.state.step, async () => {
   load()
 }, { immediate: true })
 
-// Массив используется без изменений
-const branches = computed(() => branchStore.publicBranches)
+// приватные участки, недоступные текущему пайщику (не в белом списке), к выбору не показываем
+const branches = computed(() => branchStore.publicBranches.filter((branch) => branch.is_available))
 
 </script>

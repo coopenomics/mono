@@ -7,6 +7,18 @@ import { docDirectiveTransformer } from './directives/doc.directive';
 import { GraphQLError, GraphQLFormattedError } from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
+import * as jwt from 'jsonwebtoken';
+import { tokenTypes } from '~/types/token.types';
+
+/**
+ * Bearer-токен из connectionParams ws-соединения. Принимаем и сам токен, и
+ * форму `Bearer <token>` — клиенты Zeus шлют по-разному.
+ */
+function extractBearerToken(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw) return null;
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : raw;
+}
 
 @Global()
 @Module({
@@ -20,6 +32,47 @@ import logger from '~/config/logger';
       // context: ({ req }) => req,
       playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
       path: '/v1/graphql', // здесь можно задать другой путь, когда потребуется,
+      // Realtime-подписки поверх graphql-ws на том же пути. Аутентификация
+      // соединения — однократно в onConnect: верифицируем access-JWT из
+      // connectionParams и кладём `sub` в `extra`, чтобы операции читали юзера
+      // из контекста. Невалидный/отсутствующий токен → соединение отклоняется.
+      subscriptions: {
+        'graphql-ws': {
+          path: '/v1/graphql',
+          onConnect: (context: any) => {
+            const params = context?.connectionParams ?? {};
+            const token = extractBearerToken(params.authorization ?? params.Authorization);
+            if (!token) {
+              logger.warn('[mp-ws] onConnect ОТКЛОНЁН: нет токена в connectionParams');
+              return false;
+            }
+            try {
+              const payload: any = jwt.verify(token, config.jwt.secret);
+              if (payload?.type !== tokenTypes.ACCESS) {
+                logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: тип токена "${payload?.type}" != ACCESS`);
+                return false;
+              }
+              context.extra = context.extra ?? {};
+              context.extra.user = { sub: payload.sub };
+              logger.info(`[mp-ws] onConnect ✅ принят: sub=${payload.sub}`);
+              return true;
+            } catch (e) {
+              logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: verify failed (${(e as Error).message})`);
+              return false;
+            }
+          },
+        },
+      },
+      // Единый context для HTTP и WS. Для ws (graphql-ws Context содержит
+      // `extra`) прокидываем аутентифицированного юзера в req.user, чтобы
+      // существующие @CurrentUser/декораторы работали без изменений. Для HTTP
+      // возвращаем { req, res } как есть.
+      context: (ctx: any) => {
+        if (ctx && typeof ctx === 'object' && 'extra' in ctx) {
+          return { req: { user: ctx.extra?.user ?? null, headers: {} } };
+        }
+        return ctx;
+      },
       transformSchema: (schema) => {
         schema = docDirectiveTransformer(schema, 'auth');
         schema = fieldAuthDirectiveTransformer(schema, 'auth');

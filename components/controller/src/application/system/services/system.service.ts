@@ -99,8 +99,11 @@ export class SystemService {
    * Обновляет настройки системы
    */
   public async updateSettings(data: UpdateSettingsInputDTO): Promise<SettingsDTO> {
-    const settings = await this.systemInteractor.updateSettings(data);
-    return new SettingsDTO(settings);
+    const [settings, isRegistrationOpenStatus] = await Promise.all([
+      this.systemInteractor.updateSettings(data),
+      this.systemInteractor.getRegistrationOpenStatus(),
+    ]);
+    return new SettingsDTO(settings, isRegistrationOpenStatus);
   }
 
   /**

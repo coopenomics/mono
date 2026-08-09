@@ -1,4 +1,4 @@
-export type BaseDialogSize = 'sm' | 'md' | 'lg';
+export type BaseDialogSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface BaseDialogProps {
   modelValue: boolean;

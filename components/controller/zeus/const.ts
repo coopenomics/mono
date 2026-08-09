@@ -1,14 +1,21 @@
 /* eslint-disable */
 
 export const AllTypesProps: Record<string,any> = {
-	AcceptChildOrderInput:{
-		document:"AssetContributionStatementSignedDocumentInput"
-	},
+	AccountKind: "enum" as const,
 	AccountType: "enum" as const,
 	ActionFiltersInput:{
 
 	},
 	AddAuthorInput:{
+
+	},
+	AddAvailableCategoriesInput:{
+
+	},
+	AddAvailableCategoryTypesInput:{
+		categoryTypes:"CategoryTypeInput"
+	},
+	AddBranchWhitelistInput:{
 
 	},
 	AddParticipantInput:{
@@ -99,37 +106,15 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
-	AssetContributionActGenerateDocumentInput:{
-
+	ApproveKuTrustedInput:{
+		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
-	AssetContributionActSignedDocumentInput:{
-		meta:"AssetContributionActSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	AssetContributionActSignedMetaDocumentInput:{
-
-	},
-	AssetContributionDecisionGenerateDocumentInput:{
-
-	},
-	AssetContributionStatementGenerateDocumentInput:{
-		request:"CommonRequestInput"
-	},
-	AssetContributionStatementSignedDocumentInput:{
-		meta:"AssetContributionStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	AssetContributionStatementSignedMetaDocumentInput:{
-		request:"CommonRequestInput"
-	},
-	AssignCapabilitySetInput:{
+	ArchiveComponentMetricInput:{
 
 	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
-	},
-	AuthorizeForceRecoveryInput:{
-
 	},
 	BankAccountDetailsInput:{
 
@@ -137,18 +122,116 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BranchEstablishmentDecisionGenerateDocumentInput:{
+
+	},
+	BranchEstablishmentPetitionGenerateDocumentInput:{
+
+	},
+	BranchEstablishmentPetitionSignedDocumentInput:{
+		meta:"BranchEstablishmentPetitionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchEstablishmentPetitionSignedMetaDocumentInput:{
+
+	},
+	BranchExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
+	BranchMeetingBallotGenerateDocumentInput:{
+		answers:"KuBallotAnswerInput",
+		questions:"KuBallotQuestionInput"
+	},
+	BranchMeetingBallotSignedDocumentInput:{
+		meta:"BranchMeetingBallotSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingBallotSignedMetaDocumentInput:{
+		answers:"KuBallotAnswerInput",
+		questions:"KuBallotQuestionInput"
+	},
+	BranchMeetingDecisionGenerateDocumentInput:{
+		questions:"KuProtocolQuestionInput"
+	},
+	BranchMeetingDecisionSignedDocumentInput:{
+		meta:"BranchMeetingDecisionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingDecisionSignedMetaDocumentInput:{
+		questions:"KuProtocolQuestionInput"
+	},
+	BranchMeetingProposalGenerateDocumentInput:{
+		questions:"KuAgendaQuestionInput"
+	},
+	BranchMeetingProposalSignedDocumentInput:{
+		meta:"BranchMeetingProposalSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingProposalSignedMetaDocumentInput:{
+		questions:"KuAgendaQuestionInput"
+	},
+	BranchTrustedLiabilityAgreementGenerateDocumentInput:{
+
+	},
+	BranchTrustedLiabilityAgreementSignedDocumentInput:{
+		meta:"BranchTrustedLiabilityAgreementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrustedLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
+	BranchTrustedPowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrustedPowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrustedPowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrustedPowerOfAttorneySignedMetaDocumentInput:{
+
+	},
+	BranchTrustedStatementGenerateDocumentInput:{
+
+	},
+	BranchTrusteeLiabilityAgreementGenerateDocumentInput:{
+
+	},
+	BranchTrusteeLiabilityAgreementSignedDocumentInput:{
+		meta:"BranchTrusteeLiabilityAgreementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrusteeLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrusteePowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrusteePowerOfAttorneySignedMetaDocumentInput:{
+
+	},
 	BuhotchSignerType: "enum" as const,
 	CalculateVotesInput:{
 
 	},
 	CalendarEntryStatus: "enum" as const,
-	CancelRequestInput:{
+	CancelKuDecisionInput:{
 
 	},
 	CandidateFilterInput:{
 
 	},
 	CandidateStatus: "enum" as const,
+	CapitalAddWorklogInput:{
+
+	},
+	CapitalAllocateFundsInput:{
+
+	},
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
@@ -161,6 +244,15 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalCycleFilter:{
 		status:"CycleStatus"
+	},
+	CapitalDeallocateFundsInput:{
+
+	},
+	CapitalDeallocationLimitInput:{
+
+	},
+	CapitalGetOpenTimerInput:{
+
 	},
 	CapitalInvestFilter:{
 		status:"InvestStatus"
@@ -178,13 +270,25 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalOnboardingStepInput:{
 		step:"CapitalOnboardingStep"
 	},
+	CapitalPauseTimerInput:{
+
+	},
 	CapitalProjectFilter:{
 		has_issues_with_priorities:"IssuePriority",
 		has_issues_with_statuses:"IssueStatus",
 		statuses:"ProjectStatus"
 	},
+	CapitalResumeTimerInput:{
+
+	},
 	CapitalSegmentFilter:{
 		status:"SegmentStatus"
+	},
+	CapitalStartTimerInput:{
+
+	},
+	CapitalStopTimerInput:{
+
 	},
 	CapitalStoryContentFormat: "enum" as const,
 	CapitalStoryFilter:{
@@ -199,6 +303,9 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalTopupProgramExpenseInput:{
 
 	},
+	CategoryTypeInput:{
+
+	},
 	ChairmanOnboardingAgendaInput:{
 		step:"ChairmanOnboardingAgendaStep"
 	},
@@ -208,6 +315,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CheckMatrixUsernameInput:{
 
+	},
+	CloseKuDecisionInput:{
+		protocol:"BranchMeetingDecisionSignedDocumentInput"
 	},
 	CloseProjectInput:{
 
@@ -219,9 +329,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CommitStatus: "enum" as const,
-	CommonRequestInput:{
-
-	},
 	CompleteCapitalRegistrationInputDTO:{
 		blagorost_agreement:"SignedDigitalDocumentInput",
 		generation_contract:"SignedDigitalDocumentInput",
@@ -232,9 +339,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CompleteProcessStepInput:{
-
-	},
-	CompleteRequestInput:{
 
 	},
 	CompleteVotingInput:{
@@ -252,12 +356,7 @@ export const AllTypesProps: Record<string,any> = {
 	ConfirmApproveInput:{
 		approved_document:"SignedDigitalDocumentInput"
 	},
-	ConfirmReceiveOnRequestInput:{
-		document:"ReturnByAssetActSignedDocumentInput"
-	},
-	ConfirmSupplyOnRequestInput:{
-		document:"AssetContributionActSignedDocumentInput"
-	},
+	ContributionType: "enum" as const,
 	ContributorStatus: "enum" as const,
 	ConvertSegmentInput:{
 		convert_statement:"SignedDigitalDocumentInput"
@@ -279,18 +378,29 @@ export const AllTypesProps: Record<string,any> = {
 		open_at:"DateTime",
 		proposal:"AnnualGeneralMeetingAgendaSignedDocumentInput"
 	},
+	CreateBranchExpenseInput:{
+		items:"BranchExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	CreateBranchInput:{
+
+	},
+	CreateCategoryInput:{
 
 	},
 	CreateChatCoopCalendarEventInput:{
 		endsAt:"DateTime",
 		startsAt:"DateTime"
 	},
-	CreateChildOrderInput:{
-		document:"ReturnByAssetStatementSignedDocumentInput"
-	},
 	CreateCommitInput:{
 		data:"JSON"
+	},
+	CreateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
+	CreateCustomCategoryInput:{
+
 	},
 	CreateCycleInput:{
 		status:"CycleStatus"
@@ -308,6 +418,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateExpenseInput:{
 		statement:"SignedDigitalDocumentInput"
+	},
+	CreateExpensePlanInput:{
+		due_date:"DateTime",
+		recurrence:"ExpensePlanRecurrence"
 	},
 	CreateExpenseProposalInput:{
 		callback:"ExpenseCallbackInput",
@@ -330,8 +444,21 @@ export const AllTypesProps: Record<string,any> = {
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
+	CreateKuDecisionInput:{
+		agenda:"KuAgendaPointInput",
+		proposal:"BranchMeetingProposalSignedDocumentInput",
+		type:"KuDecisionType"
+	},
 	CreateMatrixAccountInputDTO:{
 
+	},
+	CreateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		tag:"MeasureCatalogTag",
+		wave_period:"MetricSeriesPeriod"
+	},
+	CreateMembershipExitInput:{
+		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
 	CreateOrganizationDataInput:{
 		bank_account:"BankAccountInput",
@@ -339,11 +466,13 @@ export const AllTypesProps: Record<string,any> = {
 		represented_by:"RepresentedByInput",
 		type:"OrganizationType"
 	},
-	CreateParentOfferInput:{
-
-	},
 	CreateProcessTemplateInput:{
 
+	},
+	CreateProductCardInput:{
+		contribution_type:"ContributionType",
+		delivery_type:"DeliveryType",
+		type:"ProductCardType"
 	},
 	CreateProgramInvestInput:{
 		statement:"ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"
@@ -363,6 +492,11 @@ export const AllTypesProps: Record<string,any> = {
 	CreateProjectPropertyInput:{
 
 	},
+	CreateRequestInput:{
+		attributes:"RequestAttributeInput",
+		images:"RequestImageInput",
+		type:"RequestTypeInput"
+	},
 	CreateSecretaryRoomInput:{
 
 	},
@@ -379,8 +513,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
-	CriticalActionStatus: "enum" as const,
-	CriticalActionType: "enum" as const,
 	CurrentTableStatesFiltersInput:{
 
 	},
@@ -402,7 +534,7 @@ export const AllTypesProps: Record<string,any> = {
 	DeclineDecisionInput:{
 
 	},
-	DeclineRequestInput:{
+	DeclineKuTrustedInput:{
 
 	},
 	DeleteAccountInput:{
@@ -411,10 +543,16 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteBranchInput:{
 
 	},
+	DeleteBranchWhitelistInput:{
+
+	},
 	DeleteCapitalIssueByHashInput:{
 
 	},
 	DeleteCapitalStoryByHashInput:{
+
+	},
+	DeleteExpensePlanInput:{
 
 	},
 	DeletePaymentMethodInput:{
@@ -426,14 +564,9 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteTrustedAccountInput:{
 
 	},
-	DeliverOnRequestInput:{
-
-	},
+	DeliveryType: "enum" as const,
 	DeltaFiltersInput:{
 
-	},
-	DisputeOnRequestInput:{
-		document:"JSONObject"
 	},
 	DocumentAction: "enum" as const,
 	EditBranchInput:{
@@ -448,6 +581,11 @@ export const AllTypesProps: Record<string,any> = {
 	EntrepreneurDetailsInput:{
 
 	},
+	ExecKuDecisionInput:{
+		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
+		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
+		petition:"BranchEstablishmentPetitionSignedDocumentInput"
+	},
 	ExpenseCallbackInput:{
 
 	},
@@ -461,6 +599,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ExpenseItemStatus: "enum" as const,
 	ExpenseMechanics: "enum" as const,
+	ExpensePlanRecurrence: "enum" as const,
 	ExpenseProposalDecisionBodyInput:{
 
 	},
@@ -509,7 +648,9 @@ export const AllTypesProps: Record<string,any> = {
 	FinalizeProjectInput:{
 
 	},
-	ForceRecoveryConsentVia: "enum" as const,
+	FindPotentialMatchesInput:{
+
+	},
 	FreeDecisionGenerateDocumentInput:{
 
 	},
@@ -583,8 +724,23 @@ export const AllTypesProps: Record<string,any> = {
 	GetCapitalStoryByHashInput:{
 
 	},
+	GetCategoryAttributesInput:{
+
+	},
+	GetCategoryByIdInput:{
+
+	},
+	GetCategoryTreeInput:{
+
+	},
+	GetComponentMetricsInput:{
+		status:"MetricStatus"
+	},
 	GetContributorInput:{
 
+	},
+	GetCoopRequestsInput:{
+		type:"RequestTypeInput"
 	},
 	GetDebtInput:{
 
@@ -609,6 +765,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetInvestInput:{
 
 	},
+	GetIssueMetricBindingsInput:{
+
+	},
 	GetLedger2HistoryInput:{
 		dateFrom:"DateTime",
 		dateTo:"DateTime"
@@ -626,16 +785,36 @@ export const AllTypesProps: Record<string,any> = {
 	GetMaxOriginServerTsForRoomInput:{
 
 	},
+	GetMeasuresInput:{
+		status:"MetricStatus"
+	},
 	GetMeetInput:{
 
 	},
 	GetMeetsInput:{
 
 	},
-	GetOneCoopDocumentsInput:{
+	GetMetricContributionsInput:{
 
 	},
+	GetMetricSeriesInput:{
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		to:"DateTime"
+	},
+	GetMetricSuperpositionHistoryInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricSuperpositionInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricWaveInput:{
+		period:"MetricSeriesPeriod"
+	},
 	GetPaymentMethodsInput:{
+
+	},
+	GetProductTypeByIdInput:{
 
 	},
 	GetProjectCommunicationRoomsInput:{
@@ -645,6 +824,18 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GetProjectWithRelationsInput:{
+
+	},
+	GetRequestByHashInput:{
+
+	},
+	GetRequestInput:{
+
+	},
+	GetRequestStatisticsInput:{
+
+	},
+	GetRequiredAttributesInput:{
 
 	},
 	GetResultInput:{
@@ -659,6 +850,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetTranscriptionsInput:{
 
 	},
+	GetUserRequestsInput:{
+
+	},
 	GetUserSubscriptionsInput:{
 
 	},
@@ -671,20 +865,55 @@ export const AllTypesProps: Record<string,any> = {
 	Init:{
 		organization_data:"CreateInitOrganizationDataInput"
 	},
-	InitiateCriticalActionInput:{
-		action_type:"CriticalActionType",
-		payload:"JSON"
-	},
 	Install:{
 		soviet:"SovietMemberInput",
 		vars:"SetVarsInput"
 	},
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
+	IssueMetricBindingItemInput:{
+
+	},
 	IssuePriority: "enum" as const,
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
+	JoinKuDecisionInput:{
+
+	},
+	KuAgendaPointInput:{
+
+	},
+	KuAgendaQuestionInput:{
+
+	},
+	KuBallotAnswerInput:{
+
+	},
+	KuBallotQuestionInput:{
+
+	},
+	KuDecisionFilterInput:{
+		status:"KuDecisionStatus",
+		type:"KuDecisionType"
+	},
+	KuDecisionStatus: "enum" as const,
+	KuDecisionType: "enum" as const,
+	KuProtocolQuestionInput:{
+
+	},
+	KuTrustRequestFilterInput:{
+
+	},
+	KuVoteItemInput:{
+
+	},
+	ListExpensePlansInput:{
+
+	},
+	ListMarketplaceKUInput:{
+
+	},
 	ListReportDraftsFilterInput:{
 		reportType:"ReportType"
 	},
@@ -693,6 +922,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	LogEntityType: "enum" as const,
 	LogEventType: "enum" as const,
+	LogMetricContributionInput:{
+
+	},
 	LoginInput:{
 
 	},
@@ -707,18 +939,441 @@ export const AllTypesProps: Record<string,any> = {
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
 	},
-	ModerateRequestInput:{
+	MarketplaceAcceptCppInput:{
 
 	},
+	MarketplaceAcceptOrdersBatchInput:{
+
+	},
+	MarketplaceAcceptReturnAtVisitInput:{
+		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
+		signed_statement:"MarketplaceReturnStatementSignedInput"
+	},
+	MarketplaceAddSupplierInput:{
+		model:"MarketplaceSupplierModel"
+	},
+	MarketplaceAddToCartInput:{
+
+	},
+	MarketplaceAidStage: "enum" as const,
+	MarketplaceAidStatementSignablePayloadInput:{
+
+	},
+	MarketplaceAnnounceOrderReadyInput:{
+
+	},
+	MarketplaceAplReceptionByIdInput:{
+
+	},
+	MarketplaceAplReceptionFactEntryInput:{
+
+	},
+	MarketplaceAplReceptionPlacementInput:{
+
+	},
+	MarketplaceAplReceptionSignedDocumentInput:{
+		meta:"MarketplaceAplReceptionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceAplReceptionSignedMetaDocumentInput:{
+
+	},
+	MarketplaceAplReceptionStatus: "enum" as const,
+	MarketplaceAplReceptionVariant: "enum" as const,
+	MarketplaceApproveOfferInput:{
+
+	},
+	MarketplaceApproveReturnVisitInput:{
+
+	},
+	MarketplaceAssignInventoryPlacementInput:{
+
+	},
+	MarketplaceAttributeType: "enum" as const,
+	MarketplaceBarcodeFormat: "enum" as const,
+	MarketplaceBarcodeStrategy: "enum" as const,
+	MarketplaceBindInventoryBarcodeInput:{
+		format:"MarketplaceBarcodeFormat"
+	},
+	MarketplaceCancelOrderInput:{
+
+	},
+	MarketplaceCancelStockOrderInput:{
+
+	},
+	MarketplaceCartItemBlocker: "enum" as const,
+	MarketplaceCheckoutCartInput:{
+		lines:"MarketplaceCheckoutSignedLineInput"
+	},
+	MarketplaceCheckoutSignedLineInput:{
+		signed_statement:"MarketplaceConvertStatementSignedInput"
+	},
+	MarketplaceClearInventoryLabelInput:{
+
+	},
+	MarketplaceConfirmWriteoffInput:{
+		signed_memo:"SignedDigitalDocumentInput"
+	},
+	MarketplaceConsolidatedRequestStatus: "enum" as const,
+	MarketplaceConvertBranchFundsInput:{
+
+	},
+	MarketplaceConvertStatementSignedInput:{
+		meta:"MarketplaceConvertStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceConvertStatementSignedMetaDocumentInput:{
+
+	},
+	MarketplaceCreateAidInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
+	MarketplaceCreateAplReceptionInput:{
+		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
+	},
+	MarketplaceCreateContainerTypeInput:{
+
+	},
+	MarketplaceCreateContainersInput:{
+
+	},
+	MarketplaceCreateExpressReceptionInput:{
+		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
+	},
+	MarketplaceCreateOfferInput:{
+		barcode_strategy:"MarketplaceBarcodeStrategy",
+		delivery_points:"MarketplaceOfferDeliveryPointInput",
+		images:"MarketplaceOfferImageUploadInput",
+		packages:"MarketplaceOfferPackageInput",
+		sale_form:"MarketplaceSaleForm",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceCreateOrderProposalLineInput:{
+		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+	},
+	MarketplaceCreateReturnClaimInput:{
+		defect_category:"MarketplaceReturnClaimDefectCategory",
+		photos:"MarketplaceReturnClaimPhotoUploadInput",
+		signed_statement:"MarketplaceReturnStatementSignedInput"
+	},
+	MarketplaceCreateShipmentInput:{
+		groups:"MarketplaceShipmentGroupInput"
+	},
+	MarketplaceCreateStockProposalInput:{
+		items:"MarketplaceCreateStockProposalLineInput",
+		order_items:"MarketplaceCreateOrderProposalLineInput"
+	},
+	MarketplaceCreateStockProposalLineInput:{
+		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+	},
+	MarketplaceCreateStorageCellInput:{
+
+	},
+	MarketplaceCreateStorageGridInput:{
+
+	},
+	MarketplaceCreateWriteoffDraftInput:{
+		items:"MarketplaceWriteoffItemInput"
+	},
+	MarketplaceDeclineOrdersBatchInput:{
+
+	},
+	MarketplaceDeleteTrusteeWeightInput:{
+
+	},
+	MarketplaceDetailKUInput:{
+		workingHours:"WorkingHoursInput"
+	},
+	MarketplaceDistributeBranchFundsInput:{
+
+	},
+	MarketplaceEventsInput:{
+
+	},
+	MarketplaceFinalizeStockIssuanceInput:{
+		order_lines:"MarketplaceStockFinalizeLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
+	},
+	MarketplaceGenerateInventoryLabelInput:{
+		format:"MarketplaceBarcodeFormat"
+	},
+	MarketplaceGeocodeStatus: "enum" as const,
+	MarketplaceGetOrderInput:{
+
+	},
+	MarketplaceGetShipmentInput:{
+
+	},
+	MarketplaceInventoryOwnership: "enum" as const,
+	MarketplaceInventorySplitEntryInput:{
+
+	},
+	MarketplaceInventoryStatus: "enum" as const,
+	MarketplaceIssueActPayloadInput:{
+
+	},
+	MarketplaceIssueActSignedDocumentInput:{
+		meta:"MarketplaceIssueActSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceIssueActSignedMetaDocumentInput:{
+
+	},
+	MarketplaceKUStatus: "enum" as const,
+	MarketplaceListAidsInput:{
+
+	},
+	MarketplaceListAllOffersInput:{
+		statuses:"MarketplaceOfferStatus"
+	},
+	MarketplaceListAplReceptionsByBranameInput:{
+
+	},
+	MarketplaceListCatalogInput:{
+
+	},
+	MarketplaceListConsolidatedRequestsInput:{
+		status:"MarketplaceConsolidatedRequestStatus"
+	},
+	MarketplaceListContainersInput:{
+
+	},
+	MarketplaceListInventoryInput:{
+		statuses:"MarketplaceInventoryStatus"
+	},
+	MarketplaceListIssuancesByBranameInput:{
+
+	},
+	MarketplaceListMyOffersInput:{
+
+	},
+	MarketplaceListOrdersInput:{
+		statuses:"MarketplaceOrderStatus"
+	},
+	MarketplaceListOutgoingPaymentsAsSupplierFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
+	},
+	MarketplaceListOutgoingPaymentsFilterInput:{
+		statuses:"MarketplaceOutgoingPaymentRequestStatus"
+	},
+	MarketplaceListPendingOffersInput:{
+
+	},
+	MarketplaceListReturnClaimsByBranameInput:{
+
+	},
+	MarketplaceListShipmentsByBranameInput:{
+		statuses:"MarketplaceShipmentStatus"
+	},
+	MarketplaceListShipmentsInput:{
+		statuses:"MarketplaceShipmentStatus"
+	},
+	MarketplaceListStockProposalsInput:{
+		statuses:"MarketplaceStockProposalStatus"
+	},
+	MarketplaceListStorageCellsInput:{
+
+	},
+	MarketplaceListSupplierPickupOrdersInput:{
+
+	},
+	MarketplaceListWriteoffProposalsInput:{
+		statuses:"MarketplaceWriteoffProposalStatus"
+	},
+	MarketplaceMoveContainerInput:{
+
+	},
+	MarketplaceOfferDeliveryPointInput:{
+
+	},
+	MarketplaceOfferImageUploadInput:{
+
+	},
+	MarketplaceOfferPackageInput:{
+
+	},
+	MarketplaceOfferStatus: "enum" as const,
+	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
+	MarketplaceOrderStatus: "enum" as const,
+	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
+	MarketplacePublishStockInput:{
+
+	},
+	MarketplaceRejectOfferInput:{
+
+	},
+	MarketplaceRejectReturnAtVisitInput:{
+		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput"
+	},
+	MarketplaceRejectReturnRemoteInput:{
+
+	},
+	MarketplaceRemoveFromCartInput:{
+
+	},
+	MarketplaceRenameStorageSectionInput:{
+
+	},
+	MarketplaceRepublishOfferInput:{
+
+	},
+	MarketplaceRequestSupplierInput:{
+
+	},
+	MarketplaceResolveContainerByCodeInput:{
+
+	},
+	MarketplaceResolveStockProposalInput:{
+
+	},
+	MarketplaceRetireStorageCellsInput:{
+
+	},
+	MarketplaceReturnClaimDefectCategory: "enum" as const,
+	MarketplaceReturnClaimExpectedResolution: "enum" as const,
+	MarketplaceReturnClaimPhotoUploadInput:{
+
+	},
+	MarketplaceReturnClaimSignablePayloadInput:{
+
+	},
+	MarketplaceReturnClaimStatus: "enum" as const,
+	MarketplaceReturnStatementSignedInput:{
+		meta:"MarketplaceReturnStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceReturnStatementSignedMetaDocumentInput:{
+
+	},
+	MarketplaceSaleForm: "enum" as const,
+	MarketplaceSetCartDeliveryPointInput:{
+
+	},
+	MarketplaceSetKUStatusInput:{
+		status:"MarketplaceKUStatus"
+	},
+	MarketplaceSetMembershipFeeInput:{
+
+	},
+	MarketplaceSetOfferWarrantyInput:{
+
+	},
+	MarketplaceSetSupplierPayoutMethodInput:{
+
+	},
+	MarketplaceSetTrusteeWeightInput:{
+
+	},
+	MarketplaceShipmentDeliveryVariant: "enum" as const,
+	MarketplaceShipmentGroupInput:{
+		delivery_variant:"MarketplaceShipmentDeliveryVariant",
+		ttn_data:"MarketplaceShipmentTTNDataInput"
+	},
+	MarketplaceShipmentLinePackagingInput:{
+
+	},
+	MarketplaceShipmentStatus: "enum" as const,
+	MarketplaceShipmentTTNDataInput:{
+		packaging:"MarketplaceShipmentLinePackagingInput"
+	},
+	MarketplaceSignAplReceptionInput:{
+		placements:"MarketplaceAplReceptionPlacementInput",
+		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
+	},
+	MarketplaceSignOnboardingOfferInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	MarketplaceSplitInventoryInput:{
+		splits:"MarketplaceInventorySplitEntryInput"
+	},
+	MarketplaceStockFinalizeLineInput:{
+		signed_signiss2_act:"MarketplaceIssueActSignedDocumentInput"
+	},
+	MarketplaceStockIssuancePrepareInput:{
+		items:"MarketplaceStockProposalItemInput"
+	},
+	MarketplaceStockProposalItemInput:{
+
+	},
+	MarketplaceStockProposalStatus: "enum" as const,
+	MarketplaceSubmitWriteoffDraftInput:{
+		signed_statement:"SignedDigitalDocumentInput"
+	},
+	MarketplaceSupplierMemberInput:{
+
+	},
+	MarketplaceSupplierModel: "enum" as const,
+	MarketplaceSupplierStatus: "enum" as const,
+	MarketplaceSwitchSupplierModelInput:{
+		model:"MarketplaceSupplierModel"
+	},
+	MarketplaceUnitOfMeasure: "enum" as const,
+	MarketplaceUnpublishStockInput:{
+
+	},
+	MarketplaceUpdateCartItemInput:{
+
+	},
+	MarketplaceUpdateContainerInput:{
+
+	},
+	MarketplaceUpdateOfferInput:{
+		barcode_strategy:"MarketplaceBarcodeStrategy",
+		delivery_points:"MarketplaceOfferDeliveryPointInput",
+		images:"MarketplaceOfferImageUploadInput",
+		packages:"MarketplaceOfferPackageInput",
+		sale_form:"MarketplaceSaleForm",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceUpdateStorageCellInput:{
+
+	},
+	MarketplaceUpdateWriteoffDraftInput:{
+		items:"MarketplaceWriteoffItemInput"
+	},
+	MarketplaceWithdrawOfferInput:{
+
+	},
+	MarketplaceWriteoffItemInput:{
+
+	},
+	MarketplaceWriteoffProposalStatus: "enum" as const,
+	MarketplaceWriteoffProposalTrigger: "enum" as const,
+	MarketplaceWriteoffProtocolDocumentInput:{
+
+	},
+	MarketplaceWriteoffServiceMemoSignablePayloadInput:{
+
+	},
+	MarketplaceWriteoffStatementSignablePayloadInput:{
+
+	},
+	MeasureCatalogTag: "enum" as const,
+	MembershipExitApplicationGenerateDocumentInput:{
+
+	},
+	MembershipExitApplicationSignedDocumentInput:{
+		meta:"MembershipExitApplicationSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MembershipExitApplicationSignedMetaDocumentInput:{
+
+	},
+	MembershipExitDecisionGenerateDocumentInput:{
+
+	},
+	MembershipExitStatus: "enum" as const,
+	MetricContributionSource: "enum" as const,
+	MetricDriveDirection: "enum" as const,
+	MetricSeriesMode: "enum" as const,
+	MetricSeriesPeriod: "enum" as const,
+	MetricStatus: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
 	},
 	Mutation:{
-		acceptChildOrder:{
-			data:"AcceptChildOrderInput"
-		},
-		activateTwoFactor:{
-			data:"TwoFactorCodeInput"
+		addBranchWhitelist:{
+			data:"AddBranchWhitelistInput"
 		},
 		addParticipant:{
 			data:"AddParticipantInput"
@@ -729,23 +1384,29 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
-		assignCapabilitySet:{
-			data:"AssignCapabilitySetInput"
+		archiveProductCard:{
+
 		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
-		authorizeForceRecovery:{
-			data:"AuthorizeForceRecoveryInput"
-		},
-		cancelRequest:{
-			data:"CancelRequestInput"
+		cancelMembershipExit:{
+
 		},
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
+		capitalAddWorklog:{
+			data:"CapitalAddWorklogInput"
+		},
+		capitalAllocateFunds:{
+			data:"CapitalAllocateFundsInput"
+		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
+		},
+		capitalArchiveComponentMetric:{
+			data:"ArchiveComponentMetricInput"
 		},
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
@@ -768,6 +1429,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateCommit:{
 			data:"CreateCommitInput"
 		},
+		capitalCreateComponentMetric:{
+			data:"CreateComponentMetricInput"
+		},
 		capitalCreateCycle:{
 			data:"CreateCycleInput"
 		},
@@ -779,6 +1443,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
+		},
+		capitalCreateLocalProject:{
+			data:"CreateProjectInput"
+		},
+		capitalCreateMeasure:{
+			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -803,6 +1473,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateStory:{
 			data:"CreateStoryInput"
+		},
+		capitalDeallocateFunds:{
+			data:"CapitalDeallocateFundsInput"
 		},
 		capitalDeclineCommit:{
 			data:"CommitDeclineInput"
@@ -925,6 +1598,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalImportContributor:{
 			data:"ImportContributorInput"
 		},
+		capitalLogMetricContribution:{
+			data:"LogMetricContributionInput"
+		},
 		capitalMakeClearance:{
 			data:"MakeClearanceInput"
 		},
@@ -933,6 +1609,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalOpenProject:{
 			data:"OpenProjectInput"
+		},
+		capitalPauseTimer:{
+			data:"CapitalPauseTimerInput"
 		},
 		capitalPushResult:{
 			data:"PushResultInput"
@@ -946,8 +1625,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
 		},
+		capitalResumeTimer:{
+			data:"CapitalResumeTimerInput"
+		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
+		},
+		capitalSetIssueMetricBindings:{
+			data:"SetIssueMetricBindingsInput"
 		},
 		capitalSetMaster:{
 			data:"SetMasterInput"
@@ -970,11 +1655,17 @@ export const AllTypesProps: Record<string,any> = {
 		capitalStartProject:{
 			data:"StartProjectInput"
 		},
+		capitalStartTimer:{
+			data:"CapitalStartTimerInput"
+		},
 		capitalStartVoting:{
 			data:"StartVotingInput"
 		},
 		capitalStopProject:{
 			data:"StopProjectInput"
+		},
+		capitalStopTimer:{
+			data:"CapitalStopTimerInput"
 		},
 		capitalSubmitVote:{
 			data:"SubmitVoteInput"
@@ -982,8 +1673,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalTopupProgramExpensePool:{
 			data:"CapitalTopupProgramExpenseInput"
 		},
+		capitalUpdateComponentMetric:{
+			data:"UpdateComponentMetricInput"
+		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
+		},
+		capitalUpdateMeasure:{
+			data:"UpdateMeasureInput"
 		},
 		capitalUpdateProcessTemplate:{
 			data:"UpdateProcessTemplateInput"
@@ -1030,20 +1727,11 @@ export const AllTypesProps: Record<string,any> = {
 		completeExtensionOnboardingStep:{
 			data:"CompleteExtensionOnboardingStepInput"
 		},
-		completeRequest:{
-			data:"CompleteRequestInput"
-		},
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
-		confirmCriticalAction:{
+		confirmMembershipExit:{
 
-		},
-		confirmReceiveOnRequest:{
-			data:"ConfirmReceiveOnRequestInput"
-		},
-		confirmSupplyOnRequest:{
-			data:"ConfirmSupplyOnRequestInput"
 		},
 		createAnnualGeneralMeet:{
 			data:"CreateAnnualGeneralMeetInput"
@@ -1051,11 +1739,14 @@ export const AllTypesProps: Record<string,any> = {
 		createBranch:{
 			data:"CreateBranchInput"
 		},
-		createChildOrder:{
-			data:"CreateChildOrderInput"
+		createCategory:{
+			data:"CreateCategoryInput"
 		},
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
+		},
+		createExpensePlan:{
+			data:"CreateExpensePlanInput"
 		},
 		createExpenseProposal:{
 			data:"CreateExpenseProposalInput"
@@ -1063,8 +1754,11 @@ export const AllTypesProps: Record<string,any> = {
 		createInitialPayment:{
 			data:"CreateInitialPaymentInput"
 		},
-		createParentOffer:{
-			data:"CreateParentOfferInput"
+		createMembershipExit:{
+			data:"CreateMembershipExitInput"
+		},
+		createProductCard:{
+			data:"CreateProductCardInput"
 		},
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
@@ -1084,32 +1778,32 @@ export const AllTypesProps: Record<string,any> = {
 		declineDecision:{
 			data:"DeclineDecisionInput"
 		},
-		declineRequest:{
-			data:"DeclineRequestInput"
-		},
 		deleteAccount:{
 			data:"DeleteAccountInput"
 		},
 		deleteBranch:{
 			data:"DeleteBranchInput"
 		},
+		deleteBranchWhitelist:{
+			data:"DeleteBranchWhitelistInput"
+		},
+		deleteCategory:{
+
+		},
+		deleteExpensePlan:{
+			data:"DeleteExpensePlanInput"
+		},
 		deletePaymentMethod:{
 			data:"DeletePaymentMethodInput"
+		},
+		deleteProductCard:{
+
 		},
 		deleteReportDraft:{
 
 		},
 		deleteTrustedAccount:{
 			data:"DeleteTrustedAccountInput"
-		},
-		deliverOnRequest:{
-			data:"DeliverOnRequestInput"
-		},
-		disableTwoFactor:{
-			data:"TwoFactorCodeInput"
-		},
-		disputeOnRequest:{
-			data:"DisputeOnRequestInput"
 		},
 		editBranch:{
 			data:"EditBranchInput"
@@ -1124,18 +1818,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateAnnualGeneralMeetNotificationDocument:{
 			data:"AnnualGeneralMeetingNotificationGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		generateAssetContributionAct:{
-			data:"AssetContributionActGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		generateAssetContributionDecision:{
-			data:"AssetContributionDecisionGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		generateAssetContributionStatement:{
-			data:"AssetContributionStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateBallotForAnnualGeneralMeetDocument:{
@@ -1161,6 +1843,14 @@ export const AllTypesProps: Record<string,any> = {
 			data:"FreeDecisionGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		generateMembershipExitApplication:{
+			data:"MembershipExitApplicationGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitDecision:{
+			data:"MembershipExitDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		generateParticipantApplication:{
 			data:"ParticipantApplicationGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -1182,18 +1872,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateReportFromEdits:{
 			reportType:"ReportType"
-		},
-		generateReturnByAssetAct:{
-			data:"ReturnByAssetActGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		generateReturnByAssetDecision:{
-			data:"ReturnByAssetDecisionGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		generateReturnByAssetStatement:{
-			data:"ReturnByAssetStatementGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
 		},
 		generateReturnByMoneyDecisionDocument:{
 			data:"ReturnByMoneyDecisionGenerateDocumentInput",
@@ -1226,14 +1904,81 @@ export const AllTypesProps: Record<string,any> = {
 		initSystem:{
 			data:"Init"
 		},
-		initiateCriticalAction:{
-			data:"InitiateCriticalActionInput"
-		},
 		installExtension:{
 			data:"ExtensionInput"
 		},
 		installSystem:{
 			data:"Install"
+		},
+		kuApproveTrusted:{
+			data:"ApproveKuTrustedInput"
+		},
+		kuCancelDecision:{
+			data:"CancelKuDecisionInput"
+		},
+		kuCloseDecision:{
+			data:"CloseKuDecisionInput"
+		},
+		kuCreateDecision:{
+			data:"CreateKuDecisionInput"
+		},
+		kuDeclineTrusted:{
+			data:"DeclineKuTrustedInput"
+		},
+		kuExecDecision:{
+			data:"ExecKuDecisionInput"
+		},
+		kuGenerateEstablishmentDecision:{
+			data:"BranchEstablishmentDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateEstablishmentPetition:{
+			data:"BranchEstablishmentPetitionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingBallot:{
+			data:"BranchMeetingBallotGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingDecision:{
+			data:"BranchMeetingDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingProposal:{
+			data:"BranchMeetingProposalGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedLiabilityAgreement:{
+			data:"BranchTrustedLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedPowerOfAttorney:{
+			data:"BranchTrustedPowerOfAttorneyGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedStatement:{
+			data:"BranchTrustedStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrusteeLiabilityAgreement:{
+			data:"BranchTrusteeLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrusteePowerOfAttorney:{
+			data:"BranchTrusteePowerOfAttorneyGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuJoinDecision:{
+			data:"JoinKuDecisionInput"
+		},
+		kuRequestTrusted:{
+			data:"RequestKuTrustedInput"
+		},
+		kuStartDecision:{
+			data:"StartKuDecisionInput"
+		},
+		kuVoteOnDecision:{
+			data:"VoteOnKuDecisionInput"
 		},
 		login:{
 			data:"LoginInput"
@@ -1250,8 +1995,242 @@ export const AllTypesProps: Record<string,any> = {
 		markReportPeriod:{
 			data:"MarkReportPeriodInput"
 		},
-		moderateRequest:{
-			data:"ModerateRequestInput"
+		marketplaceAcceptCpp:{
+			input:"MarketplaceAcceptCppInput"
+		},
+		marketplaceAcceptOrdersBatch:{
+			input:"MarketplaceAcceptOrdersBatchInput"
+		},
+		marketplaceAcceptReturnAtVisit:{
+			data:"MarketplaceAcceptReturnAtVisitInput"
+		},
+		marketplaceAddAvailableCategories:{
+			input:"AddAvailableCategoriesInput"
+		},
+		marketplaceAddAvailableCategoryTypes:{
+			input:"AddAvailableCategoryTypesInput"
+		},
+		marketplaceAddSupplier:{
+			input:"MarketplaceAddSupplierInput"
+		},
+		marketplaceAddToCart:{
+			input:"MarketplaceAddToCartInput"
+		},
+		marketplaceAnnounceOrderReady:{
+			data:"MarketplaceAnnounceOrderReadyInput"
+		},
+		marketplaceApproveOffer:{
+			input:"MarketplaceApproveOfferInput"
+		},
+		marketplaceApproveReturnVisit:{
+			data:"MarketplaceApproveReturnVisitInput"
+		},
+		marketplaceApproveSupplier:{
+			input:"MarketplaceSupplierMemberInput"
+		},
+		marketplaceAssignInventoryPlacement:{
+			data:"MarketplaceAssignInventoryPlacementInput"
+		},
+		marketplaceBindInventoryBarcode:{
+			data:"MarketplaceBindInventoryBarcodeInput"
+		},
+		marketplaceCancelAplReception:{
+			data:"MarketplaceAplReceptionByIdInput"
+		},
+		marketplaceCancelOrder:{
+			input:"MarketplaceCancelOrderInput"
+		},
+		marketplaceCancelStockOrder:{
+			data:"MarketplaceCancelStockOrderInput"
+		},
+		marketplaceCancelStockProposal:{
+			data:"MarketplaceResolveStockProposalInput"
+		},
+		marketplaceCancelWriteoffDraft:{
+
+		},
+		marketplaceCheckoutCart:{
+			input:"MarketplaceCheckoutCartInput"
+		},
+		marketplaceClearInventoryLabel:{
+			data:"MarketplaceClearInventoryLabelInput"
+		},
+		marketplaceConfirmWriteoff:{
+			data:"MarketplaceConfirmWriteoffInput"
+		},
+		marketplaceConvertBranchFunds:{
+			data:"MarketplaceConvertBranchFundsInput"
+		},
+		marketplaceCreateAid:{
+			data:"MarketplaceCreateAidInput"
+		},
+		marketplaceCreateAplReception:{
+			data:"MarketplaceCreateAplReceptionInput"
+		},
+		marketplaceCreateBranchExpense:{
+			data:"CreateBranchExpenseInput"
+		},
+		marketplaceCreateContainerType:{
+			data:"MarketplaceCreateContainerTypeInput"
+		},
+		marketplaceCreateContainers:{
+			data:"MarketplaceCreateContainersInput"
+		},
+		marketplaceCreateCustomCategory:{
+			input:"CreateCustomCategoryInput"
+		},
+		marketplaceCreateExpressReception:{
+			data:"MarketplaceCreateExpressReceptionInput"
+		},
+		marketplaceCreateOffer:{
+			input:"MarketplaceCreateOfferInput"
+		},
+		marketplaceCreateRequest:{
+			data:"CreateRequestInput"
+		},
+		marketplaceCreateReturnClaim:{
+			data:"MarketplaceCreateReturnClaimInput"
+		},
+		marketplaceCreateShipment:{
+			data:"MarketplaceCreateShipmentInput"
+		},
+		marketplaceCreateStockProposal:{
+			data:"MarketplaceCreateStockProposalInput"
+		},
+		marketplaceCreateStorageCell:{
+			data:"MarketplaceCreateStorageCellInput"
+		},
+		marketplaceCreateStorageGrid:{
+			data:"MarketplaceCreateStorageGridInput"
+		},
+		marketplaceCreateWriteoffDraft:{
+			data:"MarketplaceCreateWriteoffDraftInput"
+		},
+		marketplaceDeclineOrdersBatch:{
+			input:"MarketplaceDeclineOrdersBatchInput"
+		},
+		marketplaceDeclineStockProposal:{
+			data:"MarketplaceResolveStockProposalInput"
+		},
+		marketplaceDeleteCustomCategory:{
+
+		},
+		marketplaceDeleteTrusteeWeight:{
+			data:"MarketplaceDeleteTrusteeWeightInput"
+		},
+		marketplaceDetailKU:{
+			data:"MarketplaceDetailKUInput"
+		},
+		marketplaceDistributeBranchFunds:{
+			data:"MarketplaceDistributeBranchFundsInput"
+		},
+		marketplaceFinalizeStockIssuance:{
+			data:"MarketplaceFinalizeStockIssuanceInput"
+		},
+		marketplaceGenerateInventoryLabel:{
+			data:"MarketplaceGenerateInventoryLabelInput"
+		},
+		marketplaceMoveContainer:{
+			data:"MarketplaceMoveContainerInput"
+		},
+		marketplacePublishStock:{
+			data:"MarketplacePublishStockInput"
+		},
+		marketplaceRejectOffer:{
+			input:"MarketplaceRejectOfferInput"
+		},
+		marketplaceRejectReturnAtVisit:{
+			data:"MarketplaceRejectReturnAtVisitInput"
+		},
+		marketplaceRejectReturnRemote:{
+			data:"MarketplaceRejectReturnRemoteInput"
+		},
+		marketplaceRejectSupplier:{
+			input:"MarketplaceSupplierMemberInput"
+		},
+		marketplaceRemoveAvailableCategories:{
+			input:"RemoveAvailableCategoriesInput"
+		},
+		marketplaceRemoveAvailableCategoryTypes:{
+			input:"RemoveAvailableCategoryTypesInput"
+		},
+		marketplaceRemoveFromCart:{
+			input:"MarketplaceRemoveFromCartInput"
+		},
+		marketplaceRenameStorageSection:{
+			data:"MarketplaceRenameStorageSectionInput"
+		},
+		marketplaceReplaceAvailableItems:{
+			input:"ReplaceAvailableItemsInput"
+		},
+		marketplaceRepublishOffer:{
+			input:"MarketplaceRepublishOfferInput"
+		},
+		marketplaceRequestSupplier:{
+			input:"MarketplaceRequestSupplierInput"
+		},
+		marketplaceRetireStorageCells:{
+			data:"MarketplaceRetireStorageCellsInput"
+		},
+		marketplaceRetryKUGeocode:{
+
+		},
+		marketplaceSetCartDeliveryPoint:{
+			input:"MarketplaceSetCartDeliveryPointInput"
+		},
+		marketplaceSetKUStatus:{
+			data:"MarketplaceSetKUStatusInput"
+		},
+		marketplaceSetMembershipFee:{
+			data:"MarketplaceSetMembershipFeeInput"
+		},
+		marketplaceSetOfferWarranty:{
+			input:"MarketplaceSetOfferWarrantyInput"
+		},
+		marketplaceSetSupplierPayoutMethod:{
+			input:"MarketplaceSetSupplierPayoutMethodInput"
+		},
+		marketplaceSetTrusteeWeight:{
+			data:"MarketplaceSetTrusteeWeightInput"
+		},
+		marketplaceSignAplReceptionAsChairman:{
+			data:"MarketplaceSignAplReceptionInput"
+		},
+		marketplaceSignAplReceptionAsSupplier:{
+			data:"MarketplaceSignAplReceptionInput"
+		},
+		marketplaceSignOnboardingOffer:{
+			input:"MarketplaceSignOnboardingOfferInput"
+		},
+		marketplaceSplitInventory:{
+			data:"MarketplaceSplitInventoryInput"
+		},
+		marketplaceSubmitWriteoffDraft:{
+			data:"MarketplaceSubmitWriteoffDraftInput"
+		},
+		marketplaceSwitchSupplierModel:{
+			input:"MarketplaceSwitchSupplierModelInput"
+		},
+		marketplaceUnpublishStock:{
+			data:"MarketplaceUnpublishStockInput"
+		},
+		marketplaceUpdateCartItem:{
+			input:"MarketplaceUpdateCartItemInput"
+		},
+		marketplaceUpdateContainer:{
+			data:"MarketplaceUpdateContainerInput"
+		},
+		marketplaceUpdateOffer:{
+			input:"MarketplaceUpdateOfferInput"
+		},
+		marketplaceUpdateStorageCell:{
+			data:"MarketplaceUpdateStorageCellInput"
+		},
+		marketplaceUpdateWriteoffDraft:{
+			data:"MarketplaceUpdateWriteoffDraftInput"
+		},
+		marketplaceWithdrawOffer:{
+			input:"MarketplaceWithdrawOfferInput"
 		},
 		notifyOnAnnualGeneralMeet:{
 			data:"NotifyOnAnnualGeneralMeetInput"
@@ -1265,17 +2244,11 @@ export const AllTypesProps: Record<string,any> = {
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
-		prohibitRequest:{
-			data:"ProhibitRequestInput"
+		publishProductCard:{
+
 		},
 		publishProjectOfFreeDecision:{
 			data:"PublishProjectFreeDecisionInput"
-		},
-		publishRequest:{
-			data:"PublishRequestInput"
-		},
-		receiveOnRequest:{
-			data:"ReceiveOnRequestInput"
 		},
 		refresh:{
 			data:"RefreshInput"
@@ -1289,12 +2262,6 @@ export const AllTypesProps: Record<string,any> = {
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
-		reportNotMe:{
-			data:"ReportNotMeInput"
-		},
-		requestForceRecoveryConsent:{
-			data:"RequestForceRecoveryConsentInput"
-		},
 		resendNotification:{
 
 		},
@@ -1307,14 +2274,11 @@ export const AllTypesProps: Record<string,any> = {
 		returnExpenseItem:{
 			data:"ReturnExpenseItemInput"
 		},
-		revokeCapabilitySet:{
-			data:"RevokeCapabilitySetInput"
+		saveCapitalProgramDocDataHash:{
+			data:"SaveCapitalProgramDocDataInput"
 		},
-		revokeParticipantKey:{
-			data:"RevokeParticipantKeyInput"
-		},
-		revokeSession:{
-			data:"RevokeSessionInput"
+		saveMyPassport:{
+			passport:"PassportInput"
 		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
@@ -1325,11 +2289,11 @@ export const AllTypesProps: Record<string,any> = {
 		sendAgreement:{
 			data:"SendAgreementInput"
 		},
+		setBranchPrivate:{
+			data:"SetBranchPrivateInput"
+		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
-		},
-		setRecoveryStrategy:{
-			data:"SetRecoveryStrategyInput"
 		},
 		setWif:{
 			data:"SetWifInput"
@@ -1349,17 +2313,11 @@ export const AllTypesProps: Record<string,any> = {
 		submitExpenseReport:{
 			data:"SubmitExpenseReportInput"
 		},
-		supplyOnRequest:{
-			data:"SupplyOnRequestInput"
-		},
 		triggerNotificationWorkflow:{
 			data:"TriggerNotificationWorkflowInput"
 		},
 		uninstallExtension:{
 			data:"UninstallExtensionInput"
-		},
-		unpublishRequest:{
-			data:"UnpublishRequestInput"
 		},
 		updateAccount:{
 			data:"UpdateAccountInput"
@@ -1373,9 +2331,6 @@ export const AllTypesProps: Record<string,any> = {
 		updateReportRequisites:{
 			input:"UpdateReportRequisitesInput"
 		},
-		updateRequest:{
-			data:"UpdateRequestInput"
-		},
 		updateSettings:{
 			data:"UpdateSettingsInput"
 		},
@@ -1384,6 +2339,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
+		},
+		uploadPaymentProof:{
+			data:"UploadPaymentProofInput"
 		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
@@ -1442,6 +2400,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	PaymentDirection: "enum" as const,
+	PaymentFileKind: "enum" as const,
 	PaymentFiltersInput:{
 		direction:"PaymentDirection",
 		status:"PaymentStatus",
@@ -1467,6 +2426,8 @@ export const AllTypesProps: Record<string,any> = {
 	ProcessesFilter:{
 
 	},
+	ProductCardStatus: "enum" as const,
+	ProductCardType: "enum" as const,
 	ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput:{
 
 	},
@@ -1481,9 +2442,6 @@ export const AllTypesProps: Record<string,any> = {
 	ProgramType: "enum" as const,
 	ProgramWalletFilterInput:{
 		program_type:"ProgramType"
-	},
-	ProhibitRequestInput:{
-
 	},
 	ProjectFreeDecisionGenerateDocumentInput:{
 
@@ -1501,9 +2459,6 @@ export const AllTypesProps: Record<string,any> = {
 	ProjectStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
-	},
-	PublishRequestInput:{
-
 	},
 	PushResultInput:{
 		statement:"SignedDigitalDocumentInput"
@@ -1534,6 +2489,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalCommitFilter",
 			options:"PaginationInput"
 		},
+		capitalComponentMetrics:{
+			data:"GetComponentMetricsInput"
+		},
 		capitalContributor:{
 			data:"GetContributorInput"
 		},
@@ -1544,6 +2502,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCycles:{
 			filter:"CapitalCycleFilter",
 			options:"PaginationInput"
+		},
+		capitalDeallocationLimit:{
+			data:"CapitalDeallocationLimitInput"
 		},
 		capitalDebt:{
 			data:"GetDebtInput"
@@ -1558,6 +2519,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalExpenses:{
 			filter:"ExpenseFilter",
 			options:"PaginationInput"
+		},
+		capitalGetOpenTimer:{
+			data:"CapitalGetOpenTimerInput"
 		},
 		capitalGetProcessInstance:{
 
@@ -1581,9 +2545,31 @@ export const AllTypesProps: Record<string,any> = {
 		capitalIssue:{
 			data:"GetCapitalIssueByHashInput"
 		},
+		capitalIssueMetricBindings:{
+			data:"GetIssueMetricBindingsInput"
+		},
 		capitalIssues:{
 			filter:"CapitalIssueFilter",
 			options:"PaginationInput"
+		},
+		capitalMeasures:{
+			data:"GetMeasuresInput"
+		},
+		capitalMetricContributions:{
+			data:"GetMetricContributionsInput",
+			options:"PaginationInput"
+		},
+		capitalMetricSeries:{
+			data:"GetMetricSeriesInput"
+		},
+		capitalMetricSuperposition:{
+			data:"GetMetricSuperpositionInput"
+		},
+		capitalMetricSuperpositionHistory:{
+			data:"GetMetricSuperpositionHistoryInput"
+		},
+		capitalMetricWave:{
+			data:"GetMetricWaveInput"
 		},
 		capitalProgramExpense:{
 
@@ -1723,9 +2709,6 @@ export const AllTypesProps: Record<string,any> = {
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
 		},
-		getCriticalActionAuditTrail:{
-
-		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
 			pagination:"PaginationInput"
@@ -1784,15 +2767,19 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"NotificationsFilterInput",
 			pagination:"PaginationInput"
 		},
-		getParticipantCapabilitySets:{
-
-		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
 		},
 		getPayments:{
 			data:"PaymentFiltersInput",
 			options:"PaginationInput"
+		},
+		getProductCard:{
+
+		},
+		getProductCards:{
+			status:"ProductCardStatus",
+			type:"ProductCardType"
 		},
 		getProgramWallet:{
 			filter:"ProgramWalletFilterInput"
@@ -1828,14 +2815,250 @@ export const AllTypesProps: Record<string,any> = {
 		getUnreadNotificationsCount:{
 
 		},
+		getUserWallets:{
+
+		},
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
+		},
+		kuDecision:{
+
+		},
+		kuDecisions:{
+			filter:"KuDecisionFilterInput",
+			options:"PaginationInput"
+		},
+		kuTrustRequests:{
+			filter:"KuTrustRequestFilterInput",
+			options:"PaginationInput"
+		},
+		listExpensePlans:{
+			data:"ListExpensePlansInput"
 		},
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
 		},
-		onecoopGetDocuments:{
-			data:"GetOneCoopDocumentsInput"
+		marketplaceAidStatementSignablePayload:{
+			data:"MarketplaceAidStatementSignablePayloadInput"
+		},
+		marketplaceAplReceptionChairmanSignablePayloads:{
+			data:"MarketplaceAplReceptionByIdInput"
+		},
+		marketplaceAplReceptionSupplierSignablePayloads:{
+			data:"MarketplaceAplReceptionByIdInput"
+		},
+		marketplaceAspectAttributes:{
+			data:"GetRequiredAttributesInput"
+		},
+		marketplaceCategoryAttributes:{
+			input:"GetCategoryAttributesInput"
+		},
+		marketplaceCategoryAttributesGrouped:{
+			input:"GetCategoryAttributesInput"
+		},
+		marketplaceCategoryOfferCounts:{
+
+		},
+		marketplaceFindPotentialMatches:{
+			data:"FindPotentialMatchesInput"
+		},
+		marketplaceGetBranchEconomy:{
+
+		},
+		marketplaceGetBranchWalletHistory:{
+			options:"PaginationInput"
+		},
+		marketplaceGetCategoryById:{
+			data:"GetCategoryByIdInput"
+		},
+		marketplaceGetCategoryRules:{
+
+		},
+		marketplaceGetCategoryTree:{
+			input:"GetCategoryTreeInput"
+		},
+		marketplaceGetCoopRequests:{
+			data:"GetCoopRequestsInput"
+		},
+		marketplaceGetOffer:{
+
+		},
+		marketplaceGetOrder:{
+			input:"MarketplaceGetOrderInput"
+		},
+		marketplaceGetPersonalWalletHistory:{
+			options:"PaginationInput"
+		},
+		marketplaceGetProductTypeById:{
+			data:"GetProductTypeByIdInput"
+		},
+		marketplaceGetRequest:{
+			data:"GetRequestInput"
+		},
+		marketplaceGetRequestByHash:{
+			data:"GetRequestByHashInput"
+		},
+		marketplaceGetRequestStatistics:{
+			data:"GetRequestStatisticsInput"
+		},
+		marketplaceGetSearchCategories:{
+			data:"SearchCategoriesInput"
+		},
+		marketplaceGetShipment:{
+			data:"MarketplaceGetShipmentInput"
+		},
+		marketplaceGetUserRequests:{
+			data:"GetUserRequestsInput"
+		},
+		marketplaceIssueActChairmanSignablePayload:{
+			data:"MarketplaceIssueActPayloadInput"
+		},
+		marketplaceListAids:{
+			data:"MarketplaceListAidsInput"
+		},
+		marketplaceListAllOffers:{
+			input:"MarketplaceListAllOffersInput"
+		},
+		marketplaceListAllOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
+		marketplaceListAplReceptionsByBraname:{
+			data:"MarketplaceListAplReceptionsByBranameInput"
+		},
+		marketplaceListBranchOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
+		marketplaceListCatalog:{
+			input:"MarketplaceListCatalogInput"
+		},
+		marketplaceListConsolidatedRequests:{
+			input:"MarketplaceListConsolidatedRequestsInput",
+			options:"PaginationInput"
+		},
+		marketplaceListContainerTypes:{
+
+		},
+		marketplaceListContainers:{
+			data:"MarketplaceListContainersInput"
+		},
+		marketplaceListExpressPickupsByBraname:{
+			data:"MarketplaceListAplReceptionsByBranameInput"
+		},
+		marketplaceListInventory:{
+			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListIssuancesByBraname:{
+			data:"MarketplaceListIssuancesByBranameInput"
+		},
+		marketplaceListKUDetails:{
+			data:"ListMarketplaceKUInput"
+		},
+		marketplaceListModerationLog:{
+
+		},
+		marketplaceListMyOffers:{
+			input:"MarketplaceListMyOffersInput"
+		},
+		marketplaceListMyOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
+		marketplaceListOutgoingPayments:{
+			filter:"MarketplaceListOutgoingPaymentsFilterInput"
+		},
+		marketplaceListOutgoingPaymentsAsSupplier:{
+			filter:"MarketplaceListOutgoingPaymentsAsSupplierFilterInput"
+		},
+		marketplaceListPendingOffers:{
+			input:"MarketplaceListPendingOffersInput"
+		},
+		marketplaceListReturnClaimsByBraname:{
+			data:"MarketplaceListReturnClaimsByBranameInput"
+		},
+		marketplaceListShipments:{
+			data:"MarketplaceListShipmentsInput"
+		},
+		marketplaceListShipmentsByBraname:{
+			data:"MarketplaceListShipmentsByBranameInput"
+		},
+		marketplaceListStock:{
+
+		},
+		marketplaceListStockProposals:{
+			data:"MarketplaceListStockProposalsInput"
+		},
+		marketplaceListStorageCells:{
+			data:"MarketplaceListStorageCellsInput"
+		},
+		marketplaceListSupplierOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
+		marketplaceListSupplierPickupOrders:{
+			data:"MarketplaceListSupplierPickupOrdersInput"
+		},
+		marketplaceListWriteoffProposals:{
+			data:"MarketplaceListWriteoffProposalsInput",
+			options:"PaginationInput"
+		},
+		marketplaceRequiredAttributes:{
+			data:"GetRequiredAttributesInput"
+		},
+		marketplaceResolveContainerByCode:{
+			data:"MarketplaceResolveContainerByCodeInput"
+		},
+		marketplaceReturnClaim:{
+
+		},
+		marketplaceReturnClaimChairmanSignablePayload:{
+
+		},
+		marketplaceReturnClaimSignablePayload:{
+			data:"MarketplaceReturnClaimSignablePayloadInput"
+		},
+		marketplaceSearchAttributes:{
+			input:"SearchAttributesInput"
+		},
+		marketplaceSearchDictionaryValues:{
+			input:"SearchDictionaryValuesInput"
+		},
+		marketplaceSearchRequests:{
+			data:"SearchRequestsInput"
+		},
+		marketplaceStockIssuancePayloads:{
+			data:"MarketplaceStockIssuancePrepareInput"
+		},
+		marketplaceStockProposalSignablePayloads:{
+			data:"MarketplaceResolveStockProposalInput"
+		},
+		marketplaceValidateAttributeValues:{
+			input:"ValidateAttributeValuesInput"
+		},
+		marketplaceWriteoffProposal:{
+
+		},
+		marketplaceWriteoffProtocolDocument:{
+			data:"MarketplaceWriteoffProtocolDocumentInput"
+		},
+		marketplaceWriteoffServiceMemoSignablePayload:{
+			data:"MarketplaceWriteoffServiceMemoSignablePayloadInput"
+		},
+		marketplaceWriteoffStatementSignablePayload:{
+			data:"MarketplaceWriteoffStatementSignablePayloadInput"
+		},
+		membershipExit:{
+
+		},
+		membershipExitReturnPreview:{
+
+		},
+		paymentFile:{
+
+		},
+		paymentProofs:{
+
 		},
 		process:{
 
@@ -1854,10 +3077,6 @@ export const AllTypesProps: Record<string,any> = {
 			reportType:"ReportType"
 		}
 	},
-	ReceiveOnRequestInput:{
-		document:"ReturnByAssetActSignedDocumentInput"
-	},
-	RecoveryStrategy: "enum" as const,
 	RefreshInput:{
 
 	},
@@ -1879,6 +3098,7 @@ export const AllTypesProps: Record<string,any> = {
 	RegisterParticipantInput:{
 		blagorost_offer:"SignedDigitalDocumentInput",
 		generator_offer:"SignedDigitalDocumentInput",
+		marketplace_offer:"SignedDigitalDocumentInput",
 		privacy_agreement:"SignedDigitalDocumentInput",
 		program_key:"ProgramKey",
 		signature_agreement:"SignedDigitalDocumentInput",
@@ -1886,17 +3106,23 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
+	RemoveAvailableCategoriesInput:{
+
+	},
+	RemoveAvailableCategoryTypesInput:{
+		categoryTypes:"CategoryTypeInput"
+	},
 	RemoveSecretaryRoomInput:{
 
+	},
+	ReplaceAvailableItemsInput:{
+		categoryTypes:"CategoryTypeInput"
 	},
 	ReportExpenseItemInput:{
 
 	},
 	ReportHistoryFilterInput:{
 		reportType:"ReportType"
-	},
-	ReportNotMeInput:{
-
 	},
 	ReportPreviewInput:{
 		reportType:"ReportType"
@@ -1906,9 +3132,21 @@ export const AllTypesProps: Record<string,any> = {
 	RepresentedByInput:{
 
 	},
-	RequestForceRecoveryConsentInput:{
+	RequestAttributeInput:{
 
 	},
+	RequestImageInput:{
+		imageType:"RequestImageTypeInput"
+	},
+	RequestImageType: "enum" as const,
+	RequestImageTypeInput: "enum" as const,
+	RequestKuTrustedInput:{
+		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
+	RequestStatus: "enum" as const,
+	RequestType: "enum" as const,
+	RequestTypeInput: "enum" as const,
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
 
@@ -1931,29 +3169,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ResultStatus: "enum" as const,
-	ReturnByAssetActGenerateDocumentInput:{
-
-	},
-	ReturnByAssetActSignedDocumentInput:{
-		meta:"ReturnByAssetActSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	ReturnByAssetActSignedMetaDocumentInput:{
-
-	},
-	ReturnByAssetDecisionGenerateDocumentInput:{
-
-	},
-	ReturnByAssetStatementGenerateDocumentInput:{
-		request:"CommonRequestInput"
-	},
-	ReturnByAssetStatementSignedDocumentInput:{
-		meta:"ReturnByAssetStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	ReturnByAssetStatementSignedMetaDocumentInput:{
-		request:"CommonRequestInput"
-	},
 	ReturnByMoneyDecisionGenerateDocumentInput:{
 
 	},
@@ -1970,26 +3185,32 @@ export const AllTypesProps: Record<string,any> = {
 	ReturnExpenseItemInput:{
 
 	},
-	RevokeCapabilitySetInput:{
-
-	},
-	RevokeParticipantKeyInput:{
-
-	},
-	RevokeSessionInput:{
-
-	},
 	RoomMessageKind: "enum" as const,
+	SaveCapitalProgramDocDataInput:{
+
+	},
 	SaveReportDraftInput:{
 		reportType:"ReportType"
 	},
 	SbpDataInput:{
 
 	},
+	SearchAttributesInput:{
+
+	},
+	SearchCategoriesInput:{
+
+	},
+	SearchDictionaryValuesInput:{
+
+	},
 	SearchDocumentsInput:{
 
 	},
 	SearchPrivateAccountsInput:{
+
+	},
+	SearchRequestsInput:{
 
 	},
 	SegmentStatus: "enum" as const,
@@ -2009,11 +3230,17 @@ export const AllTypesProps: Record<string,any> = {
 	SendAgreementInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	SetBranchPrivateInput:{
+
+	},
 	SetCapitalProjectDevelopmentRepositoryUrlInput:{
 
 	},
 	SetConfigInput:{
 		config:"ConfigInput"
+	},
+	SetIssueMetricBindingsInput:{
+		bindings:"IssueMetricBindingItemInput"
 	},
 	SetMasterInput:{
 
@@ -2023,9 +3250,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetPlanInput:{
 
-	},
-	SetRecoveryStrategyInput:{
-		strategy:"RecoveryStrategy"
 	},
 	SetVarsInput:{
 		coopenomics_agreement:"AgreementVarInput",
@@ -2063,6 +3287,9 @@ export const AllTypesProps: Record<string,any> = {
 	StartInstallInput:{
 
 	},
+	StartKuDecisionInput:{
+		agenda:"KuAgendaPointInput"
+	},
 	StartProcessInput:{
 
 	},
@@ -2085,8 +3312,10 @@ export const AllTypesProps: Record<string,any> = {
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
 	},
-	SupplyOnRequestInput:{
-		document:"AssetContributionActSignedDocumentInput"
+	Subscription:{
+		marketplaceEvents:{
+			input:"MarketplaceEventsInput"
+		}
 	},
 	SystemStatus: "enum" as const,
 	TranscriptionStatus: "enum" as const,
@@ -2094,13 +3323,7 @@ export const AllTypesProps: Record<string,any> = {
 		payload:"JSONObject",
 		to:"NotificationWorkflowRecipientInput"
 	},
-	TwoFactorCodeInput:{
-
-	},
 	UninstallExtensionInput:{
-
-	},
-	UnpublishRequestInput:{
 
 	},
 	Update:{
@@ -2122,6 +3345,10 @@ export const AllTypesProps: Record<string,any> = {
 		endsAt:"DateTime",
 		startsAt:"DateTime"
 	},
+	UpdateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
 	UpdateEntrepreneurDataInput:{
 		country:"Country",
 		details:"EntrepreneurDetailsInput"
@@ -2132,6 +3359,12 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateIssueInput:{
 		priority:"IssuePriority",
 		status:"IssueStatus"
+	},
+	UpdateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		tag:"MeasureCatalogTag",
+		wave_period:"MetricSeriesPeriod"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -2145,9 +3378,6 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateReportRequisitesInput:{
 
 	},
-	UpdateRequestInput:{
-
-	},
 	UpdateSettingsInput:{
 
 	},
@@ -2158,7 +3388,13 @@ export const AllTypesProps: Record<string,any> = {
 	UploadExpenseFileInput:{
 		kind:"ExpenseFileKind"
 	},
+	UploadPaymentProofInput:{
+
+	},
 	UserStatus: "enum" as const,
+	ValidateAttributeValuesInput:{
+
+	},
 	VarsInput:{
 		coopenomics_agreement:"AgreementInput",
 		participant_application:"AgreementInput",
@@ -2183,25 +3419,43 @@ export const AllTypesProps: Record<string,any> = {
 		ballot:"AnnualGeneralMeetingVotingBallotSignedDocumentInput",
 		votes:"VoteItemInput"
 	},
+	VoteOnKuDecisionInput:{
+		ballot:"BranchMeetingBallotSignedDocumentInput",
+		votes:"KuVoteItemInput"
+	},
 	WalmoveInput:{
 
 	},
+	WaveLabel: "enum" as const,
+	WavePhase: "enum" as const,
 	WebPushSubscriptionDataInput:{
 		keys:"WebPushSubscriptionKeysInput"
 	},
 	WebPushSubscriptionKeysInput:{
 
 	},
+	WorkingHoursBreakInput:{
+
+	},
+	WorkingHoursDayInput:{
+		breaks:"WorkingHoursBreakInput"
+	},
+	WorkingHoursInput:{
+		fri:"WorkingHoursDayInput",
+		mon:"WorkingHoursDayInput",
+		sat:"WorkingHoursDayInput",
+		sun:"WorkingHoursDayInput",
+		thu:"WorkingHoursDayInput",
+		tue:"WorkingHoursDayInput",
+		wed:"WorkingHoursDayInput"
+	},
 	ZeroReportSignerType: "enum" as const,
 	ID: `scalar.ID` as const
 }
 
 export const ReturnTypes: Record<string,any> = {
-	AccessGrant:{
-		action:"String",
-		resource:"String"
-	},
 	Account:{
+		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
 		participant_account:"ParticipantAccount",
 		private_account:"PrivateAccount",
@@ -2220,14 +3474,6 @@ export const ReturnTypes: Record<string,any> = {
 		last_usage_update_time:"String",
 		max:"String",
 		used:"String"
-	},
-	AccountSession:{
-		created_at:"String",
-		current:"Boolean",
-		device:"String",
-		id:"String",
-		ip:"String",
-		last_seen_at:"String"
 	},
 	AccountsPaginationResult:{
 		currentPage:"Int",
@@ -2376,8 +3622,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -2491,12 +3739,18 @@ export const ReturnTypes: Record<string,any> = {
 		fact_address:"String",
 		full_address:"String",
 		full_name:"String",
+		is_available:"Boolean",
+		is_private:"Boolean",
+		participants_count:"Int",
 		phone:"String",
 		represented_by:"RepresentedBy",
 		short_name:"String",
 		trusted:"Individual",
+		trusted_certificates:"IndividualCertificate",
 		trustee:"Individual",
-		type:"String"
+		trustee_certificate:"IndividualCertificate",
+		type:"String",
+		whitelist_certificates:"IndividualCertificate"
 	},
 	BuhotchBalanceEdits:{
 		assetsTotal:"BalanceRowEdits",
@@ -2569,21 +3823,6 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String",
 		username_display_name:"String"
 	},
-	CapabilitySet:{
-		builtin:"Boolean",
-		coopname:"String",
-		description:"String",
-		grants:"AccessGrant",
-		set_key:"String",
-		title:"String"
-	},
-	CapabilitySetAssignment:{
-		expires_at:"String",
-		granted_at:"String",
-		granted_by:"String",
-		set_key:"String",
-		username:"String"
-	},
 	CapitalCandidate:{
 		about:"String",
 		braname:"String",
@@ -2642,6 +3881,25 @@ export const ReturnTypes: Record<string,any> = {
 		hour_cost:"String",
 		total_contribution:"String",
 		total_generation_pool:"String"
+	},
+	CapitalComponentMetric:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		deadline:"DateTime",
+		fact:"Float",
+		measure_hash:"String",
+		metric_hash:"String",
+		present:"Boolean",
+		project_hash:"String",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
 	},
 	CapitalConfigObject:{
 		authors_voting_percent:"Float",
@@ -2709,6 +3967,13 @@ export const ReturnTypes: Record<string,any> = {
 		start_date:"DateTime",
 		status:"CycleStatus"
 	},
+	CapitalDeallocationLimit:{
+		is_allowed_by_status:"Boolean",
+		max_amount:"String",
+		outstanding_debt:"String",
+		program_invest_pool:"String",
+		unspent:"String"
+	},
 	CapitalDebt:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -2749,6 +4014,10 @@ export const ReturnTypes: Record<string,any> = {
 		spended_at:"String",
 		status:"ExpenseStatus",
 		username:"String"
+	},
+	CapitalFibLevel:{
+		ratio:"Float",
+		value:"Float"
 	},
 	CapitalInvest:{
 		_created_at:"DateTime",
@@ -2808,6 +4077,16 @@ export const ReturnTypes: Record<string,any> = {
 		html_url:"String",
 		username:"String"
 	},
+	CapitalIssueMetricBinding:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		present:"Boolean"
+	},
 	CapitalIssuePermissions:{
 		allowed_status_transitions:"IssueStatus",
 		can_assign_creator:"Boolean",
@@ -2828,8 +4107,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	CapitalLog:{
 		_id:"String",
+		actor_name:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		description:"String",
 		entity_id:"String",
 		entity_type:"LogEntityType",
 		event_type:"LogEventType",
@@ -2837,11 +4118,144 @@ export const ReturnTypes: Record<string,any> = {
 		message:"String",
 		metadata:"JSON",
 		project_hash:"String",
-		reference_id:"String"
+		reference_id:"String",
+		title:"String"
+	},
+	CapitalMeasure:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		measure_hash:"String",
+		present:"Boolean",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		tag:"MeasureCatalogTag",
+		title:"String",
+		unit:"String",
+		wave_period:"MetricSeriesPeriod"
+	},
+	CapitalMetricComponentRollup:{
+		fact_sum:"Float",
+		metrics_count:"Int",
+		project_hash:"String",
+		project_title:"String",
+		target_sum:"Float"
+	},
+	CapitalMetricContribution:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		contribution_hash:"String",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		occurred_at:"DateTime",
+		present:"Boolean",
+		source:"MetricContributionSource",
+		username:"String"
+	},
+	CapitalMetricSeries:{
+		fact:"Float",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		points:"CapitalMetricSeriesPoint",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricSeriesPoint:{
+		cumulative:"Float",
+		delta:"Float",
+		ideal_cumulative:"Float",
+		period_end:"DateTime",
+		period_start:"DateTime"
+	},
+	CapitalMetricSuperposition:{
+		activity:"Float",
+		balance:"Float",
+		coherence:"Float",
+		components:"CapitalMetricComponentRollup",
+		disclaimer:"String",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionFrame:{
+		activity:"Float",
+		at:"DateTime",
+		balance:"Float",
+		coherence:"Float",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionHistory:{
+		frames:"CapitalMetricSuperpositionFrame",
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		to:"DateTime"
+	},
+	CapitalMetricSuperpositionItem:{
+		amplitude:"Float",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		drive:"MetricDriveDirection",
+		fact:"Float",
+		metric_hash:"String",
+		phase_rad:"Float",
+		project_hash:"String",
+		project_title:"String",
+		recent_velocity:"Float",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricWave:{
+		corridor:"CapitalWaveCorridor",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		disclaimer:"String",
+		fact:"Float",
+		fib_levels:"CapitalFibLevel",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		point_labels:"WaveLabel",
+		series_mode:"MetricSeriesMode",
+		swings:"CapitalWaveSwing",
+		target_value:"Float",
+		title:"String",
+		unit:"String",
+		values:"Float"
 	},
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
 		blagorost_provision_done:"Boolean",
+		capital_program_doc_data_hash:"String",
 		generation_contract_template_done:"Boolean",
 		generator_offer_template_done:"Boolean",
 		generator_program_template_done:"Boolean",
@@ -2903,8 +4317,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -2935,8 +4351,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -3197,6 +4615,20 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Float",
 		totalPages:"Float"
 	},
+	CapitalTimerSession:{
+		_id:"String",
+		contributor_hash:"String",
+		coopname:"String",
+		elapsed_seconds:"Int",
+		is_paused:"Boolean",
+		issue_hash:"String",
+		issue_title:"String",
+		paused_at:"DateTime",
+		project_hash:"String",
+		started_at:"DateTime",
+		stopped_at:"DateTime",
+		total_paused_ms:"Float"
+	},
 	CapitalVote:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -3212,6 +4644,30 @@ export const ReturnTypes: Record<string,any> = {
 		voted_at:"String",
 		voter:"String",
 		voter_display_name:"String"
+	},
+	CapitalWaveCorridor:{
+		base:"Float",
+		eta_base_periods:"Int",
+		eta_optimistic_periods:"Int",
+		eta_pessimistic_periods:"Int",
+		optimistic:"Float",
+		periods_ahead:"Int",
+		pessimistic:"Float"
+	},
+	CapitalWaveSwing:{
+		index:"Int",
+		label:"WaveLabel",
+		value:"Float"
+	},
+	Category:{
+		coopname:"String",
+		description:"String",
+		icon:"String",
+		id:"String",
+		is_active:"Boolean",
+		name:"String",
+		parent_id:"String",
+		sort_order:"Int"
 	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
@@ -3354,22 +4810,6 @@ export const ReturnTypes: Record<string,any> = {
 		question:"String",
 		title:"String"
 	},
-	CriticalActionAuditEntry:{
-		action_type:"CriticalActionType",
-		confirmer_ids:"CriticalActionConfirmation",
-		created_at:"String",
-		finalized_at:"String",
-		id:"String",
-		initiated_at:"String",
-		initiator_id:"String",
-		payload_hash:"String",
-		status:"CriticalActionStatus",
-		target_id:"String"
-	},
-	CriticalActionConfirmation:{
-		at:"String",
-		by:"String"
-	},
 	CurrentInstanceDTO:{
 		blockchain_status:"String",
 		description:"String",
@@ -3426,6 +4866,7 @@ export const ReturnTypes: Record<string,any> = {
 	DesktopWorkspace:{
 		defaultRoute:"String",
 		extension_name:"String",
+		grants:"String",
 		icon:"String",
 		name:"String",
 		title:"String"
@@ -3496,6 +4937,19 @@ export const ReturnTypes: Record<string,any> = {
 		recipient:"String",
 		recipient_type:"ExpenseRecipientType",
 		status:"ExpenseItemStatus"
+	},
+	ExpensePlan:{
+		amount:"String",
+		braname:"String",
+		created_at:"DateTime",
+		creator:"String",
+		due_date:"DateTime",
+		id:"Int",
+		paid_at:"DateTime",
+		pay_to:"String",
+		proposal_hash:"String",
+		recurrence:"ExpensePlanRecurrence",
+		title:"String"
 	},
 	ExpenseProposal:{
 		_created_at:"DateTime",
@@ -3605,11 +5059,6 @@ export const ReturnTypes: Record<string,any> = {
 	FieldError:{
 		message:"String",
 		path:"String"
-	},
-	ForceRecoveryAuthorization:{
-		authorized:"Boolean",
-		consent_via:"ForceRecoveryConsentVia",
-		triggered_by:"String"
 	},
 	GatewayPayment:{
 		blockchain_data:"JSON",
@@ -3737,6 +5186,70 @@ export const ReturnTypes: Record<string,any> = {
 		key:"String",
 		weight:"Int"
 	},
+	KuDecision:{
+		address:"String",
+		authorization:"JSON",
+		authorization_document:"DocumentAggregate",
+		block_num:"Int",
+		braname:"String",
+		branch_email:"String",
+		branch_name:"String",
+		branch_phone:"String",
+		chairman:"String",
+		close_at:"String",
+		coopname:"String",
+		created_at:"String",
+		hash:"String",
+		id:"Int",
+		initiator:"String",
+		meet_at:"String",
+		meet_place:"String",
+		open_at:"String",
+		participants:"String",
+		participants_info:"KuMeetingParticipant",
+		petition:"JSON",
+		present:"Boolean",
+		proposal:"JSON",
+		protocol:"JSON",
+		protocol_document:"DocumentAggregate",
+		questions:"KuDecisionQuestion",
+		signed_ballots:"Int",
+		status:"KuDecisionStatus",
+		type:"KuDecisionType"
+	},
+	KuDecisionQuestion:{
+		context:"String",
+		counter_votes_abstained:"Int",
+		counter_votes_against:"Int",
+		counter_votes_for:"Int",
+		decision:"String",
+		decision_id:"Int",
+		id:"Int",
+		number:"Int",
+		title:"String",
+		voters_abstained:"String",
+		voters_against:"String",
+		voters_for:"String"
+	},
+	KuMeetingParticipant:{
+		account_type:"AccountType",
+		display_name:"String",
+		username:"String"
+	},
+	KuTrustRequest:{
+		application:"JSON",
+		authority:"JSON",
+		authority_document:"DocumentAggregate",
+		block_num:"Int",
+		braname:"String",
+		coopname:"String",
+		display_name:"String",
+		document:"DocumentAggregate",
+		hash:"String",
+		id:"Int",
+		present:"Boolean",
+		username:"String"
+	},
 	Ledger2Account:{
 		accountType:"Int",
 		balance:"String",
@@ -3817,6 +5330,964 @@ export const ReturnTypes: Record<string,any> = {
 	LedgerState:{
 		chartOfAccounts:"ChartOfAccountsItem",
 		coopname:"String"
+	},
+	MarketplaceAid:{
+		amount:"String",
+		braname:"String",
+		hash:"String",
+		payment_destination:"String",
+		payment_status:"PaymentStatus",
+		stage:"MarketplaceAidStage",
+		username:"String"
+	},
+	MarketplaceAplReception:{
+		braname:"String",
+		chairman_account:"String",
+		chairman_signchair_tx_hash:"String",
+		chairman_signed_at:"DateTime",
+		coopname:"String",
+		created_at:"DateTime",
+		created_by_operator_account:"String",
+		cycle_id:"String",
+		expeditor_data:"MarketplaceShipmentTTNData",
+		fact_quantity_per_order:"MarketplaceAplReceptionFactEntry",
+		id:"String",
+		offerer_account:"String",
+		offerer_name:"String",
+		shipment_id:"String",
+		status:"MarketplaceAplReceptionStatus",
+		supplier_signed_at:"DateTime",
+		supplier_signsupp_tx_hash:"String",
+		total_amount:"String",
+		ttn_number:"String",
+		updated_at:"DateTime",
+		variant:"MarketplaceAplReceptionVariant"
+	},
+	MarketplaceAplReceptionFactEntry:{
+		fact_quantity:"Float",
+		fact_unit_price:"String",
+		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		package_size:"Float",
+		product_name:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceAplReceptionResult:{
+		apl_reception:"MarketplaceAplReception"
+	},
+	MarketplaceAplReceptionStatusChangedEvent:{
+		braname:"String",
+		reception_id:"String",
+		status:"MarketplaceAplReceptionStatus"
+	},
+	MarketplaceAttribute:{
+		attributeComplexId:"Int",
+		attributeId:"Int",
+		canBeModifiedAfterCreation:"Boolean",
+		categoryDependent:"Boolean",
+		complexIsCollection:"Boolean",
+		description:"String",
+		dictionary:"MarketplaceDictionary",
+		dictionaryId:"Int",
+		groupId:"Int",
+		groupName:"String",
+		hasDictionary:"Boolean",
+		isAspect:"Boolean",
+		isCollection:"Boolean",
+		isComplexAttribute:"Boolean",
+		isRequired:"Boolean",
+		maxValueCount:"Int",
+		maxValues:"Int",
+		name:"String",
+		type:"MarketplaceAttributeType"
+	},
+	MarketplaceAttributeGroup:{
+		attributes:"MarketplaceAttribute",
+		attributesCount:"Int",
+		groupId:"Int",
+		groupName:"String"
+	},
+	MarketplaceAttributeStats:{
+		aspectAttributes:"Int",
+		dictionaryAttributes:"Int",
+		requiredAttributes:"Int",
+		totalAttributes:"Int",
+		totalDictionaries:"Int",
+		totalDictionaryValues:"Int"
+	},
+	MarketplaceAttributeValidation:{
+		errors:"String",
+		isValid:"Boolean"
+	},
+	MarketplaceAvailabilityStats:{
+		categoriesCount:"Int",
+		hasRestrictions:"Boolean",
+		totalAvailable:"Int",
+		typesCount:"Int"
+	},
+	MarketplaceAvailableCategory:{
+		addedBy:"String",
+		categoryId:"Int",
+		coopname:"String",
+		createdAt:"DateTime",
+		id:"Int",
+		isActive:"Boolean",
+		isForEntireCategory:"Boolean",
+		isForSpecificType:"Boolean",
+		typeId:"Int",
+		updatedAt:"DateTime"
+	},
+	MarketplaceBranchEconomy:{
+		available_to_distribute:"String",
+		braname:"String",
+		common_balance:"String",
+		reserve_amount:"String",
+		total_weight:"Int",
+		weights:"MarketplaceTrusteeWeight"
+	},
+	MarketplaceBranchWalletHistoryPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceBranchWalletOperation",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceBranchWalletOperation:{
+		created_at:"DateTime",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		order_hash:"String",
+		order_id:"String",
+		quantity:"String"
+	},
+	MarketplaceCancelOrderResult:{
+		order:"MarketplaceOrder",
+		tx_hash:"String"
+	},
+	MarketplaceCart:{
+		delivery_braname:"String",
+		delivery_point_name:"String",
+		id:"String",
+		items:"MarketplaceCartItem",
+		positions_count:"Int",
+		total_cost:"String",
+		total_quantity:"Float"
+	},
+	MarketplaceCartItem:{
+		available_on_current_ku:"Boolean",
+		blocker:"MarketplaceCartItemBlocker",
+		id:"String",
+		image_url:"String",
+		line_total:"String",
+		max_available:"Float",
+		offer_id:"String",
+		package_id:"String",
+		package_label:"String",
+		price_per_unit:"String",
+		product_name:"String",
+		quantity:"Float",
+		sale_form:"MarketplaceSaleForm",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceCategory:{
+		display_name:"String",
+		id:"Int",
+		mvp_baseline:"Boolean",
+		sort_order:"Int"
+	},
+	MarketplaceCategoryOfferCount:{
+		category_id:"Int",
+		count:"Int"
+	},
+	MarketplaceCategoryRequestCount:{
+		categoryId:"Int",
+		categoryName:"String",
+		count:"Int"
+	},
+	MarketplaceCategoryTreeNode:{
+		categoryName:"String",
+		children:"MarketplaceCategoryTreeNode",
+		childrenCount:"Int",
+		descriptionCategoryId:"Int",
+		disabled:"Boolean",
+		fullPath:"String",
+		isLeafCategory:"Boolean",
+		parentId:"Int",
+		types:"MarketplaceProductType",
+		typesCount:"Int"
+	},
+	MarketplaceCategoryTreeStats:{
+		availableTypes:"Int",
+		disabledCategories:"Int",
+		leafCategories:"Int",
+		rootCategories:"Int",
+		totalCategories:"Int",
+		totalTypes:"Int"
+	},
+	MarketplaceCheckoutFailedLine:{
+		offer_id:"String",
+		product_name:"String",
+		quantity:"Float",
+		reason:"String"
+	},
+	MarketplaceCheckoutResult:{
+		cart:"MarketplaceCart",
+		checkout_id:"String",
+		created_orders:"MarketplaceOrder",
+		delivery_braname:"String",
+		failed_lines:"MarketplaceCheckoutFailedLine",
+		fully_completed:"Boolean"
+	},
+	MarketplaceCheckoutSignableLine:{
+		amount:"String",
+		document:"GeneratedDocument",
+		offer_id:"String",
+		order_hash:"String",
+		package_id:"String"
+	},
+	MarketplaceConsolidatedRequest:{
+		accepted_at:"DateTime",
+		coopname:"String",
+		created_at:"DateTime",
+		cycle_ended_at:"DateTime",
+		cycle_started_at:"DateTime",
+		decline_reason:"String",
+		declined_at:"DateTime",
+		expires_at:"DateTime",
+		id:"String",
+		offer_id:"String",
+		status:"String",
+		supplier_account:"String",
+		total_amount:"String",
+		total_quantity:"Float",
+		triggered_by_supplier_at:"DateTime",
+		updated_at:"DateTime"
+	},
+	MarketplaceConsolidatedRequestPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceConsolidatedRequest",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceContainer:{
+		braname:"String",
+		cell_id:"String",
+		code:"String",
+		container_type_id:"String",
+		id:"String",
+		is_active:"Boolean",
+		label:"String"
+	},
+	MarketplaceContainerType:{
+		height_cm:"Int",
+		id:"String",
+		is_active:"Boolean",
+		length_cm:"Int",
+		max_weight_kg:"String",
+		name:"String",
+		volume_m3:"String",
+		width_cm:"Int"
+	},
+	MarketplaceCppStatus:{
+		accepted_at:"String",
+		accepted_by_board_decision_id:"String",
+		document_registry_id:"Int",
+		status:"String"
+	},
+	MarketplaceCreateExpressReceptionResult:{
+		apl_receptions:"MarketplaceAplReception"
+	},
+	MarketplaceCreateShipmentResult:{
+		shipments:"MarketplaceShipment"
+	},
+	MarketplaceCurrentMember:{
+		branches:"String",
+		core_roles:"String",
+		marketplace_roles:"String",
+		username:"String",
+		warehouse_settings:"MarketplaceWarehouseSettings"
+	},
+	MarketplaceDictionary:{
+		description:"String",
+		dictionaryId:"Int",
+		hasValuesWithPictures:"Boolean",
+		name:"String",
+		values:"MarketplaceDictionaryValue",
+		valuesCount:"Int"
+	},
+	MarketplaceDictionaryValue:{
+		dictionaryId:"Int",
+		dictionaryValueId:"Int",
+		fullDescription:"String",
+		hasInfo:"Boolean",
+		hasPicture:"Boolean",
+		info:"String",
+		picture:"String",
+		value:"String"
+	},
+	MarketplaceEconomyConfig:{
+		membership_fee_percent:"Float"
+	},
+	MarketplaceEvent:{
+		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
+		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
+		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
+		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
+		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
+		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
+		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
+		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
+		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent",
+		"...on MarketplaceStockProposalCreatedEvent":"MarketplaceStockProposalCreatedEvent",
+		"...on MarketplaceStockProposalResolvedEvent":"MarketplaceStockProposalResolvedEvent",
+		"...on MarketplaceWriteoffStatusChangedEvent":"MarketplaceWriteoffStatusChangedEvent"
+	},
+	MarketplaceExpressPickupCandidate:{
+		braname:"String",
+		offerer_account:"String",
+		orders_count:"Int",
+		total_amount:"String",
+		total_units:"Float"
+	},
+	MarketplaceInventoryItem:{
+		arrival_price:"String",
+		barcode_format:"MarketplaceBarcodeFormat",
+		barcode_value:"String",
+		braname:"String",
+		cell_id:"String",
+		container_id:"String",
+		coopname:"String",
+		created_at:"DateTime",
+		delivery_point_address:"String",
+		delivery_point_name:"String",
+		expiry_date:"DateTime",
+		id:"String",
+		labeled_at:"DateTime",
+		labeled_by_operator_account:"String",
+		order_id:"String",
+		orderer_account_snapshot:"String",
+		orderer_name:"String",
+		ownership:"MarketplaceInventoryOwnership",
+		package_size:"Float",
+		product_name_snapshot:"String",
+		published_offer_id:"String",
+		quantity_per_label:"Float",
+		received_at:"DateTime",
+		received_by_operator_account:"String",
+		reserved_order_id:"String",
+		shipment_id:"String",
+		status:"MarketplaceInventoryStatus",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime"
+	},
+	MarketplaceInventoryMutationResult:{
+		inventory:"MarketplaceInventoryItem"
+	},
+	MarketplaceKUDetails:{
+		addressFull:"String",
+		contactEmail:"String",
+		contactPhone:"String",
+		coopname:"String",
+		coreBraname:"String",
+		createdAt:"DateTime",
+		description:"String",
+		geocodeErrorMessage:"String",
+		geocodeStatus:"MarketplaceGeocodeStatus",
+		geocodedAt:"DateTime",
+		lat:"Float",
+		lng:"Float",
+		name:"String",
+		status:"MarketplaceKUStatus",
+		updatedAt:"DateTime",
+		workingHours:"WorkingHours"
+	},
+	MarketplaceMemberWallet:{
+		coopname:"String",
+		username:"String",
+		wallets:"MarketplaceWalletEntry"
+	},
+	MarketplaceModerationLogEntry:{
+		action:"String",
+		by_account:"String",
+		created_at:"DateTime",
+		id:"String",
+		offer_id:"String",
+		reason:"String"
+	},
+	MarketplaceOffer:{
+		approved_at:"DateTime",
+		approved_by:"String",
+		barcode_strategy:"MarketplaceBarcodeStrategy",
+		category_id:"Int",
+		coopname:"String",
+		created_at:"DateTime",
+		delivery_points:"MarketplaceOfferDeliveryPoint",
+		description:"String",
+		id:"String",
+		images:"MarketplaceOfferImage",
+		pack_size:"Int",
+		packages:"MarketplaceOfferPackage",
+		price_per_unit:"String",
+		product_name:"String",
+		quantity_available:"Float",
+		quantity_blocked:"Float",
+		quantity_consumed:"Float",
+		reject_reason:"String",
+		rejected_at:"DateTime",
+		rejected_by:"String",
+		sale_form:"MarketplaceSaleForm",
+		shelf_life_days:"Int",
+		status:"MarketplaceOfferStatus",
+		stock_braname:"String",
+		stock_package_size:"Float",
+		supplier_account:"String",
+		supplier_name:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		unlimited_flag:"Boolean",
+		updated_at:"DateTime",
+		vitrine_id:"String",
+		warranty_days:"Int"
+	},
+	MarketplaceOfferDeliveryPoint:{
+		address:"String",
+		braname:"String",
+		lat:"Float",
+		lng:"Float",
+		min_supply_volume:"Float",
+		name:"String"
+	},
+	MarketplaceOfferImage:{
+		bucket_key:"String",
+		is_cover:"Boolean",
+		mime_type:"String",
+		sort_order:"Int",
+		url:"String"
+	},
+	MarketplaceOfferModerationEvent:{
+		offer_id:"String",
+		status:"MarketplaceOfferStatus"
+	},
+	MarketplaceOfferPackage:{
+		id:"String",
+		is_default:"Boolean",
+		label:"String",
+		price:"String",
+		size:"Float",
+		sort_order:"Int"
+	},
+	MarketplaceOfferPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceOffer",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceOfferPublishedEvent:{
+		category_id:"Int",
+		offer_id:"String"
+	},
+	MarketplaceOfferStockChangedEvent:{
+		offer_id:"String",
+		quantity_available:"Float",
+		unlimited_flag:"Boolean"
+	},
+	MarketplaceOnboardingState:{
+		agreement_id:"Int",
+		completed_at:"String",
+		requires_gate:"Boolean",
+		source:"String",
+		template_registry_id:"Int"
+	},
+	MarketplaceOrder:{
+		accepted_at:"DateTime",
+		blocked_at:"DateTime",
+		cancelled_at:"DateTime",
+		chairman_account:"String",
+		chairman_signed_at:"DateTime",
+		checkout_id:"String",
+		coopname:"String",
+		create_tx:"MarketplaceOrderCreateTxSnapshot",
+		created_at:"DateTime",
+		current_warehouse_braname:"String",
+		cycle_id:"String",
+		delivery_braname:"String",
+		delivery_point_address:"String",
+		delivery_point_lat:"Float",
+		delivery_point_lng:"Float",
+		delivery_point_name:"String",
+		delivery_signer_account:"String",
+		group_accumulated_quantity:"Float",
+		group_min_volume:"Float",
+		id:"String",
+		image_url:"String",
+		is_ready_announced:"Boolean",
+		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
+		last_status_reason:"String",
+		membership_fee:"String",
+		offer_hash:"String",
+		offer_id:"String",
+		order_hash:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		orderer_signed_at:"DateTime",
+		package_size:"Float",
+		price_per_unit:"String",
+		product_name:"String",
+		quantity:"Float",
+		received_at:"DateTime",
+		shipment_id:"String",
+		signiss1_tx_hash:"String",
+		signiss2_tx_hash:"String",
+		status:"MarketplaceOrderStatus",
+		supplier_account:"String",
+		supplier_name:"String",
+		total_cost:"String",
+		total_cost_with_fee:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime",
+		warehouse_locations:"String",
+		warehouse_quantity:"Float",
+		warranty_period_secs:"Int",
+		warranty_until:"DateTime"
+	},
+	MarketplaceOrderCreateTxSnapshot:{
+		block_num:"Int",
+		locked_amount:"String",
+		signed_at:"String",
+		tx_hash:"String"
+	},
+	MarketplaceOrderIssuanceFactSnapshot:{
+		actual_quantity:"Float",
+		diff_state:"MarketplaceOrderIssuanceFactDiffState",
+		fact_cost:"String",
+		fact_unit_price:"String"
+	},
+	MarketplaceOrderPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceOrder",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceOrderReadyToReceiveEvent:{
+		braname:"String",
+		order_hash:"String",
+		order_id:"String"
+	},
+	MarketplaceOrderStatusChangedEvent:{
+		order_id:"String",
+		previous_status:"MarketplaceOrderStatus",
+		status:"MarketplaceOrderStatus"
+	},
+	MarketplaceOutgoingPaymentRequest:{
+		amount:"String",
+		apl_reception_id:"String",
+		completed_at:"DateTime",
+		coopname:"String",
+		core_payment_id:"String",
+		created_at:"DateTime",
+		decline_reason:"String",
+		id:"String",
+		order_hash:"String",
+		order_id:"String",
+		payee_account:"String",
+		payout_destination:"String",
+		payout_tx_hash:"String",
+		purpose:"String",
+		status:"MarketplaceOutgoingPaymentRequestStatus",
+		symbol:"String",
+		updated_at:"DateTime"
+	},
+	MarketplacePaymentStatusChangedEvent:{
+		payment_request_id:"String",
+		status:"MarketplaceOutgoingPaymentRequestStatus"
+	},
+	MarketplacePersonalEconomy:{
+		personal_balance:"String"
+	},
+	MarketplaceProductType:{
+		descriptionCategoryId:"Int",
+		disabled:"Boolean",
+		fullName:"String",
+		isAvailable:"Boolean",
+		typeId:"Int",
+		typeName:"String"
+	},
+	MarketplaceReceptionPendingSignEvent:{
+		ku_name:"String",
+		reception_id:"String"
+	},
+	MarketplaceRegistrationOfferStatus:{
+		agreement_id:"String",
+		agreement_type:"String",
+		applicable_account_types:"String",
+		registered:"Boolean",
+		registry_id:"Int",
+		title:"String"
+	},
+	MarketplaceRequest:{
+		articleNumber:"String",
+		attributes:"MarketplaceRequestAttributeValue",
+		availableUnits:"Int",
+		barcode:"String",
+		canBeEdited:"Boolean",
+		category:"MarketplaceCategoryTreeNode",
+		colorImageUrl:"String",
+		coopname:"String",
+		createdAt:"DateTime",
+		currencyCode:"String",
+		data:"String",
+		depth:"Int",
+		descriptionCategoryId:"Int",
+		dimensionUnit:"String",
+		discountPercentage:"Float",
+		geoNames:"String",
+		hasAllRequiredAttributes:"Boolean",
+		hasDiscount:"Boolean",
+		hash:"String",
+		height:"Int",
+		id:"Int",
+		images:"MarketplaceRequestImage",
+		isActive:"Boolean",
+		isOffer:"Boolean",
+		isOrder:"Boolean",
+		meta:"String",
+		name:"String",
+		oldPrice:"Float",
+		oldPriceAsNumber:"Float",
+		parentHash:"String",
+		price:"Float",
+		priceAsNumber:"Float",
+		primaryImageUrl:"String",
+		productLifecycleSecs:"Int",
+		productType:"MarketplaceProductType",
+		settledUnits:"Int",
+		status:"RequestStatus",
+		type:"RequestType",
+		typeId:"Int",
+		units:"Int",
+		updatedAt:"DateTime",
+		username:"String",
+		vat:"String",
+		warrantyDays:"Int",
+		weight:"Int",
+		weightUnit:"String",
+		width:"Int"
+	},
+	MarketplaceRequestAttributeValue:{
+		attribute:"MarketplaceAttribute",
+		attributeGroup:"String",
+		attributeId:"Int",
+		attributeType:"String",
+		complexId:"Int",
+		createdAt:"DateTime",
+		dictionaryValueId:"Int",
+		id:"Int",
+		isAspect:"Boolean",
+		isRequired:"Boolean",
+		value:"String"
+	},
+	MarketplaceRequestImage:{
+		createdAt:"DateTime",
+		description:"String",
+		fileName:"String",
+		id:"Int",
+		imageType:"RequestImageType",
+		imageUrl:"String",
+		is360Image:"Boolean",
+		isColorSample:"Boolean",
+		isPrimary:"Boolean",
+		sortOrder:"Int",
+		typeDescription:"String"
+	},
+	MarketplaceRequestStatistics:{
+		activeOffers:"Int",
+		activeOrders:"Int",
+		completedDeals:"Int",
+		requestsByCategory:"MarketplaceCategoryRequestCount",
+		totalRequests:"Int"
+	},
+	MarketplaceReturnClaim:{
+		actual_quantity:"Float",
+		coopname:"String",
+		created_at:"DateTime",
+		decision_log:"MarketplaceReturnClaimDecisionEntry",
+		defect_category:"MarketplaceReturnClaimDefectCategory",
+		delivery_braname:"String",
+		expected_resolution:"MarketplaceReturnClaimExpectedResolution",
+		fact_cost:"String",
+		fee_refund:"String",
+		id:"String",
+		ledger_snapshot:"MarketplaceReturnClaimLedgerSnapshot",
+		on_site_inspection:"MarketplaceReturnClaimOnSiteInspection",
+		order_hash:"String",
+		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		package_size:"Float",
+		photos:"MarketplaceReturnClaimPhoto",
+		product_name:"String",
+		reason_text:"String",
+		request_hash:"String",
+		status:"MarketplaceReturnClaimStatus",
+		submretrn_tx_hash:"String",
+		supplier_account:"String",
+		total_refund:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime",
+		warranty_until:"DateTime"
+	},
+	MarketplaceReturnClaimDecisionEntry:{
+		at:"DateTime",
+		braname:"String",
+		braname_name:"String",
+		by_chairman_account:"String",
+		by_chairman_name:"String",
+		comment:"String",
+		decision:"String",
+		stage:"String",
+		tx_hash:"String"
+	},
+	MarketplaceReturnClaimLedgerSnapshot:{
+		amount:"String",
+		at:"DateTime",
+		returned_quantity:"Float",
+		tx_hash:"String"
+	},
+	MarketplaceReturnClaimOnSiteInspection:{
+		at:"DateTime",
+		by_chairman_account:"String",
+		photos:"MarketplaceReturnClaimPhoto",
+		result_text:"String",
+		scanned_barcode:"String"
+	},
+	MarketplaceReturnClaimPhoto:{
+		content_hash:"String",
+		mime_type:"String",
+		uploaded_at:"DateTime",
+		url:"String"
+	},
+	MarketplaceReturnClaimResult:{
+		claim:"MarketplaceReturnClaim",
+		tx_hash:"String"
+	},
+	MarketplaceReturnClaimStatusChangedEvent:{
+		braname:"String",
+		claim_id:"String",
+		status:"MarketplaceReturnClaimStatus"
+	},
+	MarketplaceShipment:{
+		braname:"String",
+		coopname:"String",
+		created_at:"DateTime",
+		cycle_id:"String",
+		delivery_variant:"MarketplaceShipmentDeliveryVariant",
+		id:"String",
+		offerer_account:"String",
+		status:"MarketplaceShipmentStatus",
+		total_amount:"String",
+		ttn_data:"MarketplaceShipmentTTNData",
+		ttn_document_id:"String",
+		ttn_number:"String",
+		updated_at:"DateTime"
+	},
+	MarketplaceShipmentLinePackaging:{
+		order_id:"String",
+		units_per_box:"Int"
+	},
+	MarketplaceShipmentTTNData:{
+		delivery_datetime_estimate:"String",
+		expeditor_full_name:"String",
+		expeditor_phone:"String",
+		loading_address:"String",
+		loading_datetime:"String",
+		packaging:"MarketplaceShipmentLinePackaging",
+		vehicle_number:"String"
+	},
+	MarketplaceStockAcceptOrderLine:{
+		offer_id:"String",
+		order_hash:"String",
+		signiss1_aggregate:"DocumentAggregate"
+	},
+	MarketplaceStockAcceptPayload:{
+		convert_amount:"String",
+		convert_document:"GeneratedDocument",
+		convert_hash:"String",
+		member_amount:"String",
+		order_lines:"MarketplaceStockAcceptOrderLine"
+	},
+	MarketplaceStockIssuanceOperatorLine:{
+		offer_id:"String",
+		order_hash:"String",
+		package_id:"String",
+		package_size:"Float",
+		product_name:"String",
+		quantity:"Float",
+		signiss1_document:"GeneratedDocument",
+		unit_price:"String"
+	},
+	MarketplaceStockProposal:{
+		braname:"String",
+		created_at:"DateTime",
+		created_order_ids:"String",
+		id:"String",
+		items:"MarketplaceStockProposalItem",
+		member_account:"String",
+		operator_account:"String",
+		resolved_at:"DateTime",
+		status:"MarketplaceStockProposalStatus",
+		total_cost:"String"
+	},
+	MarketplaceStockProposalAcceptResult:{
+		order_ids:"String",
+		proposal:"MarketplaceStockProposal"
+	},
+	MarketplaceStockProposalCreatedEvent:{
+		braname:"String",
+		proposal_id:"String"
+	},
+	MarketplaceStockProposalItem:{
+		offer_id:"String",
+		package_label:"String",
+		package_size:"Float",
+		product_name:"String",
+		quantity:"Float",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		unit_price:"String"
+	},
+	MarketplaceStockProposalResolvedEvent:{
+		braname:"String",
+		proposal_id:"String"
+	},
+	MarketplaceStorageCell:{
+		braname:"String",
+		code:"String",
+		id:"String",
+		is_active:"Boolean",
+		label:"String",
+		level:"Int",
+		section:"String"
+	},
+	MarketplaceSupplier:{
+		contract_date:"String",
+		contract_document_url:"String",
+		contract_number:"String",
+		coopname:"String",
+		id:"String",
+		member_account:"String",
+		model:"MarketplaceSupplierModel",
+		requested_at:"DateTime",
+		requested_by:"String",
+		reviewed_at:"DateTime",
+		reviewed_by:"String",
+		status:"MarketplaceSupplierStatus"
+	},
+	MarketplaceSupplierBatchActionResult:{
+		cycle_id:"String",
+		orders:"MarketplaceOrder",
+		tx_hashes:"String"
+	},
+	MarketplaceSupplierPaymentSettings:{
+		has_payout_method:"Boolean",
+		payout_destination:"String",
+		payout_method_id:"String"
+	},
+	MarketplaceTrusteeWeight:{
+		personal_balance:"String",
+		share_percent:"Float",
+		username:"String",
+		weight:"Int"
+	},
+	MarketplaceUnpublishStockResult:{
+		affected:"Int"
+	},
+	MarketplaceVitrine:{
+		coopname:"String",
+		created_at:"DateTime",
+		display_name:"String",
+		id:"String",
+		is_default:"Boolean",
+		updated_at:"DateTime"
+	},
+	MarketplaceWalletEntry:{
+		available:"String",
+		blocked:"String",
+		human_name:"String",
+		kind:"String",
+		label:"String",
+		name:"String",
+		program_id:"Int"
+	},
+	MarketplaceWarehouseSettings:{
+		cells_enabled:"Boolean",
+		containers_enabled:"Boolean",
+		posting_on_reception_required:"Boolean"
+	},
+	MarketplaceWriteoffCandidate:{
+		amount:"String",
+		asset_title:"String",
+		braname:"String",
+		branch_name:"String",
+		expiry_date:"String",
+		inventory_ids:"String",
+		is_expired:"Boolean",
+		key:"String",
+		lots_count:"Int",
+		package_size:"Float",
+		quantity:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceWriteoffConfirmationGroup:{
+		authorized_at:"String",
+		braname:"String",
+		branch_name:"String",
+		cycle_started_at:"String",
+		items:"MarketplaceWriteoffProposalItem",
+		proposal_hash:"String",
+		proposal_id:"String",
+		protocol_doc:"JSON",
+		total_amount:"String"
+	},
+	MarketplaceWriteoffDecisionEntry:{
+		action:"String",
+		actor:"String",
+		at:"String"
+	},
+	MarketplaceWriteoffProposal:{
+		authorized_at:"String",
+		coopname:"String",
+		created_at:"String",
+		cycle_started_at:"String",
+		decided_by_account:"String",
+		decision_id:"Int",
+		decision_log:"MarketplaceWriteoffDecisionEntry",
+		executed_at:"String",
+		id:"String",
+		items:"MarketplaceWriteoffProposalItem",
+		proposal_hash:"String",
+		proposed_by_account:"String",
+		reject_reason:"String",
+		rejected_at:"String",
+		status:"MarketplaceWriteoffProposalStatus",
+		submitted_at:"String",
+		total_amount:"String",
+		trigger:"MarketplaceWriteoffProposalTrigger",
+		updated_at:"String"
+	},
+	MarketplaceWriteoffProposalItem:{
+		amount:"String",
+		asset_title:"String",
+		braname:"String",
+		branch_name:"String",
+		executed:"Boolean",
+		inventory_ids:"String",
+		package_size:"Float",
+		quantity:"String",
+		reason:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
+	},
+	MarketplaceWriteoffStatusChangedEvent:{
+		proposal_id:"String",
+		status:"MarketplaceWriteoffProposalStatus"
 	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",
@@ -3903,6 +6374,22 @@ export const ReturnTypes: Record<string,any> = {
 		votes_against:"Int",
 		votes_for:"Int"
 	},
+	MembershipExit:{
+		created_at:"String",
+		exit_hash:"String",
+		payment_status:"PaymentStatus",
+		quantity:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitResult:{
+		exit_hash:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitReturnPreview:{
+		minimum_contribution:"String",
+		share_contribution:"String",
+		total:"String"
+	},
 	MissingRequisiteField:{
 		key:"String",
 		label:"String",
@@ -3926,17 +6413,18 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	Mutation:{
-		acceptChildOrder:"Transaction",
-		activateTwoFactor:"Boolean",
+		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
-		assignCapabilitySet:"Boolean",
+		archiveProductCard:"Boolean",
 		authorizeDecision:"Transaction",
-		authorizeForceRecovery:"ForceRecoveryAuthorization",
-		cancelRequest:"Transaction",
+		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
+		capitalAddWorklog:"CapitalTimeEntry",
+		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
+		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
@@ -3944,10 +6432,13 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCompleteVoting:"Transaction",
 		capitalConvertSegment:"CapitalSegment",
 		capitalCreateCommit:"CapitalCommit",
+		capitalCreateComponentMetric:"CapitalComponentMetric",
 		capitalCreateCycle:"CapitalCycle",
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateLocalProject:"CapitalProject",
+		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
@@ -3956,6 +6447,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateProjectInvest:"Transaction",
 		capitalCreateProjectProperty:"Transaction",
 		capitalCreateStory:"CapitalStory",
+		capitalDeallocateFunds:"Transaction",
 		capitalDeclineCommit:"CapitalCommit",
 		capitalDeleteIssue:"Boolean",
 		capitalDeleteProcessTemplate:"Boolean",
@@ -3989,14 +6481,18 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
+		capitalLogMetricContribution:"CapitalMetricContribution",
 		capitalMakeClearance:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
 		capitalOpenProject:"CapitalProject",
+		capitalPauseTimer:"CapitalTimerSession",
 		capitalPushResult:"CapitalSegment",
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
+		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
@@ -4004,11 +6500,15 @@ export const ReturnTypes: Record<string,any> = {
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",
 		capitalStartProject:"CapitalProject",
+		capitalStartTimer:"CapitalTimerSession",
 		capitalStartVoting:"Transaction",
 		capitalStopProject:"CapitalProject",
+		capitalStopTimer:"CapitalTimeEntry",
 		capitalSubmitVote:"Transaction",
 		capitalTopupProgramExpensePool:"Transaction",
+		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
+		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
@@ -4025,56 +6525,50 @@ export const ReturnTypes: Record<string,any> = {
 		completeChairmanAgendaStep:"ChairmanOnboardingState",
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
-		completeRequest:"Transaction",
 		confirmAgreement:"Transaction",
-		confirmCriticalAction:"PendingCriticalAction",
-		confirmReceiveOnRequest:"Transaction",
-		confirmSupplyOnRequest:"Transaction",
+		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
-		createChildOrder:"Transaction",
+		createCategory:"Category",
 		createDepositPayment:"GatewayPayment",
+		createExpensePlan:"ExpensePlan",
 		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
-		createParentOffer:"Transaction",
+		createMembershipExit:"MembershipExitResult",
+		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
 		declineAgreement:"Transaction",
 		declineDecision:"Transaction",
-		declineRequest:"Transaction",
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
+		deleteBranchWhitelist:"Branch",
+		deleteCategory:"Boolean",
+		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
+		deleteProductCard:"Boolean",
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
-		deliverOnRequest:"Transaction",
-		disableTwoFactor:"Boolean",
-		disputeOnRequest:"Transaction",
 		editBranch:"Branch",
-		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
-		generateAssetContributionAct:"GeneratedDocument",
-		generateAssetContributionDecision:"GeneratedDocument",
-		generateAssetContributionStatement:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
 		generateConvertToAxonStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
+		generateMembershipExitApplication:"GeneratedDocument",
+		generateMembershipExitDecision:"GeneratedDocument",
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
 		generateProjectOfFreeDecision:"GeneratedDocument",
 		generateRegistrationDocuments:"GenerateRegistrationDocumentsOutput",
 		generateReportFromEdits:"GeneratedReport",
-		generateReturnByAssetAct:"GeneratedDocument",
-		generateReturnByAssetDecision:"GeneratedDocument",
-		generateReturnByAssetStatement:"GeneratedDocument",
 		generateReturnByMoneyDecisionDocument:"GeneratedDocument",
 		generateReturnByMoneyStatementDocument:"GeneratedDocument",
 		generateSelectBranchDocument:"GeneratedDocument",
@@ -4083,61 +6577,152 @@ export const ReturnTypes: Record<string,any> = {
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
 		initSystem:"SystemInfo",
-		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
+		kuApproveTrusted:"Transaction",
+		kuCancelDecision:"Transaction",
+		kuCloseDecision:"Transaction",
+		kuCreateDecision:"Transaction",
+		kuDeclineTrusted:"Transaction",
+		kuExecDecision:"Transaction",
+		kuGenerateEstablishmentDecision:"GeneratedDocument",
+		kuGenerateEstablishmentPetition:"GeneratedDocument",
+		kuGenerateMeetingBallot:"GeneratedDocument",
+		kuGenerateMeetingDecision:"GeneratedDocument",
+		kuGenerateMeetingProposal:"GeneratedDocument",
+		kuGenerateTrustedLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrustedPowerOfAttorney:"GeneratedDocument",
+		kuGenerateTrustedStatement:"GeneratedDocument",
+		kuGenerateTrusteeLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrusteePowerOfAttorney:"GeneratedDocument",
+		kuJoinDecision:"Transaction",
+		kuRequestTrusted:"Transaction",
+		kuStartDecision:"Transaction",
+		kuVoteOnDecision:"Transaction",
 		login:"RegisteredAccount",
 		logout:"Boolean",
 		markAllNotificationsRead:"UnreadNotificationsCount",
 		markNotificationRead:"InboxNotification",
 		markReportPeriod:"Boolean",
-		moderateRequest:"Transaction",
+		marketplaceAcceptCpp:"MarketplaceCppStatus",
+		marketplaceAcceptOrdersBatch:"MarketplaceSupplierBatchActionResult",
+		marketplaceAcceptReturnAtVisit:"MarketplaceReturnClaimResult",
+		marketplaceAddAvailableCategories:"MarketplaceAvailableCategory",
+		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
+		marketplaceAddSupplier:"MarketplaceSupplier",
+		marketplaceAddToCart:"MarketplaceCart",
+		marketplaceAnnounceOrderReady:"MarketplaceOrder",
+		marketplaceApproveOffer:"MarketplaceOffer",
+		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
+		marketplaceApproveSupplier:"MarketplaceSupplier",
+		marketplaceAssignInventoryPlacement:"MarketplaceInventoryMutationResult",
+		marketplaceBindInventoryBarcode:"MarketplaceInventoryMutationResult",
+		marketplaceCancelAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCancelOrder:"MarketplaceCancelOrderResult",
+		marketplaceCancelStockOrder:"MarketplaceOrder",
+		marketplaceCancelStockProposal:"MarketplaceStockProposal",
+		marketplaceCancelWriteoffDraft:"Boolean",
+		marketplaceCheckoutCart:"MarketplaceCheckoutResult",
+		marketplaceClearAvailableCategories:"Boolean",
+		marketplaceClearCart:"MarketplaceCart",
+		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceConfirmWriteoff:"MarketplaceWriteoffProposal",
+		marketplaceConvertBranchFunds:"Boolean",
+		marketplaceCreateAid:"Boolean",
+		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCreateBranchExpense:"String",
+		marketplaceCreateContainerType:"MarketplaceContainerType",
+		marketplaceCreateContainers:"MarketplaceContainer",
+		marketplaceCreateCustomCategory:"MarketplaceCategory",
+		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
+		marketplaceCreateOffer:"MarketplaceOffer",
+		marketplaceCreateRequest:"MarketplaceRequest",
+		marketplaceCreateReturnClaim:"MarketplaceReturnClaimResult",
+		marketplaceCreateShipment:"MarketplaceCreateShipmentResult",
+		marketplaceCreateStockProposal:"MarketplaceStockProposal",
+		marketplaceCreateStorageCell:"MarketplaceStorageCell",
+		marketplaceCreateStorageGrid:"MarketplaceStorageCell",
+		marketplaceCreateWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceDeclineOrdersBatch:"MarketplaceSupplierBatchActionResult",
+		marketplaceDeclineStockProposal:"MarketplaceStockProposal",
+		marketplaceDeleteCustomCategory:"Boolean",
+		marketplaceDeleteTrusteeWeight:"Boolean",
+		marketplaceDetailKU:"MarketplaceKUDetails",
+		marketplaceDistributeBranchFunds:"Boolean",
+		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
+		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceMoveContainer:"MarketplaceContainer",
+		marketplacePublishStock:"MarketplaceOffer",
+		marketplaceRejectOffer:"MarketplaceOffer",
+		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
+		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",
+		marketplaceRejectSupplier:"MarketplaceSupplier",
+		marketplaceRemoveAvailableCategories:"Boolean",
+		marketplaceRemoveAvailableCategoryTypes:"Boolean",
+		marketplaceRemoveFromCart:"MarketplaceCart",
+		marketplaceRenameStorageSection:"MarketplaceStorageCell",
+		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
+		marketplaceRepublishOffer:"MarketplaceOffer",
+		marketplaceRequestSupplier:"MarketplaceSupplier",
+		marketplaceRetireStorageCells:"MarketplaceStorageCell",
+		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
+		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
+		marketplaceSetKUStatus:"MarketplaceKUDetails",
+		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
+		marketplaceSetOfferWarranty:"MarketplaceOffer",
+		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
+		marketplaceSetTrusteeWeight:"Boolean",
+		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
+		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
+		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
+		marketplaceSplitInventory:"MarketplaceInventoryMutationResult",
+		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceSwitchSupplierModel:"MarketplaceSupplier",
+		marketplaceUnpublishStock:"MarketplaceUnpublishStockResult",
+		marketplaceUpdateCartItem:"MarketplaceCart",
+		marketplaceUpdateContainer:"MarketplaceContainer",
+		marketplaceUpdateOffer:"MarketplaceOffer",
+		marketplaceUpdateStorageCell:"MarketplaceStorageCell",
+		marketplaceUpdateWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceWithdrawOffer:"MarketplaceOffer",
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
 		overspendExpenseItem:"Transaction",
 		payExpenseItem:"Transaction",
 		processConvertToAxonStatement:"Boolean",
-		prohibitRequest:"Transaction",
+		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
-		publishRequest:"Transaction",
-		receiveOnRequest:"Transaction",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
 		reportExpenseItem:"ExpenseReportResult",
-		reportNotMe:"RevokedSessionsResult",
-		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
-		revokeAllSessions:"RevokedSessionsResult",
-		revokeCapabilitySet:"Boolean",
-		revokeParticipantKey:"RevokeKeyResult",
-		revokeSession:"Boolean",
+		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
+		saveMyPassport:"Account",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
+		setBranchPrivate:"Branch",
 		setPaymentStatus:"GatewayPayment",
-		setRecoveryStrategy:"Boolean",
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
 		submitExpenseReport:"Transaction",
-		supplyOnRequest:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
-		unpublishRequest:"Transaction",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
 		updateExtension:"Extension",
 		updateReportRequisites:"ReportRequisitesView",
-		updateRequest:"Transaction",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
 		uploadExpenseFile:"ExpenseFile",
+		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
@@ -4182,20 +6767,6 @@ export const ReturnTypes: Record<string,any> = {
 		items:"Notification",
 		totalCount:"Int",
 		totalPages:"Int"
-	},
-	OneCoopDocumentOutput:{
-		action:"String",
-		block_num:"Int",
-		data:"JSON",
-		hash:"String",
-		package:"String"
-	},
-	OneCoopDocumentsResponse:{
-		current_page:"Int",
-		items:"OneCoopDocumentOutput",
-		max_block_num:"Int",
-		total_count:"Int",
-		total_pages:"Int"
 	},
 	Organization:{
 		city:"String",
@@ -4311,6 +6882,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalMetricContributionsPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalMetricContribution",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalProgramExpensesPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalProgramExpense",
@@ -4389,9 +6966,23 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	ParticipantAccess:{
-		grants:"AccessGrant",
-		sets:"String"
+	PaginatedKuDecisionsPaginationResult:{
+		currentPage:"Int",
+		items:"KuDecision",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedKuTrustRequestsPaginationResult:{
+		currentPage:"Int",
+		items:"KuTrustRequest",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedMarketplaceWriteoffProposals:{
+		currentPage:"Int",
+		items:"MarketplaceWriteoffProposal",
+		totalCount:"Int",
+		totalPages:"Int"
 	},
 	ParticipantAccount:{
 		braname:"String",
@@ -4406,9 +6997,6 @@ export const ReturnTypes: Record<string,any> = {
 		status:"String",
 		type:"String",
 		username:"String"
-	},
-	ParticipantCertificate:{
-		participant_certificate:"String"
 	},
 	Passport:{
 		code:"String",
@@ -4425,6 +7013,20 @@ export const ReturnTypes: Record<string,any> = {
 		fee_amount:"String",
 		fee_percent:"Float",
 		tolerance_percent:"Float"
+	},
+	PaymentFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		kind:"PaymentFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		payment_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
 	},
 	PaymentMethod:{
 		created_at:"DateTime",
@@ -4444,18 +7046,6 @@ export const ReturnTypes: Record<string,any> = {
 		items:"PaymentMethod",
 		totalCount:"Int",
 		totalPages:"Int"
-	},
-	PendingCriticalAction:{
-		action_type:"CriticalActionType",
-		actor_id:"String",
-		confirmations:"CriticalActionConfirmation",
-		created_at:"String",
-		expires_at:"String",
-		finalized_at:"String",
-		id:"String",
-		payload:"JSON",
-		status:"CriticalActionStatus",
-		target_id:"String"
 	},
 	Permission:{
 		parent:"String",
@@ -4593,6 +7183,28 @@ export const ReturnTypes: Record<string,any> = {
 		process_hash:"String",
 		process_type:"String"
 	},
+	ProductCard:{
+		braname:"String",
+		cancellation_fee_amount:"String",
+		category_id:"String",
+		contribution_type:"ContributionType",
+		coopname:"String",
+		created_at:"DateTime",
+		delivery_type:"DeliveryType",
+		description:"String",
+		id:"String",
+		images:"String",
+		membership_fee_amount:"String",
+		product_lifecycle_secs:"Int",
+		status:"ProductCardStatus",
+		title:"String",
+		type:"ProductCardType",
+		unit_cost:"String",
+		units:"Int",
+		updated_at:"DateTime",
+		username:"String",
+		warranty_period_secs:"Int"
+	},
 	ProgramWallet:{
 		agreement_id:"ID",
 		available:"String",
@@ -4645,13 +7257,16 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",
 		capitalCommit:"CapitalCommit",
 		capitalCommits:"PaginatedCapitalCommitsPaginationResult",
+		capitalComponentMetrics:"CapitalComponentMetric",
 		capitalContributor:"CapitalContributor",
 		capitalContributors:"PaginatedCapitalContributorsPaginationResult",
 		capitalCycles:"PaginatedCapitalCyclesPaginationResult",
+		capitalDeallocationLimit:"CapitalDeallocationLimit",
 		capitalDebt:"CapitalDebt",
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
+		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",
 		capitalGetProcessTemplate:"ProcessTemplate",
@@ -4659,7 +7274,14 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInvest:"CapitalInvest",
 		capitalInvests:"PaginatedCapitalInvestsPaginationResult",
 		capitalIssue:"CapitalIssue",
+		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalMeasures:"CapitalMeasure",
+		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
+		capitalMetricSeries:"CapitalMetricSeries",
+		capitalMetricSuperposition:"CapitalMetricSuperposition",
+		capitalMetricSuperpositionHistory:"CapitalMetricSuperpositionHistory",
+		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
@@ -4707,12 +7329,11 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
-		getCapabilitySets:"CapabilitySet",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
+		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
-		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -4731,18 +7352,17 @@ export const ReturnTypes: Record<string,any> = {
 		getLedgerHistory:"LedgerHistoryResponse",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
-		getMyAccess:"ParticipantAccess",
-		getMyCertificate:"ParticipantCertificate",
+		getMyProductCards:"ProductCard",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
-		getParticipantCapabilitySets:"CapabilitySetAssignment",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
+		getProductCard:"ProductCard",
+		getProductCards:"ProductCard",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
-		getRecoveryStrategy:"RecoveryStrategy",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",
@@ -4751,13 +7371,115 @@ export const ReturnTypes: Record<string,any> = {
 		getReportHistory:"ReportHistoryPage",
 		getReportPreview:"ReportPreview",
 		getReportRequisites:"ReportRequisitesView",
-		getSessions:"AccountSession",
 		getSystemInfo:"SystemInfo",
 		getUnreadNotificationsCount:"UnreadNotificationsCount",
+		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
+		kuDecision:"KuDecision",
+		kuDecisions:"PaginatedKuDecisionsPaginationResult",
+		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
+		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
-		onecoopGetDocuments:"OneCoopDocumentsResponse",
+		marketplaceAidStatementSignablePayload:"GeneratedDocument",
+		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",
+		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
+		marketplaceAspectAttributes:"MarketplaceAttribute",
+		marketplaceAttributeStats:"MarketplaceAttributeStats",
+		marketplaceCategoryAttributes:"MarketplaceAttribute",
+		marketplaceCategoryAttributesGrouped:"MarketplaceAttributeGroup",
+		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
+		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutSignableLine",
+		marketplaceCppStatus:"MarketplaceCppStatus",
+		marketplaceDefaultVitrine:"MarketplaceVitrine",
+		marketplaceFindPotentialMatches:"MarketplaceRequest",
+		marketplaceGetAvailabilityStats:"MarketplaceAvailabilityStats",
+		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
+		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
+		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
+		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
+		marketplaceGetCart:"MarketplaceCart",
+		marketplaceGetCategoryById:"MarketplaceCategoryTreeNode",
+		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",
+		marketplaceGetCategoryTree:"MarketplaceCategoryTreeNode",
+		marketplaceGetCategoryTreeStats:"MarketplaceCategoryTreeStats",
+		marketplaceGetCoopRequests:"MarketplaceRequest",
+		marketplaceGetEconomyConfig:"MarketplaceEconomyConfig",
+		marketplaceGetOffer:"MarketplaceOffer",
+		marketplaceGetOrder:"MarketplaceOrder",
+		marketplaceGetPersonalEconomy:"MarketplacePersonalEconomy",
+		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
+		marketplaceGetProductTypeById:"MarketplaceProductType",
+		marketplaceGetRequest:"MarketplaceRequest",
+		marketplaceGetRequestByHash:"MarketplaceRequest",
+		marketplaceGetRequestStatistics:"MarketplaceRequestStatistics",
+		marketplaceGetRootCategories:"MarketplaceCategoryTreeNode",
+		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
+		marketplaceGetShipment:"MarketplaceShipment",
+		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
+		marketplaceGetUserRequests:"MarketplaceRequest",
+		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
+		marketplaceListAids:"MarketplaceAid",
+		marketplaceListAllOffers:"MarketplaceOfferPaginationResult",
+		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
+		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
+		marketplaceListAvailableCategories:"MarketplaceCategory",
+		marketplaceListBranchOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
+		marketplaceListCategories:"MarketplaceCategory",
+		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
+		marketplaceListContainerTypes:"MarketplaceContainerType",
+		marketplaceListContainers:"MarketplaceContainer",
+		marketplaceListCoopCategories:"MarketplaceCategory",
+		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
+		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListIssuancesByBraname:"MarketplaceOrder",
+		marketplaceListKUDetails:"MarketplaceKUDetails",
+		marketplaceListModerationLog:"MarketplaceModerationLogEntry",
+		marketplaceListMyOffers:"MarketplaceOfferPaginationResult",
+		marketplaceListMyOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListMyReturnClaims:"MarketplaceReturnClaim",
+		marketplaceListOutgoingPayments:"MarketplaceOutgoingPaymentRequest",
+		marketplaceListOutgoingPaymentsAsSupplier:"MarketplaceOutgoingPaymentRequest",
+		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
+		marketplaceListReturnClaimsByBraname:"MarketplaceReturnClaim",
+		marketplaceListShipments:"MarketplaceShipment",
+		marketplaceListShipmentsByBraname:"MarketplaceShipment",
+		marketplaceListStock:"MarketplaceInventoryItem",
+		marketplaceListStockProposals:"MarketplaceStockProposal",
+		marketplaceListStorageCells:"MarketplaceStorageCell",
+		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
+		marketplaceListSuppliers:"MarketplaceSupplier",
+		marketplaceListWriteoffCandidates:"MarketplaceWriteoffCandidate",
+		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
+		marketplaceMemberWallet:"MarketplaceMemberWallet",
+		marketplaceMySupplierState:"MarketplaceSupplier",
+		marketplaceOnboardingState:"MarketplaceOnboardingState",
+		marketplaceOpenWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
+		marketplaceRequiredAttributes:"MarketplaceAttribute",
+		marketplaceResolveContainerByCode:"MarketplaceContainer",
+		marketplaceReturnClaim:"MarketplaceReturnClaim",
+		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
+		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
+		marketplaceSearchAttributes:"MarketplaceAttribute",
+		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
+		marketplaceSearchRequests:"MarketplaceRequest",
+		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
+		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
+		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
+		marketplaceWhoAmI:"MarketplaceCurrentMember",
+		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
+		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
+		marketplaceWriteoffProtocolDocument:"DocumentAggregate",
+		marketplaceWriteoffServiceMemoSignablePayload:"GeneratedDocument",
+		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
+		membershipExit:"MembershipExit",
+		membershipExitReturnPreview:"MembershipExitReturnPreview",
+		paymentFile:"PaymentFile",
+		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
@@ -4885,6 +7607,7 @@ export const ReturnTypes: Record<string,any> = {
 		oktmo:"RequisiteFieldView",
 		okved:"RequisiteFieldView",
 		orgName:"RequisiteFieldView",
+		pfrRegNumber:"RequisiteFieldView",
 		phone:"RequisiteFieldView",
 		sfrRegNumber:"RequisiteFieldView",
 		signerFirstName:"RequisiteFieldView",
@@ -4923,15 +7646,6 @@ export const ReturnTypes: Record<string,any> = {
 		owner:"String",
 		ram_bytes:"Int"
 	},
-	RevokeKeyResult:{
-		must_recover:"Boolean",
-		sessions_revoked:"Int",
-		status:"String",
-		target_id:"String"
-	},
-	RevokedSessionsResult:{
-		revoked:"Int"
-	},
 	SbpAccount:{
 		phone:"String"
 	},
@@ -4950,6 +7664,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorized_default_workspace:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		is_registration_open:"Boolean",
 		non_authorized_default_route:"String",
 		non_authorized_default_workspace:"String",
 		provider_name:"String",
@@ -4989,6 +7704,9 @@ export const ReturnTypes: Record<string,any> = {
 	StatementDetailAggregate:{
 		action:"ExtendedBlockchainAction",
 		documentAggregate:"DocumentAggregate"
+	},
+	Subscription:{
+		marketplaceEvents:"MarketplaceEvent"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -5049,10 +7767,6 @@ export const ReturnTypes: Record<string,any> = {
 		startOffset:"Float",
 		text:"String"
 	},
-	TwoFactorEnrollment:{
-		otpauth_uri:"String",
-		secret:"String"
-	},
 	UnreadNotificationsCount:{
 		count:"Int"
 	},
@@ -5071,6 +7785,16 @@ export const ReturnTypes: Record<string,any> = {
 		"...on EntrepreneurCertificate":"EntrepreneurCertificate",
 		"...on IndividualCertificate":"IndividualCertificate",
 		"...on OrganizationCertificate":"OrganizationCertificate"
+	},
+	UserWallet:{
+		available:"String",
+		blocked:"String",
+		coopname:"String",
+		human_name:"String",
+		id:"ID",
+		program_id:"ID",
+		username:"String",
+		wallet_name:"String"
 	},
 	Vars:{
 		confidential_email:"String",
@@ -5115,6 +7839,24 @@ export const ReturnTypes: Record<string,any> = {
 		userAgent:"String",
 		username:"String"
 	},
+	WorkingHours:{
+		fri:"WorkingHoursDay",
+		mon:"WorkingHoursDay",
+		sat:"WorkingHoursDay",
+		sun:"WorkingHoursDay",
+		thu:"WorkingHoursDay",
+		tue:"WorkingHoursDay",
+		wed:"WorkingHoursDay"
+	},
+	WorkingHoursBreak:{
+		end:"String",
+		start:"String"
+	},
+	WorkingHoursDay:{
+		breaks:"WorkingHoursBreak",
+		close:"String",
+		open:"String"
+	},
 	ZeroReportHeaderEdits:{
 		correctionNumber:"Int",
 		docDate:"String",
@@ -5133,13 +7875,15 @@ export const ReturnTypes: Record<string,any> = {
 		okpo:"String",
 		oktmo:"String",
 		okved:"String",
-		orgName:"String"
+		orgName:"String",
+		phone:"String"
 	},
 	ZeroReportSignerEdits:{
 		chairmanPosition:"String",
 		firstName:"String",
 		lastName:"String",
 		middleName:"String",
+		pfrRegNumber:"String",
 		repDoc:"String",
 		sfrRegNumber:"String",
 		snils:"String",
@@ -5150,5 +7894,6 @@ export const ReturnTypes: Record<string,any> = {
 
 export const Ops = {
 query: "Query" as const,
-	mutation: "Mutation" as const
+	mutation: "Mutation" as const,
+	subscription: "Subscription" as const
 }

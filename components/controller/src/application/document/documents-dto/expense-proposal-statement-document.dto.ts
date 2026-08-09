@@ -1,5 +1,5 @@
 import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graphql';
-import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
@@ -115,10 +115,15 @@ class ExpenseProposalHeaderInputDTO implements HeaderAction {
   @IsString()
   source_wallet!: string;
 
-  @Field({ description: 'Срок исполнения («в срок до»), формат DD.MM.YYYY', nullable: true })
-  @IsOptional()
+  // Срок обязателен: он попадает в текст записки, и совет должен видеть,
+  // к какой дате расход надо оплатить. Формат проверяем здесь, иначе в
+  // документ уходит нечитаемая дата.
+  @Field({ description: 'Срок исполнения («в срок до»), формат DD.MM.YYYY' })
   @IsString()
-  deadline?: string;
+  @Matches(/^\d{2}\.\d{2}\.\d{4}$/, {
+    message: 'Укажите срок исполнения расхода в формате ДД.ММ.ГГГГ',
+  })
+  deadline!: string;
 
   @Field({
     description: 'Фонд списания — подставляется сервером из параметров шасси расходов, передавать не нужно',

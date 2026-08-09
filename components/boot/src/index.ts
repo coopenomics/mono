@@ -176,6 +176,7 @@ program
     }
 
     try {
+      await runInfraContainers()
       await runContainer()
 
       await sleep(5000)

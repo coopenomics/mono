@@ -6,6 +6,7 @@ import config from '~/config/config';
 import { tokenTypes } from '~/types/token.types';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
+import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 
 @Injectable()
 export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
@@ -24,27 +25,7 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
       throw new Error('Invalid token type');
     }
 
-    const userId = payload.sub;
-
-    // Определяем тип ID заранее для оптимизации запросов
-    let user;
-    if (this.isLegacyMongoId(userId)) {
-      // Это legacy MongoDB ObjectId
-      try {
-        user = await this.userDomainService.getUserByLegacyMongoId(userId);
-      } catch (error) {
-        throw new Error('Пользователь с указанным JWT не найден');
-      }
-    } else if (this.isValidUuid(userId)) {
-      // Это новый UUID
-      user = await this.userRepository.findById(userId);
-      if (!user) {
-        throw new Error('Пользователь с указанным JWT не найден');
-      }
-    } else {
-      // Неизвестный формат ID
-      throw new Error('Неверный формат ID пользователя в JWT токене');
-    }
+    const user = await resolveUserBySub(payload.sub, this.userRepository, this.userDomainService);
 
     // Возвращаем объект в формате, совместимом с MonoAccountDomainInterface
     return {
@@ -63,24 +44,5 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
       subscriber_id: user.subscriber_id,
       subscriber_hash: user.subscriber_hash,
     };
-  }
-
-  /**
-   * Проверяет, является ли строка legacy MongoDB ObjectId (24 hex символа)
-   */
-  private isLegacyMongoId(id: string): boolean {
-    return /^[a-f\d]{24}$/i.test(id);
-  }
-
-  /**
-   * Проверяет, является ли строка валидным UUID (с дефисами или без)
-   */
-  private isValidUuid(id: string): boolean {
-    // UUID с дефисами: 8-4-4-4-12
-    const uuidWithDashes = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
-    // UUID без дефисов: 32 символа
-    const uuidWithoutDashes = /^[a-f\d]{32}$/i;
-
-    return uuidWithDashes.test(id) || uuidWithoutDashes.test(id);
   }
 }

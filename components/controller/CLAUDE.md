@@ -138,6 +138,18 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 **Никогда**: `chainPort.submitTx(...)` напрямую в resolver/service — только `pool.submitWithPool`.
 **Никогда**: `chainPort.getX(...)` в read-path — только `repository.findBySyncKey`.
 
+### Cross-extension/core вызовы — только через `@coopenomics/inter` (СТРОГО)
+
+Расширению (`extensions/<name>/`) **запрещено** напрямую импортировать сервис другого расширения или ядрового модуля (например `Ledger2Service`, сервис другого `extensions/*`). Единственный легитимный путь — контракт (`port` + DI-токен) в пакете `components/inter` (`@coopenomics/inter`).
+
+- Порт — plain TS-интерфейс в `components/inter/src/<domain>.port.ts` (без Nest/GraphQL-декораторов, без class-validator) + `export const INTER_<DOMAIN> = Symbol.for('Inter<Domain>')` в `tokens.ts` + экспорт в `index.ts`.
+- Реализация — адаптер в `infrastructure/inter/` **того модуля, который владеет данными** (ядровой — `application/<module>/infrastructure/inter/`, extension'а — `extensions/<name>/infrastructure/inter/`), `implements Inter<Domain>Port`.
+- Биндинг токен→адаптер — только в `src/extensions/inter-communication-bridge.module.ts` (`@Global()`, `useExisting`). Consumer инжектит `@Inject(INTER_<DOMAIN>) private readonly x: Inter<Domain>Port` — про конкретную реализацию не знает.
+- Порт не знает доменных понятий consumer'а (КУ, проект, программа) и не скоупит доступ — авторизацию («вправе ли ЭТОТ пользователь смотреть ЭТИ данные») делает вызывающий resolver/service ДО вызова порта, на своих доменных данных.
+- **Если контракта ещё нет** — не тянуть чужой сервис "на один вызов". Сначала добавить порт в `@coopenomics/inter` (+ `pnpm run build` в `components/inter`), потом адаптер + биндинг, потом consumer.
+
+Канон: `INTER_EXPENSE_CHASSIS`/`expense-chassis.port.ts` (шасси расходов → capital/marketplace/EMP), `INTER_LEDGER2_HISTORY`/`ledger2-history.port.ts` (ядро ledger2 → любой consumer, читающий историю кошелька).
+
 ### Read-path (ADR-011) — СТРОГО
 
 - Queries / resolvers / application reads → **только Repository из Postgres**.
@@ -227,6 +239,24 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 **Comments:**
 - Нет комментариев к WHAT (код сам скажет). Только WHY + invariants + links на ADR в non-obvious местах.
 - JSDoc для интерфейсов в `domain/interfaces/` — да. Для сервисов — нет (имена self-documenting).
+
+**Описания GraphQL `@Field({description})`, `@InputType`, `@ObjectType`:**
+- Писать **на пользовательском языке**, не на разработческом. Описание читают разработчики клиента и схемы — им нужно понять смысл поля, не сетку реализации.
+- **Запрещено**: упоминания stories / эпиков / номеров задач (`Story 4.2`, `Эпик 4`, `FR11a`), ссылки на тех-артефакты (`composite-entity`, `dispatch pipeline`, `ParserClient`), внутренние термины, не имеющие отражения в публичной модели (`derived hash`, `tx_snapshot`).
+- Используем business-словарь: «Идентификатор Order'а», «Кол-во единиц товара», «ПВЗ получения», а не «Story 4.1 backend deterministic order_hash».
+- Story-ссылки и инвариант-комменты — в **inline-комментариях** внутри сервиса (если нужны), не в `description` для GraphQL.
+
+**Enum вместо строковых литералов (жёстко):**
+- В коде сервисов, resolver'ов, тестов **запрещено** сравнение со строкой типа `if (offer.cycle_type === 'volume_based')`. Только `MarketplaceOfferCycleType.VOLUME_BASED`.
+- Любое status / type / kind, у которого фиксированный набор значений, оформляется как TypeScript `enum` (или `as const` literal-union с экспортом одноимённого `enum` для GraphQL через `registerEnumType`), а не строкой.
+- В тестах константы тоже из enum, не из дублирующих строк.
+- В `@Field`/`@InputType` всё, что enum в коде, регистрируется через `registerEnumType` и приходит/уходит typed, не `string`.
+
+**Пагинация (жёстко) — стандартный паттерн:**
+- Входные параметры: `PaginationInputDTO` из `~/application/common/dto/pagination.dto.ts` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
+- Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
+- Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
+- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.
 
 ### Development Workflow
 

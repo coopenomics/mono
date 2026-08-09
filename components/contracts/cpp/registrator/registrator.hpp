@@ -85,6 +85,12 @@ public:
   [[eosio::action]] void changekey(eosio::name coopname, eosio::name changer, eosio::name username, eosio::public_key public_key);
   
   [[eosio::action]] void confirmreg(eosio::name coopname, checksum256 registration_hash, document2 authorization);
+
+  // Выход пайщика из кооператива (возврат паевого взноса) — src/exit/*.cpp
+  [[eosio::action]] void exitcoop(eosio::name coopname, eosio::name username, checksum256 exit_hash, document2 statement);
+  [[eosio::action]] void confirmexit(eosio::name coopname, checksum256 exit_hash, document2 authorization);
+  [[eosio::action]] void completexit(eosio::name coopname, checksum256 exit_hash);
+  [[eosio::action]] void declinexit(eosio::name coopname, checksum256 exit_hash, std::string reason);
   [[eosio::action]] void confirmpay(name coopname, checksum256 registration_hash);
   [[eosio::action]] void declinepay(name coopname, checksum256 registration_hash, std::string reason);
   [[eosio::action]] void declinereg(name coopname, checksum256 registration_hash, std::string reason);

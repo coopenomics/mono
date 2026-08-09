@@ -1,15 +1,19 @@
 import { beforeAll, describe, it, vi } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
+import type { Numbers } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
+import { capitalProgramPrivateData } from './utils/capitalProgramPrivateData'
+
+let capitalProgramDocDataHash = ''
 
 beforeAll(async () => {
   await generator.connect(mongoUri)
 
   // Подменяем метод getApprovedDecision для фабрики акта взноса результатов (1042)
   // Это позволит тесту найти "принятое решение" без обращения к реальному API
-  const factory1042 = (generator as any).factories['1042']
+  const factory1042 = generator.factories[1042 as Numbers]
   if (factory1042) {
     vi.spyOn(factory1042, 'getApprovedDecision').mockImplementation(async () => {
       return {
@@ -17,6 +21,24 @@ beforeAll(async () => {
         date: '19.01.2026',
         time: '10:00',
         votes_for: 2,
+        votes_against: 0,
+        votes_abstained: 0,
+        voters_percent: 100,
+      }
+    })
+  }
+
+  // Подменяем метод getDecision для фабрики Протокола списания скоропорта
+  // (1107) — голоса совета приходят из SIMPLE_EXPLORER_API, в тесте
+  // обращений к нему нет.
+  const factory1107 = (generator as any).factories['1107']
+  if (factory1107) {
+    vi.spyOn(factory1107, 'getDecision').mockImplementation(async () => {
+      return {
+        id: 1,
+        date: '01.06.2026',
+        time: '12:00',
+        votes_for: 3,
         votes_against: 0,
         votes_abstained: 0,
         voters_percent: 100,
@@ -44,6 +66,10 @@ beforeAll(async () => {
   for (const data of udatas) {
     await generator.save('udata', { ...commonUdata, ...data })
   }
+
+
+  const { hash } = await generator.saveDocData(capitalProgramPrivateData, 994)
+  capitalProgramDocDataHash = hash
 })
 
 describe('тест генератора документов с registry_id >= 1000', async () => {
@@ -54,6 +80,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -63,6 +90,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -72,6 +100,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -92,6 +121,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
   it('генерируем шаблон оферты Благорост', async () => {
@@ -100,6 +130,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -110,6 +141,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -226,6 +258,8 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      // Обязателен: из него считается proposal_short_hash (Factory.getShortHash).
+      proposal_hash: '0xabc123def4560000000000000000000000000000000000000000000000000000',
       proposal: {
         description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
         total_amount: '15000.00 RUB',
@@ -259,6 +293,9 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      // Решение совета обязательно (2011.ExpenseProposalDecision). id=1 —
+      // как в market.test.ts: на него настроены моки голосования.
+      decision_id: 1,
       proposal_hash: '0xabc123def4560000000000000000000000000000000000000000000000000000',
       proposal: {
         description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
@@ -270,10 +307,10 @@ describe('тест генератора документов с registry_id >= 1
         { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
         { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
       ],
-      decision: {
+      // Резолюция совета: kind + опциональная причина. Номер и дата протокола
+      // сюда не входят — они приходят из решения по decision_id (getDecision).
+      resolution: {
         kind: 'approve',
-        protocol_number: '15',
-        protocol_date: '03.06.2026',
       },
     })
   })
@@ -284,6 +321,9 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      // Решение совета обязательно (2011.ExpenseProposalDecision). id=1 —
+      // как в market.test.ts: на него настроены моки голосования.
+      decision_id: 1,
       proposal_hash: '0xfedcba9876540000000000000000000000000000000000000000000000000000',
       proposal: {
         description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
@@ -295,11 +335,9 @@ describe('тест генератора документов с registry_id >= 1
         { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
         { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
       ],
-      decision: {
+      resolution: {
         kind: 'decline',
         reason: 'Просьба разделить позиции на отдельные СЗ — Yandex Cloud и канцелярия имеют разный контур контроля.',
-        protocol_number: '16',
-        protocol_date: '03.06.2026',
       },
     })
   })
@@ -475,23 +513,10 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
-  it('генерируем заявление о конвертации генерации в проект', async () => {
-    await testDocumentGeneration({
-      registry_id: 1081,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
-
-  it('генерируем заявление о конвертации генерации в благорост', async () => {
-    await testDocumentGeneration({
-      registry_id: 1082,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
+  // Документы 1081 и 1082 удалены намеренно: шаблон конвертации унифицирован
+  // в 1080 (коммит a0cb930b77f «унифицировать шаблон 1080, убрать 1081/1082»).
+  // Тесты на них остались висеть и падали с «Фабрика для документа не найдена».
+  // Покрытие не теряется — 1080 проверяется выше, с полным набором полей.
 
   it('генерируем заявление о конвертации благороста в основной кошелёк', async () => {
     await testDocumentGeneration({
@@ -499,6 +524,51 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+    })
+  })
+
+  // Документы списания скоропорта по решению совета (ЦПП «Стол заказов»)
+  it('генерируем заявление председателя о списании скоропорта (1108)', async () => {
+    await testDocumentGeneration({
+      registry_id: 1108,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0000abcd1234567890abcdef0000abcd1234567890abcdef00001234567890ab',
+      cycle_started_at: '2026-06-01',
+      items: [
+        {
+          braname: 'voskhod1',
+          asset_title: 'Сахар-песок «Сладкий», 1 кг',
+          quantity: '12',
+          unit: 'кг',
+          amount: '1020.0000 RUB',
+          reason: 'Истёк срок годности',
+        },
+        {
+          braname: 'voskhod2',
+          asset_title: 'Молоко «Доброе», 1 л',
+          quantity: '5',
+          unit: 'л',
+          amount: '485.0000 RUB',
+          reason: 'Повреждена упаковка',
+        },
+      ],
+      total_amount: '1505.0000 RUB',
+    })
+  })
+
+  it('генерируем протокол совета о списании скоропорта (1107)', async () => {
+    await testDocumentGeneration({
+      registry_id: 1107,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      decision_id: 1,
+      proposal_hash: '0000abcd1234567890abcdef0000abcd1234567890abcdef00001234567890ab',
+      cycle_started_at: '2026-06-01',
+      total_amount: '1505.0000 RUB',
+      items_count: 2,
     })
   })
 })

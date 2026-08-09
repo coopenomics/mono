@@ -207,6 +207,14 @@ export class ProcessRegistryService {
       params.push(filter.username);
       pIdx += 1;
     }
+    // Точечная адресация одного процесса по хэшу (deep-link из реестров
+    // операций/проводок: клик по № процесса ведёт сюда с раскрытым процессом).
+    let processHashClause = '';
+    if (filter.processHash) {
+      processHashClause = ` AND LOWER(a.data ->> 'process_hash') = $${pIdx}`;
+      params.push(filter.processHash.trim().toLowerCase());
+      pIdx += 1;
+    }
     let fromBlockClause = '';
     if (filter.fromBlock) {
       fromBlockClause = ` AND a.block_num >= $${pIdx}`;
@@ -227,6 +235,7 @@ export class ProcessRegistryService {
       AND (a.data ->> 'process_hash') IS NOT NULL
       ${operationCodeClause}
       ${usernameClause}
+      ${processHashClause}
       ${fromBlockClause}
       ${toBlockClause}
     `;
@@ -242,7 +251,7 @@ export class ProcessRegistryService {
 
     // GROUP BY только по (process_hash, coopname) — иначе мульти-операционные
     // процессы (p.cap.rid с двумя operation_code под одним hash; p.reg.accept с
-    // payent+putmin; p.mkt.reqst с supply+recv) дают двойные строки
+    // payent+putmin) дают двойные строки
     // и totalCount (считаемый через DISTINCT process_hash) не совпадает с
     // items.length. MIN(operation_code) → любой из двух одинаково выводит
     // processType через OPERATION_CODE_TO_PROCESS_TYPE (у p.cap.rid оба
@@ -348,7 +357,13 @@ export class ProcessRegistryService {
   // blockchain_actions[ledger2].
 
   private async extractDocuments(deltas: ProcessDeltaView[]): Promise<ProcessDocumentView[]> {
-    const documents: ProcessDocumentView[] = [];
+    // Один логический документ (тождество по содержимому = doc_hash) встречается
+    // в НЕСКОЛЬКИХ дельта-версиях сущности и с РАЗНЫМ числом подписей: контракт
+    // сперва пишет одноподписную версию, затем — двухподписную (вторая подпись —
+    // ведущая). Без дедупликации UI показывает один и тот же акт 5-7 раз.
+    // Поэтому отдаём ОДНУ запись на документ — версию с максимумом подписей,
+    // при равенстве — последнюю по блоку (deltas отсортированы ASC).
+    const byContent = new Map<string, ProcessDocumentView>();
     for (const delta of deltas) {
       const v = delta.value as Record<string, unknown> | null;
       if (!v || typeof v !== 'object') continue;
@@ -359,7 +374,7 @@ export class ProcessRegistryService {
           const signed = value as any;
           const aggregate = await this.documentAggregator.buildDocumentAggregate(signed);
           if (!aggregate) continue;
-          documents.push({
+          const entry: ProcessDocumentView = {
             hash: aggregate.hash || signed.hash || signed.doc_hash || '',
             source: {
               code: delta.code,
@@ -369,7 +384,13 @@ export class ProcessRegistryService {
             },
             document: aggregate.document,
             raw: aggregate.rawDocument ?? null,
-          });
+          };
+          const key = (entry.document?.doc_hash || signed.doc_hash || entry.hash || '').toLowerCase();
+          if (!key) continue;
+          const prev = byContent.get(key);
+          const sig = entry.document?.signatures?.length ?? 0;
+          const prevSig = prev?.document?.signatures?.length ?? 0;
+          if (!prev || sig >= prevSig) byContent.set(key, entry);
         } catch (e: any) {
           this.logger.warn(
             `ProcessRegistry: buildDocumentAggregate упал для ${delta.code}/${delta.table}.${field}: ${e?.message}`
@@ -377,7 +398,7 @@ export class ProcessRegistryService {
         }
       }
     }
-    return documents;
+    return [...byContent.values()];
   }
 
   private findDocumentFields(

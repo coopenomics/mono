@@ -14,6 +14,7 @@ const { spawnSync } = require('child_process');
 
 const controllerRoot = path.resolve(__dirname, '..');
 const schemaPath = path.join(controllerRoot, 'schema.gql');
+const zeusConfigPath = path.join(controllerRoot, 'graphql-zeus.json');
 const sdkSrc = path.resolve(controllerRoot, '..', 'sdk', 'src');
 const localZeusDir = path.join(controllerRoot, 'zeus');
 const sdkZeusDir = path.join(sdkSrc, 'zeus');
@@ -40,6 +41,12 @@ if (!fs.existsSync(sdkSrc)) {
   process.exit(1);
 }
 
+// graphql-zeus 7.x: yargs кладёт path в argv.path, а CLIClass читает args._[0].
+// Без graphql-zeus.json config-maker уходит в inquirer и «зависает» без TTY.
+if (!fs.existsSync(zeusConfigPath)) {
+  fs.writeFileSync(zeusConfigPath, `${JSON.stringify({ urlOrPath: './schema.gql' }, null, 2)}\n`, 'utf8');
+}
+
 let zeusBin;
 let zeusIsWin;
 try {
@@ -51,6 +58,7 @@ try {
 
 const zeusArgs = ['./schema.gql', '../sdk/src', '--subscriptions', 'graphql-ws'];
 const startedAt = Date.now();
+console.log('generate-client: graphql-zeus… (5–30 с без вывода — норма, не прерывайте)');
 const result = spawnSync(zeusBin, zeusArgs, {
   stdio: 'inherit',
   cwd: controllerRoot,
@@ -71,6 +79,10 @@ if (!fs.existsSync(path.join(localZeusDir, 'index.ts'))) {
   process.exit(1);
 }
 
+// Внимание: сгенерированный zeus ws-путь подписок (apiSubscription +
+// SubscriptionThunder) теряет variables и НЕ используется. Боевой транспорт —
+// sdk/src/utils/wsSubscription.ts (негенерируемый), Client.Subscription собран
+// на нём. Не переключать SDK обратно на zeus Subscription без фикса upstream.
 fs.rmSync(sdkZeusDir, { recursive: true, force: true });
 fs.cpSync(localZeusDir, sdkZeusDir, { recursive: true });
 

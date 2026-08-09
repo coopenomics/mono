@@ -21,6 +21,7 @@ import {
   OKTMO_PATTERN,
   OKVED_PATTERN,
   SFR_REG_NUMBER_PATTERN,
+  PFR_REG_NUMBER_PATTERN,
   SNILS_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
@@ -145,6 +146,12 @@ export class ZeroReportOrganizationEditsInputDTO {
   @IsString()
   @Length(1, 255)
   address!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Контактный телефон (СвНП @Тлф)' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 20)
+  phone!: string | null;
 }
 
 @ObjectType('ZeroReportOrganizationEdits')
@@ -159,6 +166,7 @@ export class ZeroReportOrganizationEditsDTO {
   @Field(() => String, { nullable: true }) okpo!: string | null;
   @Field(() => String, { nullable: true }) ogrn!: string | null;
   @Field(() => String, { nullable: true }) address!: string | null;
+  @Field(() => String, { nullable: true }) phone!: string | null;
 }
 
 // =============================================================
@@ -200,8 +208,13 @@ export class ZeroReportSignerEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — XXX-XXX-XXXXXX' })
+  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — 10 цифр' })
   sfrRegNumber!: string | null;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @Matches(PFR_REG_NUMBER_PATTERN, { message: 'Рег.номер ПФР — XXX-XXX-XXXXXX' })
+  pfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
@@ -219,6 +232,7 @@ export class ZeroReportSignerEditsDTO {
   @Field(() => String, { nullable: true }) repDoc!: string | null;
   @Field(() => String, { nullable: true }) snils!: string | null;
   @Field(() => String, { nullable: true }) sfrRegNumber!: string | null;
+  @Field(() => String, { nullable: true }) pfrRegNumber!: string | null;
   @Field(() => String, { nullable: true }) chairmanPosition!: string | null;
 }
 

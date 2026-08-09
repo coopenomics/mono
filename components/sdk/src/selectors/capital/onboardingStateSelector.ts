@@ -12,6 +12,7 @@ const onboardingStateFields = {
   onboarding_blagorost_provision_hash: true,
   blagorost_offer_template_done: true,
   onboarding_blagorost_offer_template_hash: true,
+  capital_program_doc_data_hash: true,
   onboarding_init_at: true,
   onboarding_expire_at: true,
 } as const
@@ -19,4 +20,4 @@ const onboardingStateFields = {
 // Проверка валидности
 const _validate: MakeAllFieldsRequired<ValueTypes['CapitalOnboardingState']> = onboardingStateFields
 
-export const capitalOnboardingStateSelector = Selector('CapitalOnboardingState')(onboardingStateFields as any)
+export const capitalOnboardingStateSelector = Selector('CapitalOnboardingState')(onboardingStateFields)

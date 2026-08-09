@@ -1,0 +1,3 @@
+/project/build/contracts/test/CMakeFiles/test.dir
+/project/build/contracts/test/CMakeFiles/edit_cache.dir
+/project/build/contracts/test/CMakeFiles/rebuild_cache.dir

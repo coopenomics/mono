@@ -51,6 +51,12 @@ import { ProgramKey } from '~/domain/registration/enum';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
+import {
+  EXTENSION_REPOSITORY,
+  type ExtensionDomainRepository,
+} from '~/domain/extension/repositories/extension-domain.repository';
+import type { IConfig } from '../../capital-extension.module';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте
@@ -76,7 +82,23 @@ export class ParticipationManagementInteractor {
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly documentInteractor: DocumentInteractor,
+    @Inject(EXTENSION_REPOSITORY)
+    private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
   ) { }
+
+  private async getCapitalProgramDocDataHash(): Promise<string> {
+    const extension = await this.extensionRepository.findByName('capital');
+    const hash = (extension?.config as IConfig | undefined)?.capital_program_doc_data_hash?.trim();
+
+    if (!hash) {
+      throw new HttpApiError(
+        httpStatus.BAD_REQUEST,
+        'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
+      );
+    }
+
+    return hash;
+  }
 
   /**
    * Получение отображаемого имени из аккаунта через порт расширения
@@ -313,7 +335,8 @@ export class ParticipationManagementInteractor {
     }
 
     // Извлекаем appendix_hash из метаданных документа
-    const appendix_hash = (document.meta as any).appendix_hash;
+    const documentMeta: Record<string, unknown> = document.meta;
+    const appendix_hash = typeof documentMeta.appendix_hash === 'string' ? documentMeta.appendix_hash : undefined;
 
     //TODO: адаптировать или документ или код ниже к parent_appendix_hash
     if (!appendix_hash) {
@@ -323,7 +346,20 @@ export class ParticipationManagementInteractor {
       );
     }
 
-    // Проверяем, есть ли уже запрос на рассмотрении для данного пользователя и проекта
+    // Уже подтверждённый допуск — повторный отклик не нужен
+    const confirmedAppendix =
+      await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
+        data.username,
+        data.project_hash
+      );
+    if (confirmedAppendix) {
+      throw new HttpApiError(
+        httpStatus.CONFLICT,
+        'Вы уже являетесь участником этого проекта'
+      );
+    }
+
+    // Есть незакрытый запрос на рассмотрении
     const existingAppendix =
       await this.appendixRepository.findCreatedByUsernameAndProjectHash(
         data.username,
@@ -409,7 +445,7 @@ export class ParticipationManagementInteractor {
     // ШАГ 4: Обновляем существующую запись полными данными
     savedAppendix.updateFromBlockchain(
       blockchainData,
-      Number(result.transaction?.ref_block_num) ?? 0,
+      getAppliedBlockNum(result),
       true
     );
     await this.appendixRepository.save(savedAppendix);
@@ -590,11 +626,17 @@ export class ParticipationManagementInteractor {
       );
     }
 
-    // 6. Находим родительское приложение (appendix) к родительскому проекту
-    const parentAppendix = await this.appendixRepository.findCreatedByUsernameAndProjectHash(
-      data.username,
-      parentProject.project_hash
-    );
+    // 6. Допуск к родительскому проекту: confirmed (уже участник)
+    // или created (только что отправили отклик на родителя в том же диалоге)
+    const parentAppendix =
+      (await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
+        data.username,
+        parentProject.project_hash
+      )) ??
+      (await this.appendixRepository.findCreatedByUsernameAndProjectHash(
+        data.username,
+        parentProject.project_hash
+      ));
 
     if (!parentAppendix) {
       throw new HttpApiError(
@@ -778,6 +820,7 @@ export class ParticipationManagementInteractor {
 
       // Генерируем параметры для соглашения Благорост
       await this.udataDocumentParametersService.generateBlagorostAgreementParametersIfNotExist(data.coopname, data.username);
+      const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
       blagorostAgreement = await this.documentInteractor.generateDocument({
         data: {
@@ -785,6 +828,7 @@ export class ParticipationManagementInteractor {
           username: data.username,
           lang,
           registry_id: Cooperative.Registry.BlagorostAgreement.registry_id,
+          doc_data_hash: capitalProgramDocDataHash,
         },
         options: { skip_save: false },
       });
@@ -809,6 +853,7 @@ export class ParticipationManagementInteractor {
 
       // Генерируем параметры для оферты Генератор
       await this.udataDocumentParametersService.generateGeneratorOfferParametersIfNotExist(data.coopname, data.username);
+      const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
       generatorOffer = await this.documentInteractor.generateDocument({
         data: {
@@ -816,6 +861,7 @@ export class ParticipationManagementInteractor {
           username: data.username,
           lang,
           registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
+          doc_data_hash: capitalProgramDocDataHash,
         },
         options: { skip_save: false },
       });

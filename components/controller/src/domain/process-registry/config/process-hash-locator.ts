@@ -119,6 +119,34 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
   'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
+  // marketplace — членская модель «Стола заказов». Три entity-таблицы из
+  // contracts/cpp/lib/domain/table_marketplace_*.hpp хранят сами процессы:
+  //   - `orders.hash`      — поставка имущества (заказ через каталог).
+  //   - `retrequests.hash` — гарантийный возврат имущества.
+  //   - `wroffprops.hash`  — проект решения совета о списании скоропорта.
+  // Имя поля — `hash` (а не `order_hash`/`request_hash`); все три таблицы
+  // используют один и тот же `checksum256 hash` как первичный
+  // process-якорь. Через них Phase B resolution в blockchain_deltas
+  // отдаёт current state процесса вместе с Phase-A экшенами.
+  'p.mkt.supply': [{ code: 'marketplace', table: 'orders',      field: 'hash' }],
+  'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
+  'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
+
+  // requirement b6 «Экономика КУ».
+  // p.brn.fees — распределение членских взносов КУ. Единственный сущностный
+  // якорь — заказ: при зачислении (branch::accrue) process_hash = orders.hash.
+  // Ручное распределение (branch::distribute) и перевод персональных средств
+  // (o.brn.conv) — одноактовые команды: их process_hash (round_hash /
+  // convert_hash, генерятся backend'ом) в сущностных таблицах не хранится,
+  // данные читаются из blockchain_actions (как у p.adj.fix).
+  'p.brn.fees': [{ code: 'marketplace', table: 'orders', field: 'hash' }],
+
+  // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
+  'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],
+
+  // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
+  'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
+
   // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
   // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —
   // entity-таблицы нет, данные из blockchain_actions.

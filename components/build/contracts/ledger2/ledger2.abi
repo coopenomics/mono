@@ -1,0 +1,437 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "account2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "account_type",
+                    "type": "uint8"
+                },
+                {
+                    "name": "debit_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "credit_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "balance",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "apply",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "initiator",
+                    "type": "name"
+                },
+                {
+                    "name": "operation_code",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "credit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "account_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "debit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "account_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "ledger2_meta",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "migrated",
+                    "type": "bool"
+                },
+                {
+                    "name": "migrated_coops",
+                    "type": "uint64"
+                },
+                {
+                    "name": "last_migrated_coop_index",
+                    "type": "uint64"
+                },
+                {
+                    "name": "migrated_at",
+                    "type": "time_point"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "migrate3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "wallet_name",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "available",
+                    "type": "asset"
+                },
+                {
+                    "name": "blocked",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "revert",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "initiator",
+                    "type": "name"
+                },
+                {
+                    "name": "original_operation_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "original_operation_code",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "mirror_wallet_op",
+                    "type": "uint8"
+                },
+                {
+                    "name": "mirror_wallet_from",
+                    "type": "name"
+                },
+                {
+                    "name": "mirror_wallet_to",
+                    "type": "name"
+                },
+                {
+                    "name": "mirror_debit_account_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "mirror_credit_account_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "userwallet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "wallet_name",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "available",
+                    "type": "asset"
+                },
+                {
+                    "name": "blocked",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "wallet2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "name"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "available",
+                    "type": "asset"
+                },
+                {
+                    "name": "blocked",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "walletop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "op_code",
+                    "type": "uint8"
+                },
+                {
+                    "name": "wallet_from",
+                    "type": "name"
+                },
+                {
+                    "name": "wallet_to",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "walmove",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "initiator",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "from_wallet",
+                    "type": "name"
+                },
+                {
+                    "name": "to_wallet",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "process_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "apply",
+            "type": "apply",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "credit",
+            "type": "credit",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "debit",
+            "type": "debit",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate3",
+            "type": "migrate3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "revert",
+            "type": "revert",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "walletop",
+            "type": "walletop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "walmove",
+            "type": "walmove",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accounts",
+            "type": "account2",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "meta",
+            "type": "ledger2_meta",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "userwallets",
+            "type": "userwallet",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "wallets",
+            "type": "wallet2",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

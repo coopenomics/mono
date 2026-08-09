@@ -778,6 +778,34 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
     });
   }
 
+  async allocateFunds(data: CapitalContract.Actions.Allocate.IAllocate): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.Allocate.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async deallocateFunds(data: CapitalContract.Actions.Deallocate.IDiallocate): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.Deallocate.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
   /**
    * Редактирование участника CAPITAL контракта
    */
@@ -873,7 +901,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   ): Promise<CapitalContract.Tables.Segments.ISegment | null> {
     // Создаем составной ключ для поиска по индексу by_project_user (позиция 3)
     const compositeKey = this.domainToBlockchainUtils.combineChecksumAndUsername(projectHash, username);
-    const keyUInt128 = UInt128.from(compositeKey);
+    const keyUInt128 = UInt128.from(compositeKey.toString());
 
     // Получаем сегмент из таблицы segments контракта capital
     const segment = await this.blockchainService.getSingleRow<CapitalContract.Tables.Segments.ISegment>(

@@ -1,11 +1,10 @@
 <template lang="pug">
-q-card(flat)
-  // Лоадер загрузки проектов (только при первой загрузке)
-  WindowLoader(v-if='isInitialLoading', text='')
+.projects-list-widget
+  // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
+  .projects-skeleton(v-if='isInitialLoading')
+    .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(
-    style='height: calc(100vh - 55px); overflow-y: auto'
-  )
+  .projects-scroll-area(v-else)
     q-table(
       ref='tableRef',
       :rows='projects?.items || []',
@@ -21,58 +20,55 @@ q-card(flat)
       :virtual-scroll-target='".projects-scroll-area"',
       :virtual-scroll-item-size='48',
       :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]',
-      :no-data-label='hasFiltersApplied ? "Нет результатов по фильтрам" : "Нет проектов"'
+      :rows-per-page-options='[0]'
     )
       template(#body='props')
         q-tr(
           :props='props'
         )
           q-td
-            .row.items-center(style='padding-left: 12px; min-height: 48px')
-              // Кнопка раскрытия (35px)
-              .col-auto(style='width: 35px; flex-shrink: 0')
+            .row.items-center.project-row
+              // Кнопка раскрытия
+              .col-auto.project-row__toggle
                 ExpandToggleButton(
                   :expanded='expanded[props.row.project_hash]',
                   @click='handleToggleExpand(props.row.project_hash)'
                 )
 
-              // ID с иконкой типа внутри бейджа (100px + отступ 0px)
-              .col-auto(style='width: 100px; padding-left: 0px; flex-shrink: 0')
+              // ID — плоский muted-текст фиксированной колонки (Linear-style)
+              .col-auto.project-row__id
                 EntityIdBadge(
                   v-if='props.row.id'
                   :raw-id='props.row.id'
                   copy-on-click
                   address-clipboard
+                  flat
                 )
-                  template(#prefix)
-                    q-icon(name='work', size='xs')
 
-              // Title со статусом (400px + отступ 0px)
-              .col(style='width: 400px; padding-left: 0px')
+              // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+              .col-auto.row-status
+                q-icon(
+                  :name='getProjectStatusIcon(props.row.status)',
+                  :color='getProjectStatusDotColor(props.row.status)',
+                  size='xs'
+                )
+
+              // Title
+              .col.project-row__title-col
                 .list-item-title(
                   @click.stop='handleOpenProject(props.row.project_hash)'
-                  style='display: inline-block; vertical-align: top; word-wrap: break-word; white-space: normal'
                 )
-                  q-icon(
-                    :name='getProjectStatusIcon(props.row.status)',
-                    :color='getProjectStatusDotColor(props.row.status)',
-                    size='xs'
-                  ).q-mr-sm
+                  PrivateShieldIcon(:show='props.row.origin === "local"')
                   span {{ props.row.title }}
 
-              // Actions - только CreateComponentButton (140px, выравнивание по правому краю)
-              .col-auto.ml-auto(
-                v-if='props.row.permissions?.can_edit_project'
-                style='width: 140px'
-              )
-                .row.items-center.justify-end.q-gutter-xs
-                  CreateComponentButton(
-                    :project='props.row',
-                    :mini='true',
-                    flat,
-                    @click.stop
-                  )
+              // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+              // время на уровне проекта пока скрыто — почти всегда нули
+              .col-auto.row-cells
+                .cell-time
+                .cell-side
+                .cell-actions
+                  // Мастер — ответственный за проект (зеркально исполнителям задач)
+                  SetMasterAvatar(:project='props.row')
 
         // Слот для дополнительного контента проекта (ComponentsListWidget)
         q-tr.q-virtual-scroll--with-prev(
@@ -80,20 +76,27 @@ q-card(flat)
           v-if='expanded[props.row.project_hash]',
           :key='`${props.row.project_hash}`'
         )
-          q-td(colspan='100%', style='padding: 0px !important')
+          q-td.project-row__nested(colspan='100%')
             slot(name='project-content', :project='props.row')
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет проектов' }}
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { WindowLoader } from 'src/shared/ui/Loader';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
+import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
+import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 
 const props = defineProps<{
   coopname?: string;
@@ -104,6 +107,8 @@ const props = defineProps<{
   hasIssuesWithStatuses?: string[];
   hasIssuesWithPriorities?: string[];
   master?: string;
+  /** blockchain | local | any — по умолчанию backend режет blockchain */
+  origin?: string;
 }>();
 
 const { info } = useSystemStore();
@@ -122,8 +127,13 @@ const nextPage = ref(1);
 const lastPage = ref(1);
 
 // Используем computed для projects, чтобы всегда получать актуальные данные из store
-// Это предотвращает конфликты и "передергивание" списка при разворачивании проектов
-const projects = computed(() => projectStore.projects);
+// Фильтр isProject — защита от кратковременного попадания компонента в items
+// (раньше loadProject добавлял любой hash в начало списка мастерской)
+const projects = computed(() => {
+  const raw = projectStore.projects;
+  const items = (raw.items || []).filter((p) => isProject(p));
+  return { ...raw, items };
+});
 
 // Проверяем, применены ли фильтры
 const hasFiltersApplied = computed(() => {
@@ -175,6 +185,9 @@ const loadProjects = async (page = 1, append = false) => {
     }
     if (props.master) {
       filter.master = props.master;
+    }
+    if (props.origin) {
+      filter.origin = props.origin;
     }
 
     await projectStore.loadProjects({
@@ -324,28 +337,148 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.projects-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
+}
+
+// Высоту задаёт страница (flex-колонка под шапкой и панелью фильтров);
+// fallback на полный вьюпорт минус шапка — для standalone-использования
+.projects-list-widget {
+  height: 100%;
+  min-height: 0;
+}
+
+.projects-scroll-area {
+  height: 100%;
+  max-height: calc(100vh - 55px);
+  overflow-y: auto;
+}
+
+// Структурные ширины колонок строки проекта (привязаны к
+// virtual-scroll-item-size=48 — не spacing, токенам не подлежат)
+.project-row {
+  padding-left: var(--p-3);
+  padding-right: var(--p-3);
+  min-height: 48px;
+}
+
+.project-row__toggle {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.project-row__id {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.row-status {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+// Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,
+// сами виджеты при одиночном использовании отступа не имеют
+.project-row__nested {
+  padding: 0 0 0 var(--p-7) !important;
+
+  @media (max-width: 640px) {
+    padding-left: var(--p-3) !important;
+  }
+}
+
+// Правая сетка строки — фиксированные колонки, общие для всех уровней
+// дерева (проект/компонент/задача): время | статус-инвестиции | действия
+.row-cells {
+  display: flex;
+  align-items: center;
+}
+
+.cell-time {
+  width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 132px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+
+@media (max-width: 640px) {
+  .cell-time,
+  .cell-side {
+    display: none;
+  }
+
+  .cell-actions {
+    width: auto;
+  }
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+}
+
 .q-table {
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
+    padding: 0; // строка использует внутренние отступы .project-row
   }
 }
 
-.q-chip {
-  font-weight: 500;
-}
-
-// Импорт глобального стиля для подсветки
 :deep(.list-item-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  vertical-align: top;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: var(--p-fs-body);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 </style>

@@ -36,3 +36,7 @@ yarn-error.log*
 # local .env files
 .env
 src/shared/config/Env.ts
+
+# Рантайм-конфиг SPA-dev, генерируется docs-harness из .env (см. lib/desktop-config.mjs).
+# В проде /config.js отдаёт SSR middleware; статический файл здесь его бы перехватил.
+public/config.js

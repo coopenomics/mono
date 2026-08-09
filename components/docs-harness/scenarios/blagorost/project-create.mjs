@@ -118,7 +118,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // --- Шаг 2. Открываем Мастерскую ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
   // Ждём пока FAB появится — это маркер «страница готова, контрибутор-роль детектирована».
   await page.waitForSelector('.q-fab', { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

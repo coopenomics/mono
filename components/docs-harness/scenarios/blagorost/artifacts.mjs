@@ -116,7 +116,7 @@ export default async ({ page, context, shot, env }) => {
   // Перед артефактами переводим компонент из «Ожидает» в «Активен» через UI —
   // на «Ожидает» FAB не показывает действий, артефакт не создашь.
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -144,7 +144,7 @@ export default async ({ page, context, shot, env }) => {
 
   // --- 01: список артефактов компонента ---
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/requirements`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/requirements`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -224,7 +224,7 @@ export default async ({ page, context, shot, env }) => {
 
   // --- 06: список артефактов проекта ---
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/projects/${PROJECT_HASH}/requirements`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/projects/${PROJECT_HASH}/requirements`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

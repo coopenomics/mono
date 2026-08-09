@@ -157,7 +157,6 @@ src/
 │   ├── yookassa/              #   Платёжный провайдер ЮKassa
 │   ├── sberpoll/              #   Автоматический приём через Сбербанк
 │   ├── qrpay/                 #   QR-оплата через банк
-│   ├── 1ccoop/                #   Интеграция с 1С
 │   └── orders/ (заглушка)     #   Стол заказов (в разработке)
 │
 ├── shared/                    # Общие утилиты и абстракции
@@ -438,7 +437,6 @@ AppRegistry = {
 
 - **Desktop-расширения** — предоставляют рабочий стол (UI workspace): `soviet`, `chairman`, `capital`, `participant`, `chatcoop`, `powerup`, `orders`
 - **Платёжные расширения** — реализуют `PaymentProvider` / `IPNProvider` / `PollingProvider`: `yookassa`, `sberpoll`, `qrpay`
-- **Интеграционные расширения** — синхронизация с внешними системами: `1ccoop`
 
 ### Иерархия платёжных провайдеров
 
@@ -544,18 +542,6 @@ BaseExtModule
 - **Метод**: `createPayment(hash)` — формирует URL оплаты с реквизитами кооператива из `@coopenomics/factory`
 - **Комиссия**: `fee_percent: 0%`
 - **Конфигурация**: Пустая (использует реквизиты из `constructCooperative`)
-
-### `1ccoop` — Интеграция с 1С
-- **Структура**: `domain/`, `infrastructure/`, `application/`
-- **Назначение**: Двухсторонняя синхронизация документов кооператива с бухгалтерией 1С
-- **Ключевые сервисы**:
-  - `OneCoopApplicationService` — основной сервис синхронизации
-  - `OneCoopBlockchainService` — чтение данных из блокчейна для 1С
-  - `DocumentAdapterFactoryService` — фабрика адаптеров документов
-  - `JoinCoopDocumentAdapter` — адаптер для документа вступления
-- **REST-API**: Защищён `OneCoopSecretKeyGuard` (API-ключ в заголовке)
-- **Резолвер**: `OneCoopResolver` — GraphQL-интерфейс для 1С
-- **Конфигурация**: `secret_key` (авто-генерация), `base_url`
 
 ---
 

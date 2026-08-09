@@ -102,7 +102,7 @@ export default async ({ page, context, shot, env }) => {
   // в seed-фазе 02-extension-config (dev-shortcut), но Capital extension
   // отдельно показывает «Прочитайте и подпишите» при первом входе в /capital/...
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/tasks`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/tasks`,
     { waitUntil: 'domcontentloaded' },
   );
   await killPersistentSignDialog(page);
@@ -186,7 +186,7 @@ export default async ({ page, context, shot, env }) => {
   const ekaPage = await ekaCtx.newPage();
   const eka = loadFixture('ekaterina');
   await loginAs(ekaPage, eka);
-  await ekaPage.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/tracker`, { waitUntil: 'domcontentloaded' });
+  await ekaPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/tracker`, { waitUntil: 'domcontentloaded' });
   await killPersistentSignDialog(ekaPage);
   // Ждём пока строка проекта появится в табличке tracker'а — это маркер
   // что мы дошли до /capital/tracker и контент отрендерился.

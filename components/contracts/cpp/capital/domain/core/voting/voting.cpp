@@ -104,19 +104,18 @@ namespace Capital::Core::Voting {
         result.total_voting_pool.symbol
     );
     print("12");
-    // Равная сумма на каждого
-    result.equal_voting_amount = eosio::asset(
-        int64_t(static_cast<double>(result.total_voting_pool.amount) / total_voters),
-        result.total_voting_pool.symbol
-    );
+    // Равная сумма на каждого — остаток пула после активной части.
+    //
+    // Считать её независимым делением P/N нельзя: submitvote требует
+    // active + equal == total_voting_pool, а два независимых округления вниз
+    // этот инвариант не держат. Прежняя «корректировка хвостика» добавляла к
+    // equal весь остаток P mod N, из-за чего при остатке >= 2 сумма выходила
+    // больше пула и голосование по проекту становилось невозможным вовсе
+    // (проект «Системный логотип v1»: 5419.2213 + 2709.6108 = 8128.8321 при
+    // пуле 8128.8320). Вычитание из пула делает инвариант тождественным при
+    // любом остатке; при остатке 0 и 1 значение совпадает с прежним.
+    result.equal_voting_amount = result.total_voting_pool - result.active_voting_amount;
     print("13");
-    // ---- Корректировка хвостика ----
-    int64_t distributed = result.equal_voting_amount.amount * total_voters;
-    int64_t diff = result.total_voting_pool.amount - distributed;
-    if (diff != 0) {
-        result.equal_voting_amount.amount += diff;  
-    }
-    print("14");
     return result;
   }
 

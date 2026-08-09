@@ -1,0 +1,3 @@
+/project/build/contracts/draft/CMakeFiles/draft.dir
+/project/build/contracts/draft/CMakeFiles/edit_cache.dir
+/project/build/contracts/draft/CMakeFiles/rebuild_cache.dir

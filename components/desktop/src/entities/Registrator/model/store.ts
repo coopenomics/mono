@@ -1,12 +1,18 @@
 import { defineStore } from 'pinia';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { IGeneratedAccount } from 'src/shared/lib/types/user';
 import { type IUserData } from 'src/shared/lib/types/user/IUserData';
 import type { Cooperative } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import type { IDocument, ISignatureInfo } from 'src/shared/lib/types/document';
-import { Zeus } from '@coopenomics/sdk';
+import { Zeus, Queries } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
+
+// Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
+// getRegistrationConfig, не переописывается.
+type IRegistrationProgram =
+  Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['programs'][number];
 
 const namespace = 'registrator';
 
@@ -159,13 +165,53 @@ export const useRegistratorStore = defineStore(
       () => system.info?.cooperator_account.is_branched,
     );
 
-    // Проверяем необходимость выбора программы на основе типа аккаунта
-    const requiresProgramSelection = computed(() => {
+    // Доступные программы участия. Источник истины — бэкенд
+    // (getRegistrationConfig возвращает их по coopname + типу аккаунта).
+    // Фронт ничего не хардкодит: список зависит от того, какие приложения
+    // (Благорост → Генератор/Благорост, Стол заказов → marketplace и т.д.)
+    // установлены и активированы в кооперативе.
+    const availablePrograms = ref<IRegistrationProgram[]>([]);
+
+    // Подтягиваем программы под выбранный тип аккаунта. Вызывается из шага
+    // SetUserData при переходе дальше — чтобы шаг SelectProgram уже знал,
+    // показываться ему или нет (см. requiresProgramSelection / filteredSteps).
+    const loadAvailablePrograms = async () => {
       const accountType = state.userData.type;
-      // Для voskhod показываем выбор программы для индивидуальных и предпринимательских аккаунтов
-      return system.info?.coopname === 'voskhod' &&
-             (accountType === 'individual' || accountType === 'entrepreneur');
-    });
+      if (!accountType || !system.info?.coopname) {
+        availablePrograms.value = [];
+        state.selectedProgramKey = '';
+        return;
+      }
+      try {
+        const { [Queries.System.GetRegistrationConfig.name]: config } =
+          await client.Query(Queries.System.GetRegistrationConfig.query, {
+            variables: {
+              coopname: system.info.coopname,
+              account_type: accountType,
+            },
+          });
+        availablePrograms.value = config.programs ?? [];
+      } catch (e) {
+        console.error('Ошибка загрузки программ участия:', e);
+        availablePrograms.value = [];
+      }
+      // Единственная программа — выбор не требуется, шаг скрыт, но программу
+      // всё равно привязываем к пайщику (преселект). Иначе сохраняем уже
+      // сделанный выбор, если он ещё валиден; сбрасываем — если программа
+      // больше не доступна (сменили тип аккаунта) или программ нет вовсе.
+      if (availablePrograms.value.length === 1) {
+        state.selectedProgramKey = availablePrograms.value[0].key;
+      } else if (
+        !availablePrograms.value.some((p) => p.key === state.selectedProgramKey)
+      ) {
+        state.selectedProgramKey = '';
+      }
+    };
+
+    // Выбор программы нужен только когда реально есть из чего выбирать (2+).
+    const requiresProgramSelection = computed(
+      () => availablePrograms.value.length > 1,
+    );
 
     const filteredSteps = computed(() =>
       stepNames.filter((step) => {
@@ -173,6 +219,13 @@ export const useRegistratorStore = defineStore(
         if (step === 'SelectProgram' && !requiresProgramSelection.value) return false;
         return true;
       }),
+    );
+
+    // Индексы видимых шагов (1-based, в исходном порядке stepNames). По ним
+    // ходят next/prev — чтобы скрытые шаги (SelectBranch без филиалов,
+    // SelectProgram без выбора) перешагивались, а не давали пустой экран.
+    const visibleStepIndices = computed(() =>
+      filteredSteps.value.map((name) => steps[name]).sort((a, b) => a - b),
     );
 
     const isStepDone = (stepName: StepName) => {
@@ -186,14 +239,17 @@ export const useRegistratorStore = defineStore(
     };
 
     const next = () => {
-      if (state.step < filteredSteps.value.length) {
-        state.step += 1;
-      }
+      const target = visibleStepIndices.value.find((i) => i > state.step);
+      if (target !== undefined) state.step = target;
     };
 
     const prev = () => {
-      if (state.step > 1) {
-        state.step -= 1;
+      const visible = visibleStepIndices.value;
+      for (let i = visible.length - 1; i >= 0; i--) {
+        if (visible[i] < state.step) {
+          state.step = visible[i];
+          break;
+        }
       }
     };
 
@@ -234,6 +290,7 @@ export const useRegistratorStore = defineStore(
       state.step = 1;
       state.selectedBranch = '';
       state.selectedProgramKey = '';
+      availablePrograms.value = [];
       state.email = '';
       state.account = structuredClone(initialAccountState);
       state.agreements = structuredClone(initialAgreementsState);
@@ -251,6 +308,9 @@ export const useRegistratorStore = defineStore(
       state,
       steps,
       filteredSteps,
+      availablePrograms,
+      requiresProgramSelection,
+      loadAvailablePrograms,
       next,
       prev,
       goTo,

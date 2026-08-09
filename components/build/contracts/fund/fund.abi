@@ -1,0 +1,750 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "accfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "percent",
+                    "type": "uint64"
+                },
+                {
+                    "name": "available",
+                    "type": "asset"
+                },
+                {
+                    "name": "withdrawed",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "accumfee",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addaccum",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addcirculate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addexpense",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addinitial",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "authorize",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "complete",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "coopwallet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "circulating_account",
+                    "type": "simple_wallet"
+                },
+                {
+                    "name": "initial_account",
+                    "type": "simple_wallet"
+                },
+                {
+                    "name": "accumulative_account",
+                    "type": "simple_wallet"
+                },
+                {
+                    "name": "accumulative_expense_account",
+                    "type": "simple_wallet"
+                }
+            ]
+        },
+        {
+            "name": "counts",
+            "base": "counts_base",
+            "fields": []
+        },
+        {
+            "name": "counts_base",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "name"
+                },
+                {
+                    "name": "secondary_key",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "createfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "percent",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "delfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "editfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "percent",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "expfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "expended",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "fundwithdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "document",
+                    "type": "document2"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "bank_data_id",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "fwithdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "document",
+                    "type": "document2"
+                },
+                {
+                    "name": "bank_data_id",
+                    "type": "string"
+                },
+                {
+                    "name": "expired_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "newfund",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "newwithdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "simple_wallet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "available",
+                    "type": "asset"
+                },
+                {
+                    "name": "withdrawed",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "spreadamount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "subaccum",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "subcirculate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "skip_available_check",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "subinitial",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "accumfee",
+            "type": "accumfee",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addaccum",
+            "type": "addaccum",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addcirculate",
+            "type": "addcirculate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addexpense",
+            "type": "addexpense",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addinitial",
+            "type": "addinitial",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "authorize",
+            "type": "authorize",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "complete",
+            "type": "complete",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createfund",
+            "type": "createfund",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delfund",
+            "type": "delfund",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editfund",
+            "type": "editfund",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "fundwithdraw",
+            "type": "fundwithdraw",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newfund",
+            "type": "newfund",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newwithdraw",
+            "type": "newwithdraw",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "spreadamount",
+            "type": "spreadamount",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "subaccum",
+            "type": "subaccum",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "subcirculate",
+            "type": "subcirculate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "subinitial",
+            "type": "subinitial",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accfunds",
+            "type": "accfund",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "coopwallet",
+            "type": "coopwallet",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "counts",
+            "type": "counts",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "expfunds",
+            "type": "expfund",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "fwithdraws",
+            "type": "fwithdraw",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

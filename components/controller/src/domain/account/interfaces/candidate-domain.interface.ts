@@ -18,9 +18,13 @@ export interface CandidateDomainInterface {
     signature_agreement?: ISignedDocumentDomainInterface;
     privacy_agreement?: ISignedDocumentDomainInterface;
     user_agreement?: ISignedDocumentDomainInterface;
+    /** @deprecated legacy capital — новые оферты → program_agreements */
     blagorost_offer?: ISignedDocumentDomainInterface;
+    /** @deprecated legacy capital — новые оферты → program_agreements */
     generator_offer?: ISignedDocumentDomainInterface;
   };
+  /** Подписанные оферты расширений по agreement_id из AgreementRegistry. */
+  program_agreements?: Record<string, ISignedDocumentDomainInterface>;
   registration_hash: string;
   referer?: string;
   public_key: string;

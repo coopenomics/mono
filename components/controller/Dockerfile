@@ -37,7 +37,9 @@ RUN apt-get update && apt-get install -y \
 # Иначе weasyprint парсил бы ~270 КБ TTF на каждый рендер (≈1.3 сек/документ).
 # Системный шрифт fontconfig парсит один раз и кеширует. Файл тот же —
 # глифы/вёрстка идентичны прежним.
-COPY assets/fonts/arial.ttf /usr/share/fonts/truetype/arial/arial.ttf
+# Путь от корня репозитория: build-context у coopback — `./` (docker-compose.yaml),
+# а не `components/controller/`.
+COPY components/controller/assets/fonts/arial.ttf /usr/share/fonts/truetype/arial/arial.ttf
 RUN fc-cache -f && fc-match Arial
 
 # Установка пути к виртуальному окружению в PATH

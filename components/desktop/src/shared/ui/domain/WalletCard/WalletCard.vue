@@ -7,25 +7,27 @@
       <q-icon :name="resolvedIcon" />
     </span>
 
-    <div class="wallet__main">
-      <div class="wallet__title" :title="resolvedTitle">{{ resolvedTitle }}</div>
-      <div v-if="subtitle" class="wallet__sub" :title="subtitle">{{ subtitle }}</div>
-    </div>
-
-    <div class="wallet__amount">
-      <div class="wallet__metric">
-        <div class="wallet__metric-val">
-          <template v-if="loading">—</template>
-          <template v-else-if="empty">0,00<span class="ccy">{{ symbol }}</span></template>
-          <template v-else>{{ balance }}<span class="ccy">{{ symbol }}</span></template>
-        </div>
-        <div class="wallet__metric-label">{{ balanceLabel ?? 'Доступно' }}</div>
+    <div class="wallet__body">
+      <div class="wallet__main">
+        <div class="wallet__title" :title="resolvedTitle">{{ resolvedTitle }}</div>
+        <div v-if="subtitle" class="wallet__sub" :title="subtitle">{{ subtitle }}</div>
       </div>
 
-      <div v-if="lockedBalance !== undefined" class="wallet__locked-line">
-        <q-icon name="lock" />
-        {{ lockedLabel ?? 'Заблокировано' }}: <b>{{ lockedBalance }}</b>
-        <span class="ccy">&nbsp;{{ symbol }}</span>
+      <div class="wallet__amount">
+        <div class="wallet__metric">
+          <div class="wallet__metric-val">
+            <template v-if="loading">—</template>
+            <template v-else-if="empty">0,00<span class="ccy">{{ symbol }}</span></template>
+            <template v-else>{{ balance }}<span class="ccy">{{ symbol }}</span></template>
+          </div>
+          <div class="wallet__metric-label">{{ balanceLabel ?? 'Доступно' }}</div>
+        </div>
+
+        <div v-if="lockedBalance !== undefined" class="wallet__locked-line">
+          <q-icon name="lock" />
+          {{ lockedLabel ?? 'Заблокировано' }}: <b>{{ lockedBalance }}</b>
+          <span class="ccy">&nbsp;{{ symbol }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -62,11 +64,13 @@ const resolvedIcon = computed(
 );
 
 const progStyle = computed<CSSProperties>(() => {
-  // Нейтральная карточка (или без программы) — приглушённая иконка без акцента.
+  // Нейтральная карточка (или без программы) — иконка на surface-3,
+  // не на canvas-2: иначе в dark icon-tile сливается с фоном карточки
+  // (surface #141416 ≈ canvas-2 #111113).
   if (props.neutral || !props.program) {
     return {
-      '--prog-bg': 'var(--p-canvas-2)',
-      '--prog-fg': 'var(--p-ink-2)',
+      '--prog-bg': 'var(--p-surface-3)',
+      '--prog-fg': 'var(--p-ink-1)',
     } as CSSProperties;
   }
   return {
@@ -75,21 +79,3 @@ const progStyle = computed<CSSProperties>(() => {
   } as CSSProperties;
 });
 </script>
-
-<style scoped>
-/* Заголовок и подпись не обрезаются в одну строку (canon nowrap) и не бегут
-   marquee'й — переносятся максимум на две строки с «…» в конце. Полный текст
-   всегда доступен в title-тултипе. */
-.wallet__title,
-.wallet__sub {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-}
-.wallet__title {
-  line-height: var(--p-lh-h3);
-}
-</style>

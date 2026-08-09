@@ -1,9 +1,10 @@
 <template lang="pug">
-div
-
+.component-tasks-page
   // Таблица задач компонента
   IssuesListWidget(
     :project-hash='projectHash',
+    :can-manage-issues='!!project?.permissions?.can_manage_issues',
+    :is-private='project?.origin === "local"',
     @issue-click='handleIssueClick'
   )
 </template>
@@ -16,10 +17,12 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert } from 'src/shared/api';
 import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidget';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const { routeName } = useCapitalWorkspaceRoutes();
 
 // Состояние проекта
 const project = ref<IProject | null | undefined>(null);
@@ -29,16 +32,17 @@ const projectHash = computed(() => route.params.project_hash as string);
 
 // Загрузка проекта из store (родитель уже должен загрузить)
 const loadProject = async () => {
-  // Ищем проект в store
-  const foundProject = projectStore.projects.items.find(p => p.project_hash === projectHash.value);
+  // Ищем в кэше / списке / вложенных components
+  const foundProject = projectStore.getProject(projectHash.value);
   if (foundProject) {
     project.value = foundProject;
   } else {
     // Если проект не найден в store, пробуем загрузить
     try {
-      await projectStore.loadProject({
+      const loaded = await projectStore.loadProject({
         hash: projectHash.value,
       });
+      project.value = (loaded as IProject | undefined) ?? null;
     } catch (error) {
       console.error('Ошибка при загрузке компонента:', error);
       FailAlert('Не удалось загрузить компонент');
@@ -49,26 +53,21 @@ const loadProject = async () => {
 // Обработчик клика по задаче
 const handleIssueClick = (issue: IIssue) => {
   router.push({
-    name: 'component-issue',
+    name: routeName('component-issue-description'),
     params: {
       project_hash: projectHash.value,
       issue_hash: issue.issue_hash,
     },
-    query: {
-      _backRoute: 'component-tasks'
-    }
   });
 };
 
 // Watcher для синхронизации локального состояния с store
-watch(() => projectStore.projects.items, (newItems) => {
-  if (newItems && projectHash.value) {
-    const foundProject = newItems.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
-  }
-});
+watch(
+  () => projectStore.entities[projectHash.value],
+  (entity) => {
+    if (entity) project.value = entity;
+  },
+);
 
 // Watcher для изменения projectHash
 watch(projectHash, async (newHash, oldHash) => {
@@ -84,4 +83,9 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Заполняет page-surface, чтобы IssuesListWidget мог взять height: 100%
+.component-tasks-page {
+  height: 100%;
+  min-height: 100%;
+}
 </style>

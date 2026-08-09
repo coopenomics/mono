@@ -33,6 +33,15 @@ import {
 import { signReadUrl } from './signing';
 
 /**
+ * Окно стабилизации signed-URL чтения (сек). `exp` округляется к границе окна,
+ * поэтому повторные `getReadUrl` для одного объекта в пределах окна дают
+ * идентичный URL. Без этого каждый запрос (например, 30-секундный polling
+ * списка «Мои предложения») генерировал новый `exp`/`sig` → у `<img>` менялся
+ * `src` → браузер перекачивал картинку и мигал лоудером.
+ */
+const READ_URL_STABILIZATION_WINDOW_SECONDS = 300;
+
+/**
  * Адаптер `InterFileStoragePort` поверх MinIO/S3. Реализация одна и та же для обоих —
  * различается только `endpoint` и `forcePathStyle`. На bootstrap идемпотентно создаёт
  * физический бакет, дальше отдаёт `InterFileStorageBucket`-хэндлы по спекам.
@@ -203,7 +212,15 @@ class MinioBucketHandle implements InterFileStorageBucket {
 
   async getReadUrl(key: string, opts?: InterFileStorageGetReadUrlOptions): Promise<string> {
     const ttl = opts?.ttlSeconds ?? this.defaultTtlSeconds;
-    const exp = Math.floor(Date.now() / 1000) + ttl;
+    // Округляем exp вверх к границе окна стабилизации: один и тот же объект
+    // при повторных запросах даёт идентичный URL (см.
+    // READ_URL_STABILIZATION_WINDOW_SECONDS). exp всегда ≥ now+ttl —
+    // эффективный TTL клиента от ttl до ttl+окно, подпись валидна.
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowStart =
+      Math.floor(nowSec / READ_URL_STABILIZATION_WINDOW_SECONDS) *
+      READ_URL_STABILIZATION_WINDOW_SECONDS;
+    const exp = windowStart + READ_URL_STABILIZATION_WINDOW_SECONDS + ttl;
     const sig = signReadUrl({
       bucket: this.publicBucketName,
       key,

@@ -343,6 +343,11 @@ export interface IDeletebranch {
   braname: IName
 }
 
+export interface IDelpartcpnt {
+  coopname: IName
+  username: IName
+}
+
 export interface IDisableprog {
   coopname: IName
   program_id: IUint64

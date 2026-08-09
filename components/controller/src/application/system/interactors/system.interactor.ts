@@ -36,6 +36,7 @@ import {
   PaymentMethodDomainPort,
 } from '~/domain/payment-method/ports/payment-method-domain.port';
 import { LoadContactsInteractor } from './load-contacts.interactor';
+import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
 
 @Injectable()
 export class SystemInteractor {
@@ -306,5 +307,10 @@ export class SystemInteractor {
    */
   async updateSettings(updates: UpdateSettingsInputDomainInterface): Promise<SettingsDomainEntity> {
     return this.settingsDomainPort.updateSettings(updates);
+  }
+
+  async getRegistrationOpenStatus(): Promise<boolean> {
+    const vars = await this.varsRepository.get();
+    return isRegistrationOpen(vars);
   }
 }

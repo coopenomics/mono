@@ -52,7 +52,7 @@ export default async ({ page, shot }) => {
   console.log(`[08] base=${env.BASE_URL} coop=${env.COOPNAME}`);
 
   // ---- шаг 1: ключ установки ---------------------------------------------
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/install`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/install`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
   });

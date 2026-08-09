@@ -25,21 +25,60 @@ declare global {
   }
 }
 
+/**
+ * Перезагрузка на свежую версию: сброс кэша навигаций + cache-bust URL.
+ * Обычный location.reload() часто оставляет старый документ в HTTP/SW-кэше.
+ * Дублирует src/shared/lib/hardReload.ts (src-pwa не всегда резолвит src/) —
+ * правки держать синхронными, включая список удаляемых кэшей.
+ *
+ * Precache НЕ удаляем: ассеты хешированы, а его снос заставляет свежий SW
+ * тянуть ~19 МБ повторно и кладёт SSR-ноду в 504 (инцидент 2026-08-08).
+ */
+async function hardReload(): Promise<void> {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key.includes('navigations'))
+          .map((key) => caches.delete(key)),
+      );
+    }
+  } catch (error) {
+    if (isVerbose) console.warn('[hardReload] не удалось очистить кэш навигаций', error);
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set('_cr', String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 // Флаг на уровне модуля — доступен как из блока регистрации SW, так и из controllerchange.
-// Перезагрузка происходит ТОЛЬКО при подтверждённом обновлении (callback updated).
+// ВЗВОДИТСЯ ТОЛЬКО В applyUpdate(), то есть по кнопке «Обновить» в тосте.
+//
+// Раньше он взводился в lifecycle-callback `updated()` — то есть просто по факту
+// установки нового SW в waiting. Тогда любая смена контроллера (SKIP_WAITING из
+// СОСЕДНЕЙ вкладки, автоактивация после ухода последнего клиента старого SW)
+// перезагружала вкладку, которую пользователь не трогал. Обновление обязано
+// оставаться решением пользователя: тост показываем, перезагружаем по клику.
 let hasPendingUpdate = false;
 let isReloading = false;
 
-// Автоматическая перезагрузка при смене SW-контроллера.
-// updated callback устанавливает hasPendingUpdate = true → skipWaiting активирует новый SW
-// → controllerchange срабатывает → перезагружаем страницу с новыми чанками.
+// Единая точка перезагрузки: гарантирует, что hardReload случится ровно один раз.
+// Без этого applyUpdate() и controllerchange вызывали её дважды подряд — наблюдалось
+// два `_cr` с разницей 26 секунд, второй запрос при живом первом (инцидент 2026-08-08).
+function reloadOnce(reason: string): void {
+  if (isReloading) return;
+  isReloading = true;
+  if (isVerbose) console.log(`🔄 Перезагрузка на новую версию (${reason})`);
+  void hardReload();
+}
+
+// Смена SW-контроллера перезагружает вкладку ТОЛЬКО если обновление запросили
+// именно в ней (hasPendingUpdate взведён в applyUpdate). Иначе новый SW просто
+// становится активным, а пользователь продолжает работать до своего клика.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!isReloading && hasPendingUpdate) {
-      isReloading = true;
-      if (isVerbose) console.log('🔄 Автоматическая перезагрузка из-за обновления SW');
-      window.location.reload();
-    }
+    if (hasPendingUpdate) reloadOnce('controllerchange');
   });
 }
 
@@ -63,6 +102,14 @@ if (!shouldRegisterSW) {
   }
   // Не регистрируем новый service worker
   if (isVerbose) console.log('Service Worker не будет зарегистрирован');
+
+  // Тост «Обновить» всё равно должен делать hard reload (не soft location.reload)
+  window.applyUpdate = () => {
+    reloadOnce('SW отключён');
+  };
+  window.checkForUpdate = () => {
+    if (isVerbose) console.log('Service Worker не зарегистрирован');
+  };
 } else {
   if (isVerbose)
     console.log(
@@ -78,20 +125,21 @@ if (!shouldRegisterSW) {
   // Применение обновления (доступно глобально через window). Вызывается из тоста
   // version-watch. НЕ зависит от того, выстрелил ли lifecycle-callback `updated`:
   // - если есть готовый waiting-SW → активируем его (SKIP_WAITING), перезагрузка
-  //   произойдёт через глобальный controllerchange-слушатель;
-  // - если waiting нет (SW ещё не подготовил бандл или его нет вовсе) → просто
-  //   перезагружаем; свежий index/бандлы придут из SSR/сети (useFilenameHashes).
+  //   произойдёт через глобальный controllerchange-слушатель (hardReload);
+  // - если waiting нет → сразу hardReload (сброс кэша навигаций + cache-bust).
   const applyUpdate = function () {
     if (refreshing) return;
     refreshing = true;
-    hasPendingUpdate = true; // разрешаем reload по controllerchange
+    hasPendingUpdate = true; // разрешаем reload по controllerchange — только отсюда
 
-    if (isVerbose) console.log('Применяем обновление...');
+    if (isVerbose) console.log('Применяем обновление по кнопке «Обновить»...');
 
     if (registrationInstance && registrationInstance.waiting) {
       registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
+      // На случай если controllerchange не придёт — fallback через короткое ожидание
+      window.setTimeout(() => reloadOnce('fallback после SKIP_WAITING'), 1500);
     } else {
-      window.location.reload();
+      reloadOnce('waiting-SW нет');
     }
   };
 
@@ -138,12 +186,15 @@ if (!shouldRegisterSW) {
       if (isVerbose)
         console.log('Service Worker зарегистрирован:', registration);
 
+      // Сразу после регистрации ищем новый SW (холодный заход после деплоя).
+      void registration.update();
+
       // Проверяем обновления только при фокусе окна
-      let updateInterval;
+      let updateInterval: ReturnType<typeof setTimeout> | null = null;
 
       const checkForUpdates = () => {
         if (document.visibilityState === 'visible') {
-          registration.update();
+          void registration.update();
         }
       };
 
@@ -191,8 +242,11 @@ if (!shouldRegisterSW) {
           registration,
         );
 
-      // Готовый waiting-SW — позволяет applyUpdate() активировать его без reload «вслепую».
-      hasPendingUpdate = true;
+      // Держим registration под рукой: applyUpdate() активирует waiting-SW
+      // через SKIP_WAITING, а не перезагружает «вслепую».
+      // hasPendingUpdate здесь НЕ взводим — новый SW готов, но перезагрузка
+      // остаётся решением пользователя (кнопка «Обновить» в тосте).
+      registrationInstance = registration;
 
       // НЕ показываем тост отсюда: lifecycle service worker'а ненадёжен (iOS
       // standalone PWA не пробрасывает событие, первая установка шлёт `cached`,

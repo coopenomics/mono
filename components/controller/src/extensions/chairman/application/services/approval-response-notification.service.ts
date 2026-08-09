@@ -115,11 +115,17 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       // Получаем отображаемое имя автора
       const authorName = await this.accountPort.getDisplayName(authorUsername);
 
+      // Предмет запроса для текста уведомления — заголовок документа одобрения.
+      // WHY: раньше в тексте фигурировал approval_hash — пользователю он ничего
+      // не сообщает, а 64 символа без пробелов ломают вёрстку in-app/push.
+      const requestTitle = approval.document?.meta?.title?.trim() || 'Запрос на одобрение действия';
+
       // Формируем данные для workflow
       const payload: Workflows.ApprovalResponse.IPayload = {
         userName: authorName,
         approvalStatus: status,
         approvalStatusText: status === ApprovalStatus.APPROVED ? 'одобрен' : 'отклонён',
+        requestTitle,
         approvalId: approvalHash,
         coopname: config.coopname,
         coopShortName,

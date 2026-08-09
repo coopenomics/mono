@@ -88,4 +88,17 @@ export class PaymentEntity implements PaymentDomainInterface {
 
   @Column('json', { nullable: true })
   statement?: ISignedDocumentDomainInterface;
+
+  /**
+   * Связь с extension, инициировавшим платёж. Заполняется для системных
+   * outgoing_payment'ов (например, marketplace выплачивает поставщику без
+   * пользовательского `statement`). Для обычных пайщик-инициированных
+   * платежей оба поля остаются NULL — кассирский стол отображает их в
+   * общей ленте без extension-маркера. Story 598-17 / AR35.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  related_extension?: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  related_entity_id?: string | null;
 }

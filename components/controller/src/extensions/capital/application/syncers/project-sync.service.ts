@@ -14,6 +14,7 @@ import {
   type ICapitalProjectCreatedPayload,
 } from '~/shared/constants/capital-project-matrix.events';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
 
@@ -117,7 +118,7 @@ export class ProjectSyncService
 
     const projectEntity = await this.repository.createIfNotExists(
       processedBlockchainProject,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 

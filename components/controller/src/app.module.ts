@@ -32,7 +32,6 @@ import { ParticipantDomainModule } from './domain/participant/participant-domain
 import { AuthDomainModule } from './domain/auth/auth.module';
 import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
-import { CooplaceDomainModule } from './domain/cooplace/cooplace.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
 import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
@@ -62,8 +61,8 @@ import { DecisionAuthorizeModule } from './application/decision/decision.module'
 import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
-import { CooplaceModule } from './application/cooplace/cooplace.module';
 import { DesktopModule } from './application/desktop/desktop.module';
+import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
@@ -78,10 +77,13 @@ import { UserModule } from './application/user/user.module';
 import { TokenApplicationModule } from './application/token/token-application.module';
 import { SettingsApplicationModule } from './application/settings/settings.module';
 import { RegistrationModule } from './application/registration/registration.module';
+import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
+import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
+import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
   imports: [
@@ -135,7 +137,6 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DocumentDomainModule,
     FreeDecisionDomainModule,
     ParticipantDomainModule,
-    CooplaceDomainModule,
     MeetDomainModule,
     GatewayDomainModule,
     VaultDomainModule,
@@ -152,6 +153,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DecisionAuthorizeModule,
     AppStoreModule,
     AuthModule,
+    ExtensionGrantsModule,
     DesktopModule,
     BranchModule,
     LoggerModule,
@@ -162,7 +164,6 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DocumentModule,
     DecisionModule,
     ParticipantModule,
-    CooplaceModule,
     MeetModule,
     GatewayModule,
     WalletModule,
@@ -177,9 +178,13 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     TokenApplicationModule,
     SettingsApplicationModule,
     RegistrationModule,
+    MembershipExitModule,
     OnboardingApplicationModule,
     SearchModule,
     SignedDocumentsModule,
+    // Marketplace extensions
+    MarketplacePluginModule,
+    MarketplaceCardsModule,
   ],
   providers: [
     {

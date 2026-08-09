@@ -1,7 +1,7 @@
 // ========== ./dto/extension-graphql.dto.ts ==========
 import { ObjectType, Field } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import type { IRegistryExtension, IDesktopConfig } from '~/extensions/extensions.registry';
+import type { IResolvedRegistryExtension, IDesktopConfig } from '~/extensions/extensions.registry';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 
 /**
@@ -27,7 +27,7 @@ export class DesktopConfigDTO implements IDesktopConfig {
  * Оно реализует ExtensionDomainInterface, но содержит и дополнительные поля (title, tags...).
  */
 @ObjectType('Extension')
-export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 'readme' | 'instructions' | 'class'> {
+export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtension, 'readme' | 'instructions' | 'class'> {
   @Field(() => String, { description: 'Уникальное имя расширения' })
   name: string;
 
@@ -88,7 +88,11 @@ export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 're
   // Внутреннее поле для миграций (не экспортируется в GraphQL)
   pluginClass: any;
 
-  constructor(name: string, registryData: IRegistryExtension, installedExtension: ExtensionDomainEntity<TConfig> | null) {
+  constructor(
+    name: string,
+    registryData: IResolvedRegistryExtension,
+    installedExtension: ExtensionDomainEntity<TConfig> | null
+  ) {
     this.name = name;
     this.is_available = registryData.is_available;
     this.is_internal = registryData.is_internal;

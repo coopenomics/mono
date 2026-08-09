@@ -64,6 +64,30 @@ Workflow:
 
 **Анти-паттерн:** worktree от `feat/1-2-...`, потом от `feat/1-3-...`, и каждый PR в `marketplace2`. Цепочка branches правильная (изоляция), но цепочка PR — нет. Кейс Эпика 1 Стола заказов 2026-05-14: 11 PR `#370-#380` подряд от `marketplace2`, каждый +N stories назад. Пользователь дошёл до review #372 и обнаружил дубли. Закрыл #372-#379, оставил только #380.
 
+## Сборка контрактов на ARM-машине
+
+Скрипты `components/contracts/build-all.sh` и `build.sh` хардкодят образ
+`dicoop/blockchain:latest`, который опубликован **только под `linux/amd64`** —
+на ARM (Raspberry Pi 5, Apple Silicon без qemu-binfmt и пр.) `docker run` падает
+с `exec /bin/bash: exec format error` сразу после старта контейнера.
+
+**Для ARM использовать multi-arch образ `dicoop/blockchain_v5.1.1:dev`** —
+у него тег `dev` указывает на manifest list с нативными `dev-arm64` и
+`dev-amd64` под капотом. Запуск:
+
+```bash
+cd components/contracts
+rm -rf build && mkdir build
+docker run --rm --name cdt \
+  --volume "$(pwd)/:/project" \
+  -w /project/build \
+  dicoop/blockchain_v5.1.1:dev \
+  /bin/bash -c "cmake -DBUILD_TARGET='marketplace' -DTEST_TARGET= -DVERBOSE=ON -DBUILD_TESTS=OFF -DIS_TESTNET=OFF .. && make -j2"
+```
+
+Замена образа в build-скриптах на ARM — отдельный фикс (этот файл документирует
+рабочий обход, пока скрипты не перевели на multi-arch манифест глобально).
+
 ## Локальные тесты
 
 **Не запускать полный jest локально** ни в mono-ai-1, ни в mono-ai-4: живой dev-стек в docker (`nodeos`, `controller dev` nodemon, `parser dev`, `n8n`) вешает CPU/RAM и блокирует chain. Полный suite — задача CI после push'а PR.
@@ -74,9 +98,49 @@ Workflow:
 pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInBand
 ```
 
-`pnpm generate-schema` / `pnpm generate-client` — **не запускать локально**; та же memory/CPU полка вешает контейнер controller'а. Либо CI, либо пользователь сам когда контейнер остановлен.
+`pnpm generate-schema` / `pnpm generate-client` — **МОЖНО и НУЖНО запускать когда требуется** (разрешено пользователем явно). Любое изменение GraphQL-сигнатуры резолвера или типов контрактов обязано сопровождаться полным циклом регенерации (generate-schema → generate-client → sdk build, при правках cooptypes — ещё и cooptypes build), чтобы desktop получил актуальные типы. Не оставлять заглушку «до regen».
 
 Перед коммитом достаточно `tsc --noEmit` (быстрый, не блокирует).
+
+## ТЕСТЫ НА НОВЫЕ ФИЧИ — ОБЯЗАТЕЛЬНЫ
+
+**Любую значимую фичу покрываю тестами до пуша. Сам, без напоминаний.**
+Значимый код: `controller/src/{extensions,domain}`, `desktop/extensions`, `contracts/cpp`.
+
+Алгоритм — скилл `/feature-tests`:
+
+1. **Найти код фичи**, завести `test-registry/<домен>.<фича>.yaml`, вписать в `sources` маски, реально покрывающие её файлы (по ним гейт связывает изменения с фичей).
+2. **Перечислить ветви механически**, а не по наитию: права (не пайщик / не председатель / чужой кооператив), статусы (операция в неподходящем статусе, повтор терминального перехода), повторы и гонки (двойной клик, две подписи, повторный вебхук), границы данных (пусто, ноль, отрицательное, превышение), отказы инфраструктуры (цепь не отвечает, токен истёк, ABI устарел). Каждая ветвь — случай `kind: side` или `break`.
+3. **Спорное поведение не додумывать.** Если из кода не видно, как *должно* быть, и в стандарте не описано — `decision_needed: true` и вынести человеку списком. Тест, подогнанный под текущее поведение, превращает баг в норму.
+4. **Написать тесты по уровням:** contract — сценарий `.standard.yaml`; backend — `controller/tests/unit/<домен>/`; ui — сценарий `components/docs-harness/scenarios/`, через интерфейс, без обращения к API проекта. Отдельно API-проба теми же сценариями: интерфейс мог скрыть кнопку, сервер обязан отказать сам.
+5. **Прогнать `pnpm mutate:changed`.** Выживший мутант означает, что тест ничего не проверяет — доработать тест, не отключать мутатор.
+6. **Обновить `status` и `test`** в реестре. `passing` честен только после шага 5.
+
+Перед пушем — `pnpm check`. Гейты ловят забывчивость, а не халтуру: зелёный `check` не значит, что фича защищена, это показывают только мутации.
+
+### ПОЛНЫЕ ТЕСТЫ ЛОКАЛЬНО НЕ ЗАПУСКАТЬ
+
+**Локально гоню только те тесты, которые сейчас пишу — точечно, по файлу.**
+Полный прогон вешает сервер: пока он идёт (а идёт долго), на машине практически ничего не работает. Целиком тесты гоняет CI на релизе — для этого гейт и сделан.
+
+```
+pnpm exec jest -i tests/unit/<домен>/<мой-файл>.test.ts   # так
+pnpm exec jest -i                                          # только по прямой просьбе
+```
+
+То же про `pnpm test`, `test:unit`, `test:ci`, `test:integration` и `mutate:changed` без аргументов — это тяжёлые прогоны, запускать по явной просьбе. Мутации ограничивать изменёнными файлами.
+
+| команда | назначение |
+|---|---|
+| `pnpm check` | границы + канон + реестр, один вердикт — лёгкий, гонять свободно |
+| `pnpm registry:audit` | что покрыто и какие области кода вне реестра |
+| `pnpm exec jest -i <путь>` | **основной способ локально**: только свои тесты |
+| `pnpm mutate:changed` | мутации по изменённым файлам — тяжело, по просьбе |
+| `pnpm test:unit` | cooptypes, parser, notifications, controller — тяжело, по просьбе |
+| `pnpm test:ci` | unit + component (component нужен MongoDB) — тяжело, по просьбе |
+| `pnpm test:integration` | sdk, boot — **нужен поднятый стек**, по просьбе |
+
+CI: Actions работают на GitHub-зеркале; PR туда не попадают, поэтому триггер — `push`, а не `pull_request`. На каждый коммит в `dev` не гоняется ничего: лимиты раннеров. `check` и `typecheck` — на `push` в `testnet`/`main`, тесты — релизным гейтом (`release` объявлен `needs: tests`, красные тесты останавливают релиз). Прогнать вручную до релиза: `workflow_dispatch` у `check`/`typecheck`, а весь релизный набор тестов — пушем в ветку-полигон `ci/tests`.
 
 ## SDK login canon
 
@@ -87,6 +151,12 @@ pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInB
 4. Возвращает `{tokens: {access: {token}, refresh: {token}}, account: {username}}`.
 
 **Не дёргать `Mutations.Auth.Login` напрямую** — `LoginInput` ждёт `{email, now, signature}`, генерация подписи внутри SDK Client. Refresh: `Mutations.Auth.Refresh.mutation` с `{access_token, refresh_token}`. Канон используется в `blago-cli/src/session/index.ts` (loginInteractive) и в EMP-коннекторе `connectors/cooperative-tsk-login-connector` (Story 11.5).
+
+## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
+
+Любой кусок кода (валидация, маппинг, guard, построение payload, helper-логика), повторённый **второй раз**, обязан быть вынесен в общее: `shared/`-helper / util / базовый класс (controller) или соответствующий FSD-слой `shared/` (desktop). Это **обязательное правило**, не рекомендация — не «то тут то там стряпать одно и то же».
+
+**Триггер:** заметил второе вхождение → сразу выноси, не копируй. Применяется и в controller, и в desktop. (Зафиксировано пользователем в ревью PR #17 «Стол заказов».)
 
 ## Backend (controller) каноны
 

@@ -11,9 +11,11 @@ import { BuiltinPluginModule, BuiltinPlugin, Schema as BuiltinSchema } from './b
 import { ChairmanPluginModule, ChairmanPlugin, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
 import { ParticipantPluginModule } from './participant/participant-extension.module';
 import { Schema as ParticipantSchema } from './participant/types';
-import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
 import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+import { MarketplacePluginModule, MarketplacePlugin } from './marketplace/marketplace-extension.module';
+import { Schema as MarketplaceSchema } from './marketplace/types';
+import { KuPluginModule, KuPlugin, Schema as KuSchema } from './ku/ku-extension.module';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -26,12 +28,42 @@ export interface IDesktopConfig {
 }
 
 /**
+ * В каких сетях расширение разрешено ставить.
+ *
+ * Переключатель обкатки: приложение сначала открывают на тестовом контуре
+ * (`NON_MAINNET_ONLY`), а когда оно готово к боевой эксплуатации — здесь же,
+ * в реестре, переводят в `EVERYWHERE`.
+ */
+export enum ExtensionAvailability {
+  /** Доступно в любой сети, включая основную. */
+  EVERYWHERE = 'everywhere',
+  /** Доступно только вне основной сети — тестовый и локальный контуры. */
+  NON_MAINNET_ONLY = 'non_mainnet_only',
+  /** Недоступно нигде — расширение ещё не открыто для установки. */
+  NOWHERE = 'nowhere',
+}
+
+/**
+ * Вычисляет доступность расширения для сети, в которой работает узел.
+ */
+export function isExtensionAvailable(availability: ExtensionAvailability, isMainnet: boolean): boolean {
+  switch (availability) {
+    case ExtensionAvailability.EVERYWHERE:
+      return true;
+    case ExtensionAvailability.NON_MAINNET_ONLY:
+      return !isMainnet;
+    case ExtensionAvailability.NOWHERE:
+      return false;
+  }
+}
+
+/**
  * Основной интерфейс для описания расширения в реестре.
  * Обрати внимание: сохраняем его тут, а не в домене, чтобы не тянуть поля readme, instructions и т.д. в домен.
  */
 export interface IRegistryExtension {
   is_builtin: boolean; // признак, что расширение встроенное (?)
-  is_available: boolean; // признак, что расширение доступно для установки
+  availability: ExtensionAvailability; // в каких сетях расширение разрешено ставить
   is_internal: boolean; // признак, что расширение внутреннее
   desktops?: IDesktopConfig[]; // массив рабочих столов, которые предоставляет расширение
   external_url?: string; // ссылка на внешний ресурс
@@ -45,6 +77,13 @@ export interface IRegistryExtension {
   readme: Promise<string>; // README содержимое
   instructions: Promise<string>; // INSTALL содержимое
 
+  // Канон авторизации/онбординга столов теперь выражается через grants:
+  // расширение публикует ExtensionDesktopGrantsProvider (см.
+  // domain/desktop/ports/extension-grants.port.ts), а гейтинг до принятия ЦПП
+  // сворачивается в вычисление грантов (нет прав → стол/страница не видны).
+  // Отдельные поля onboarding_route/onboarding_desktop/isOnboarded больше не
+  // нужны. Подробности — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
+
   // Для обратной совместимости: если есть desktops, значит это desktop расширение
   get is_desktop(): boolean;
 }
@@ -52,6 +91,12 @@ export interface IRegistryExtension {
 interface INamedExtension {
   [key: string]: IRegistryExtension;
 }
+
+/**
+ * Запись реестра, у которой доступность уже вычислена под текущую сеть узла.
+ * Именно её потребляет DTO — наружу отдаётся готовый `is_available`.
+ */
+export type IResolvedRegistryExtension = Omit<IRegistryExtension, 'availability'> & { is_available: boolean };
 
 // Асинхронные функции для чтения Markdown
 function getReadmeContent(dirPath: string): Promise<string> {
@@ -69,7 +114,7 @@ export const AppRegistry: INamedExtension = {
   soviet: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'soviet',
@@ -93,7 +138,7 @@ export const AppRegistry: INamedExtension = {
   capital: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'capital',
@@ -117,7 +162,7 @@ export const AppRegistry: INamedExtension = {
   chairman: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'chairman',
@@ -141,23 +186,23 @@ export const AppRegistry: INamedExtension = {
   trustee: {
     is_builtin: true,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'trustee',
-        title: 'Стол Уполномоченного',
+        title: 'Кооперативный участок',
         icon: 'fa-solid fa-users-cog',
       },
     ],
-    title: 'Стол Уполномоченного',
-    description: 'Приложение для председателя кооперативного участка.',
+    title: 'Кооперативный участок',
+    description: 'Собрания пайщиков кооперативных участков: учреждение участков решением собрания с утверждением советом, свободные решения и приём доверенных лиц по заявлению.',
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: KuPluginModule,
+    pluginClass: KuPlugin,
+    schema: KuSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./ku'),
+    instructions: getInstructionsContent('./ku'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
@@ -165,7 +210,7 @@ export const AppRegistry: INamedExtension = {
   participant: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'participant',
@@ -189,7 +234,7 @@ export const AppRegistry: INamedExtension = {
   powerup: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'powerup',
@@ -213,9 +258,9 @@ export const AppRegistry: INamedExtension = {
   yookassa: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'YOOKASSA',
+    title: 'Оплата по Yookassa',
     description: 'Приложение для приёма платежей с помощью ЮКасса. Для использования необходимо установить API-ключ.',
     image: 'https://i.ibb.co/Hq6CJFj/Yookassa-Image.png',
     class: YookassaPluginModule,
@@ -231,9 +276,9 @@ export const AppRegistry: INamedExtension = {
   sberpoll: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'SBERKASSA',
+    title: 'Приём платежей на р/с в Сбере',
     description: 'Приложение для автоматического приёма паевых взносов в Сбербанке.',
     image: 'https://i.ibb.co/5rQTPLN/sber.png',
     class: SberpollPluginModule,
@@ -249,9 +294,9 @@ export const AppRegistry: INamedExtension = {
   qrpay: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'QR-CODE',
+    title: 'Оплата по QR',
     description: 'Приложение для выставления QR-счёта на оплату из любого банковского приложения.',
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: QrPayPluginModule,
@@ -267,7 +312,7 @@ export const AppRegistry: INamedExtension = {
   chatcoop: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'chatcoop',
@@ -288,28 +333,10 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
-  onecoop: {
-    is_builtin: false,
-    is_internal: true,
-    is_available: false,
-    desktops: undefined, // Это не desktop расширение
-    title: 'Интеграция 1С',
-    description: 'Приложение для синхронизации документов кооператива с внешней бухгалтерией 1С.',
-    image: 'https://foni.papik.pro/uploads/posts/2024-10/foni-papik-pro-avs3-p-kartinki-logo-1s-na-prozrachnom-fone-23.png',
-    class: OneCoopPluginModule,
-    pluginClass: OneCoopPlugin,
-    schema: OneCoopSchema,
-    tags: ['интеграция', 'бухгалтерия', '1с'],
-    readme: getReadmeContent('./1ccoop'),
-    instructions: getInstructionsContent('./1ccoop'),
-    get is_desktop() {
-      return !!this.desktops && this.desktops.length > 0;
-    },
-  },
   reports: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'reports',
@@ -330,26 +357,53 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
-  orders: {
+  market: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
+    // остаётся закрытым, пока здесь не поставят EVERYWHERE.
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
+    // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
+    // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
+    // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
+    // Если стол не объявлен в этом списке — его маршруты молча теряются.
+    // Видимость столов/страниц — канон авторизации (grants): backend
+    // (MarketplaceDesktopGrantsProvider) выдаёт права текущему пользователю,
+    // фронт сверяет с ними `meta.requires` маршрутов. До принятия ЦПП советом
+    // у председателя только Extension:configure (страница подключения), у
+    // остальных — пусто; после принятия — полный набор по ролям.
     desktops: [
       {
-        name: 'orders',
-        title: 'Стол заказов',
-        icon: 'fa-solid fa-shopping-cart',
+        name: 'market',
+        title: 'Стол заказчика',
+        icon: 'fa-solid fa-cart-shopping',
+      },
+      {
+        name: 'market-supplier',
+        title: 'Стол поставщика',
+        icon: 'fa-solid fa-store',
+      },
+      {
+        name: 'market-pvz',
+        title: 'Стол ПВЗ',
+        icon: 'fa-solid fa-map-location-dot',
+      },
+      {
+        name: 'market-admin',
+        title: 'Стол администратора',
+        icon: 'fa-solid fa-shield-halved',
       },
     ],
     title: 'Стол заказов',
     description: 'Приложение для заказа и поставки имущества в кооперативе.',
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: MarketplacePluginModule,
+    pluginClass: MarketplacePlugin,
+    schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./orders'),
-    instructions: getInstructionsContent('./orders'),
+    readme: getReadmeContent('./marketplace'),
+    instructions: getInstructionsContent('./marketplace'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

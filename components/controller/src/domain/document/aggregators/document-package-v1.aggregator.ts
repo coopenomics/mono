@@ -6,7 +6,7 @@ import {
   UserCertificateDomainService,
   USER_CERTIFICATE_DOMAIN_SERVICE,
 } from '~/domain/user/services/user-certificate-domain.service';
-import { Cooperative, SovietContract, WalletContract } from 'cooptypes';
+import { Cooperative, SovietContract } from 'cooptypes';
 import { getActions } from '~/utils/getFetch';
 import type { DocumentPackageAggregateDomainInterface } from '../interfaces/document-package-aggregate-domain.interface';
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
@@ -270,7 +270,10 @@ export class DocumentPackageV1Aggregator {
    * Раньше все соглашения шли через soviet::sndagreement, поэтому агрегатор искал
    * приложение только в soviet::newagreement. После перевода программных оферт на
    * wallet::signagree они перестали находиться и молча выпадали из приложений к
-   * заявлению на повестке совета. Фолбэк на wallet::signagree восстанавливает связь.
+   * заявлению на повестке совета. Связь восстанавливает фолбэк на
+   * soviet::newresolved — общее уведомление, которое make_complete_document шлёт
+   * на каждый вызов, включая wallet::signagree (см. findLinkedAgreementDocument).
+   * Сам wallet::signagree агрегатор не опрашивает.
    *
    * @returns агрегат документа либо null, если документ или носитель подписи не найдены
    */
@@ -298,9 +301,17 @@ export class DocumentPackageV1Aggregator {
 
   /**
    * Находит on-chain действие-носитель подписанного связанного документа по doc_hash.
-   * Сначала ищет в реестре соглашений совета (soviet::newagreement), затем —
-   * в программных подписях кошелька (wallet::signagree). Возвращает поле document
-   * найденного действия либо null.
+   * Сначала ищет в реестре соглашений совета (soviet::newagreement — второе,
+   * явное уведомление, которое дополнительно шлёт soviet::sndagreement), затем —
+   * в общем уведомлении о завершённом документе (soviet::newresolved), которое
+   * централизованно шлёт make_complete_document (lib/core/soviet/soviet.hpp) на
+   * КАЖДЫЙ вызов — и из soviet::sndagreement, и из wallet::signagree — с
+   * require_recipient(coopname), заданным один раз внутри newresolved.cpp.
+   * Программные оферты (capital: Благорост/Генератор, program_id>0) идут через
+   * wallet::signagree и не порождают newagreement, но newresolved у них есть
+   * всегда — расширять notification-поверхность самого wallet::signagree не
+   * нужно, единственное место для этого уже newresolved.cpp.
+   * Возвращает поле document найденного действия либо null.
    */
   private async findLinkedAgreementDocument(
     linkHash: string
@@ -321,10 +332,10 @@ export class DocumentPackageV1Aggregator {
     const sovietDocument = sovietAgreement?.results?.[0]?.data?.document;
     if (sovietDocument) return sovietDocument;
 
-    const walletAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
+    const resolvedAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
       filter: JSON.stringify({
-        account: WalletContract.contractName.production,
-        name: WalletContract.Actions.SignAgreement.actionName,
+        account: SovietContract.contractName.production,
+        name: SovietContract.Actions.Registry.NewResolved.actionName,
         receiver: process.env.COOPNAME,
         'data.document.doc_hash': docHashFilter,
       }),
@@ -332,8 +343,8 @@ export class DocumentPackageV1Aggregator {
       limit: 1,
     });
 
-    const walletDocument = walletAgreement?.results?.[0]?.data?.document;
-    if (walletDocument) return walletDocument;
+    const resolvedDocument = resolvedAgreement?.results?.[0]?.data?.document;
+    if (resolvedDocument) return resolvedDocument;
 
     return null;
   }

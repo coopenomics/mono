@@ -51,8 +51,6 @@
     .section
       .t-eyebrow.t-muted Строки расходов
       BaseCard
-        .items-head(v-if='itemsCount')
-          span.t-muted {{ itemsCountLabel }}
         .table-wrap(v-if='itemsCount')
           .table-scroll
             table.table
@@ -65,7 +63,7 @@
                   th Статус
               tbody
                 tr(v-for='item in proposal.items', :key='item.item_hash')
-                  td.cell-name {{ item.recipient || '—' }}
+                  td.cell-name {{ recipientLabel(item) }}
                   td {{ mechanicsLabel(item.mechanics) }}
                   td.col-num {{ formatAmount(item.planned_amount) }}
                   td.col-num {{ formatAmount(item.actual_amount) }}
@@ -371,6 +369,18 @@ function uploaderName(username?: string | null): string {
   return cert ? getNameFromCertificate(cert) : '';
 }
 
+type IExpenseItem = NonNullable<IProposal['items']>[number];
+
+// Получатель: ORG — название организации (уже в recipient);
+// пайщик — ФИО из сертификата, иначе username.
+function recipientLabel(item: IExpenseItem): string {
+  if (!item.recipient) return '—';
+  if (item.recipient_type === Zeus.ExpenseRecipientType.ORG) return item.recipient;
+  if (item.recipient === proposal.value?.username) return creatorName.value;
+  const cert = signerCerts.value.get(item.recipient);
+  return (cert ? getNameFromCertificate(cert) : '') || item.recipient;
+}
+
 // Документы показываем каноном, только если пришёл их html (rawDocument).
 const hasDocuments = computed(() =>
   Boolean(proposal.value?.statement_doc?.rawDocument?.html)
@@ -378,17 +388,6 @@ const hasDocuments = computed(() =>
 );
 
 const itemsCount = computed(() => proposal.value?.items?.length ?? 0);
-const itemsCountLabel = computed(
-  () => `${itemsCount.value} ${pluralRu(itemsCount.value, 'строка', 'строки', 'строк')}`,
-);
-
-function pluralRu(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
-}
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -582,11 +581,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
-}
-
-.items-head {
-  margin-bottom: var(--p-2);
-  font-size: var(--p-fs-body-sm);
 }
 
 .table-scroll {

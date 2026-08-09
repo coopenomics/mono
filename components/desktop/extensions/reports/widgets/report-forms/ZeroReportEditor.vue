@@ -9,6 +9,8 @@
         type='number'
         :model-value='editsValue.header.reportYear'
         @update:model-value='v => updateField("header.reportYear", clampInt(v, 2000, 2100))'
+        :error='errFor("header.reportYear")'
+        :error-message='msgFor("header.reportYear")'
         dense filled
       )
       q-input(
@@ -17,6 +19,8 @@
         type='number'
         :model-value='editsValue.header.period'
         @update:model-value='v => updateField("header.period", clampInt(v, 1, periodKind === "quarter" ? 4 : 12))'
+        :error='errFor("header.period")'
+        :error-message='msgFor("header.period")'
         dense filled
       )
       q-input(
@@ -32,14 +36,12 @@
 
   .editor-section
     h3.section-title Организация
+    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
     q-input(
       label='Наименование организации'
       :model-value='editsValue.organization.orgName'
-      @update:model-value='v => updateField("organization.orgName", v)'
-      :rules='[reportRules.length(1, 1000)]'
-      :error='errFor("organization.orgName")'
-      :error-message='msgFor("organization.orgName")'
+      readonly disable
       dense filled
     )
 
@@ -47,30 +49,20 @@
       q-input(
         label='ИНН'
         :model-value='editsValue.organization.inn'
-        @update:model-value='v => updateField("organization.inn", v)'
-        :rules='[reportRules.innUl()]'
-        :error='errFor("organization.inn")'
-        :error-message='msgFor("organization.inn")'
+        readonly disable
         dense filled
       )
       q-input(
         label='КПП'
         :model-value='editsValue.organization.kpp'
-        @update:model-value='v => updateField("organization.kpp", String(v || "").toUpperCase())'
-        :rules='[reportRules.kpp()]'
-        :error='errFor("organization.kpp")'
-        :error-message='msgFor("organization.kpp")'
+        readonly disable
         dense filled
-        maxlength='9'
       )
       q-input(
         v-if='needs.oktmo'
         label='ОКТМО'
         :model-value='editsValue.organization.oktmo || ""'
-        @update:model-value='v => updateField("organization.oktmo", v || null)'
-        :rules='[reportRules.oktmo()]'
-        :error='errFor("organization.oktmo")'
-        :error-message='msgFor("organization.oktmo")'
+        readonly disable
         dense filled
       )
 
@@ -78,29 +70,24 @@
       q-input(
         label='ОКВЭД'
         :model-value='editsValue.organization.okved || ""'
-        @update:model-value='v => updateField("organization.okved", v || null)'
-        :rules='[reportRules.okved()]'
-        :error='errFor("organization.okved")'
-        :error-message='msgFor("organization.okved")'
+        readonly disable
         dense filled
       )
       q-input(
         label='ОГРН'
         :model-value='editsValue.organization.ogrn || ""'
-        @update:model-value='v => updateField("organization.ogrn", v || null)'
-        :rules='[reportRules.optionalRegex(/^\\d{13}$/, "ОГРН ЮЛ — 13 цифр")]'
-        :error='errFor("organization.ogrn")'
-        :error-message='msgFor("organization.ogrn")'
+        readonly disable
         dense filled
       )
 
   .editor-section
     h3.section-title Подписант
+    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
     q-option-group(
       :model-value='editsValue.signer.type'
-      @update:model-value='v => updateField("signer.type", v)'
       :options='signerTypeOptions'
+      disable
       inline
     )
 
@@ -108,25 +95,19 @@
       q-input(
         label='Фамилия'
         :model-value='editsValue.signer.lastName'
-        @update:model-value='v => updateField("signer.lastName", v)'
+        readonly disable
         dense filled
-        :rules='[v => !!v || "обязательно"]'
-        :error='errFor("signer.lastName")'
-        :error-message='msgFor("signer.lastName")'
       )
       q-input(
         label='Имя'
         :model-value='editsValue.signer.firstName'
-        @update:model-value='v => updateField("signer.firstName", v)'
+        readonly disable
         dense filled
-        :rules='[v => !!v || "обязательно"]'
-        :error='errFor("signer.firstName")'
-        :error-message='msgFor("signer.firstName")'
       )
       q-input(
         label='Отчество'
         :model-value='editsValue.signer.middleName || ""'
-        @update:model-value='v => updateField("signer.middleName", v || null)'
+        readonly disable
         dense filled
       )
 
@@ -134,10 +115,7 @@
       v-if='editsValue.signer.type === "representative"'
       label='Документ, подтверждающий полномочия'
       :model-value='editsValue.signer.repDoc || ""'
-      @update:model-value='v => updateField("signer.repDoc", v || null)'
-      :rules='[reportRules.length(1, 120)]'
-      :error='errFor("signer.repDoc")'
-      :error-message='msgFor("signer.repDoc")'
+      readonly disable
       dense filled
     )
 
@@ -145,25 +123,15 @@
       v-if='needs.snils'
       label='СНИЛС председателя'
       :model-value='editsValue.signer.snils || ""'
-      @update:model-value='v => updateField("signer.snils", v || null)'
-      :rules='[reportRules.snils()]'
-      :error='errFor("signer.snils")'
-      :error-message='msgFor("signer.snils")'
-      mask='###-###-### ##'
-      hint='Обязателен для ПСВ — попадает в ПерсСвФЛ @СНИЛС'
+      readonly disable
       dense filled
     )
 
     q-input(
       v-if='needs.sfrExtras'
-      label='Регистрационный номер СФР'
-      :model-value='editsValue.signer.sfrRegNumber || ""'
-      @update:model-value='v => updateField("signer.sfrRegNumber", v || null)'
-      :rules='[reportRules.sfrRegNumber()]'
-      :error='errFor("signer.sfrRegNumber")'
-      :error-message='msgFor("signer.sfrRegNumber")'
-      mask='###-###-######'
-      hint='XXX-XXX-XXXXXX — обязателен для ЕФС-1'
+      label='Регистрационный номер ПФР'
+      :model-value='editsValue.signer.pfrRegNumber || ""'
+      readonly disable
       dense filled
     )
 
@@ -171,18 +139,14 @@
       v-if='needs.sfrExtras'
       label='Должность подписанта'
       :model-value='editsValue.signer.chairmanPosition || ""'
-      @update:model-value='v => updateField("signer.chairmanPosition", v || null)'
-      hint='По умолчанию — "Председатель Совета"'
+      readonly disable
       dense filled
     )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Selectors } from '@coopenomics/sdk'
 import type { IReportType } from 'src/entities/Report'
-
-const { reportRules } = Selectors
 
 type SignerType = 'chairman' | 'representative'
 
@@ -206,6 +170,7 @@ interface ZeroReportEdits {
     okpo: string | null
     ogrn: string | null
     address: string | null
+    phone: string | null
   }
   signer: {
     type: SignerType
@@ -215,6 +180,7 @@ interface ZeroReportEdits {
     repDoc: string | null
     snils: string | null
     sfrRegNumber: string | null
+    pfrRegNumber: string | null
     chairmanPosition: string | null
   }
 }

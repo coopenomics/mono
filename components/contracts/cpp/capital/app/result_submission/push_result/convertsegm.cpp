@@ -132,6 +132,9 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
   // Удаляем сегмент после конвертации
   Capital::Segments::remove_segment(coopname, segment.id);
 
+  // Долг участника уходит из проекта вместе с сегментом — пересчитываем агрегат ссуд
+  Capital::Projects::sync_total_debt(coopname, current_project.id);
+
   // Удаляем объект результата — конвертация завершает процесс p.cap.rid.
   // До этого момента result жил со статусом ACT2 как анкер процесса.
   Capital::Results::delete_result(coopname, result->id);

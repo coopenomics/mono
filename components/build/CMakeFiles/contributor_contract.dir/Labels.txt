@@ -1,0 +1,14 @@
+# Target labels
+ contributor_contract
+# Source files and their labels
+/project/build/CMakeFiles/contributor_contract
+/project/build/CMakeFiles/contributor_contract.rule
+/project/build/CMakeFiles/contributor_contract-complete.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-build.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-configure.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-download.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-install.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-mkdir.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-patch.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-test.rule
+/project/build/contributor_contract-prefix/src/contributor_contract-stamp/contributor_contract-update.rule

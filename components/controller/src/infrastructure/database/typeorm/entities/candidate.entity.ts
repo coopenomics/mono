@@ -45,6 +45,10 @@ export class CandidateEntity {
   @Column('json', { nullable: true })
   generator_offer?: ISignedDocumentDomainInterface;
 
+  /** Generic map agreement_id → signed document (marketplace и следующие расширения). */
+  @Column('jsonb', { nullable: false, default: {} })
+  program_agreements!: Record<string, ISignedDocumentDomainInterface>;
+
   @Column({ nullable: true })
   program_key?: string;
 

@@ -13,6 +13,7 @@ import { CreateWithdrawInputDTO } from '../dto/create-withdraw-input.dto';
 import { CreateWithdrawResponseDTO } from '../dto/create-withdraw-response.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
+import { UserWalletDTO } from '../dto/user-wallet.dto';
 import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { Cooperative } from 'cooptypes';
 import type { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-payment-input.dto';
@@ -107,5 +108,12 @@ export class WalletService {
   public async getProgramWallet(filter: ProgramWalletFilterInputDTO): Promise<ProgramWalletDTO | null> {
     const wallet = await this.walletInteractor.getProgramWallet(filter);
     return wallet ? ProgramWalletDTO.fromDomain(wallet) : null;
+  }
+
+  /**
+   * Получить кошельки пайщика «как есть» (без сворачивания share+member).
+   */
+  public async getUserWallets(username: string, coopname?: string): Promise<UserWalletDTO[]> {
+    return this.walletInteractor.getUserWallets(username, coopname);
   }
 }

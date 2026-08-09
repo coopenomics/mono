@@ -19,3 +19,7 @@ docs
 module-dependency-graph.md
 potential-circular-dependencies.md
 /logs
+
+# Мутационное тестирование (Stryker)
+.stryker-tmp/
+reports/mutation/

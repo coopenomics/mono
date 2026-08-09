@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/capital_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/capital_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/capital_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"capital_contract"
+		],
+		"name" : "capital_contract"
+	}
+}

@@ -10,6 +10,7 @@ import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/int
 import type { TransactResult } from '@wharfkit/session';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Сервис синхронизации результатов с блокчейном
@@ -96,7 +97,7 @@ export class ResultSyncService
     // Синхронизируем результат (createIfNotExists сам разберется - создать новый или обновить существующий)
     const resultEntity = await this.repository.createIfNotExists(
       processedBlockchainResult,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 

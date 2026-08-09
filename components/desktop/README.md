@@ -7,7 +7,7 @@
 - Архитектура Feature Sliced Design (FSD)
 - SSR и SPA режимы (Quasar Framework)
 - Pug-шаблоны с Composition API
-- Система расширений (extensions) для модульного подключения функциональности
+- Система расширений (extensions) для модульного подключения функциональности (см. [docs/extension-factories.md](docs/extension-factories.md) о фабриках инжекции в стол совета и стол бухгалтера)
 - Интернационализация (Vue I18n)
 - Pinia для управления состоянием с персистентностью
 - Интеграция с блокчейном EOSIO через Wharfkit

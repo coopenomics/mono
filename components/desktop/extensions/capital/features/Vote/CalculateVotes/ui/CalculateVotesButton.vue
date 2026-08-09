@@ -1,16 +1,17 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='handleCalculateVotes',
+BaseButton(
+  variant='secondary',
+  size='sm',
   :loading='loading',
-  label='Рассчитать голоса'
-)
+  @click='handleCalculateVotes'
+) Рассчитать голоса
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useCalculateVotes } from '../model';
 import { FailAlert } from 'src/shared/api/alerts';
+import { BaseButton } from 'src/shared/ui/base';
 
 interface Props {
   coopname: string;

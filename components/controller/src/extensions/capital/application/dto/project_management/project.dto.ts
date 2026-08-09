@@ -438,9 +438,10 @@ export class CapitalProjectMembershipCrpsOutputDTO {
 })
 export class BaseProjectOutputDTO extends BaseOutputDTO {
   @Field(() => Int, {
-    description: 'ID в блокчейне',
+    nullable: true,
+    description: 'ID в блокчейне; у персональных проектов отсутствует',
   })
-  id!: number;
+  id?: number | null;
 
   @Field(() => String, {
     description: 'Префикс проекта',
@@ -528,6 +529,17 @@ export class BaseProjectOutputDTO extends BaseOutputDTO {
     description: 'URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД',
   })
   development_repository_url?: string | null;
+
+  @Field(() => String, {
+    description: 'Происхождение проекта: blockchain (кооперативный) или local (персональный)',
+  })
+  origin!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Владелец персонального проекта',
+  })
+  local_owner?: string | null;
 
   @Field(() => String, {
     description: 'Дата создания',
