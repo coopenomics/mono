@@ -193,8 +193,8 @@ cases:
     kind: side
     scenario: Отмена заказа после открытия акта выдачи
     expect: отказ с указанием, что отмена закрыта после открытия акта выдачи
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.17
     level: backend

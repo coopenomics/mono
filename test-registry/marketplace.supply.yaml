@@ -68,8 +68,8 @@ cases:
     kind: side
     scenario: Приёмка партии оператором чужого кооперативного участка
     expect: отказ доступа, статус партии не меняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-apl-reception-resolver-scoping.test.ts
+    status: passing
 
   - id: mkt.supply.side.04
     level: backend
