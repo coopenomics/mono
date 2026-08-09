@@ -4,8 +4,37 @@
   //- проверяется. Раньше личность и удостоверение были двумя разными карточками,
   //- и предъявить их вместе было нечем.
   BaseCard(title='Удостоверение пайщика')
-    .cert__identity
-      IdentityPanel.cert__person(:identity='identity')
+    .cert
+      //- Левая колонка — профиль: сверху имя с фотографией, под ним всё остальное.
+      //- Панель идёт без рамки: своя рамка внутри карточки читается как «карточка
+      //- в карточке» и делит на части то, что является одним целым.
+      .cert__main
+        IdentityPanel(:identity='identity', flat)
+
+        //- Строки удостоверения оформлены одинаково, как везде на странице: слева
+        //- подпись, справа значение. Раньше цепочка и уровень были самодельными
+        //- блоками и выбивались из общего строя.
+        template(v-if='certificate')
+          DataRow(label='Цепочка подписей')
+            template(#value-override)
+              .cert__chips
+                template(v-for='(step, i) in chainSteps', :key='i')
+                  BaseChip(:variant='step.variant') {{ step.label }}
+                  q-icon.cert__chain-arrow(
+                    v-if='i < chainSteps.length - 1',
+                    name='arrow_forward',
+                    size='16px'
+                  )
+          DataRow(v-if='verificationLabels.length', label='Уровень верификации')
+            template(#value-override)
+              .cert__chips
+                BaseChip(
+                  v-for='(label, i) in verificationLabels',
+                  :key='i',
+                  variant='info'
+                ) {{ label }}
+
+      //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
       .cert__qr(v-if='certificate')
         CertificateQr(:jws='certificate.jws', :size='112')
         BaseButton(variant='ghost', size='sm', @click='openQr')
@@ -13,41 +42,12 @@
             q-icon(name='fullscreen', size='18px')
           | Показать
 
-    template(v-if='certificate')
-      //- Серийный номер убран: пайщику он ни о чём не говорит, а проверяющий читает
-      //- его из кода. Состояние стоит рядом со сроком — это про один и тот же факт.
-      DataRow(label='Действует до')
-        template(#value-override)
-          .cert__validity
-            span {{ formatExp(certificate.exp) }}
-            BaseChip(:variant='certStatus.variant') {{ certStatus.label }}
-
-      .cert__block
-        .cert__block-label Цепочка подписей
-        .cert__chain
-          template(v-for='(step, i) in chainSteps', :key='i')
-            BaseChip(:variant='step.variant') {{ step.label }}
-            q-icon.cert__chain-arrow(
-              v-if='i < chainSteps.length - 1',
-              name='arrow_forward',
-              size='16px'
-            )
-
-      .cert__block(v-if='verificationLabels.length')
-        .cert__block-label Уровень верификации
-        .cert__verifications
-          BaseChip(
-            v-for='(label, i) in verificationLabels',
-            :key='i',
-            variant='info'
-          ) {{ label }}
-
     //- Прежний текст звал войти в кооператив — но карточка видна только тому, кто
     //- уже вошёл, и совет читался как издевательство. Удостоверение выпускается
     //- на входе и требует ключей заверения кооператива; если их нет, войти можно,
     //- а удостоверения не будет.
     EmptyState(
-      v-else,
+      v-if='!certificate',
       title='Удостоверение ещё не выпущено',
       body='Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.'
     )
@@ -207,18 +207,6 @@ onMounted(async () => {
   }
 });
 
-/**
- * Состояние удостоверения. Промежуточного «истекает» здесь нет намеренно: окно
- * предупреждения совпадало со всем сроком жизни, поэтому оранжевое «Истекает»
- * горело всегда и пугало на пустом месте. Удостоверение выпускается заново при
- * каждом открытии страницы, так что приближение срока — не событие для пайщика.
- */
-const certStatus = computed<{ label: string; variant: BaseChipVariant }>(() => {
-  const exp = (certificate.value?.exp ?? 0) * 1000;
-  if (!exp || Date.now() >= exp) return { label: 'Истекло', variant: 'neg' };
-  return { label: 'Действует', variant: 'pos' };
-});
-
 // Человекочитаемые имена звеньев цепи подписей + сам пайщик в конце.
 // Имена кооперативов не перечисляем списком: свой берём из настроек кооператива,
 // чужие показываем как есть. Прежний список знал ровно два имени и на любом другом
@@ -251,16 +239,6 @@ const verificationLabels = computed(() =>
   (certificate.value?.verification_types ?? []).map((e) => VERIFICATION_LABELS[e.type] ?? e.type),
 );
 
-const formatExp = (exp: number): string => {
-  if (!exp) return '';
-  return new Date(exp * 1000).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 
 // Показ удостоверения. Скачивания намеренно нет: удостоверение несёт персональные
 // данные, и файл, однажды покинувший приложение, дальше ходит сам по себе. Показать
@@ -418,45 +396,21 @@ const getRepresentativeName = (representative: any) => {
   padding: var(--p-6, 24px);
 }
 
-.cert__head {
-  margin-bottom: var(--p-3, 12px);
-}
 
-.cert__block {
-  margin-top: var(--p-4, 16px);
-}
 
-.cert__block-label {
-  margin-bottom: var(--p-2, 8px);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-sm, 13px);
-}
 
 .cert__chain,
-.cert__verifications {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--p-2, 8px);
-}
 
 .cert__chain-arrow {
   color: var(--p-ink-3);
 }
 
-.cert__identity {
+.cert {
   display: flex;
-  /* По центру, а не по верху: колонка с кодом выше панели личности, и при
-     выравнивании по верху под именем зиял пустой блок в половину экрана. */
-  align-items: center;
-  gap: var(--p-4);
+  align-items: flex-start;
+  gap: var(--p-5);
 }
-.cert__validity {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-}
-.cert__person {
+.cert__main {
   flex: 1;
   min-width: 0;
 }
@@ -467,14 +421,26 @@ const getRepresentativeName = (representative: any) => {
   gap: var(--p-2);
   flex: none;
 }
-/* На узком экране код уходит под имя: рядом он сжимает ФИО до нечитаемого. */
+/* Значения-чипы в строках: цепочка подписей и уровень верификации выровнены по
+   правому краю так же, как обычные значения соседних строк. */
+.cert__chips {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* На узком экране код уходит под профиль: рядом он сжимает имя до нечитаемого. */
 @media (max-width: 599px) {
-  .cert__identity {
+  .cert {
     flex-direction: column;
     align-items: stretch;
   }
   .cert__qr {
     align-items: flex-start;
+  }
+  .cert__chips {
+    justify-content: flex-start;
   }
 }
 
@@ -499,9 +465,6 @@ const getRepresentativeName = (representative: any) => {
 .cert-show__hint {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
-}
-.cert__actions {
-  margin-top: var(--p-4, 16px);
 }
 
 @media (max-width: 768px) {
