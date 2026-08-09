@@ -10,7 +10,6 @@ import { createHash } from 'crypto';
 import { Cooperative, MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
@@ -58,6 +57,7 @@ import {
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
 import { AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;

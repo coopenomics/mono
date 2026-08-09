@@ -5,7 +5,6 @@ import { TransactResult } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   WalletBlockchainPort,
@@ -15,7 +14,7 @@ import type {
 } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для wallet

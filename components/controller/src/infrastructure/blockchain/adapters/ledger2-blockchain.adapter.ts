@@ -4,13 +4,12 @@ import { Ledger2Contract } from 'cooptypes';
 import { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '../blockchain.service';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   Ledger2BlockchainPort,
   WalmoveBlockchainDomainInterface,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн-адаптер ledger2 — пишет операции корректировок председателя.

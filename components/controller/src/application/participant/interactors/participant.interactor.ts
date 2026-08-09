@@ -12,7 +12,6 @@ import { TokenApplicationService } from '~/application/token/services/token-appl
 import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { userStatus } from '~/types/user.types';
-import { HttpApiError } from '~/utils/httpApiError';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
@@ -41,6 +40,7 @@ import {
   mapPlatformAgreementIdToDocumentType,
 } from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ParticipantInteractor {

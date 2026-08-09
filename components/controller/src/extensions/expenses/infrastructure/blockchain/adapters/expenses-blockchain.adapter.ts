@@ -4,8 +4,8 @@ import type { TransactResult } from '@wharfkit/session'
 import httpStatus from 'http-status'
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service'
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service'
-import { HttpApiError } from '~/utils/httpApiError'
 import { ExpensesBlockchainPort } from '../../../domain/interfaces/expenses-blockchain.port'
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Адаптер блокчейн-порта `expense`. Канон взят с `CapitalBlockchainAdapter`:

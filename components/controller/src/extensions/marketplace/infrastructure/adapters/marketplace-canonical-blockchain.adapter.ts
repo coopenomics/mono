@@ -7,8 +7,8 @@ import {
   VAULT_DOMAIN_SERVICE,
 } from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Story 4.1: canonical-adapter для marketplace процессов. Параллелен

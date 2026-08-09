@@ -26,7 +26,6 @@ import type { ProjectGenerationContractGenerateDocumentInputDTO } from '~/applic
 import type { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { config } from '~/config';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { Cooperative } from 'cooptypes';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
@@ -43,6 +42,7 @@ import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDT
 import type { IConfig } from '../../capital-extension.module';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте

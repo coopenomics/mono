@@ -10,7 +10,6 @@ import { generateUsername } from '~/utils/generate-username';
 import { userStatus } from '~/types/user.types';
 import { UserDomainEntity } from '~/domain/user/entities/user-domain.entity';
 import type { CreateUserInputDomainInterface } from '~/domain/registration/interfaces/create-user-input-domain.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
@@ -24,6 +23,7 @@ import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/
 import { Workflows } from '@coopenomics/notifications';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
 const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;

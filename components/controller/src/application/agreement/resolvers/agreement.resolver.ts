@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
@@ -13,7 +13,6 @@ import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
 import { CoopAgreementDTO } from '../dto/coop-agreement.dto';
 import { AgreementTemplateDTO } from '../dto/agreement-template.dto';
 import { CooperativeProgramDTO } from '../dto/cooperative-program.dto';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 
 // Пагинированные результаты
 const paginatedAgreementsResult = createPaginationResult(AgreementDTO, 'PaginatedAgreements');

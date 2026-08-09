@@ -5,12 +5,11 @@ import { Checksum256, Name, UInt128, type TransactResult } from '@wharfkit/sessi
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { IContributorBlockchainData } from '../../../domain/interfaces/contributor-blockchain.interface';
 import type { IAppendixBlockchainData } from '../../../domain/interfaces/appendix-blockchain.interface';
 import { ContributorDeltaMapper } from '../mappers/contributor-delta.mapper';
 import { AppendixDeltaMapper } from '../mappers/appendix-delta.mapper';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CAPITAL

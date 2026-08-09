@@ -1,5 +1,4 @@
 import { BadGatewayException, HttpStatus, Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
-import { HttpApiError } from '~/utils/httpApiError';
 import { BlockchainService } from '../blockchain.service';
 import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -17,7 +16,7 @@ import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/comm
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {

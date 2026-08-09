@@ -1,11 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
@@ -39,6 +37,8 @@ import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { TransactionDTO } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Сервис собраний и решений кооперативных участков.

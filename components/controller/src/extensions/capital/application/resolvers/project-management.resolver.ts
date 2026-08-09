@@ -14,10 +14,9 @@ import { FinalizeProjectInputDTO } from '../dto/project_management/finalize-proj
 import { GetProjectInputDTO } from '../dto/project_management/get-project-input.dto';
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 // Пагинированные результаты

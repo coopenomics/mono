@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { AgreementInteractor } from '../use-cases/agreement.interactor';
 import {
@@ -26,7 +26,6 @@ import { DocumentAggregationService } from '~/domain/document/services/document-
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { config } from '~/config';
 
 @Injectable()

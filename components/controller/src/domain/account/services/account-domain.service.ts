@@ -16,7 +16,6 @@ import type { OrganizationDomainInterface } from '~/domain/common/interfaces/org
 import type { EntrepreneurDomainInterface } from '~/domain/common/interfaces/entrepreneur-domain.interface';
 import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { randomUUID } from 'crypto';
@@ -27,6 +26,7 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { AccountKind } from '~/application/account/enum/account-kind.enum';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountDomainService {

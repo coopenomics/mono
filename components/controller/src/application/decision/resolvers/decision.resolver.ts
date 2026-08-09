@@ -1,8 +1,7 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, TransactionDTO } from '@coopenomics/extension-kit';
 import { DecisionService } from '../services/decision.service';
 import { AuthorizeDecisionInputDTO } from '../dto/authorize-decision-input.dto';
 import { DeclineDecisionInputDTO } from '../dto/decline-decision-input.dto';

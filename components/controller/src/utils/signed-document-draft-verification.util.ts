@@ -1,8 +1,8 @@
 import httpStatus from 'http-status';
 import { Classes } from '@coopenomics/sdk';
 import type { InnerGeneratedDocument, ISignedDocument } from '@coopenomics/innercoop';
-import { HttpApiError } from '~/utils/httpApiError';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /** Режим сравнения `signed.meta[field]` с ожидаемым значением */
 export type SignedDocumentMetaCompareMode = 'currency_amount' | 'string_trim' | 'hex_case_insensitive';

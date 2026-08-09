@@ -75,12 +75,11 @@ import {
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { HttpApiError } from '~/utils/httpApiError';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,

@@ -5,8 +5,8 @@ import { TransactResult, UInt64 } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SovietBlockchainAdapter implements SovietBlockchainPort {

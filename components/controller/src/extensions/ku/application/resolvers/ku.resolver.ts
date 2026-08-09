@@ -1,8 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { KuService } from '../services/ku.service';
 import { KuDecisionDTO, KuDecisionFilterInputDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';

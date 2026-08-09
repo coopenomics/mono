@@ -1,8 +1,7 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { VotingService } from '../services/voting.service';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, TransactionDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { CalculateVotesInputDTO } from '../dto/voting/calculate-votes-input.dto';
 import { CompleteVotingInputDTO } from '../dto/voting/complete-voting-input.dto';
 import { StartVotingInputDTO } from '../dto/voting/start-voting-input.dto';

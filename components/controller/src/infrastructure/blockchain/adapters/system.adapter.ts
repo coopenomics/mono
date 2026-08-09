@@ -6,9 +6,8 @@ import type { ConvertToAxonInputDomainInterface } from '~/domain/system/interfac
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import { VAULT_DOMAIN_PORT, VaultDomainPort } from '~/domain/vault/ports/vault-domain.port';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SystemBlockchainAdapter implements SystemBlockchainPort {

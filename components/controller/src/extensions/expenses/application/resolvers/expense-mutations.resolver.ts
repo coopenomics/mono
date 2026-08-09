@@ -1,9 +1,8 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-decision-document.dto';
 import { ExpensesMutationsService } from '../services/expenses-mutations.service';

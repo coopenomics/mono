@@ -12,8 +12,7 @@ import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { HttpApiError } from '~/utils/httpApiError';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
