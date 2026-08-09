@@ -87,8 +87,8 @@ cases:
     kind: break
     scenario: Цепь недоступна в момент подписи акта выдачи
     expect: акт не считается подписанным, повторная попытка возможна
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.happy.03
     level: ui

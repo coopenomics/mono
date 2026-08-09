@@ -346,3 +346,65 @@ describe('MarketplaceIssuanceService.finalizeIssuance — акт закрыва�
     expect(error?.message ?? '').not.toContain('ключом заказчика-владельца заказа');
   });
 });
+
+/**
+ * Отказ цепи при подписи акта выдачи.
+ *
+ * Обе подписи — открытие выдачи председателем и закрывающая подпись
+ * заказчика — идут одним on-chain действием. Если оно не прошло, локальный
+ * статус трогать нельзя: заказ, помеченный выданным без записи в цепи, уже
+ * не выдать повторно, а имущество останется на складе. Поэтому отказ
+ * поднимается наружу конфликтом с предложением повторить, а состояние
+ * остаётся прежним.
+ */
+describe('MarketplaceIssuanceService — цепь недоступна в момент подписи', () => {
+  it('открытие выдачи: signiss1 упал → конфликт, статус заказа не меняется', async () => {
+    const mocks = buildMocks(
+      { 'order-1': 10 },
+      { status: 'ACCEPTED_TO_COOP', ready_announced_at: new Date(), unit_of_measure: 'piece' } as never
+    );
+    mocks.chainPort.signIss1.mockRejectedValue(new Error('chain timeout'));
+    const service = buildService(mocks);
+    // Криптовалидность подписи здесь не предмет проверки: смотрим, что
+    // сервис делает, когда цепь отказала уже ПОСЛЕ верификации.
+    jest.spyOn(service as never as { verifyDocumentSignature: () => void }, 'verifyDocumentSignature')
+      .mockImplementation(() => undefined);
+
+    await expect(
+      service.openIssuance({
+        coopname: 'voskhod',
+        chairman_account: 'chairman',
+        order_id: 'order-1',
+        actual_quantity: 10,
+        actual_unit_price: '100.0000',
+        signed_document: signedDocumentStub,
+      })
+    ).rejects.toThrow('Открытие выдачи на цепи не выполнено');
+
+    expect(mocks.orderRepo.applyIssuanceOpened).not.toHaveBeenCalled();
+  });
+
+  it('сообщение об отказе несёт причину от цепи — иначе повтор вслепую', async () => {
+    const mocks = buildMocks(
+      { 'order-1': 10 },
+      { status: 'ACCEPTED_TO_COOP', ready_announced_at: new Date(), unit_of_measure: 'piece' } as never
+    );
+    mocks.chainPort.signIss1.mockRejectedValue(new Error('assertion failure: недостаточно ресурсов'));
+    const service = buildService(mocks);
+    jest.spyOn(service as never as { verifyDocumentSignature: () => void }, 'verifyDocumentSignature')
+      .mockImplementation(() => undefined);
+
+    await expect(
+      service.openIssuance({
+        coopname: 'voskhod',
+        chairman_account: 'chairman',
+        order_id: 'order-1',
+        actual_quantity: 10,
+        actual_unit_price: '100.0000',
+        signed_document: signedDocumentStub,
+      })
+    ).rejects.toThrow(/недостаточно ресурсов/);
+
+    expect(mocks.orderRepo.applyIssuanceOpened).not.toHaveBeenCalled();
+  });
+});
