@@ -96,7 +96,6 @@ const GROUPS = [
     scenarios: [
       'marketplace/operator/issuance-open',
       'marketplace/operator/issuance',
-      'marketplace/operator/issuance-no-code',
       'marketplace/orderer/ready-to-receive',
       'marketplace/operator/issuance-finalize',
     ],
@@ -125,6 +124,10 @@ const GROUPS = [
       'marketplace/board/payouts-readonly',
       'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
+      // Проверяет отказ на произвольный код и состояние не меняет, но стоять
+      // в середине выдачи не может: там на столе висит модалка подписи акта
+      // от предыдущего шага, и клик по кнопке стола не проходит.
+      'marketplace/operator/issuance-no-code',
     ],
   },
 ];
