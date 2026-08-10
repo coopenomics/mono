@@ -1,7 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
@@ -19,7 +18,7 @@ import { ApprovalStatus } from '../../domain';
 export class ApprovalResponseNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_PORT)
     private readonly accountPort: IAccountPort,
     @Inject(APPROVAL_REPOSITORY)

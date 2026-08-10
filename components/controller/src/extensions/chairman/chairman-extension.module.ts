@@ -7,10 +7,8 @@ import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { merge } from 'lodash';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
-import { FreeDecisionDomainModule } from '~/domain/free-decision/free-decision.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 
@@ -39,8 +37,6 @@ import { ChairmanSyncInteractor } from './application/use-cases/chairman-sync.in
 // Resolvers
 import { ApprovalResolver } from './application/resolvers/approval.resolver';
 import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.resolver';
-import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
-import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
@@ -237,13 +233,9 @@ export class ChairmanExtension extends BaseExtensionModule {
   imports: [
     ChairmanDatabaseModule,
     AccountInfrastructureModule,
-    MeetInfrastructureModule,
     SystemInfrastructureModule,
     DocumentDomainModule,
-    FreeDecisionDomainModule,
     VaultDomainModule,
-    FreeDecisionInfrastructureModule,
-    DecisionTrackingInfrastructureModule,
     SystemDomainModule,
   ],
   providers: [

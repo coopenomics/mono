@@ -4,7 +4,6 @@ import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   ONBOARDING_COMPLETED_EVENT,
@@ -14,6 +13,7 @@ import {
   ONBOARDING_STEP_QUERY_PORT,
   type OnboardingStepQueryPort,
 } from '../ports/onboarding-step-query.port';
+import { DecisionTrackedEvent } from '@coopenomics/innercoop';
 
 /**
  * Расширения с собственным per-extension events-сервисом

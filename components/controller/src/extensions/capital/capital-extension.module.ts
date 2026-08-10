@@ -465,9 +465,6 @@ import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { config as configEnv } from '~/config';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
-import { FreeDecisionDomainModule } from '~/domain/free-decision/free-decision.module';
-import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
-import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 import { WalletModule } from '~/application/wallet/wallet.module';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
@@ -702,9 +699,6 @@ export class CapitalExtension extends BaseExtensionModule {
     DocumentModule,
     DocumentInfrastructureModule,
     VaultDomainModule,
-    FreeDecisionDomainModule,
-    FreeDecisionInfrastructureModule,
-    DecisionTrackingInfrastructureModule,
     WalletModule,
     forwardRef(() => RegistrationModule),
     RegistrationInfrastructureModule,

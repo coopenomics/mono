@@ -3,26 +3,19 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
 import { MeetContract, SovietContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { DecisionTrackingPort } from '~/domain/decision-tracking/ports/decision-tracking.port';
-import type {
-  CreateTrackingRuleInputDomainInterface,
-  DecisionEventType,
-  DecisionProcessedResultDomainInterface,
-  TrackingRuleDomainInterface,
-} from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { VARS_DATA_PORT, VarsDataPort } from '~/domain/system/ports/vars-data.port';
 import type { AgreementNumberDomainInterface } from '~/domain/agreement/interfaces/agreement-number.interface';
 import type { VarsDomainInterface } from '~/domain/system/interfaces/vars-domain.interface';
 import { TrackingRuleRepository } from '../repositories/tracking-rule.repository';
+import { IDecisionTrackingPort, CreateTrackingRuleInput, DecisionEventType, DecisionProcessedResult, TrackingRule, DecisionTrackedEvent } from '@coopenomics/innercoop';
 
 /**
  * Адаптер для отслеживания решений
  * Реализует логику фабрики отслеживания решений и автоматического обновления vars
  */
 @Injectable()
-export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleInit {
+export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleInit {
   /** Сериализует patch vars — иначе параллельные newdecision перезаписывают друг друга. */
   private varsUpdateChain: Promise<void> = Promise.resolve();
 
@@ -39,8 +32,8 @@ export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleIn
     this.logger.info('Decision tracking adapter initialized');
   }
 
-  async registerTrackingRule(input: CreateTrackingRuleInputDomainInterface): Promise<TrackingRuleDomainInterface> {
-    const rule: TrackingRuleDomainInterface = {
+  async registerTrackingRule(input: CreateTrackingRuleInput): Promise<TrackingRule> {
+    const rule: TrackingRule = {
       id: uuid(),
       hash: input.hash,
       event_type: input.event_type,
@@ -74,15 +67,15 @@ export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleIn
     this.logger.info(`Обновлен hash правила ${rule.id}: ${oldHash} -> ${newHash}`);
   }
 
-  async getActiveRules(): Promise<TrackingRuleDomainInterface[]> {
+  async getActiveRules(): Promise<TrackingRule[]> {
     return this.repository.findAllActive();
   }
 
-  async getRuleByHash(hash: string): Promise<TrackingRuleDomainInterface | null> {
+  async getRuleByHash(hash: string): Promise<TrackingRule | null> {
     return this.repository.findByHash(hash);
   }
 
-  async getRuleById(id: string): Promise<TrackingRuleDomainInterface | null> {
+  async getRuleById(id: string): Promise<TrackingRule | null> {
     return this.repository.findById(id);
   }
 
@@ -220,7 +213,7 @@ export class DecisionTrackingAdapter implements DecisionTrackingPort, OnModuleIn
     await this.deactivateRule(rule.id);
 
     // Формируем результат
-    const result: DecisionProcessedResultDomainInterface = {
+    const result: DecisionProcessedResult = {
       matched: true,
       rule_id: rule.id,
       hash,

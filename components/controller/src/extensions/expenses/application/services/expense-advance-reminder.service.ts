@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
 import { Interval } from '@nestjs/schedule';
 import { Workflows } from '@coopenomics/notifications';
-import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   EXPENSE_PROPOSAL_REPOSITORY,
@@ -58,7 +58,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
   constructor(
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
-    private readonly notificationSender: NotificationSenderService
+    @Inject(NOTIFICATION_PORT) private readonly notificationSender: INotificationPort
   ) {}
 
   onModuleInit(): void {
@@ -137,7 +137,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
     };
 
     try {
-      await this.notificationSender.sendNotificationToUser(
+      await this.notificationSender.notifyUser(
         username,
         Workflows.ExpenseAdvanceReportReminder.id,
         payload

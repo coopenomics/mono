@@ -4,12 +4,11 @@ import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } fro
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
-import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
-import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
+import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
+import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'
@@ -33,8 +32,8 @@ type CapitalOnboardingConfig = IConfig &
 export class CapitalOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: FreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: DecisionTrackingPort
+    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
   ) {}
 
   private mapStepToFlag(step: CapitalOnboardingStepEnum): OnboardingFlagKey {

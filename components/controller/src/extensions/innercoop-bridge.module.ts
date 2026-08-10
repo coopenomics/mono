@@ -3,12 +3,16 @@ import {
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   COOPERATIVE_VARS_PORT,
+  DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
+  FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
+  MEET_PORT,
   MESSAGE_CHANNEL_PORT,
+  NOTIFICATION_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
@@ -19,6 +23,15 @@ import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/coop
 import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
 import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-innercoop.adapter';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { NotificationCenterModule } from '~/application/notification-center/notification-center.module';
+import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
+import { MeetDataAdapter } from '~/infrastructure/meet/meet-data.adapter';
+import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
+import { DecisionTrackingAdapter } from '~/infrastructure/decision-tracking/adapters/decision-tracking.adapter';
+import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
+import { FreeDecisionAdapter } from '~/infrastructure/free-decision/free-decision.adapter';
+import { NotificationInnercoopAdapter } from '~/infrastructure/innercoop/notification-innercoop.adapter';
+import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -56,11 +69,17 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DocumentDomainModule,
     DocumentModule,
     AccountInfrastructureModule,
+    NotificationCenterModule,
+    NotificationModule,
+    MeetInfrastructureModule,
+    DecisionTrackingInfrastructureModule,
+    FreeDecisionInfrastructureModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
     DocumentInnercoopAdapter,
     AccountInnercoopAdapter,
+    NotificationInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -117,6 +136,22 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: ACCOUNT_PORT,
       useExisting: AccountInnercoopAdapter,
     },
+    {
+      provide: NOTIFICATION_PORT,
+      useExisting: NotificationInnercoopAdapter,
+    },
+    {
+      provide: MEET_PORT,
+      useExisting: MeetDataAdapter,
+    },
+    {
+      provide: DECISION_TRACKING_PORT,
+      useExisting: DecisionTrackingAdapter,
+    },
+    {
+      provide: FREE_DECISION_PORT,
+      useExisting: FreeDecisionAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -130,6 +165,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     COOPERATIVE_VARS_PORT,
     DOCUMENT_PORT,
     ACCOUNT_PORT,
+    NOTIFICATION_PORT,
+    MEET_PORT,
+    DECISION_TRACKING_PORT,
+    FREE_DECISION_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

@@ -6,8 +6,7 @@ import {
 } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../chairman-extension.module';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
+import { LOGGER_PORT, type ILoggerPort, DecisionTrackedEvent } from '@coopenomics/innercoop';
 import {
   ONBOARDING_COMPLETED_EVENT,
   type OnboardingCompletedPayload,

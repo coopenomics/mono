@@ -6,9 +6,9 @@ import type {
 } from '@coopenomics/innercoop';
 import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { isEligibleForActiveCoopCalendarBroadcast } from '~/domain/account/utils/participant-mass-notification.util';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 type CalendarRecipient = { username: string; email: string; subscriberId: string };
 
@@ -22,7 +22,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
   private coopShortName: string | null = null;
 
   constructor(
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(PROJECT_CAPITAL_CLEARANCE_PORT)
     private readonly projectCapitalClearance: IProjectCapitalClearancePort,

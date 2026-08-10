@@ -1,11 +1,9 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema, ILog } from './types';
 import { NotificationSenderService } from './notification-sender.service';
@@ -19,7 +17,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
+    @Inject(MEET_PORT) private readonly meetPort: IMeetPort,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     private readonly meetTracker: MeetTrackerService,
     private readonly notificationSender: NotificationSenderService
@@ -103,7 +101,6 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
 @Module({
   imports: [
     AccountInfrastructureModule,
-    MeetInfrastructureModule, // Импортируем инфраструктурные модули для портов
   ],
   providers: [NotificationSenderService, MeetTrackerService, MeetWorkflowNotificationService, ParticipantExtension],
   exports: [ParticipantExtension],

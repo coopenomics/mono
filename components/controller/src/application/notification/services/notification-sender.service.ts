@@ -1,9 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import type { NotifyResult } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type { WorkflowActorDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { ACCOUNT_DOMAIN_SERVICE, AccountDomainService } from '~/domain/account/services/account-domain.service';
 import config from '~/config/config';
+import { NOTIFICATION_PORT, INotificationPort, InnerNotifyResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис отправки уведомлений пользователям через Центр уведомлений (DC v3).
@@ -17,7 +16,7 @@ export class NotificationSenderService {
 
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DOMAIN_SERVICE)
     private readonly accountDomainService: AccountDomainService
   ) {}
@@ -34,7 +33,7 @@ export class NotificationSenderService {
     workflowName: string,
     payload: T,
     actor?: WorkflowActorDomainInterface
-  ): Promise<NotifyResult> {
+  ): Promise<InnerNotifyResult> {
     this.logger.log(`Отправка уведомления пользователю: ${username}, тип: ${workflowName}`);
 
     const account = await this.accountDomainService.getAccount(username);

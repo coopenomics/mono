@@ -2,8 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
-import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -61,7 +60,7 @@ import {
 @Injectable()
 export class MarketplaceNotificationService implements OnModuleInit {
   constructor(
-    private readonly notificationSenderService: NotificationSenderService,
+    @Inject(NOTIFICATION_PORT) private readonly notificationSenderService: INotificationPort,
     @Inject(ACCOUNT_PORT)
     private readonly accountPort: IAccountPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
@@ -90,7 +89,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         // отдельной страницы «Подпись передачи» у поставщика нет.
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceAplSupplierSignRequest.id,
         payload
@@ -126,7 +125,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/reception`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.operator_account,
         Workflows.MarketplaceAplReceptionCancelledBySupplier.id,
         payload
@@ -173,7 +172,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         // на платежи конкретного поставщика, а не на общий список.
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/soviet/payments/${event.supplier_account}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         cashier.username,
         Workflows.MarketplaceCashierNewPayment.id,
         payload
@@ -215,7 +214,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-admin/suppliers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         chairman.username,
         Workflows.MarketplaceNewSupplierRequest.id,
         payload
@@ -240,7 +239,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceSupplierApproved.id,
         payload
@@ -268,7 +267,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceSupplierPaymentConfirmed.id,
         payload
@@ -300,7 +299,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceOrderReady.id,
         payload
@@ -348,7 +347,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
             reasonExcerpt,
             deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
           };
-          await this.notificationSenderService.sendNotificationToUser(
+          await this.notificationSenderService.notifyUser(
             operatorAccount,
             Workflows.MarketplaceReturnClaimSubmitted.id,
             payload
@@ -397,7 +396,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         comment: event.comment,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceReturnClaimDecided.id,
         payload
@@ -446,7 +445,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceReturnClaimFinalized.id,
         payload
@@ -474,7 +473,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceSupplierPaymentDeclined.id,
         payload
@@ -505,7 +504,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceAidCouncilDecided.id,
         payload
@@ -531,7 +530,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceAidPayoutConfirmed.id,
         payload
@@ -560,7 +559,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceNewOrderForSupplier.id,
         payload
@@ -598,7 +597,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceOrderDeclinedBySupplier.id,
         payload
@@ -632,7 +631,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceReturnAcceptedSupplier.id,
         payload

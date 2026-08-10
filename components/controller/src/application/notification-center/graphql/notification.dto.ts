@@ -3,8 +3,8 @@ import {
   NotificationOutboxStatus,
   NotificationDeliveryStatus,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import './notification-enums';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /** Одна попытка доставки уведомления (строка журнала `notification_deliveries`). */
 @ObjectType('NotificationAttempt')

@@ -1,9 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
-import { MEET_REPOSITORY, MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort, ExtendedMeetStatus, MEET_PORT, type IMeetPort } from '@coopenomics/innercoop';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import type { TrackedMeet } from './types';
 import { Workflows } from '@coopenomics/notifications';
 import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
@@ -17,11 +14,11 @@ type MeetRecipient = { username: string; email: string; subscriberId: string };
 export class MeetWorkflowNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_PORT)
     private readonly accountPort: IAccountPort,
-    @Inject(MEET_REPOSITORY)
-    private readonly meetPreRepository: MeetPreProcessingRepository,
+    @Inject(MEET_PORT)
+    private readonly meetPort: IMeetPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MeetWorkflowNotificationService.name);
@@ -64,7 +61,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
    * В reminder-end, restart, ended поле details в схемах каталога нет — не передаём, иначе ошибка валидации.
    */
   private async meetDetailsPayloadPart(hash: string): Promise<{ details?: string }> {
-    const pre = await this.meetPreRepository.findByHash(hash);
+    const pre = await this.meetPort.getMeetDraft(hash);
     const trimmed = pre?.details?.trim();
     return trimmed ? { details: trimmed } : {};
   }

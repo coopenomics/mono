@@ -1,7 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
-import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort, ExtendedMeetStatus } from '@coopenomics/innercoop';
 import { IConfig, TrackedMeet, defaultConfig } from './types';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity, platformSettings, DateUtils } from '@coopenomics/extension-kit';
@@ -12,7 +10,7 @@ export class MeetTrackerService {
   constructor(
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(MEET_DATA_PORT) private readonly meetPort: MeetDataPort,
+    @Inject(MEET_PORT) private readonly meetPort: IMeetPort,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     private readonly workflowNotificationService: MeetWorkflowNotificationService
   ) {

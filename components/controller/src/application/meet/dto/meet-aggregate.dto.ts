@@ -1,3 +1,4 @@
+import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { Field, ObjectType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -10,7 +11,6 @@ import { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/d
 import { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { MeetDTO } from './meet.dto';
 import { QuestionDTO } from './question.dto';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';

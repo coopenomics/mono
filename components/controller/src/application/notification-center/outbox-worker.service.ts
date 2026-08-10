@@ -8,7 +8,6 @@ import {
   NotificationDeliveryStatus,
   NotificationOutboxStatus,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import {
   EMAIL_CHANNEL_PORT,
   IN_APP_CHANNEL_PORT,
@@ -19,6 +18,7 @@ import {
   type InAppChannelPort,
   type WebPushChannelPort,
 } from '~/domain/notification/interfaces/channel.ports';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 // Параметры worker'а — ENV-sourced с дефолтами (канон: не hardcode magic numbers).
 // Тик опроса очереди; при пустой таблице — один индексный запрос, CPU idle (NFR2).

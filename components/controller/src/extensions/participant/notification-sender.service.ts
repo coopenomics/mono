@@ -1,9 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort, ExtendedMeetStatus } from '@coopenomics/innercoop';
 import { TrackedMeet, NotificationTypes, ILog } from './types';
 import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DateUtils } from '@coopenomics/extension-kit';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { Workflows } from '@coopenomics/notifications';
 
 @Injectable()
@@ -12,7 +10,7 @@ export class NotificationSenderService {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort
   ) {
     this.logger.setContext(NotificationSenderService.name);
   }

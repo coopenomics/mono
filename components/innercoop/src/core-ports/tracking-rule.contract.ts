@@ -1,4 +1,15 @@
 /**
+ * Правила отслеживания решений: связь «хэш документа → поле в параметрах
+ * кооператива», которое обновится, когда решение примут.
+ *
+ * Переехало из `~/domain/decision-tracking/interfaces` контроллера: контракт
+ * нужен расширениям, а этого пути за пределами монолита нет. Зависимостей у
+ * него нет — только перечень и три формы данных.
+ *
+ * Суффикс `DomainInterface` снят при переезде: тип и `I`-префиксом не помечен,
+ * и «интерфейсом» назван — повтор ни о чём не говорит.
+ */
+/**
  * Тип события решения
  */
 export enum DecisionEventType {
@@ -21,7 +32,7 @@ export type DecisionEventTypeString = 'soviet_decision' | 'meet_decision';
  * Правило отслеживания решения
  * Определяет связь между hash документа и полем vars для обновления
  */
-export interface TrackingRuleDomainInterface {
+export interface TrackingRule {
   /**
    * Уникальный идентификатор правила
    */
@@ -61,7 +72,7 @@ export interface TrackingRuleDomainInterface {
 /**
  * Входные данные для создания правила отслеживания
  */
-export interface CreateTrackingRuleInputDomainInterface {
+export interface CreateTrackingRuleInput {
   /**
    * Hash документа для отслеживания
    */
@@ -86,7 +97,7 @@ export interface CreateTrackingRuleInputDomainInterface {
 /**
  * Результат обработки решения
  */
-export interface DecisionProcessedResultDomainInterface {
+export interface DecisionProcessedResult {
   /**
    * Был ли найден match
    */

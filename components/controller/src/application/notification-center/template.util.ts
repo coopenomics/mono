@@ -1,6 +1,6 @@
 import { Workflows } from '@coopenomics/notifications';
-import type { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type { ChannelMessage } from '~/domain/notification/interfaces/channel.ports';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /** Тексты шаблона канала из каталога. */
 export interface ResolvedTemplate {

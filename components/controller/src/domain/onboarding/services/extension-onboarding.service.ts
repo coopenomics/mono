@@ -5,15 +5,6 @@ import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
-import {
-  FREE_DECISION_PORT,
-  type FreeDecisionPort,
-} from '~/domain/free-decision/ports/free-decision.port';
-import {
-  DECISION_TRACKING_PORT,
-  type DecisionTrackingPort,
-} from '~/domain/decision-tracking/ports/decision-tracking.port';
-import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '../constants/onboarding-ttl';
 import {
@@ -22,6 +13,8 @@ import {
 } from '../ports/onboarding-step-query.port';
 import type { IExtensionOnboardingStepSpec } from '../dto/extension-onboarding-step-spec';
 import config from '~/config/config';
+import { DECISION_TRACKING_PORT, IDecisionTrackingPort, DecisionEventType } from '@coopenomics/innercoop';
+import { FREE_DECISION_PORT, IFreeDecisionPort } from '@coopenomics/innercoop';
 
 export interface IExtensionOnboardingStepState {
   step_key: string;
@@ -73,9 +66,9 @@ export class ExtensionOnboardingService {
       Record<string, unknown>
     >,
     @Inject(FREE_DECISION_PORT)
-    private readonly freeDecisionPort: FreeDecisionPort,
+    private readonly freeDecisionPort: IFreeDecisionPort,
     @Inject(DECISION_TRACKING_PORT)
-    private readonly decisionTrackingPort: DecisionTrackingPort,
+    private readonly decisionTrackingPort: IDecisionTrackingPort,
     @Inject(ONBOARDING_STEP_QUERY_PORT)
     private readonly stepsRegistry: OnboardingStepQueryPort
   ) {}

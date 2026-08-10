@@ -1,12 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import type { NotifyRecipient } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import {
   TriggerNotificationWorkflowInputDTO,
   NotificationWorkflowRecipientInputDTO,
 } from '../dto/trigger-notification-workflow-input.dto';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import config from '~/config/config';
+import { NOTIFICATION_PORT, INotificationPort, InnerNotifyRecipient } from '@coopenomics/innercoop';
 
 /**
  * Сервис для отправки уведомлений
@@ -16,7 +15,7 @@ import config from '~/config/config';
 export class NotificationService {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DOMAIN_SERVICE)
     private readonly accountDomainService: AccountDomainService
   ) {}
@@ -44,7 +43,7 @@ export class NotificationService {
   /**
    * Преобразует DTO получателей в доменных получателей Центра уведомлений
    */
-  private async mapRecipients(dtoRecipients: NotificationWorkflowRecipientInputDTO[]): Promise<NotifyRecipient[]> {
+  private async mapRecipients(dtoRecipients: NotificationWorkflowRecipientInputDTO[]): Promise<InnerNotifyRecipient[]> {
     const recipients = await Promise.all(
       dtoRecipients.map(async (recipient) => {
         const account = await this.accountDomainService.getAccount(recipient.username);
