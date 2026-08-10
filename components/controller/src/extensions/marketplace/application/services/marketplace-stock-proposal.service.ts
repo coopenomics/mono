@@ -14,10 +14,6 @@ import {
   type DocumentValidationService,
 } from '~/domain/document/services/document-validation.service';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import {
-  USER_WALLET_REPOSITORY,
-  type UserWalletRepository,
-} from '~/domain/wallet/repositories/user-wallet.repository';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
@@ -60,6 +56,7 @@ import {
   type MarketplaceStockProposalCreatedEvent,
   type MarketplaceStockProposalResolvedEvent,
 } from '../events/marketplace-notification.events';
+import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 
 /** Строка корзины докладки на этапе формирования бандла оператором. */
 export interface MarketplaceStockProposalCreateLine {
@@ -198,8 +195,8 @@ export class MarketplaceStockProposalService {
     private readonly issuanceService: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    @Inject(USER_WALLET_REPOSITORY)
-    private readonly userWalletRepo: UserWalletRepository,
+    @Inject(USER_WALLET_PORT)
+    private readonly userWalletRepo: IUserWalletPort,
     @Inject(DOCUMENT_VALIDATION_SERVICE)
     private readonly documentValidationService: DocumentValidationService,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,

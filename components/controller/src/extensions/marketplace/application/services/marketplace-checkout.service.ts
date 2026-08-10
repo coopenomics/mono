@@ -11,10 +11,6 @@ import {
   MarketplaceEconomyService,
 } from './marketplace-economy.service';
 import {
-  USER_WALLET_REPOSITORY,
-  type UserWalletRepository,
-} from '~/domain/wallet/repositories/user-wallet.repository';
-import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
 } from '../../domain/repositories/marketplace-cart.repository';
@@ -45,6 +41,7 @@ import {
   MarketplaceCheckoutFailedLineDTO,
   MarketplaceCheckoutResultDTO,
 } from '../dto/marketplace-checkout.dto';
+import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_CHECKOUT_SERVICE = Symbol('MARKETPLACE_CHECKOUT_SERVICE');
 
@@ -104,8 +101,8 @@ export class MarketplaceCheckoutService {
     private readonly stockService: MarketplaceStockService,
     @Inject(MARKETPLACE_CART_SERVICE)
     private readonly cartService: MarketplaceCartService,
-    @Inject(USER_WALLET_REPOSITORY)
-    private readonly walletRepo: UserWalletRepository,
+    @Inject(USER_WALLET_PORT)
+    private readonly walletRepo: IUserWalletPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)

@@ -21,8 +21,10 @@ import {
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
   PAYMENT_PROVIDER_REGISTRY_PORT,
+  PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   USER_DATA_PORT,
+  USER_WALLET_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -47,6 +49,11 @@ import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/pay
 import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
 import { UserDataInnercoopAdapter } from '~/infrastructure/innercoop/user-data-innercoop.adapter';
 import { PaymentDeskInnercoopAdapter } from '~/infrastructure/innercoop/payment-desk-innercoop.adapter';
+import {
+  ProgramWalletInnercoopAdapter,
+  UserWalletInnercoopAdapter,
+} from '~/infrastructure/innercoop/wallet-innercoop.adapter';
+import { WalletModule } from '~/application/wallet/wallet.module';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -96,6 +103,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DecisionTrackingInfrastructureModule,
     FreeDecisionInfrastructureModule,
     GatewayInfrastructureModule,
+    WalletModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -109,6 +117,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentMethodInnercoopAdapter,
     UserDataInnercoopAdapter,
     PaymentDeskInnercoopAdapter,
+    ProgramWalletInnercoopAdapter,
+    UserWalletInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -212,6 +222,14 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: PaymentDeskInnercoopAdapter,
     },
     {
+      provide: PROGRAM_WALLET_PORT,
+      useExisting: ProgramWalletInnercoopAdapter,
+    },
+    {
+      provide: USER_WALLET_PORT,
+      useExisting: UserWalletInnercoopAdapter,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -243,6 +261,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_METHOD_PORT,
     USER_DATA_PORT,
     PAYMENT_DESK_PORT,
+    PROGRAM_WALLET_PORT,
+    USER_WALLET_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

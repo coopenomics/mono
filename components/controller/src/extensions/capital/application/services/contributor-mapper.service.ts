@@ -4,10 +4,10 @@ import { ContributorOutputDTO } from '../dto/participation_management/contributo
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
 import { Cooperative } from 'cooptypes';
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
-import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
+import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей участников в DTO
@@ -17,7 +17,7 @@ export class ContributorMapperService {
   constructor(
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort,
-    @Inject(WALLET_DOMAIN_PORT) private readonly walletDomainPort: WalletDomainPort
+    @Inject(PROGRAM_WALLET_PORT) private readonly walletDomainPort: IProgramWalletPort
   ) {}
 
   /**

@@ -3,10 +3,6 @@ import { Query, Resolver } from '@nestjs/graphql';
 import { Ledger2 } from 'cooptypes';
 
 import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
-import {
-  USER_WALLET_REPOSITORY,
-  type UserWalletRepository,
-} from '~/domain/wallet/repositories/user-wallet.repository';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -15,6 +11,7 @@ import {
   MarketplaceWalletEntryDTO,
 } from '../dto/marketplace-member-wallet.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
@@ -47,7 +44,7 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
  * двигал средства через данный кошелёк) — возвращаем `0/0` — это
  * рабочее состояние, а не ошибка (RPC fallback запрещён ADR-011).
  *
- * Источник: `UserWalletRepository.findByUsername` (PG-кеш
+ * Источник: `IUserWalletPort.findByUsername` (PG-кеш
  * `ledger2::userwallets`). `WalletService.getProgramWallet` сворачивает
  * split-кошельки ЦК и неприменим для UX, требующего видеть каждый
  * кошелёк отдельно (review @dacom-dark-sun, PR #380).
@@ -56,8 +53,8 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
 @Injectable()
 export class MarketplaceMemberWalletResolver {
   constructor(
-    @Inject(USER_WALLET_REPOSITORY)
-    private readonly userWalletRepository: UserWalletRepository
+    @Inject(USER_WALLET_PORT)
+    private readonly userWalletRepository: IUserWalletPort
   ) {}
 
   @Query(() => MarketplaceMemberWalletDTO, {

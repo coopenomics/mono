@@ -15,9 +15,9 @@ import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
 import { AssetUtils, HttpApiError } from '@coopenomics/extension-kit';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
+import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
 const REGSHARE_TX_GAP_MS = 500;
 
@@ -41,8 +41,8 @@ export class ProgramShareRegistrationService {
     private readonly projectRepository: ProjectRepository,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
-    @Inject(WALLET_DOMAIN_PORT)
-    private readonly walletDomainPort: WalletDomainPort
+    @Inject(PROGRAM_WALLET_PORT)
+    private readonly walletDomainPort: IProgramWalletPort
   ) {}
 
   /**
