@@ -3,7 +3,6 @@ import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
@@ -56,7 +55,6 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpensesDatabaseModule,
     DocumentDomainModule,
     BlockchainModule,
-    VaultDomainModule,
     GeneratorInfrastructureModule,
     FileStorageInfrastructureModule.forFeature([ExpenseFilesService]),
   ],

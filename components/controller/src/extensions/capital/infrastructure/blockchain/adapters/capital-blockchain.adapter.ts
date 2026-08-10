@@ -3,13 +3,13 @@ import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort } from '../../../domain/interfaces/capital-blockchain.port';
 import { Checksum256, Name, UInt128, type TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
 import type { IContributorBlockchainData } from '../../../domain/interfaces/contributor-blockchain.interface';
 import type { IAppendixBlockchainData } from '../../../domain/interfaces/appendix-blockchain.interface';
 import { ContributorDeltaMapper } from '../mappers/contributor-delta.mapper';
 import { AppendixDeltaMapper } from '../mappers/appendix-delta.mapper';
 import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CAPITAL
@@ -22,7 +22,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly contributorDeltaMapper: ContributorDeltaMapper,
     private readonly appendixDeltaMapper: AppendixDeltaMapper,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
   /**

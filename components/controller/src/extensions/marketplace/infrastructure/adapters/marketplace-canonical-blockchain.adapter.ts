@@ -2,13 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import {
-  VaultDomainService,
-  VAULT_DOMAIN_SERVICE,
-} from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: canonical-adapter для marketplace процессов. Параллелен
@@ -16,14 +13,14 @@ import { HttpApiError } from '@coopenomics/extension-kit';
  * отдельном refactor-PR после PR #385 — на Story 4.1 не трогаем).
  *
  * Подпись tx — ключ кооператива (`require_auth(coopname)` в C++); ключ
- * берётся из VaultDomainService по `data.coopname`.
+ * берётся из IVaultPort по `data.coopname`.
  */
 @Injectable()
 export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonicalBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
-    @Inject(VAULT_DOMAIN_SERVICE)
-    private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT)
+    private readonly vaultDomainService: IVaultPort
   ) {}
 
   async createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult> {

@@ -1,7 +1,7 @@
 import { ExpenseContract } from 'cooptypes'
 import { ExpensesBlockchainAdapter } from './expenses-blockchain.adapter'
 import type { BlockchainService } from '~/infrastructure/blockchain/blockchain.service'
-import type { VaultDomainService } from '~/domain/vault/services/vault-domain.service'
+import { type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Контракт-тест адаптера: каждое действие подписывается ключом кооператива
@@ -12,7 +12,7 @@ import type { VaultDomainService } from '~/domain/vault/services/vault-domain.se
  */
 describe('ExpensesBlockchainAdapter', () => {
   let blockchain: jest.Mocked<Pick<BlockchainService, 'initialize' | 'transact'>>
-  let vault: jest.Mocked<Pick<VaultDomainService, 'getWif'>>
+  let vault: jest.Mocked<Pick<IVaultPort, 'getWif'>>
   let adapter: ExpensesBlockchainAdapter
 
   const fakeResult = { response: { transaction_id: 'tx_zzz' } } as never
@@ -27,7 +27,7 @@ describe('ExpensesBlockchainAdapter', () => {
     }
     adapter = new ExpensesBlockchainAdapter(
       blockchain as unknown as BlockchainService,
-      vault as unknown as VaultDomainService
+      vault as unknown as IVaultPort
     )
   })
 

@@ -3,7 +3,6 @@ import { BranchContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import httpStatus from 'http-status';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import type { KuBlockchainPort } from '../../../domain/interfaces/ku-blockchain.port';
 import type {
   ApproveKuTrustedInputDomainInterface,
@@ -18,6 +17,7 @@ import type {
   VoteOnKuDecisionInputDomainInterface,
 } from '../../../domain/interfaces/ku-action-inputs.interface';
 import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Адаптер блокчейн-порта собраний и решений кооперативных участков.
@@ -28,7 +28,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
   private async transactAs(coopname: string, name: string, data: Record<string, unknown>): Promise<TransactResult> {

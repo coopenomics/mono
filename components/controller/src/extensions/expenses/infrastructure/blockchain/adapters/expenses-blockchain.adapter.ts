@@ -3,9 +3,9 @@ import { ExpenseContract } from 'cooptypes'
 import type { TransactResult } from '@wharfkit/session'
 import httpStatus from 'http-status'
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service'
-import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service'
 import { ExpensesBlockchainPort } from '../../../domain/interfaces/expenses-blockchain.port'
 import { HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Адаптер блокчейн-порта `expense`. Канон взят с `CapitalBlockchainAdapter`:
@@ -20,7 +20,7 @@ import { HttpApiError } from '@coopenomics/extension-kit';
 export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
   private async initWithCoopKey(coopname: string): Promise<void> {

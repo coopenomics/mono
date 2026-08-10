@@ -9,7 +9,6 @@ import { merge } from 'lodash';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 
 // Chairman Database and Infrastructure
@@ -235,7 +234,6 @@ export class ChairmanExtension extends BaseExtensionModule {
     AccountInfrastructureModule,
     SystemInfrastructureModule,
     DocumentDomainModule,
-    VaultDomainModule,
     SystemDomainModule,
   ],
   providers: [

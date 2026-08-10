@@ -134,7 +134,6 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 
 @Module({
   imports: [
@@ -224,9 +223,6 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
       ],
       'marketplace'
     ), // Указываем имя подключения
-    // Поставляет VAULT_DOMAIN_SERVICE для MarketplaceCanonicalBlockchainAdapter
-    // (WIF кооператива по data.coopname для подписи on-chain транзакций).
-    VaultDomainModule,
   ],
   providers: [
     {

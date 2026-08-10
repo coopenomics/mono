@@ -25,6 +25,7 @@ import {
   PROJECT_CAPITAL_CLEARANCE_PORT,
   USER_DATA_PORT,
   USER_WALLET_PORT,
+  VAULT_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -54,6 +55,8 @@ import {
   UserWalletInnercoopAdapter,
 } from '~/infrastructure/innercoop/wallet-innercoop.adapter';
 import { WalletModule } from '~/application/wallet/wallet.module';
+import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoop.adapter';
+import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -104,6 +107,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     FreeDecisionInfrastructureModule,
     GatewayInfrastructureModule,
     WalletModule,
+    VaultDomainModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -119,6 +123,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentDeskInnercoopAdapter,
     ProgramWalletInnercoopAdapter,
     UserWalletInnercoopAdapter,
+    VaultInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -230,6 +235,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: UserWalletInnercoopAdapter,
     },
     {
+      provide: VAULT_PORT,
+      useExisting: VaultInnercoopAdapter,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -263,6 +272,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_DESK_PORT,
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
+    VAULT_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

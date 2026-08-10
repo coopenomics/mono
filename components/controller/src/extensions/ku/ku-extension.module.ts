@@ -4,7 +4,6 @@ import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModu
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { DocumentDomainModule } from '~/domain/document/document.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 
 // База данных
 import { KuDatabaseModule } from './infrastructure/database/ku-database.module';
@@ -68,7 +67,7 @@ export class KuExtension extends BaseExtensionModule {
 }
 
 @Module({
-  imports: [KuDatabaseModule, DocumentDomainModule, VaultDomainModule, AccountInfrastructureModule],
+  imports: [KuDatabaseModule, DocumentDomainModule, AccountInfrastructureModule],
   providers: [
     // Extension
     KuExtension,

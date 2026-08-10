@@ -3,11 +3,11 @@ import { SovietContract } from 'cooptypes';
 import { ChairmanBlockchainPort } from '../../../domain/interfaces/chairman-blockchain.port';
 import { type TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
 import { ConfirmApproveDomainInput } from '../../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../../domain/actions/decline-approve-domain-input.interface';
 import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CHAIRMAN
@@ -18,7 +18,7 @@ export class ChairmanBlockchainAdapter implements ChairmanBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
   /**

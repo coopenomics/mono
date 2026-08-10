@@ -7,7 +7,6 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { z } from 'zod';
 
@@ -698,7 +697,6 @@ export class CapitalExtension extends BaseExtensionModule {
     DocumentDomainModule,
     DocumentModule,
     DocumentInfrastructureModule,
-    VaultDomainModule,
     WalletModule,
     forwardRef(() => RegistrationModule),
     RegistrationInfrastructureModule,
