@@ -22,6 +22,7 @@ export * from './payment-desk.port';
 export * from './program.contract';
 export * from './wallet.port';
 export * from './vault.port';
+export * from './onboarding.port';
 export * from './user-data.port';
 export * from './party-card.port';
 export * from './signed-document.port';

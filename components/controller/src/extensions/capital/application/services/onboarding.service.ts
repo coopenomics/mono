@@ -6,9 +6,9 @@ import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboar
 import type { IConfig } from '../../capital-extension.module';
 import { Cooperative } from 'cooptypes';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
 import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
 import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
+import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'

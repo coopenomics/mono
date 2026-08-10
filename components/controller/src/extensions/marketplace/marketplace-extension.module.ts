@@ -11,15 +11,12 @@ import {
   AGREEMENT_REGISTRATION_PORT,
   type AgreementRegistrationPort,
 } from '~/domain/registration/ports/agreement-registration.port';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { Cooperative } from 'cooptypes';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
 import { MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
+import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -40,8 +37,8 @@ export class MarketplaceExtension extends BaseExtensionModule {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(AGREEMENT_REGISTRATION_PORT)
     private readonly agreementRegistrationPort: AgreementRegistrationPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null

@@ -10,10 +10,7 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { generateRandomHash } from '~/utils/generate-hash.util';
-import {
-  ONBOARDING_COMPLETED_EVENT,
-  type OnboardingCompletedPayload,
-} from '~/domain/onboarding/events/onboarding-completed.event';
+import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
 
 @Injectable()
 export class CapitalOnboardingEventsService {
@@ -88,7 +85,7 @@ export class CapitalOnboardingEventsService {
         );
         this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
           extension_name: 'capital',
-        } satisfies OnboardingCompletedPayload);
+        } satisfies InnerOnboardingCompletedPayload);
       }
     } catch (error) {
       const errorObj = error as Error;

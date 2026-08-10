@@ -7,10 +7,7 @@ import {
 import type { IConfig } from '../../chairman-extension.module';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort, DecisionTrackedEvent } from '@coopenomics/innercoop';
-import {
-  ONBOARDING_COMPLETED_EVENT,
-  type OnboardingCompletedPayload,
-} from '~/domain/onboarding/events/onboarding-completed.event';
+import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
 
 /**
  * Сервис обработки событий онбординга председателя
@@ -103,7 +100,7 @@ export class ChairmanOnboardingEventsService {
         );
         this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
           extension_name: 'chairman',
-        } satisfies OnboardingCompletedPayload);
+        } satisfies InnerOnboardingCompletedPayload);
       }
     } catch (error: any) {
       this.logger.error(`Ошибка при обработке события отслеживания решения: ${error.message}`, error.stack);

@@ -40,12 +40,9 @@ import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.r
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
-import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -176,8 +173,8 @@ export class ChairmanExtension extends BaseExtensionModule {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {

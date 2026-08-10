@@ -9,6 +9,7 @@ import { DocumentInfrastructureModule } from '~/infrastructure/document/document
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { z } from 'zod';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -270,10 +271,6 @@ import {
   type AgreementRegistrationPort,
 } from '~/domain/registration/ports/agreement-registration.port';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
 
 // Репозитории
@@ -481,8 +478,8 @@ export class CapitalExtension extends BaseExtensionModule {
     private readonly gitService: GitService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
     @Inject(AGREEMENT_REGISTRATION_PORT) private readonly agreementRegistrationPort: AgreementRegistrationPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);

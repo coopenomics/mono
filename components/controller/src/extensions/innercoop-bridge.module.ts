@@ -12,6 +12,7 @@ import {
   MATRIX_ROOM_MESSAGING_PORT,
   MEET_PORT,
   MESSAGE_CHANNEL_PORT,
+  ONBOARDING_STEP_REGISTRY_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
@@ -57,6 +58,7 @@ import {
 import { WalletModule } from '~/application/wallet/wallet.module';
 import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoop.adapter';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
+import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -239,6 +241,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: VaultInnercoopAdapter,
     },
     {
+      // Без промежуточного адаптера: реестр шагов ядра и порт совпадают по
+      // форме, а `OnboardingDomainModule` глобальный — сервис виден отсюда.
+      provide: ONBOARDING_STEP_REGISTRY_PORT,
+      useExisting: OnboardingStepsRegistryService,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -273,6 +281,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,
+    ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],
