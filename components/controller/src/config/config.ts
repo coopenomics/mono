@@ -29,6 +29,14 @@ const envVarsSchema = z.object({
     .min(1)
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
+  LOG_LEVEL: z
+    .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
+    .optional()
+    .describe(
+      'Уровень логов winston. По умолчанию info на проде и debug в разработке. ' +
+        'На debug в лог попадают успешные HTTP-запросы с временем ответа (morgan successHandler) — ' +
+        'без этого в логе видны только ответы 4xx/5xx, и латентность по логам не измерить',
+    ),
   PORT: z
     .string()
     .default('3000')
@@ -229,6 +237,7 @@ if (!envVars.success) {
 // Экспорт настроек
 export default {
   env: envVars.data.NODE_ENV,
+  log_level: envVars.data.LOG_LEVEL ?? (envVars.data.NODE_ENV === 'development' ? 'debug' : 'info'),
   backend_url: envVars.data.BACKEND_URL,
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,

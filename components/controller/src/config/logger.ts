@@ -10,7 +10,11 @@ const enumerateErrorFormat = winston.format((info) => {
 });
 
 const logger = winston.createLogger({
-  level: config.env === 'development' ? 'debug' : 'info',
+  // Уровень задаётся переменной LOG_LEVEL (по умолчанию info на проде, debug в
+  // разработке). Успешные HTTP-запросы morgan пишет в debug, поэтому на проде их
+  // в логе нет вообще — чтобы разобрать инцидент с таймаутами, LOG_LEVEL=debug
+  // поднимается в docker-compose плейбука без пересборки образа.
+  level: config.log_level,
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     enumerateErrorFormat(),
@@ -51,7 +55,9 @@ const logger = winston.createLogger({
         ]),
     new winston.transports.Console({
       stderrLevels: ['error'],
-      level: config.env === 'development' ? 'debug' : 'info',
+      // Транспорт тоже фильтрует — без этого docker logs останется на info,
+      // даже если сам логгер поднят до debug.
+      level: config.log_level,
     }),
   ],
 });
