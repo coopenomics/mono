@@ -6,13 +6,10 @@ import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT } from '../events/marketplace-notification.events';
 import type { IAction } from '~/types';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 
 /**
  * requirement b6 (2026-08-03): слушатель подтверждения выплаты материальной
@@ -36,8 +33,8 @@ export class MarketplaceAidPayoutSyncService {
   constructor(
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepo: PaymentMethodRepository,
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethodRepo: IPaymentMethodPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {

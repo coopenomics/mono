@@ -66,6 +66,7 @@ import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
+import type { InnerPaymentMethod } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -107,7 +108,6 @@ import {
   MarketplaceOrderSupplierActionService,
 } from './marketplace-order-supplier-action.service';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
-import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -1022,7 +1022,7 @@ export class MarketplaceAplReceptionService {
     // уже созданные выплаты не трогает. Отсутствие реквизитов выплату не
     // блокирует (деньги поставщику должны уйти) — кассир увидит платёж
     // без реквизитов и запросит их у поставщика.
-    let payoutMethod: PaymentMethodDomainEntity | null = null;
+    let payoutMethod: InnerPaymentMethod | null = null;
     try {
       payoutMethod = await this.supplierSettings.resolvePayoutMethod(
         reception.coopname,
@@ -1093,7 +1093,7 @@ export class MarketplaceAplReceptionService {
     payee_account: string;
     amount: string;
     purpose: string;
-    payout_method: PaymentMethodDomainEntity | null;
+    payout_method: InnerPaymentMethod | null;
   }): Promise<void> {
     const payoutDestination = input.payout_method
       ? formatPayoutDestination(input.payout_method)

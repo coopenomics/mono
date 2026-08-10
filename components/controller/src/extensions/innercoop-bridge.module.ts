@@ -14,6 +14,7 @@ import {
   MESSAGE_CHANNEL_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
+  PAYMENT_METHOD_PORT,
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
   PAYMENT_PROVIDER_REGISTRY_PORT,
@@ -39,6 +40,7 @@ import { PaymentInnercoopAdapter } from '~/infrastructure/innercoop/payment-inne
 import { PaymentProviderRegistryInnercoopAdapter } from '~/infrastructure/innercoop/payment-provider-registry-innercoop.adapter';
 import { PaymentPollingStateInnercoopAdapter } from '~/infrastructure/innercoop/payment-polling-state-innercoop.adapter';
 import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/payment-notice-log-innercoop.adapter';
+import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
@@ -94,6 +96,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentProviderRegistryInnercoopAdapter,
     PaymentPollingStateInnercoopAdapter,
     PaymentNoticeLogInnercoopAdapter,
+    PaymentMethodInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -182,6 +185,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: PAYMENT_NOTICE_LOG_PORT,
       useExisting: PaymentNoticeLogInnercoopAdapter,
     },
+    {
+      provide: PAYMENT_METHOD_PORT,
+      useExisting: PaymentMethodInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -203,6 +210,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_PROVIDER_REGISTRY_PORT,
     PAYMENT_POLLING_STATE_PORT,
     PAYMENT_NOTICE_LOG_PORT,
+    PAYMENT_METHOD_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

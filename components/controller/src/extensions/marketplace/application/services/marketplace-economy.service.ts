@@ -41,13 +41,10 @@ import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -164,8 +161,8 @@ export class MarketplaceEconomyService {
     private readonly ledger2History: ILedger2HistoryPort,
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepo: PaymentMethodRepository,
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethodRepo: IPaymentMethodPort,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(EXPENSE_CHASSIS_PORT)

@@ -7,13 +7,8 @@ import { Workflows } from '@coopenomics/notifications';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { INDIVIDUAL_REPOSITORY, type IndividualRepository } from '~/domain/common/repositories/individual.repository';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
 import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
-import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
@@ -22,6 +17,7 @@ import {
   KU_TRUST_REQUEST_REPOSITORY,
   type KuTrustRequestRepository,
 } from '../../domain/repositories/ku-trust-request.repository';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 
 /**
  * Событийные реакции собраний кооперативных участков:
@@ -40,7 +36,7 @@ export class KuEventsService {
     @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
-    @Inject(PAYMENT_METHOD_REPOSITORY) private readonly paymentMethodRepository: PaymentMethodRepository,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethodPort: IPaymentMethodPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(KuEventsService.name);
@@ -253,21 +249,19 @@ export class KuEventsService {
 
       await this.organizationRepository.create(combinedData);
 
-      const cooperativeBank = await this.paymentMethodRepository.get({
+      const cooperativeBank = await this.paymentMethodPort.get({
         username: action.coopname,
         method_type: 'bank_transfer',
         is_default: true,
       });
 
-      await this.paymentMethodRepository.save(
-        new PaymentMethodDomainEntity({
-          username: decision.braname,
-          method_id: randomUUID().toString(),
-          method_type: 'bank_transfer',
-          data: cooperativeBank.data,
-          is_default: true,
-        })
-      );
+      await this.paymentMethodPort.save({
+        username: decision.braname,
+        method_id: randomUUID().toString(),
+        method_type: 'bank_transfer',
+        data: cooperativeBank.data,
+        is_default: true,
+      });
 
       this.logger.log(`confirmdec ${action.hash}: создана карточка участка ${decision.braname} («${branchName}»)`);
     } catch (error: any) {

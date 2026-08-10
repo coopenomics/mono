@@ -17,6 +17,7 @@ export * from './decision-tracked.event';
 export * from './free-decision.port';
 export * from './payment.port';
 export * from './payment-provider.port';
+export * from './payment-method.port';
 export * from './signed-document.port';
 export * from './signature-info.contract';
 export * from './meta-document.contract';
