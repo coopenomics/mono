@@ -169,19 +169,27 @@ export default async ({ page, shot, expect }) => {
   );
 
   // ── Гард: выдать больше принятого нельзя ─────────────────────────────────
+  // Форма не даёт даже набрать лишнее: введённое количество обрезается по
+  // принятому на склад. Бейдж «Больше принятого» остаётся для случая, когда
+  // превышение приходит уже готовым с сервера — например, остаток уменьшился
+  // после открытия выдачи.
   await setFactField(dialog, 1, unitPrice, dearerTotal);
+  const restoredTotal = await sumByLabel(dialog, 'Итого к оплате');
   await setFactField(dialog, 0, plannedQty + 5);
+  const cappedQty = Number.parseFloat(await qtyInput.inputValue());
+  const cappedTotal = await sumByLabel(dialog, 'Итого к оплате');
 
   await shot(
     page,
     '04-over-accepted',
-    'Оператор пробует выдать больше, чем принято на склад: строка помечается как превышение, и подписать акт на такое количество нельзя. Физически этого имущества на участке нет.',
+    'Оператор пробует выдать больше, чем принято на склад: количество обрезается до принятого. Физически этого имущества на участке нет, и набрать его в акт нельзя.',
     {
       preserveNotifications: true,
-      expect: async (p) => {
-        await expect(
-          p.locator('.correction-table__summary-chips').getByText('Больше принятого').first()
-        ).toBeVisible({ timeout: 10000 });
+      expect: async () => {
+        // Обрезано ровно до принятого, а не просто «как-то уменьшено».
+        expect(cappedQty).toBe(plannedQty);
+        // И деньги от несостоявшегося превышения не выросли.
+        expect(cappedTotal).toBe(restoredTotal);
       },
     },
   );
