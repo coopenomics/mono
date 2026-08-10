@@ -7,7 +7,7 @@ import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import { AnoContract, RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import type { ActiveKeysQuorum, EndorsementRecord } from '~/domain/common/ports/blockchain.port';
+import type { ActiveKeysQuorum, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
 import { RpcPool } from './rpc-pool.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
@@ -15,6 +15,12 @@ import type { BlockchainAccountInterface } from '~/types/shared';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import { normalizeAbiFloats } from './abi-float.normalizer';
+
+/**
+ * Индекс реестра кооперативов «по оператору». Третий по счёту после первичного:
+ * порядок задан в самом контракте, и подписи у него нет — только номер.
+ */
+const BY_OPERATOR_INDEX = 'tertiary';
 
 export type IndexPosition =
   | 'primary'
@@ -271,6 +277,27 @@ export class BlockchainService implements BlockchainPort {
       expires_at: String(row.expires_at),
       credential: String(row.credential),
     };
+  }
+
+  /**
+   * Кооперативы, у которых оператором указан `operator`.
+   *
+   * Читается по индексу «по оператору»: перебирать весь реестр ради нескольких
+   * записей незачем, а у оператора их со временем станет много. Совпадение поля
+   * сверяется ещё раз уже здесь — узел отдаёт диапазон индекса, и брать его на
+   * веру, когда от этого зависит, кому выдавать заверение, не стоит.
+   */
+  public async getServedCooperatives(operator: string): Promise<ServedCooperative[]> {
+    const contract = RegistratorContract.contractName.production;
+    const rows = await this.query(contract, contract, RegistratorContract.Tables.Cooperatives.tableName, {
+      indexPosition: BY_OPERATOR_INDEX,
+      from: operator,
+      to: operator,
+      keyType: 'name',
+    });
+    return rows
+      .filter((row: any) => String(row.parent_username) === operator && String(row.username) !== operator)
+      .map((row: any) => ({ username: String(row.username), status: String(row.status ?? '') }));
   }
 
   /**

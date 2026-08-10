@@ -20,6 +20,7 @@ import { CertificateService } from './certificate/certificate.service';
 import { CertSettingsService } from './certificate/cert-settings.service';
 import { CertKeyService } from './certificate/cert-key.service';
 import { EndorsementService } from './certificate/endorsement.service';
+import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { CertificateResolver } from './certificate/certificate.resolver';
 import { CoopIdClaimsPolicyController } from './certificate/coopid-claims-policy.controller';
@@ -62,7 +63,7 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
  * certificate/id_token — Story 1.8. BLOCKCHAIN_PORT/USER_DOMAIN_SERVICE — @Global.
  */
 @Module({
-  imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule, AuthMetricsModule, VaultDomainModule],
+  imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule, AuthMetricsModule, VaultDomainModule, AccountInfrastructureModule],
   // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
   // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).

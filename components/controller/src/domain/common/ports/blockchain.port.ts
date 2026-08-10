@@ -36,6 +36,17 @@ export interface EndorsementRecord {
   credential: string;
 }
 
+/**
+ * Кооператив, которого обслуживает оператор: его установку оператор развернул и
+ * держит, а значит он же продлевает ему заверение. Статус здесь тот же, что в
+ * реестре кооперативов, и он решает, продлевать ли: заблокированному заверение
+ * гаснет само в пределах своего срока.
+ */
+export interface ServedCooperative {
+  username: string;
+  status: string;
+}
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
@@ -95,6 +106,11 @@ export interface BlockchainPort {
    * никто не подтверждал, что субъект вправе выпускать удостоверения.
    */
   getEndorsement(subject: string): Promise<EndorsementRecord | null>;
+  /**
+   * Кооперативы, которых обслуживает оператор — те, у кого он указан оператором в
+   * реестре кооперативов.
+   */
+  getServedCooperatives(operator: string): Promise<ServedCooperative[]>;
   /**
    * Записывает заверение в цепочку доверия. Подписывает заверяющий — либо сам, либо
    * кооператив, которому переданы его распорядительные права (так подписывают за
