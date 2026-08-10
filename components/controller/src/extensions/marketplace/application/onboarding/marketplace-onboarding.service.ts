@@ -9,7 +9,6 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { config } from '~/config';
 
 import {
   MARKETPLACE_AGREEMENT_TYPE,
@@ -17,6 +16,7 @@ import {
 } from '../../constants/marketplace-agreement-ids';
 import type { MarketplaceOnboardingSource } from '../dto/marketplace-onboarding-state.dto';
 import { MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Story 1.4: L3 fallback gate marketplace.
@@ -63,7 +63,7 @@ export class MarketplaceOnboardingService {
 
     // program_id ЦПП «Стол заказов» из `soviet::coagreements` (тот же лукап, что
     // и при подписи). Без настроенной как программа ЦПП гейтить нечем — пропускаем.
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const coagreement = await this.sovietBlockchainPort.getCoagreement(
       coopname,
       MARKETPLACE_AGREEMENT_TYPE

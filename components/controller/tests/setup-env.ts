@@ -43,11 +43,13 @@ configurePlatformSettings({
   frontendUrl: config.frontend_url,
   backendUrl: config.backend_url,
   timezone: config.timezone,
+  environment: config.env,
   blockchain: {
     rootGovernSymbol: config.blockchain.root_govern_symbol,
     rootGovernPrecision: config.blockchain.root_govern_precision,
     rootSymbol: config.blockchain.root_symbol,
     rootPrecision: config.blockchain.root_precision,
     postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
+    chainId: config.blockchain.id,
   },
 });

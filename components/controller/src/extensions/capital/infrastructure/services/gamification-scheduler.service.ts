@@ -3,7 +3,7 @@ import * as cron from 'node-cron';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import { config } from '~/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 /**
  * Сервис планировщика для автоматического обновления энергии участников (геймификация)
  * Управляет cron задачами для периодического применения decay к энергии участников
@@ -25,7 +25,7 @@ export class GamificationSchedulerService implements OnModuleInit, OnModuleDestr
     this.logger.log('Инициализация планировщика геймификации...');
 
     // Запускаем обновление энергии каждый день в полночь (или каждую минуту в dev режиме)
-    const cronExpression = config.env === 'development' ? '* * * * *' : '0 0 * * *';
+    const cronExpression = platformSettings().environment === 'development' ? '* * * * *' : '0 0 * * *';
     this.cronJob = cron.schedule(cronExpression, async () => {
       try {
         await this.refreshAllContributorsEnergy();
@@ -69,7 +69,7 @@ export class GamificationSchedulerService implements OnModuleInit, OnModuleDestr
     this.logger.debug('Начинаем ежедневное обновление энергии участников...');
 
     try {
-      const coopname = config.coopname;
+      const coopname = platformSettings().coopname;
 
       // Получаем всех участников текущего кооператива
       const allContributors = await this.contributorRepository.findAll();

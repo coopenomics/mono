@@ -1,5 +1,7 @@
 import { forwardRef, Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -458,7 +460,6 @@ import { ExpensesManagementInteractor } from './application/use-cases/expenses-m
 import { SegmentsInteractor } from './application/use-cases/segments.interactor';
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { config as configEnv } from '~/config';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
 import { WalletModule } from '~/application/wallet/wallet.module';
 // Конфигурация модуля теперь использует IConfig из схемы
@@ -527,7 +528,7 @@ export class CapitalExtension extends BaseExtensionModule {
 
     // Синхронизируем конфигурацию с контрактом
     try {
-      const coopname = configEnv.coopname;
+      const coopname = platformSettings().coopname;
       const currentState = await this.contractManagementService.getState({ coopname });
 
       // Проверяем, нужно ли устанавливать/обновлять конфигурацию контракта

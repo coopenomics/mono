@@ -1,10 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
-import { config } from '~/config';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import type { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';
 import type {
@@ -51,7 +52,7 @@ export class ProgramExpensesManagementService {
     }));
     await this.expenseChassis.validateRequisites(data.coopname, requisiteItems);
 
-    const zeroAmount = `0.0000 ${config.blockchain.root_govern_symbol}`;
+    const zeroAmount = `0.0000 ${platformSettings().blockchain.rootGovernSymbol}`;
     const blockchainData: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense = {
       coopname: data.coopname,
       expense_hash: data.expense_hash,

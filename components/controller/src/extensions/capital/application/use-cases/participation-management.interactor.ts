@@ -25,7 +25,6 @@ import type { ContributorFilterInputDTO } from '../dto/participation_management/
 import type { ProjectGenerationContractGenerateDocumentInputDTO } from '../documents-dto/project-generation-agreement-document.dto';
 import type { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { config } from '~/config';
 import httpStatus from 'http-status';
 import { Cooperative } from 'cooptypes';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
@@ -38,7 +37,9 @@ import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../doma
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
@@ -120,7 +121,7 @@ export class ParticipationManagementInteractor {
       _id: '', // будет сгенерирован автоматически
       block_num: 0,
       present: true,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: data.username,
       contributor_hash: contributor_hash,
       status: ContributorStatus.PENDING,
@@ -259,7 +260,7 @@ export class ParticipationManagementInteractor {
       ...data,
       contributor_hash: data.contributor_hash,
       rate_per_hour:
-        data.rate_per_hour ?? '0.0000 ' + config.blockchain.root_govern_symbol,
+        data.rate_per_hour ?? '0.0000 ' + platformSettings().blockchain.rootGovernSymbol,
       hours_per_day: data.hours_per_day ?? 0,
       is_external_contract: false,
       contract:
@@ -468,7 +469,7 @@ export class ParticipationManagementInteractor {
       coopname: data.coopname,
       username: data.username,
       rate_per_hour:
-        data.rate_per_hour ?? '0.0000 ' + config.blockchain.root_govern_symbol,
+        data.rate_per_hour ?? '0.0000 ' + platformSettings().blockchain.rootGovernSymbol,
       hours_per_day: data.hours_per_day ?? 0,
     };
 
@@ -879,7 +880,7 @@ export class ParticipationManagementInteractor {
         _id: '',
         present: false,
         username: data.username,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         display_name: displayName,
         program_key: ProgramKey.UNDEFINED, // Для пользователей, регистрирующихся только в Capital, program_key не указан
         status: ContributorStatus.PENDING,
@@ -960,11 +961,11 @@ export class ParticipationManagementInteractor {
     if (data.rate_per_hour) {
       formattedRatePerHour = this.domainToBlockchainUtils.formatNumericStringToAssetString(
         data.rate_per_hour,
-        config.blockchain.root_govern_precision,
-        config.blockchain.root_govern_symbol
+        platformSettings().blockchain.rootGovernPrecision,
+        platformSettings().blockchain.rootGovernSymbol
       );
     } else {
-      formattedRatePerHour = '0.0000 ' + config.blockchain.root_govern_symbol;
+      formattedRatePerHour = '0.0000 ' + platformSettings().blockchain.rootGovernSymbol;
     }
 
     // Отправляем в блокчейн через regcontrib

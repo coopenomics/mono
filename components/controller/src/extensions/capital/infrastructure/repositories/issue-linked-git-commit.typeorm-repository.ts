@@ -6,7 +6,7 @@ import type {
   IssueLinkedGitCommitRepository,
   IssueLinkedGitCommitRow,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
-import { config } from '~/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitCommitRepository {
@@ -63,7 +63,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async findByIssueHash(issueHash: string): Promise<IssueLinkedGitCommitRow[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const rows = await this.repo.find({
       where: { coopname, issue_hash: issueHash.toLowerCase() },
       order: { committed_at: 'DESC' },
@@ -76,7 +76,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
     if (uniq.length === 0) {
       return [];
     }
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const rows = await this.repo.find({
       where: { coopname, issue_hash: In(uniq) },
     });
@@ -84,7 +84,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async findUnconsumedByProjectAndUsername(projectHash: string, username: string): Promise<IssueLinkedGitCommitRow[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const rows = await this.repo.find({
       where: {
         coopname,
@@ -105,7 +105,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async hasConsumedRowsByIssueHash(issueHash: string): Promise<boolean> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const n = await this.repo.count({
       where: {
         coopname,
@@ -117,7 +117,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async updateProjectHashByIssueHash(issueHash: string, projectHash: string): Promise<void> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.repo.update(
       { coopname, issue_hash: issueHash.toLowerCase() },
       { project_hash: projectHash.toLowerCase() }

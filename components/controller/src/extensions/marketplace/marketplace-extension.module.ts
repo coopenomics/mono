@@ -1,5 +1,7 @@
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
@@ -163,7 +165,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
       return;
     }
 
-    const bucketName = `coop-${config.coopname}`;
+    const bucketName = `coop-${platformSettings().coopname}`;
     await this.fileStorage.ensureBucket(bucketName);
     this.logger.info(`Создан физический бакет '${bucketName}'`);
     this.logger.info('File storage готов');

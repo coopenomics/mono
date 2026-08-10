@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { config as appConfig } from '~/config';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { CreateProjectInputDTO } from '../dto/project_management';
 import type { TransactResult } from '@wharfkit/session';
@@ -17,7 +16,9 @@ import type {
 } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
@@ -204,7 +205,7 @@ export class ProjectManagementService {
       await this.projectManagementInteractor.setDevelopmentRepositoryUrl(project.project_hash, normalized);
     }
 
-    const coopname = project.coopname?.trim() || appConfig.coopname;
+    const coopname = project.coopname?.trim() || platformSettings().coopname;
     if (previousNormalizedKey !== nextNormalizedKey) {
       void this.capitalDevelopmentRepositoryGitSync
         .runAfterDevelopmentRepositoryUrlChange({

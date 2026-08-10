@@ -29,12 +29,13 @@ import type {
 } from '../../domain/interfaces/time-stats-domain.interface';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { config } from '~/config';
 import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../domain/utils/hours-float';
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
 import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-import { EMPTY_HASH } from '@coopenomics/extension-kit';
+import { EMPTY_HASH,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте
@@ -607,7 +608,7 @@ export class TimeTrackingInteractor {
     if (data.username && !contributorHash) {
       const contributor = await this.contributorRepository.findByUsernameAndCoopname(
         data.username,
-        data.coopname || config.coopname
+        data.coopname || platformSettings().coopname
       );
       if (contributor) {
         contributorHash = contributor.contributor_hash;
@@ -645,7 +646,7 @@ export class TimeTrackingInteractor {
     if (data.username && !contributorHash) {
       const contributor = await this.contributorRepository.findByUsernameAndCoopname(
         data.username,
-        data.coopname || config.coopname
+        data.coopname || platformSettings().coopname
       );
       if (contributor) {
         contributorHash = contributor.contributor_hash;
@@ -995,7 +996,7 @@ export class TimeTrackingInteractor {
     date: string
   ): Promise<Record<string, number>> {
     // в дев режиме нет ограничения на количество часов в день
-    const HOURS_PER_DAY = config.env === 'development' ? 100000 : Number(contributor.hours_per_day || 0);
+    const HOURS_PER_DAY = platformSettings().environment === 'development' ? 100000 : Number(contributor.hours_per_day || 0);
     const HOURS_PER_HOUR = 1; // Каждый час добавляем 1 час работы
 
     const distribution: Record<string, number> = {};

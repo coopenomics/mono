@@ -1,9 +1,10 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
-import { config } from '~/config';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import { ReportSubmissionMark } from '../../domain/enums/report-submission-mark.enum';
 import {
@@ -70,7 +71,7 @@ export class ReportCalendarResolver {
     @Args('year', { type: () => Int }) year: number,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportCalendarRowDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const ownerUsername = currentUser.username;
     const todayIso = toIsoDate(new Date());
 
@@ -137,7 +138,7 @@ export class ReportCalendarResolver {
     @Args('data', { type: () => MarkReportPeriodInputDTO }) data: MarkReportPeriodInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const period = data.period ?? null;
     if (data.mark == null) {
       await this.markRepo.remove(coopname, data.reportType, data.year, period);

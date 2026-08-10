@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { config } from '~/config';
 import { ProgramShareRegistrationService } from '../../application/services/program-share-registration.service';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Периодическая сверка долей участников (regshare) с балансом программы Благорост.
@@ -36,7 +36,7 @@ export class ProgramShareRegistrationSchedulerService implements OnModuleDestroy
 
     const runTick = async (): Promise<void> => {
       try {
-        await this.programShareRegistrationService.syncProgramSharesForCoop(config.coopname);
+        await this.programShareRegistrationService.syncProgramSharesForCoop(platformSettings().coopname);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         const trace = error instanceof Error ? error.stack : undefined;

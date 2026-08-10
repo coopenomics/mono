@@ -34,6 +34,12 @@ export interface PlatformBlockchainSettings {
    * а не от расширения.
    */
   postTransactChainReadDelayMs: number;
+  /**
+   * Идентификатор цепи контура. Входит в подписываемую транзакцию, поэтому
+   * подпись, собранная для одной цепи, в другой недействительна — расширение
+   * обязано брать его отсюда, а не хранить у себя.
+   */
+  chainId: string;
 }
 
 export interface PlatformSettings {
@@ -45,6 +51,12 @@ export interface PlatformSettings {
   backendUrl: string;
   /** Часовая зона кооператива в формате IANA, например `Europe/Moscow`. */
   timezone: string;
+  /**
+   * Режим контура: `production` у рабочего кооператива, иначе — стенд.
+   * Расширение сверяется с ним, когда поведение обязано отличаться (не слать
+   * настоящие письма, не ходить во внешний сервис), а не чтобы прятать ошибки.
+   */
+  environment: string;
   blockchain: PlatformBlockchainSettings;
 }
 

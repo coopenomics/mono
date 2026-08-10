@@ -7,7 +7,9 @@ import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign
 import type { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
@@ -40,7 +42,6 @@ import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/iss
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import { createHash } from 'crypto';
-import { config } from '~/config';
 import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
@@ -141,7 +142,7 @@ export class ResultSubmissionService {
     // Формируем данные для domain layer
     // Используем присланный подписанный документ (он прошел глубокую проверку)
     const domainInput = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: data.username,
       project_hash: data.project_hash,
       result_hash: result.result_hash,
@@ -352,7 +353,7 @@ export class ResultSubmissionService {
         _id: '', // будет сгенерировано
         result_hash,
         project_hash: projectHash,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: username,
         status: ResultStatus.PENDING,
         block_num: undefined,
@@ -572,7 +573,7 @@ export class ResultSubmissionService {
     }
 
     // Извлекаем данные
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const username = currentUser.username;
 
     if (!project.title) {
@@ -738,7 +739,7 @@ export class ResultSubmissionService {
       result_hash: data.result_hash,
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       registry_id: Cooperative.Registry.ResultContributionDecision.registry_id,
       lang: options?.lang as any,
@@ -836,7 +837,7 @@ export class ResultSubmissionService {
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
       decision_id,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       result_hash: data.result_hash,
       registry_id: Cooperative.Registry.ResultContributionAct.registry_id,

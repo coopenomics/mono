@@ -10,7 +10,7 @@ import {
   type GithubBranchCommitSyncStateRepository,
 } from '../../domain/repositories/github-branch-commit-sync-state.repository';
 import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
-import { config } from '~/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 type CommitRow = {
   sha: string;
@@ -73,7 +73,7 @@ export class GitCommitMarkersSyncService {
     signal?: AbortSignal;
   }): Promise<void> {
     const { owner, repo, branch, githubRepositoryKey, signal } = args;
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
 
     if (!this.githubService.isAvailable()) {
       return;

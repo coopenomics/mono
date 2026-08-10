@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { config } from '~/config';
 import {
   GeocodeStatuses,
   KuDetailsDomainEntity,
@@ -16,6 +15,7 @@ import { KuDetailsDTO } from '../dto/ku-details.dto';
 import type { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import type { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
 import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Application-сервис marketplace-детализации существующих в core КУ
@@ -168,9 +168,9 @@ export class KuDetailsService {
   }
 
   private assertCurrentCoop(coopname: string): void {
-    if (coopname !== config.coopname) {
+    if (coopname !== platformSettings().coopname) {
       throw new NotFoundException(
-        `Controller обслуживает кооператив "${config.coopname}", запрос для "${coopname}" отклонён`
+        `Controller обслуживает кооператив "${platformSettings().coopname}", запрос для "${coopname}" отклонён`
       );
     }
   }

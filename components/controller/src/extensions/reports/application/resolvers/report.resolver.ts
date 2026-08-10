@@ -1,6 +1,8 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards, Logger, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
@@ -16,7 +18,6 @@ import {
   ReportPreviewDTO,
   ReportPreviewInputDTO,
 } from '../dto/report.dto';
-import { config } from '~/config';
 import type { LedgerAccountData } from '../../domain/interfaces/report-generator.interface';
 import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
@@ -67,7 +68,7 @@ export class ReportResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getAvailableReports(): Promise<AvailableReportDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const available = this.reportRegistry.getAvailableReports();
     const visible = available.filter((r) => !HIDDEN_IN_MVP.has(r.type));
     const year = new Date().getFullYear();
@@ -104,7 +105,7 @@ export class ReportResolver {
     if (HIDDEN_IN_MVP.has(input.reportType)) {
       throw new BadRequestException(`Тип отчёта ${input.reportType} скрыт в MVP (feature-flag).`);
     }
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const ledgerData = await this.loadLedger(coopname);
     const stored = await this.correctionRepo.findForYear(coopname, input.year);
     const correctionsMap = new Map<string, { prev: number; pre: number }>();
@@ -141,7 +142,7 @@ export class ReportResolver {
     @Args('filter', { type: () => ReportHistoryFilterInputDTO, nullable: true })
     filter?: ReportHistoryFilterInputDTO,
   ): Promise<ReportHistoryPageDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const limit = Math.min(filter?.limit ?? HISTORY_DEFAULT_LIMIT, HISTORY_MAX_LIMIT);
     const offset = Math.max(filter?.offset ?? 0, 0);
 
@@ -178,7 +179,7 @@ export class ReportResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getReport(@Args('id', { type: () => String }) id: string): Promise<GeneratedReportDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const record = await this.reportRepo.findById(id);
     if (!record || record.coopname !== coopname) {
       throw new NotFoundException(`Отчёт с id=${id} не найден`);
@@ -211,7 +212,7 @@ export class ReportResolver {
     @Args('editsJson') editsJson: string,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<GeneratedReportDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
 
     if (HIDDEN_IN_MVP.has(reportType)) {
       throw new BadRequestException(
