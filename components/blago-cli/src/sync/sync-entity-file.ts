@@ -82,7 +82,12 @@ function wrapMergeConflictMarkers(localContent: string, remoteContent: string): 
   return `<<<<<<< blago/local\n${localContent}\n=======\n${remoteContent}\n>>>>>>> blago/remote\n`
 }
 
-/** Один файл сущности: новый путь с сервера vs индекс; «грязный» локально → не затирать без явного сценария. */
+/**
+ * Один файл сущности: новый путь с сервера vs индекс; «грязный» локально → не затирать без явного сценария.
+ *
+ * @returns `true`, если файл или запись индекса действительно изменились. По этому признаку
+ *          pull решает, нужно ли пересобирать INDEX.md.
+ */
 export async function syncEntityFile(params: {
   root: string
   index: IndexFile
@@ -92,11 +97,26 @@ export async function syncEntityFile(params: {
   content: string
   remoteUpdatedAt: string
   label: string
-}): Promise<void> {
+}): Promise<boolean> {
   const { root, index, entityType, entityHash, relativePath, content, remoteUpdatedAt, label } = params
   const rel = normalizeRelativePath(relativePath)
   const absNew = path.join(root, rel)
   const prev = findByHash(index, entityType, entityHash)
+
+  // Ничего не изменилось: путь тот же, сервер не двигал метку, содержимое совпадает с тем,
+  // что записано в индексе. Раньше файл всё равно переписывался — на тысяче сущностей это
+  // тысячи лишних записей и чтений на каждый pull.
+  if (
+    prev !== undefined
+    && prev.relative_path === rel
+    && prev.remote_updated_at === remoteUpdatedAt
+    && prev.content_etag_local === sha256Hex(content)
+  ) {
+    const onDisk = await readFileIfExists(absNew)
+    if (onDisk !== null && sha256Hex(onDisk) === prev.content_etag_local) {
+      return false
+    }
+  }
 
   if (!prev) {
     await ensureDirForFile(absNew)
@@ -109,7 +129,7 @@ export async function syncEntityFile(params: {
       remote_updated_at: remoteUpdatedAt,
       content_etag_local: etag,
     })
-    return
+    return true
   }
 
   const absOld = path.join(root, prev.relative_path)
@@ -138,7 +158,7 @@ export async function syncEntityFile(params: {
       warn(
         `Переименование на сервере: ${label} перенесён на «${rel}» с сохранением локальных правок; проверьте frontmatter (title / updated_at).`,
       )
-      return
+      return true
     }
 
     await ensureDirForFile(absNew)
@@ -155,7 +175,7 @@ export async function syncEntityFile(params: {
       remote_updated_at: remoteUpdatedAt,
       content_etag_local: etagAfterRename,
     })
-    return
+    return true
   }
 
   const current = await readFileIfExists(absNew)
@@ -175,7 +195,7 @@ export async function syncEntityFile(params: {
         remote_updated_at: remoteUpdatedAt,
         content_etag_local: sha256Hex(await fs.readFile(absNew, 'utf8')),
       })
-      return
+      return true
     }
     const merged = wrapMergeConflictMarkers(current ?? '', content)
     await ensureDirForFile(absNew)
@@ -191,7 +211,7 @@ export async function syncEntityFile(params: {
     warn(
       `Конфликт версий для ${label}: в файл записаны маркеры слияния («<<<<<<< blago/local» … «>>>>>>> blago/remote»). Оставьте одну версию текста, удалите маркеры, затем «blago add» и «blago push».`,
     )
-    return
+    return true
   }
 
   await ensureDirForFile(absNew)
@@ -204,4 +224,5 @@ export async function syncEntityFile(params: {
     remote_updated_at: remoteUpdatedAt,
     content_etag_local: etagOnDisk,
   })
+  return true
 }

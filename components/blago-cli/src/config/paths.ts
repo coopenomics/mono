@@ -10,6 +10,7 @@ export const INDEX_FILE = 'index.json'
 export const STAGING_FILE = 'staging.json'
 export const PENDING_CREATE_FILE = 'pending-create.json'
 export const COMMUNICATION_CURSORS_FILE = 'communication-cursors.json'
+export const ROOMS_CACHE_FILE = 'rooms-cache.json'
 
 export function configPath(root: string): string {
   return path.join(root, BLAGO_DIR, CONFIG_FILE)
@@ -29,6 +30,10 @@ export function pendingCreatePath(root: string): string {
 
 export function communicationCursorsPath(root: string): string {
   return path.join(root, BLAGO_DIR, COMMUNICATION_CURSORS_FILE)
+}
+
+export function roomsCachePath(root: string): string {
+  return path.join(root, BLAGO_DIR, ROOMS_CACHE_FILE)
 }
 
 export function sessionPath(root: string, envName: string): string {

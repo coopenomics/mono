@@ -6,6 +6,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
+import type { ArtifactAccessScope } from './artifact-access-scope';
 
 export interface IssueRepository {
   create(issue: IssueDomainEntity): Promise<IssueDomainEntity>;
@@ -34,7 +35,8 @@ export interface IssueRepository {
   findByProjectHashWithStories(projectHash: string): Promise<IssueDomainEntity[]>;
   findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResultDomainInterface<IssueDomainEntity>>;
   update(entity: IssueDomainEntity): Promise<IssueDomainEntity>;
   delete(_id: string): Promise<void>;

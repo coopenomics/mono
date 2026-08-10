@@ -22,6 +22,7 @@ import {
   RoomMessageKindGql,
 } from '../dto/project-communication.dto';
 import type { InterNonProjectRoomKind } from '@coopenomics/inter';
+import { ChatcoopCommunicationAccessService } from '../services/chatcoop-communication-access.service';
 
 function mapKind(kind: 'text' | 'audio'): RoomMessageKindGql {
   return kind === 'text' ? RoomMessageKindGql.TEXT : RoomMessageKindGql.AUDIO;
@@ -52,7 +53,8 @@ export class ProjectCommunicationResolver {
   constructor(
     @Optional()
     @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly comm: InterProjectCommunicationArtifactsPort | undefined
+    private readonly comm: InterProjectCommunicationArtifactsPort | undefined,
+    private readonly access: ChatcoopCommunicationAccessService
   ) {}
 
   @Query(() => [ChatcoopProjectCommunicationRoomDTO], {
@@ -68,6 +70,10 @@ export class ProjectCommunicationResolver {
     this.logger.debug(
       `chatcoopListProjectCommunicationRooms user=${user.username} projectHash=${data.projectHash}`
     );
+    // Нет права на переписку проекта — комнат не показываем: синхронизация просто пропустит проект.
+    if (!(await this.access.canReadProjectRooms(user, data.projectHash))) {
+      return [];
+    }
     const rooms = await this.comm!.listCommunicationRoomsForProject(data.projectHash);
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
@@ -85,6 +91,10 @@ export class ProjectCommunicationResolver {
   ): Promise<ChatcoopNonProjectCommunicationRoomDTO[]> {
     this.ensureComm();
     this.logger.debug(`chatcoopListNonProjectCommunicationRooms user=${user.username}`);
+    // Комнаты пайщиков, совета и секретаря к проектам не привязаны — их читает только совет.
+    if (!this.access.isBoardMember(user)) {
+      return [];
+    }
     const rooms = await this.comm!.listNonProjectCommunicationRooms();
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
@@ -108,6 +118,7 @@ export class ProjectCommunicationResolver {
     this.logger.debug(
       `chatcoopListUtcDatesWithNewRoomMessages user=${user.username} room=${data.matrixRoomId}`
     );
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     return this.comm!.listUtcDatesWithNewMessages(data.matrixRoomId, data.afterOriginServerTsExclusive);
   }
 
@@ -124,6 +135,7 @@ export class ProjectCommunicationResolver {
     this.logger.debug(
       `chatcoopGetRoomMessagesForUtcDate user=${user.username} room=${data.matrixRoomId} date=${data.utcDate}`
     );
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     const lines = await this.comm!.getMessagesForRoomAndUtcDate(data.matrixRoomId, data.utcDate);
     return lines.map((m) => ({
       originServerTs: m.originServerTs,
@@ -146,6 +158,7 @@ export class ProjectCommunicationResolver {
   ): Promise<number | null> {
     this.ensureComm();
     this.logger.debug(`chatcoopGetMaxOriginServerTsForRoom user=${user.username} room=${data.matrixRoomId}`);
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     return this.comm!.getMaxOriginServerTsForRoom(data.matrixRoomId);
   }
 

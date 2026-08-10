@@ -15,6 +15,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { AssetUtils } from '~/shared/utils/asset.utils';
@@ -493,7 +494,8 @@ export class ProjectTypeormRepository
    */
   async findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
     const validatedOptions: PaginationInputDomainInterface = options
@@ -601,6 +603,15 @@ export class ProjectTypeormRepository
       }
 
       queryBuilder = queryBuilder.andWhere(existsQuery, params);
+    }
+
+    // Ограничение правами доступа к артефактам. Отсев в SQL, иначе постраничные
+    // totalCount/totalPages считаются по недоступным проектам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      queryBuilder = queryBuilder.andWhere('lower(p.project_hash) = ANY(CAST(:scopeHashes AS text[]))', {
+        scopeHashes,
+      });
     }
 
     // Получаем общее количество записей
