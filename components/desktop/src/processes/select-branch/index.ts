@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { useSelectBranch } from 'src/features/Branch/SelectBranch'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session'
+import { useAccountStore } from 'src/entities/Account/model'
 import { useBranchStore } from 'src/entities/Branch/model'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
@@ -19,6 +20,7 @@ export function useSelectBranchProcess() {
 
   const system = useSystemStore()
   const session = useSessionStore()
+  const accountStore = useAccountStore()
   const branchStore = useBranchStore()
   const { isVisible, selectBranch } = useSelectBranch()
 
@@ -94,6 +96,11 @@ export function useSelectBranchProcess() {
         document: doc,
         username: session.username,
       })
+
+      // перечитываем свой аккаунт: гейт закрывается по факту выбранного участка
+      // в сессии, а не «на честном слове» одного флага в оверлее
+      const refreshed = await accountStore.getAccount(session.username)
+      if (refreshed) session.setCurrentUserAccount(refreshed)
 
       useSelectBranch().isVisible.value = false
       SuccessAlert('Кооперативный участок выбран')
