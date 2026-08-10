@@ -2,12 +2,11 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { DistributionManagementService } from '../services/distribution-management.service';
 import { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 
 /**
  * GraphQL резолвер для действий распределения средств CAPITAL контракта

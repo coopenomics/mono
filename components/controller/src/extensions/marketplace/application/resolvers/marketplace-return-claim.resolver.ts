@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -32,7 +32,6 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
 function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {

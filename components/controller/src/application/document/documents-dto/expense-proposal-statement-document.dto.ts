@@ -2,9 +2,7 @@ import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graph
 import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
-import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
-import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO } from '@coopenomics/extension-kit';
 
 type Action = Cooperative.Registry.ExpenseProposalStatement.Action;
 type ItemAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseItem;

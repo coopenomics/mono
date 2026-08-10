@@ -2,10 +2,7 @@ import { Field, Float, InputType, Int, IntersectionType, OmitType } from '@nestj
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
-import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
-import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { ExcludeCommonProps } from '~/application/document/types';
+import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
  * Подписываемая форма заявления пайщика о гарантийном возврате имущества

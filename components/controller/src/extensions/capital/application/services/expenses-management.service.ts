@@ -4,10 +4,9 @@ import type { TransactResult } from '@wharfkit/session';
 import type { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
 import type { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
 import type { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-input.dto';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
 import type { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { Cooperative } from 'cooptypes';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 

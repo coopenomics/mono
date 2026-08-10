@@ -15,7 +15,7 @@ import type { Cooperative } from 'cooptypes';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType('SignatureInfoInput')
-export class SignatureInfoDTO {
+export class SignatureInfoInputDTO {
   @Field(() => Number, { description: 'Идентификатор номера подписи' })
   @IsNumber()
   public readonly id!: number;
@@ -66,12 +66,12 @@ export class SignedDigitalDocumentInputDTO {
   @Field(() => GraphQLJSON, { description: 'Метаинформация документа' })
   public readonly meta!: any;
 
-  @Field(() => [SignatureInfoDTO], { description: 'Вектор подписей' })
+  @Field(() => [SignatureInfoInputDTO], { description: 'Вектор подписей' })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => SignatureInfoDTO)
-  public readonly signatures!: SignatureInfoDTO[];
+  @Type(() => SignatureInfoInputDTO)
+  public readonly signatures!: SignatureInfoInputDTO[];
 
   constructor(data: SignedDigitalDocumentInputDTO) {
     Object.assign(this, data);

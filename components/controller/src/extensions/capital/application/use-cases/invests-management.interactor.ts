@@ -12,7 +12,7 @@ import type { InvestFilterInputDTO } from '../dto/invests_management/invest-filt
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';

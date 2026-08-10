@@ -62,7 +62,7 @@ import {
   type MarketplaceReturnClaimPhoto,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
+import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
 import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,

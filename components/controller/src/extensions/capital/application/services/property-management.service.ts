@@ -3,8 +3,7 @@ import { PropertyManagementInteractor } from '../use-cases/property-management.i
 import type { CreateProgramPropertyInputDTO } from '../dto/property_management/create-program-property-input.dto';
 import type { CreateProjectPropertyInputDTO } from '../dto/property_management/create-project-property-input.dto';
 import type { TransactResult } from '@wharfkit/session';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 

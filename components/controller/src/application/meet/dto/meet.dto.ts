@@ -1,10 +1,10 @@
 import { Field, Float, ObjectType } from '@nestjs/graphql';
 import { ValidateNested } from 'class-validator';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { UserCertificateUnion } from '~/application/document/unions/user-certificate.union';
 import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';
 import { EntrepreneurCertificateDTO } from '~/application/common/dto/entrepreneur-certificate.dto';
 import { OrganizationCertificateDTO } from '~/application/common/dto/organization-certificate.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('Meet', { description: 'Данные о собрании кооператива' })
 export class MeetDTO {

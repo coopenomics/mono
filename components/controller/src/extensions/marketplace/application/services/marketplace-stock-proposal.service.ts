@@ -19,8 +19,8 @@ import {
   type UserWalletRepository,
 } from '~/domain/wallet/repositories/user-wallet.repository';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
-import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
+import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import type { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
 import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { resolveSaleUnit, type ResolvedSaleUnit } from '../shared/packaging.util';

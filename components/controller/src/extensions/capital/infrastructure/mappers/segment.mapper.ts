@@ -10,9 +10,9 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentBlockchainData>;

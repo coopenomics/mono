@@ -1,3 +1,11 @@
+/**
+ * Запрос на формирование документа: обязателен только реестр и от кого документ,
+ * остальное реестр проставит сам.
+ *
+ * Переехало из `~/application/document/dto` контроллера вместе с
+ * `MetaDocumentInputDTO`. Явные thunk'и — по той же причине: каркас собирается
+ * без `emitDecoratorMetadata`.
+ */
 import { IsOptional, IsString, IsNumber, IsArray, IsInt, IsEnum } from 'class-validator';
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { LangType } from './lang-type.enum';
@@ -5,7 +13,7 @@ import type { Cooperative } from 'cooptypes';
 
 @InputType('GenerateMetaDocumentInput')
 export class GenerateMetaDocumentInputDTO implements Cooperative.Document.IGenerate {
-  @Field({ description: 'Название документа', nullable: true })
+  @Field(() => String, { description: 'Название документа', nullable: true })
   @IsOptional()
   @IsString()
   title?: string;
@@ -14,11 +22,11 @@ export class GenerateMetaDocumentInputDTO implements Cooperative.Document.IGener
   @IsNumber()
   registry_id!: number;
 
-  @Field({ description: 'Название кооператива, связанное с документом' })
+  @Field(() => String, { description: 'Название кооператива, связанное с документом' })
   @IsString()
   coopname!: string;
 
-  @Field({ description: 'Имя пользователя, создавшего документ' })
+  @Field(() => String, { description: 'Имя пользователя, создавшего документ' })
   @IsString()
   username!: string;
 
@@ -27,12 +35,12 @@ export class GenerateMetaDocumentInputDTO implements Cooperative.Document.IGener
   @IsEnum(LangType)
   lang?: LangType;
 
-  @Field({ description: 'Имя генератора, использованного для создания документа', nullable: true })
+  @Field(() => String, { description: 'Имя генератора, использованного для создания документа', nullable: true })
   @IsOptional()
   @IsString()
   generator?: string;
 
-  @Field({ description: 'Версия генератора, использованного для создания документа', nullable: true })
+  @Field(() => String, { description: 'Версия генератора, использованного для создания документа', nullable: true })
   @IsOptional()
   @IsString()
   version?: string;
@@ -46,7 +54,7 @@ export class GenerateMetaDocumentInputDTO implements Cooperative.Document.IGener
   @IsInt()
   block_num?: number;
 
-  @Field({ description: 'Часовой пояс, в котором был создан документ', nullable: true })
+  @Field(() => String, { description: 'Часовой пояс, в котором был создан документ', nullable: true })
   @IsOptional()
   @IsString()
   timezone?: string;

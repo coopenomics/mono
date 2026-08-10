@@ -26,8 +26,8 @@ import { StoryOutputDTO } from '../dto/generation/story.dto';
 import { IssueOutputDTO } from '../dto/generation/issue.dto';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
-import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
+import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/capitalization-program-money-invest-statement-document.dto';
 // Пагинированные результаты
 const paginatedStoriesResult = createPaginationResult(StoryOutputDTO, 'PaginatedCapitalStories');
 const paginatedIssuesResult = createPaginationResult(IssueOutputDTO, 'PaginatedCapitalIssues');

@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ParticipationManagementService } from '../services/participation-management.service';
 import { ImportContributorInputDTO } from '../dto/participation_management/import-contributor-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
@@ -10,10 +10,9 @@ import { EditContributorInputDTO } from '../dto/participation_management/edit-co
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
 import { GetContributorInputDTO } from '../dto/participation_management/get-contributor-input.dto';
-import { GenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-agreement-document.dto';
-import { ProjectGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-generation-agreement-document.dto';
-import { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { GenerationContractGenerateDocumentInputDTO } from '../documents-dto/generation-agreement-document.dto';
+import { ProjectGenerationContractGenerateDocumentInputDTO } from '../documents-dto/project-generation-agreement-document.dto';
+import { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
 import { GenerateCapitalRegistrationDocumentsInputDTO } from '../dto/participation_management/generate-capital-registration-documents-input.dto';
 import { GenerateCapitalRegistrationDocumentsOutputDTO } from '../dto/participation_management/generate-capital-registration-documents-output.dto';
 import { CompleteCapitalRegistrationInputDTO } from '../dto/participation_management/complete-capital-registration-input.dto';

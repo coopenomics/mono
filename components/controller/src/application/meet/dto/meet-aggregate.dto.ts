@@ -5,7 +5,6 @@ import { Type } from 'class-transformer';
 import { MeetPreProcessingDTO } from './meet-pre.dto';
 import { MeetProcessingDTO } from './meet-processing.dto';
 import { MeetProcessedDTO } from './meet-processed.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MeetAggregate } from '~/domain/meet/aggregates/meet-domain.aggregate';
 import { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
 import { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
@@ -17,6 +16,7 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';
 import { EntrepreneurCertificateDTO } from '~/application/common/dto/entrepreneur-certificate.dto';
 import { OrganizationCertificateDTO } from '~/application/common/dto/organization-certificate.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('MeetAggregate', { description: 'Агрегат данных о собрании, содержащий информацию о разных этапах' })
 export class MeetAggregateDTO {

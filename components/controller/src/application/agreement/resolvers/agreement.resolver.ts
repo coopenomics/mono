@@ -1,8 +1,7 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { AgreementService } from '../services/agreement.service';
 import { AgreementDTO } from '../dto/agreement.dto';
 import { AgreementFilterInput } from '../dto/agreement-filter.input';

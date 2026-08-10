@@ -1,6 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { AgreementInteractor } from '../use-cases/agreement.interactor';
 import {
   AgreementRepository,

@@ -2,10 +2,9 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { PropertyManagementService } from '../services/property-management.service';
 import { CreateProjectPropertyInputDTO } from '../dto/property_management/create-project-property-input.dto';
 import { CreateProgramPropertyInputDTO } from '../dto/property_management/create-program-property-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 /**
  * GraphQL резолвер для действий управления имущественными взносами CAPITAL контракта
  */

@@ -11,9 +11,9 @@ import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, 
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import { ResultContributionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-statement-document.dto';
-import { ResultContributionDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-decision-document.dto';
-import { ResultContributionActGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-act-document.dto';
+import { ResultContributionStatementGenerateDocumentInputDTO } from '../documents-dto/result-contribution-statement-document.dto';
+import { ResultContributionDecisionGenerateDocumentInputDTO } from '../documents-dto/result-contribution-decision-document.dto';
+import { ResultContributionActGenerateDocumentInputDTO } from '../documents-dto/result-contribution-act-document.dto';
 import { Cooperative } from 'cooptypes';
 import { Classes } from '@coopenomics/sdk';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';

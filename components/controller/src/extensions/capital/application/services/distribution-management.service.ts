@@ -3,10 +3,9 @@ import { DistributionManagementInteractor } from '../use-cases/distribution-mana
 import type { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import type { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
 import type { TransactResult } from '@wharfkit/session';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import { Cooperative } from 'cooptypes';
-import type { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 

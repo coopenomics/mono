@@ -8,13 +8,12 @@ import {
   DeallocationLimitInputDTO,
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import { GetInvestInputDTO } from '../dto/invests_management/get-invest-input.dto';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 
 // Пагинированные результаты

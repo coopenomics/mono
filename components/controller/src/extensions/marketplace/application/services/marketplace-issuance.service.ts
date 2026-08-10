@@ -16,7 +16,7 @@ import {
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
+import type { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
 import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_ORDER_REPOSITORY,

@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { RegisterContributorDomainInput } from '../../../domain/actions/register-contributor-domain-input.interface';
-import { GenerationContractSignedDocumentInputDTO } from '~/application/document/documents-dto/generation-agreement-document.dto';
+import { GenerationContractSignedDocumentInputDTO } from '../../documents-dto/generation-agreement-document.dto';
 
 /**
  * GraphQL DTO для регистрации участника CAPITAL контракта

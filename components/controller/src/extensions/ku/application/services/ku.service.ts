@@ -35,10 +35,10 @@ import type {
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { TransactionDTO } from '@coopenomics/extension-kit';
 import { HttpApiError } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * Сервис собраний и решений кооперативных участков.

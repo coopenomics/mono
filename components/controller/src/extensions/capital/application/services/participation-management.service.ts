@@ -8,14 +8,13 @@ import type { MakeClearanceInputDTO } from '../dto/participation_management/make
 import type { TransactResult } from '@wharfkit/session';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { ContributorMapperService } from './contributor-mapper.service';
 import { ContributorSyncService } from '../syncers/contributor-sync.service';
 import { Cooperative } from 'cooptypes';
-import { GenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-agreement-document.dto';
-import { ProjectGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-generation-agreement-document.dto';
-import { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
+import { GenerationContractGenerateDocumentInputDTO } from '../documents-dto/generation-agreement-document.dto';
+import { ProjectGenerationContractGenerateDocumentInputDTO } from '../documents-dto/project-generation-agreement-document.dto';
+import { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';

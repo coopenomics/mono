@@ -7,8 +7,7 @@ import type { TransactResult } from '@wharfkit/session';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainToBlockchainUtils, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 @Injectable()
 export class AgreementInteractor {
   private readonly logger = new Logger(AgreementInteractor.name);

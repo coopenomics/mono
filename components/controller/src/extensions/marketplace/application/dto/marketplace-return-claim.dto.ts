@@ -28,7 +28,7 @@ import {
   type MarketplaceReturnClaimExpectedResolution,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
+import { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**

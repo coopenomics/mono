@@ -11,12 +11,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
-import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
-import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
-import { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
+import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
 
 export enum MarketplaceStockProposalStatusEnum {
   PROPOSED = 'PROPOSED',

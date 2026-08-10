@@ -1,7 +1,7 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import { ExtendedBlockchainActionDTO } from './extended-action.dto';
 import type { DecisionDetailAggregateDomainInterface } from '~/domain/document/interfaces/decision-detail-aggregate-domain.interface';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('DecisionDetailAggregate', {
   description:

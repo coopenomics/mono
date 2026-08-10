@@ -4,7 +4,7 @@ import type { TransactResult } from '@wharfkit/session';
 import type { FundProgramDomainInput } from '../../domain/actions/fund-program-domain-input.interface';
 import type { RefreshProgramDomainInput } from '../../domain/actions/refresh-program-domain-input.interface';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
-import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
+import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { Cooperative } from 'cooptypes';
 

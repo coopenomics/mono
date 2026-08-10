@@ -4,8 +4,7 @@ import type { CreateDebtInputDTO } from '../dto/debt_management/create-debt-inpu
 import type { TransactResult } from '@wharfkit/session';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 

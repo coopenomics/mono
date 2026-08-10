@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { CreateProgramInvestDomainInput } from '~/extensions/capital/domain/actions/create-program-invest-domain-input.interface';
 import { Type } from 'class-transformer';
-import { ProgramCapitalizationMoneyInvestStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
+import { ProgramCapitalizationMoneyInvestStatementSignedDocumentInputDTO } from '../../documents-dto/capitalization-program-money-invest-statement-document.dto';
 
 @InputType('CreateProgramInvestInput')
 export class CreateProgramInvestInputDTO implements Omit<CreateProgramInvestDomainInput, 'invest_hash'> {

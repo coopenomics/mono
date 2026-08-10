@@ -1,7 +1,7 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('KuTrustRequest', { description: 'Заявка на приём доверенным лицом кооперативного участка' })
 export class KuTrustRequestDTO {
