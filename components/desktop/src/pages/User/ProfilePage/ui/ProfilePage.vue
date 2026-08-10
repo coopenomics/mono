@@ -224,7 +224,7 @@ const TRUST_ANCHOR_ACCOUNT = 'ano';
 // Полное имя, а не аббревиатура: рядом стоит «ПК Восход», и «АНО» одиноким
 // сокращением читалось бы как обрезанное название.
 const CHAIN_LABELS: Record<string, string> = {
-  [TRUST_ANCHOR_ACCOUNT]: 'АНО Кооперативная экономика',
+  [TRUST_ANCHOR_ACCOUNT]: 'АНО Кооперативная Экономика',
 };
 function chainLabel(account: string): string {
   if (CHAIN_LABELS[account]) return CHAIN_LABELS[account];
