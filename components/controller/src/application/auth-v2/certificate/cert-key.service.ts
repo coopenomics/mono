@@ -13,7 +13,7 @@ import { wifPermissions } from '~/domain/vault/types/vault.types';
  * Аккаунт АНО — якорь доверия всей сети: он заверяет кооперативы, а те заверяют
  * пайщиков. Пока его нет в цепи, удостоверения укореняются на самом кооперативе.
  */
-const TRUST_ANCHOR_ACCOUNT = 'ano';
+export const TRUST_ANCHOR_ACCOUNT = 'ano';
 
 /**
  * Кооператив, который ведёт аккаунт АНО. Имя задано прямо здесь намеренно: якорь
@@ -21,7 +21,7 @@ const TRUST_ANCHOR_ACCOUNT = 'ano';
  * иначе любой кооператив объявит себя якорем и станет заверять сам себя.
  * Остальные кооперативы заверяют только себя.
  */
-const TRUST_ANCHOR_STEWARD = 'voskhod';
+export const TRUST_ANCHOR_STEWARD = 'voskhod';
 
 /**
  * Ключ, которым кооператив заверяет удостоверения пайщиков: выпуск, хранение и
@@ -168,6 +168,18 @@ export class CertKeyService implements OnApplicationBootstrap {
       throw new Error('Ключ заверения не найден: ни секрета поставки, ни собственного выпуска');
     this.signingKey = this.crypto.toSigningKey(wif);
     return this.signingKey;
+  }
+
+  /**
+   * Ключ подписи от имени другого аккаунта — нужен, когда установка подписывает за
+   * якорь доверия. Секрет поставки тут не при чём: он задаёт ключ кооператива, а
+   * ключ якоря лежит в том же хранилище отдельным правом.
+   */
+  async getSigningKeyFor(account: string): Promise<KeyObject> {
+    if (account === config.coopname) return this.getSigningKey();
+    const wif = await this.vault.getWif(account, wifPermissions.Cert);
+    if (!wif) throw new Error(`Ключа заверения ${account} нет — подписать нечем`);
+    return this.crypto.toSigningKey(wif);
   }
 
   /** Публичная часть ключа заверения — для витрины в кабинете. `null`, если ключа нет. */

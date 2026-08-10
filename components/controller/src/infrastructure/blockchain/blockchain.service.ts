@@ -4,10 +4,10 @@ import { Action, API, Bytes, Name, PrivateKey, PublicKey, Signature } from '@wha
 import { Table } from '@wharfkit/contract';
 import { Session, TransactResult } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
-import { RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
+import { AnoContract, RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import type { ActiveKeysQuorum } from '~/domain/common/ports/blockchain.port';
+import type { ActiveKeysQuorum, EndorsementRecord } from '~/domain/common/ports/blockchain.port';
 import { RpcPool } from './rpc-pool.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
@@ -255,6 +255,48 @@ export class BlockchainService implements BlockchainPort {
           accounts: [],
           waits: [],
         },
+      },
+    });
+  }
+
+  public async getEndorsement(subject: string): Promise<EndorsementRecord | null> {
+    const contract = AnoContract.contractName.production;
+    const row = await this.getSingleRow(contract, contract, AnoContract.Tables.Endorsements.tableName, Name.from(subject));
+    if (!row) return null;
+    return {
+      issuer: String(row.issuer),
+      subject: String(row.subject),
+      chain_id: String(row.chain_id),
+      cert_key: String(row.cert_key),
+      expires_at: String(row.expires_at),
+      credential: String(row.credential),
+    };
+  }
+
+  /**
+   * Записывает заверение в цепочку доверия.
+   *
+   * Подписывает заверяющий. Если у установки нет его ключа — а ключей АНО у неё и
+   * не должно быть, — подпись ставит тот, кому переданы распорядительные права;
+   * полномочие при этом всё равно указывается от имени заверяющего.
+   */
+  public async publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void> {
+    const signerAccount = signer ?? endorsement.issuer;
+    const signerWif = await this.vaultDomainService.getWif(signerAccount);
+    if (!signerWif) throw new Error(`Нет ключа ${signerAccount} — подписать заверение нечем`);
+
+    this.initialize(signerAccount, signerWif);
+    await this.transact({
+      account: AnoContract.contractName.production,
+      name: AnoContract.Actions.Endorse.actionName,
+      authorization: [{ actor: endorsement.issuer, permission: 'active' }],
+      data: {
+        issuer: endorsement.issuer,
+        subject: endorsement.subject,
+        chain_id: endorsement.chain_id,
+        cert_key: endorsement.cert_key,
+        expires_at: endorsement.expires_at,
+        credential: endorsement.credential,
       },
     });
   }

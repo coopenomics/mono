@@ -20,6 +20,22 @@ export interface ActiveKeysQuorum {
   samples: Array<{ url: string; keys: string[] }>;
 }
 
+/**
+ * Заверение из цепочки доверия: заверяющий признаёт, что субъект вправе заверять
+ * указанным ключом. `credential` — подписанное заверение целиком, то самое, что
+ * поедет внутри удостоверения пайщика и позволит проверить цепочку без сети.
+ * Остальные поля дублируют подписанное содержимое, чтобы отбирать записи, не
+ * разбирая подпись на каждой.
+ */
+export interface EndorsementRecord {
+  issuer: string;
+  subject: string;
+  chain_id: string;
+  cert_key: string;
+  expires_at: string;
+  credential: string;
+}
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
@@ -74,6 +90,17 @@ export interface BlockchainPort {
    * право отсутствует или разошлось с ключом, который держит приложение.
    */
   publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void>;
+  /**
+   * Читает заверение субъекта из цепочки доверия. `null` — заверения нет, то есть
+   * никто не подтверждал, что субъект вправе выпускать удостоверения.
+   */
+  getEndorsement(subject: string): Promise<EndorsementRecord | null>;
+  /**
+   * Записывает заверение в цепочку доверия. Подписывает заверяющий — либо сам, либо
+   * кооператив, которому переданы его распорядительные права (так подписывают за
+   * АНО, не владея её ключами).
+   */
+  publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void>;
   /**
    * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
    * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).

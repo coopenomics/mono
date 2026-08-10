@@ -14,17 +14,10 @@ import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/us
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
 import { CertSettingsService } from '~/application/auth-v2/certificate/cert-settings.service';
-import { CertKeyService } from '~/application/auth-v2/certificate/cert-key.service';
+import { CertKeyService, TRUST_ANCHOR_ACCOUNT } from '~/application/auth-v2/certificate/cert-key.service';
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
 
-/**
- * Якорь доверия CoopID — АНО, заверяющая кооперативы. Звено необязательное: пока
- * её аккаунт не заведён в цепи (или не имеет ключа заверения), цепь начинается с
- * самого кооператива. Это осознанно более слабая, но честная картина: лучше
- * показать реальную цепь из одного звена, чем не выпустить удостоверение вовсе.
- */
-const TRUST_ANCHOR_ACCOUNT = 'ano';
 /** Лимит размера JWS — Vision/MIFARE DESFire EV3 (AC Story 1.8). */
 const MAX_CERT_BYTES = 5 * 1024;
 

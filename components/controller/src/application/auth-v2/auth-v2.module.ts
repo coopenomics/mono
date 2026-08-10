@@ -19,6 +19,7 @@ import { SecurityEventNotificationService } from './security-events/security-eve
 import { CertificateService } from './certificate/certificate.service';
 import { CertSettingsService } from './certificate/cert-settings.service';
 import { CertKeyService } from './certificate/cert-key.service';
+import { EndorsementService } from './certificate/endorsement.service';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { CertificateResolver } from './certificate/certificate.resolver';
 import { CoopIdClaimsPolicyController } from './certificate/coopid-claims-policy.controller';
@@ -67,7 +68,7 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, CertKeyService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, CertKeyService, EndorsementService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.
