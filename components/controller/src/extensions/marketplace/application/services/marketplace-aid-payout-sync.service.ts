@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
 import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
@@ -10,7 +10,6 @@ import {
   PAYMENT_METHOD_REPOSITORY,
   type PaymentMethodRepository,
 } from '~/domain/common/repositories/payment-method.repository';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT } from '../events/marketplace-notification.events';
 import type { IAction } from '~/types';
@@ -72,7 +71,7 @@ export class MarketplaceAidPayoutSyncService {
       }
       await this.coreGateway.setPaymentStatus({
         id: payment.id,
-        status: PaymentStatusEnum.COMPLETED,
+        status: PaymentStatus.COMPLETED,
       });
 
       // Уведомление — после commit'а статуса (INV-12), не блокирует основной flow.

@@ -15,6 +15,7 @@
  */
 export * from './auth';
 export * from './base-extension.module';
+export * from './payment/payment-provider';
 export * from './entities/extension.entity';
 export * from './entities/log-extension.entity';
 export * from './repositories/extension.repository';

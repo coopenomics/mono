@@ -12,6 +12,7 @@ import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -47,8 +48,6 @@ import {
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
-import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -128,7 +127,7 @@ export interface MarketplaceAidView {
   /** Стадия заявления: на рассмотрении совета либо одобрено и ждёт выплаты. */
   stage: MarketplaceAidStage;
   /** Null — платёж не найден в реестре, статус выплаты неизвестен. */
-  payment_status: PaymentStatusEnum | null;
+  payment_status: PaymentStatus | null;
   /** Маскированная подпись реквизитов («Сбербанк •1234»), null — реквизиты недоступны. */
   payment_destination: string | null;
 }
@@ -649,8 +648,8 @@ export class MarketplaceEconomyService {
         // Назначение платежа кассир копирует в банк как есть — там нужна только
         // суть выплаты, без служебных идентификаторов участка.
         memo: 'Материальная помощь',
-        type: PaymentTypeEnum.AID,
-        status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
+        type: PaymentType.AID,
+        status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
         related_entity_id: aidHash,
         payment_hash: aidHash,
@@ -803,7 +802,7 @@ export class MarketplaceEconomyService {
       if (payment?.id) {
         await this.coreGateway.setPaymentStatus({
           id: payment.id,
-          status: PaymentStatusEnum.CANCELLED,
+          status: PaymentStatus.CANCELLED,
           message: reason,
         });
       }
@@ -828,7 +827,7 @@ export class MarketplaceEconomyService {
     aid: BranchContract.Tables.Aids.IBranchAid
   ): Promise<MarketplaceAidView> {
     const hash = String(aid.hash);
-    let payment_status: PaymentStatusEnum | null = null;
+    let payment_status: PaymentStatus | null = null;
     let payment_destination: string | null = null;
     try {
       const found = await this.coreGateway.getPayments(

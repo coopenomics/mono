@@ -10,7 +10,6 @@ import type {
   InnerExpenseProposalStatus,
   InnerExpenseRequisiteItemInput,
 } from '@coopenomics/innercoop';
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum';
@@ -19,6 +18,7 @@ import {
   EXPENSES_BLOCKCHAIN_PORT,
   ExpensesBlockchainPort,
 } from '../../domain/interfaces/expenses-blockchain.port';
+import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
 
 /**
  * Реализация `IExpenseChassisPort` для consumer-расширений (capital, marketplace, EMP)
@@ -38,8 +38,8 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
     private readonly chain: ExpensesBlockchainPort,
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly payments: PaymentRepository,
+    @Inject(PAYMENT_PORT)
+    private readonly payments: IPaymentPort,
   ) {}
 
   async payItem(coopname: string, proposalHash: string, itemHash: string, actualAmount: string): Promise<void> {

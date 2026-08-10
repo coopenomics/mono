@@ -5,10 +5,6 @@ import { Cooperative } from 'cooptypes'
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository'
-import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface'
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum'
-import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum'
 import { generateHashFromString, generateUniqueHash } from '~/utils/generate-hash.util'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
@@ -34,6 +30,7 @@ import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { QuantityUtils } from '@coopenomics/extension-kit';
+import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0
@@ -55,8 +52,8 @@ export class ExpensesMutationsService {
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly payments: PaymentRepository
+    @Inject(PAYMENT_PORT)
+    private readonly payments: IPaymentPort
   ) {}
 
   async generateExpenseProposalStatementDocument(
@@ -328,17 +325,16 @@ export class ExpensesMutationsService {
 
     const now = new Date()
     const amountStr = amount.toFixed(2)
-    const payment: PaymentDomainInterface = {
-      id: '',
+    const payment: InnerPaymentDraft = {
       coopname,
       // Позиция-аванс всегда оформлена на пайщика-получателя — расчёт разницы
       // относится лично к нему (виден в его личном реестре платежей).
       username: item.recipient,
       quantity: amount,
       symbol,
-      type: isUnderspend ? PaymentTypeEnum.EXPENSE_RETURN : PaymentTypeEnum.EXPENSE_OVERSPEND,
-      direction: isUnderspend ? PaymentDirectionEnum.INCOMING : PaymentDirectionEnum.OUTGOING,
-      status: PaymentStatusEnum.PENDING,
+      type: isUnderspend ? PaymentType.EXPENSE_RETURN : PaymentType.EXPENSE_OVERSPEND,
+      direction: isUnderspend ? PaymentDirection.INCOMING : PaymentDirection.OUTGOING,
+      status: PaymentStatus.PENDING,
       // Назначение фиксированное (суть расхода — в описании позиции, поле
       // blockchain_data.description показывается отдельно как «Что оплачиваем»).
       memo: isUnderspend

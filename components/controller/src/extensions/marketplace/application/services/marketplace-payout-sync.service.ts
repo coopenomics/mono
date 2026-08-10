@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
@@ -10,7 +10,6 @@ import {
   GATEWAY_INTERACTOR_PORT,
   type GatewayInteractorPort,
 } from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import {
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
@@ -84,7 +83,7 @@ export class MarketplacePayoutSyncService {
         try {
           await this.coreGateway.setPaymentStatus({
             id: updated.core_payment_id,
-            status: PaymentStatusEnum.COMPLETED,
+            status: PaymentStatus.COMPLETED,
           });
         } catch (err: any) {
           this.logger.warn(
@@ -137,7 +136,7 @@ export class MarketplacePayoutSyncService {
         try {
           await this.coreGateway.setPaymentStatus({
             id: updated.core_payment_id,
-            status: PaymentStatusEnum.CANCELLED,
+            status: PaymentStatus.CANCELLED,
           });
         } catch (err: any) {
           this.logger.warn(

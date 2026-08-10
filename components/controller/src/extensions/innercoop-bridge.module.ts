@@ -13,6 +13,7 @@ import {
   MEET_PORT,
   MESSAGE_CHANNEL_PORT,
   NOTIFICATION_PORT,
+  PAYMENT_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
@@ -31,6 +32,7 @@ import { DecisionTrackingAdapter } from '~/infrastructure/decision-tracking/adap
 import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
 import { FreeDecisionAdapter } from '~/infrastructure/free-decision/free-decision.adapter';
 import { NotificationInnercoopAdapter } from '~/infrastructure/innercoop/notification-innercoop.adapter';
+import { PaymentInnercoopAdapter } from '~/infrastructure/innercoop/payment-innercoop.adapter';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
@@ -80,6 +82,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DocumentInnercoopAdapter,
     AccountInnercoopAdapter,
     NotificationInnercoopAdapter,
+    PaymentInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -152,6 +155,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: FREE_DECISION_PORT,
       useExisting: FreeDecisionAdapter,
     },
+    {
+      provide: PAYMENT_PORT,
+      useExisting: PaymentInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -169,6 +176,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     MEET_PORT,
     DECISION_TRACKING_PORT,
     FREE_DECISION_PORT,
+    PAYMENT_PORT,
   ],
 })
 export class InnercoopBridgeModule {}
