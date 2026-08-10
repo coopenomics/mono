@@ -39,7 +39,10 @@ export default class Blockchain {
 
     const rpc = new JsonRpc(res, { fetch })
 
-    const signatureProvider = new JsSignatureProvider(this.privateKeys)
+    // Пустые ключи отфильтровываем: read-only режимам (расчёт плана реестра
+    // документов) ключ не передаётся, а конфиг всё равно отдаёт массив с
+    // одним undefined — JsSignatureProvider на нём падает до первого чтения.
+    const signatureProvider = new JsSignatureProvider(this.privateKeys.filter(Boolean))
 
     this.api = new Api({
       rpc,
