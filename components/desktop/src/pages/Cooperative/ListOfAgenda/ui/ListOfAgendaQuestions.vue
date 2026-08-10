@@ -88,6 +88,33 @@ const decisions = computed(() =>
   ),
 );
 
+// Фоновое обновление повестки — общая точка для поллинга и для дозагрузки
+// после действия. Три свойства, которых не было у прямого вызова loadDecisions:
+//
+// 1. Ошибка НЕ всплывает пользователю. Обновление списка — фоновая операция;
+//    её падение не означает, что действие не состоялось. Раньше таймаут этого
+//    запроса показывался красным тостом сразу после «Голос принят» — голос при
+//    этом уже лежал в цепи.
+// 2. Guard от наложения: пока предыдущий запрос в полёте, тик пропускаем.
+//    setInterval без guard'а на медленном канале копит запросы, а они выедают
+//    лимит одновременных соединений браузера (6 на origin по HTTP/1.1) — тот же
+//    лимит делят вызовы цепи, поэтому затор бьёт по голосованию.
+// 3. Во вкладке в фоне не опрашиваем вовсе — обновлять невидимый список незачем.
+let refreshInFlight = false;
+const refreshAgendaQuietly = async (force = false) => {
+  if (refreshInFlight) return;
+  if (!force && typeof document !== 'undefined' && document.hidden) return;
+
+  refreshInFlight = true;
+  try {
+    await loadDecisions(route.params.coopname as string, true);
+  } catch (e) {
+    console.error('[agenda] фоновое обновление повестки не удалось', e);
+  } finally {
+    refreshInFlight = false;
+  }
+};
+
 // Обработчики событий
 const onAuthorizeDecision = async (row) => {
   const decision_id = Number(row.table.id);
@@ -95,15 +122,17 @@ const onAuthorizeDecision = async (row) => {
 
   try {
     await authorizeAndExecuteDecision(row);
-    // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
-    actedDecisionIds.value.add(decision_id);
-    SuccessAlert('Решение принято и исполнено');
-    await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);
-  } finally {
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
+  actedDecisionIds.value.add(decision_id);
+  SuccessAlert('Решение принято и исполнено');
+  setProcessing(decision_id, false);
+  await refreshAgendaQuietly(true);
 };
 
 const onDeclineDecision = async (row) => {
@@ -112,65 +141,51 @@ const onDeclineDecision = async (row) => {
 
   try {
     await declineDecision(row);
-    // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
-    actedDecisionIds.value.add(decision_id);
-    SuccessAlert('Решение отклонено');
-    await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);
-  } finally {
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
+  actedDecisionIds.value.add(decision_id);
+  SuccessAlert('Решение отклонено');
+  setProcessing(decision_id, false);
+  await refreshAgendaQuietly(true);
 };
 
-const onVoteFor = async (row) => {
+// Голос «за»/«против» отличается только вызовом фичи — остальное общее.
+const submitVote = async (row, cast: typeof voteForDecision) => {
   const decision_id = Number(row.table.id);
   setProcessing(decision_id, true);
 
   try {
-    await voteForDecision(row);
-    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
-    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
-    SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string, true);
-    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
-    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
-    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
+    await cast(row);
   } catch (e) {
-    console.error(e)
+    console.error(e);
     FailAlert(e);
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
+  // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
+  SuccessAlert('Голос принят');
+  await refreshAgendaQuietly(true);
+
+  // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
+  // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
+  setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
 };
 
-const onVoteAgainst = async (row) => {
-  const decision_id = Number(row.table.id);
-  setProcessing(decision_id, true);
-
-  try {
-    await voteAgainstDecision(row);
-    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
-    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
-    SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string, true);
-    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
-    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
-    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
-  } catch (e) {
-    console.error(e)
-    FailAlert(e);
-    setProcessing(decision_id, false);
-  }
-};
+const onVoteFor = (row) => submitVote(row, voteForDecision);
+const onVoteAgainst = (row) => submitVote(row, voteAgainstDecision);
 
 // Инициализация
 loadDecisions(route.params.coopname as string);
 
 // Периодическое обновление данных
-const interval = setInterval(
-  () => loadDecisions(route.params.coopname as string, true),
-  10000,
-);
+const interval = setInterval(() => void refreshAgendaQuietly(), 10000);
 onBeforeUnmount(() => clearInterval(interval));
 </script>
 
