@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
-import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
@@ -55,7 +54,7 @@ export class KuService {
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    private readonly documentAggregator: DocumentAggregator
+    @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort
   ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -456,14 +455,14 @@ export class KuService {
     // для страницы собрания. Договор матответственности (328) и доверенность (329)
     // содержат паспортные данные и сюда НЕ выносятся.
     if (decision.protocol) {
-      const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.protocol as unknown as ISignedDocument)
+      const aggregate = await this.documents
+        .buildAggregate(decision.protocol as unknown as ISignedDocument)
         .catch(() => null);
       dto.protocol_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
     if (decision.authorization) {
-      const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.authorization as unknown as ISignedDocument)
+      const aggregate = await this.documents
+        .buildAggregate(decision.authorization as unknown as ISignedDocument)
         .catch(() => null);
       dto.authorization_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
@@ -486,15 +485,15 @@ export class KuService {
         // договор заявителя с сертификатами подписантов — председатель смотрит документ
         // и накладывает встречную подпись на него же, без регенерации
         if (item.application) {
-          const aggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.application as unknown as ISignedDocument)
+          const aggregate = await this.documents
+            .buildAggregate(item.application as unknown as ISignedDocument)
             .catch(() => null);
           dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
         }
         // доверенность доверенному лицу — председатель так же накладывает встречную подпись
         if (item.authority) {
-          const authorityAggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.authority as unknown as ISignedDocument)
+          const authorityAggregate = await this.documents
+            .buildAggregate(item.authority as unknown as ISignedDocument)
             .catch(() => null);
           dto.authority_document = authorityAggregate ? new DocumentAggregateDTO(authorityAggregate) : undefined;
         }

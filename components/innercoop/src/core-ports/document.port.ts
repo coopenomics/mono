@@ -84,6 +84,28 @@ export interface IDocumentPort {
    * В цепь уходит только хэш.
    */
   saveData(payload: Record<string, unknown>, registryId: number): Promise<{ hash: string }>;
+
+  /**
+   * Проверить подписанный документ: нашёлся ли оригинал, сошлись ли хэши,
+   * верны ли подписи. Разбор по составляющим нужен, чтобы отказ можно было
+   * объяснить пайщику — «документ подменён» и «подпись не та» это разные
+   * разговоры.
+   */
+  validateSigned(id: string, signedDocument: ISignedDocument): Promise<InnerDocumentValidation>;
+}
+
+/** Итог проверки подписанного документа. */
+export interface InnerDocumentValidation {
+  /** Что проверяли — идентификатор документа в вызывающем коде. */
+  id: string | number;
+  is_valid: boolean;
+  /** Почему документ отвергнут; у принятого отсутствует. */
+  error_message?: string;
+  /** Нашёлся ли оригинал в реестре. */
+  original_found: boolean;
+  /** Совпал ли хэш присланного документа с оригиналом. */
+  hash_matches: boolean;
+  signatures_valid: boolean;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

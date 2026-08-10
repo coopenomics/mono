@@ -46,7 +46,6 @@ import {
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
-import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
  * Обрабатывает запросы от ResultSubmissionResolver
@@ -72,8 +71,8 @@ export class ResultSubmissionService {
     private readonly storyRepository: StoryRepository,
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
-    @Inject(DOCUMENT_REPOSITORY)
-    private readonly documentRepository: DocumentRepository,
+    @Inject(DOCUMENT_PORT)
+    private readonly documents: IDocumentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionService.name);
@@ -95,7 +94,7 @@ export class ResultSubmissionService {
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
-    const generatedDocument = await this.documentRepository.findByHash(data.statement.doc_hash);
+    const generatedDocument = await this.documents.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
       throw new Error(
         `Сгенерированный документ с хешем ${data.statement.doc_hash} не найден. Необходимо сначала сгенерировать заявление.`

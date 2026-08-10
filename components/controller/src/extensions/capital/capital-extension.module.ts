@@ -3,7 +3,6 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
@@ -691,7 +690,6 @@ export class CapitalExtension extends BaseExtensionModule {
   imports: [
     CapitalDatabaseModule,
     AccountInfrastructureModule,
-    DocumentDomainModule,
     DocumentModule,
     DocumentInfrastructureModule,
     WalletModule,

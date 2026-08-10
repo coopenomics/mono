@@ -12,9 +12,10 @@ import type { MarketplaceAplReceptionDomainRepository } from '../../domain/repos
 import type { MarketplaceOutgoingPaymentRequestDomainRepository } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import type { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { type IPaymentDeskPort } from '@coopenomics/innercoop';
+import { type IPaymentDeskPort
+  type IDocumentPort,
+} from '@coopenomics/innercoop';
 
 function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): MarketplaceOrderDomainEntity {
   return {
@@ -119,7 +120,7 @@ function buildMocks() {
 
   const documentDomainService = {
     generateDocument: jest.fn(),
-  } as unknown as jest.Mocked<DocumentDomainService>;
+  } as unknown as jest.Mocked<IDocumentPort>;
 
   const supplierSettings = {
     resolvePayoutMethod: jest.fn().mockResolvedValue(null),

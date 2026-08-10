@@ -1,4 +1,4 @@
-import type { ResultContributionStatementDocumentDomainInterface } from '~/domain/document/interfaces/result-contribution-statement-document-domain.interface';
+import type { ResultContributionStatementDocumentDomainInterface } from '../interfaces/result-contribution-statement-document.interface';
 
 /**
  * Доменный интерфейс для действия внесения результата CAPITAL контракта

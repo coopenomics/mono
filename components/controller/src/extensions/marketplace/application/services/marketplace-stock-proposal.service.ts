@@ -9,10 +9,6 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
-import {
-  DOCUMENT_VALIDATION_SERVICE,
-  type DocumentValidationService,
-} from '~/domain/document/services/document-validation.service';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
@@ -197,8 +193,8 @@ export class MarketplaceStockProposalService {
     private readonly economyService: MarketplaceEconomyService,
     @Inject(USER_WALLET_PORT)
     private readonly userWalletRepo: IUserWalletPort,
-    @Inject(DOCUMENT_VALIDATION_SERVICE)
-    private readonly documentValidationService: DocumentValidationService,
+    @Inject(DOCUMENT_PORT)
+    private readonly documents: IDocumentPort,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -837,7 +833,7 @@ export class MarketplaceStockProposalService {
     }
 
     // 4. Крипто + структура + сверка тела с оригиналом в сторе документов.
-    const validation = await this.documentValidationService.validateSignedDocument(
+    const validation = await this.documents.validateSigned(
       item.offer_id,
       sub
     );

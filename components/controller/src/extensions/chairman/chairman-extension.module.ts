@@ -8,7 +8,6 @@ import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/po
 import { merge } from 'lodash';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
-import { DocumentDomainModule } from '~/domain/document/document.module';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 
 // Chairman Database and Infrastructure
@@ -230,7 +229,6 @@ export class ChairmanExtension extends BaseExtensionModule {
     ChairmanDatabaseModule,
     AccountInfrastructureModule,
     SystemInfrastructureModule,
-    DocumentDomainModule,
     SystemDomainModule,
   ],
   providers: [

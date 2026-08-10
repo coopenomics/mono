@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import type {
   IDocumentPort,
   InnerDocumentAggregate,
+  InnerDocumentValidation,
   InnerGeneratedDocument,
   InnerGenerateDocumentRequest,
   ISignedDocument,
@@ -9,6 +10,10 @@ import type {
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
+import {
+  DOCUMENT_VALIDATION_SERVICE,
+  type DocumentValidationService,
+} from '~/domain/document/services/document-validation.service';
 
 /**
  * Реализация `IDocumentPort` для расширений.
@@ -26,7 +31,9 @@ export class DocumentInnercoopAdapter implements IDocumentPort {
     @Inject(forwardRef(() => DocumentInteractor))
     private readonly documentInteractor: DocumentInteractor,
     private readonly documentDomainService: DocumentDomainService,
-    private readonly documentAggregationService: DocumentAggregationService
+    private readonly documentAggregationService: DocumentAggregationService,
+    @Inject(DOCUMENT_VALIDATION_SERVICE)
+    private readonly documentValidationService: DocumentValidationService
   ) {}
 
   async generate(request: InnerGenerateDocumentRequest): Promise<InnerGeneratedDocument> {
@@ -43,5 +50,9 @@ export class DocumentInnercoopAdapter implements IDocumentPort {
 
   async saveData(payload: Record<string, unknown>, registryId: number): Promise<{ hash: string }> {
     return this.documentDomainService.saveDocData(payload, registryId);
+  }
+
+  async validateSigned(id: string, signedDocument: ISignedDocument): Promise<InnerDocumentValidation> {
+    return this.documentValidationService.validateSignedDocument(id, signedDocument);
   }
 }

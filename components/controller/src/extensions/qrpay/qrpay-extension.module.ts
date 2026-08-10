@@ -1,4 +1,3 @@
-import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 
 import { Inject, Module } from '@nestjs/common';
 import {
@@ -17,6 +16,11 @@ import {
   type IPaymentPort,
   PAYMENT_PROVIDER_REGISTRY_PORT,
   type IPaymentProviderRegistryPort,
+  ORGANIZATION_PORT,
+  type IOrganizationPort,
+  PAYMENT_METHOD_PORT,
+  type IPaymentMethodPort,
+  type InnerBankTransferData,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
@@ -39,7 +43,8 @@ export class QrPayExtension extends PaymentProvider {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
+    @Inject(ORGANIZATION_PORT) private readonly organizations: IOrganizationPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethods: IPaymentMethodPort,
     @Inject(PAYMENT_PROVIDER_REGISTRY_PORT) private readonly providerRegistry: IPaymentProviderRegistryPort
   ) {
     super();
@@ -78,18 +83,18 @@ export class QrPayExtension extends PaymentProvider {
     const amount = payment.quantity;
     const symbol = payment.symbol;
 
-    const cooperative = await this.generatorPort.constructCooperative(platformSettings().coopname);
+    const cooperative = await this.organizations.findByUsername(platformSettings().coopname);
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
     const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
-    const paymentMethod = (await this.generatorPort.get('paymentMethod', {
+    const paymentMethod = await this.paymentMethods.get({
       username: platformSettings().coopname,
       method_type: 'bank_transfer',
       is_default: true,
-    })) as Cooperative.Payments.IPaymentData;
+    });
 
-    const bankAccount = paymentMethod.data as Cooperative.Payments.IBankAccount;
+    const bankAccount = paymentMethod.data as InnerBankTransferData;
 
     const description = payment.memo || `Платеж для ${payment.username}`;
 

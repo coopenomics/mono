@@ -1,4 +1,3 @@
-import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import {
   MESSAGE_CHANNEL_PORT,
   type IMessageChannelPort,
@@ -10,9 +9,13 @@ import {
   type IPaymentPollingStatePort,
   PaymentStatus,
   PaymentDirection,
+  ORGANIZATION_PORT,
+  type IOrganizationPort,
+  PAYMENT_METHOD_PORT,
+  type IPaymentMethodPort,
+  type InnerBankTransferData,
 } from '@coopenomics/innercoop';
 import axios from 'axios';
-import config from '../../config/config';
 import { Inject, Module } from '@nestjs/common';
 import {
   EXTENSION_REPOSITORY,
@@ -22,6 +25,7 @@ import {
   getAmountPlusFee,
   PollingProvider,
   type PaymentDetails,
+  platformSettings,
 } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
@@ -88,7 +92,8 @@ export class SberpollExtension extends PollingProvider {
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
     @Inject(PAYMENT_POLLING_STATE_PORT) private readonly pollingState: IPaymentPollingStatePort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
+    @Inject(ORGANIZATION_PORT) private readonly organizations: IOrganizationPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethods: IPaymentMethodPort,
     @Inject(MESSAGE_CHANNEL_PORT) private readonly messageChannel: IMessageChannelPort
   ) {
     super();
@@ -126,18 +131,18 @@ export class SberpollExtension extends PollingProvider {
     const symbol = payment.symbol;
 
     // eslint-disable-next-line prettier/prettier
-    const cooperative = await this.generatorPort.constructCooperative(config.coopname);
+    const cooperative = await this.organizations.findByUsername(platformSettings().coopname);
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
     const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
-    const paymentMethod = (await this.generatorPort.get('paymentMethod', {
-      username: config.coopname,
+    const paymentMethod = await this.paymentMethods.get({
+      username: platformSettings().coopname,
       method_type: 'bank_transfer',
       is_default: true,
-    })) as Cooperative.Payments.IPaymentData;
+    });
 
-    const bankAccount = paymentMethod.data as Cooperative.Payments.IBankAccount;
+    const bankAccount = paymentMethod.data as InnerBankTransferData;
 
     const description = payment.memo || `Платеж для ${payment.username}`;
 
@@ -276,7 +281,7 @@ export class SberpollExtension extends PollingProvider {
                 message: symbol_check.message,
               });
               await this.messageChannel.publish(
-                `${config.coopname}:orderStatusUpdate`,
+                `${platformSettings().coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
@@ -298,7 +303,7 @@ export class SberpollExtension extends PollingProvider {
                 message: amount_check.message,
               });
               await this.messageChannel.publish(
-                `${config.coopname}:orderStatusUpdate`,
+                `${platformSettings().coopname}:orderStatusUpdate`,
                 JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
@@ -309,7 +314,7 @@ export class SberpollExtension extends PollingProvider {
           if (payment.id) {
             await this.payments.update(payment.id, { status: PaymentStatus.PAID });
             await this.messageChannel.publish(
-              `${config.coopname}:orderStatusUpdate`,
+              `${platformSettings().coopname}:orderStatusUpdate`,
               JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
             );
           }

@@ -5,7 +5,6 @@ import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-i
 import { ExpensesExtensionModule } from '../../expenses/expenses-extension.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { DocumentDomainModule } from '~/domain/document/document.module';
 import { UserModule } from '~/application/user/user.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
@@ -208,7 +207,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     GatewayInfrastructureModule,
     // DocumentDomainService для генерации preview-документов АПП приёмки
     // через GENERATOR_PORT (registry_id=1102).
-    DocumentDomainModule,
     // UserCertificateInteractor — резолв ФИО/наименования участников по аккаунту
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
     UserModule,
