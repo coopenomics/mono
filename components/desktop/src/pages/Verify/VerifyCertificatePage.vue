@@ -136,6 +136,17 @@ async function verify(jws: string): Promise<void> {
     if (key) trustedKeys[link.account] = key;
   }
 
+  // Издателем обязан быть кооператив, которому принадлежит этот считыватель.
+  // Без этой проверки достаточно поставить якорь первым звеном в собственной цепи —
+  // ключи-то у всех настоящие, читаются из цепи, — и чужое удостоверение пройдёт как
+  // своё. Заверения якоря о том, что этот кооператив им признан, в удостоверении
+  // сейчас нет: цепь перечисляет ключи, но не несёт подписи якоря под кооперативом.
+  const issuer = claims.coop_chain?.[claims.coop_chain.length - 1]?.account;
+  if (!issuer || issuer !== system.info.coopname) {
+    result.value = { valid: false, name: fullName(claims.identification), reason: REASONS.untrusted_anchor };
+    return;
+  }
+
   const anchorAccount = claims.coop_chain?.[0]?.account ?? '';
   const verdict = await verifyOffline(jws, {
     trustedKeys,
