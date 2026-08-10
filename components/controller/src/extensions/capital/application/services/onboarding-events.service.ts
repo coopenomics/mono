@@ -9,8 +9,8 @@ import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.re
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import { generateRandomHash } from '~/utils/generate-hash.util';
 import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
+import { generateRandomHash } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CapitalOnboardingEventsService {

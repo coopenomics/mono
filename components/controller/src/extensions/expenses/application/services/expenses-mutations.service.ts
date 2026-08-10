@@ -5,7 +5,6 @@ import { Cooperative } from 'cooptypes'
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
-import { generateHashFromString, generateUniqueHash } from '~/utils/generate-hash.util'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
 import { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
@@ -29,7 +28,10 @@ import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { QuantityUtils } from '@coopenomics/extension-kit';
+import { QuantityUtils,
+  generateHashFromString,
+  generateUniqueHash,
+} from '@coopenomics/extension-kit';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */

@@ -28,7 +28,6 @@ import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coo
 import httpStatus from 'http-status';
 import { Cooperative } from 'cooptypes';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
-import { generateRandomHash, generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
@@ -44,6 +43,7 @@ import type { IConfig } from '../../capital-extension.module';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { HttpApiError } from '@coopenomics/extension-kit';
+import { generateRandomHash, generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте

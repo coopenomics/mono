@@ -3,7 +3,6 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
@@ -12,6 +11,7 @@ import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/enti
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
 import { QuantityUtils } from '@coopenomics/extension-kit';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;

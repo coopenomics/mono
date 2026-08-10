@@ -6,10 +6,7 @@ import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { CapitalContract } from 'cooptypes';
-import {
-  CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT,
-  type IChatCoopCapitalProjectRoomEnsureMemberPayload,
-} from '~/shared/constants/capital-project-matrix.events';
+import { CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
 
 /**
  * Интерактор для управления одобрением/отклонением приложений

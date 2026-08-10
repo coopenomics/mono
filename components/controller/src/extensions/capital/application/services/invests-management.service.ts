@@ -14,10 +14,10 @@ import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
-import { generateRandomHash } from '~/utils/generate-hash.util';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-draft-verification.util';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { generateRandomHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для управления инвестициями CAPITAL

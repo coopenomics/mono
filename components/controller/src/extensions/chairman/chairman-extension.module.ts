@@ -3,7 +3,6 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { merge } from 'lodash';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
@@ -42,6 +41,7 @@ import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchai
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {

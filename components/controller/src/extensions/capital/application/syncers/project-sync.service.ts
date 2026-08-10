@@ -9,13 +9,10 @@ import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfa
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
 import { CapitalContract } from 'cooptypes';
-import {
-  CAPITAL_PROJECT_CREATED_EVENT,
-  type ICapitalProjectCreatedPayload,
-} from '~/shared/constants/capital-project-matrix.events';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
 import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
  * Сервис синхронизации проектов с блокчейном

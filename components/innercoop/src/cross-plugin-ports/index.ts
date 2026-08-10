@@ -9,3 +9,4 @@ export * from './expense-chassis.port';
 export * from './matrix-room-messaging.port';
 export * from './project-capital-clearance.port';
 export * from './project-communication-artifacts.port';
+export * from './capital-project-room.events';

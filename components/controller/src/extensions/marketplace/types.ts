@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Сериализация человекочитаемого описания поля для формы установки расширения
 // (тот же механизм, что в capital-extension.module.ts).

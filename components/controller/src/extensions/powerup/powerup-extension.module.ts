@@ -6,7 +6,7 @@ import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchai
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {

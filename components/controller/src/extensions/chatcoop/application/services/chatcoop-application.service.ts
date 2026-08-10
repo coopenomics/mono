@@ -19,12 +19,9 @@ import {
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
 import type { ChatcoopManagedMatrixRoomKind } from '../../domain/entities/managed-matrix-room.entity';
-import {
-  CHATCOOP_MATRIX_USER_LINKED_FOR_CAPITAL_PROJECT_ROOMS_EVENT,
-  type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload,
-} from '~/shared/constants/capital-project-matrix.events';
 import config from '~/config/config';
 import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
+import { CHATCOOP_MATRIX_USER_LINKED_FOR_CAPITAL_PROJECT_ROOMS_EVENT, type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload } from '@coopenomics/innercoop';
 
 // Расширяем тип config для доступа к matrix.client_url
 const extendedConfig = config as typeof config & {

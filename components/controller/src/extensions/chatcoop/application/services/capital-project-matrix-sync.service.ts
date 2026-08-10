@@ -17,14 +17,7 @@ import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
-import {
-  CAPITAL_PROJECT_CREATED_EVENT,
-  CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT,
-  CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT,
-  type ICapitalProjectCreatedPayload,
-  type ICapitalProjectMatrixRoomAssignedPayload,
-  type IChatCoopCapitalProjectRoomEnsureMemberPayload,
-} from '~/shared/constants/capital-project-matrix.events';
+import { CAPITAL_PROJECT_CREATED_EVENT, CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT, CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type ICapitalProjectCreatedPayload, type ICapitalProjectMatrixRoomAssignedPayload, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
 
 /**
  * Заведение и наполнение Matrix-комнат для проектов Благороста: создание комнаты при появлении проекта,

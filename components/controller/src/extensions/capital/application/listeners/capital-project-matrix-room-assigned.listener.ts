@@ -1,14 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import {
-  CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT,
-  CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT,
-  type ICapitalProjectMatrixRoomAssignedPayload,
-  type IChatCoopCapitalProjectRoomEnsureMemberPayload,
-} from '~/shared/constants/capital-project-matrix.events';
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
 import { APPENDIX_REPOSITORY, type AppendixRepository } from '../../domain/repositories/appendix.repository';
+import { CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT, CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type ICapitalProjectMatrixRoomAssignedPayload, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
 
 /**
  * Комната для проекта в Matrix уже создана: сохраняем её идентификатор в карточке проекта

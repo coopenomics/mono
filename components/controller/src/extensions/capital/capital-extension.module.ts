@@ -8,9 +8,9 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { z } from 'zod';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {

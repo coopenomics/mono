@@ -19,7 +19,6 @@ import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
 import { encrypt } from '~/utils/aes';
 import * as crypto from 'crypto';
 import config from '~/config/config';
@@ -92,6 +91,7 @@ import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/type
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 @Injectable()
 export class ChatCoopExtension extends BaseExtensionModule {
   constructor(

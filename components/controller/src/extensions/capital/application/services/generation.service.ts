@@ -1,5 +1,4 @@
 import { Injectable, Inject, Optional, Logger } from '@nestjs/common';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { GenerationInteractor } from '../use-cases/generation.interactor';
 import type { CreateCommitInputDTO } from '../dto/generation/create-commit-input.dto';
 import { hoursAlmostEqual } from '../../domain/utils/hours-float';
@@ -66,6 +65,7 @@ import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL

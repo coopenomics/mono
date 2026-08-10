@@ -17,3 +17,4 @@ export * from './quantity.utils';
 export * from './date-utils';
 export * from './post-transact-chain-read-delay';
 export * from './transact-block-num';
+export * from './hash.utils';

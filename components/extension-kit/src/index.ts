@@ -24,6 +24,7 @@ export * from './repositories/log-extension.repository';
 export * from './migrations/schema-migration.contract';
 export * from './lifecycle/events';
 export * from './registry/registry.contract';
+export * from './registry/extension-field-description';
 export * from './dto/pagination.dto';
 export * from './dto/require-fields';
 export * from './dto/transaction-result-response.dto';

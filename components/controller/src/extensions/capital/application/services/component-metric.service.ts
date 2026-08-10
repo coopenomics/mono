@@ -32,7 +32,6 @@ import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/catalog/default-blagorost-measures';
 import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
@@ -68,6 +67,7 @@ import {
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Меры (справочник) и цели по мерам на компонентах.
