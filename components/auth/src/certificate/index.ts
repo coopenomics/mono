@@ -9,9 +9,20 @@ import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 
 export * from './schema-policy'
 
-export interface CoopChainLink {
-  account: string
-  public_key: string
+/**
+ * Разобранное звено цепочки признания — для показа человеку. Подпись при этом не
+ * проверяется: проверка живёт в `verifyOffline`, и дублировать её ради подписи
+ * под именем на экране незачем.
+ */
+export interface TrustChainLink {
+  /** Кто заверил. */
+  issuer: string
+  /** Кого заверили. */
+  subject: string
+  /** Признанный ключ заверения субъекта. */
+  cert: string
+  /** До какого момента действует признание, unix-секунды. */
+  expiresAt: number
 }
 
 /**
@@ -35,7 +46,12 @@ export interface ParticipantCertificateClaims {
   iat: number
   exp: number
   coopname: string
-  coop_chain: CoopChainLink[]
+  /**
+   * Цепочка заверений от корня к выпустившему кооперативу — подписанные заверения
+   * целиком, по порядку. Именно она позволяет проверить удостоверение без сети:
+   * перечень имён и ключей ничего не доказывал бы, подпись доказывает.
+   */
+  trust_chain: string[]
   verification_types: VerificationTypeClaim[]
   identification: Record<string, unknown> | null
   claim_schema_version: string
@@ -95,7 +111,7 @@ export function decodeParticipantCertificate(jws: string): ParticipantCertificat
     iat: Number(raw.iat ?? 0),
     exp: raw.exp,
     coopname: String(raw.coopname ?? ''),
-    coop_chain: Array.isArray(raw.coop_chain) ? (raw.coop_chain as CoopChainLink[]) : [],
+    trust_chain: Array.isArray(raw.trust_chain) ? (raw.trust_chain as string[]).filter(l => typeof l === 'string') : [],
     verification_types: normalizeVerificationTypes(raw.verification_types),
     identification: (raw.identification as Record<string, unknown> | null) ?? null,
     claim_schema_version: String(raw.claim_schema_version ?? ''),
@@ -191,4 +207,36 @@ export function scheduleCertificateRenewal(
         clearTimer(timer)
     },
   }
+}
+
+/**
+ * Разобрать цепочку заверений для показа: кто кого признал и до какого срока.
+ *
+ * Подпись здесь не проверяется намеренно. Вопрос «подлинно ли» решает
+ * `verifyOffline` единственной реализацией; здесь отвечают на другой вопрос —
+ * «что показать человеку». Две реализации проверки однажды разошлись бы, и
+ * экран начал бы уверять в том, чего проверяющий не подтверждает.
+ *
+ * Нечитаемые звенья пропускаются: показать неполную цепочку лучше, чем не
+ * показать ничего.
+ */
+export function decodeTrustChain(chain: string[]): TrustChainLink[] {
+  const links: TrustChainLink[] = []
+  for (const raw of chain) {
+    try {
+      const claims = decodeJwt(raw) as Record<string, unknown>
+      if (typeof claims.iss !== 'string' || typeof claims.sub !== 'string')
+        continue
+      links.push({
+        issuer: claims.iss,
+        subject: claims.sub,
+        cert: typeof claims.cert === 'string' ? claims.cert : '',
+        expiresAt: typeof claims.exp === 'number' ? claims.exp : 0,
+      })
+    }
+    catch {
+      continue
+    }
+  }
+  return links
 }

@@ -18,13 +18,20 @@ import { CertKeyService, TRUST_ANCHOR_ACCOUNT } from '~/application/auth-v2/cert
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
 
+/**
+ * Насколько долго держится цепочка заверений, прочитанная из цепи. Заверения
+ * меняются раз в месяц, а удостоверение выпускается при каждом открытии страницы.
+ */
+const TRUST_CHAIN_CACHE_MS = 5 * 60 * 1000;
+
+/**
+ * Предел длины цепочки. Уровней всего три, и запас нужен не под рост, а против
+ * замкнутого круга в записях: без него обход зациклился бы.
+ */
+const MAX_TRUST_CHAIN_DEPTH = 5;
+
 /** Лимит размера JWS — Vision/MIFARE DESFire EV3 (AC Story 1.8). */
 const MAX_CERT_BYTES = 5 * 1024;
-
-export interface CoopChainLink {
-  account: string;
-  public_key: string;
-}
 
 /**
  * Выпуск participant_certificate (CoopID, Story 1.8): compact JWS alg=ES256K,
@@ -35,7 +42,13 @@ export interface CoopChainLink {
  */
 @Injectable()
 export class CertificateService {
-  private coopChain: CoopChainLink[] | null = null;
+  /**
+   * Цепочка заверений с отметкой времени. Кэшируется ненадолго: заверения меняются
+   * раз в месяц, а удостоверение выпускается при каждом открытии страницы, и
+   * ходить за ними в цепь каждый раз — лишняя задержка на самом видном экране.
+   * Держать же их вечно нельзя: продлённое заверение должно доехать до пайщика.
+   */
+  private trustChain: { links: string[]; fetchedAt: number } | null = null;
 
   constructor(
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
@@ -55,9 +68,11 @@ export class CertificateService {
     const user = await this.userDomainService.getUserByUsername(username);
     const identification = await this.resolveIdentification(username);
     const coopname = config.coopname;
-    const coopChain = await this.getCoopChain();
-    // Подписывает последнее звено цепи — сам кооператив; его ключ и уходит в `kid`.
-    const signingPublicKey = coopChain[coopChain.length - 1]?.public_key;
+    const trustChain = await this.getTrustChain();
+    // Подписывает сам кооператив. Ключ уходит в `kid` справочно: проверяющий берёт
+    // его из последнего заверения, а не отсюда — иначе предъявитель называл бы ключ,
+    // которым его же и проверяют.
+    const signingPublicKey = (await this.certKeyService.publicKey()) ?? undefined;
     // Типы верификации выводятся из реального членства (Story 4.1). В claim идёт
     // структурная форма {type, verified_at, source} (Story 4.3) — без status (форма AC,
     // экономия байт под лимит 5 КБ). RP получает её через OIDC userinfo в Epic 5.
@@ -70,7 +85,7 @@ export class CertificateService {
 
     const jws = await new SignJWT({
       coopname,
-      coop_chain: coopChain,
+      trust_chain: trustChain,
       verification_types: verificationTypes.map((entry) => ({
         type: entry.type,
         verified_at: entry.verified_at,
@@ -113,43 +128,47 @@ export class CertificateService {
   }
 
   /**
-   * Цепь ключей заверения из COOPOS: якорь (если он есть) → кооператив, чьим ключом
-   * удостоверение и подписывается. Кэшируется (ключи заверения меняются крайне
-   * редко; ротация — рестарт/инвалидация в будущих историях).
+   * Цепочка заверений от корня к кооперативу — подписанные заверения целиком, по
+   * порядку. Именно она едет внутри удостоверения и позволяет проверить его без
+   * сети.
    *
-   * Раньше цепь была константой `[ano, voskhod, vostok]`. Это было неверно дважды:
-   * имя кооператива оказалось вшито в код (у любого другого кооператива цепь
-   * указывала бы на чужой), а `vostok` в ней был лишним звеном. Теперь кооператив
-   * берётся из настроек, а якорь подключается сам, как только появится в цепи.
+   * Раньше здесь собирался перечень имён и ключей. Он ничего не доказывал:
+   * проверяющему приходилось лезть в цепь за ключами по именам, взятым из самого
+   * предъявленного удостоверения, — а значит любой кооператив мог поставить корень
+   * первым звеном, ключи-то настоящие. Подпись под заверением закрывает это: имя
+   * больше ничего не решает.
+   *
+   * Пустая цепочка — не ошибка. Кооператив, которого ещё никто не заверил,
+   * удостоверения выпускает, но проверку они не проходят, и пайщику это видно.
+   * Отказать было бы хуже: пайщик не виноват, что кооператив выпал из цепочки.
    */
-  private async getCoopChain(): Promise<CoopChainLink[]> {
-    if (this.coopChain) return this.coopChain;
+  private async getTrustChain(): Promise<string[]> {
+    const cached = this.trustChain;
+    if (cached && Date.now() - cached.fetchedAt < TRUST_CHAIN_CACHE_MS) return cached.links;
 
-    const links: CoopChainLink[] = [];
-    const anchorKey = await this.certKey(TRUST_ANCHOR_ACCOUNT);
-    if (anchorKey) links.push({ account: TRUST_ANCHOR_ACCOUNT, public_key: anchorKey });
+    const links: string[] = [];
+    let subject: string | null = config.coopname;
 
-    // Кооператив — звено обязательное: именно его ключом подписан сертификат, и без
-    // публикации соответствующего публичного ключа проверить подпись невозможно.
-    const coopname = config.coopname;
-    const coopKey = await this.certKey(coopname);
-    if (!coopKey)
-      throw new AuthV2Error(
-        AuthV2ErrorCode.ChainVerificationFailed,
-        `у кооператива ${coopname} нет права заверения (permission «cert» с одним ключом) — удостоверение выпустить нечем`,
-      );
-    links.push({ account: coopname, public_key: coopKey });
+    // Идём снизу вверх и разворачиваем: у записи есть ссылка на заверяющего, но не
+    // на заверённых, а проверяющему цепочка нужна от корня.
+    for (let depth = 0; subject && depth < MAX_TRUST_CHAIN_DEPTH; depth++) {
+      const endorsement = await this.endorsementOf(subject);
+      if (!endorsement) break;
+      links.unshift(endorsement.credential);
+      subject = endorsement.issuer === TRUST_ANCHOR_ACCOUNT ? null : endorsement.issuer;
+    }
 
-    this.coopChain = links;
+    this.trustChain = { links, fetchedAt: Date.now() };
     return links;
   }
 
-  /** Публичный ключ заверения аккаунта; `null` — права нет. Недоступность цепи — отдельная ошибка. */
-  private async certKey(account: string): Promise<string | null> {
+  /** Заверение субъекта из цепи. Недоступность цепи — отдельная ошибка, не «нет заверения». */
+  private async endorsementOf(subject: string) {
     try {
-      return await this.blockchainPort.getCertPublicKey(account);
+      return await this.blockchainPort.getEndorsement(subject);
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, `COOPOS недоступен: ключ заверения ${account} не получен`);
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, `COOPOS недоступен: заверение ${subject} не получено`);
     }
   }
+
 }

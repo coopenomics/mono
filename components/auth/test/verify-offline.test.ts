@@ -2,166 +2,243 @@ import type { PrivateKey as PrivateKeyType } from '@wharfkit/antelope'
 import { PrivateKey } from '@wharfkit/antelope'
 import { base64url } from 'jose'
 import { describe, expect, it } from 'vitest'
-import { type CoopChainLink, verifyOffline } from '../src/index'
+import { verifyOffline } from '../src/index'
 
-// Цепь доверия ano → voskhod → vostok(issuer). Ключи генерим, чтобы не хардкодить.
+// Цепочка признания: АНО заверяет оператора, оператор — кооператив, кооператив
+// выпускает удостоверение. Ключи генерим, чтобы не хардкодить.
 const anoKey = PrivateKey.generate('K1')
-const voskhodKey = PrivateKey.generate('K1')
-const issuerKey = PrivateKey.generate('K1') // vostok — издатель, его ключом подписан cert
+const operatorKey = PrivateKey.generate('K1')
+const coopKey = PrivateKey.generate('K1')
+const strangerKey = PrivateKey.generate('K1')
 
 const PUB_ANO = anoKey.toPublic().toString()
-const PUB_VOSKHOD = voskhodKey.toPublic().toString()
-const PUB_ISSUER = issuerKey.toPublic().toString()
+const PUB_OPERATOR = operatorKey.toPublic().toString()
+const PUB_COOP = coopKey.toPublic().toString()
+const PUB_STRANGER = strangerKey.toPublic().toString()
 
-const CHAIN: CoopChainLink[] = [
-  { account: 'ano', public_key: PUB_ANO },
-  { account: 'voskhod', public_key: PUB_VOSKHOD },
-  { account: 'vostok', public_key: PUB_ISSUER },
-]
+const CHAIN_ID = 'db79c8409645082749ca50640d6f4ee511575acf26c4e2c8e4748e6bf6a01ed4'
+const OTHER_CHAIN_ID = '0000000000000000000000000000000000000000000000000000000000000001'
 
-// Полный доверенный кэш (chain_manifests_cache) — все звенья известны.
-const TRUSTED: Record<string, string> = { ano: PUB_ANO, voskhod: PUB_VOSKHOD, vostok: PUB_ISSUER }
+const NOW = 1_900_000_000_000 // фиксированный «сейчас», мс
+const NOW_SECONDS = Math.floor(NOW / 1000)
 
-const NOW = 1_900_000_000_000 // фиксированный «сейчас» (мс)
-const FUTURE_EXP = Math.floor(NOW / 1000) + 3600 // +1ч
-const PAST_EXP = Math.floor(NOW / 1000) - 10
+/** Подписать compact JWS ключом Antelope — тем же способом, что и на сервере. */
+function sign(header: Record<string, unknown>, payload: Record<string, unknown>, key: PrivateKeyType): string {
+  const h = base64url.encode(JSON.stringify(header))
+  const p = base64url.encode(JSON.stringify(payload))
+  const signingInput = `${h}.${p}`
+  const sig = key.signMessage(new TextEncoder().encode(signingInput))
+  const rs = sig.data.array.slice(1) // [recovery(1), r(32), s(32)] → R||S
+  return `${signingInput}.${base64url.encode(rs)}`
+}
+
+interface EndorsementOpts {
+  issuer: string
+  subject: string
+  /** Признаваемый ключ субъекта. */
+  cert: string
+  /** Ключ, которым подписывается заверение. */
+  signWith: PrivateKeyType
+  exp?: number
+  iat?: number
+  chainId?: string
+  typ?: string
+}
+
+function makeEndorsement(o: EndorsementOpts): string {
+  return sign(
+    { alg: 'ES256K', typ: o.typ ?? 'coop-endorsement+jws', kid: o.signWith.toPublic().toString() },
+    {
+      iss: o.issuer,
+      sub: o.subject,
+      cert: o.cert,
+      chain_id: o.chainId ?? CHAIN_ID,
+      iat: o.iat ?? NOW_SECONDS - 60,
+      exp: o.exp ?? NOW_SECONDS + 30 * 86400,
+    },
+    o.signWith,
+  )
+}
+
+const ANO_ENDORSES_OPERATOR = makeEndorsement({ issuer: 'ano', subject: 'voskhod', cert: PUB_OPERATOR, signWith: anoKey })
+const OPERATOR_ENDORSES_COOP = makeEndorsement({ issuer: 'voskhod', subject: 'spoke1', cert: PUB_COOP, signWith: operatorKey })
 
 interface CertOpts {
-  chain?: CoopChainLink[]
+  chain?: string[]
+  coopname?: string
   exp?: number
   alg?: string
   signWith?: PrivateKeyType
   schemaVersion?: string
 }
 
-/** Собрать compact JWS-сертификат (формат CertificateService, Story 1.8). */
-function makeCert(opts: CertOpts = {}): string {
-  const signer = opts.signWith ?? issuerKey
-  const header = base64url.encode(JSON.stringify({ alg: opts.alg ?? 'ES256K', typ: 'JWT', kid: signer.toPublic().toString() }))
-  const payload = base64url.encode(JSON.stringify({
-    coopname: 'vostok',
-    coop_chain: opts.chain ?? CHAIN,
-    exp: opts.exp ?? FUTURE_EXP,
-    sub: 'uuid-1',
-    jti: 'serial-123',
-    claim_schema_version: opts.schemaVersion ?? '1',
-  }))
-  const signingInput = `${header}.${payload}`
-  const sig = signer.signMessage(new TextEncoder().encode(signingInput))
-  const rs = sig.data.array.slice(1) // [recovery(1), r(32), s(32)] → R||S
-  return `${signingInput}.${base64url.encode(rs)}`
+function makeCert(o: CertOpts = {}): string {
+  const signer = o.signWith ?? coopKey
+  return sign(
+    { alg: o.alg ?? 'ES256K', typ: 'JWT', kid: signer.toPublic().toString() },
+    {
+      coopname: o.coopname ?? 'spoke1',
+      trust_chain: o.chain ?? [ANO_ENDORSES_OPERATOR, OPERATOR_ENDORSES_COOP],
+      exp: o.exp ?? NOW_SECONDS + 3600,
+      sub: 'uuid-1',
+      jti: 'serial-123',
+      claim_schema_version: o.schemaVersion ?? '1',
+    },
+    signer,
+  )
 }
 
-describe('verifyOffline: офлайн-проверка удостоверения (Story 4.4)', () => {
-  it('валидный сертификат с доверенной цепью и якорем → valid, issuer', async () => {
-    const res = await verifyOffline(makeCert(), { trustedKeys: TRUSTED, now: NOW })
+const BASE = { trustAnchor: PUB_ANO, now: NOW }
+
+describe('verifyOffline: проверка удостоверения без сети', () => {
+  it('цепочка от корня до кооператива сходится — пускаем', async () => {
+    const res = await verifyOffline(makeCert(), BASE)
     expect(res.valid).toBe(true)
-    expect(res.issuer).toBe('vostok')
-    expect(res.reason).toBeUndefined()
+    expect(res.issuer).toBe('spoke1')
+    expect(res.chain).toEqual(['ano', 'voskhod', 'spoke1'])
   })
 
-  it('exp в прошлом → expired', async () => {
-    const res = await verifyOffline(makeCert({ exp: PAST_EXP }), { trustedKeys: TRUSTED, now: NOW })
-    expect(res.valid).toBe(false)
-    expect(res.reason).toBe('expired')
-  })
-
-  it('цепь не укоренена в известном ano (чужой якорь) → untrusted_anchor', async () => {
-    const other = PrivateKey.generate('K1').toPublic().toString()
-    const res = await verifyOffline(makeCert(), { trustedKeys: TRUSTED, trustAnchor: other, now: NOW })
-    expect(res.valid).toBe(false)
-    expect(res.reason).toBe('untrusted_anchor')
-  })
-
-  it('звено издателя не совпадает с доверенным кэшем → untrusted_issuer', async () => {
-    const foreign = PrivateKey.generate('K1').toPublic().toString()
-    const res = await verifyOffline(makeCert(), {
-      trustedKeys: { ano: PUB_ANO, voskhod: PUB_VOSKHOD, vostok: foreign },
-      now: NOW,
+  it('оператор выпускает удостоверения сам — цепочка из одного звена', async () => {
+    const cert = makeCert({
+      coopname: 'voskhod',
+      chain: [ANO_ENDORSES_OPERATOR],
+      signWith: operatorKey,
     })
-    expect(res.valid).toBe(false)
-    expect(res.reason).toBe('untrusted_issuer')
+    const res = await verifyOffline(cert, BASE)
+    expect(res.valid).toBe(true)
+    expect(res.chain).toEqual(['ano', 'voskhod'])
   })
 
-  it('без доверенного кэша ключей → fail-closed (untrusted_issuer)', async () => {
-    const res = await verifyOffline(makeCert(), { trustAnchor: PUB_ANO, now: NOW })
+  it('без вшитого корня доверять не от чего', async () => {
+    const res = await verifyOffline(makeCert(), { now: NOW })
     expect(res.valid).toBe(false)
-    expect(res.reason).toBe('untrusted_issuer')
+    expect(res.reason).toBe('no_trust_anchor')
   })
 
-  it('подпись чужим ключом при валидной цепи → signature_mismatch', async () => {
-    // cert подписан foreignKey, но coop_chain заявляет издателя PUB_ISSUER;
-    // verifyOffline сверяет подпись с ключом издателя из цепи (не с kid) → провал.
-    const cert = makeCert({ signWith: PrivateKey.generate('K1') })
-    const res = await verifyOffline(cert, { trustedKeys: TRUSTED, now: NOW })
+  it('корень другой — вся цепочка ничего не значит', async () => {
+    const res = await verifyOffline(makeCert(), { trustAnchor: PUB_STRANGER, now: NOW })
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('endorsement_invalid')
+  })
+
+  it('кооператив без заверений не подтверждён', async () => {
+    const res = await verifyOffline(makeCert({ chain: [] }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('not_endorsed')
+  })
+
+  // Та самая дыра прежней проверки: ключи звеньев читались из цепи по именам из
+  // самого удостоверения, и достаточно было поставить корень первым звеном.
+  it('самозванец не проходит, поставив корень первым звеном', async () => {
+    const selfSigned = makeEndorsement({
+      issuer: 'ano',
+      subject: 'samozvanec',
+      cert: PUB_STRANGER,
+      signWith: strangerKey, // подписал сам себя, а не корнем
+    })
+    const cert = makeCert({ coopname: 'samozvanec', chain: [selfSigned], signWith: strangerKey })
+    const res = await verifyOffline(cert, BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('endorsement_invalid')
+  })
+
+  it('чужую настоящую цепочку к своему удостоверению не приложишь', async () => {
+    const cert = makeCert({ coopname: 'samozvanec', signWith: strangerKey })
+    const res = await verifyOffline(cert, BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('issuer_mismatch')
+  })
+
+  it('звено, выданное не тем, кого признало предыдущее, рвёт цепочку', async () => {
+    const wrongIssuer = makeEndorsement({
+      issuer: 'samozvanec', // предыдущее звено признало voskhod, а не его
+      subject: 'spoke1',
+      cert: PUB_COOP,
+      signWith: operatorKey,
+    })
+    const res = await verifyOffline(makeCert({ chain: [ANO_ENDORSES_OPERATOR, wrongIssuer] }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('broken_chain')
+  })
+
+  it('заверение подписано ключом, которого корень не признавал', async () => {
+    const forged = makeEndorsement({
+      issuer: 'voskhod',
+      subject: 'spoke1',
+      cert: PUB_COOP,
+      signWith: strangerKey,
+    })
+    const res = await verifyOffline(makeCert({ chain: [ANO_ENDORSES_OPERATOR, forged] }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('endorsement_invalid')
+  })
+
+  it('истёкшее заверение не признаётся, даже если удостоверение свежее', async () => {
+    const stale = makeEndorsement({
+      issuer: 'voskhod',
+      subject: 'spoke1',
+      cert: PUB_COOP,
+      signWith: operatorKey,
+      exp: NOW_SECONDS - 1,
+    })
+    const res = await verifyOffline(makeCert({ chain: [ANO_ENDORSES_OPERATOR, stale] }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('endorsement_expired')
+  })
+
+  it('заверение из другой сети не переносится', async () => {
+    const foreign = makeEndorsement({
+      issuer: 'voskhod',
+      subject: 'spoke1',
+      cert: PUB_COOP,
+      signWith: operatorKey,
+      chainId: OTHER_CHAIN_ID,
+    })
+    const res = await verifyOffline(makeCert({ chain: [ANO_ENDORSES_OPERATOR, foreign] }), { ...BASE, chainId: CHAIN_ID })
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('foreign_chain')
+  })
+
+  it('удостоверение, подсунутое вместо заверения, не принимается за звено', async () => {
+    const disguised = makeEndorsement({
+      issuer: 'ano',
+      subject: 'voskhod',
+      cert: PUB_OPERATOR,
+      signWith: anoKey,
+      typ: 'JWT', // тип удостоверения, а не заверения
+    })
+    const res = await verifyOffline(makeCert({ chain: [disguised, OPERATOR_ENDORSES_COOP] }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('endorsement_invalid')
+  })
+
+  it('подпись удостоверения не тем ключом, который признан цепочкой', async () => {
+    const res = await verifyOffline(makeCert({ signWith: strangerKey }), BASE)
     expect(res.valid).toBe(false)
     expect(res.reason).toBe('signature_mismatch')
   })
 
-  it('high-S подпись (не каноническая, как у jose/Node) → принимается через low-S нормализацию', async () => {
-    const cert = makeCert()
-    const [h, p, s] = cert.split('.')
-    const rs = base64url.decode(s)
-    // S → n − S (переводим каноническую low-S подпись wharfkit в high-S вариант).
-    const n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n
-    let sVal = 0n
-    for (const b of rs.slice(32, 64))
-      sVal = (sVal << 8n) | BigInt(b)
-    let high = n - sVal
-    const highRs = new Uint8Array(rs)
-    for (let i = 63; i >= 32; i--) {
-      highRs[i] = Number(high & 0xFFn)
-      high >>= 8n
-    }
-    const highCert = `${h}.${p}.${base64url.encode(highRs)}`
-    const res = await verifyOffline(highCert, { trustedKeys: TRUSTED, now: NOW })
-    expect(res.valid).toBe(true)
-    expect(res.issuer).toBe('vostok')
+  it('истёкшее удостоверение отклоняется до разбора цепочки', async () => {
+    const res = await verifyOffline(makeCert({ exp: NOW_SECONDS - 1 }), BASE)
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('expired')
   })
 
-  it('некорректный JWS (две части) → malformed_certificate', async () => {
-    const res = await verifyOffline('a.b', { trustedKeys: TRUSTED, now: NOW })
-    expect(res.reason).toBe('malformed_certificate')
-  })
-
-  it('неподдерживаемый alg → unsupported_alg', async () => {
-    const res = await verifyOffline(makeCert({ alg: 'RS256' }), { trustedKeys: TRUSTED, now: NOW })
+  it('чужой способ подписи не принимается', async () => {
+    const res = await verifyOffline(makeCert({ alg: 'HS256' }), BASE)
+    expect(res.valid).toBe(false)
     expect(res.reason).toBe('unsupported_alg')
   })
 
-  it('пустой coop_chain → malformed_certificate', async () => {
-    const res = await verifyOffline(makeCert({ chain: [] }), { trustedKeys: TRUSTED, now: NOW })
+  it('не compact JWS — не удостоверение', async () => {
+    const res = await verifyOffline('не-удостоверение', BASE)
+    expect(res.valid).toBe(false)
     expect(res.reason).toBe('malformed_certificate')
   })
 
-  it('версия схемы старее min_supported_version → unsupported_schema_version (Story 4.10)', async () => {
-    const res = await verifyOffline(makeCert({ schemaVersion: '0' }), { trustedKeys: TRUSTED, now: NOW, minSchemaVersion: '1' })
+  it('схема старее минимально поддерживаемой отклоняется', async () => {
+    const res = await verifyOffline(makeCert({ schemaVersion: '0' }), { ...BASE, minSchemaVersion: '1' })
     expect(res.valid).toBe(false)
     expect(res.reason).toBe('unsupported_schema_version')
-  })
-
-  it('версия схемы = min_supported_version → ось схемы пройдена, cert валиден (Story 4.10)', async () => {
-    const res = await verifyOffline(makeCert({ schemaVersion: '1' }), { trustedKeys: TRUSTED, now: NOW, minSchemaVersion: '1' })
-    expect(res.valid).toBe(true)
-    expect(res.issuer).toBe('vostok')
-  })
-
-  it('без minSchemaVersion ось схемы не гейтит — даже старая версия проходит (Story 4.10)', async () => {
-    const res = await verifyOffline(makeCert({ schemaVersion: '0' }), { trustedKeys: TRUSTED, now: NOW })
-    expect(res.valid).toBe(true)
-  })
-
-  it('не делает сетевых запросов (fetch недоступен) → всё равно verdict', async () => {
-    const orig = globalThis.fetch
-    globalThis.fetch = (() => {
-      throw new Error('сеть запрещена в офлайн-проверке')
-    }) as typeof fetch
-    try {
-      const res = await verifyOffline(makeCert(), { trustedKeys: TRUSTED, now: NOW })
-      expect(res.valid).toBe(true)
-    }
-    finally {
-      globalThis.fetch = orig
-    }
   })
 })

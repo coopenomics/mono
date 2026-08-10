@@ -1,4 +1,3 @@
-import type { CoopChainLink } from '../certificate'
 /**
  * Цепочка доверия: офлайн-проверка participant_certificate walk'ом
  * `ano → voskhod → vostok → participant` от embedded trust anchor.
@@ -44,51 +43,49 @@ export async function readCertPublicKey(rpcUrl: string, account: string): Promis
 }
 
 export type VerifyOfflineReason =
-  | 'malformed_certificate' // не compact JWS / нет обязательных claims (coop_chain, exp)
+  | 'malformed_certificate' // не compact JWS либо нет обязательных claims
   | 'unsupported_alg' // alg ≠ ES256K
-  | 'expired' // exp в прошлом относительно now
-  | 'untrusted_anchor' // coop_chain не укоренён в известном trust-anchor `ano`
-  | 'untrusted_issuer' // звено цепи (в т.ч. издатель) не совпало с доверенным кэшем ключей
-  | 'signature_mismatch' // подпись не сходится с ключом издателя
-  | 'unsupported_schema_version' // claim_schema_version старее min_supported_version политики
+  | 'expired' // срок удостоверения истёк
+  | 'no_trust_anchor' // проверяющему не задан корневой ключ — доверять не от чего
+  | 'not_endorsed' // цепочка заверений пуста: кооператив никем не признан
+  | 'broken_chain' // звено выдано не тем, кого признало предыдущее
+  | 'endorsement_expired' // заверение в цепочке истекло
+  | 'endorsement_invalid' // подпись заверения не сходится
+  | 'foreign_chain' // заверение выдано в другой сети
+  | 'issuer_mismatch' // удостоверение выпущено не тем, кого признаёт цепочка
+  | 'signature_mismatch' // подпись удостоверения не сходится
+  | 'unsupported_schema_version' // схема claims старее минимально поддерживаемой
 
 export interface VerifyOfflineResult {
   valid: boolean
-  /** Причина отказа, если valid=false. Офлайн-отзыв (revoked) — вне MVP (Story 4.7). */
+  /** Причина отказа, если valid=false. Отзыв офлайн не проверяется — см. короткий срок. */
   reason?: VerifyOfflineReason
-  /** Аккаунт-издатель (последнее звено coop_chain), под чьим ключом сошлась подпись. */
+  /** Кооператив, выпустивший удостоверение, — последнее звено цепочки заверений. */
   issuer?: string
+  /** Цепочка признания от корня к издателю: имена по порядку. Для показа проверяющему. */
+  chain?: string[]
 }
 
 export interface VerifyOfflineOptions {
   /**
-   * Офлайн-снимок доверенных cert-ключей известных кооперативов
-   * (`chain_manifests_cache`): `account → Antelope public_key`. Источник доверия —
-   * каждое звено `coop_chain` сертификата сверяется с этим набором (закрывает
-   * подделку «свой leaf-ключ + настоящий ano в root»). Без него издатель не
-   * подтверждается → `untrusted_issuer` (fail-closed). Наполнение кэша
-   * (manifest-sync) — отдельная задача.
-   */
-  trustedKeys?: Record<string, string>
-  /**
-   * Доверенный якорь `ano.cert` (Antelope `PUB_K1_…`). По умолчанию —
-   * `trustedKeys['ano']`, затем вшитый release-pinned `TRUST_ANCHOR_ANO_CERT_PUBKEY`.
+   * Корневой ключ доверия — публичный ключ заверения АНО (`PUB_K1_…`), вшитый в
+   * приложение проверки. Без него проверять нечем: доверие начинается здесь и
+   * больше нигде. По умолчанию берётся вшитый `TRUST_ANCHOR_ANO_CERT_PUBKEY`.
    */
   trustAnchor?: string
-  /**
-   * Аккаунт, которым цепь обязана начинаться. По умолчанию `ano` — АНО, заверяющая
-   * кооперативы. Пока её аккаунта нет в цепи, удостоверения укореняются на самом
-   * кооперативе, и проверяющий обязан назвать его здесь явно: иначе укоренение
-   * ничего не значит — цепь из одного звена подтверждает сама себя.
-   */
+  /** Имя корневого аккаунта; им обязана начинаться цепочка заверений. */
   trustAnchorAccount?: string
-  /** «Сейчас» в мс для проверки exp (инъекция для детерминизма/тестов). */
+  /**
+   * Идентификатор сети, в которой проверяющий признаёт заверения. Задан — заверения
+   * из другой сети отвергаются; не задан — сеть не проверяется. Это и не даёт
+   * перенести признание из испытательной сети в боевую.
+   */
+  chainId?: string
+  /** «Сейчас» в мс (инъекция для детерминизма и тестов). */
   now?: number
   /**
-   * Минимально поддерживаемая версия схемы claims (Story 4.10). Резолвится хостом
-   * из кэша политики (`createSchemaPolicyCache().getMinSupportedVersion`, TTL 24ч).
-   * Если задана и `cert.claim_schema_version` старее неё → `unsupported_schema_version`.
-   * Не задана → ось версии схемы не гейтит (крипто/exp/цепь остаются fail-closed).
+   * Минимально поддерживаемая версия схемы claims. Резолвится хостом из кэша
+   * политики. Не задана — ось версии не гейтит; крипто и сроки остаются строгими.
    */
   minSchemaVersion?: string
 }
@@ -98,11 +95,19 @@ const SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0
 const SECP256K1_HALF_N = SECP256K1_N >> 1n
 
 /**
+ * Тип подписанного заверения. Отличается от типа удостоверения намеренно: иначе
+ * звено цепочки удалось бы предъявить вместо самого удостоверения.
+ */
+const ENDORSEMENT_TYP = 'coop-endorsement+jws'
+
+/** Допуск на расхождение часов между выпустившим и проверяющим. */
+const CLOCK_SKEW_SECONDS = 300
+
+/**
  * Нормализовать S подписи R||S (64 байта) к нижней половине порядка кривой.
- * cert подписывает controller через jose+Node KeyObject, а Node-ECDSA может выдать
- * high-S; wharfkit/noble verify по умолчанию отвергает high-S (`lowS:true`).
- * Верификация secp256k1 инвариантна к `S ↔ n−S`, поэтому приведение к low-S делает
- * подпись принимаемой независимо от каноничности подписанта.
+ * Подписывает Node через jose, а Node-ECDSA может выдать high-S; проверка
+ * secp256k1 инвариантна к `S ↔ n−S`, поэтому приведение делает подпись
+ * принимаемой независимо от каноничности подписанта.
  */
 function normalizeLowS(rs: Uint8Array): Uint8Array {
   let s = 0n
@@ -119,99 +124,141 @@ function normalizeLowS(rs: Uint8Array): Uint8Array {
   return out
 }
 
-interface CertHead { alg?: string }
-interface CertPayload { coop_chain?: CoopChainLink[], exp?: number, claim_schema_version?: string }
+interface CompactParts { head: Record<string, unknown>, payload: Record<string, unknown>, signingInput: Uint8Array, signature: Uint8Array }
 
-/**
- * Офлайн-валидация удостоверения `participant_certificate` без обращения к сети
- * (Story 4.4; Vision: NFC-карты, бумажный QR). Проверяет структуру/alg/exp,
- * укоренение `coop_chain` в trust-anchor `ano`, принадлежность звеньев доверенному
- * кэшу ключей и подпись против ключа издателя (последнее звено `coop_chain`).
- *
- * Полностью офлайн и fail-closed: без доверенного якоря/кэша вердикт всегда
- * `valid:false`. Отзыв ключа офлайн не проверяется (вне MVP — Story 4.7, Growth
- * FR65); компенсируется коротким TTL (Story 4.6).
- */
-export async function verifyOffline(certificate: string, options: VerifyOfflineOptions = {}): Promise<VerifyOfflineResult> {
-  const parts = certificate.split('.')
+/** Разобрать compact JWS на части. `null` — предъявлено не то. */
+function splitCompact(jws: string): CompactParts | null {
+  const parts = jws.split('.')
   if (parts.length !== 3)
-    return { valid: false, reason: 'malformed_certificate' }
+    return null
   const [h, p, s] = parts
-
-  let head: CertHead
-  let payload: CertPayload
   try {
-    head = JSON.parse(new TextDecoder().decode(base64url.decode(h)))
-    payload = JSON.parse(new TextDecoder().decode(base64url.decode(p)))
+    return {
+      head: JSON.parse(new TextDecoder().decode(base64url.decode(h))),
+      payload: JSON.parse(new TextDecoder().decode(base64url.decode(p))),
+      signingInput: new TextEncoder().encode(`${h}.${p}`),
+      signature: base64url.decode(s),
+    }
   }
   catch {
-    return { valid: false, reason: 'malformed_certificate' }
+    return null
   }
-  if (head.alg !== 'ES256K')
+}
+
+/** Сходится ли подпись с указанным ключом. Некорректный ключ — тоже «не сходится». */
+async function signatureMatches(parts: CompactParts, publicKey: string): Promise<boolean> {
+  if (parts.signature.length !== 64)
+    return false
+  const { PublicKey, Signature } = await import('@wharfkit/antelope')
+  const normalized = normalizeLowS(parts.signature)
+  try {
+    const sig = Signature.from({ type: 'K1', r: normalized.slice(0, 32), s: normalized.slice(32, 64), recid: 0 })
+    return sig.verifyMessage(parts.signingInput, PublicKey.from(publicKey))
+  }
+  catch {
+    return false
+  }
+}
+
+/**
+ * Офлайн-проверка удостоверения пайщика: ни одного обращения к сети.
+ *
+ * Проверяющий начинает с корневого ключа АНО, вшитого в приложение, и идёт по
+ * цепочке заверений, которую удостоверение несёт внутри себя: каждое следующее
+ * заверение обязано быть подписано ключом, который признало предыдущее. Последнее
+ * звено называет кооператив и его ключ — им и должно быть подписано само
+ * удостоверение.
+ *
+ * Почему цепочка едет внутри, а не читается из блокчейна: проверяющий на входе,
+ * с планшетом без сети, обязан получить ответ здесь и сейчас. Заодно это снимает
+ * прежнюю дыру — раньше ключи звеньев читались из цепи по именам, взятым из
+ * самого предъявленного удостоверения, и любой кооператив мог поставить корень
+ * первым звеном своей цепи: ключи-то настоящие. Теперь имя ничего не решает,
+ * решает подпись.
+ *
+ * Отзыв офлайн не проверяется: подписанное не отзывается, и защитой служит
+ * короткий срок — час у удостоверения, месяц у заверения кооператива.
+ */
+export async function verifyOffline(certificate: string, options: VerifyOfflineOptions = {}): Promise<VerifyOfflineResult> {
+  const cert = splitCompact(certificate)
+  if (!cert)
+    return { valid: false, reason: 'malformed_certificate' }
+  if (cert.head.alg !== 'ES256K')
     return { valid: false, reason: 'unsupported_alg' }
 
-  const chain = payload.coop_chain
-  if (!Array.isArray(chain) || chain.length === 0 || typeof payload.exp !== 'number')
+  const exp = cert.payload.exp
+  const coopname = cert.payload.coopname
+  if (typeof exp !== 'number' || typeof coopname !== 'string')
     return { valid: false, reason: 'malformed_certificate' }
 
   const now = options.now ?? Date.now()
-  if (now >= payload.exp * 1000)
+  const nowSeconds = Math.floor(now / 1000)
+  if (nowSeconds >= exp)
     return { valid: false, reason: 'expired' }
 
-  // Версия схемы (Story 4.10): если хост передал минимально поддерживаемую версию
-  // (из кэша политики, TTL 24ч), отвергаем сертификаты старее неё — устаревшая схема
-  // claims не должна проходить как валидная. Без minSchemaVersion ось не гейтит.
   if (options.minSchemaVersion !== undefined
-    && compareSchemaVersions(payload.claim_schema_version ?? '0', options.minSchemaVersion) < 0) {
+    && compareSchemaVersions(String(cert.payload.claim_schema_version ?? '0'), options.minSchemaVersion) < 0) {
     return { valid: false, reason: 'unsupported_schema_version' }
   }
 
-  // Якорь: цепь обязана начинаться с известного `ano`.
-  const root = chain[0]
-  const anchorAccount = options.trustAnchorAccount ?? 'ano'
-  const anchor = options.trustAnchor ?? options.trustedKeys?.[anchorAccount] ?? TRUST_ANCHOR_ANO_CERT_PUBKEY
-  if (!anchor || root.account !== anchorAccount || root.public_key !== anchor)
-    return { valid: false, reason: 'untrusted_anchor' }
+  const anchorKey = options.trustAnchor ?? TRUST_ANCHOR_ANO_CERT_PUBKEY
+  if (!anchorKey)
+    return { valid: false, reason: 'no_trust_anchor' }
 
-  // Звенья: при наличии кэша каждое звено должно совпасть с доверенным ключом.
-  if (options.trustedKeys) {
-    for (const link of chain) {
-      if (options.trustedKeys[link.account] !== link.public_key)
-        return { valid: false, reason: 'untrusted_issuer' }
-    }
-  }
-  else {
-    // Без кэша подтверждён только якорь; издателя доверять нельзя — fail-closed.
-    return { valid: false, reason: 'untrusted_issuer' }
+  const endorsements = cert.payload.trust_chain
+  if (!Array.isArray(endorsements) || endorsements.length === 0)
+    return { valid: false, reason: 'not_endorsed' }
+
+  // Идём от корня: доверенный ключ на каждом шаге — тот, который признало
+  // предыдущее заверение. Первый ключ вшит, и подменить его предъявитель не может.
+  let trustedKey = anchorKey
+  let expectedIssuer = options.trustAnchorAccount ?? 'ano'
+  const chain: string[] = [expectedIssuer]
+
+  for (const raw of endorsements) {
+    if (typeof raw !== 'string')
+      return { valid: false, reason: 'malformed_certificate' }
+
+    const link = splitCompact(raw)
+    if (!link || link.head.alg !== 'ES256K' || link.head.typ !== ENDORSEMENT_TYP)
+      return { valid: false, reason: 'endorsement_invalid' }
+
+    if (link.payload.iss !== expectedIssuer)
+      return { valid: false, reason: 'broken_chain' }
+
+    const subject = link.payload.sub
+    const grantedKey = link.payload.cert
+    if (typeof subject !== 'string' || typeof grantedKey !== 'string')
+      return { valid: false, reason: 'endorsement_invalid' }
+
+    if (options.chainId !== undefined && link.payload.chain_id !== options.chainId)
+      return { valid: false, reason: 'foreign_chain' }
+
+    const linkExp = link.payload.exp
+    if (typeof linkExp !== 'number' || nowSeconds >= linkExp)
+      return { valid: false, reason: 'endorsement_expired' }
+
+    const linkIat = link.payload.iat
+    if (typeof linkIat === 'number' && linkIat - CLOCK_SKEW_SECONDS > nowSeconds)
+      return { valid: false, reason: 'endorsement_invalid' }
+
+    if (!(await signatureMatches(link, trustedKey)))
+      return { valid: false, reason: 'endorsement_invalid' }
+
+    trustedKey = grantedKey
+    expectedIssuer = subject
+    chain.push(subject)
   }
 
-  // Подпись: против ключа издателя (последнее звено coop_chain, оно же `kid`).
-  const issuer = chain[chain.length - 1]
-  let rs: Uint8Array
-  try {
-    rs = base64url.decode(s)
-  }
-  catch {
-    return { valid: false, reason: 'malformed_certificate' }
-  }
-  if (rs.length !== 64)
-    return { valid: false, reason: 'malformed_certificate' }
+  // Удостоверение обязано быть выпущено тем, кем цепочка закончилась. Иначе
+  // предъявитель приложил бы чужую, настоящую цепочку к своему удостоверению.
+  if (expectedIssuer !== coopname)
+    return { valid: false, reason: 'issuer_mismatch' }
 
-  const { PublicKey, Signature } = await import('@wharfkit/antelope')
-  const normalized = normalizeLowS(rs)
-  const signingInput = new TextEncoder().encode(`${h}.${p}`)
-  let ok = false
-  try {
-    const sig = Signature.from({ type: 'K1', r: normalized.slice(0, 32), s: normalized.slice(32, 64), recid: 0 })
-    ok = sig.verifyMessage(signingInput, PublicKey.from(issuer.public_key))
-  }
-  catch {
-    ok = false // некорректный ключ/подпись в сертификате — не валим исключением
-  }
-  if (!ok)
+  if (!(await signatureMatches(cert, trustedKey)))
     return { valid: false, reason: 'signature_mismatch' }
 
-  return { valid: true, issuer: issuer.account }
+  return { valid: true, issuer: coopname, chain }
 }
 
 /**

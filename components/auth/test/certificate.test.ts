@@ -4,18 +4,26 @@ import {
   CERTIFICATE_EXPIRING_WINDOW_MS,
   certificateStatus,
   decodeParticipantCertificate,
+  decodeTrustChain,
   verificationTypeLabel,
 } from '../src/certificate'
 import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
 
+/** Заверение без настоящей подписи: тесты этого файла читают payload, не проверяют его. */
+function fakeEndorsement(issuer: string, subject: string): string {
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  return `${b64({ alg: 'ES256K', typ: 'coop-endorsement+jws' })}.${b64({ iss: issuer, sub: subject, cert: `PUB_K1_${subject}`, exp: 2_000_000_000 })}.signature`
+}
+
+const ENDORSEMENT_ANO_VOSKHOD = fakeEndorsement('ano', 'voskhod')
+const ENDORSEMENT_VOSKHOD_VOSTOK = fakeEndorsement('voskhod', 'vostok')
+
 async function makeCert(overrides: Record<string, unknown> = {}, opts: { jti?: string, exp?: string } = {}): Promise<string> {
   let b = new SignJWT({
     coopname: 'voskhod',
-    coop_chain: [
-      { account: 'ano', public_key: 'PUB_K1_ano' },
-      { account: 'voskhod', public_key: 'PUB_K1_vos' },
-      { account: 'vostok', public_key: 'PUB_K1_vostok' },
-    ],
+    // Заверения целиком, по порядку от корня. Здесь важна только читаемость
+    // payload — подпись проверяет verifyOffline, у него свои тесты.
+    trust_chain: [ENDORSEMENT_ANO_VOSKHOD, ENDORSEMENT_VOSKHOD_VOSTOK],
     verification_types: [{ type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' }],
     identification: { type: 'individual', username: 'ant', first_name: 'Иван' },
     claim_schema_version: '1',
@@ -41,7 +49,7 @@ describe('decodeParticipantCertificate', () => {
     expect(claims.verification_types).toEqual([
       { type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' },
     ])
-    expect(claims.coop_chain.map(l => l.account)).toEqual(['ano', 'voskhod', 'vostok'])
+    expect(decodeTrustChain(claims.trust_chain).map(l => l.subject)).toEqual(['voskhod', 'vostok'])
     expect(claims.identification).toMatchObject({ type: 'individual', username: 'ant' })
     expect(claims.exp).toBeGreaterThan(claims.iat)
   })

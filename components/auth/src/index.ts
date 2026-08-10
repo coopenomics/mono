@@ -1,4 +1,4 @@
-export type { CertificateRenewalHandle, CertificateStatus, CoopChainLink, CoopIdSchemaPolicy, ParticipantCertificateClaims, ScheduleCertificateRenewalOptions, SchemaPolicyCache, SchemaPolicyCacheOptions, VerificationTypeClaim } from './certificate'
+export type { CertificateRenewalHandle, CertificateStatus, TrustChainLink, CoopIdSchemaPolicy, ParticipantCertificateClaims, ScheduleCertificateRenewalOptions, SchemaPolicyCache, SchemaPolicyCacheOptions, VerificationTypeClaim } from './certificate'
 export {
   CERTIFICATE_EXPIRING_WINDOW_MS,
   CERTIFICATE_RENEWAL_LEAD_MS,
@@ -7,6 +7,7 @@ export {
   computeRenewalDelayMs,
   createSchemaPolicyCache,
   decodeParticipantCertificate,
+  decodeTrustChain,
   isSchemaVersionSupported,
   scheduleCertificateRenewal,
   SCHEMA_POLICY_CACHE_TTL_MS,

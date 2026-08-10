@@ -1,19 +1,20 @@
-import { generateKeyPairSync, type KeyObject } from 'node:crypto';
+import { createPrivateKey, generateKeyPairSync, type KeyObject } from 'node:crypto';
 import { decodeProtectedHeader, jwtVerify } from 'jose';
 import config from '~/config/config';
-import { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { UserCertificateDomainService } from '~/domain/user/services/user-certificate-domain.service';
 import { CertificateService } from './certificate.service';
 
 const COOPNAME = config.coopname;
-// Цепь заверения: якорь (АНО) → сам кооператив. Имя кооператива берём из настроек,
-// а не из списка: раньше оно было вшито в код и на другом кооперативе цепь указывала
-// бы на чужой. Подписывает последнее звено — кооператив, его ключ и стоит в `kid`.
 const COOP_KEY = 'PUB_K1_voskhodcertkey0000000000000000000000000000000000';
-const CHAIN: Record<string, string> = {
-  ano: 'PUB_K1_anocertkey0000000000000000000000000000000000000000',
-  [COOPNAME]: COOP_KEY,
-};
+
+/**
+ * Заверения в цепи. Подпись здесь не настоящая: сервис их не проверяет и не может —
+ * он их только переносит в удостоверение. Проверка подписи живёт в `verifyOffline`,
+ * и там для неё свои тесты с настоящими ключами.
+ */
+const ENDORSEMENT_ANO_COOP = 'header.anoEndorsesCoop.signature';
+const ENDORSEMENT_OPERATOR_COOP = 'header.operatorEndorsesCoop.signature';
+const ENDORSEMENT_ANO_OPERATOR = 'header.anoEndorsesOperator.signature';
 
 let pubKey: KeyObject;
 let pemPriv: string;
@@ -34,13 +35,17 @@ const BASELINE_ENTRY = {
 function makeService(opts: {
   certKey?: string;
   identification?: any;
-  certKeyFor?: (acc: string) => string | null;
+  /** Заверение субъекта в цепи; `null` — не заверен. */
+  endorsementOf?: (subject: string) => { issuer: string; credential: string } | null;
   verificationTypes?: any[];
   ttl?: number;
 } = {}) {
   jest.spyOn(config.authV2, 'certKey', 'get').mockReturnValue(opts.certKey ?? pemPriv);
+  const endorsementOf =
+    opts.endorsementOf ??
+    ((subject: string) => (subject === COOPNAME ? { issuer: 'ano', credential: ENDORSEMENT_ANO_COOP } : null));
   const blockchain = {
-    getCertPublicKey: jest.fn(async (acc: string) => (opts.certKeyFor ? opts.certKeyFor(acc) : CHAIN[acc])),
+    getEndorsement: jest.fn(async (subject: string) => endorsementOf(subject)),
   };
   const user = { getUserByUsername: jest.fn().mockResolvedValue({ id: 'uuid-participant-1', username: 'ant' }) };
   const account = {
@@ -57,8 +62,23 @@ function makeService(opts: {
   const certSettings = {
     getCertTtlSeconds: jest.fn().mockResolvedValue(opts.ttl ?? 3600),
   };
-  const service = new CertificateService(blockchain as any, user as any, account as any, certDomain as any, verification as any, certSettings as any);
-  return { service, blockchain, user, account, verification, certSettings };
+  const certKeyService = {
+    getSigningKey: jest.fn(async () => {
+      if (!(opts.certKey ?? pemPriv)) throw new Error('Ключ заверения не найден');
+      return createPrivateKey(opts.certKey ?? pemPriv);
+    }),
+    publicKey: jest.fn(async () => COOP_KEY),
+  };
+  const service = new CertificateService(
+    blockchain as any,
+    user as any,
+    account as any,
+    certDomain as any,
+    verification as any,
+    certSettings as any,
+    certKeyService as any,
+  );
+  return { service, blockchain, user, account, verification, certSettings, certKeyService };
 }
 
 afterEach(() => jest.restoreAllMocks());
@@ -86,10 +106,7 @@ describe('CertificateService.issueForUsername', () => {
     expect(payload.verification_types).toEqual([
       { type: 'coop_baseline', verified_at: '2026-01-01T00:00:00.000Z', source: 'cooperative_decision' },
     ]);
-    expect(payload.coop_chain).toEqual([
-      { account: 'ano', public_key: CHAIN.ano },
-      { account: COOPNAME, public_key: COOP_KEY },
-    ]);
+    expect(payload.trust_chain).toEqual([ENDORSEMENT_ANO_COOP]);
     expect(payload.identification).toMatchObject({ type: 'individual', username: 'ant', first_name: 'Иван' });
   });
 
@@ -147,21 +164,40 @@ describe('CertificateService.issueForUsername', () => {
     expect(payload.identification).toMatchObject({ type: 'organization', inn: '7700000000', ogrn: '1027700000000' });
   });
 
-  it('нет cert-ключа в конфиге → ошибка конфигурации', async () => {
+  it('нет ключа заверения → удостоверение не выпускается', async () => {
     const { service } = makeService({ certKey: '' });
-    await expect(service.issueForUsername('ant')).rejects.toThrow(/COOP_CERT_KEY/);
+    await expect(service.issueForUsername('ant')).rejects.toThrow(/Ключ заверения/);
   });
 
-  it('у кооператива нет права заверения → ChainVerificationFailed', async () => {
-    const { service } = makeService({ certKeyFor: (acc) => (acc === COOPNAME ? null : CHAIN[acc]) });
-    await expect(service.issueForUsername('ant')).rejects.toMatchObject({
-      code: AuthV2ErrorCode.ChainVerificationFailed,
-    });
-  });
-
-  it('якоря ещё нет в цепи → выпускаем с цепью из одного звена, а не отказываем', async () => {
-    const { service } = makeService({ certKeyFor: (acc) => (acc === 'ano' ? null : CHAIN[acc]) });
+  // Кооператив, которого никто не заверил, удостоверения всё равно выпускает: пайщик
+  // не виноват, что кооператив выпал из цепочки. Проверку такое не пройдёт, и это
+  // видно и пайщику, и проверяющему.
+  it('кооператив не заверен → цепочка пустая, но удостоверение выпускается', async () => {
+    const { service } = makeService({ endorsementOf: () => null });
     const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
-    expect(payload.coop_chain).toEqual([{ account: COOPNAME, public_key: COOP_KEY }]);
+    expect(payload.trust_chain).toEqual([]);
+  });
+
+  // Кооператив на чужой установке: его заверил оператор, оператора — корень.
+  // Проверяющему цепочка нужна от корня, поэтому порядок обратен обходу.
+  it('цепочка из двух звеньев отдаётся от корня, а не от кооператива', async () => {
+    const { service } = makeService({
+      endorsementOf: (subject) => {
+        if (subject === COOPNAME) return { issuer: 'operator', credential: ENDORSEMENT_OPERATOR_COOP };
+        if (subject === 'operator') return { issuer: 'ano', credential: ENDORSEMENT_ANO_OPERATOR };
+        return null;
+      },
+    });
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect(payload.trust_chain).toEqual([ENDORSEMENT_ANO_OPERATOR, ENDORSEMENT_OPERATOR_COOP]);
+  });
+
+  // Замкнутый круг в записях не должен вешать выпуск удостоверения.
+  it('круг в заверениях обрывается пределом длины', async () => {
+    const { service } = makeService({
+      endorsementOf: (subject) => ({ issuer: subject === COOPNAME ? 'other' : COOPNAME, credential: 'x' }),
+    });
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect((payload.trust_chain as string[]).length).toBeLessThanOrEqual(5);
   });
 });
