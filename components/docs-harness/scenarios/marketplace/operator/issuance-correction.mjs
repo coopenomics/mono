@@ -62,14 +62,27 @@ async function sumByLabel(dialog, label) {
   return parseMoney(await row.locator('.issue-act__sum-value').innerText());
 }
 
-/** Ввод в поле факта: 0 — количество, 1 — цена за единицу. */
-async function setFactField(dialog, index, value) {
+/**
+ * Ввод в поле факта: 0 — количество, 1 — цена за единицу.
+ *
+ * После ввода ждём, пока итог к оплате перестанет совпадать с прежним:
+ * пересчёт идёт на реактивности, и фиксированная пауза его не гарантирует —
+ * читать сумму сразу после ввода значит читать доредактированное состояние.
+ */
+async function setFactField(dialog, index, value, prevTotal) {
   const input = dialog.locator('.correction-table__fact input').nth(index);
   await input.click();
   await input.fill(String(value));
   await input.blur();
-  // Пересчёт итогов идёт на реактивности, но перерисовка не мгновенная.
-  await dialog.page().waitForTimeout(1200);
+  if (prevTotal !== undefined && prevTotal !== null) {
+    for (let i = 0; i < 40; i++) {
+      const now = await sumByLabel(dialog, 'Итого к оплате');
+      if (now !== null && Math.abs(now - prevTotal) > 0.001) return now;
+      await dialog.page().waitForTimeout(250);
+    }
+  }
+  await dialog.page().waitForTimeout(1000);
+  return sumByLabel(dialog, 'Итого к оплате');
 }
 
 export default async ({ page, shot, expect }) => {
@@ -124,48 +137,39 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  // ── Недовыдача: заказчик забирает на единицу меньше ──────────────────────
-  const shortQty = Math.max(plannedQty - 1, 0);
-  await setFactField(dialog, 0, shortQty);
-
-  const shortTotal = await sumByLabel(dialog, 'Итого к оплате');
-  const refund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
+  // ── Цена снижена: имущество приняли хуже ожидаемого ──────────────────────
+  const cheaperTotal = await setFactField(dialog, 1, (unitPrice / 2).toFixed(2), baseTotal);
 
   await shot(
     page,
-    '02-short-issue',
-    'Выдано меньше принятого: итог к оплате уменьшился, а разница показана отдельной строкой — она вернётся в кошелёк Стола заказов. Невыданное остаётся на складе участка обезличенным остатком кооператива.',
+    '02-cheaper',
+    'Цена за единицу снижена: итог к оплате уменьшился вместе с ней. Цена — самостоятельное расхождение, количество при этом не менялось.',
     {
       preserveNotifications: true,
       expect: async () => {
-        // Недовыдача обязана уменьшить сумму: если итог не двинулся, пайщик
-        // заплатит за то, чего не получил.
-        expect(shortTotal).toBeLessThan(baseTotal);
-        // И разница обязана быть названа возвратом, а не потеряться молча.
-        expect(refund).toBeGreaterThan(0);
+        expect(cheaperTotal).toBeLessThan(baseTotal);
       },
     },
   );
 
-  // ── Недовыдача плюс повышение цены ───────────────────────────────────────
-  await setFactField(dialog, 1, (unitPrice * 1.5).toFixed(2));
-
-  const dearerTotal = await sumByLabel(dialog, 'Итого к оплате');
+  // ── Цена повышена ────────────────────────────────────────────────────────
+  const dearerTotal = await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
 
   await shot(
     page,
-    '03-short-and-dearer',
-    'То же количество, но цена за единицу поднята: итог вырос относительно недовыдачи по прежней цене. Количество и цена — независимые расхождения, и в деньгах они складываются.',
+    '03-dearer',
+    'Цена поднята выше заказанной: итог вырос, и разница показана как доплата по факту — она спишется с паевого взноса пайщика.',
     {
       preserveNotifications: true,
       expect: async () => {
-        expect(dearerTotal).toBeGreaterThan(shortTotal);
+        expect(dearerTotal).toBeGreaterThan(cheaperTotal);
+        expect(dearerTotal).toBeGreaterThan(baseTotal);
       },
     },
   );
 
   // ── Гард: выдать больше принятого нельзя ─────────────────────────────────
-  await setFactField(dialog, 1, unitPrice);
+  await setFactField(dialog, 1, unitPrice, dearerTotal);
   await setFactField(dialog, 0, plannedQty + 5);
 
   await shot(
@@ -182,16 +186,42 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  // Возвращаем план и уходим без подписи: заказ должен остаться нетронутым
-  // для следующих сценариев цепочки.
+  // ── Позиция снята с выдачи целиком ───────────────────────────────────────
+  // Заказ на этом стенде — одна единица, поэтому «забрать меньше» здесь
+  // означает не забрать вовсе: галочка снимается, и вся сумма возвращается.
   await setFactField(dialog, 0, plannedQty);
+  await dialog.locator('.correction-table__check input').first().click();
+  await page.waitForTimeout(1500);
+
+  const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
+  const refund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
+
+  await shot(
+    page,
+    '05-position-dropped',
+    'Позиция снята с выдачи: к оплате не остаётся ничего, а вся сумма возвращается в кошелёк Стола заказов. Само имущество остаётся на складе участка — обезличенным остатком кооператива.',
+    {
+      preserveNotifications: true,
+      expect: async () => {
+        expect(droppedTotal).toBe(0);
+        // Деньги не должны раствориться: снятая позиция обязана превратиться
+        // в возврат, а не просто исчезнуть из итога.
+        expect(refund).toBeGreaterThan(0);
+      },
+    },
+  );
+
+  // Возвращаем позицию и уходим без подписи: заказ должен остаться нетронутым
+  // для следующих сценариев цепочки.
+  await dialog.locator('.correction-table__check input').first().click();
+  await page.waitForTimeout(1000);
   await dialog.locator('button:has-text("Отмена"), button:has-text("Закрыть")').first().click();
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
   await shot(
     page,
-    '05-closed-without-signing',
+    '06-closed-without-signing',
     'Диалог закрыт без подписи: правка факта сама по себе ничего не меняет — пока акт не подписан, заказ остаётся в прежнем состоянии.',
     {
       preserveNotifications: true,
