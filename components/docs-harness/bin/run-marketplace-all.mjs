@@ -105,6 +105,9 @@ const GROUPS = [
   {
     name: 'Выдача',
     scenarios: [
+      // Строго ПЕРЕД открытием выдачи: сверяет пересчёт денег при правке
+      // количества и цены и уходит без подписи, оставляя заказ нетронутым.
+      'marketplace/operator/issuance-correction',
       'marketplace/operator/issuance-open',
       'marketplace/operator/issuance',
       'marketplace/orderer/ready-to-receive',

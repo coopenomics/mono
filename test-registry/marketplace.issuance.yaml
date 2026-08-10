@@ -86,6 +86,22 @@ cases:
     test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
     status: passing
 
+  - id: mkt.iss.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
+    expect: >
+      недовыдача уменьшает итог к оплате и показывает разницу как возврат в
+      кошелёк Стола заказов; повышение цены увеличивает итог; количество сверх
+      принятого помечается как превышение
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: written
+    # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
+    # количество и сумму заказа, а от них считаются возврат и остаток склада —
+    # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
+    # который показывают оператору до подписи; проводки закрывает mkt.iss.side.04.
+
   - id: mkt.iss.break.01
     level: backend
     kind: break
