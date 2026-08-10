@@ -1,10 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { config } from '~/config';
 import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
-import {
   GeocodeStatuses,
   KuDetailsDomainEntity,
   KuDetailsStatuses,
@@ -19,6 +15,7 @@ import { DetailKUInputDTO } from '../dto/detail-ku-input.dto';
 import { KuDetailsDTO } from '../dto/ku-details.dto';
 import type { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import type { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
+import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
 
 /**
  * Application-сервис marketplace-детализации существующих в core КУ
@@ -44,8 +41,8 @@ export class KuDetailsService {
     private readonly repo: KuDetailsDomainRepository,
     @Inject(GEOCODER_PORT)
     private readonly geocoder: GeocoderPort,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort
   ) {}
 
   async detailKU(input: DetailKUInputDTO): Promise<KuDetailsDTO> {

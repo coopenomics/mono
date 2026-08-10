@@ -3,8 +3,8 @@ import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import { randomBytes } from 'crypto';
 
-import { UDATA_REPOSITORY, UdataRepository } from '~/domain/common/repositories/udata.repository';
 import type { MarketplaceUdataParametersPort } from '~/domain/common/ports/marketplace-udata-parameters.port';
+import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
 
 /**
  * Реализация `MarketplaceUdataParametersPort` для расширения marketplace.
@@ -21,7 +21,7 @@ import type { MarketplaceUdataParametersPort } from '~/domain/common/ports/marke
 export class MarketplaceUdataParametersAdapter implements MarketplaceUdataParametersPort {
   private readonly logger = new Logger(MarketplaceUdataParametersAdapter.name);
 
-  constructor(@Inject(UDATA_REPOSITORY) private readonly udataRepository: UdataRepository) {}
+  constructor(@Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort) {}
 
   private generateDocumentNumber(): string {
     return randomBytes(32).toString('hex').substring(0, 16).toUpperCase();

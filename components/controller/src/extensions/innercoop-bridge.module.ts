@@ -14,11 +14,14 @@ import {
   MESSAGE_CHANNEL_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
+  INDIVIDUAL_PORT,
+  ORGANIZATION_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
   PAYMENT_PROVIDER_REGISTRY_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
+  USER_DATA_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -41,6 +44,11 @@ import { PaymentProviderRegistryInnercoopAdapter } from '~/infrastructure/innerc
 import { PaymentPollingStateInnercoopAdapter } from '~/infrastructure/innercoop/payment-polling-state-innercoop.adapter';
 import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/payment-notice-log-innercoop.adapter';
 import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
+import { UserDataInnercoopAdapter } from '~/infrastructure/innercoop/user-data-innercoop.adapter';
+import {
+  OrganizationInnercoopAdapter,
+  IndividualInnercoopAdapter,
+} from '~/infrastructure/innercoop/party-card-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
@@ -97,6 +105,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentPollingStateInnercoopAdapter,
     PaymentNoticeLogInnercoopAdapter,
     PaymentMethodInnercoopAdapter,
+    UserDataInnercoopAdapter,
+    OrganizationInnercoopAdapter,
+    IndividualInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -189,6 +200,18 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: PAYMENT_METHOD_PORT,
       useExisting: PaymentMethodInnercoopAdapter,
     },
+    {
+      provide: USER_DATA_PORT,
+      useExisting: UserDataInnercoopAdapter,
+    },
+    {
+      provide: ORGANIZATION_PORT,
+      useExisting: OrganizationInnercoopAdapter,
+    },
+    {
+      provide: INDIVIDUAL_PORT,
+      useExisting: IndividualInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -211,6 +234,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_POLLING_STATE_PORT,
     PAYMENT_NOTICE_LOG_PORT,
     PAYMENT_METHOD_PORT,
+    USER_DATA_PORT,
+    ORGANIZATION_PORT,
+    INDIVIDUAL_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

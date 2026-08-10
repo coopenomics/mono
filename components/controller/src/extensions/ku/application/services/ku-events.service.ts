@@ -5,8 +5,6 @@ import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
-import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { INDIVIDUAL_REPOSITORY, type IndividualRepository } from '~/domain/common/repositories/individual.repository';
 import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
@@ -18,6 +16,7 @@ import {
   type KuTrustRequestRepository,
 } from '../../domain/repositories/ku-trust-request.repository';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { ORGANIZATION_PORT, INDIVIDUAL_PORT, type IOrganizationPort, type IIndividualPort } from '@coopenomics/innercoop';
 
 /**
  * Событийные реакции собраний кооперативных участков:
@@ -34,8 +33,8 @@ export class KuEventsService {
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
-    @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
-    @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
+    @Inject(ORGANIZATION_PORT) private readonly organizationRepository: IOrganizationPort,
+    @Inject(INDIVIDUAL_PORT) private readonly individualRepository: IIndividualPort,
     @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethodPort: IPaymentMethodPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {

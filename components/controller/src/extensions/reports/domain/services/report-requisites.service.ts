@@ -6,11 +6,7 @@ import {
   type UpsertReportRequisitesInput,
   type SignerTypeValue,
 } from '../repositories/report-requisites.repository';
-import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
-import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
+import { ORGANIZATION_PORT, type IOrganizationPort, type InnerOrganization } from '@coopenomics/innercoop';
 
 export type RequisiteSource = 'database' | 'manual' | 'empty';
 
@@ -117,8 +113,8 @@ export class ReportRequisitesService {
   constructor(
     @Inject(REPORT_REQUISITES_REPOSITORY)
     private readonly reqRepo: ReportRequisitesRepository,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository,
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort,
   ) {}
 
   async getMerged(coopname: string): Promise<MergedRequisites> {
@@ -203,7 +199,7 @@ export class ReportRequisitesService {
     return { ready: missing.length === 0, missingFields: missing };
   }
 
-  private async safeLoadOrganization(coopname: string): Promise<OrganizationDomainInterface | null> {
+  private async safeLoadOrganization(coopname: string): Promise<InnerOrganization | null> {
     try {
       return await this.orgRepo.findByUsername(coopname);
     } catch (e) {

@@ -2,10 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { platformSettings } from '@coopenomics/extension-kit';
 import { formatInventoryLocation } from '../../domain/entities/marketplace-inventory.types';
-import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
 import { UserCertificateInteractor } from '~/application/user/interactors/user-certificate.interactor';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
@@ -31,6 +27,7 @@ import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-orde
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
 import { isStockOrder } from '../shared/order-kind.util';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
+import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -45,7 +42,7 @@ export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPL
  *     копируем реквизиты в детализацию ПВЗ: копия отстаёт при правке участка
  *     председателем, а live-резолв всегда отдаёт актуальные данные. Организация/
  *     КУ — core-домен (общий с платформой), поэтому читаем напрямую через core
- *     `ORGANIZATION_REPOSITORY`, а не через ext↔ext мост `inter`.
+ *     `ORGANIZATION_PORT`, а не через ext↔ext мост `inter`.
  *
  * Best-effort: отсутствующее предложение/ПВЗ/организация оставляют
  * соответствующие поля пустыми — лента заказов никогда не падает из-за
@@ -58,8 +55,8 @@ export class MarketplaceOrderDisplayService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(KU_DETAILS_DOMAIN_REPOSITORY)
     private readonly kuRepo: KuDetailsDomainRepository,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository,
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)

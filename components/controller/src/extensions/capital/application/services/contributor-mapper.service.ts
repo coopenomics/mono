@@ -2,12 +2,12 @@ import { Injectable, Inject } from '@nestjs/common';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
-import { UDATA_REPOSITORY, UdataRepository } from '~/domain/common/repositories/udata.repository';
 import { Cooperative } from 'cooptypes';
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
 import { ProgramType, getProgramId } from '~/domain/wallet/enums/program-type.enum';
 import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей участников в DTO
@@ -16,7 +16,7 @@ import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 export class ContributorMapperService {
   constructor(
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(UDATA_REPOSITORY) private readonly udataRepository: UdataRepository,
+    @Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort,
     @Inject(WALLET_DOMAIN_PORT) private readonly walletDomainPort: WalletDomainPort
   ) {}
 
