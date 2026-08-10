@@ -5,7 +5,8 @@ import {
 } from '../dto/trigger-notification-workflow-input.dto';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import config from '~/config/config';
-import { NOTIFICATION_PORT, INotificationPort, InnerNotifyRecipient } from '@coopenomics/innercoop';
+import type { InnerNotifyRecipient } from '@coopenomics/innercoop';
+import { NotificationService as NotificationCenterService } from '~/application/notification-center/notification.service';
 
 /**
  * Сервис для отправки уведомлений
@@ -14,8 +15,9 @@ import { NOTIFICATION_PORT, INotificationPort, InnerNotifyRecipient } from '@coo
 @Injectable()
 export class NotificationService {
   constructor(
-    @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: INotificationPort,
+    // Прямая зависимость от Центра уведомлений, не через `NOTIFICATION_PORT`:
+    // порт реализует адаптер, который сам стоит поверх этого модуля.
+    private readonly notificationCenter: NotificationCenterService,
     @Inject(ACCOUNT_DOMAIN_SERVICE)
     private readonly accountDomainService: AccountDomainService
   ) {}
@@ -27,7 +29,7 @@ export class NotificationService {
    */
   async triggerNotificationWorkflow(data: TriggerNotificationWorkflowInputDTO): Promise<boolean> {
     try {
-      await this.notificationPort.notify({
+      await this.notificationCenter.notify({
         coopname: config.coopname,
         workflowId: data.name,
         to: await this.mapRecipients(data.to),
