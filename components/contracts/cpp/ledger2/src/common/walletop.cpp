@@ -52,7 +52,7 @@ void ledger2::walletop(eosio::name coopname,
                "walletop: некорректная сумма");
   eosio::check(amount.symbol == _root_govern_symbol,
                "walletop: некорректный символ валюты");
-  eosio::check(memo.size() < 256, "walletop: memo > 255");
+  // Длина memo не ограничивается — см. apply.cpp.
   // Допустимы только ISSUE(0), TRANSFER(1), BURN(4). NONE(5) — это только
   // бухпроводка без кошелькового движения, apply.cpp для неё walletop не диспатчит;
   // прямой вызов был бы no-op и сбил бы parity. Бывшие BLOCK(2)/UNBLOCK(3)/

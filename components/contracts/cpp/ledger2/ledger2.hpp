@@ -185,7 +185,7 @@ public:
    * @param to_wallet    кошелёк-получатель
    * @param amount       сумма в _root_govern_symbol
    * @param process_hash уникальный хэш корректировки (генерирует backend)
-   * @param memo         обязательное обоснование (≤ 255 символов)
+   * @param memo         обязательное обоснование (длина не ограничена)
    *
    * @ingroup public_ledger2_actions
    */
@@ -227,7 +227,7 @@ public:
    * @param mirror_debit_account_id     Dr-счёт зеркала (0 если оригинал был без бухпроводок)
    * @param mirror_credit_account_id    Cr-счёт зеркала (0 если оригинал был без бухпроводок)
    * @param process_hash                уникальный хэш для зеркальной операции
-   * @param memo                        обязательное обоснование (≤ 255 символов)
+   * @param memo                        обязательное обоснование (длина не ограничена)
    *
    * @ingroup public_ledger2_actions
    */
