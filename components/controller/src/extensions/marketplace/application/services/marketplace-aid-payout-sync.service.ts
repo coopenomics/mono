@@ -2,14 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT } from '../events/marketplace-notification.events';
 import type { IAction } from '~/types';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * requirement b6 (2026-08-03): слушатель подтверждения выплаты материальной
@@ -31,8 +28,8 @@ import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/inner
 @Injectable()
 export class MarketplaceAidPayoutSyncService {
   constructor(
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethodRepo: IPaymentMethodPort,
     private readonly eventBus: EventEmitter2,

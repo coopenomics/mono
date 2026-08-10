@@ -88,6 +88,7 @@ import {
 } from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 import { MarketplaceDesktopGrantsProvider } from './desktop/marketplace-desktop-grants.provider';
+import { PAYMENT_DESK_PORT } from '@coopenomics/innercoop';
 import {
   MarketplaceShipmentCreateService,
   MARKETPLACE_SHIPMENT_CREATE_SERVICE,
@@ -202,7 +203,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // SchedulerRegistry.
     ScheduleModule.forRoot(),
     // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
-    // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
+    // нужен PAYMENT_DESK_PORT для синхронизации с core-реестром
     // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
     GatewayInfrastructureModule,
     // DocumentDomainService для генерации preview-документов АПП приёмки

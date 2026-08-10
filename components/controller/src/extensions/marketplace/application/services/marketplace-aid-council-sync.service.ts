@@ -2,12 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
 import { MARKETPLACE_AID_COUNCIL_DECIDED_EVENT } from '../events/marketplace-notification.events';
 import type { IAction } from '~/types';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * Слушатель решений совета по заявлению на материальную помощь (p.brn.aid).
@@ -27,8 +24,8 @@ import type { IAction } from '~/types';
 @Injectable()
 export class MarketplaceAidCouncilSyncService {
   constructor(
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {

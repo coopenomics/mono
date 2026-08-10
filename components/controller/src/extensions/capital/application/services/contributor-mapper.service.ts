@@ -4,10 +4,10 @@ import { ContributorOutputDTO } from '../dto/participation_management/contributo
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
 import { Cooperative } from 'cooptypes';
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
-import { ProgramType, getProgramId } from '~/domain/wallet/enums/program-type.enum';
 import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
+import { ProgramType, getProgramId } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей участников в DTO

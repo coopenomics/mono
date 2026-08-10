@@ -16,6 +16,7 @@ import {
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
   ORGANIZATION_PORT,
+  PAYMENT_DESK_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
@@ -45,6 +46,7 @@ import { PaymentPollingStateInnercoopAdapter } from '~/infrastructure/innercoop/
 import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/payment-notice-log-innercoop.adapter';
 import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
 import { UserDataInnercoopAdapter } from '~/infrastructure/innercoop/user-data-innercoop.adapter';
+import { PaymentDeskInnercoopAdapter } from '~/infrastructure/innercoop/payment-desk-innercoop.adapter';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -106,6 +108,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentNoticeLogInnercoopAdapter,
     PaymentMethodInnercoopAdapter,
     UserDataInnercoopAdapter,
+    PaymentDeskInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -205,6 +208,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: UserDataInnercoopAdapter,
     },
     {
+      provide: PAYMENT_DESK_PORT,
+      useExisting: PaymentDeskInnercoopAdapter,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -235,6 +242,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_NOTICE_LOG_PORT,
     PAYMENT_METHOD_PORT,
     USER_DATA_PORT,
+    PAYMENT_DESK_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

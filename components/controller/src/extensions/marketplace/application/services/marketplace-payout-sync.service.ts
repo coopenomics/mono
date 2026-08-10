@@ -7,16 +7,13 @@ import {
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import {
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
 import type { IAction } from '~/types';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
@@ -43,8 +40,8 @@ export class MarketplacePayoutSyncService {
   constructor(
     @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {

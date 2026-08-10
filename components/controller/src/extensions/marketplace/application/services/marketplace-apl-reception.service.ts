@@ -71,10 +71,6 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
@@ -92,6 +88,7 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { MARKETPLACE_QUANTITY_EPSILON, toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount, sumMoney } from '../shared/cost.util';
 import {
@@ -279,8 +276,8 @@ export class MarketplaceAplReceptionService {
     private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
     private readonly supplierSettings: MarketplaceSupplierSettingsService,
     @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)

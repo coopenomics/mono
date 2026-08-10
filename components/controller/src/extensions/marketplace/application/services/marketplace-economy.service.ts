@@ -37,14 +37,11 @@ import {
   EXPENSE_RESERVE_HORIZON_DAYS,
   type ExpensePlansService,
 } from '../../../expenses/application/services/expense-plans.service';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -159,8 +156,8 @@ export class MarketplaceEconomyService {
     private readonly expensePlansService: ExpensePlansService,
     @Inject(LEDGER2_HISTORY_PORT)
     private readonly ledger2History: ILedger2HistoryPort,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethodRepo: IPaymentMethodPort,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)

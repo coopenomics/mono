@@ -18,6 +18,8 @@ export * from './free-decision.port';
 export * from './payment.port';
 export * from './payment-provider.port';
 export * from './payment-method.port';
+export * from './payment-desk.port';
+export * from './program.contract';
 export * from './user-data.port';
 export * from './party-card.port';
 export * from './signed-document.port';
