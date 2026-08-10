@@ -40,11 +40,21 @@ const makeOnboardingPort = () =>
     unregisterStepsByExtension: jest.fn(),
   } as any);
 
+/**
+ * Расширение при старте открывает свою программу ЦПП в цепи. По умолчанию мок
+ * отвечает «программа уже открыта» — тестам этого сьюта важны только логи
+ * initialize, а не сама транзакция.
+ */
+const makeSovietPort = (result: any = { created: false, program_id: 2 }) =>
+  ({
+    ensureProgram: jest.fn().mockResolvedValue(result),
+  } as any);
+
 describe('MarketplacePlugin.initialize', () => {
   it('пишет info о fallback и продолжает install, если file-storage не подключён', async () => {
     const logger = makeLogger();
     const repo = makeRepo();
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
+    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
 
     await plugin.initialize();
 
@@ -61,7 +71,7 @@ describe('MarketplacePlugin.initialize', () => {
     const logger = makeLogger();
     const repo = makeRepo();
     const fileStorage = { ensureBucket: jest.fn().mockResolvedValue(undefined) };
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), fileStorage);
+    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), fileStorage);
 
     await plugin.initialize();
 
@@ -75,13 +85,13 @@ describe('MarketplacePlugin.initialize', () => {
   it('бросает «Конфиг не найден» если в БД нет записи market', async () => {
     const logger = makeLogger();
     const repo = makeRepo(null);
-    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), null);
+    const plugin = new MarketplacePlugin(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
 
     await expect(plugin.initialize()).rejects.toThrow('Конфиг не найден');
   });
 
   it('расширение зарегистрировано под именем `market` (совпадает с ключом AppRegistry)', () => {
-    const plugin = new MarketplacePlugin(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), null);
+    const plugin = new MarketplacePlugin(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
     expect(plugin.name).toBe('market');
   });
 });

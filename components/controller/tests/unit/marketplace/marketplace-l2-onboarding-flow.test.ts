@@ -19,6 +19,8 @@
 import { MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingService } from '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service';
 
+import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+
 const PROGRAM_ID = 2;
 const SIGNED_AT = '2026-05-14T15:00:00Z';
 
@@ -64,7 +66,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
     const state = await service.getOnboardingState('alice');
 
     expect(state.requires_gate).toBe(false);
-    expect(state.source).toBe('agreement_signed');
+    expect(state.source).toBe(MarketplaceOnboardingSource.AGREEMENT_SIGNED);
     expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID);
     expect(state.completed_at).toBe(SIGNED_AT);
   });
@@ -76,7 +78,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
     const state = await service.getOnboardingState('bob');
 
     expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.source).toBe(MarketplaceOnboardingSource.GATE_REQUIRED);
   });
 
   it('чужая программа не засчитывается за подпись «Стола заказов»', async () => {
@@ -88,6 +90,6 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
     const state = await service.getOnboardingState('alice');
 
     expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.source).toBe(MarketplaceOnboardingSource.GATE_REQUIRED);
   });
 });
