@@ -851,6 +851,69 @@ export default class Blockchain {
   }
 
   /**
+   * Передаёт распорядительные права аккаунта другому аккаунту — по имени, а не по
+   * ключу.
+   *
+   * Так кооператив-оператор получает возможность вести аккаунт АНО: подписывать за
+   * него, не владея его ключами. Ключами АНО не владеет никто из установок — иначе
+   * корень цепочки доверия лежал бы на диске у оператора, и всё построение теряло
+   * бы смысл. Полномочие же можно отобрать одной транзакцией, не трогая ключ.
+   *
+   * Ключ аккаунта при этом сохраняется: полномочие добавляется рядом, а не вместо.
+   */
+  async delegateActiveTo(account: string, delegate: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'active',
+                parent: 'owner',
+                auth: {
+                  threshold: 1,
+                  keys: [
+                    {
+                      key:
+                        this.new_accounts.find(
+                          (el: any) => el.username === account,
+                        )?.publicKey || config.default_public_key,
+                      weight: 1,
+                    },
+                  ],
+                  accounts: [
+                    {
+                      permission: { actor: delegate, permission: 'active' },
+                      weight: 1,
+                    },
+                  ],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Распорядительные права переданы: ${account} -> ${delegate}`)
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
+  /**
    * Публикует право заверения `cert` — отдельное разрешение аккаунта с ровно одним
    * ключом. Им кооператив подписывает удостоверения пайщиков, а публичная часть
    * лежит в цепи, чтобы подпись можно было проверить, ни у кого ничего не спрашивая.

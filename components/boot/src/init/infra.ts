@@ -116,6 +116,10 @@ export async function startInfra() {
     }
   }
 
+  // передаём распорядительные права там, где аккаунт ведёт кто-то другой
+  for (const account of config.accounts.filter(el => !!el.delegate_active_to))
+    await blockchain.delegateActiveTo(account.name, account.delegate_active_to as string)
+
   // публикуем права заверения — ими подписываются удостоверения пайщиков
   for (const account of config.accounts.filter(el => !!el.cert_public_key)) {
     await blockchain.setCertPermission(account.name, account.cert_public_key as string)
