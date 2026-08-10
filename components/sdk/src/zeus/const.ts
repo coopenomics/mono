@@ -1193,6 +1193,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceOfferStatus: "enum" as const,
+	MarketplaceOnboardingSource: "enum" as const,
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
@@ -5795,7 +5796,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreement_id:"Int",
 		completed_at:"String",
 		requires_gate:"Boolean",
-		source:"String",
+		source:"MarketplaceOnboardingSource",
 		template_registry_id:"Int"
 	},
 	MarketplaceOrder:{

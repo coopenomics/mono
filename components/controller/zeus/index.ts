@@ -9853,11 +9853,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -23902,11 +23905,14 @@ export type ResolverInputTypes = {
 	unlimited_flag?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -37511,12 +37517,14 @@ export type ModelTypes = {
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag: boolean
 };
+	["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: ModelTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number
 };
@@ -52463,13 +52471,16 @@ export type GraphQLTypes = {
 	unlimited_flag: boolean,
 	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 };
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]: MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: GraphQLTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number,
 	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
@@ -59467,6 +59478,12 @@ export enum MarketplaceOfferStatus {
 	REJECTED = "REJECTED",
 	WITHDRAWN = "WITHDRAWN"
 }
+/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+export enum MarketplaceOnboardingSource {
+	AGREEMENT_SIGNED = "AGREEMENT_SIGNED",
+	GATE_REQUIRED = "GATE_REQUIRED",
+	NOT_CONFIGURED = "NOT_CONFIGURED"
+}
 /** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 export enum MarketplaceOrderIssuanceFactDiffState {
 	EQUAL = "EQUAL",
@@ -60279,6 +60296,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOfferPackageInput"]: ValueTypes["MarketplaceOfferPackageInput"];
 	["MarketplaceOfferStatus"]: ValueTypes["MarketplaceOfferStatus"];
+	["MarketplaceOnboardingSource"]: ValueTypes["MarketplaceOnboardingSource"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];

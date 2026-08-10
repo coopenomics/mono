@@ -19,7 +19,12 @@ import {
   ONBOARDING_STEP_REGISTRATION_PORT,
   type OnboardingStepRegistrationPort,
 } from '~/domain/onboarding/ports/onboarding-step-registration.port';
+import {
+  SOVIET_BLOCKCHAIN_PORT,
+  type SovietBlockchainPort,
+} from '~/domain/common/ports/soviet-blockchain.port';
 import { Cooperative } from 'cooptypes';
+import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
 import { MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
@@ -46,6 +51,8 @@ export class MarketplacePlugin extends BaseExtModule {
     private readonly agreementRegistrationPort: AgreementRegistrationPort,
     @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
     private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
+    @Inject(SOVIET_BLOCKCHAIN_PORT)
+    private readonly sovietBlockchainPort: SovietBlockchainPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
@@ -72,6 +79,11 @@ export class MarketplacePlugin extends BaseExtModule {
       config: merge({}, defaultConfig, pluginData.config),
     };
 
+    // Открыть программу ЦПП в цепи, если кооператив её ещё не открыл. Без неё
+    // пайщик не может подписать оферту, а ledger2 не пропускает операции по
+    // кошелькам Стола заказов.
+    await this.ensureCppProgram();
+
     // Декларируем шаги L1-онбординга в платформенном реестре. Дальше весь flow
     // (free-decision → tracking-rule → DecisionTrackedEvent → _done →
     // ONBOARDING_COMPLETED → restartApp) делает generic-слой.
@@ -88,6 +100,39 @@ export class MarketplacePlugin extends BaseExtModule {
     this.registerInAgreementRegistry();
 
     this.logger.info('marketplace-extension готов');
+  }
+
+  /**
+   * Самоинициализация ЦПП в цепи: расширение само открывает свою программу в
+   * кооперативе, если её там нет. Раньше это делали руками через cleos на
+   * каждый кооператив — и «Восход» на тестнете приехал без программы: оферту
+   * подписать было нельзя, а стол при этом рапортовал, что она уже подписана
+   * (инцидент 2026-08-10).
+   *
+   * Идемпотентно: `ensureProgram` не шлёт транзакцию, если программа открыта, —
+   * а `initialize()` вызывается на каждом старте и рестарте расширения.
+   *
+   * Ошибку намеренно проглатываем в лог: цепь может быть недоступна в момент
+   * старта, и это не повод не поднимать расширение целиком. Следующий рестарт
+   * повторит попытку, а до тех пор гейт честно покажет, что подключение ЦПП не
+   * завершено.
+   */
+  private async ensureCppProgram(): Promise<void> {
+    try {
+      const { created, program_id } = await this.sovietBlockchainPort.ensureProgram({
+        coopname: config.coopname,
+        type: MARKETPLACE_AGREEMENT_TYPE,
+        title: 'Целевая потребительская программа «Стол заказов»',
+      });
+      if (created) {
+        this.logger.info(
+          `[MARKETPLACE.L1] программа ЦПП «Стол заказов» открыта в кооперативе ${config.coopname} (program_id=${program_id})`
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[MARKETPLACE.L1] не удалось открыть программу ЦПП: ${message}`);
+    }
   }
 
   /**

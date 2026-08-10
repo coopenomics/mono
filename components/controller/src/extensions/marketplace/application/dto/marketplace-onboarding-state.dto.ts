@@ -1,36 +1,56 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 /**
- * Источник, по которому marketplace-онбординг считается завершённым:
+ * Почему пайщику показывают либо не показывают подпись оферты на подключении
+ * к Столу заказов.
  *
- *  - `registration_flow` — пайщик подписал оферту marketplace на этапе вступления
- *    в кооператив (L2 онбординг, реализуется в Story 1.11);
- *  - `extension_gate`   — пайщик подписал оферту через L3 fallback gate
- *    непосредственно на столе (этой Story);
- *  - `not_configured`   — оферта marketplace в платформенном
- *    AgreementRegistry пока не зарегистрирована (Story 1.7 не выполнена,
- *    `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0`) — gate не нужен.
- *  - `gate_required`    — оферта зарегистрирована, но подписи пайщика ещё нет.
+ * Инцидент 2026-08-10: раньше `not_configured` и `agreement_signed` были
+ * неразличимы для потребителей — оба приходили с `requires_gate=false`, и
+ * фронт объявлял неподписанную оферту «уже подписанной при регистрации», а
+ * grants-провайдер выдавал полные права заказчика. Поэтому теперь ветвиться
+ * по `requires_gate` в отрыве от `source` НЕЛЬЗЯ: «подписи не требуется»
+ * и «подписать невозможно» — разные состояния.
  *
- * Story 1.4 не различает `registration_flow` vs `extension_gate` по
- * данным `soviet::agreements3` — пометка появится в Story 1.11 (поле
- * `source` в локальной таблице, в agreements3 такого нет). До тех пор
- * подписанная оферта приходит как `agreement_signed` без подкатегории.
+ * Story 1.4 не различает «подписал при вступлении» vs «подписал на столе»:
+ * в `wallet::users.programs[]` такой пометки нет, обе приходят как
+ * `AGREEMENT_SIGNED`.
  */
-export type MarketplaceOnboardingSource =
-  | 'agreement_signed'
-  | 'not_configured'
-  | 'gate_required';
+export enum MarketplaceOnboardingSource {
+  /** Пайщик подписал оферту ЦПП — при вступлении в кооператив либо на столе. */
+  AGREEMENT_SIGNED = 'agreement_signed',
+  /**
+   * Кооператив ещё не завершил подключение ЦПП «Стол заказов»: нет шаблона
+   * оферты либо в кооперативе не создана сама программа. Подписать оферту
+   * сейчас невозможно — это состояние кооператива, а не пайщика.
+   */
+  NOT_CONFIGURED = 'not_configured',
+  /** ЦПП подключена кооперативом, подписи пайщика ещё нет. */
+  GATE_REQUIRED = 'gate_required',
+}
+
+registerEnumType(MarketplaceOnboardingSource, {
+  name: 'MarketplaceOnboardingSource',
+  description: 'Состояние присоединения пайщика к ЦПП «Стол заказов»',
+  valuesMap: {
+    AGREEMENT_SIGNED: { description: 'Оферта ЦПП подписана пайщиком' },
+    NOT_CONFIGURED: {
+      description: 'Кооператив ещё не завершил подключение ЦПП — подписать оферту нельзя',
+    },
+    GATE_REQUIRED: { description: 'Оферту нужно подписать' },
+  },
+});
 
 @ObjectType('MarketplaceOnboardingState')
 export class MarketplaceOnboardingStateDTO {
   @Field(() => Boolean, {
     description:
-      'true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу',
+      'Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом',
   })
   public readonly requires_gate!: boolean;
 
-  @Field(() => String)
+  @Field(() => MarketplaceOnboardingSource, {
+    description: 'Состояние присоединения пайщика к ЦПП «Стол заказов»',
+  })
   public readonly source!: MarketplaceOnboardingSource;
 
   @Field(() => Int, {

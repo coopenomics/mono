@@ -278,6 +278,14 @@ import {
 } from '~/domain/registration/ports/agreement-registration.port';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
 import {
+  SOVIET_BLOCKCHAIN_PORT,
+  type SovietBlockchainPort,
+} from '~/domain/common/ports/soviet-blockchain.port';
+import {
+  BLAGOROST_AGREEMENT_TYPE,
+  GENERATOR_AGREEMENT_TYPE,
+} from './constants/capital-agreement-ids';
+import {
   ONBOARDING_STEP_REGISTRATION_PORT,
   type OnboardingStepRegistrationPort,
 } from '~/domain/onboarding/ports/onboarding-step-registration.port';
@@ -492,10 +500,47 @@ export class CapitalPlugin extends BaseExtModule {
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
     @Inject(AGREEMENT_REGISTRATION_PORT) private readonly agreementRegistrationPort: AgreementRegistrationPort,
     @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort
+    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
+    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort
   ) {
     super();
     this.logger.setContext(CapitalPlugin.name);
+  }
+
+  /**
+   * Самоинициализация ЦПП в цепи: расширение само открывает свои программы в
+   * кооперативе, если их там нет. Обе обязательны — `capital::regcontrib`
+   * подписывает оферту Благороста и оферту Генератора через
+   * `wallet::signagree`, а тот падает, если программы не существует.
+   *
+   * Идемпотентно: `ensureProgram` не шлёт транзакцию, когда программа уже
+   * открыта, — а `initialize()` зовётся на каждом старте и рестарте.
+   *
+   * Ошибки логируем, но не роняем расширение: цепь может быть недоступна на
+   * старте, следующий рестарт повторит попытку.
+   */
+  private async ensureCppPrograms(): Promise<void> {
+    const programs = [
+      { type: BLAGOROST_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Благорост»' },
+      { type: GENERATOR_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Генератор»' },
+    ];
+
+    for (const program of programs) {
+      try {
+        const { created, program_id } = await this.sovietBlockchainPort.ensureProgram({
+          coopname: configEnv.coopname,
+          ...program,
+        });
+        if (created) {
+          this.logger.log(
+            `Программа «${program.title}» открыта в кооперативе ${configEnv.coopname} (program_id=${program_id})`
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Не удалось открыть программу «${program.title}»: ${message}`);
+      }
+    }
   }
 
 
@@ -508,6 +553,9 @@ export class CapitalPlugin extends BaseExtModule {
   async initialize(config?: IConfig): Promise<void> {
     this.logger.log('Модуль благороста инициализирован');
     this.capitalDevelopmentRepositoryGitSync.abortAllInFlightRepositorySyncs();
+
+    // Открыть программы ЦПП в цепи, если кооператив их ещё не открыл.
+    await this.ensureCppPrograms();
 
     // Загружаем конфигурацию расширения
     const pluginData = await this.extensionRepository.findByName(this.name);

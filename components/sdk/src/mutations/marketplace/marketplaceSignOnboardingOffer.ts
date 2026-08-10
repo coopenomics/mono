@@ -9,7 +9,8 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
  * на `marketplaceOnboardingState`).
  *
  * Подписанный document — результат `Mutations.Documents.GenerateDocument`
- * (registry_id=1101) + `LocalWallet.signDocument` на фронте.
+ * (registry_id=1102, персональный инстанс оферты) + `LocalWallet.signDocument`
+ * на фронте.
  */
 export const name = 'marketplaceSignOnboardingOffer'
 

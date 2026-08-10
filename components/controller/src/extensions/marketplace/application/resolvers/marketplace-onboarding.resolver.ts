@@ -42,10 +42,10 @@ export class MarketplaceOnboardingResolver {
    * L3 fallback sign-mutation: пайщик акцептует оферту ЦПП «Стол заказов»
    * прямо со стола (`OnboardingMemberPickCpp`) после прохождения gate'а.
    *
-   * Backend пишет on-chain `wallet::signagree` с `program_id=2` и
-   * `draft_id=1100`. После подтверждения транзакции `AgreementSyncService`
-   * подтянет подпись в PG; следующий `marketplaceOnboardingState` ответит
-   * `requires_gate=false, source='agreement_signed'`.
+   * Backend пишет on-chain `wallet::signagree` с `program_id=2` и шаблоном,
+   * записанным в самой программе (1102 — персональный инстанс оферты). После
+   * подтверждения транзакции синк подтянет подпись в PG; следующий
+   * `marketplaceOnboardingState` ответит `source=AGREEMENT_SIGNED`.
    *
    * Возвращает свежее состояние онбординга — UI не нужно делать второй
    * запрос. Если sync ещё не успел (high-throughput edge case) — UI
