@@ -22,3 +22,32 @@ for (const [key, value] of Object.entries(PLACEHOLDER_ENV_DEFAULTS)) {
 
 // Тесты — всегда test-окружение, даже если заглушка выше подставила development.
 process.env.NODE_ENV = 'test';
+
+/**
+ * Настройки контура для каркаса расширений — то же, что делает composition root
+ * в `src/index.ts` при старте приложения.
+ *
+ * Зачем здесь. Утилиты каркаса (`QuantityUtils`, `AssetUtils`, форматирование
+ * сумм) берут символ и точность токена из `platformSettings()`, а не из
+ * `~/config`: за пределами монолита конфига ядра нет. Без настройки первый же
+ * разбор суммы в спеке падает с «Настройки контура не заданы». Импорт лениво
+ * внутри — до заполнения `process.env` выше конфиг не поднять.
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { configurePlatformSettings } = require('@coopenomics/extension-kit');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const config = require('../src/config/config').default;
+
+configurePlatformSettings({
+  coopname: config.coopname,
+  frontendUrl: config.frontend_url,
+  backendUrl: config.backend_url,
+  timezone: config.timezone,
+  blockchain: {
+    rootGovernSymbol: config.blockchain.root_govern_symbol,
+    rootGovernPrecision: config.blockchain.root_govern_precision,
+    rootSymbol: config.blockchain.root_symbol,
+    rootPrecision: config.blockchain.root_precision,
+    postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
+  },
+});

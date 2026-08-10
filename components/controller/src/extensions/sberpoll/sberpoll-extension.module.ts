@@ -1,20 +1,32 @@
-import { PollingProvider } from '~/application/gateway/providers/polling-provider';
-import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { MESSAGE_CHANNEL_PORT, type IMessageChannelPort, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { PAYMENT_STATE_REPOSITORY, PaymentStateRepository } from '~/domain/gateway/repositories/payment-state.repository';
+import {
+  MESSAGE_CHANNEL_PORT,
+  type IMessageChannelPort,
+  LOGGER_PORT,
+  type ILoggerPort,
+  PAYMENT_PORT,
+  type IPaymentPort,
+  PAYMENT_POLLING_STATE_PORT,
+  type IPaymentPollingStatePort,
+  PaymentStatus,
+  PaymentDirection,
+} from '@coopenomics/innercoop';
 import axios from 'axios';
 import config from '../../config/config';
 import { Inject, Module } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '@coopenomics/extension-kit';
+import {
+  EXTENSION_REPOSITORY,
+  type ExtensionDomainRepository,
+  checkPaymentAmount,
+  checkPaymentSymbol,
+  getAmountPlusFee,
+  PollingProvider,
+  type PaymentDetails,
+} from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
-import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
-import { PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -73,8 +85,8 @@ export interface ILog {}
 export class SberpollExtension extends PollingProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
-    @Inject(PAYMENT_STATE_REPOSITORY) private readonly paymentStateRepository: PaymentStateRepository,
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(PAYMENT_POLLING_STATE_PORT) private readonly pollingState: IPaymentPollingStatePort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     @Inject(MESSAGE_CHANNEL_PORT) private readonly messageChannel: IMessageChannelPort
@@ -102,9 +114,9 @@ export class SberpollExtension extends PollingProvider {
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension);
   }
 
-  public async createPayment(hash: string): Promise<PaymentDetailsDomainInterface> {
+  public async createPayment(hash: string): Promise<PaymentDetails> {
     // Получаем данные платежа по hash
-    const payment = await this.paymentRepository.findByHash(hash);
+    const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
       throw new Error(`Платеж с hash ${hash} не найден`);
@@ -135,7 +147,7 @@ export class SberpollExtension extends PollingProvider {
       amount_plus_fee
     )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
 
-    const result: PaymentDetailsDomainInterface = {
+    const result: PaymentDetails = {
       data: invoice,
       amount_plus_fee: `${amount_plus_fee} ${symbol}`,
       amount_without_fee: `${amount} ${symbol}`,
@@ -180,11 +192,11 @@ export class SberpollExtension extends PollingProvider {
     const statementDate = this.getStatementDate();
 
     // Загрузка состояния обработки
-    let paymentState = await this.paymentStateRepository.findOne(accountNumber, statementDate);
+    let paymentState = await this.pollingState.find(accountNumber, statementDate);
 
     // Если состояния нет, создаем новое
     if (!paymentState) {
-      paymentState = await this.paymentStateRepository.save({
+      paymentState = await this.pollingState.save({
         accountNumber,
         statementDate,
         lastProcessedPage: 1, // Начинаем с первой страницы
@@ -235,10 +247,10 @@ export class SberpollExtension extends PollingProvider {
 
           // Ищем платеж по memo, который содержит номер заказа
           // или по другому подходящему полю
-          const payments = await this.paymentRepository.getAllPayments(
+          const payments = await this.payments.list(
             {
-              direction: PaymentDirectionEnum.INCOMING,
-              status: PaymentStatusEnum.PENDING,
+              direction: PaymentDirection.INCOMING,
+              status: PaymentStatus.PENDING,
             },
             { limit: 100, page: 1, sortOrder: 'ASC' }
           );
@@ -259,13 +271,13 @@ export class SberpollExtension extends PollingProvider {
           if (symbol_check.status === 'error') {
             this.logger.warn(symbol_check.message);
             if (payment.id) {
-              await this.paymentRepository.update(payment.id, {
-                status: PaymentStatusEnum.FAILED,
+              await this.payments.update(payment.id, {
+                status: PaymentStatus.FAILED,
                 message: symbol_check.message,
               });
               await this.messageChannel.publish(
                 `${config.coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
+                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
             continue; // Переходим к следующей транзакции
@@ -281,13 +293,13 @@ export class SberpollExtension extends PollingProvider {
           if (amount_check.status === 'error') {
             this.logger.warn(amount_check.message);
             if (payment.id) {
-              await this.paymentRepository.update(payment.id, {
-                status: PaymentStatusEnum.FAILED,
+              await this.payments.update(payment.id, {
+                status: PaymentStatus.FAILED,
                 message: amount_check.message,
               });
               await this.messageChannel.publish(
                 `${config.coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
+                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
             continue; // Переходим к следующей транзакции
@@ -295,10 +307,10 @@ export class SberpollExtension extends PollingProvider {
 
           // Отмечаем платеж оплаченным если все проверки пройдены
           if (payment.id) {
-            await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.PAID });
+            await this.payments.update(payment.id, { status: PaymentStatus.PAID });
             await this.messageChannel.publish(
               `${config.coopname}:orderStatusUpdate`,
-              JSON.stringify({ id: payment.id, status: PaymentStatusEnum.PAID })
+              JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
             );
           }
 
@@ -306,7 +318,7 @@ export class SberpollExtension extends PollingProvider {
         }
 
         // Обновление состояния после обработки текущей страницы
-        await this.paymentStateRepository.save({
+        await this.pollingState.save({
           accountNumber,
           statementDate,
           lastProcessedPage: page,
@@ -338,10 +350,6 @@ export class SberpollExtension extends PollingProvider {
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
-    },
-    {
-      provide: PAYMENT_REPOSITORY,
-      useClass: TypeOrmPaymentRepository,
     },
   ], // Регистрируем SberpollExtension как провайдер
   exports: [SberpollExtension], // Экспортируем его для доступа в других модулях

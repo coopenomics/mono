@@ -40,3 +40,29 @@ export abstract class PaymentProvider extends BaseExtensionModule {
   public abstract fee_percent: number;
   public abstract createPayment(hash: string): Promise<PaymentDetails>;
 }
+
+/**
+ * Способ оплаты, который узнаёт о зачислении опросом, а не уведомлением банка.
+ *
+ * Так устроен приём по банковской выписке: банк ничего не присылает, и
+ * расширение само периодически сверяет выписку с ожидающими платежами.
+ * `sync` вызывается по расписанию и обязан быть безопасным при наложении
+ * запусков — очередной опрос может начаться, пока предыдущий не закончился.
+ */
+@Injectable()
+export abstract class PollingProvider extends PaymentProvider {
+  public abstract sync(): Promise<void>;
+}
+
+/**
+ * Способ оплаты, которому банк сам присылает уведомление о зачислении.
+ *
+ * Маршрут для уведомления расширение открывает само; форма запроса своя у
+ * каждого банка, поэтому здесь она не описана. Уведомление приходит без
+ * гарантии однократности — банк повторяет его, пока не получит подтверждения,
+ * поэтому `handleIPN` обязан быть идемпотентным.
+ */
+@Injectable()
+export abstract class IPNProvider extends PaymentProvider {
+  public abstract handleIPN(request: any): Promise<void>;
+}

@@ -14,6 +14,9 @@ import {
   MESSAGE_CHANNEL_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
+  PAYMENT_NOTICE_LOG_PORT,
+  PAYMENT_POLLING_STATE_PORT,
+  PAYMENT_PROVIDER_REGISTRY_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
@@ -33,6 +36,10 @@ import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision
 import { FreeDecisionAdapter } from '~/infrastructure/free-decision/free-decision.adapter';
 import { NotificationInnercoopAdapter } from '~/infrastructure/innercoop/notification-innercoop.adapter';
 import { PaymentInnercoopAdapter } from '~/infrastructure/innercoop/payment-innercoop.adapter';
+import { PaymentProviderRegistryInnercoopAdapter } from '~/infrastructure/innercoop/payment-provider-registry-innercoop.adapter';
+import { PaymentPollingStateInnercoopAdapter } from '~/infrastructure/innercoop/payment-polling-state-innercoop.adapter';
+import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/payment-notice-log-innercoop.adapter';
+import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
@@ -76,6 +83,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     MeetInfrastructureModule,
     DecisionTrackingInfrastructureModule,
     FreeDecisionInfrastructureModule,
+    GatewayInfrastructureModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -83,6 +91,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     AccountInnercoopAdapter,
     NotificationInnercoopAdapter,
     PaymentInnercoopAdapter,
+    PaymentProviderRegistryInnercoopAdapter,
+    PaymentPollingStateInnercoopAdapter,
+    PaymentNoticeLogInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
       useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
@@ -159,6 +170,18 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: PAYMENT_PORT,
       useExisting: PaymentInnercoopAdapter,
     },
+    {
+      provide: PAYMENT_PROVIDER_REGISTRY_PORT,
+      useExisting: PaymentProviderRegistryInnercoopAdapter,
+    },
+    {
+      provide: PAYMENT_POLLING_STATE_PORT,
+      useExisting: PaymentPollingStateInnercoopAdapter,
+    },
+    {
+      provide: PAYMENT_NOTICE_LOG_PORT,
+      useExisting: PaymentNoticeLogInnercoopAdapter,
+    },
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -177,6 +200,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DECISION_TRACKING_PORT,
     FREE_DECISION_PORT,
     PAYMENT_PORT,
+    PAYMENT_PROVIDER_REGISTRY_PORT,
+    PAYMENT_POLLING_STATE_PORT,
+    PAYMENT_NOTICE_LOG_PORT,
   ],
 })
 export class InnercoopBridgeModule {}

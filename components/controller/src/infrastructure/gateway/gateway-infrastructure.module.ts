@@ -21,6 +21,9 @@ import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
       useClass: ProviderAdapter,
     },
   ],
-  exports: [GATEWAY_INTERACTOR_PORT, PROVIDER_PORT],
+  // `ProviderDomainService` экспортирован для `PaymentProviderRegistryInnercoopAdapter`:
+  // реестр способов оплаты раздаётся расширениям через порт, а привязка порта
+  // живёт в `InnercoopBridgeModule`, за пределами этого модуля.
+  exports: [GATEWAY_INTERACTOR_PORT, PROVIDER_PORT, ProviderDomainService],
 })
 export class GatewayInfrastructureModule {}

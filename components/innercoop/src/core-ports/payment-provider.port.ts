@@ -34,3 +34,51 @@ export interface IPaymentProviderRegistryPort {
 }
 
 export const PAYMENT_PROVIDER_REGISTRY_PORT = Symbol.for('Innercoop.CorePort.PaymentProviderRegistry');
+
+/**
+ * Метка прочитанного в банковской выписке: до какой страницы за какой день
+ * способ оплаты уже дошёл.
+ */
+export interface InnerPaymentPollingState {
+  accountNumber: string;
+  statementDate: string;
+  lastProcessedPage: number;
+}
+
+/**
+ * Хранилище меток для способов оплаты, узнающих о зачислении опросом.
+ *
+ * Метка переживает перезапуск, поэтому лежит в ядре: иначе после рестарта
+ * расширение перечитывало бы выписку с начала дня и повторно засчитывало
+ * платежи.
+ */
+export interface IPaymentPollingStatePort {
+  find(accountNumber: string, statementDate: string): Promise<InnerPaymentPollingState | null>;
+  save(state: InnerPaymentPollingState): Promise<InnerPaymentPollingState>;
+}
+
+export const PAYMENT_POLLING_STATE_PORT = Symbol.for('Innercoop.CorePort.PaymentPollingState');
+
+/** Запись об уведомлении банка о зачислении, как она пришла. */
+export interface InnerPaymentNotice {
+  id?: string;
+  /** Имя способа оплаты, приславшего уведомление. */
+  provider: string;
+  data: object;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+/**
+ * Журнал уведомлений банка.
+ *
+ * Банк повторяет уведомление, пока не получит подтверждения, поэтому способ
+ * оплаты сперва ищет его в журнале и лишь потом засчитывает платёж: журнал —
+ * то, что отличает повтор от нового зачисления.
+ */
+export interface IPaymentNoticeLogPort {
+  find(criteria: Partial<InnerPaymentNotice>): Promise<InnerPaymentNotice | null>;
+  record(notice: Omit<InnerPaymentNotice, 'id' | 'created_at' | 'updated_at'>): Promise<InnerPaymentNotice>;
+}
+
+export const PAYMENT_NOTICE_LOG_PORT = Symbol.for('Innercoop.CorePort.PaymentNoticeLog');

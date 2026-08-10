@@ -1,19 +1,26 @@
-import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 
-import { PaymentProvider } from '~/application/gateway/providers/payment-provider';
 import { Inject, Module } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, getAmountPlusFee } from '@coopenomics/extension-kit';
+import {
+  EXTENSION_REPOSITORY,
+  type ExtensionDomainRepository,
+  platformSettings,
+  getAmountPlusFee,
+  PaymentProvider,
+  type PaymentDetails,
+} from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import {
+  LOGGER_PORT,
+  type ILoggerPort,
+  PAYMENT_PORT,
+  type IPaymentPort,
+  PAYMENT_PROVIDER_REGISTRY_PORT,
+  type IPaymentProviderRegistryPort,
+} from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
-import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
-import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -30,10 +37,10 @@ export interface ILog {}
 export class QrPayExtension extends PaymentProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
-    @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
+    @Inject(PAYMENT_PROVIDER_REGISTRY_PORT) private readonly providerRegistry: IPaymentProviderRegistryPort
   ) {
     super();
     this.logger.setContext(QrPayExtension.name);
@@ -56,13 +63,13 @@ export class QrPayExtension extends PaymentProvider {
 
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension);
 
-    this.providerPort.registerProvider(this.name, this);
+    this.providerRegistry.registerProvider(this.name, this);
     this.logger.log(`Платежный провайдер ${this.name} успешно зарегистрирован.`);
   }
 
-  public async createPayment(hash: string): Promise<PaymentDetailsDomainInterface> {
+  public async createPayment(hash: string): Promise<PaymentDetails> {
     // Получаем данные платежа по hash
-    const payment = await this.paymentRepository.findByHash(hash);
+    const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
       throw new Error(`Платеж с hash ${hash} не найден`);
@@ -92,7 +99,7 @@ export class QrPayExtension extends PaymentProvider {
       amount_plus_fee
     )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
 
-    const result: PaymentDetailsDomainInterface = {
+    const result: PaymentDetails = {
       data: invoice,
       amount_plus_fee: `${amount_plus_fee} ${symbol}`,
       amount_without_fee: `${amount.toFixed(2)} ${symbol}`,
@@ -107,16 +114,11 @@ export class QrPayExtension extends PaymentProvider {
 }
 
 @Module({
-  imports: [GatewayDomainModule, GatewayInfrastructureModule],
   providers: [
     QrPayExtension,
     {
       provide: EXTENSION_REPOSITORY, // токен для инъекции
       useClass: TypeOrmExtensionDomainRepository, // Реализация для интерфейса
-    },
-    {
-      provide: PAYMENT_REPOSITORY,
-      useClass: TypeOrmPaymentRepository,
     },
   ], // Регистрируем PowerupExtension как провайдер
   exports: [QrPayExtension], // Экспортируем его для доступа в других модулях

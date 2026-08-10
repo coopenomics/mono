@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IPaymentPort, InnerPayment, InnerPaymentDraft } from '@coopenomics/innercoop';
+import type {
+  IPaymentPort,
+  InnerPage,
+  InnerPageRequest,
+  InnerPayment,
+  InnerPaymentDraft,
+  InnerPaymentFilters,
+} from '@coopenomics/innercoop';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 
 /**
@@ -27,5 +34,9 @@ export class PaymentInnercoopAdapter implements IPaymentPort {
 
   async update(id: string, data: Partial<InnerPayment>): Promise<InnerPayment | null> {
     return this.paymentRepository.update(id, data);
+  }
+
+  async list(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>> {
+    return this.paymentRepository.getAllPayments(filters, page);
   }
 }
