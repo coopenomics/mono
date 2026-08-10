@@ -47,6 +47,8 @@ export enum ProjectAction {
   EDIT_REQUIREMENT = 'edit_requirement', // Редактирование требования (story)
   DELETE_REQUIREMENT = 'delete_requirement', // Удаление требования
   COMPLETE_REQUIREMENT = 'complete_requirement', // Выполнение требования
+  VIEW_ARTIFACTS = 'view_artifacts', // Чтение документов проекта: карточка, задачи, требования
+  READ_COMMUNICATION = 'read_communication', // Чтение переписки и записей звонков проекта
 }
 
 /**
@@ -530,6 +532,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: false,
     [ProjectAction.DELETE_REQUIREMENT]: false,
     [ProjectAction.COMPLETE_REQUIREMENT]: false,
+    [ProjectAction.VIEW_ARTIFACTS]: false,
+    [ProjectAction.READ_COMMUNICATION]: false,
   },
   [ProjectUserRole.AUTHOR]: {
     [ProjectAction.EDIT_PROJECT]: true, // Соавтор (сегмент is_author): карточка проекта/компонента
@@ -543,6 +547,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: true,
     [ProjectAction.DELETE_REQUIREMENT]: true,
     [ProjectAction.COMPLETE_REQUIREMENT]: false,
+    [ProjectAction.VIEW_ARTIFACTS]: true,
+    [ProjectAction.READ_COMMUNICATION]: false,
   },
   [ProjectUserRole.CONTRIBUTOR]: {
     [ProjectAction.EDIT_PROJECT]: false,
@@ -556,6 +562,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: false,
     [ProjectAction.DELETE_REQUIREMENT]: false,
     [ProjectAction.COMPLETE_REQUIREMENT]: false,
+    [ProjectAction.VIEW_ARTIFACTS]: true,
+    [ProjectAction.READ_COMMUNICATION]: false,
   },
   [ProjectUserRole.MASTER]: {
     [ProjectAction.EDIT_PROJECT]: true,
@@ -569,6 +577,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: true,
     [ProjectAction.DELETE_REQUIREMENT]: true,
     [ProjectAction.COMPLETE_REQUIREMENT]: true,
+    [ProjectAction.VIEW_ARTIFACTS]: true,
+    [ProjectAction.READ_COMMUNICATION]: true,
   },
   [ProjectUserRole.CHAIRMAN]: {
     [ProjectAction.EDIT_PROJECT]: true,
@@ -582,6 +592,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: true,
     [ProjectAction.DELETE_REQUIREMENT]: true,
     [ProjectAction.COMPLETE_REQUIREMENT]: true,
+    [ProjectAction.VIEW_ARTIFACTS]: true,
+    [ProjectAction.READ_COMMUNICATION]: true,
   },
   [ProjectUserRole.BOARD_MEMBER]: {
     [ProjectAction.EDIT_PROJECT]: true, // Члены совета имеют полные права
@@ -595,6 +607,8 @@ export const PROJECT_PERMISSION_MATRIX: Record<ProjectUserRole, Record<ProjectAc
     [ProjectAction.EDIT_REQUIREMENT]: false,
     [ProjectAction.DELETE_REQUIREMENT]: false,
     [ProjectAction.COMPLETE_REQUIREMENT]: false,
+    [ProjectAction.VIEW_ARTIFACTS]: true,
+    [ProjectAction.READ_COMMUNICATION]: true,
   },
 };
 

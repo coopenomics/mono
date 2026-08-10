@@ -31,6 +31,7 @@ import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -368,12 +369,13 @@ export class ProjectManagementInteractor {
    */
   async getProjectsWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
     if (filter?.parent_hash === '') {
       filter.parent_hash = DomainToBlockchainUtils.getEmptyHash();
     }
-    return await this.projectRepository.findAllPaginatedWithComponents(filter, options);
+    return await this.projectRepository.findAllPaginatedWithComponents(filter, options, scope);
   }
 
   /**

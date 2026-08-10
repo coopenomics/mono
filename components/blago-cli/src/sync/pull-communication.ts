@@ -3,16 +3,16 @@
 import type { AuthenticatedContext } from '../session/index.js'
 import type { IndexFile } from './index-store.js'
 
-import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
-
 import { createHash } from 'node:crypto'
+import * as fs from 'node:fs/promises'
+
+import * as path from 'node:path'
 
 import { Queries, Zeus } from '@coopenomics/sdk'
 
 import { sha256Hex } from '../lib/hash.js'
+import { mapWithConcurrency } from '../lib/parallel.js'
 import { formatThrownValue, warn } from '../ui/output.js'
-import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
 
 import {
   loadCommunicationCursors,
@@ -25,7 +25,16 @@ import {
   transcriptionMeetingFileStemUtc,
   type CommunicationDayLine,
 } from './communication-markdown.js'
+import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
 import { generateSlug, workspaceBasePath, type ProjectPathModel } from './layout.js'
+import {
+  isRoomsCacheFresh,
+  loadRoomsCache,
+  saveRoomsCache,
+  type CachedNonProjectRoom,
+  type CachedProjectRoom,
+  type RoomsCacheFile,
+} from './rooms-cache.js'
 import { syncEntityFile } from './sync-entity-file.js'
 
 interface ProjectRowLite {
@@ -196,11 +205,81 @@ function nonProjectRoomFolder(kind: string, matrixRoomId: string, displayLabel: 
   return `${slug}-${shortId}`
 }
 
+export interface PullCommunicationOptions {
+  /** Перечитать карту комнат с сервера, не дожидаясь истечения суточного кэша. */
+  readonly refreshRooms?: boolean
+}
+
+/**
+ * Карта комнат проектов: из кэша, если он свежий, иначе обход сервера параллельно по проектам.
+ * Набор комнат меняется редко, а запрос на каждый проект — половина всех обращений при pull.
+ */
+async function resolveProjectRooms(
+  ctx: AuthenticatedContext,
+  projects: readonly ProjectRowLite[],
+  options: PullCommunicationOptions,
+): Promise<Map<string, CachedProjectRoom[]>> {
+  const cache = await loadRoomsCache(ctx.root)
+  const hashes = projects.map(p => p.project_hash)
+  const cacheUsable
+    = options.refreshRooms !== true
+      && isRoomsCacheFresh(cache)
+      && hashes.every(hash => cache.projectRooms[hash] !== undefined)
+
+  if (cacheUsable) {
+    const fromCache = new Map<string, CachedProjectRoom[]>()
+    for (const hash of hashes) {
+      fromCache.set(hash, cache.projectRooms[hash] ?? [])
+    }
+    return fromCache
+  }
+
+  const fetched = await mapWithConcurrency(hashes, async (hash) => {
+    try {
+      const rooms = await listRooms(ctx, hash)
+      return rooms.map(r => ({ matrixRoomId: r.matrixRoomId, displayLabel: r.displayLabel }))
+    }
+    catch (e) {
+      warn(`Список комнат переписки, проект ${hash}: ${formatThrownValue(e)}`)
+      return null
+    }
+  })
+
+  const result = new Map<string, CachedProjectRoom[]>()
+  const projectRooms: Record<string, CachedProjectRoom[]> = { ...cache.projectRooms }
+  let allResolved = true
+  for (const [i, hash] of hashes.entries()) {
+    const rooms = fetched[i]
+    if (rooms === null) {
+      // Не спросили — берём прошлое значение, чтобы разовый сбой не выглядел как «комнат нет».
+      allResolved = false
+      result.set(hash, cache.projectRooms[hash] ?? [])
+      continue
+    }
+    result.set(hash, rooms)
+    projectRooms[hash] = rooms
+  }
+
+  try {
+    await saveRoomsCache(ctx.root, {
+      // Отметку свежести ставим только при полном обходе: иначе кэш «застынет» с дырами.
+      refreshedAt: allResolved ? new Date().toISOString() : cache.refreshedAt,
+      projectRooms,
+      nonProjectRooms: cache.nonProjectRooms,
+    })
+  }
+  catch (e) {
+    warn(`Не удалось сохранить кэш комнат: ${formatThrownValue(e)}`)
+  }
+  return result
+}
+
 export async function pullProjectCommunicationArtifacts(
   ctx: AuthenticatedContext,
   index: IndexFile,
   projects: readonly ProjectRowLite[],
   projectByHash: ReadonlyMap<string, ProjectPathModel>,
+  options: PullCommunicationOptions = {},
 ): Promise<void> {
   let cursors: CommunicationCursorsFile
   try {
@@ -215,22 +294,15 @@ export async function pullProjectCommunicationArtifacts(
     }
   }
 
+  const roomsByProject = await resolveProjectRooms(ctx, projects, options)
+
   for (const row of projects) {
     const projModel = projectByHash.get(row.project_hash)
     if (!projModel) {
       continue
     }
 
-    let rooms: Awaited<ReturnType<typeof listRooms>>
-    try {
-      rooms = await listRooms(ctx, row.project_hash)
-    }
-    catch (e) {
-      warn(
-        `Список комнат переписки (chatcoopListProjectCommunicationRooms), проект ${row.project_hash}: ${formatThrownValue(e)}`,
-      )
-      continue
-    }
+    const rooms = roomsByProject.get(row.project_hash) ?? []
     if (rooms.length === 0) {
       continue
     }
@@ -243,7 +315,7 @@ export async function pullProjectCommunicationArtifacts(
       const datesToRefresh = new Set<string>()
 
       // Курсора нет → after=0 (все origin_server_ts > 0). Иначе как в GitHub-синке: только новее last.
-      for (const room of rooms) {
+      const datesPerRoom = await mapWithConcurrency(rooms, async (room) => {
         const last = cursors.messageLastTsByRoom[room.matrixRoomId]
         const afterTs = last ?? 0
         const datesQ = await ctx.client.Query(Queries.ChatCoop.ListUtcDatesWithNewRoomMessages.query, {
@@ -254,7 +326,9 @@ export async function pullProjectCommunicationArtifacts(
             },
           },
         })
-        const dates = datesQ[Queries.ChatCoop.ListUtcDatesWithNewRoomMessages.name] ?? []
+        return datesQ[Queries.ChatCoop.ListUtcDatesWithNewRoomMessages.name] ?? []
+      })
+      for (const dates of datesPerRoom) {
         for (const d of dates) {
           datesToRefresh.add(d)
         }
@@ -301,11 +375,17 @@ export async function pullProjectCommunicationArtifacts(
         })
       }
 
-      for (const room of rooms) {
+      // Курсор двигаем только у комнат, где были новые сутки: если нового нет, метка и так
+      // на месте, а запрос за максимумом — чистая трата обращения к серверу на каждый pull.
+      const roomsToAdvance = rooms.filter((_, i) => (datesPerRoom[i] ?? []).length > 0)
+      const maxTsPerRoom = await mapWithConcurrency(roomsToAdvance, async (room) => {
         const maxQ = await ctx.client.Query(Queries.ChatCoop.GetMaxOriginServerTsForRoom.query, {
           variables: { data: { matrixRoomId: room.matrixRoomId } },
         })
-        const maxTs = maxQ[Queries.ChatCoop.GetMaxOriginServerTsForRoom.name] as number | null | undefined
+        return maxQ[Queries.ChatCoop.GetMaxOriginServerTsForRoom.name] as number | null | undefined
+      })
+      for (const [i, room] of roomsToAdvance.entries()) {
+        const maxTs = maxTsPerRoom[i]
         if (maxTs !== undefined && maxTs !== null && Number.isFinite(maxTs)) {
           cursors.messageLastTsByRoom[room.matrixRoomId] = maxTs
         }
@@ -330,11 +410,13 @@ export async function pullProjectCommunicationArtifacts(
         updatedAt: Date | undefined
       }
       const byId = new Map<string, TranscriptionCandidate>()
-      for (const roomId of matrixIds) {
+      const listsPerRoom = await mapWithConcurrency(matrixIds, async (roomId) => {
         const tq = await ctx.client.Query(Queries.ChatCoop.GetTranscriptions.query, {
           variables: { data: { matrixRoomId: roomId, limit: CHATCOOP_TRANSCRIPTIONS_QUERY_LIMIT, offset: 0 } },
         })
-        const list = tq[Queries.ChatCoop.GetTranscriptions.name] ?? []
+        return tq[Queries.ChatCoop.GetTranscriptions.name] ?? []
+      })
+      for (const list of listsPerRoom) {
         for (const t of list) {
           const end = dateFromUnknown(t.endedAt)
           if (t.status !== Zeus.TranscriptionStatus.COMPLETED || !end) {
@@ -436,6 +518,25 @@ export async function pullProjectCommunicationArtifacts(
   }
 }
 
+/** Сохранить непроектные комнаты в кэш, не трогая уже собранную карту проектов. */
+async function persistNonProjectRooms(
+  root: string,
+  cache: RoomsCacheFile,
+  rooms: CachedNonProjectRoom[],
+): Promise<void> {
+  try {
+    const current = await loadRoomsCache(root)
+    await saveRoomsCache(root, {
+      refreshedAt: current.refreshedAt || cache.refreshedAt,
+      projectRooms: current.projectRooms,
+      nonProjectRooms: rooms,
+    })
+  }
+  catch (e) {
+    warn(`Не удалось сохранить кэш непроектных комнат: ${formatThrownValue(e)}`)
+  }
+}
+
 /**
  * Pull переписки и транскрипций из комнат ВНЕ проектов Capital (пайщики, совет, комнаты секретаря).
  * Раскладка — отдельная верхняя папка `rooms/<folder>/{messages,meetings}/`, чтобы не смешивать с
@@ -444,15 +545,28 @@ export async function pullProjectCommunicationArtifacts(
 export async function pullNonProjectCommunicationArtifacts(
   ctx: AuthenticatedContext,
   index: IndexFile,
+  options: PullCommunicationOptions = {},
 ): Promise<void> {
-  let rooms: { matrixRoomId: string, displayLabel: string, kind: string }[]
-  try {
-    const q = await ctx.client.Query(Queries.ChatCoop.ListNonProjectCommunicationRooms.query, {})
-    rooms = (q[Queries.ChatCoop.ListNonProjectCommunicationRooms.name] ?? []) as typeof rooms
+  const roomsCache = await loadRoomsCache(ctx.root)
+  let rooms: CachedNonProjectRoom[]
+  if (options.refreshRooms !== true && isRoomsCacheFresh(roomsCache)) {
+    rooms = roomsCache.nonProjectRooms
   }
-  catch (e) {
-    warn(`Список непроектных комнат (chatcoopListNonProjectCommunicationRooms): ${formatThrownValue(e)}`)
-    return
+  else {
+    try {
+      const q = await ctx.client.Query(Queries.ChatCoop.ListNonProjectCommunicationRooms.query, {})
+      const fetched = (q[Queries.ChatCoop.ListNonProjectCommunicationRooms.name] ?? []) as CachedNonProjectRoom[]
+      rooms = fetched.map(r => ({
+        matrixRoomId: r.matrixRoomId,
+        displayLabel: r.displayLabel,
+        kind: String(r.kind),
+      }))
+      await persistNonProjectRooms(ctx.root, roomsCache, rooms)
+    }
+    catch (e) {
+      warn(`Список непроектных комнат (chatcoopListNonProjectCommunicationRooms): ${formatThrownValue(e)}`)
+      return
+    }
   }
   if (rooms.length === 0) {
     return
@@ -516,12 +630,15 @@ export async function pullNonProjectCommunicationArtifacts(
         })
       }
 
-      const maxQ = await ctx.client.Query(Queries.ChatCoop.GetMaxOriginServerTsForRoom.query, {
-        variables: { data: { matrixRoomId: room.matrixRoomId } },
-      })
-      const maxTs = maxQ[Queries.ChatCoop.GetMaxOriginServerTsForRoom.name] as number | null | undefined
-      if (maxTs !== undefined && maxTs !== null && Number.isFinite(maxTs)) {
-        cursors.messageLastTsByRoom[room.matrixRoomId] = maxTs
+      // Курсор двигаем только если были новые сутки: иначе запрос за максимумом ничего не меняет.
+      if (dates.length > 0) {
+        const maxQ = await ctx.client.Query(Queries.ChatCoop.GetMaxOriginServerTsForRoom.query, {
+          variables: { data: { matrixRoomId: room.matrixRoomId } },
+        })
+        const maxTs = maxQ[Queries.ChatCoop.GetMaxOriginServerTsForRoom.name] as number | null | undefined
+        if (maxTs !== undefined && maxTs !== null && Number.isFinite(maxTs)) {
+          cursors.messageLastTsByRoom[room.matrixRoomId] = maxTs
+        }
       }
     }
     catch (e) {

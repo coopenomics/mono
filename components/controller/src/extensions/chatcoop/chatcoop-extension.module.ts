@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
+import { ChatcoopCommunicationAccessService } from './application/services/chatcoop-communication-access.service';
 import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
 import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
@@ -539,6 +540,7 @@ export class ChatCoopPlugin extends BaseExtModule {
     ChatcoopInterChatCoopCalendarAdapter,
     ChatCoopCalendarApplicationService,
     ChatcoopCalendarEventNotificationService,
+    ChatcoopCommunicationAccessService,
     {
       provide: INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
       useExisting: ChatcoopCalendarEventNotificationService,

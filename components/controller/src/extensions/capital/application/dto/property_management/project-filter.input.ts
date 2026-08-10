@@ -94,4 +94,11 @@ export class ProjectFilterInputDTO {
       'Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain',
   })
   origin?: string;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё',
+  })
+  only_with_artifact_access?: boolean;
 }

@@ -4274,6 +4274,8 @@ export type ValueTypes = {
 	is_planed?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null | Variable<any, string>,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null | Variable<any, string>,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
@@ -18462,6 +18464,8 @@ export type ResolverInputTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -32263,6 +32267,8 @@ export type ModelTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -39495,7 +39501,7 @@ export type ModelTypes = {
 	chatcoopUpdateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: ModelTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -46891,6 +46897,8 @@ export type GraphQLTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -54597,7 +54605,7 @@ export type GraphQLTypes = {
 	chatcoopUpdateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: GraphQLTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 

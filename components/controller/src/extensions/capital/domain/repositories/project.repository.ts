@@ -5,6 +5,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
+import type { ArtifactAccessScope } from './artifact-access-scope';
 
 export interface ProjectRepository extends IBlockchainSyncRepository<ProjectDomainEntity> {
   create(project: Omit<ProjectDomainEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProjectDomainEntity>;
@@ -23,7 +24,8 @@ export interface ProjectRepository extends IBlockchainSyncRepository<ProjectDoma
   ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>>;
   findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>>;
   findByHashWithComponents(hash: string): Promise<ProjectDomainEntity | null>;
   findComponentsByParentHash(parentHash: string): Promise<ProjectDomainEntity[]>;
