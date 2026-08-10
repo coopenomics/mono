@@ -1,5 +1,4 @@
 import { watch } from 'vue'
-import { useAccountStore } from 'src/entities/Account/model'
 import { useSessionStore } from 'src/entities/Session'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSelectBranch } from 'src/features/Branch/SelectBranch/model'
@@ -7,7 +6,6 @@ import { useSelectBranch } from 'src/features/Branch/SelectBranch/model'
 export function useBranchOverlayProcess() {
   const session = useSessionStore()
   const system = useSystemStore()
-  const account = useAccountStore()
   const { isVisible } = useSelectBranch()
 
   const checkConditions = () => {
@@ -20,7 +18,12 @@ export function useBranchOverlayProcess() {
     }
 
     const branched = system.info?.cooperator_account?.is_branched
-    const participant = account?.account?.participant_account
+    // Только собственный аккаунт: его держит сессия (init-wallet и логин).
+    // Общий слот accountStore.account перетирается любым чтением чужого
+    // аккаунта (реестры, журналы операций), и гейт принимал чужого пайщика
+    // без участка за текущего пользователя.
+    const participant = session.currentUserAccount?.participant_account
+    const isMine = !!participant && participant.username === session.username
     const noBraname = participant?.braname === ''
 
     // показываем оверлей выбора КУ, если
@@ -31,7 +34,7 @@ export function useBranchOverlayProcess() {
     isVisible.value = !!(
       session.isAuth &&
       branched &&
-      participant &&
+      isMine &&
       noBraname
     )
   }
@@ -39,7 +42,7 @@ export function useBranchOverlayProcess() {
   checkConditions()
 
   watch(
-    [() => session.isAuth, () => system.info, () => account.account],
+    [() => session.isAuth, () => system.info, () => session.currentUserAccount],
     checkConditions,
     { deep: true }
   )

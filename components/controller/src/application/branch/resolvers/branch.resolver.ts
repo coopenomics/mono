@@ -126,8 +126,12 @@ export class BranchResolver {
   @Mutation(() => Boolean, { name: 'selectBranch', description: 'Выбрать кооперативный участок' })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
-  async selectBranch(@Args('data', { type: () => SelectBranchInputDTO }) data: SelectBranchInputDTO): Promise<boolean> {
-    return this.branchService.selectBranch(data);
+  async selectBranch(
+    @Args('data', { type: () => SelectBranchInputDTO }) data: SelectBranchInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<boolean> {
+    // заявление подаётся только за себя — имя из JWT, не из тела запроса
+    return this.branchService.selectBranch(data, currentUser?.username);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
