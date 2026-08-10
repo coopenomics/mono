@@ -195,6 +195,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
+import { decodeTrustChain } from '@coopenomics/auth';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -232,16 +233,18 @@ function chainLabel(account: string): string {
   return account;
 }
 /**
- * Утверждено ли удостоверение якорем доверия. Цепь обязана начинаться с АНО: она
- * заверяет кооперативы, кооперативы — пайщиков. Если якоря в цепи нет, кооператив
+ * Утверждено ли удостоверение корнем доверия. Цепочка обязана начинаться с АНО: она
+ * заверяет операторов, те — кооперативы, кооперативы — пайщиков. Без корня кооператив
  * оказывается сам себе и издателем, и подтверждающим, а такое подтверждение ничего
  * не стоит.
  *
- * Проверять существование аккаунта отдельным запросом не нужно: цепь собирает
- * сервер, читая ключи заверения прямо из блокчейна, и звено якоря появляется в ней
- * тогда и только тогда, когда аккаунт заведён и его ключ опубликован.
+ * Здесь читается только имя заверяющего в первом звене — подпись не проверяется.
+ * Настоящую проверку делает считыватель у проверяющего единственной реализацией;
+ * вторая, ради надписи на экране, однажды разошлась бы с первой и начала уверять
+ * пайщика в том, чего проверяющий не подтверждает.
  */
-const isEndorsed = computed(() => (certificate.value?.coop_chain ?? [])[0]?.account === TRUST_ANCHOR_ACCOUNT);
+const trustChain = computed(() => decodeTrustChain(certificate.value?.trust_chain ?? []));
+const isEndorsed = computed(() => trustChain.value[0]?.issuer === TRUST_ANCHOR_ACCOUNT);
 
 /**
  * Цепочка целиком одного цвета: зелёная, когда удостоверение утверждено, красная,
@@ -250,11 +253,11 @@ const isEndorsed = computed(() => (certificate.value?.coop_chain ?? [])[0]?.acco
  */
 const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() => {
   const variant: BaseChipVariant = isEndorsed.value ? 'pos' : 'neg';
-  const links = (certificate.value?.coop_chain ?? []).map((l) => ({
-    label: chainLabel(l.account),
-    variant,
-  }));
-  return [...links, { label: 'Вы', variant }];
+  const links = trustChain.value;
+  // Первое звено называет и заверяющего, и заверённого; дальше каждое добавляет
+  // только заверённого — иначе имена шли бы парами и повторялись.
+  const names = links.length ? [links[0].issuer, ...links.map((l) => l.subject)] : [];
+  return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
 // Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).

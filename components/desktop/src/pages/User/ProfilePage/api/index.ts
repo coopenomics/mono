@@ -1,11 +1,6 @@
 import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
 
-export interface CoopChainLink {
-  account: string;
-  public_key: string;
-}
-
 /** Подтверждённый тип верификации в удостоверении (структурная форма, Story 4.3). */
 export interface VerificationTypeClaim {
   type: string;
@@ -22,7 +17,11 @@ export interface ParticipantCertificate {
   iat: number;
   exp: number;
   coopname: string;
-  coop_chain: CoopChainLink[];
+  /**
+   * Цепочка заверений от корня к кооперативу — подписанные заверения целиком.
+   * Разбирать её для показа умеет `decodeTrustChain` из пакета авторизации.
+   */
+  trust_chain: string[];
   verification_types: VerificationTypeClaim[];
   identification: Record<string, unknown> | null;
 }
@@ -62,7 +61,7 @@ function decodePayload(jws: string): ParticipantCertificate {
     iat: Number(raw.iat ?? 0),
     exp: Number(raw.exp ?? 0),
     coopname: String(raw.coopname ?? ''),
-    coop_chain: Array.isArray(raw.coop_chain) ? (raw.coop_chain as CoopChainLink[]) : [],
+    trust_chain: Array.isArray(raw.trust_chain) ? (raw.trust_chain as string[]).filter((l) => typeof l === 'string') : [],
     verification_types: normalizeVerificationTypes(raw.verification_types),
     identification: (raw.identification as Record<string, unknown> | null) ?? null,
   };

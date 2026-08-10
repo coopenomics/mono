@@ -32,7 +32,7 @@
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { verifyOffline } from '@coopenomics/auth';
+import { TRUST_ANCHOR_ANO_CERT_PUBKEY, verifyOffline } from '@coopenomics/auth';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
 import { env } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
@@ -44,11 +44,15 @@ import { useSystemStore } from 'src/entities/System/model';
  * Страница намеренно не выведена ни в одно меню — она для отдельного устройства на
  * входе, а не для кабинета. Ссылку знает тот, кто её открывает.
  *
- * Проверка — настоящая: подпись сходится против ключа заверения, прочитанного из
- * цепи, срок сверяется, цепь укореняется на кооперативе. Пока АНО не заведена,
- * якорем выступает сам кооператив — это слабее (цепь из одного звена подтверждает
- * сама себя), и потому кооператив называется явно, а не берётся из предъявленного
- * удостоверения.
+ * Принимает удостоверение любого кооператива. Раньше принимались только свои, и это
+ * было не выбором, а вынужденной мерой: цепочка в удостоверении перечисляла имена и
+ * ключи, ключи читались из блокчейна по этим именам, и любой кооператив мог
+ * поставить корень первым звеном своей цепи — ключи-то настоящие. Теперь цепочка
+ * несёт подписи, корень вшит в приложение, и чужое удостоверение проверяется так же
+ * строго, как своё.
+ *
+ * Сети при проверке не требуется вовсе. Устройство на входе может стоять там, где
+ * её нет, и ответ всё равно должен быть здесь и сейчас.
  */
 const system = useSystemStore();
 const coopTitle = computed(() => system.cooperativeDisplayName || system.info.coopname || '');
@@ -74,9 +78,14 @@ const REASONS: Record<string, string> = {
   expired: 'Срок удостоверения истёк',
   malformed_certificate: 'Код не является удостоверением пайщика',
   unsupported_alg: 'Удостоверение выпущено неизвестным способом',
-  untrusted_anchor: 'Удостоверение выдано другим кооперативом',
-  untrusted_issuer: 'Ключ заверения не совпал с опубликованным в цепи',
-  invalid_signature: 'Подпись не сходится — удостоверение подделано или изменено',
+  no_trust_anchor: 'Считыватель не настроен: не задан корневой ключ проверки',
+  not_endorsed: 'Кооператив не подтверждён: заверения в удостоверении нет',
+  broken_chain: 'Цепочка подтверждения разорвана',
+  endorsement_expired: 'Подтверждение кооператива просрочено',
+  endorsement_invalid: 'Подтверждение кооператива не сходится — цепочка поддельна',
+  foreign_chain: 'Удостоверение выпущено в другой сети',
+  issuer_mismatch: 'Удостоверение выпущено не тем, кого подтверждает цепочка',
+  signature_mismatch: 'Подпись не сходится — удостоверение подделано или изменено',
   unsupported_schema_version: 'Удостоверение устаревшего образца',
 };
 
@@ -128,37 +137,22 @@ async function verify(jws: string): Promise<void> {
     return;
   }
 
-  // Ключи заверения берём из цепи, а не из предъявленного удостоверения: иначе
-  // предъявитель сам себе и издатель, и проверка ничего не значит.
-  const trustedKeys: Record<string, string> = {};
-  for (const link of claims.coop_chain ?? []) {
-    const key = await certKeyFromChain(link.account);
-    if (key) trustedKeys[link.account] = key;
-  }
+  // Корень доверия — из настроек установки, иначе вшитый в пакет. Из предъявленного
+  // удостоверения он не берётся никогда: тогда предъявитель сам назначал бы, чем его
+  // проверяют.
+  const trustAnchor = env.COOPID_TRUST_ANCHOR_KEY || TRUST_ANCHOR_ANO_CERT_PUBKEY || undefined;
 
-  // Издателем обязан быть кооператив, которому принадлежит этот считыватель.
-  // Без этой проверки достаточно поставить якорь первым звеном в собственной цепи —
-  // ключи-то у всех настоящие, читаются из цепи, — и чужое удостоверение пройдёт как
-  // своё. Заверения якоря о том, что этот кооператив им признан, в удостоверении
-  // сейчас нет: цепь перечисляет ключи, но не несёт подписи якоря под кооперативом.
-  const issuer = claims.coop_chain?.[claims.coop_chain.length - 1]?.account;
-  if (!issuer || issuer !== system.info.coopname) {
-    result.value = { valid: false, name: fullName(claims.identification), reason: REASONS.untrusted_anchor };
-    return;
-  }
-
-  const anchorAccount = claims.coop_chain?.[0]?.account ?? '';
   const verdict = await verifyOffline(jws, {
-    trustedKeys,
-    trustAnchorAccount: anchorAccount,
-    trustAnchor: trustedKeys[anchorAccount],
+    trustAnchor,
+    // Сеть сверяется, чтобы признание из испытательной сети не действовало в боевой.
+    chainId: env.CHAIN_ID || undefined,
   });
 
   result.value = verdict.valid
     ? {
         valid: true,
         name: fullName(claims.identification),
-        coop: claims.coopname,
+        coop: verdict.chain?.join(' → ') ?? claims.coopname,
         until: new Date(claims.exp * 1000).toLocaleString('ru-RU'),
       }
     : {
@@ -171,7 +165,6 @@ async function verify(jws: string): Promise<void> {
 interface Claims {
   coopname: string;
   exp: number;
-  coop_chain?: { account: string; public_key: string }[];
   identification?: Record<string, unknown> | null;
 }
 
@@ -191,27 +184,6 @@ function fullName(identification?: Record<string, unknown> | null): string {
   if (!identification) return '';
   const parts = [identification.last_name, identification.first_name, identification.middle_name];
   return parts.filter((p): p is string => typeof p === 'string' && p.length > 0).join(' ');
-}
-
-/** Публичный ключ права заверения аккаунта прямо из цепи. */
-async function certKeyFromChain(account: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${env.CHAIN_URL}/v1/chain/get_account`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ account_name: account }),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      permissions?: { perm_name?: string; required_auth?: { threshold?: number; keys?: { key?: string }[]; accounts?: unknown[]; waits?: unknown[] } }[];
-    };
-    const perm = data.permissions?.find((p) => p.perm_name === 'cert');
-    const auth = perm?.required_auth;
-    if (!auth || auth.threshold !== 1 || auth.keys?.length !== 1 || auth.accounts?.length || auth.waits?.length) return null;
-    return auth.keys[0].key ?? null;
-  } catch {
-    return null;
-  }
 }
 
 interface DetectedCode { rawValue?: string }
