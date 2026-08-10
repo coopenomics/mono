@@ -1,6 +1,5 @@
 import { Cooperative } from 'cooptypes';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { AgreementRegistrationPort } from '~/domain/registration/ports/agreement-registration.port';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   BLAGOROST_OFFER_AGREEMENT_ID,
@@ -11,6 +10,7 @@ import {
   GENERATOR_OFFER_AGREEMENT_ID,
 } from '../../constants/capital-agreement-ids';
 import type { IConfig } from '../../capital-extension.module';
+import { type IRegistrationRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Регистрация оферт и программ Capital в платформенном AgreementRegistry.
@@ -34,7 +34,7 @@ import type { IConfig } from '../../capital-extension.module';
  * каждая спека получит собственный резолвер — ядро менять не потребуется.
  */
 export function registerCapitalInAgreementRegistry(
-  port: AgreementRegistrationPort,
+  port: IRegistrationRegistryPort,
   extensionConfig: IConfig,
   resolveDocDataHash?: () => Promise<string | undefined>
 ): boolean {

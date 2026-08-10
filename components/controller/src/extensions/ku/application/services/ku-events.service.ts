@@ -4,12 +4,12 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
-import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
-import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  BRANCH_PORT,
+  type IBranchPort,
+} from '@coopenomics/innercoop';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { platformSettings } from '@coopenomics/extension-kit';
-import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
   KU_TRUST_REQUEST_REPOSITORY,
@@ -32,7 +32,7 @@ export class KuEventsService {
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
+    @Inject(BRANCH_PORT) private readonly branchBlockchainPort: IBranchPort,
     @Inject(ORGANIZATION_PORT) private readonly organizationRepository: IOrganizationPort,
     @Inject(INDIVIDUAL_PORT) private readonly individualRepository: IIndividualPort,
     @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethodPort: IPaymentMethodPort,
@@ -228,10 +228,10 @@ export class KuEventsService {
         return;
       }
 
-      const trustee = new IndividualDomainEntity(await this.individualRepository.findByUsername(decision.chairman));
+      const trustee = await this.individualRepository.findByUsername(decision.chairman);
       const branchName = decision.branch_name || decision.braname;
 
-      const combinedData = new OrganizationDomainEntity({
+      const combinedData = {
         ...cooperative,
         short_name: `КУ «${branchName}»`,
         full_name: `Кооперативный Участок «${branchName}»`,
@@ -244,7 +244,7 @@ export class KuEventsService {
           position: 'председатель кооперативного участка',
         },
         username: decision.braname,
-      });
+      };
 
       await this.organizationRepository.create(combinedData);
 

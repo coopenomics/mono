@@ -1,5 +1,4 @@
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { AgreementRegistrationPort } from '~/domain/registration/ports/agreement-registration.port';
 import {
   MARKETPLACE_AGREEMENT_TYPE,
   MARKETPLACE_EXTENSION_NAME,
@@ -7,6 +6,7 @@ import {
   MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID,
   MARKETPLACE_PROGRAM_KEY,
 } from '../../constants/marketplace-agreement-ids';
+import { ProgramKey, type IRegistrationRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Регистрация ЦПП «Стол заказов» в платформенном AgreementRegistry как
@@ -30,7 +30,7 @@ import {
  * Идемпотентность гарантирует `AgreementRegistryService`.
  */
 export function registerMarketplaceInAgreementRegistry(
-  port: AgreementRegistrationPort
+  port: IRegistrationRegistryPort
 ): boolean {
   if (MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID <= 0) {
     return false;

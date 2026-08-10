@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
-import { ProgramKey } from '~/domain/registration/enum';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent,
+  ProgramKey,
+} from '@coopenomics/innercoop';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';

@@ -4,11 +4,10 @@ import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+} from '@coopenomics/innercoop';
 
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from '../registration/register-marketplace-in-agreement-registry';
@@ -59,8 +58,8 @@ export class MarketplaceCoopAcceptanceService {
     // не дублирует записи по (id, extension_name). @Optional для unit-тестов
     // Story 1.9, которые тестируют только accept без агрегата registration.
     @Optional()
-    @Inject(AGREEMENT_REGISTRATION_PORT)
-    private readonly agreementRegistrationPort?: AgreementRegistrationPort
+    @Inject(REGISTRATION_REGISTRY_PORT)
+    private readonly agreementRegistrationPort?: IRegistrationRegistryPort
   ) {
     this.logger.setContext(MarketplaceCoopAcceptanceService.name);
   }

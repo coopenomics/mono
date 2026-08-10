@@ -8,10 +8,6 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import {
-  BRANCH_BLOCKCHAIN_PORT,
-  type BranchBlockchainPort,
-} from '~/domain/branch/interfaces/branch-blockchain.port';
-import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
 } from '../dto/marketplace-event.dto';
@@ -23,6 +19,7 @@ import {
   marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from '../realtime/marketplace-realtime.topics';
+import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 
 /**
  * Единственная подписка приложения marketplace: поток событий для пайщика.
@@ -44,7 +41,7 @@ export class MarketplaceEventsResolver {
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchPort: BranchBlockchainPort
+    @Inject(BRANCH_PORT) private readonly branchPort: IBranchPort
   ) {}
 
   @Subscription(() => MarketplaceEventUnion, {

@@ -31,10 +31,11 @@ import { ProjectManagementInteractor } from '../use-cases/project-management.int
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
-import { ProgramKey } from '~/domain/registration/enum';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
-import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort,
+  ProgramKey,
+} from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
   platformSettings,

@@ -2,17 +2,16 @@ import { Inject, Injectable, Module, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
   platformSettings,
 } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+} from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
 import { config } from '~/config';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  type AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
 import { Cooperative } from 'cooptypes';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
@@ -37,8 +36,8 @@ export class MarketplaceExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(AGREEMENT_REGISTRATION_PORT)
-    private readonly agreementRegistrationPort: AgreementRegistrationPort,
+    @Inject(REGISTRATION_REGISTRY_PORT)
+    private readonly agreementRegistrationPort: IRegistrationRegistryPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     @Optional()
@@ -126,7 +125,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
 
   /**
    * Регистрация оферты ЦПП «Стол заказов» в платформенном AgreementRegistry
-   * (Story 1.2). Использует общий core-механизм `AgreementRegistrationPort` —
+   * (Story 1.2). Использует общий core-механизм `IRegistrationRegistryPort` —
    * тот же, через который Capital регистрирует свои оферты. Записи реестра
    * автоматически зачищаются при `EXTENSION_APP_TERMINATE_EVENT`.
    *

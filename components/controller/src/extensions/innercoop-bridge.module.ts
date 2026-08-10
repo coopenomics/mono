@@ -2,6 +2,7 @@ import { Global, Module, Scope } from '@nestjs/common';
 import {
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
+  BRANCH_PORT,
   COOPERATIVE_VARS_PORT,
   DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
@@ -24,6 +25,7 @@ import {
   PAYMENT_PROVIDER_REGISTRY_PORT,
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
+  REGISTRATION_REGISTRY_PORT,
   USER_DATA_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
@@ -59,6 +61,8 @@ import { WalletModule } from '~/application/wallet/wallet.module';
 import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoop.adapter';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
+import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
+import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -126,6 +130,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ProgramWalletInnercoopAdapter,
     UserWalletInnercoopAdapter,
     VaultInnercoopAdapter,
+    BranchInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -241,6 +246,16 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: VaultInnercoopAdapter,
     },
     {
+      provide: BRANCH_PORT,
+      useExisting: BranchInnercoopAdapter,
+    },
+    {
+      // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
+      // ничего бы не добавил; `RegistrationDomainModule` глобальный.
+      provide: REGISTRATION_REGISTRY_PORT,
+      useExisting: AgreementRegistryService,
+    },
+    {
       // Без промежуточного адаптера: реестр шагов ядра и порт совпадают по
       // форме, а `OnboardingDomainModule` глобальный — сервис виден отсюда.
       provide: ONBOARDING_STEP_REGISTRY_PORT,
@@ -281,6 +296,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,
+    BRANCH_PORT,
+    REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,

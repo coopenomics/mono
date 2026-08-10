@@ -4,7 +4,10 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
 } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+} from '@coopenomics/innercoop';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
@@ -267,10 +270,6 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 import { UdataDocumentParametersAdapter } from './infrastructure/adapters/udata-document-parameters.adapter';
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  type AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
 
@@ -477,7 +476,7 @@ export class CapitalExtension extends BaseExtensionModule {
     private readonly githubService: GitHubService,
     private readonly gitService: GitService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
-    @Inject(AGREEMENT_REGISTRATION_PORT) private readonly agreementRegistrationPort: AgreementRegistrationPort,
+    @Inject(REGISTRATION_REGISTRY_PORT) private readonly agreementRegistrationPort: IRegistrationRegistryPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort
   ) {

@@ -3,7 +3,6 @@ import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
@@ -34,7 +33,10 @@ import type {
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
-import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort,
+  BRANCH_PORT,
+  type IBranchPort,
+} from '@coopenomics/innercoop';
 import { TransactionDTO } from '@coopenomics/extension-kit';
 import { HttpApiError } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
@@ -48,7 +50,7 @@ import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 export class KuService {
   constructor(
     @Inject(KU_BLOCKCHAIN_PORT) private readonly kuBlockchainPort: KuBlockchainPort,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
+    @Inject(BRANCH_PORT) private readonly branchBlockchainPort: IBranchPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,

@@ -1,11 +1,8 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 
 import type { BranchContract } from 'cooptypes';
+import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 
-import {
-  BRANCH_BLOCKCHAIN_PORT,
-  type BranchBlockchainPort,
-} from '~/domain/branch/interfaces/branch-blockchain.port';
 
 export const MARKETPLACE_KU_CHAIRMAN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMAN_SERVICE');
 
@@ -34,7 +31,7 @@ interface IBranchesCacheEntry {
  * braname`.
  *
  * Источник истины — on-chain таблица `branches` контракта `branch`,
- * читается через `BRANCH_BLOCKCHAIN_PORT.getBranches(coopname)` и
+ * читается через `BRANCH_PORT.getBranches(coopname)` и
  * кешируется in-memory с TTL `BRANCHES_CACHE_TTL_MS` (60 сек). Состав КУ
  * меняется редко (`createbranch`/`editbranch`/`delbranch`/`addtrusted`/
  * `deltrusted`), TTL покрывает обычные сценарии. Резолверы, меняющие
@@ -46,8 +43,8 @@ export class MarketplaceKuChairmanService {
   private readonly branchesCache = new Map<string, IBranchesCacheEntry>();
 
   constructor(
-    @Inject(BRANCH_BLOCKCHAIN_PORT)
-    private readonly branchPort: BranchBlockchainPort
+    @Inject(BRANCH_PORT)
+    private readonly branchPort: IBranchPort
   ) {}
 
   async isKuChairman(coopname: string, member_account: string): Promise<boolean> {
