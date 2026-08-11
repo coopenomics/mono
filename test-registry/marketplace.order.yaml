@@ -221,7 +221,7 @@ cases:
     scenario: «Мои заказы» у пайщика без единого заказа
     expect: пустое состояние с пояснением, без ошибок
     test: components/docs-harness/scenarios/marketplace/orderer/orders-empty.mjs
-    status: written
+    status: passing
 
   # ── Отказ инфраструктуры ────────────────────────────────────────────────
   - id: mkt.order.break.01
