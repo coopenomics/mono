@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import type { TransactResult } from '@wharfkit/session'
+
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
@@ -32,7 +32,9 @@ import { QuantityUtils,
   generateHashFromString,
   generateUniqueHash,
 } from '@coopenomics/extension-kit';
-import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0
@@ -124,7 +126,7 @@ export class ExpensesMutationsService {
     return this.generator.generateDocument({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
   }
 
-  async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<TransactResult> {
+  async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<InnerTransactResult> {
     // Валидация реквизитов ДО блокчейна, снимок — ПОСЛЕ (канон gateway
     // prepareWithdraw → persistWithdraw). Реквизиты в чейн не пишутся.
     const requisiteItems = toRequisiteItems(input.proposal_hash, input.items)
@@ -174,7 +176,7 @@ export class ExpensesMutationsService {
     return result
   }
 
-  async payExpenseItem(input: PayExpenseItemInputDTO): Promise<TransactResult> {
+  async payExpenseItem(input: PayExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.payExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -372,7 +374,7 @@ export class ExpensesMutationsService {
     return created.hash
   }
 
-  async returnExpenseItem(input: ReturnExpenseItemInputDTO): Promise<TransactResult> {
+  async returnExpenseItem(input: ReturnExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.returnExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -381,7 +383,7 @@ export class ExpensesMutationsService {
     })
   }
 
-  async overspendExpenseItem(input: OverspendExpenseItemInputDTO): Promise<TransactResult> {
+  async overspendExpenseItem(input: OverspendExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.overspendExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -390,7 +392,7 @@ export class ExpensesMutationsService {
     })
   }
 
-  async submitExpenseReport(input: SubmitExpenseReportInputDTO): Promise<TransactResult> {
+  async submitExpenseReport(input: SubmitExpenseReportInputDTO): Promise<InnerTransactResult> {
     return this.chain.closeExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,

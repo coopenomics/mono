@@ -1,8 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BranchContract } from 'cooptypes';
-import type { TransactResult } from '@wharfkit/session';
 import httpStatus from 'http-status';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import type { KuBlockchainPort } from '../../../domain/interfaces/ku-blockchain.port';
 import type {
   ApproveKuTrustedInputDomainInterface,
@@ -17,7 +15,11 @@ import type {
   VoteOnKuDecisionInputDomainInterface,
 } from '../../../domain/interfaces/ku-action-inputs.interface';
 import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
-import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
+import { VAULT_PORT, type IVaultPort,
+  CHAIN_PORT,
+  type IChainPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Адаптер блокчейн-порта собраний и решений кооперативных участков.
@@ -26,12 +28,12 @@ import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 @Injectable()
 export class KuBlockchainAdapter implements KuBlockchainPort {
   constructor(
-    private readonly blockchainService: BlockchainService,
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
-  private async transactAs(coopname: string, name: string, data: Record<string, unknown>): Promise<TransactResult> {
+  private async transactAs(coopname: string, name: string, data: Record<string, unknown>): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -42,10 +44,10 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       name,
       authorization: [{ actor: coopname, permission: 'active' }],
       data,
-    })) as TransactResult;
+    })) as InnerTransactResult;
   }
 
-  async createDecision(data: CreateKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async createDecision(data: CreateKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.CreateDec.ICreateDec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -58,7 +60,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.CreateDec.actionName, blockchainData as any);
   }
 
-  async joinDecision(data: JoinKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async joinDecision(data: JoinKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.JoinDec.IJoinDec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -67,7 +69,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.JoinDec.actionName, blockchainData as any);
   }
 
-  async startDecision(data: StartKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async startDecision(data: StartKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     // branch_name в блокчейн не уходит — приватное наименование хранится в БД
     const blockchainData: BranchContract.Actions.StartDec.IStartDec = {
       coopname: data.coopname,
@@ -83,7 +85,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.StartDec.actionName, blockchainData as any);
   }
 
-  async voteOnDecision(data: VoteOnKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async voteOnDecision(data: VoteOnKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.VoteDec.IVoteDec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -94,7 +96,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.VoteDec.actionName, blockchainData as any);
   }
 
-  async closeDecision(data: CloseKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async closeDecision(data: CloseKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.CloseDec.ICloseDec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -103,7 +105,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.CloseDec.actionName, blockchainData as any);
   }
 
-  async execDecision(data: ExecKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async execDecision(data: ExecKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.Exec.IExec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -114,7 +116,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.Exec.actionName, blockchainData as any);
   }
 
-  async cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<TransactResult> {
+  async cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.CancelDec.ICancelDec = {
       coopname: data.coopname,
       hash: data.hash,
@@ -123,7 +125,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.CancelDec.actionName, blockchainData as any);
   }
 
-  async requestTrusted(data: RequestKuTrustedInputDomainInterface): Promise<TransactResult> {
+  async requestTrusted(data: RequestKuTrustedInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.ReqTrusted.IReqTrusted = {
       coopname: data.coopname,
       braname: data.braname,
@@ -135,7 +137,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.ReqTrusted.actionName, blockchainData as any);
   }
 
-  async approveTrusted(data: ApproveKuTrustedInputDomainInterface): Promise<TransactResult> {
+  async approveTrusted(data: ApproveKuTrustedInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.ApprTrusted.IApprTrusted = {
       coopname: data.coopname,
       hash: data.hash,
@@ -147,7 +149,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.ApprTrusted.actionName, blockchainData as any);
   }
 
-  async declineTrusted(data: DeclineKuTrustedInputDomainInterface): Promise<TransactResult> {
+  async declineTrusted(data: DeclineKuTrustedInputDomainInterface): Promise<InnerTransactResult> {
     const blockchainData: BranchContract.Actions.DeclTrusted.IDeclTrusted = {
       coopname: data.coopname,
       hash: data.hash,

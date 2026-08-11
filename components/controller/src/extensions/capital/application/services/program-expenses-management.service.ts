@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
-import type { TransactResult } from '@wharfkit/session';
-import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils,
   platformSettings,
@@ -37,7 +38,7 @@ export class ProgramExpensesManagementService {
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
   ) {}
 
-  async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<TransactResult> {
+  async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<InnerTransactResult> {
     // Реквизиты получателей: валидация ДО on-chain заявки, снимок в шасси —
     // ПОСЛЕ (фиксация «куда платить» на момент создания СЗ).
     const requisiteItems: InnerExpenseRequisiteItemInput[] = data.items.map((it) => ({
@@ -82,7 +83,7 @@ export class ProgramExpensesManagementService {
     return result;
   }
 
-  async topupProgramExpense(data: TopupProgramExpenseInputDTO): Promise<TransactResult> {
+  async topupProgramExpense(data: TopupProgramExpenseInputDTO): Promise<InnerTransactResult> {
     return this.capitalBlockchainPort.topupProgramExpense({
       coopname: data.coopname,
       amount: data.amount,

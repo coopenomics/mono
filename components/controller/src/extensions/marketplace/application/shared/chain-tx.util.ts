@@ -1,7 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
- * Извлекает tx_hash из ответа цепи (wharfkit TransactResult).
+ * Извлекает tx_hash из ответа цепи (ответ wharfkit).
  *
  * wharfkit держит Antelope push_transaction response под `response`
  * (`response.processed.id` / `response.transaction_id`). Для совместимости

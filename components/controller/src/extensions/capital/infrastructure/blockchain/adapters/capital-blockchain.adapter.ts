@@ -1,24 +1,27 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort } from '../../../domain/interfaces/capital-blockchain.port';
-import { Checksum256, Name, UInt128, type TransactResult } from '@wharfkit/session';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
+import { Checksum256, Name, UInt128 } from '@wharfkit/session';
 import httpStatus from 'http-status';
 import type { IContributorBlockchainData } from '../../../domain/interfaces/contributor-blockchain.interface';
 import type { IAppendixBlockchainData } from '../../../domain/interfaces/appendix-blockchain.interface';
 import { ContributorDeltaMapper } from '../mappers/contributor-delta.mapper';
 import { AppendixDeltaMapper } from '../mappers/appendix-delta.mapper';
 import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
-import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
+import { VAULT_PORT, type IVaultPort,
+  CHAIN_PORT,
+  type IChainPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CAPITAL
- * Осуществляет взаимодействие с блокчейном через BlockchainService
+ * Осуществляет взаимодействие с блокчейном через IChainPort
  */
 @Injectable()
 export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   constructor(
-    private readonly blockchainService: BlockchainService,
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly contributorDeltaMapper: ContributorDeltaMapper,
     private readonly appendixDeltaMapper: AppendixDeltaMapper,
@@ -28,7 +31,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Установка конфигурации CAPITAL контракта
    */
-  async setConfig(data: CapitalContract.Actions.SetConfig.ISetConfig): Promise<TransactResult> {
+  async setConfig(data: CapitalContract.Actions.SetConfig.ISetConfig): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -61,7 +64,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Импорт участника в CAPITAL контракт
    */
-  async importContributor(data: CapitalContract.Actions.ImportContributor.IImportContributor): Promise<TransactResult> {
+  async importContributor(data: CapitalContract.Actions.ImportContributor.IImportContributor): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -78,7 +81,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Создание проекта в CAPITAL контракте
    */
-  async createProject(data: CapitalContract.Actions.CreateProject.ICreateProject): Promise<TransactResult> {
+  async createProject(data: CapitalContract.Actions.CreateProject.ICreateProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -113,7 +116,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: CapitalContract.Actions.EditProject.IEditProject): Promise<TransactResult> {
+  async editProject(data: CapitalContract.Actions.EditProject.IEditProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -132,7 +135,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
    */
   async registerContributor(
     data: CapitalContract.Actions.RegisterContributor.IRegisterContributor
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -153,7 +156,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
    * Регистрация участника с полным набором соглашений
    * Отправляет regcontrib с основным контрактом и опциональным соглашением Благорост
    */
-  async registerContributorWithAgreements(data: CapitalContract.Actions.RegisterContributor.IRegisterContributor): Promise<TransactResult> {
+  async registerContributorWithAgreements(data: CapitalContract.Actions.RegisterContributor.IRegisterContributor): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -231,7 +234,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Подписание приложения в CAPITAL контракте
    */
-  async makeClearance(data: CapitalContract.Actions.GetClearance.IGetClearance): Promise<TransactResult> {
+  async makeClearance(data: CapitalContract.Actions.GetClearance.IGetClearance): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -248,7 +251,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Создание коммита в CAPITAL контракте
    */
-  async createCommit(data: CapitalContract.Actions.CreateCommit.ICommit): Promise<TransactResult> {
+  async createCommit(data: CapitalContract.Actions.CreateCommit.ICommit): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -282,7 +285,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Одобрение коммита в CAPITAL контракте
    */
-  async approveCommit(data: CapitalContract.Actions.CommitApprove.ICommitApprove): Promise<TransactResult> {
+  async approveCommit(data: CapitalContract.Actions.CommitApprove.ICommitApprove): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -299,7 +302,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Отклонение коммита в CAPITAL контракте
    */
-  async declineCommit(data: CapitalContract.Actions.CommitDecline.ICommitDecline): Promise<TransactResult> {
+  async declineCommit(data: CapitalContract.Actions.CommitDecline.ICommitDecline): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -316,7 +319,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Обновление сегмента в CAPITAL контракте
    */
-  async refreshSegment(data: CapitalContract.Actions.RefreshSegment.IRefreshSegment): Promise<TransactResult> {
+  async refreshSegment(data: CapitalContract.Actions.RefreshSegment.IRefreshSegment): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -333,7 +336,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Инвестирование в проект CAPITAL контракта
    */
-  async createProjectInvest(data: CapitalContract.Actions.CreateProjectInvest.ICreateInvest): Promise<TransactResult> {
+  async createProjectInvest(data: CapitalContract.Actions.CreateProjectInvest.ICreateInvest): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -350,7 +353,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Денежная программная инвестиция CAPITAL (createpinv)
    */
-  async createProgramInvest(data: CapitalContract.Actions.CreateProgramInvest.ICreateProgramInvest): Promise<TransactResult> {
+  async createProgramInvest(data: CapitalContract.Actions.CreateProgramInvest.ICreateProgramInvest): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -367,7 +370,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Создание долга в CAPITAL контракте
    */
-  async createDebt(data: CapitalContract.Actions.CreateDebt.ICreateDebt): Promise<TransactResult> {
+  async createDebt(data: CapitalContract.Actions.CreateDebt.ICreateDebt): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -386,7 +389,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
    */
   async createProjectProperty(
     data: CapitalContract.Actions.CreateProjectProperty.ICreateProjectProperty
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -405,7 +408,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
    */
   async createProgramProperty(
     data: CapitalContract.Actions.CreateProgramProperty.ICreateProgramProperty
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -422,7 +425,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Запуск голосования в CAPITAL контракте
    */
-  async startVoting(data: CapitalContract.Actions.StartVoting.IStartVoting): Promise<TransactResult> {
+  async startVoting(data: CapitalContract.Actions.StartVoting.IStartVoting): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -439,7 +442,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Голосование в CAPITAL контракте
    */
-  async submitVote(data: CapitalContract.Actions.SubmitVote.ISubmitVote): Promise<TransactResult> {
+  async submitVote(data: CapitalContract.Actions.SubmitVote.ISubmitVote): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -456,7 +459,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Завершение голосования в CAPITAL контракте
    */
-  async completeVoting(data: CapitalContract.Actions.CompleteVoting.ICompleteVoting): Promise<TransactResult> {
+  async completeVoting(data: CapitalContract.Actions.CompleteVoting.ICompleteVoting): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -473,7 +476,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Расчет голосов в CAPITAL контракте
    */
-  async calculateVotes(data: CapitalContract.Actions.CalculateVotes.IFinalVoting): Promise<TransactResult> {
+  async calculateVotes(data: CapitalContract.Actions.CalculateVotes.IFinalVoting): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -490,7 +493,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Внесение результата в CAPITAL контракте
    */
-  async pushResult(data: CapitalContract.Actions.PushResult.IPushResult): Promise<TransactResult> {
+  async pushResult(data: CapitalContract.Actions.PushResult.IPushResult): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -507,7 +510,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Конвертация сегмента в CAPITAL контракте
    */
-  async convertSegment(data: CapitalContract.Actions.ConvertSegment.IConvertSegment): Promise<TransactResult> {
+  async convertSegment(data: CapitalContract.Actions.ConvertSegment.IConvertSegment): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -524,7 +527,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Финансирование программы в CAPITAL контракте
    */
-  async fundProgram(data: CapitalContract.Actions.FundProgram.IFundProgram): Promise<TransactResult> {
+  async fundProgram(data: CapitalContract.Actions.FundProgram.IFundProgram): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -541,7 +544,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Обновление CRPS пайщика в программе CAPITAL контракта
    */
-  async refreshProgram(data: CapitalContract.Actions.RefreshProgram.IRefreshProgram): Promise<TransactResult> {
+  async refreshProgram(data: CapitalContract.Actions.RefreshProgram.IRefreshProgram): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -558,7 +561,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Регистрация доли участника (regshare): подпись ключом кооператива (как у остальных действий CAPITAL).
    */
-  async registerShare(data: CapitalContract.Actions.RegisterShare.IRegisterShare): Promise<TransactResult> {
+  async registerShare(data: CapitalContract.Actions.RegisterShare.IRegisterShare): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -575,7 +578,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Установка мастера проекта CAPITAL контракта
    */
-  async setMaster(data: CapitalContract.Actions.SetMaster.ISetMaster): Promise<TransactResult> {
+  async setMaster(data: CapitalContract.Actions.SetMaster.ISetMaster): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -592,7 +595,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Добавление автора проекта CAPITAL контракта
    */
-  async addAuthor(data: CapitalContract.Actions.AddAuthor.IAddAuthor): Promise<TransactResult> {
+  async addAuthor(data: CapitalContract.Actions.AddAuthor.IAddAuthor): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -609,7 +612,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Установка плана проекта CAPITAL контракта
    */
-  async setPlan(data: CapitalContract.Actions.SetPlan.ISetPlan): Promise<TransactResult> {
+  async setPlan(data: CapitalContract.Actions.SetPlan.ISetPlan): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -626,7 +629,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Запуск проекта CAPITAL контракта
    */
-  async startProject(data: CapitalContract.Actions.StartProject.IStartProject): Promise<TransactResult> {
+  async startProject(data: CapitalContract.Actions.StartProject.IStartProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -643,7 +646,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Открытие проекта для инвестиций CAPITAL контракта
    */
-  async openProject(data: CapitalContract.Actions.OpenProject.IOpenProject): Promise<TransactResult> {
+  async openProject(data: CapitalContract.Actions.OpenProject.IOpenProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -660,7 +663,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Закрытие проекта от инвестиций CAPITAL контракта
    */
-  async closeProject(data: CapitalContract.Actions.CloseProject.ICloseProject): Promise<TransactResult> {
+  async closeProject(data: CapitalContract.Actions.CloseProject.ICloseProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -677,7 +680,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Остановка проекта CAPITAL контракта
    */
-  async stopProject(data: CapitalContract.Actions.StopProject.IStopProject): Promise<TransactResult> {
+  async stopProject(data: CapitalContract.Actions.StopProject.IStopProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -696,7 +699,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
    * Финализация проекта CAPITAL контракта
    * Финализация проекта после завершения всех конвертаций участников
    */
-  async finalizeProject(data: CapitalContract.Actions.FinalizeProject.IFinalizeProject): Promise<TransactResult> {
+  async finalizeProject(data: CapitalContract.Actions.FinalizeProject.IFinalizeProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -713,7 +716,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: CapitalContract.Actions.DeleteProject.IDeleteProject): Promise<TransactResult> {
+  async deleteProject(data: CapitalContract.Actions.DeleteProject.IDeleteProject): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -730,7 +733,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Создание расхода CAPITAL контракта
    */
-  async createExpense(data: CapitalContract.Actions.CreateExpense.ICreateExpense): Promise<TransactResult> {
+  async createExpense(data: CapitalContract.Actions.CreateExpense.ICreateExpense): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -746,7 +749,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
   async createProgramExpense(
     data: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense,
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -762,7 +765,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
   async topupProgramExpense(
     data: CapitalContract.Actions.TopupProgramExpense.ITopupProgramExpense,
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -776,7 +779,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
     });
   }
 
-  async allocateFunds(data: CapitalContract.Actions.Allocate.IAllocate): Promise<TransactResult> {
+  async allocateFunds(data: CapitalContract.Actions.Allocate.IAllocate): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -790,7 +793,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
     });
   }
 
-  async deallocateFunds(data: CapitalContract.Actions.Deallocate.IDiallocate): Promise<TransactResult> {
+  async deallocateFunds(data: CapitalContract.Actions.Deallocate.IDiallocate): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -807,7 +810,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Редактирование участника CAPITAL контракта
    */
-  async editContributor(data: CapitalContract.Actions.EditContributor.IEditContributor): Promise<TransactResult> {
+  async editContributor(data: CapitalContract.Actions.EditContributor.IEditContributor): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -824,7 +827,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Подписание акта участником CAPITAL контракта
    */
-  async signAct1(data: CapitalContract.Actions.SignAct1.ISignAct1): Promise<TransactResult> {
+  async signAct1(data: CapitalContract.Actions.SignAct1.ISignAct1): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -841,7 +844,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Подписание акта председателем CAPITAL контракта
    */
-  async signAct2(data: CapitalContract.Actions.SignAct2.ISignAct2): Promise<TransactResult> {
+  async signAct2(data: CapitalContract.Actions.SignAct2.ISignAct2): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -858,7 +861,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Обновление энергии участника в CAPITAL контракте (геймификация)
    */
-  async refreshContributor(data: CapitalContract.Actions.RefreshContributor.IRefreshContributor): Promise<TransactResult> {
+  async refreshContributor(data: CapitalContract.Actions.RefreshContributor.IRefreshContributor): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 

@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ExpensesManagementInteractor } from '../use-cases/expenses-management.interactor';
-import type { TransactResult } from '@wharfkit/session';
 import type { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
 import type { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
 import type { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-input.dto';
@@ -8,7 +7,9 @@ import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, 
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
 import type { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { Cooperative } from 'cooptypes';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления расходами CAPITAL
@@ -24,7 +25,7 @@ export class ExpensesManagementService {
   /**
    * Создание расхода в CAPITAL контракте
    */
-  async createExpense(data: CreateExpenseInputDTO): Promise<TransactResult> {
+  async createExpense(data: CreateExpenseInputDTO): Promise<InnerTransactResult> {
     return await this.expensesManagementInteractor.createExpense(data);
   }
 

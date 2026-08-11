@@ -1,4 +1,12 @@
-import type { TransactResult } from '@wharfkit/session';
+/**
+ * Форма ответа, из которой берётся номер блока. Описана здесь, а не взята из
+ * SDK цепи: утилиту зовут и с результатом `IChainPort`, у которого типа SDK
+ * нет, — а нужно от него ровно одно поле.
+ */
+export interface TransactResultWithResponse {
+  response?: { processed?: { block_num?: unknown }; [key: string]: any } | null;
+  [key: string]: any;
+}
 
 /**
  * Номер блока, в котором транзакция была применена.
@@ -14,7 +22,7 @@ import type { TransactResult } from '@wharfkit/session';
  * сущность с нулевым `block_num` считается не привязанной к синхронизации и не откатывается
  * форком, что честнее правдоподобного, но неверного номера.
  */
-export function getAppliedBlockNum(transactResult?: TransactResult | null): number {
+export function getAppliedBlockNum(transactResult?: TransactResultWithResponse | null): number {
   const processed = (transactResult?.response as { processed?: { block_num?: unknown } } | undefined)?.processed;
   const blockNum = Number(processed?.block_num);
 

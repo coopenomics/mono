@@ -5,7 +5,6 @@ import type { ImportContributorInputDTO } from '../dto/participation_management/
 import type { RegisterContributorInputDTO } from '../dto/participation_management/register-contributor-input.dto';
 import type { EditContributorInputDTO } from '../dto/participation_management/edit-contributor-input.dto';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
-import type { TransactResult } from '@wharfkit/session';
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
@@ -18,7 +17,9 @@ import { ComponentGenerationContractGenerateDocumentInputDTO } from '../document
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления участием в CAPITAL
@@ -37,14 +38,14 @@ export class ParticipationManagementService {
   /**
    * Импорт участника в CAPITAL контракт
    */
-  async importContributor(data: ImportContributorInputDTO): Promise<TransactResult> {
+  async importContributor(data: ImportContributorInputDTO): Promise<InnerTransactResult> {
     return await this.participationManagementInteractor.importContributor(data);
   }
 
   /**
    * Регистрация участника в CAPITAL контракте
    */
-  async registerContributor(data: RegisterContributorInputDTO): Promise<TransactResult> {
+  async registerContributor(data: RegisterContributorInputDTO): Promise<InnerTransactResult> {
     const result = await this.participationManagementInteractor.registerContributor(data);
     return result;
   }
@@ -81,7 +82,7 @@ export class ParticipationManagementService {
   /**
    * Завершение регистрации в Capital через отправку документов в блокчейн
    */
-  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<TransactResult> {
+  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<InnerTransactResult> {
     const transactResult = await this.participationManagementInteractor.completeCapitalRegistration(data);
 
     // Синхронизируем данные участника из блокчейна
@@ -94,7 +95,7 @@ export class ParticipationManagementService {
    * Подписание приложения в CAPITAL контракте
    * Теперь принимает минимальный набор данных и подписанный документ
    */
-  async makeClearance(data: MakeClearanceInputDTO): Promise<TransactResult> {
+  async makeClearance(data: MakeClearanceInputDTO): Promise<InnerTransactResult> {
     return await this.participationManagementInteractor.makeClearance(data);
   }
 

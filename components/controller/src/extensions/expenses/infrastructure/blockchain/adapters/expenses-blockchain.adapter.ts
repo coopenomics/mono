@@ -1,11 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ExpenseContract } from 'cooptypes'
-import type { TransactResult } from '@wharfkit/session'
+
 import httpStatus from 'http-status'
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service'
 import { ExpensesBlockchainPort } from '../../../domain/interfaces/expenses-blockchain.port'
 import { HttpApiError } from '@coopenomics/extension-kit';
-import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
+import { VAULT_PORT, type IVaultPort,
+  CHAIN_PORT,
+  type IChainPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Адаптер блокчейн-порта `expense`. Канон взят с `CapitalBlockchainAdapter`:
@@ -19,7 +22,7 @@ import { VAULT_PORT, type IVaultPort } from '@coopenomics/innercoop';
 @Injectable()
 export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
   constructor(
-    private readonly blockchainService: BlockchainService,
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort,
     @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
@@ -31,7 +34,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     this.blockchainService.initialize(coopname, wif)
   }
 
-  async createExp(data: ExpenseContract.Actions.CreateExp.ICreateExp): Promise<TransactResult> {
+  async createExp(data: ExpenseContract.Actions.CreateExp.ICreateExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,
@@ -41,7 +44,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     })
   }
 
-  async payExp(data: ExpenseContract.Actions.PayExp.IPayExp): Promise<TransactResult> {
+  async payExp(data: ExpenseContract.Actions.PayExp.IPayExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,
@@ -51,7 +54,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     })
   }
 
-  async reportExp(data: ExpenseContract.Actions.ReportExp.IReportExp): Promise<TransactResult> {
+  async reportExp(data: ExpenseContract.Actions.ReportExp.IReportExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,
@@ -61,7 +64,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     })
   }
 
-  async returnExp(data: ExpenseContract.Actions.ReturnExp.IReturnExp): Promise<TransactResult> {
+  async returnExp(data: ExpenseContract.Actions.ReturnExp.IReturnExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,
@@ -71,7 +74,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     })
   }
 
-  async overspendExp(data: ExpenseContract.Actions.OverspendExp.IOverspendExp): Promise<TransactResult> {
+  async overspendExp(data: ExpenseContract.Actions.OverspendExp.IOverspendExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,
@@ -81,7 +84,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
     })
   }
 
-  async closeExp(data: ExpenseContract.Actions.CloseExp.ICloseExp): Promise<TransactResult> {
+  async closeExp(data: ExpenseContract.Actions.CloseExp.ICloseExp): Promise<InnerTransactResult> {
     await this.initWithCoopKey(data.coopname)
     return this.blockchainService.transact({
       account: ExpenseContract.contractName.production,

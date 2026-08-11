@@ -1,12 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import type { FundProgramDomainInput } from '../../domain/actions/fund-program-domain-input.interface';
 import type { RefreshProgramDomainInput } from '../../domain/actions/refresh-program-domain-input.interface';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { Cooperative } from 'cooptypes';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена для распределения средств в CAPITAL контракте
@@ -24,7 +24,7 @@ export class DistributionManagementInteractor {
   /**
    * Финансирование программы в CAPITAL контракте
    */
-  async fundProgram(data: FundProgramDomainInput): Promise<TransactResult> {
+  async fundProgram(data: FundProgramDomainInput): Promise<InnerTransactResult> {
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.fundProgram(data);
   }
@@ -33,7 +33,7 @@ export class DistributionManagementInteractor {
   /**
    * Обновление CRPS пайщика в программе CAPITAL контракта
    */
-  async refreshProgram(data: RefreshProgramDomainInput): Promise<TransactResult> {
+  async refreshProgram(data: RefreshProgramDomainInput): Promise<InnerTransactResult> {
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.refreshProgram(data);
   }

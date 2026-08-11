@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
@@ -10,7 +12,6 @@ import { GenerationInteractor } from '../use-cases/generation.interactor';
 import { CapitalContract } from 'cooptypes';
 import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
@@ -63,7 +64,7 @@ export class CommitSyncService
   /**
    * Синхронизация коммита между блокчейном и базой данных
    */
-  async syncCommit(coopname: string, commitHash: string, transactResult: TransactResult): Promise<CommitDomainEntity | null> {
+  async syncCommit(coopname: string, commitHash: string, transactResult: InnerTransactResult): Promise<CommitDomainEntity | null> {
     // Извлекаем данные коммита из блокчейна
     const blockchainCommit = await this.capitalBlockchainPort.getCommitByHash(coopname, commitHash);
 

@@ -8,7 +8,6 @@ import type { RegisterContributorDomainInput } from '../../domain/actions/regist
 import type { EditContributorDomainInput } from '../../domain/actions/edit-contributor-domain-input.interface';
 import type { MakeClearanceDomainInput } from '../../domain/actions/make-clearance-domain-input.interface';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
-import type { TransactResult } from '@wharfkit/session';
 import {
   CONTRIBUTOR_REPOSITORY,
   ContributorRepository,
@@ -35,6 +34,7 @@ import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../doma
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort,
   ProgramKey,
+  type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
@@ -100,7 +100,7 @@ export class ParticipationManagementInteractor {
    */
   async importContributor(
     data: ImportContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Проверяем, не существует ли уже участник с указанным username
     const existingContributor = await this.contributorRepository.findByUsername(data.username);
 
@@ -177,7 +177,7 @@ export class ParticipationManagementInteractor {
    */
   async registerContributor(
     data: RegisterContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Извлекаем документ из базы данных для верификации
     const document = await this.documentPort.getByHash(
       data.contract.doc_hash
@@ -308,7 +308,7 @@ export class ParticipationManagementInteractor {
    * Подписание приложения в CAPITAL контракте
    * Теперь принимает минимальный набор данных и подписанный документ
    */
-  async makeClearance(data: MakeClearanceInputDTO): Promise<TransactResult> {
+  async makeClearance(data: MakeClearanceInputDTO): Promise<InnerTransactResult> {
 
     // Извлекаем документ из базы данных для верификации
     const document = await this.documentPort.getByHash(
@@ -387,7 +387,7 @@ export class ParticipationManagementInteractor {
    */
   private async makeClearanceDomain(
     data: MakeClearanceDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Создаем базовые данные appendix для базы данных
     const databaseData: IAppendixDatabaseData = {
       _id: '',
@@ -446,7 +446,7 @@ export class ParticipationManagementInteractor {
    */
   async editContributor(
     data: EditContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Находим участника в базе данных для обновления поля about
     const contributor = await this.getContributorByCriteria({
       username: data.username,
@@ -869,7 +869,7 @@ export class ParticipationManagementInteractor {
    * Завершение регистрации в Capital через отправку документов в блокчейн
    * Отправляет документы через regcontrib с учетом выбранной программы
    */
-  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<TransactResult> {
+  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<InnerTransactResult> {
     // Получаем или создаем Contributor для участника
     let contributor = await this.contributorRepository.findByUsername(data.username);
 

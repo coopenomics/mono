@@ -2,12 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DistributionManagementInteractor } from '../use-cases/distribution-management.interactor';
 import type { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import type { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
-import type { TransactResult } from '@wharfkit/session';
 import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import { Cooperative } from 'cooptypes';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL
@@ -23,7 +24,7 @@ export class DistributionManagementService {
   /**
    * Финансирование программы в CAPITAL контракте
    */
-  async fundProgram(data: FundProgramInputDTO): Promise<TransactResult> {
+  async fundProgram(data: FundProgramInputDTO): Promise<InnerTransactResult> {
     return await this.distributionManagementInteractor.fundProgram(data);
   }
 
@@ -31,7 +32,7 @@ export class DistributionManagementService {
   /**
    * Обновление CRPS пайщика в программе CAPITAL контракта
    */
-  async refreshProgram(data: RefreshProgramInputDTO): Promise<TransactResult> {
+  async refreshProgram(data: RefreshProgramInputDTO): Promise<InnerTransactResult> {
     return await this.distributionManagementInteractor.refreshProgram(data);
   }
 

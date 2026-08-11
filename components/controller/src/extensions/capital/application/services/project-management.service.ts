@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { CreateProjectInputDTO } from '../dto/project_management';
-import type { TransactResult } from '@wharfkit/session';
 import type {
   SetMasterInputDTO,
   AddAuthorInputDTO,
@@ -26,6 +25,7 @@ import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-develop
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { canViewLocalProject } from '../../domain/utils/private-project-access';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления проектами CAPITAL
@@ -44,7 +44,7 @@ export class ProjectManagementService {
   /**
    * Создание проекта в CAPITAL контракте
    */
-  async createProject(data: CreateProjectInputDTO, currentUser: IMonoAccount): Promise<TransactResult> {
+  async createProject(data: CreateProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.createProject(data, currentUser);
   }
 
@@ -62,7 +62,7 @@ export class ProjectManagementService {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: EditProjectInputDTO, currentUser: IMonoAccount): Promise<TransactResult> {
+  async editProject(data: EditProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     if (currentUser.role === 'user') {
       const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
       if (!project) {
@@ -80,7 +80,7 @@ export class ProjectManagementService {
   /**
    * Установка мастера проекта CAPITAL контракта
    */
-  async setMaster(data: SetMasterInputDTO, currentUser: IMonoAccount): Promise<TransactResult> {
+  async setMaster(data: SetMasterInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.setMaster(data, currentUser);
   }
 
@@ -164,7 +164,7 @@ export class ProjectManagementService {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectInputDTO): Promise<TransactResult> {
+  async deleteProject(data: DeleteProjectInputDTO): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.deleteProject(data);
   }
 

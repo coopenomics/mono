@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import type { SetConfigDomainInput } from '../../domain/actions/set-config-domain-input.interface';
 import type { GetCapitalConfigInputDTO } from '../dto/contract_management/get-config-input.dto';
 import { StateOutputDTO, ConfigDTO } from '../dto/contract_management/config-output.dto';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена для управления контрактом CAPITAL
@@ -19,7 +19,7 @@ export class ContractManagementInteractor {
   /**
    * Установка конфигурации CAPITAL контракта
    */
-  async setConfig(data: SetConfigDomainInput): Promise<TransactResult> {
+  async setConfig(data: SetConfigDomainInput): Promise<InnerTransactResult> {
     return await this.capitalBlockchainPort.setConfig(data);
   }
 

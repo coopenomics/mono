@@ -1,13 +1,14 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentRepository, SEGMENT_REPOSITORY } from '../../domain/repositories/segment.repository';
 import { SegmentDeltaMapper } from '../../infrastructure/blockchain/mappers/segment-delta.mapper';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
@@ -71,7 +72,7 @@ export class SegmentSyncService
     coopname: string,
     projectHash: string,
     username: string,
-    transactResult: TransactResult
+    transactResult: InnerTransactResult
   ): Promise<SegmentDomainEntity | null> {
     await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные сегмента из блокчейна по комбинированному индексу

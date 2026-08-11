@@ -1,5 +1,6 @@
 import { Global, Module, Scope } from '@nestjs/common';
 import {
+  CHAIN_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   BRANCH_PORT,
@@ -62,6 +63,7 @@ import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoo
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
+import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
   OrganizationInnercoopAdapter,
@@ -131,6 +133,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     UserWalletInnercoopAdapter,
     VaultInnercoopAdapter,
     BranchInnercoopAdapter,
+    ChainInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -250,6 +253,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: BranchInnercoopAdapter,
     },
     {
+      provide: CHAIN_PORT,
+      useExisting: ChainInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -297,6 +304,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     USER_WALLET_PORT,
     VAULT_PORT,
     BRANCH_PORT,
+    CHAIN_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

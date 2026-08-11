@@ -1,14 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, Not, Repository } from 'typeorm';
 import { BranchContract } from 'cooptypes';
 import { platformSettings } from '@coopenomics/extension-kit';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
+import { CHAIN_PORT, type IChainPort } from '@coopenomics/innercoop';
 
 export const EXPENSE_PLANS_SERVICE = Symbol('EXPENSE_PLANS_SERVICE');
 
@@ -70,7 +70,7 @@ export class ExpensePlansService {
   constructor(
     @InjectRepository(ExpensePlanEntity)
     private readonly planRepo: Repository<ExpensePlanEntity>,
-    private readonly blockchainService: BlockchainService
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {

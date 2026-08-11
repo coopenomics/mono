@@ -1,13 +1,14 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { ContributorDeltaMapper } from '../../infrastructure/blockchain/mappers/contributor-delta.mapper';
 import type { IContributorBlockchainData } from '../../domain/interfaces/contributor-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
@@ -61,7 +62,7 @@ export class ContributorSyncService
   async syncContributor(
     coopname: string,
     username: string,
-    transactResult: TransactResult
+    transactResult: InnerTransactResult
   ): Promise<ContributorDomainEntity | null> {
     await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные участника из блокчейна

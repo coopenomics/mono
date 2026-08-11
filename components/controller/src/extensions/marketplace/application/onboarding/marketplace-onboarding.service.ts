@@ -1,11 +1,12 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import type { TransactResult } from '@wharfkit/session';
 
 import {
   USER_AGREEMENT_REPOSITORY,
   UserAgreementRepository,
 } from '~/domain/wallet/repositories/user-agreement.repository';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
@@ -125,7 +126,7 @@ export class MarketplaceOnboardingService {
     coopname: string;
     username: string;
     document: ISignedDocument;
-  }): Promise<TransactResult> {
+  }): Promise<InnerTransactResult> {
     if (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID <= 0) {
       throw new BadRequestException(
         'ЦПП «Стол заказов» ещё не активирована (Story 1.7 не выполнена): подписание оферты невозможно'

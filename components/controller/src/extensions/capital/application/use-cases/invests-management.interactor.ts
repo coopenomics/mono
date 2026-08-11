@@ -3,7 +3,6 @@ import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/int
 import type { CreateProjectInvestDomainInput } from '../../domain/actions/create-project-invest-domain-input.interface';
 import type { CreateProgramInvestDomainInput } from '../../domain/actions/create-program-invest-domain-input.interface';
 import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
-import type { TransactResult } from '@wharfkit/session';
 import { INVEST_REPOSITORY, InvestRepository } from '../../domain/repositories/invest.repository';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../domain/repositories/contributor.repository';
@@ -11,7 +10,9 @@ import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import type { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
@@ -122,7 +123,7 @@ export class InvestsManagementInteractor {
   async createProjectInvest(
     data: CreateProjectInvestDomainInput,
     _currentUser: IMonoAccount
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     assertBlockchainProject(project, 'инвестирование');
 
@@ -144,7 +145,7 @@ export class InvestsManagementInteractor {
   async createProgramInvest(
     data: CreateProgramInvestDomainInput,
     _currentUser: IMonoAccount
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const blockchainData = {
       coopname: data.coopname,
       username: data.username,
@@ -159,7 +160,7 @@ export class InvestsManagementInteractor {
   /**
    * Направление средств программы в проект или компонент (allocate)
    */
-  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
     assertBlockchainProject(project, 'направление средств');
@@ -174,7 +175,7 @@ export class InvestsManagementInteractor {
   /**
    * Возврат ранее направленных средств из компонента в программу
    */
-  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
     assertBlockchainProject(project, 'возврат средств');

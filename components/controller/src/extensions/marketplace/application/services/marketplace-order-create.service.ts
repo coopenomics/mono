@@ -2,7 +2,9 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount } from '../shared/cost.util';

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
-import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
 import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
@@ -52,7 +51,6 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
   imports: [
     NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
-    BlockchainModule,
     GeneratorInfrastructureModule,
     FileStorageInfrastructureModule.forFeature([ExpenseFilesService]),
   ],

@@ -2,7 +2,6 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import type { TransactResult } from '@wharfkit/session';
 import type { CreateProjectDomainInput } from '../../domain/actions/create-project-domain-input.interface';
 import type { EditProjectDomainInput } from '../../domain/actions/edit-project-domain-input.interface';
 import type { AddAuthorDomainInput } from '../../domain/actions/add-author-domain-input.interface';
@@ -15,7 +14,9 @@ import type { StartProjectDomainInput } from '../../domain/actions/start-project
 import type { StopProjectDomainInput } from '../../domain/actions/stop-project-domain-input.interface';
 import type { IFinalizeProjectDomainInput } from '../../domain/actions/finalize-project-domain-input.interface';
 import type { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
@@ -57,7 +58,7 @@ export class ProjectManagementInteractor {
   /**
    * Создание проекта в CAPITAL контракте
    */
-  async createProject(data: CreateProjectDomainInput, _currentUser: IMonoAccount): Promise<TransactResult> {
+  async createProject(data: CreateProjectDomainInput, _currentUser: IMonoAccount): Promise<InnerTransactResult> {
     // Вызываем блокчейн порт для создания проекта
     const transactResult = await this.capitalBlockchainPort.createProject(data);
 
@@ -150,7 +151,7 @@ export class ProjectManagementInteractor {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: EditProjectDomainInput): Promise<TransactResult> {
+  async editProject(data: EditProjectDomainInput): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     if (isLocalProject(project)) {
       await this.projectRepository.updateLocalContent(data.project_hash, {
@@ -160,7 +161,7 @@ export class ProjectManagementInteractor {
         meta: data.meta,
         data: data.data,
       });
-      return {} as TransactResult;
+      return {} as InnerTransactResult;
     }
 
     assertBlockchainProject(project, 'редактирование');
@@ -180,7 +181,7 @@ export class ProjectManagementInteractor {
   /**
    * Установка мастера проекта CAPITAL контракта
    */
-  async setMaster(data: SetMasterDomainInput, _currentUser: IMonoAccount): Promise<TransactResult> {
+  async setMaster(data: SetMasterDomainInput, _currentUser: IMonoAccount): Promise<InnerTransactResult> {
     await this.requireBlockchainProject(data.project_hash, 'назначение мастера');
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.setMaster(data);
@@ -222,7 +223,7 @@ export class ProjectManagementInteractor {
   /**
    * Установка плана проекта CAPITAL контракта
    */
-  async setPlan(data: SetPlanDomainInput): Promise<TransactResult> {
+  async setPlan(data: SetPlanDomainInput): Promise<InnerTransactResult> {
     await this.requireBlockchainProject(data.project_hash, 'установку плана');
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.setPlan(data);
@@ -330,14 +331,14 @@ export class ProjectManagementInteractor {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectDomainInput): Promise<TransactResult> {
+  async deleteProject(data: DeleteProjectDomainInput): Promise<InnerTransactResult> {
     const projectEntity = await this.projectRepository.findByHash(data.project_hash);
     if (isLocalProject(projectEntity)) {
       if (projectEntity?.isComponent()) {
         this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
       }
       await this.projectRepository.softDeleteLocal(data.project_hash);
-      return {} as TransactResult;
+      return {} as InnerTransactResult;
     }
 
     assertBlockchainProject(projectEntity, 'удаление');

@@ -2,10 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PropertyManagementInteractor } from '../use-cases/property-management.interactor';
 import type { CreateProgramPropertyInputDTO } from '../dto/property_management/create-program-property-input.dto';
 import type { CreateProjectPropertyInputDTO } from '../dto/property_management/create-project-property-input.dto';
-import type { TransactResult } from '@wharfkit/session';
 import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления имуществом CAPITAL
@@ -21,14 +22,14 @@ export class PropertyManagementService {
   /**
    * Создание программного имущественного взноса в CAPITAL контракте
    */
-  async createProgramProperty(data: CreateProgramPropertyInputDTO): Promise<TransactResult> {
+  async createProgramProperty(data: CreateProgramPropertyInputDTO): Promise<InnerTransactResult> {
     return await this.propertyManagementInteractor.createProgramProperty(data);
   }
 
   /**
    * Создание проектного имущественного взноса в CAPITAL контракте
    */
-  async createProjectProperty(data: CreateProjectPropertyInputDTO): Promise<TransactResult> {
+  async createProjectProperty(data: CreateProjectPropertyInputDTO): Promise<InnerTransactResult> {
     return await this.propertyManagementInteractor.createProjectProperty(data);
   }
 

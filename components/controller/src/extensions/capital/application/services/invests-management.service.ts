@@ -9,14 +9,15 @@ import type {
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-draft-verification.util';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { generateRandomHash } from '@coopenomics/extension-kit';
 
 /**
@@ -36,7 +37,7 @@ export class InvestsManagementService {
   async createProjectInvest(
     data: CreateProjectInvestInputDTO,
     currentUser: IMonoAccount
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
       (docHash) => this.documentPort.getByHash(docHash),
@@ -65,7 +66,7 @@ export class InvestsManagementService {
   async createProgramInvest(
     data: CreateProgramInvestInputDTO,
     currentUser: IMonoAccount
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме программной инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
       (docHash) => this.documentPort.getByHash(docHash),
@@ -87,7 +88,7 @@ export class InvestsManagementService {
   /**
    * Направление средств программы в проект или компонент (allocate)
    */
-  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме направляемых средств');
 
     return await this.investsManagementInteractor.allocateFunds(data);
@@ -96,7 +97,7 @@ export class InvestsManagementService {
   /**
    * Возврат ранее направленных средств из компонента в программу
    */
-  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме возвращаемых средств');
 
     return await this.investsManagementInteractor.deallocateFunds(data);

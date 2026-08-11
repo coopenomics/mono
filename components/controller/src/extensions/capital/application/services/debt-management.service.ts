@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DebtManagementInteractor } from '../use-cases/debt-management.interactor';
 import type { CreateDebtInputDTO } from '../dto/debt_management/create-debt-input.dto';
-import type { TransactResult } from '@wharfkit/session';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
-import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления долгами CAPITAL
@@ -22,7 +23,7 @@ export class DebtManagementService {
   /**
    * Создание долга в CAPITAL контракте
    */
-  async createDebt(data: CreateDebtInputDTO): Promise<TransactResult> {
+  async createDebt(data: CreateDebtInputDTO): Promise<InnerTransactResult> {
     return await this.debtManagementInteractor.createDebt(data);
   }
 
