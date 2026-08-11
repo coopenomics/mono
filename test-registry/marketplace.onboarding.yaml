@@ -27,6 +27,10 @@ sources:
   ui:
     - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/**
     - components/desktop/src/pages/Marketplace/OnboardingMemberPickCpp/**
+    # Объявление страниц-шлюзов столов (`gate`) — какая страница перехватывает
+    # заход пайщика без допуска. Сама механика перехвата — платформенная,
+    # см. реестр extensions.workspace-gating.
+    - components/desktop/extensions/market/install.ts
 
 cases:
   # ── L1: кооператив принимает ЦПП ─────────────────────────────────────────
@@ -132,7 +136,9 @@ cases:
     scenario: >
       Пайщик, не подписавший ЦПП, впервые заходит на Стол заказов и видит гейт с офертой; после подписания попадает на стол.
     expect: >
-      до подписи стол закрыт гейтом, после подписи гейт не показывается ни при переходе, ни после перезагрузки страницы
+      до подписи заход на рабочую страницу стола уводит на страницу подключения
+      (не на «Недостаточно прав доступа»), после подписи гейт не показывается ни
+      при переходе, ни после перезагрузки страницы
     test: components/docs-harness/scenarios/marketplace/onboarding/extension-gate.mjs
     status: passing
 
