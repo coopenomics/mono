@@ -15,15 +15,22 @@
  * o.mkt.fee при создании заказа, неиспользованная часть уже возвращена
  * источником через o.mkt.refund.
  *
+ * Имя нитки процесса (`process_type`) передаёт контракт-источник: зачисление
+ * идёт внутри его нитки (у marketplace — поставка по хэшу заказа), поэтому сама
+ * операция не может называть процесс. Пока имя выводилось из кода операции,
+ * поставка подписывалась «Членские взносы кооперативного участка».
+ *
  * Guards:
  *  - авторизация: кооператив либо системный контракт из whitelist;
- *  - сумма в валюте кооператива, больше нуля.
+ *  - сумма в валюте кооператива, больше нуля;
+ *  - имя нитки известно реестру процессов (проверяет ledger2::apply).
  *
  * @ingroup public_branch_actions
  */
 [[eosio::action]] void branch::accrue(eosio::name coopname, eosio::name braname,
                                        eosio::name source_contract,
                                        eosio::asset amount,
+                                       eosio::name process_type,
                                        eosio::checksum256 process_hash,
                                        std::string memo) {
   if (!has_auth(coopname)) {
@@ -44,5 +51,6 @@
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::DISTRIBUTE_COMMON,
+                 process_type,
                  amount, braname, process_hash, memo);
 }

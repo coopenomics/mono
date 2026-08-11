@@ -68,7 +68,7 @@ void capital::approvecmmt(eosio::name coopname, eosio::name master, checksum256 
   if (commit.amounts.total_contribution.amount > 0) {
     auto contributor = Capital::Contributors::get_active_contributor_or_fail(coopname, commit.username);
     auto memo = Capital::Memo::get_push_result_memo(contributor -> id);
-    Ledger2::apply(_capital, coopname, operations::capital::COMMIT_RID, commit.amounts.total_contribution, commit.username, commit.project_hash, memo);
+    Ledger2::apply(_capital, coopname, operations::capital::COMMIT_RID, processes::capital::RID, commit.amounts.total_contribution, commit.username, commit.project_hash, memo);
   }
 
   // Удаляем коммит после обработки

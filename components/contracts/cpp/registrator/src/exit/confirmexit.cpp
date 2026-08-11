@@ -53,6 +53,7 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
     // Резервируем сумму возврата: w.wal.share → w.wal.wpend (o.wal.wthreq).
     std::string memo_req = "Резерв паевого взноса под выход из кооператива, username=" + username.to_string();
     Ledger2::apply(_registrator, coopname, operations::wallet::REQUEST_WITHDRAW,
+                   processes::wallet::WITHDRAW,
                    total_return, username, exit_hash, memo_req);
 
     // Создаём исходящий платёж в gateway с коллбэками completexit/declinexit.

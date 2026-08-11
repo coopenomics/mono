@@ -7,6 +7,9 @@ title: Уровень и энергия участника программы «
 #
 # Единственный источник энергии — денежная инвестиция в программу
 # (capital::createpinv). Коммиты РИД и приём результата энергию не начисляют.
+# Вызовы ledger2::apply в этих операциях передают имя нитки процесса
+# (см. test-registry/ledger2.process-naming.yaml) — поведение самой фичи
+# не меняется.
 sources:
   contract:
     - components/contracts/cpp/capital/domain/core/gamification/**

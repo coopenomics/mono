@@ -51,10 +51,13 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
   if (wallet_name == ledger2_wallets::SHARE_FUND_PAY) return; // уже на главном паевом
 
   eosio::name op;
+  eosio::name process;
   if (wallet_name == ledger2_wallets::MIN_SHARE_FUND) {
     op = operations::registrator::MOVE_MINSHARE;       // w.reg.minshr → w.wal.share
+    process = processes::wallet::WITHDRAW;
   } else if (wallet_name == ledger2_wallets::BLAGOROST_FUND) {
     op = operations::capital::WITHDRAW_FROM_CAPITAL;   // w.cap.blago  → w.wal.share
+    process = processes::capital::WTHCAP;
   } else {
     eosio::check(false,
       std::string{"Нет операции консолидации паевого кошелька "} + wallet_name.to_string() +
@@ -63,7 +66,7 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
 
   std::string memo = "Консолидация паевого взноса при выходе, кошелёк=" +
                      wallet_name.to_string() + ", username=" + username.to_string();
-  Ledger2::apply(_registrator, coopname, op, amount, username, exit_hash, memo);
+  Ledger2::apply(_registrator, coopname, op, process, amount, username, exit_hash, memo);
 }
 
 /**

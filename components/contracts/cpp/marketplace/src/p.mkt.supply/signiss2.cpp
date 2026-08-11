@@ -84,6 +84,7 @@ void marketplace::signiss2(eosio::name coopname,
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::UNLOCK_ORDER,
+                   processes::marketplace::SUPPLY,
                    diff, orderer, o.hash,
                    Marketplace::Memo::get_signiss2_correction_less_memo(o.id));
 
@@ -104,6 +105,7 @@ void marketplace::signiss2(eosio::name coopname,
     // Добор резерва заказа с членского «Стола заказов» (без проводки, оба на 86).
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::LOCK_FROM_MEMBER,
+                   processes::marketplace::SUPPLY,
                    diff, orderer, o.hash,
                    Marketplace::Memo::get_signiss2_correction_more_block_memo(o.id));
   }
@@ -112,6 +114,7 @@ void marketplace::signiss2(eosio::name coopname,
   // ── o.mkt.consum на fact_cost (BURN w.mkt.order, Дт 86 / Кт 10) ──────
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::CONSUME_BY_MEMBER,
+                 processes::marketplace::SUPPLY,
                  fact_cost, orderer, o.hash,
                  Marketplace::Memo::get_consume_by_member_memo(o.id));
 
@@ -135,6 +138,7 @@ void marketplace::signiss2(eosio::name coopname,
       // Недовыдача: неиспользованная часть взноса — на членский «Стола заказов».
       Ledger2::apply(_marketplace, coopname,
                      operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                     processes::marketplace::SUPPLY,
                      locked_fee - fact_fee, orderer, o.hash,
                      Marketplace::Memo::get_membership_fee_refund_memo(o.id));
     } else if (fact_fee > locked_fee) {
@@ -151,13 +155,14 @@ void marketplace::signiss2(eosio::name coopname,
                      ". Сперва переведите паевой в членский (Заявление о конвертации).");
       Ledger2::apply(_marketplace, coopname,
                      operations::marketplace::LOCK_FEE_FROM_MEMBER,
+                     processes::marketplace::SUPPLY,
                      fee_diff, orderer, o.hash,
                      Marketplace::Memo::get_membership_fee_topup_memo(o.id));
     }
 
     if (fact_fee.amount > 0) {
       Branch::accrue(_marketplace, coopname, o.delivery_braname,
-                     fact_fee, o.hash,
+                     fact_fee, processes::marketplace::SUPPLY, o.hash,
                      Marketplace::Memo::get_membership_fee_distribute_memo(o.id));
     }
   }

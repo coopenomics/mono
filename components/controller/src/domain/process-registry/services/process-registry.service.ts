@@ -121,32 +121,7 @@ export class ProcessRegistryService {
       throw new NotFoundException(`Процесс с хэшем ${normHash} не найден`);
     }
 
-    // Имя нитки берём из ledger2::apply (он всегда присутствует в трио).
-    const applies = allActions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
-    if (applies.length === 0) {
-      throw new BadRequestException(
-        `Якорь ledger2::apply отсутствует для process_hash=${normHash}; без него нельзя вывести process_type`
-      );
-    }
-    const naming = this.resolveProcessNaming(
-      applies.map((a) => this.toApplyRef(a.data)),
-      normHash
-    );
-    if (!naming) {
-      const codes = applies.map((a) => this.toApplyRef(a.data).operationCode).join(', ');
-      this.logger.error(
-        `ProcessRegistry: ни одна операция нитки не даёт имени процессу (hash=${normHash}, коды=[${codes}]). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
-      );
-      throw new BadRequestException(
-        `Неизвестные operation_code: ${codes}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
-      );
-    }
-    const processType = naming.processType;
-    if (!KNOWN_PROCESS_TYPES.has(processType)) {
-      throw new BadRequestException(
-        `Неизвестный process_type: ${processType}. PROCESS_HASH_LOCATOR требует обновления.`
-      );
-    }
+    const processType = this.resolveProcessTypeOrFail(allActions, normHash);
 
     // ---------- Phase B: fan-out scan по сущностным таблицам ----------
     const locations: HashLocation[] = PROCESS_HASH_LOCATOR[processType] ?? [];
@@ -194,73 +169,8 @@ export class ProcessRegistryService {
     const limit = Math.max(1, Math.min(100, pagination.limit ?? 10));
     const offset = (page - 1) * limit;
 
-    // Фильтр по типу процесса двухчастный: новые блоки несут имя нитки прямо в
-    // данных экшена, у старых есть только operation_code — для них имя выводится
-    // по исторической карте. Из списка кодов исключаются операции, идущие внутри
-    // чужой нитки, иначе фильтр «Членские взносы КУ» вытаскивал бы поставки, в
-    // которых взнос зачислялся в общий кошелёк участка.
-    const operationCodesForFilter = filter.processType
-      ? Object.entries(OPERATION_CODE_TO_PROCESS_TYPE)
-          .filter(([oc, pt]) => pt === filter.processType && !OPERATIONS_NOT_NAMING_PROCESS.has(oc))
-          .map(([oc]) => oc)
-      : null;
-
-    const params: any[] = [LEDGER2_CODE, filter.coopname];
-    let pIdx = 3;
-    let processTypeClause = '';
-    if (filter.processType) {
-      const typeIdx = pIdx;
-      params.push(filter.processType);
-      pIdx += 1;
-      if (operationCodesForFilter && operationCodesForFilter.length > 0) {
-        const codesIdx = pIdx;
-        params.push(operationCodesForFilter);
-        pIdx += 1;
-        processTypeClause =
-          ` AND (a.data ->> 'process_type' = $${typeIdx}` +
-          ` OR (a.data ->> 'process_type' IS NULL AND a.data ->> 'operation_code' = ANY($${codesIdx})))`;
-      } else {
-        processTypeClause = ` AND a.data ->> 'process_type' = $${typeIdx}`;
-      }
-    }
-    let usernameClause = '';
-    if (filter.username) {
-      usernameClause = ` AND a.data ->> 'username' = $${pIdx}`;
-      params.push(filter.username);
-      pIdx += 1;
-    }
-    // Точечная адресация одного процесса по хэшу (deep-link из реестров
-    // операций/проводок: клик по № процесса ведёт сюда с раскрытым процессом).
-    let processHashClause = '';
-    if (filter.processHash) {
-      processHashClause = ` AND LOWER(a.data ->> 'process_hash') = $${pIdx}`;
-      params.push(filter.processHash.trim().toLowerCase());
-      pIdx += 1;
-    }
-    let fromBlockClause = '';
-    if (filter.fromBlock) {
-      fromBlockClause = ` AND a.block_num >= $${pIdx}`;
-      params.push(filter.fromBlock);
-      pIdx += 1;
-    }
-    let toBlockClause = '';
-    if (filter.toBlock) {
-      toBlockClause = ` AND a.block_num <= $${pIdx}`;
-      params.push(filter.toBlock);
-      pIdx += 1;
-    }
-
-    const baseFilter = `
-      a.account = $1
-      AND a.name = 'apply'
-      AND a.data ->> 'coopname' = $2
-      AND (a.data ->> 'process_hash') IS NOT NULL
-      ${processTypeClause}
-      ${usernameClause}
-      ${processHashClause}
-      ${fromBlockClause}
-      ${toBlockClause}
-    `;
+    const { baseFilter, params, nextParamIdx } = this.buildListFilter(filter);
+    let pIdx = nextParamIdx;
 
     const countRow = await this.actionRepository.manager.query(
       `SELECT COUNT(DISTINCT LOWER(a.data ->> 'process_hash')) AS cnt
@@ -319,42 +229,7 @@ export class ProcessRegistryService {
     // на N=100 строк × 3 SQL = 300 запросов на каждый listProcesses =
     // connection pool exhaustion под нагрузкой. Счётчики доступны через
     // getProcess(hash) для конкретного процесса.
-    // Строку реестра не выбрасываем никогда: процесс, чьё имя вывести не удалось
-    // (незнакомый код операции, запись старее текущего реестра), остаётся видимым
-    // с пустым типом — реестр обязан показывать всё, что есть в цепи.
-    const items: ProcessSummary[] = (rows as any[]).map((r): ProcessSummary => {
-      const codes: (string | null)[] = r.operationCodes ?? [];
-      const types: (string | null)[] = r.processTypes ?? [];
-      const usernames: (string | null)[] = r.usernames ?? [];
-      const applies = codes.map((code, i) => this.toApplyRef({
-        operation_code: code,
-        process_type: types[i],
-      }));
-
-      const naming = this.resolveProcessNaming(applies, r.processHash);
-      if (!naming) {
-        this.logger.warn(
-          `listProcesses: имя нитки не выводится для hash=${r.processHash} (коды=[${codes.join(', ')}]) — строка показана без типа`
-        );
-      } else if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
-        this.logger.warn(
-          `listProcesses: process_type='${naming.processType}' отсутствует в PROCESS_HASH_LOCATOR (hash=${r.processHash}) — локатор требует обновления`
-        );
-      }
-
-      // Субъект процесса — пайщик той операции, что дала нитке имя. У инлайновых
-      // операций экономики КУ в username стоит имя участка, а не заказчика.
-      const subject = naming ? usernames[naming.index] : usernames.find((u) => !!u);
-
-      return {
-        processType: naming?.processType ?? '',
-        processHash: r.processHash,
-        coopname: r.coopname,
-        username: subject ?? null,
-        firstSeenAt: new Date(r.firstSeenAt),
-        lastSeenAt: new Date(r.lastSeenAt),
-      };
-    });
+    const items: ProcessSummary[] = (rows as any[]).map((r) => this.toProcessSummary(r));
 
     return { items, totalCount, totalPages, currentPage: page };
   }
@@ -362,6 +237,148 @@ export class ProcessRegistryService {
   // =====================================================================
   // private helpers
   // =====================================================================
+
+  /**
+   * Имя нитки процесса по её экшенам — с fail-fast на неизвестном имени.
+   *
+   * Имя берётся из `ledger2::apply` (он всегда присутствует в трио).
+   */
+  private resolveProcessTypeOrFail(actions: ActionEntity[], processHash: string): string {
+    const applies = actions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
+    if (applies.length === 0) {
+      throw new BadRequestException(
+        `Якорь ledger2::apply отсутствует для process_hash=${processHash}; без него нельзя вывести process_type`
+      );
+    }
+
+    const refs = applies.map((a) => this.toApplyRef(a.data));
+    const naming = this.resolveProcessNaming(refs, processHash);
+    if (!naming) {
+      const codes = refs.map((r) => r.operationCode).join(', ');
+      this.logger.error(
+        `ProcessRegistry: ни одна операция нитки не даёт имени процессу (hash=${processHash}, коды=[${codes}]). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
+      );
+      throw new BadRequestException(
+        `Неизвестные operation_code: ${codes}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
+      );
+    }
+    if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
+      throw new BadRequestException(
+        `Неизвестный process_type: ${naming.processType}. PROCESS_HASH_LOCATOR требует обновления.`
+      );
+    }
+    return naming.processType;
+  }
+
+  /**
+   * WHERE-условие и параметры для листинга процессов.
+   *
+   * Фильтр по типу процесса двухчастный: новые блоки несут имя нитки прямо в
+   * данных экшена, у старых есть только operation_code — для них имя выводится
+   * по исторической карте. Из списка кодов исключаются операции, идущие внутри
+   * чужой нитки, иначе фильтр «Членские взносы КУ» вытаскивал бы поставки, в
+   * которых взнос зачислялся в общий кошелёк участка.
+   */
+  private buildListFilter(filter: ProcessesFilter): {
+    baseFilter: string;
+    params: any[];
+    nextParamIdx: number;
+  } {
+    const params: any[] = [LEDGER2_CODE, filter.coopname];
+    let pIdx = 3;
+    const clauses: string[] = [];
+
+    if (filter.processType) {
+      const typeIdx = pIdx;
+      params.push(filter.processType);
+      pIdx += 1;
+      const historicalCodes = Object.entries(OPERATION_CODE_TO_PROCESS_TYPE)
+        .filter(([oc, pt]) => pt === filter.processType && !OPERATIONS_NOT_NAMING_PROCESS.has(oc))
+        .map(([oc]) => oc);
+      if (historicalCodes.length > 0) {
+        const codesIdx = pIdx;
+        params.push(historicalCodes);
+        pIdx += 1;
+        clauses.push(
+          ` AND (a.data ->> 'process_type' = $${typeIdx}` +
+            ` OR (a.data ->> 'process_type' IS NULL AND a.data ->> 'operation_code' = ANY($${codesIdx})))`
+        );
+      } else {
+        clauses.push(` AND a.data ->> 'process_type' = $${typeIdx}`);
+      }
+    }
+    if (filter.username) {
+      clauses.push(` AND a.data ->> 'username' = $${pIdx}`);
+      params.push(filter.username);
+      pIdx += 1;
+    }
+    // Точечная адресация одного процесса по хэшу (deep-link из реестров
+    // операций/проводок: клик по № процесса ведёт сюда с раскрытым процессом).
+    if (filter.processHash) {
+      clauses.push(` AND LOWER(a.data ->> 'process_hash') = $${pIdx}`);
+      params.push(filter.processHash.trim().toLowerCase());
+      pIdx += 1;
+    }
+    if (filter.fromBlock) {
+      clauses.push(` AND a.block_num >= $${pIdx}`);
+      params.push(filter.fromBlock);
+      pIdx += 1;
+    }
+    if (filter.toBlock) {
+      clauses.push(` AND a.block_num <= $${pIdx}`);
+      params.push(filter.toBlock);
+      pIdx += 1;
+    }
+
+    const baseFilter = `
+      a.account = $1
+      AND a.name = 'apply'
+      AND a.data ->> 'coopname' = $2
+      AND (a.data ->> 'process_hash') IS NOT NULL
+      ${clauses.join('\n      ')}
+    `;
+    return { baseFilter, params, nextParamIdx: pIdx };
+  }
+
+  /**
+   * Строка агрегата → сводка процесса.
+   *
+   * Строку реестра не выбрасываем никогда: процесс, чьё имя вывести не удалось
+   * (незнакомый код операции, запись старее текущего реестра), остаётся видимым
+   * с пустым типом — реестр обязан показывать всё, что есть в цепи.
+   */
+  private toProcessSummary(r: any): ProcessSummary {
+    const codes: (string | null)[] = r.operationCodes ?? [];
+    const types: (string | null)[] = r.processTypes ?? [];
+    const usernames: (string | null)[] = r.usernames ?? [];
+    const applies = codes.map((code, i) =>
+      this.toApplyRef({ operation_code: code, process_type: types[i] })
+    );
+
+    const naming = this.resolveProcessNaming(applies, r.processHash);
+    if (!naming) {
+      this.logger.warn(
+        `listProcesses: имя нитки не выводится для hash=${r.processHash} (коды=[${codes.join(', ')}]) — строка показана без типа`
+      );
+    } else if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
+      this.logger.warn(
+        `listProcesses: process_type='${naming.processType}' отсутствует в PROCESS_HASH_LOCATOR (hash=${r.processHash}) — локатор требует обновления`
+      );
+    }
+
+    // Субъект процесса — пайщик той операции, что дала нитке имя. У инлайновых
+    // операций экономики КУ в username стоит имя участка, а не заказчика.
+    const subject = naming ? usernames[naming.index] : usernames.find((u) => !!u);
+
+    return {
+      processType: naming?.processType ?? '',
+      processHash: r.processHash,
+      coopname: r.coopname,
+      username: subject ?? null,
+      firstSeenAt: new Date(r.firstSeenAt),
+      lastSeenAt: new Date(r.lastSeenAt),
+    };
+  }
 
   private toApplyRef(data: unknown): ProcessApplyRef {
     const d = (data ?? {}) as Record<string, unknown>;

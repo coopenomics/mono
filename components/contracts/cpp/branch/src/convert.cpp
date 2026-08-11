@@ -33,6 +33,7 @@
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::CONVERT_TO_MKT,
+                 processes::branch::FEES,
                  amount, username, convert_hash,
                  "Перевод персональных членских средств в кошелёк «Стола заказов»");
 }

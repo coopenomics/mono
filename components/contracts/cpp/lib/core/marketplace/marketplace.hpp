@@ -285,6 +285,7 @@ inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
   if (fee.amount <= 0) return;
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                 processes::marketplace::SUPPLY,
                  fee, o.orderer, o.hash,
                  Marketplace::Memo::get_membership_fee_refund_memo(o.id));
 }
@@ -295,6 +296,7 @@ inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
 inline void refund_order_full(eosio::name coopname, const order& o) {
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNLOCK_ORDER,
+                 processes::marketplace::SUPPLY,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_cancel_order_memo(o.id));
   refund_membership_fee_if_any(coopname, o);
@@ -324,6 +326,7 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   if (refund_body.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::UNLOCK_ORDER,
+                   processes::marketplace::SUPPLY,
                    refund_body, o.orderer, o.hash,
                    Marketplace::Memo::get_cancel_order_memo(o.id));
   }
@@ -331,6 +334,7 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
     // Транзит: удержанная половина тела → пул членских взносов, откуда уйдёт в КУ.
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::REFUSAL_PENALTY,
+                   processes::marketplace::SUPPLY,
                    penalty_body, o.orderer, o.hash,
                    Marketplace::Memo::get_refusal_penalty_transit_memo(o.id));
   }
@@ -342,6 +346,7 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   if (refund_fee.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                   processes::marketplace::SUPPLY,
                    refund_fee, o.orderer, o.hash,
                    Marketplace::Memo::get_membership_fee_refund_memo(o.id));
   }
@@ -352,7 +357,7 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   const eosio::asset to_common = penalty_body + penalty_fee;
   if (to_common.amount > 0) {
     Branch::accrue(_marketplace, coopname, o.delivery_braname,
-                   to_common, o.hash,
+                   to_common, processes::marketplace::SUPPLY, o.hash,
                    Marketplace::Memo::get_refusal_penalty_distribute_memo(o.id));
   }
 }

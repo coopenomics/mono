@@ -54,6 +54,7 @@ void marketplace::accretrn(eosio::name coopname,
   // o.mkt.return: ISSUE w.mkt.member, Дт 10 / Кт 86
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::RETURN_BY_MEMBER,
+                 processes::marketplace::RETURN,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
@@ -76,11 +77,13 @@ void marketplace::accretrn(eosio::name coopname,
   const eosio::asset fee_refund = r.fee_refund;
 
   if (fee_refund.amount > 0) {
-    Branch::retfee(_marketplace, coopname, braname, fee_refund, r.hash,
+    Branch::retfee(_marketplace, coopname, braname, fee_refund,
+                   processes::marketplace::RETURN, r.hash,
                    Marketplace::Memo::get_return_fee_from_common_memo(r.id, r.original_order_id));
 
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                   processes::marketplace::SUPPLY,
                    fee_refund, r.orderer, r.hash,
                    Marketplace::Memo::get_return_fee_to_member_memo(r.id, r.original_order_id));
   }

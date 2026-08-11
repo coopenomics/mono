@@ -266,6 +266,8 @@ export interface IAccrue {
   braname: IName
   source_contract: IName
   amount: IAsset
+  /** Имя нитки процесса контракта-источника: взнос зачисляется внутри его процесса. */
+  process_type: IName
   process_hash: IChecksum256
   memo: string
 }
@@ -275,6 +277,8 @@ export interface IRetfee {
   braname: IName
   source_contract: IName
   amount: IAsset
+  /** Имя нитки процесса контракта-источника: взнос зачисляется внутри его процесса. */
+  process_type: IName
   process_hash: IChecksum256
   memo: string
 }

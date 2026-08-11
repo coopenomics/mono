@@ -25,6 +25,7 @@
 void ledger2::apply(eosio::name coopname,
                     eosio::name initiator,
                     eosio::name operation_code,
+                    eosio::name process_type,
                     eosio::asset amount,
                     eosio::name username,
                     eosio::checksum256 process_hash,
@@ -57,6 +58,13 @@ void ledger2::apply(eosio::name coopname,
   const OperationRegistryEntry* entry = find_operation(operation_code);
   eosio::check(entry != nullptr,
                std::string{"Unknown operation code: "} + operation_code.to_string());
+
+  // -------- validate process_type --------
+  // Имя нитки называет инициатор (см. processes.hpp): вывести его из
+  // operation_code нельзя, поэтому опечатка ушла бы в историю молча и процесс
+  // остался бы без названия на столе бухгалтера.
+  eosio::check(processes::is_known_process(process_type),
+               std::string{"Unknown process type: "} + process_type.to_string());
 
   // -------- username обязателен для USER_SHARED (Story 3.2; ADR-002) --------
   // Исключение — миграционные коды (`o.mig.*`): legacy-агрегация без L3.

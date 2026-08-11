@@ -52,6 +52,7 @@ void marketplace::markdown(eosio::name coopname,
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::MARKDOWN_LOSS,
+                 processes::marketplace::SUPPLY,
                  amount, o.orderer, o.hash,
                  Marketplace::Memo::get_markdown_loss_memo(o.id));
 

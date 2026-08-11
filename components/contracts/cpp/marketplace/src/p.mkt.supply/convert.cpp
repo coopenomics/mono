@@ -54,6 +54,7 @@ void marketplace::convert(eosio::name coopname,
   // ── o.mkt.conv: TRANSFER w.wal.share → w.mkt.member (Дт 80 / Кт 86) ──
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::CONVERT_TO_MKT_MEMBER,
+                 processes::marketplace::SUPPLY,
                  amount, orderer, convert_statement.hash,
                  Marketplace::Memo::get_convert_to_member_memo());
 
