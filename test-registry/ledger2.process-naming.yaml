@@ -21,6 +21,9 @@ sources:
     - components/contracts/cpp/lib/core/branch/branch.hpp
     - components/contracts/cpp/branch/src/accrue.cpp
     - components/contracts/cpp/branch/src/retfee.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.return/accretrn.cpp
+    - components/contracts/cpp/registrator/src/exit/exit_helpers.hpp
+    - scripts/check-ledger2-processes.mjs
   backend:
     - components/controller/src/domain/process-registry/**
 
@@ -158,10 +161,70 @@ cases:
       Под одним хэшем нитки эмитированы разные имена процесса (ошибка
       инициатора в контракте).
     expect: >
-      берётся первое имя и пишется предупреждение в лог — процесс не теряет
-      название
+      берётся первое имя по блоку и global_sequence, а не минимум по алфавиту
+      кода операции; в лог пишется предупреждение — процесс не теряет название
+    test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    status: passing
+
+  - id: l2.pnam.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Коммит РИД: контракт эмитит имя нитки приёма РИД, а бэкенд показывает
+      коммиты отдельным процессом с якорем на проекте.
+    expect: >
+      процесс называется жизнью коммитов проекта, и сущность проекта находится
+      по якорю — бэкенд-оверрайд сильнее имени из цепи
+    test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    status: passing
+
+  - id: l2.pnam.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Реестр фильтруется по типу «жизнь коммитов проекта», хотя контракт
+      эмитил в эти записи имя приёма РИД.
+    expect: >
+      коммиты попадают в выборку по коду операции, а фильтр «Приём РИД» их,
+      наоборот, не втягивает
+    test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    status: passing
+
+  - id: l2.pnam.side.11
+    level: backend
+    kind: side
+    scenario: >
+      Реестр фильтруется по типу «Поставка», а в цепи есть нитки гарантийного
+      возврата, внутри которых возвращается членский взнос.
+    expect: >
+      нитки возврата в выборку не попадают — иначе процесс числится в списке
+      поставкой, а при раскрытии называется возвратом
+    test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    status: passing
+
+  - id: l2.pnam.side.12
+    level: contract
+    kind: side
+    scenario: >
+      Пайщик выходит из кооператива, имея остатки и на минимальном паевом, и
+      в ЦПП «Благорост»: оба кошелька консолидируются по одному хэшу выхода.
+    expect: >
+      обе консолидации уходят с именем нитки возврата паевого взноса, то есть
+      у хэша выхода одно имя независимо от того, где лежали остатки
     test: ~
     status: missing
+
+  - id: l2.pnam.break.04
+    level: contract
+    kind: break
+    scenario: >
+      Имя процесса объявлено в контракте, но забыто в перечне PROCESS_REGISTRY,
+      в cooptypes или в локаторе бэкенда.
+    expect: >
+      гейт согласованности реестров падает до деплоя и называет конкретное имя
+      и место, а не «Unknown process type» на проде
+    test: scripts/check-ledger2-processes.mjs
+    status: passing
 
   - id: l2.pnam.side.08
     level: ui

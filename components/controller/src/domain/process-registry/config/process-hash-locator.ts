@@ -31,10 +31,16 @@ export type HashLocation = {
  * в общий процесс `p.cap.rid` (акт-2), где уже находятся accept + repay.
  * На контракте это выражается тем же `p.cap.rid`, но бэкенд накладывает свой
  * вид, чтобы `project_hash` был якорем отдельного представления процесса.
+ *
+ * Оверрайд сильнее имени, эмитированного контрактом: это сознательное
+ * расхождение представления с цепью, а не догадка об имени нитки. Иначе после того,
+ * как контракт начал эмитить `p.cap.rid`, отдельный процесс коммитов исчез бы,
+ * а его нитка (якорь — `project_hash`) уехала бы в локатор `p.cap.rid`, который
+ * ищет `result_hash`, и сущность перестала бы находиться.
  */
-const BACKEND_OVERRIDES: Record<string, string> = {
+export const BACKEND_OVERRIDES: Readonly<Record<string, string>> = Object.freeze({
   'o.cap.commit': 'p.cap.commit',
-};
+});
 
 /**
  * Операции, которые физически идут внутри чужой нитки процесса и потому не
@@ -58,6 +64,13 @@ const BACKEND_OVERRIDES: Record<string, string> = {
 export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
   'o.brn.common',
   'o.brn.retfee',
+  // o.mkt.refund возвращает членский взнос и в нитке поставки (неиспользованная
+  // часть по заказу), и в нитке гарантийного возврата (вторая нога, по хэшу
+  // заявки). В реестре операций он объявлен под поставкой, поэтому без этой
+  // строки фильтр «Поставка» вытаскивал нитку возврата отдельной строкой,
+  // названной поставкой, — а при раскрытии та же нитка называлась возвратом.
+  // Имени поставке он не нужен: в нитке заказа всегда есть o.mkt.lock.
+  'o.mkt.refund',
 ]);
 
 /**
@@ -213,13 +226,26 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROCESS_HASH_LOCATOR));
 
 // ===============================================================
-// Integrity check (runtime): каждый process_type из
-// OPERATION_CODE_TO_PROCESS_TYPE должен быть в PROCESS_HASH_LOCATOR.
-// Срабатывает при старте модуля — fail-fast при рассинхронизации.
+// Integrity check (runtime): локатор обязан знать каждое имя процесса,
+// которое может приехать из цепи. Срабатывает при старте модуля —
+// fail-fast при рассинхронизации.
+//
+// Два независимых источника таких имён, и проверять нужно оба:
+//   1. историческая карта operation_code → process_type (старые блоки);
+//   2. реестр процессов контракта — имя эмитится в ledger2::apply, поэтому
+//      увидеть можно любое имя из PROCESS_REGISTRY, даже если сегодня ни одна
+//      операция под ним не объявлена. Раньше проверялся только (1), и новое
+//      имя, добавленное в processes.hpp, доезжало до 400 в getProcess.
 // ===============================================================
 {
   const missing: string[] = [];
   for (const pt of Object.values(OPERATION_CODE_TO_PROCESS_TYPE)) {
+    if (!KNOWN_PROCESS_TYPES.has(pt)) missing.push(pt);
+  }
+  for (const { type } of Ledger2.LEDGER2_PROCESS_REGISTRY) {
+    if (!KNOWN_PROCESS_TYPES.has(type)) missing.push(type);
+  }
+  for (const pt of Object.values(BACKEND_OVERRIDES)) {
     if (!KNOWN_PROCESS_TYPES.has(pt)) missing.push(pt);
   }
   if (missing.length > 0) {

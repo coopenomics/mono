@@ -81,9 +81,13 @@ void marketplace::accretrn(eosio::name coopname,
                    processes::marketplace::RETURN, r.hash,
                    Marketplace::Memo::get_return_fee_from_common_memo(r.id, r.original_order_id));
 
+    // Имя нитки — возврат, а не поставка: обе ноги идут по хэшу заявки на
+    // возврат. В реестре операций o.mkt.refund объявлен под поставкой (там он
+    // возвращает неиспользованный взнос по заказу), но здесь он вторая нога
+    // гарантийного возврата — нитку называет её инициатор.
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::MEMBERSHIP_FEE_REFUND,
-                   processes::marketplace::SUPPLY,
+                   processes::marketplace::RETURN,
                    fee_refund, r.orderer, r.hash,
                    Marketplace::Memo::get_return_fee_to_member_memo(r.id, r.original_order_id));
   }

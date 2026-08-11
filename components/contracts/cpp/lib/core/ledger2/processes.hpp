@@ -141,4 +141,20 @@ inline bool is_known_process(eosio::name process_type) {
   return false;
 }
 
+/// @brief Уникальность имён в PROCESS_REGISTRY — проверяется на сборке.
+constexpr bool process_registry_is_unique() {
+  constexpr auto count = sizeof(PROCESS_REGISTRY) / sizeof(PROCESS_REGISTRY[0]);
+  for (unsigned i = 0; i < count; ++i) {
+    for (unsigned j = i + 1; j < count; ++j) {
+      if (PROCESS_REGISTRY[i].value == PROCESS_REGISTRY[j].value) return false;
+    }
+  }
+  return true;
+}
+
+// Дубль в перечне означает, что имя завели дважды — линейный поиск это
+// проглотит, а рассинхронизацию с cooptypes/локатором заметить будет негде.
+static_assert(process_registry_is_unique(),
+              "PROCESS_REGISTRY содержит дубликаты имён процессов");
+
 } // namespace processes

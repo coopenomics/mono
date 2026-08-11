@@ -51,22 +51,26 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
   if (wallet_name == ledger2_wallets::SHARE_FUND_PAY) return; // уже на главном паевом
 
   eosio::name op;
-  eosio::name process;
   if (wallet_name == ledger2_wallets::MIN_SHARE_FUND) {
     op = operations::registrator::MOVE_MINSHARE;       // w.reg.minshr → w.wal.share
-    process = processes::wallet::WITHDRAW;
   } else if (wallet_name == ledger2_wallets::BLAGOROST_FUND) {
     op = operations::capital::WITHDRAW_FROM_CAPITAL;   // w.cap.blago  → w.wal.share
-    process = processes::capital::WTHCAP;
   } else {
     eosio::check(false,
       std::string{"Нет операции консолидации паевого кошелька "} + wallet_name.to_string() +
       " на главный при выходе — добавьте маппинг в consolidate_share_to_main");
   }
 
+  // Нитку называет её инициатор — выход из кооператива, поэтому имя одно на
+  // все консолидируемые кошельки. Иначе у одного exit_hash оказалось бы два
+  // имени (p.wal.wthdrw и p.cap.wthcap), и какое победит, зависело бы от того,
+  // на каком кошельке у пайщика ненулевой остаток. Операция возврата из
+  // «Благороста» при этом остаётся собственной операцией — в чужой нитке она
+  // идёт по тому же правилу, что членский взнос КУ внутри поставки.
   std::string memo = "Консолидация паевого взноса при выходе, кошелёк=" +
                      wallet_name.to_string() + ", username=" + username.to_string();
-  Ledger2::apply(_registrator, coopname, op, process, amount, username, exit_hash, memo);
+  Ledger2::apply(_registrator, coopname, op, processes::wallet::WITHDRAW,
+                 amount, username, exit_hash, memo);
 }
 
 /**

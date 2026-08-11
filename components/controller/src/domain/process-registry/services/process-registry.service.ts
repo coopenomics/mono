@@ -13,6 +13,7 @@ import {
   KNOWN_PROCESS_TYPES,
   OPERATION_CODE_TO_PROCESS_TYPE,
   OPERATIONS_NOT_NAMING_PROCESS,
+  BACKEND_OVERRIDES,
   type HashLocation,
 } from '../config/process-hash-locator';
 import { DOCUMENT_FIELDS, looksLikeSignedDocument } from '../config/document-field-detector';
@@ -288,24 +289,53 @@ export class ProcessRegistryService {
     let pIdx = 3;
     const clauses: string[] = [];
 
-    if (filter.processType) {
-      const typeIdx = pIdx;
-      params.push(filter.processType);
+    const bind = (value: unknown): number => {
+      const idx = pIdx;
+      params.push(value);
       pIdx += 1;
+      return idx;
+    };
+
+    if (filter.processType) {
+      // Фильтр обязан отбирать по тому же имени, которое покажет строка, —
+      // иначе процесс попадает в выборку под одним именем, а раскрывается под
+      // другим. Эффективное имя строки считается так же, как в
+      // resolveProcessNaming: оверрайд, затем эмитированное имя, затем
+      // историческая карта.
+      const typeIdx = bind(filter.processType);
+
+      const overriddenTo = Object.entries(BACKEND_OVERRIDES)
+        .filter(([, pt]) => pt === filter.processType)
+        .map(([oc]) => oc);
+      const overriddenAway = Object.entries(BACKEND_OVERRIDES)
+        .filter(([, pt]) => pt !== filter.processType)
+        .map(([oc]) => oc);
       const historicalCodes = Object.entries(OPERATION_CODE_TO_PROCESS_TYPE)
         .filter(([oc, pt]) => pt === filter.processType && !OPERATIONS_NOT_NAMING_PROCESS.has(oc))
         .map(([oc]) => oc);
+
+      // Ветка имени: эмитированное совпало, либо старая запись без имени и код
+      // операции ведёт к нему по исторической карте.
+      let byName = `a.data ->> 'process_type' = $${typeIdx}`;
       if (historicalCodes.length > 0) {
-        const codesIdx = pIdx;
-        params.push(historicalCodes);
-        pIdx += 1;
-        clauses.push(
-          ` AND (a.data ->> 'process_type' = $${typeIdx}` +
-            ` OR (a.data ->> 'process_type' IS NULL AND a.data ->> 'operation_code' = ANY($${codesIdx})))`
-        );
-      } else {
-        clauses.push(` AND a.data ->> 'process_type' = $${typeIdx}`);
+        byName =
+          `(${byName}` +
+          ` OR (a.data ->> 'process_type' IS NULL AND a.data ->> 'operation_code' = ANY($${bind(historicalCodes)})))`;
       }
+      // Коды, у которых бэкенд забрал имя себе, в чужой тип не проходят,
+      // что бы контракт ни эмитил. COALESCE — чтобы запись без кода операции
+      // не выпала из выборки на сравнении с NULL.
+      if (overriddenAway.length > 0) {
+        byName = `(${byName} AND COALESCE(a.data ->> 'operation_code', '') <> ALL($${bind(overriddenAway)}))`;
+      }
+
+      // Ветка оверрайда: код операции сам решает тип, имя из цепи не смотрим.
+      const branches = [byName];
+      if (overriddenTo.length > 0) {
+        branches.push(`a.data ->> 'operation_code' = ANY($${bind(overriddenTo)})`);
+      }
+
+      clauses.push(` AND (${branches.join(' OR ')})`);
     }
     if (filter.username) {
       clauses.push(` AND a.data ->> 'username' = $${pIdx}`);
@@ -414,7 +444,11 @@ export class ProcessRegistryService {
             `('${emittedType}' и '${conflicting.processType}') — взято первое. Проверьте инициатора нитки в контракте.`
         );
       }
-      return { index: emitted, processType: emittedType };
+      // Бэкенд-оверрайд сильнее цепи: это сознательное расхождение
+      // представления с контрактом (коммиты РИД показываются отдельным
+      // процессом), а не вывод имени по коду операции.
+      const override = BACKEND_OVERRIDES[applies[emitted].operationCode];
+      return { index: emitted, processType: override ?? emittedType };
     }
 
     const historical = (predicate: (a: ProcessApplyRef) => boolean): number =>

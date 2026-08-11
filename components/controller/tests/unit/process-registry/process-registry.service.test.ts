@@ -404,6 +404,96 @@ describe('ProcessRegistryService.getProcess', () => {
 
     expect(view.process_type).toBe('p.mkt.supply');
   });
+
+  test('(g5) нитка гарантийного возврата: все три ноги названы возвратом', async () => {
+    // marketplace::accretrn отправляет по хэшу заявки на возврат три операции:
+    // o.mkt.return, инлайновый o.brn.retfee и o.mkt.refund. Последний в реестре
+    // операций объявлен под поставкой — нитку он называть не должен, её называет
+    // инициатор.
+    const codes = ['o.mkt.return', 'o.brn.retfee', 'o.mkt.refund'];
+    const actions = codes.map((code, i) =>
+      makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: {
+          operation_code: code,
+          process_type: 'p.mkt.return',
+          process_hash: HASH,
+          coopname: COOP,
+          username: 'orderer',
+        },
+        global_sequence: String(20 + i),
+      }),
+    );
+
+    const svc = makeService({ actions, entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.return');
+  });
+
+  test('(g6) конфликт эмитированных имён: берётся первое, а не минимум по алфавиту', async () => {
+    // Инвариант «одна нитка — одно имя» контрактом не принуждается, поэтому
+    // читающая сторона обязана вести себя предсказуемо: имя даёт та операция,
+    // что пришла первой по блоку и global_sequence. Алфавит кода операции
+    // ('o.mkt.lock' < 'o.mkt.return') на результат не влияет.
+    const first = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.mkt.return',
+        process_type: 'p.mkt.return',
+        process_hash: HASH,
+        coopname: COOP,
+      },
+      global_sequence: '30',
+    });
+    const stray = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.mkt.lock',
+        process_type: 'p.mkt.supply',
+        process_hash: HASH,
+        coopname: COOP,
+      },
+      global_sequence: '31',
+    });
+
+    const svc = makeService({ actions: [first, stray], entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.return');
+  });
+
+  test('(g7) коммиты РИД: бэкенд-оверрайд сильнее имени из цепи', async () => {
+    // Контракт эмитит p.cap.rid (своего имени для коммитов у него нет), но
+    // бэкенд показывает коммиты отдельным процессом с якорем project_hash.
+    // Без оверрайда поверх эмитированного имени нитка уехала бы в локатор
+    // p.cap.rid, который ищет result_hash, и проект перестал бы находиться.
+    const apply = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.cap.commit',
+        process_type: 'p.cap.rid',
+        process_hash: HASH,
+        coopname: COOP,
+        username: 'ant',
+      },
+    });
+    const project = makeDelta({
+      code: 'capital',
+      table: 'projects',
+      value: { project_hash: HASH, coopname: COOP },
+    });
+
+    const svc = makeService({ actions: [apply], entityDeltasPerLocation: [[project]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.cap.commit');
+    expect(view.delta_history[0].table).toBe('projects');
+  });
 });
 
 // ---------- listProcesses ----------
@@ -543,5 +633,78 @@ describe('ProcessRegistryService.listProcesses', () => {
     const sql = String(query.mock.calls[0][0]);
     expect(sql).toContain("a.data ->> 'process_type'");
     expect(sql).toContain("a.data ->> 'operation_code'");
+  });
+
+  test('фильтр «Поставка» не разворачивается в возвратную ногу членского взноса', async () => {
+    // o.mkt.refund возвращает взнос и по заказу, и по заявке на гарантийный
+    // возврат. В реестре операций он объявлен под поставкой, поэтому без
+    // исключения фильтр «Поставка» вытаскивал нитку возврата отдельной строкой,
+    // подписанной поставкой, — а при раскрытии та же нитка называлась возвратом.
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.mkt.supply' }, PAGE);
+
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    expect(codeParams).toContain('o.mkt.lock');
+    expect(codeParams).not.toContain('o.mkt.refund');
+  });
+
+  test('фильтр коммитов РИД ловит строки, в которых контракт эмитил приём РИД', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.cap.commit' }, PAGE);
+
+    const sql = String(query.mock.calls[0][0]);
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    // Ищем по коду операции, а не по имени из цепи: контракт эмитит p.cap.rid.
+    expect(sql).toContain("a.data ->> 'operation_code' = ANY(");
+    expect(codeParams).toContain('o.cap.commit');
+  });
+
+  test('фильтр «Приём РИД» не втягивает коммиты, показанные отдельным процессом', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.cap.rid' }, PAGE);
+
+    const sql = String(query.mock.calls[0][0]);
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    expect(sql).toContain("<> ALL(");
+    expect(codeParams).toContain('o.cap.commit');
+  });
+
+  test('список и деталь одинаково показывают коммиты РИД', async () => {
+    const { svc: listSvc } = makeListService([
+      makeRow({ operationCodes: ['o.cap.commit'], processTypes: ['p.cap.rid'] }),
+    ]);
+    const detailSvc = makeService({
+      actions: [
+        makeAction({
+          account: 'ledger2',
+          name: 'apply',
+          data: {
+            operation_code: 'o.cap.commit',
+            process_type: 'p.cap.rid',
+            process_hash: HASH,
+            coopname: COOP,
+          },
+        }),
+      ],
+      entityDeltasPerLocation: [[]],
+    });
+
+    const page = await listSvc.listProcesses({ coopname: COOP }, PAGE);
+    const view = await detailSvc.getProcess(HASH, COOP);
+
+    expect(page.items[0].processType).toBe('p.cap.commit');
+    expect(page.items[0].processType).toBe(view.process_type);
   });
 });

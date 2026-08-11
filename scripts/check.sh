@@ -7,7 +7,9 @@
 #     Сюда попадают только правила, которых код УЖЕ придерживается
 #     (нарушений ноль), поэтому включение ничего не ломает и ничего не требует
 #     чинить. Сегодня это архитектурные границы: ядро не знает про расширения,
-#     расширения не ходят друг в друга напрямую — только через inter.
+#     расширения не ходят друг в друга напрямую — только через inter; и
+#     согласованность реестров имён процессов ledger2 между контрактом,
+#     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs).
 #
 #   Ярус B «канон» — только на изменённые файлы, храповиком.
 #     Правила, которым старый код массово не соответствует (сложность, размер
@@ -35,6 +37,7 @@
 # Использование:
 #   pnpm check                      всё
 #   pnpm check:boundaries           только ярус A
+#   pnpm check:ledger2              только реестры процессов ledger2
 #   pnpm check:changed              ярусы B и C
 #   pnpm check:registry             только ярус C
 #   CHECK_BASE=origin/dev pnpm check   с какой веткой сравнивать ярус B
@@ -98,6 +101,10 @@ gate_registry() {
   node "$REPO_ROOT/scripts/check-registry.mjs"
 }
 
+gate_ledger2_processes() {
+  node "$REPO_ROOT/scripts/check-ledger2-processes.mjs"
+}
+
 gate_unit_tests() {
   pnpm run test:unit
 }
@@ -106,6 +113,10 @@ case "$MODE" in
   boundaries)
     run_gate "границы: controller" gate_boundaries_controller
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
+    ;;
+  ledger2)
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
   changed)
     run_gate "канон: изменённые файлы" gate_changed
@@ -117,6 +128,7 @@ case "$MODE" in
   all)
     run_gate "границы: controller" gate_boundaries_controller
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
@@ -127,7 +139,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry)" >&2
+    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2)" >&2
     exit 2
     ;;
 esac
