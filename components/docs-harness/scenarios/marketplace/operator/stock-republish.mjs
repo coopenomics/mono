@@ -54,7 +54,10 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=осталось после недовыдач и отказов', { timeout: 60000 });
+  // Ждём баннер вкладки, а не подпись над списком: подпись живёт внутри
+  // блока позиций и при пустом остатке не рендерится вовсе — ожидание по ней
+  // упирается в таймаут вместо внятного «остатка нет».
+  await page.waitForSelector('text=Обезличенный остаток кооператива', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);

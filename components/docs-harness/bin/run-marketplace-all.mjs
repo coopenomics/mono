@@ -123,6 +123,21 @@ const GROUPS = [
     ],
   },
   {
+    // Между возвратом и списанием: перепредложение берёт позицию из того же
+    // свободного остатка, а списание забирает ВЕСЬ свободный остаток целиком —
+    // после него перепредлагать нечего (проверено прогоном: все позиции
+    // уходят в WRITTEN_OFF). Здесь имущество проходит второй круг: публикация
+    // → заказ другим пайщиком → выдача → возврат в пользу кооператива.
+    name: 'Перевыдача остатка второму пайщику',
+    scenarios: [
+      'marketplace/operator/stock-republish',
+      'marketplace/orderer/stock-order',
+      'marketplace/operator/stock-issuance',
+      'marketplace/orderer/stock-return',
+      'marketplace/operator/stock-return-accept',
+    ],
+  },
+  {
     // Строго ПОСЛЕ возврата: обезличенный остаток на складе участка, который
     // председатель выделяет к списанию, появляется именно из принятого
     // гарантийного возврата — без него список кандидатов пуст.
@@ -132,20 +147,6 @@ const GROUPS = [
       'marketplace/chairman/writeoff-submit',
       'marketplace/chairman/writeoff-authorize',
       'marketplace/operator/writeoff-confirm',
-    ],
-  },
-  {
-    // Строго ПОСЛЕ списания: перепредложение берёт позиции из того же
-    // свободного остатка кооператива, из которого списание набирает
-    // кандидатов. Здесь имущество проходит второй круг — от публикации до
-    // возврата, но уже у другого пайщика и в пользу кооператива.
-    name: 'Перевыдача остатка второму пайщику',
-    scenarios: [
-      'marketplace/operator/stock-republish',
-      'marketplace/orderer/stock-order',
-      'marketplace/operator/stock-issuance',
-      'marketplace/orderer/stock-return',
-      'marketplace/operator/stock-return-accept',
     ],
   },
   {
