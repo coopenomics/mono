@@ -17,12 +17,13 @@ import { SecretaryRoomManagementService } from './application/services/secretary
 import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort,
   SECRET_CIPHER_PORT,
   type ISecretCipherPort,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import * as crypto from 'crypto';
-import config from '~/config/config';
 
 // Новые сервисы и репозитории для секретаря и транскрипции
 import { TranscriptionManagementService } from './domain/services/transcription-management.service';
@@ -103,7 +104,8 @@ export class ChatCoopExtension extends BaseExtensionModule {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly matrixApiService: MatrixApiService,
     private readonly chatCoopApplicationService: ChatCoopApplicationService,
-    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort
   ) {
     super();
     this.logger.setContext(ChatCoopExtension.name);
@@ -156,7 +158,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
             st2.secretaryMatrixUserId.trim().length > 0 &&
             typeof st2.secretaryPasswordEncrypted === 'string' &&
             st2.secretaryPasswordEncrypted.length > 0;
-          if (!hasSecretaryCreds && config.livekit?.url) {
+          if (!hasSecretaryCreds && this.integrations.get<{ url?: string }>('chatcoop', 'livekit')?.url) {
             await this.initializeSecretary();
           }
           const refreshed = await this.extensionRepository.findByName(this.name);
@@ -202,7 +204,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
           st2.secretaryMatrixUserId.trim().length > 0 &&
           typeof st2.secretaryPasswordEncrypted === 'string' &&
           st2.secretaryPasswordEncrypted.length > 0;
-        if (!hasSecretaryCreds && config.livekit?.url) {
+        if (!hasSecretaryCreds && this.integrations.get<{ url?: string }>('chatcoop', 'livekit')?.url) {
           await this.initializeSecretary();
         }
         const refreshed = await this.extensionRepository.findByName(this.name);

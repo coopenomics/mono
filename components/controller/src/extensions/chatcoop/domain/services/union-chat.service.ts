@@ -1,5 +1,4 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import config from '~/config/config';
 import { MatrixApiService } from '../../application/services/matrix-api.service';
 import { UNION_CHAT_REPOSITORY, UnionChatRepository } from '../repositories/union-chat.repository';
 import {
@@ -9,13 +8,21 @@ import {
 import { IConfig } from '../../chatcoop-extension.module';
 import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, type InnerAccount,
   InnerOrganizationType,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 
 @Injectable()
 export class UnionChatService {
   private readonly logger = new Logger(UnionChatService.name);
 
+  /** Настройки союза кооперативов; `null`, если кооператив в союзе не состоит. */
+  private get union(): { is_unioned?: boolean; union_person_id?: string; union_name?: string } | null {
+    return this.integrations.get('chatcoop', 'union');
+  }
+
   constructor(
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     private readonly matrixApiService: MatrixApiService,
     @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(UNION_CHAT_REPOSITORY) private readonly unionChatRepository: UnionChatRepository,
@@ -28,12 +35,12 @@ export class UnionChatService {
    */
   async ensureUnionChat(account: InnerAccount, matrixUserId: string): Promise<void> {
     try {
-      if (!config.union?.is_unioned) {
+      if (!this.union?.is_unioned) {
         return;
       }
 
-      const unionPersonId = config.union.union_person_id;
-      const unionName = config.union.union_name || 'СПО РУСЬ';
+      const unionPersonId = this.union.union_person_id;
+      const unionName = this.union.union_name || 'СПО РУСЬ';
 
       if (!unionPersonId) {
         this.logger.warn('union_person_id не задан, пропускаем создание комнаты союза');

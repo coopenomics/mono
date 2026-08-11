@@ -2,7 +2,6 @@ import { ExpensesMutationsService } from './expenses-mutations.service'
 import type { ExpensesBlockchainPort } from '../../domain/interfaces/expenses-blockchain.port'
 import type { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository'
-import config from '~/config/config'
 import type { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
 import type { ReportExpenseItemInputDTO } from '../dto/report-expense-item.input'
 import { ExpenseReportOutcome } from '../dto/report-expense-item.output'
@@ -15,11 +14,12 @@ import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
 import type { IPaymentPort } from '@coopenomics/innercoop';
 import { PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 // Символ/precision берём из конфига ноды — тесты расчёта разницы не зависят от
 // того, какой именно root_govern_symbol сконфигурирован в окружении CI.
-const SYM = config.blockchain.root_govern_symbol
-const PREC = config.blockchain.root_govern_precision
+const SYM = platformSettings().blockchain.rootGovernSymbol
+const PREC = platformSettings().blockchain.rootGovernPrecision
 const asset = (n: number) => `${n.toFixed(PREC)} ${SYM}`
 
 /**

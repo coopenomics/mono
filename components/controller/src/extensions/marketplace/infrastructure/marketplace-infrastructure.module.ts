@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+// Доступ к отдельной базе расширения. Своя база — не внешняя служба и не
+// настройка контура: расширению нужен собственный порт на инфраструктуру
+// хранения, это отдельная работа. Пока подключение берётся из ядра.
 import config from '~/config/config';
 
 // TypeORM entities
@@ -93,6 +96,7 @@ import {
 } from './mappers/marketplace-container.mapper';
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
@@ -259,7 +263,11 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     },
     {
       provide: GEOCODER_PORT,
-      useFactory: geocoderPortFactory,
+      // Ключ и адрес геокодера приходят из контура через порт настроек
+      // внешних служб: у расширения своих ключей нет.
+      useFactory: (integrations: IIntegrationSettingsPort) =>
+        geocoderPortFactory(integrations.get('marketplace', 'geocoder')),
+      inject: [INTEGRATION_SETTINGS_PORT],
     },
     // Витрина + реестр поставщиков
     MarketplaceVitrineMapper,

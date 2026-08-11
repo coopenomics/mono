@@ -19,6 +19,7 @@ import {
   NOTIFICATION_PORT,
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
+  INTEGRATION_SETTINGS_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
   PAYMENT_METHOD_PORT,
@@ -69,6 +70,7 @@ import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onb
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
+import { IntegrationSettingsInnercoopAdapter } from '~/infrastructure/innercoop/integration-settings-innercoop.adapter';
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
@@ -147,6 +149,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     BranchInnercoopAdapter,
     ChainInnercoopAdapter,
     SecretCipherInnercoopAdapter,
+    IntegrationSettingsInnercoopAdapter,
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
@@ -277,6 +280,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: SecretCipherInnercoopAdapter,
     },
     {
+      provide: INTEGRATION_SETTINGS_PORT,
+      useExisting: IntegrationSettingsInnercoopAdapter,
+    },
+    {
       provide: REALTIME_CHANNEL_PORT,
       useExisting: RealtimeChannelInnercoopAdapter,
     },
@@ -338,6 +345,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     BRANCH_PORT,
     CHAIN_PORT,
     SECRET_CIPHER_PORT,
+    INTEGRATION_SETTINGS_PORT,
     REALTIME_CHANNEL_PORT,
     COUNCIL_PORT,
     USER_DIRECTORY_PORT,

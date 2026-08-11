@@ -11,6 +11,10 @@ import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
   PROGRAM_DOCUMENT_PARAMETERS_HOOK,
+  SECRET_CIPHER_PORT,
+  type ISecretCipherPort,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { z } from 'zod';
@@ -476,6 +480,8 @@ export class CapitalExtension extends BaseExtensionModule {
     private readonly gitService: GitService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
     @Inject(REGISTRATION_REGISTRY_PORT) private readonly agreementRegistrationPort: IRegistrationRegistryPort,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort
   ) {
@@ -517,7 +523,10 @@ export class CapitalExtension extends BaseExtensionModule {
       github_api_token_encrypted: _ghEnc ? '[задан]' : '[пусто]',
     });
 
-    const ghPlain = resolveCapitalGithubApiPlainToken(extensionConfig.github_api_token_encrypted);
+    const ghPlain = resolveCapitalGithubApiPlainToken(extensionConfig.github_api_token_encrypted, {
+      decrypt: (ciphertext: string) => this.secretCipher.decrypt(ciphertext),
+      fallbackToken: this.integrations.get<{ token?: string }>('capital', 'github')?.token,
+    });
     this.githubService.reconfigureWithCapitalExtensionEncrypted(extensionConfig.github_api_token_encrypted);
     this.gitService.reconfigureWithCapitalExtensionEncrypted(extensionConfig.github_api_token_encrypted);
     if (ghPlain) {

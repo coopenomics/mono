@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
-import config from '~/config/config';
 import { platformSettings } from '@coopenomics/extension-kit';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 
 interface MatrixLoginResponse {
   user_id: string;
@@ -87,10 +87,17 @@ export class MatrixApiService {
   private tokenExpiry: Date | null = null;
   private readonly httpClient: AxiosInstance;
 
-  constructor() {
-    this.homeserverUrl = config.matrix.homeserver_url;
-    this.adminUsername = config.matrix.admin_username;
-    this.adminPassword = config.matrix.admin_password;
+  constructor(@Inject(INTEGRATION_SETTINGS_PORT) integrations: IIntegrationSettingsPort) {
+    // Настройки мессенджера приходят из контура: адрес узла и учётная запись
+    // администратора задаются при развёртывании, расширение их не хранит.
+    const matrix = integrations.get<{
+      homeserver_url: string;
+      admin_username: string;
+      admin_password: string;
+    }>('chatcoop', 'matrix');
+    this.homeserverUrl = matrix?.homeserver_url ?? '';
+    this.adminUsername = matrix?.admin_username ?? '';
+    this.adminPassword = matrix?.admin_password ?? '';
     this.httpClient = axios.create({
       baseURL: this.homeserverUrl,
       timeout: 10000,

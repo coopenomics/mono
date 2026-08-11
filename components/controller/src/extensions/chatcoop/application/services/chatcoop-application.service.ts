@@ -19,14 +19,19 @@ import {
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
 import type { ChatcoopManagedMatrixRoomKind } from '../../domain/entities/managed-matrix-room.entity';
-import config from '~/config/config';
-import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
+} from '@coopenomics/innercoop';
 import { CHATCOOP_MATRIX_USER_LINKED_FOR_CAPITAL_PROJECT_ROOMS_EVENT, type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload } from '@coopenomics/innercoop';
 
-// Расширяем тип config для доступа к matrix.client_url
-const extendedConfig = config as typeof config & {
-  matrix: typeof config.matrix & { client_url: string };
-};
+/** Настройки мессенджера, которые нужны этому сервису. */
+interface MatrixSettings {
+  /** Адрес веб-клиента: по нему пайщику дают ссылку на комнату. */
+  client_url: string;
+  /** Общая комната кооператива, если она заведена. */
+  common_room_id?: string;
+}
 
 /**
  * Извлекает display name из данных аккаунта и информации о кооперативе
@@ -105,9 +110,15 @@ function extractContactInfo(account: InnerAccount, logger: Logger): { phone?: st
  */
 @Injectable()
 export class ChatCoopApplicationService {
+  /** Настройки мессенджера из контура; пустые, если он не подключён. */
+  private get matrixSettings(): MatrixSettings {
+    return this.integrations.get<MatrixSettings>('chatcoop', 'matrix') ?? { client_url: '' };
+  }
+
   private readonly logger = new Logger(ChatCoopApplicationService.name);
 
   constructor(
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     private readonly matrixUserManagementService: MatrixUserManagementService,
     private readonly matrixApiService: MatrixApiService,
     private readonly unionChatService: UnionChatService,
@@ -152,7 +163,7 @@ export class ChatCoopApplicationService {
 
     if (matrixUser) {
       // Получаем URL Matrix клиента из конфигурации
-      const matrixClientUrl = extendedConfig.matrix.client_url;
+      const matrixClientUrl = this.matrixSettings.client_url;
 
       try {
         const account = await this.accountDataPort.getAccount(coopUsername);
@@ -195,7 +206,7 @@ export class ChatCoopApplicationService {
 
           await this.unionChatService.ensureUnionChat(account, synapseUser.user_id);
 
-          const matrixClientUrl = extendedConfig.matrix.client_url;
+          const matrixClientUrl = this.matrixSettings.client_url;
           return {
             hasAccount: true,
             matrixUsername: synapseUser.name,
@@ -489,21 +500,21 @@ export class ChatCoopApplicationService {
       }
 
       // Все пайщики присоединяются к общей комнате (если указана)
-      if (extendedConfig.matrix.common_room_id) {
+      if (this.matrixSettings.common_room_id) {
         try {
           // Проверяем, является ли пользователь уже членом общей комнаты
-          const isMember = await this.matrixApiService.isUserInRoom(matrixUserId, extendedConfig.matrix.common_room_id);
+          const isMember = await this.matrixApiService.isUserInRoom(matrixUserId, this.matrixSettings.common_room_id);
           if (!isMember) {
-            await this.matrixApiService.joinRoom(matrixUserId, extendedConfig.matrix.common_room_id);
+            await this.matrixApiService.joinRoom(matrixUserId, this.matrixSettings.common_room_id);
             this.logger.log(
-              `Пользователь ${matrixUserId} присоединился к общей комнате ${extendedConfig.matrix.common_room_id}`
+              `Пользователь ${matrixUserId} присоединился к общей комнате ${this.matrixSettings.common_room_id}`
             );
           } else {
-            this.logger.debug(`Пользователь ${matrixUserId} уже является членом общей комнаты ${extendedConfig.matrix.common_room_id}`);
+            this.logger.debug(`Пользователь ${matrixUserId} уже является членом общей комнаты ${this.matrixSettings.common_room_id}`);
           }
         } catch (error) {
           this.logger.warn(
-            `Не удалось проверить/добавить пользователя ${matrixUserId} в общую комнату ${extendedConfig.matrix.common_room_id}: ${error}`
+            `Не удалось проверить/добавить пользователя ${matrixUserId} в общую комнату ${this.matrixSettings.common_room_id}: ${error}`
           );
           // Не прерываем выполнение, продолжаем с другими комнатами
         }

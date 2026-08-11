@@ -7,9 +7,9 @@ import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
-import config from '~/config/config';
 import { Room, RoomEvent, TrackKind, AudioStream, AudioResampler } from '@livekit/rtc-node';
 import { AccessToken } from 'livekit-server-sdk';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 
 // Параметры VAD (Voice Activity Detection)
 const VAD_THRESHOLD = 0.01; // RMS порог для определения речи
@@ -80,7 +80,13 @@ export class SecretaryAgentService implements OnModuleDestroy {
   /** Очередь flush по буферу: исключает двойное чтение одного PCM до очистки (таймер + max length и т.д.). */
   private readonly flushBufferTailByBuffer = new WeakMap<ParticipantAudioBuffer, Promise<void>>();
 
+  /** Настройки видеосвязи из контура; `null`, если она не подключена. */
+  private get livekit(): { url?: string; api_key?: string; api_secret?: string } | null {
+    return this.integrations.get('chatcoop', 'livekit');
+  }
+
   constructor(
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     private readonly whisperSttService: WhisperSttService,
     private readonly transcriptionService: TranscriptionManagementService,
     private readonly matrixApiService: MatrixApiService,
@@ -103,7 +109,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
    * Проверяет, настроен ли сервис для работы
    */
   isConfigured(): boolean {
-    return !!(config.livekit?.url && config.livekit?.api_key && config.livekit?.api_secret);
+    return !!(this.livekit?.url && this.livekit?.api_key && this.livekit?.api_secret);
   }
 
   /**
@@ -160,7 +166,12 @@ export class SecretaryAgentService implements OnModuleDestroy {
       // 1. Генерируем LiveKit токен для секретаря
       // identity = Matrix MXID из chatcoop_state (secretaryMatrixUserId), как у участников Element
       // livekitRoomName — имя комнаты LiveKit для join (часто hash/mapping от Matrix room)
-      const token = new AccessToken(config.livekit.api_key, config.livekit.api_secret, {
+      // Наличие ключей проверено выше (`isConfigured`): без них до сюда не доходим.
+      const livekit = this.livekit;
+      if (!livekit?.api_key || !livekit.api_secret) {
+        throw new Error('Видеосвязь не настроена в контуре: нет ключей LiveKit');
+      }
+      const token = new AccessToken(livekit.api_key, livekit.api_secret, {
         identity: secretaryLiveKitIdentity,
         name: secretaryLiveKitName,
       });
@@ -275,7 +286,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      await room.connect(config.livekit!.url!, jwt, { autoSubscribe: true, dynacast: true });
+      await room.connect(String(this.livekit?.url ?? ''), jwt, { autoSubscribe: true, dynacast: true });
       this.logger.log(`LiveKit: подключено к ${livekitRoomName}, remoteParticipants=${room.remoteParticipants.size}`);
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
