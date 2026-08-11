@@ -34,7 +34,7 @@ cases:
       доступно = общий кошелёк минус резерв ближайших 30 дней; резерв
       неприкосновенен
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.happy.02
     level: backend
@@ -46,7 +46,7 @@ cases:
       доля = вес / Σ весов в процентах; персональный баланс каждого доверенного
       показан рядом с долей
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.happy.03
     level: backend
@@ -56,7 +56,7 @@ cases:
       распределение уходит на цепь с источником «marketplace» и запрошенной
       суммой
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.01
     level: backend
@@ -64,7 +64,7 @@ cases:
     scenario: Распределение затрагивает плановый резерв расходов участка
     expect: отказ с указанием остатка, резерва и доступной суммы; на цепь ничего не уходит
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.02
     level: backend
@@ -72,7 +72,7 @@ cases:
     scenario: Распределение запрашивает не председатель этого участка
     expect: отказ доступа, сетка и кошельки не меняются
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.03
     level: backend
@@ -80,7 +80,7 @@ cases:
     scenario: Распределение при ненастроенной сетке весов
     expect: отказ — распределять некому, пока веса не заданы
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.04
     level: backend
@@ -88,7 +88,7 @@ cases:
     scenario: Сумма распределения нулевая или отрицательная
     expect: отказ, на цепь ничего не уходит
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.05
     level: backend
@@ -97,7 +97,7 @@ cases:
       В реестре весов есть записи другого участка и другого контракта-источника
     expect: в сетку участка попадают только его собственные веса по «marketplace»
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.06
     level: backend
@@ -105,7 +105,7 @@ cases:
     scenario: Вес доверенного дробный, нулевой или задаётся чужим председателем
     expect: отказ; сетка не меняется ни при задании веса, ни при исключении участника
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.side.07
     level: backend
@@ -117,7 +117,7 @@ cases:
       без своей ставки действует умолчание 30%; ставка вне диапазона на цепь
       не уходит
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
     # Умолчание обязано совпадать с DEFAULT_MEMBERSHIP_FEE_PERCENT контракта:
     # пока кооператив не вызвал setfee, сумма в чекауте считается бэкендом, а
     # списывается контрактом — разойдутся ставки, разойдутся и деньги.
@@ -128,7 +128,7 @@ cases:
     scenario: Плановый резерв больше остатка общего кошелька
     expect: доступно к распределению ноль, а не отрицательная сумма
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
-    status: passing
+    status: written
 
   - id: mkt.eco.ui.01
     level: ui
@@ -138,8 +138,8 @@ cases:
       взносы на балансе участка
     expect: >
       общий кошелёк участка вырос ровно на сумму взносов по исполненным заказам
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/branch-economy.mjs
+    status: written
     # Пункт плана заказчика «экономика показывает членские взносы на балансе
     # после операций». Требует прогона цепочки заказов до выдачи, поэтому
     # ставится после сценария выдачи и читает баланс на экране участка.
@@ -153,7 +153,7 @@ cases:
     expect: >
       каждый доверенный получает долю по своему весу; общий кошелёк уменьшается
       на распределённую сумму
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/branch-economy.mjs
+    status: written
     # Пункт плана заказчика «экономика распределяет членские взносы по
     # доверенным согласно сетке».
