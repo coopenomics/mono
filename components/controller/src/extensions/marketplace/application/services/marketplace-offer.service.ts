@@ -210,7 +210,7 @@ export class MarketplaceOfferService {
       const created = await this.repo.create(dbInput);
       // Новое предложение рождается в PENDING_MODERATION — заявка должна
       // появиться на столе модерации сразу.
-      this.emitModerationRequested(created.id, created.supplier_account);
+      this.emitModerationRequested(created);
       return created;
     } catch (e) {
       // Запись Offer'а не удалась — не оставляем загруженные файлы сиротами.
@@ -349,7 +349,7 @@ export class MarketplaceOfferService {
       // Значимая правка вернула предложение на модерацию — очередь
       // председателя должна показать повторную заявку сразу.
       if (normalizedPatch.status === MarketplaceOfferStatuses.PENDING_MODERATION) {
-        this.emitModerationRequested(updated.id, updated.supplier_account);
+        this.emitModerationRequested(updated);
       }
       return updated;
     } catch (e) {
@@ -421,10 +421,12 @@ export class MarketplaceOfferService {
         supplier_account: updated.supplier_account,
         approved_by: updated.approved_by ?? supplier_account,
         category_id: updated.category_id,
+        coopname: updated.coopname,
+        product_name: updated.product_name,
       };
       this.eventBus.emit(MARKETPLACE_OFFER_APPROVED_EVENT, event);
     } else {
-      this.emitModerationRequested(updated.id, updated.supplier_account);
+      this.emitModerationRequested(updated);
     }
     return updated;
   }
@@ -434,8 +436,18 @@ export class MarketplaceOfferService {
    * перечитывает очередь сразу, без поллинга. Эмитится ПОСЛЕ commit'а в PG
    * (INV-12); маршрутизация по каналу модерации — в realtime-мосте.
    */
-  private emitModerationRequested(offer_id: string, supplier_account: string): void {
-    const event: MarketplaceOfferModerationRequestedEvent = { offer_id, supplier_account };
+  private emitModerationRequested(offer: {
+    id: string;
+    supplier_account: string;
+    coopname: string;
+    product_name: string;
+  }): void {
+    const event: MarketplaceOfferModerationRequestedEvent = {
+      offer_id: offer.id,
+      supplier_account: offer.supplier_account,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
+    };
     this.eventBus.emit(MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT, event);
   }
 

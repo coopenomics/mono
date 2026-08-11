@@ -96,6 +96,8 @@ export class MarketplaceModerationService {
       supplier_account: offer.supplier_account,
       approved_by: admin_account,
       category_id: offer.category_id,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
     });
     return updated;
   }
@@ -133,6 +135,8 @@ export class MarketplaceModerationService {
       supplier_account: offer.supplier_account,
       rejected_by: admin_account,
       reason: trimmed,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
     });
     return updated;
   }

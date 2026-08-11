@@ -22,30 +22,30 @@ export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 export const name = 'Гарантийный возврат принят в кооператив';
 export const id = slugify(name);
 
-// Низкая частота, юридически значимо → все три канала. Дальше председатель КУ
+// Низкая частота, юридически значимо → все три канала. Дальше оператор ПВЗ
 // связывается с поставщиком по претензии за пределами системы.
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление поставщику о том, что по его товару оформлен гарантийный возврат и имущество принято обратно в кооператив — председатель кооперативного участка свяжется с поставщиком по претензии.')
+  .description('Уведомление поставщику о том, что по его товару оформлен гарантийный возврат и имущество принято обратно в кооператив — оператор пункта выдачи свяжется с поставщиком по претензии.')
   .payloadSchema(marketplaceReturnAcceptedSupplierPayloadSchema)
   .tags(['marketplace', 'offerer'])
   .addSteps([
     createEmailStep(
       'marketplace-return-accepted-supplier-email',
       'Гарантийный возврат по вашему товару на КУ {{payload.kuName}}',
-      'Уважаемый {{payload.supplierName}}!<br><br>По вашему товару оформлен гарантийный возврат: имущество принято обратно в кооператив на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Председатель кооперативного участка свяжется с вами для урегулирования претензии.<br><br>Подробности: {{payload.deepLinkUrl}}'
+      'Уважаемый {{payload.supplierName}}!<br><br>По вашему товару оформлен гарантийный возврат: имущество принято обратно в кооператив на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Оператор пункта выдачи свяжется с вами для урегулирования претензии.<br><br>Подробности: {{payload.deepLinkUrl}}'
     ),
     createInAppStep(
       'marketplace-return-accepted-supplier-notification',
       'Гарантийный возврат принят',
-      'По вашему товару оформлен гарантийный возврат на КУ {{payload.kuName}}. Председатель свяжется с вами по претензии.'
+      'По вашему товару оформлен гарантийный возврат на пункте выдачи {{payload.kuName}}. Оператор пункта выдачи свяжется с вами по претензии.'
     ),
     createPushStep(
       'marketplace-return-accepted-supplier-push',
       'Гарантийный возврат принят',
-      'По вашему товару оформлен возврат на КУ {{payload.kuName}} — председатель свяжется с вами.'
+      'По вашему товару оформлен возврат на пункте выдачи {{payload.kuName}} — с вами свяжется оператор.'
     ),
   ])
   .build();

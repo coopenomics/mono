@@ -27,14 +27,14 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о решении председателя по заявлению на гарантийный возврат (одобрение очного визита / отказ удалённо).')
+  .description('Уведомление пайщику-заказчику о решении, принятом на пункте выдачи по его заявлению на гарантийный возврат (одобрение очного визита / отказ удалённо). Решение принимает оператор пункта выдачи — председатель участка либо его доверенное лицо.')
   .payloadSchema(marketplaceReturnClaimDecidedPayloadSchema)
   .tags(['marketplace', 'orderer', 'return'])
   .addSteps([
     createEmailStep(
       'marketplace-return-claim-decided-email',
       'Решение по вашему заявлению на возврат: {{payload.decisionHuman}}',
-      'Уважаемый {{payload.ordererName}}!<br><br>Председатель кооперативного участка <strong>{{payload.brananame}}</strong> вынес решение по вашему заявлению на гарантийный возврат по заказу <strong>{{payload.order_id}}</strong>: <strong>{{payload.decisionHuman}}</strong>.<br><br>Комментарий: {{payload.comment}}<br><br>Подробности заявления: {{payload.deepLinkUrl}}'
+      'Уважаемый {{payload.ordererName}}!<br><br>На пункте выдачи <strong>{{payload.brananame}}</strong> принято решение по вашему заявлению на гарантийный возврат по заказу <strong>{{payload.order_id}}</strong>: <strong>{{payload.decisionHuman}}</strong>.<br><br>Комментарий: {{payload.comment}}<br><br>Подробности заявления: {{payload.deepLinkUrl}}'
     ),
     createInAppStep(
       'marketplace-return-claim-decided-notification',

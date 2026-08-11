@@ -278,9 +278,13 @@ export class MarketplaceReturnClaimService {
 
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
 
-  async submitReturnClaim(
-    input: MarketplaceCreateReturnClaimInput
-  ): Promise<MarketplaceReturnClaimResult> {
+  /**
+   * Требования к заявлению, проверяемые до обращения к заказу и цепи: причина
+   * своими словами и хотя бы одно фото. Вынесено из `submitReturnClaim` —
+   * заявление рассматривают удалённо, и без описания с фотографиями оператору
+   * пункта выдачи решать нечего.
+   */
+  private validateSubmitInput(input: MarketplaceCreateReturnClaimInput): void {
     if (!input.reason_text || input.reason_text.trim().length === 0) {
       throw new BadRequestException('Опишите причину возврата.');
     }
@@ -294,6 +298,12 @@ export class MarketplaceReturnClaimService {
       throw new BadRequestException('Можно приложить не более 10 фотографий.');
     }
     this.validatePhotoPayloads(input.photos);
+  }
+
+  async submitReturnClaim(
+    input: MarketplaceCreateReturnClaimInput
+  ): Promise<MarketplaceReturnClaimResult> {
+    this.validateSubmitInput(input);
 
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const actual_quantity = this.resolveActualQuantity(order, input.actual_quantity);
@@ -1102,6 +1112,48 @@ export class MarketplaceReturnClaimService {
    * compensating forward — деньги пайщику важнее бухгалтерии остатка,
    * которую при сбое видно в логе и можно поправить вручную.
    */
+  /**
+   * Характеристики возвращаемой позиции: цена прихода, срок годности и партия
+   * поставки.
+   *
+   * Обычный заказ — исходная позиция несёт этот order_id напрямую; заказ из
+   * остатка (stockorder) резервирует уже существующие COOP-позиции через
+   * reserved_order_id (order_id на них не переносится, см. reserveStock /
+   * finalizeReservedIssue) — пробуем оба пути.
+   *
+   * Партия берётся та же, которой имущество пришло на участок: колонка хранит
+   * uuid поставки, и составной маркер вида `return:<id>` в неё физически не
+   * влезает — вставка падала на типе, а ошибка гасилась в catch вызывающего.
+   * Наружу это выглядело как принятый возврат без имущества на складе: деньги
+   * пайщику вернулись, а остаток кооператива не появлялся, и списывать было
+   * нечего. Поэтому нет партии → `null`, и вызывающий не пишет позицию вовсе.
+   */
+  private async resolveRestockOrigin(
+    claim: MarketplaceReturnClaimDomainEntity,
+    order: MarketplaceOrderDomainEntity,
+    offer: { shelf_life_days?: number | null } | null,
+    at: Date
+  ): Promise<{ arrival_price: string; expiry_date: Date | null; shipment_id: string } | null> {
+    const [byOrderId, byReservedOrderId] = await Promise.all([
+      this.inventoryRepo.list({ coopname: claim.coopname, order_id: claim.order_id }),
+      this.inventoryRepo.list({ coopname: claim.coopname, reserved_order_id: claim.order_id }),
+    ]);
+    const origin = byOrderId[0] ?? byReservedOrderId[0] ?? null;
+
+    const shipment_id = origin?.shipment_id ?? order.shipment_id;
+    if (!shipment_id) return null;
+
+    const shelfLifeExpiry = offer?.shelf_life_days
+      ? new Date(at.getTime() + offer.shelf_life_days * 86_400_000)
+      : null;
+
+    return {
+      arrival_price: origin?.arrival_price ?? order.price_per_unit,
+      expiry_date: origin?.expiry_date ?? shelfLifeExpiry,
+      shipment_id,
+    };
+  }
+
   private async restockReturnedItem(
     claim: MarketplaceReturnClaimDomainEntity,
     braname: string,
@@ -1117,35 +1169,14 @@ export class MarketplaceReturnClaimService {
         return;
       }
       const offer = await this.offerRepo.findById(order.offer_id);
-      // Обычный заказ — исходная позиция несёт этот order_id напрямую; заказ
-      // из остатка (stockorder) резервирует уже существующие COOP-позиции
-      // через reserved_order_id (order_id на них не переносится, см.
-      // reserveStock/finalizeReservedIssue) — пробуем оба пути.
-      const [byOrderId, byReservedOrderId] = await Promise.all([
-        this.inventoryRepo.list({ coopname: claim.coopname, order_id: claim.order_id }),
-        this.inventoryRepo.list({ coopname: claim.coopname, reserved_order_id: claim.order_id }),
-      ]);
-      const origin = byOrderId[0] ?? byReservedOrderId[0] ?? null;
-      const arrival_price = origin?.arrival_price ?? order.price_per_unit;
-      const expiry_date =
-        origin?.expiry_date ??
-        (offer?.shelf_life_days
-          ? new Date(at.getTime() + offer.shelf_life_days * 86_400_000)
-          : null);
-
-      // Партия — та же, которой имущество пришло на участок: колонка хранит
-      // uuid поставки, и составной маркер вида `return:<id>` в неё физически
-      // не влезает — вставка падала на типе, а ошибка гасилась в catch ниже.
-      // Наружу это выглядело как принятый возврат без имущества на складе:
-      // деньги пайщику вернулись, а остаток кооператива не появлялся, и
-      // списывать было нечего.
-      const shipment_id = origin?.shipment_id ?? order.shipment_id;
-      if (!shipment_id) {
+      const origin = await this.resolveRestockOrigin(claim, order, offer, at);
+      if (!origin) {
         this.logger.warn(
           `restockReturnedItem: у заказа ${claim.order_id} нет партии поставки — возврат claim ${claim.id} не зачислен в остаток.`
         );
         return;
       }
+      const { arrival_price, expiry_date, shipment_id } = origin;
 
       await this.inventoryRepo.create({
         coopname: claim.coopname,
