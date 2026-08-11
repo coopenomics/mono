@@ -1,6 +1,6 @@
 import { ExpensesMutationsService } from './expenses-mutations.service'
 import type { ExpensesBlockchainPort } from '../../domain/interfaces/expenses-blockchain.port'
-import type { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
+import type { IDocumentPort } from '~/infrastructure/generator/generator.service'
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository'
 import type { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
 import type { ReportExpenseItemInputDTO } from '../dto/report-expense-item.input'
@@ -13,7 +13,10 @@ import { ExpenseMechanics } from '../../domain/enums/expense-mechanics.enum'
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum'
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
 import type { IPaymentPort } from '@coopenomics/innercoop';
-import { PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { PaymentType, PaymentDirection,
+  DOCUMENT_PORT,
+  type IDocumentPort,
+} from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 
 // Символ/precision берём из конфига ноды — тесты расчёта разницы не зависят от
@@ -31,7 +34,7 @@ const asset = (n: number) => `${n.toFixed(PREC)} ${SYM}`
 describe('ExpensesMutationsService', () => {
   let service: ExpensesMutationsService
   let chain: jest.Mocked<ExpensesBlockchainPort>
-  let generator: jest.Mocked<Pick<GeneratorInfrastructureService, 'generateDocument'>>
+  let generator: jest.Mocked<Pick<IDocumentPort, 'generateDocument'>>
   let requisiteSnapshots: {
     validate: jest.Mock
     snapshot: jest.Mock
@@ -71,7 +74,7 @@ describe('ExpensesMutationsService', () => {
     }
     service = new ExpensesMutationsService(
       chain,
-      generator as unknown as GeneratorInfrastructureService,
+      generator as unknown as IDocumentPort,
       requisiteSnapshots as never,
       proposals as unknown as ExpenseProposalRepository,
       payments as unknown as IPaymentPort

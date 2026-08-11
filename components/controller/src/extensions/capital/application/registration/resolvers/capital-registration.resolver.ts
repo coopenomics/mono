@@ -1,8 +1,9 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult,
+  CandidateFilterInputDTO,
+} from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
-import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
 import { CapitalRegistrationService } from '../services/capital-registration.service';
 

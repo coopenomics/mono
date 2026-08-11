@@ -17,6 +17,8 @@ export * from './auth';
 export * from './base-extension.module';
 export * from './payment/payment-provider';
 export * from './file-storage/bucket';
+export * from './registration/candidate.dto';
+export * from './registration/candidate-filter.dto';
 export * from './onboarding/onboarding-ttl';
 export * from './entities/extension.entity';
 export * from './entities/log-extension.entity';

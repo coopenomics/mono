@@ -2,7 +2,6 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
-import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto'
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
@@ -34,6 +33,8 @@ import { QuantityUtils,
 } from '@coopenomics/extension-kit';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection,
   type InnerTransactResult,
+  DOCUMENT_PORT,
+  type IDocumentPort,
 } from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
@@ -52,7 +53,7 @@ export class ExpensesMutationsService {
   constructor(
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
     private readonly chain: ExpensesBlockchainPort,
-    private readonly generator: GeneratorInfrastructureService,
+    @Inject(DOCUMENT_PORT) private readonly generator: IDocumentPort,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
@@ -93,7 +94,7 @@ export class ExpensesMutationsService {
     )
 
     const privatePayload: Cooperative.Registry.ExpenseProposalStatement.PrivateData = { items: privateItems }
-    const { hash: doc_data_hash } = await this.generator.saveDocData(
+    const { hash: doc_data_hash } = await this.generator.saveData(
       privatePayload as unknown as Record<string, unknown>,
       registry_id
     )
@@ -115,7 +116,7 @@ export class ExpensesMutationsService {
       doc_data_hash,
     } as unknown as Cooperative.Registry.ExpenseProposalStatement.Action
 
-    return this.generator.generateDocument({ data: action, options: options || {} })
+    return this.generator.generate({ data: action, options: options || {} })
   }
 
   async generateExpenseProposalDecisionDocument(
@@ -123,7 +124,7 @@ export class ExpensesMutationsService {
     options: Cooperative.Document.IGenerationOptions
   ): Promise<InnerGeneratedDocument> {
     data.registry_id = Cooperative.Registry.ExpenseProposalDecision.registry_id
-    return this.generator.generateDocument({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
+    return this.generator.generate({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
   }
 
   async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<InnerTransactResult> {

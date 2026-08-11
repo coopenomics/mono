@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import { CandidateOutputDTO } from '~/application/registration/dto/candidate.dto';
 import { ContributorStatus } from '../../../domain/enums/contributor-status.enum';
+import { CandidateOutputDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('CapitalCandidate')
 export class CapitalCandidateOutputDTO extends CandidateOutputDTO {
