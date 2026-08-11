@@ -11,6 +11,11 @@ export interface MarketplaceCategoryDomainRepository {
    * + собственные кастомные категории данного кооператива, по `sort_order`.
    */
   listForCoop(coopname: string): Promise<MarketplaceCategoryDomainEntity[]>;
+  /**
+   * Занято ли название категории — по всему справочнику, а не в пределах
+   * кооператива: имя категории уникально глобально. Сравнение без учёта регистра.
+   */
+  existsByDisplayName(displayName: string): Promise<boolean>;
   /** Создать кастомную категорию кооператива (mvp_baseline=false). */
   createCustom(coopname: string, displayName: string): Promise<MarketplaceCategoryDomainEntity>;
   /**

@@ -1133,10 +1133,24 @@ export class MarketplaceReturnClaimService {
           ? new Date(at.getTime() + offer.shelf_life_days * 86_400_000)
           : null);
 
+      // Партия — та же, которой имущество пришло на участок: колонка хранит
+      // uuid поставки, и составной маркер вида `return:<id>` в неё физически
+      // не влезает — вставка падала на типе, а ошибка гасилась в catch ниже.
+      // Наружу это выглядело как принятый возврат без имущества на складе:
+      // деньги пайщику вернулись, а остаток кооператива не появлялся, и
+      // списывать было нечего.
+      const shipment_id = origin?.shipment_id ?? order.shipment_id;
+      if (!shipment_id) {
+        this.logger.warn(
+          `restockReturnedItem: у заказа ${claim.order_id} нет партии поставки — возврат claim ${claim.id} не зачислен в остаток.`
+        );
+        return;
+      }
+
       await this.inventoryRepo.create({
         coopname: claim.coopname,
         order_id: claim.order_id,
-        shipment_id: `return:${claim.id}`,
+        shipment_id,
         braname,
         status: MarketplaceInventoryStatuses.RECEIVED,
         product_name_snapshot: offer?.product_name ?? 'Возвращённый товар',

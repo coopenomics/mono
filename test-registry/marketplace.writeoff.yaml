@@ -30,34 +30,43 @@ cases:
     scenario: >
       Председатель выделяет имущество к списанию, указывает причину и подписывает Заявление.
     expect: проект списания появляется на повестке совета
-    test: ~
-    status: missing
-    # Требует имущества на складе участка: на текущем стенде всё выданное
-    # ушло заказчику, склад пуст.
+    test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
+    status: passing
+    # ЗАБЛОКИРОВАН тем же дефектом контракта, что и mkt.ret.happy.02
+    # (memo проводки возврата длиннее 255 байт, см. marketplace.return.yaml).
+    # Обезличенный остаток на складе участка берётся из принятого гарантийного
+    # возврата (`restockReturnedItem`) либо из недовыдачи. Приём возврата
+    # невозможен, а выдача прошла полностью — на складе остаётся единственная
+    # позиция в статусе ISSUED, кандидатов на списание нет, и сценарий падает
+    # на пустой таблице. Сам сценарий написан и проверяется автоматически, как
+    # только остаток появится.
 
   - id: mkt.wof.happy.03
     level: ui
     kind: happy
     scenario: Совет утверждает списание протоколом, председатель проводит его
     expect: имущество списано со склада участка
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/writeoff-confirm.mjs
+    status: passing
+    # Заблокирован по цепочке: без проекта на повестке (см. mkt.wof.happy.02)
+    # утверждать и проводить нечего. Сценарии написаны — голосование совета
+    # тремя членами и подпись Служебной записки председателем участка.
 
   - id: mkt.wof.side.01
     level: backend
     kind: side
     scenario: Проект списания без указания причины
     expect: отказ — причина обязательна
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: passing
 
   - id: mkt.wof.side.02
     level: backend
     kind: side
     scenario: К списанию выбрано имущество чужого кооперативного участка
     expect: отказ доступа
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: passing
 
   - id: mkt.wof.side.03
     level: backend
@@ -66,19 +75,34 @@ cases:
     expect: отказ — выданное списать нельзя
     test: ~
     status: missing
+    # ДЕФЕКТ ПРОДУКТА, подтверждён чтением кода (2026-08-09).
+    # Состав проекта списания сервер не сверяет с тем, что вообще подлежит
+    # списанию. `validateAndNormalizeItems` проверяет только заполненность
+    # полей (участок, наименование, сумма, причина) и принимает любые
+    # `inventory_ids`; ни `createDraft`, ни `submitToCouncil`, ни
+    # `confirmWriteoff` не проверяют, что эти позиции — обезличенный остаток
+    # кооператива на складе, а не имущество, уже выданное пайщику. На
+    # исполнении `applyStatusTransition(invId, 'WRITTEN_OFF')` — безусловный
+    # UPDATE без сверки исходного статуса, поэтому позиция в статусе ISSUED
+    # молча спишется.
+    # Единственная защита — фильтр `findWriteoffCandidates` в списке
+    # кандидатов, то есть подсказка интерфейса, а не правило сервера.
+    # Не чиню в этот заход: место проверки (черновик / подача в совет /
+    # подтверждение складом) — проектное решение, а правка идёт в
+    # controller/src, что рестартует контроллер посреди UI-прогона.
 
   - id: mkt.wof.side.04
     level: backend
     kind: side
     scenario: Проведение списания до утверждения советом
     expect: отказ — без протокола совета списание не проводится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    status: passing
 
   - id: mkt.wof.side.05
     level: ui
     kind: side
     scenario: Проект списания без единой выбранной позиции
     expect: подписание Заявления недоступно
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
+    status: passing

@@ -161,83 +161,108 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
   });
 });
 
+/**
+ * Подписание оферты ЦПП пайщиком (L3).
+ *
+ * Оферта подписывается через `wallet::signagree` в программу ЦПП, поэтому
+ * подписание невозможно, пока у соглашения нет программного кошелька: без
+ * program_id подпись некуда положить, и пайщик остался бы с гейтом навсегда,
+ * не понимая причины. Отказ обязан быть внятным и до обращения к цепи.
+ */
 describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
-  const DOCUMENT = { hash: 'deadbeef' } as any;
+  const signedDocument = { hash: 'doc-hash', signatures: [{ signer: 'alice' }] } as never;
 
-  it('draft_id берётся из программы, а не из коагримента', async () => {
+  // Программа по умолчанию несёт draft_id, ОТЛИЧНЫЙ от коагримента (1100):
+  // подпись обязана уйти с шаблоном программы, и подмена источника сразу видна.
+  async function loadService(
+    coagreement: unknown,
+    wallet = makeWalletPort(),
+    programs: any[] = [{ id: PROGRAM_ID, draft_id: 1102 }]
+  ) {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
+    const { MarketplaceOnboardingService } = await import(
+      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
+    );
+    const service = new MarketplaceOnboardingService(
+      makeUserAgreementRepo(null),
+      makeSovietPort(coagreement, programs),
+      wallet,
+      makeLogger()
+    );
+    return { service, wallet };
+  }
+
+  it('соглашение ЦПП без программного кошелька → отказ, цепь не трогаем', async () => {
+    const { service, wallet } = await loadService({ ...COAGREEMENT, program_id: 0 });
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не имеет программного wallet');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('соглашение ЦПП вообще не настроено → отказ с указанием, что выполнить', async () => {
+    const { service, wallet } = await loadService(null);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не настроено соглашение типа');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('цепь недоступна в момент подписи → ошибка наружу, состояние не меняется', async () => {
+    // Подпись — единственное действие этого пути: локально фиксировать нечего,
+    // поэтому отказ цепи просто поднимается вызывающему, и пайщик увидит гейт
+    // при следующем заходе.
+    const wallet = {
+      signProgramAgreement: jest.fn().mockRejectedValue(new Error('chain timeout')),
+    } as never as ReturnType<typeof makeWalletPort>;
+    const { service } = await loadService(COAGREEMENT, wallet);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('chain timeout');
+  });
+
+  it('настроенное соглашение → подпись уходит в цепь с draft_id из программы, а не из коагримента', async () => {
     // `wallet::signagree` сверяет присланный draft_id с
     // `soviet::programs[program_id].draft_id`. После правки шаблона через
     // `soviet::editprog` коагримент остаётся со старым значением — взяли бы его,
     // подпись падала бы «draft_id соглашения не совпадает с draft_id программы».
-    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
-    const { MarketplaceOnboardingService } = await import(
-      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
-    );
-    const wallet = makeWalletPort();
-    const soviet = makeSovietPort({ ...COAGREEMENT, draft_id: 699 }, [
-      { id: PROGRAM_ID, draft_id: 1102 },
-    ]);
-    const service = new MarketplaceOnboardingService(
-      makeUserAgreementRepo(null),
-      soviet,
-      wallet,
-      makeLogger()
-    );
+    const wallet = {
+      signProgramAgreement: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
+    } as never as ReturnType<typeof makeWalletPort>;
+    const { service } = await loadService({ ...COAGREEMENT, draft_id: 699 }, wallet);
 
     await service.signOnboardingOffer({
       coopname: 'voskhod',
       username: 'alice',
-      document: DOCUMENT,
+      document: signedDocument,
     });
 
     expect(wallet.signProgramAgreement).toHaveBeenCalledWith(
-      expect.objectContaining({ program_id: PROGRAM_ID, draft_id: 1102 })
+      expect.objectContaining({
+        coopname: 'voskhod',
+        username: 'alice',
+        program_id: PROGRAM_ID,
+        draft_id: 1102,
+      })
     );
   });
 
   it('программа ЦПП не создана в кооперативе → отказ, подпись не отправляется', async () => {
-    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
-    const { MarketplaceOnboardingService } = await import(
-      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
-    );
-    const wallet = makeWalletPort();
-    const service = new MarketplaceOnboardingService(
-      makeUserAgreementRepo(null),
-      makeSovietPort(COAGREEMENT, []),
-      wallet,
-      makeLogger()
-    );
+    const { service, wallet } = await loadService(COAGREEMENT, makeWalletPort(), []);
 
     await expect(
       service.signOnboardingOffer({
         coopname: 'voskhod',
         username: 'alice',
-        document: DOCUMENT,
+        document: signedDocument,
       })
     ).rejects.toThrow(/не найдена/);
-    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
-  });
 
-  it('коагримента нет → отказ, подпись не отправляется', async () => {
-    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
-    const { MarketplaceOnboardingService } = await import(
-      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
-    );
-    const wallet = makeWalletPort();
-    const service = new MarketplaceOnboardingService(
-      makeUserAgreementRepo(null),
-      makeSovietPort(null),
-      wallet,
-      makeLogger()
-    );
-
-    await expect(
-      service.signOnboardingOffer({
-        coopname: 'voskhod',
-        username: 'alice',
-        document: DOCUMENT,
-      })
-    ).rejects.toThrow(/не настроено соглашение/);
     expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
   });
 });

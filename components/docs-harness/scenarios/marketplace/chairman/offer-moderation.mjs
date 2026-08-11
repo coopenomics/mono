@@ -6,6 +6,14 @@
 
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
 
+/**
+ * Гарантийный срок возврата, который председатель назначает предложению при
+ * одобрении. Ненулевой намеренно: срок снимается в заказ при оформлении и
+ * превращается в дату окончания гарантии на выдаче, так что задним числом его
+ * не поднять. С нулём вся ветка гарантийного возврата на стенде недостижима.
+ */
+const WARRANTY_DAYS = 30;
+
 export const meta = {
   mode: 'docs',
   feature: 'marketplace.offer',
@@ -71,11 +79,22 @@ export default async ({ page, shot, expect }) => {
     // получает actual visibility. Раньше ждали 700ms — мало для слабой машины.
     await page.locator('.q-dialog__inner').first().waitFor({ state: 'visible', timeout: 10000 });
     await page.waitForTimeout(800);
+
+    // Гарантийный срок возврата задаётся здесь и больше нигде: поле диалога
+    // предзаполнено нулём, а ноль означает «возврат по этому предложению не
+    // предусмотрен вовсе». Срок фиксируется в заказе при его оформлении и
+    // превращается в дату окончания гарантии на выдаче — поднять его задним
+    // числом уже нельзя. Поэтому ставим 30 дней: без этого вся ветка
+    // гарантийного возврата на стенде недостижима.
+    const warrantyInput = page.locator('.q-dialog__inner input').first();
+    await warrantyInput.waitFor({ state: 'visible', timeout: 10000 });
+    await warrantyInput.fill(String(WARRANTY_DAYS));
+
     await cleanViteOverlays(page);
     await shot(
       page,
       '02-moderation-confirm-dialog',
-      'Диалог подтверждения одобрения. По «Одобрить» offer переходит в статус APPROVED и сразу появляется в публичном каталоге Story 3.5. По «Отмена» статус остаётся PENDING_MODERATION.',
+      `Диалог подтверждения одобрения. Председатель задаёт здесь гарантийный срок возврата — ${WARRANTY_DAYS} дней: столько у пайщика будет на возврат имущества после выдачи. Ноль означал бы, что возврат по предложению не предусмотрен. По «Одобрить» предложение появляется в публичном каталоге.`,
     );
 
     // OK-кнопка Quasar Dialog. Теперь когда SDK содержит Mutations.Marketplace.ApproveOffer,

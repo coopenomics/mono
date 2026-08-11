@@ -39,8 +39,8 @@ cases:
     kind: side
     scenario: Оператор пытается открыть выдачу без кода получателя
     expect: выдача не открывается
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
+    status: passing
 
   - id: mkt.iss.side.02
     level: backend
@@ -65,6 +65,10 @@ cases:
     expect: снятые позиции остаются на складе, к оплате идёт только выданное
     test: ~
     status: missing
+    # Не берётся в основную цепочку: частичная выдача меняет фактические
+    # количество и сумму заказа, а от них считаются и возврат, и остаток
+    # склада — то есть сценарий переопределил бы входные данные для всей
+    # ветки возврата и списания, идущей следом. Нужен отдельный заказ.
 
   - id: mkt.iss.side.05
     level: backend
@@ -82,13 +86,36 @@ cases:
     test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
     status: passing
 
+  - id: mkt.iss.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
+    expect: >
+      снижение цены уменьшает итог к оплате, повышение увеличивает; количество
+      сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог
+      без возврата (остаётся на складе), а нулевое количество у оставленной
+      позиции показывает всю сумму как возврат в кошелёк Стола заказов
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: passing
+    # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
+    # количество и сумму заказа, а от них считаются возврат и остаток склада —
+    # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
+    # который показывают оператору до подписи; проводки закрывает mkt.iss.side.04.
+    #
+    # Заказ на стенде — одна единица, поэтому настоящая частичная выдача здесь
+    # непредставима: «на единицу меньше» это ноль. Разница снятой позиции и
+    # нулевого количества существенна — расчёт возврата идёт только по
+    # включённым позициям, поэтому снятая позиция это отложенная выдача
+    # (деньги остаются в резерве), а не возврат.
+
   - id: mkt.iss.break.01
     level: backend
     kind: break
     scenario: Цепь недоступна в момент подписи акта выдачи
     expect: акт не считается подписанным, повторная попытка возможна
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.happy.03
     level: ui

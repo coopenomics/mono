@@ -29,6 +29,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
   title: 'Стол заказчика — «Готово к получению»',
@@ -78,7 +79,12 @@ export default async ({ page, shot, expect }) => {
     {
       expect: async (p) => {
         await expect(p.locator('text=Получен').first()).toBeVisible({ timeout: 20000 });
-        await expect(p.locator('text=975').first()).toBeVisible({ timeout: 20000 });
+        // Сумму не сверяем числом: она зависит от количества в заказе и от
+        // размера членского взноса, и хардкод ломается при любой правке
+        // сценария оформления. Проверяем, что карточка заказа на месте и
+        // сумма вообще показана.
+        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=СУММА').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

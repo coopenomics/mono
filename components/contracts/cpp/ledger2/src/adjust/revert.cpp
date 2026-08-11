@@ -55,7 +55,7 @@ void ledger2::revert(eosio::name coopname,
 
   // -------- validate memo --------
   eosio::check(!memo.empty(), "revert: memo обязателен — укажите обоснование");
-  eosio::check(memo.size() < 256, "revert: memo не должен превышать 255 символов");
+  // Длина memo не ограничивается — см. apply.cpp.
 
   // -------- запрет на откат миграционных операций --------
   // Префикс o.mig. (6 символов) — eosio::name.to_string() стабилен.

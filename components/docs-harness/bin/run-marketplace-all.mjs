@@ -44,6 +44,9 @@ const GROUPS = [
       'marketplace/onboarding/coop-accept-cpp',
       'marketplace/chairman/branches',
       'marketplace/chairman/category-whitelist',
+      // Обратная сторона белого списка — форма поставщика. Стоит до подачи
+      // предложения и возвращает каталог открытым, иначе подать будет нельзя.
+      'marketplace/chairman/category-disabled-in-offer-form',
     ],
   },
   {
@@ -59,6 +62,9 @@ const GROUPS = [
     name: 'Предложение поставщика и его модерация',
     scenarios: [
       'marketplace/offerer/offer-create',
+      // Между подачей и модерацией: единственное окно, когда витрина уже
+      // доступна заказчику, но одобренных предложений в ней ещё нет.
+      'marketplace/orderer/catalog-empty',
       'marketplace/chairman/offer-moderation',
       'marketplace/offerer/my-offers',
     ],
@@ -69,6 +75,10 @@ const GROUPS = [
       'marketplace/orderer/catalog',
       'marketplace/orderer/order-create',
       'marketplace/orderer/orders',
+      'marketplace/orderer/orders-empty',
+      // Пока заказ не выдан: проверка возврата до выдачи возможна только здесь,
+      // дальше по цепочке тот же заказ станет полученным.
+      'marketplace/orderer/order-no-return-yet',
       'marketplace/orderer/consolidated',
     ],
   },
@@ -83,6 +93,8 @@ const GROUPS = [
     name: 'Приёмка на участке',
     scenarios: [
       'marketplace/operator/incoming-shipments',
+      // Сразу следом: та же партия глазами председателя соседнего участка.
+      'marketplace/operator/incoming-shipments-foreign',
       'marketplace/operator/apl-reception-create',
       'marketplace/offerer/apl-reception-sign',
       'marketplace/operator/apl-reception-chairman-sign',
@@ -93,6 +105,9 @@ const GROUPS = [
   {
     name: 'Выдача',
     scenarios: [
+      // Строго ПЕРЕД открытием выдачи: сверяет пересчёт денег при правке
+      // количества и цены и уходит без подписи, оставляя заказ нетронутым.
+      'marketplace/operator/issuance-correction',
       'marketplace/operator/issuance-open',
       'marketplace/operator/issuance',
       'marketplace/orderer/ready-to-receive',
@@ -104,12 +119,19 @@ const GROUPS = [
     scenarios: [
       'marketplace/orderer/returns',
       'marketplace/operator/returns',
+      'marketplace/operator/return-accept',
     ],
   },
   {
+    // Строго ПОСЛЕ возврата: обезличенный остаток на складе участка, который
+    // председатель выделяет к списанию, появляется именно из принятого
+    // гарантийного возврата — без него список кандидатов пуст.
     name: 'Списание',
     scenarios: [
       'marketplace/chairman/writeoff-propose',
+      'marketplace/chairman/writeoff-submit',
+      'marketplace/chairman/writeoff-authorize',
+      'marketplace/operator/writeoff-confirm',
     ],
   },
   {
@@ -123,6 +145,10 @@ const GROUPS = [
       'marketplace/board/payouts-readonly',
       'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
+      // Проверяет отказ на произвольный код и состояние не меняет, но стоять
+      // в середине выдачи не может: там на столе висит модалка подписи акта
+      // от предыдущего шага, и клик по кнопке стола не проходит.
+      'marketplace/operator/issuance-no-code',
     ],
   },
 ];
@@ -214,6 +240,15 @@ if (REBOOT) {
     if (f.endsWith('.json')) fs.rmSync(path.join(stateDir, f));
   }
   console.log('  фикстуры пайщиков сброшены — будут созданы заново');
+
+  // Расход пула гейта считается по этому файлу. На новой цепи ни одна оферта
+  // не подписана, поэтому пул снова целиком свободен — без сброса сценарий
+  // гейта падает «пул исчерпан» на чистом стенде.
+  const gateUsed = path.join(HARNESS_ROOT, 'state/gate-used.json');
+  if (fs.existsSync(gateUsed)) {
+    fs.rmSync(gateUsed);
+    console.log('  пул пайщиков для гейта сброшен');
+  }
 }
 
 // public/config.js: в SPA-dev нет SSR-middleware, и без него фронт уходит на
@@ -226,9 +261,24 @@ const checks = [
   ['controller', `http://127.0.0.1:${PORTS.controller}/v1/graphql`, 'POST', '{"query":"{__typename}"}'],
   ['desktop', `http://127.0.0.1:${PORTS.desktop}`, 'GET', null],
 ];
+// После reboot контейнеры уже запущены, но контроллер ещё компилируется
+// (nodemon + ts) и минуту-полторы не отвечает. Мгновенная проверка роняла
+// прогон сразу после успешного reboot — ждём, а не сдаёмся на первом отказе.
+// После reboot контроллер поднимается через ts-node: на загруженной машине
+// (стенд делят соседние чекауты) компиляция вместе с миграциями TypeORM
+// занимает больше пяти минут, и прогон срывался на преflight'е уже после
+// успешной перезагрузки. Ждём десять — простой дешевле повторного reboot'а.
+const WAIT_SECONDS = REBOOT ? 600 : 30;
 for (const [name, url, method, body] of checks) {
-  if (!curlOk(url, method, body)) {
-    console.error(`✗ ${name} не отвечает (${url}). Подними стек и повтори.`);
+  const deadline = Date.now() + WAIT_SECONDS * 1000;
+  let ok = curlOk(url, method, body);
+  if (!ok) console.log(`  … ${name} ещё не отвечает, жду до ${WAIT_SECONDS}с`);
+  while (!ok && Date.now() < deadline) {
+    spawnSync('sleep', ['5']);
+    ok = curlOk(url, method, body);
+  }
+  if (!ok) {
+    console.error(`✗ ${name} не отвечает (${url}) за ${WAIT_SECONDS}с. Подними стек и повтори.`);
     process.exit(2);
   }
   console.log(`  ✓ ${name}`);

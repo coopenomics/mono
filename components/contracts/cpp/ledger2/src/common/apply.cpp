@@ -51,8 +51,9 @@ void ledger2::apply(eosio::name coopname,
   eosio::check(amount.symbol == _root_govern_symbol,
                "Некорректный символ валюты для операций ledger2");
 
-  // -------- validate memo --------
-  eosio::check(memo.size() < 256, "memo не должен превышать 255 символов");
+  // Длина memo не ограничивается: обоснование проводки пишется человеческим
+  // языком и в кириллице занимает по два байта на символ — любой предел
+  // отсекал бы осмысленные формулировки (см. memo.hpp маркетплейса).
 
   // -------- lookup registry --------
   const OperationRegistryEntry* entry = find_operation(operation_code);

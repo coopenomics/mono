@@ -10,9 +10,24 @@ if [ -f "$ROOT_DIR/.env" ]; then
   set +a
 fi
 
-# Останавливаем и удаляем контейнеры вместе с volumes
+# Останавливаем и удаляем контейнеры вместе с volumes.
+#
+# Именно `rm -svf` по списку, а не `docker compose down -v`: подкоманда `down`
+# список сервисов не принимает и сносит ВСЕ контейнеры проекта — вместе с
+# фронтом. Фронт при этом теряется дважды: reboot его обратно не поднимал
+# (прогон падал на преflight'е «desktop не отвечает» уже после успешного
+# reboot), а поднятый заново `quasar dev` компилирует маршруты с нуля — кэш
+# трансформаций живёт в памяти процесса, на диск не ложится. Холодный фронт
+# не успевает отдать страницу за таймауты сценариев, и прогон разваливается
+# на середине цепочки. Фронт данных не хранит, чистить его незачем.
+#
+# `rm -v` снимает только анонимные тома, поэтому именованные удаляем явно —
+# иначе БД и цепь переживут «перезапуск с чистого листа».
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+docker compose rm -svf mongo postgres monoredis minio cooparser coopback || true
+for vol in postgres_data mongo_data minio_data; do
+  docker volume rm -f "${COMPOSE_PROJECT_NAME:-mono-ai-4}_${vol}" >/dev/null 2>&1 || true
+done
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
@@ -68,13 +83,32 @@ docker compose up -d cooparser
 echo "Запускаем контроллер..."
 docker compose up -d --force-recreate coopback || true
 
+# `docker compose down` выше сносит ВСЕ контейнеры проекта, а не только
+# перечисленные (список сервисов эта подкоманда не принимает) — вместе с
+# фронтом. Сам он обратно не поднимается, и прогон падает на преflight'е
+# «desktop не отвечает» уже после успешного reboot'а, то есть --reboot
+# оказывается неработоспособным. Поднимаем обратно, но только если порт
+# свободен: фронт могли запустить с хоста через `quasar dev`, и тогда
+# контейнер лишь отобрал бы у него порт.
+if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${DESKTOP_HOST_PORT:-2999}"; then
+  echo "Фронт уже отвечает на ${DESKTOP_HOST_PORT:-2999} — оставляем как есть"
+else
+  echo "Запускаем фронт..."
+  docker compose up -d desktop || true
+fi
+
 # Контроллер создаёт marketplace-таблицы через TypeORM synchronize при старте.
 # Ждём появления marketplace_ku_details, затем засеваем 3 ПВЗ Подмосковья
 # (krg/odn/myt, ACTIVE) — иначе на свежем стенде таблица пуста, select ПВЗ
 # приходит пустым/disabled и harness-сценарии ломаются. Сидер идемпотентен.
 echo "Ждём создания marketplace_ku_details контроллером..."
 KU_READY=""
-for _ in $(seq 1 60); do
+# 300 попыток по 2 с = 10 минут. Прежних двух минут не хватало: контроллер
+# поднимается через ts-node, и на загруженной машине компиляция вместе с
+# миграциями TypeORM занимает дольше. Пропуск сидинга тихо ломает весь прогон —
+# без ПВЗ select пунктов выдачи приходит пустым, и сценарии не доходят до своих
+# экранов. Тот же порог, что у преflight'а раннера, который ждёт контроллер.
+for _ in $(seq 1 300); do
   if docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}" -tAc "SELECT to_regclass('public.marketplace_ku_details')" 2>/dev/null | grep -q marketplace_ku_details; then
     KU_READY=1
     break
