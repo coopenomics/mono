@@ -1,4 +1,4 @@
-import { MonoAccountStatus, type IMonoAccount } from '@coopenomics/innercoop';
+import { MonoAccountStatus, type IMonoAccount } from './mono-account.contract';
 
 /**
  * Обеим проверкам нужна только учётная запись у провайдера. Параметр сужен до

@@ -48,9 +48,7 @@ export class AgreementConfigurationService {
       link_text: spec.link_text,
       is_blockchain_agreement: true,
       link_to_statement: true,
-      // Контракт описывает тип субъекта строкой, ядро — своим перечнем с теми
-      // же значениями: приведение живёт здесь, на границе.
-      applicable_account_types: spec.applicable_account_types as AccountType[],
+      applicable_account_types: spec.applicable_account_types,
       order: spec.order,
       resolve_doc_data_hash: spec.resolve_doc_data_hash,
     };
@@ -63,7 +61,7 @@ export class AgreementConfigurationService {
       description: spec.description,
       image_url: spec.image_url,
       requirements: spec.requirements,
-      applicable_account_types: spec.applicable_account_types as AccountType[],
+      applicable_account_types: spec.applicable_account_types,
       agreement_ids: spec.agreement_ids,
       order: spec.order,
     };

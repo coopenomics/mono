@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort, ExtendedMeetStatus } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort, ExtendedMeetStatus,
+  isEligibleForParticipantMassNotification,
+} from '@coopenomics/innercoop';
 import { IConfig, TrackedMeet, defaultConfig } from './types';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity, platformSettings, DateUtils } from '@coopenomics/extension-kit';
-import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 
 @Injectable()
 export class MeetTrackerService {

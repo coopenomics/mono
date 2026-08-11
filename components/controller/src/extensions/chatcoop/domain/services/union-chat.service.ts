@@ -7,8 +7,9 @@ import {
   EXTENSION_REPOSITORY,
 } from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
-import { OrganizationType } from '~/application/account/enum/organization-type.enum';
-import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, type InnerAccount } from '@coopenomics/innercoop';
+import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, type InnerAccount,
+  InnerOrganizationType,
+} from '@coopenomics/innercoop';
 
 @Injectable()
 export class UnionChatService {
@@ -41,7 +42,7 @@ export class UnionChatService {
 
       // Только кооперативы (организационный аккаунт типа COOP). Для расширения на prodcoop добавить в список.
       const orgData = account.private_account?.organization_data;
-      const allowedOrgTypes = new Set<string>([OrganizationType.COOP]);
+      const allowedOrgTypes = new Set<string>([InnerOrganizationType.COOP]);
       if (!orgData || !allowedOrgTypes.has(orgData.type)) {
         return;
       }

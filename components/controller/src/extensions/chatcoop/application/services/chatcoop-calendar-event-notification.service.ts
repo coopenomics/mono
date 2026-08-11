@@ -4,10 +4,11 @@ import type {
   ICoopCalendarEventNotificationPort,
   IProjectCapitalClearancePort,
 } from '@coopenomics/innercoop';
-import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort,
+  isEligibleForActiveCoopCalendarBroadcast,
+} from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
-import { isEligibleForActiveCoopCalendarBroadcast } from '~/domain/account/utils/participant-mass-notification.util';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 type CalendarRecipient = { username: string; email: string; subscriberId: string };

@@ -3,7 +3,6 @@ import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { AccountType } from '~/application/account/enum/account-type.enum';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
@@ -36,6 +35,7 @@ import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust
 import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort,
   BRANCH_PORT,
   type IBranchPort,
+  InnerAccountType,
 } from '@coopenomics/innercoop';
 import { TransactionDTO } from '@coopenomics/extension-kit';
 import { HttpApiError } from '@coopenomics/extension-kit';
@@ -162,7 +162,7 @@ export class KuService {
     }
     if (decision.type === 'createbranch') {
       const chairmanAccount = await this.accountPort.getAccount(data.chairman);
-      if (chairmanAccount.private_account?.type !== AccountType.individual) {
+      if (chairmanAccount.private_account?.type !== InnerAccountType.individual) {
         throw new HttpApiError(
           httpStatus.BAD_REQUEST,
           'Председателем кооперативного участка может быть только физическое лицо'
@@ -381,16 +381,16 @@ export class KuService {
   /** Отображаемые имена и типы аккаунтов участников собрания (для выбора председателя по ФИО) */
   private async resolveParticipantsInfo(
     participants: string[]
-  ): Promise<{ username: string; display_name: string; account_type: AccountType }[]> {
+  ): Promise<{ username: string; display_name: string; account_type: InnerAccountType }[]> {
     return Promise.all(
       participants.map(async (username) => {
         try {
           const account = await this.accountPort.getAccount(username);
           const display_name = await this.accountPort.getDisplayName(username);
-          const account_type = (account.private_account?.type as AccountType) ?? AccountType.individual;
+          const account_type = (account.private_account?.type as InnerAccountType) ?? InnerAccountType.individual;
           return { username, display_name: display_name || username, account_type };
         } catch {
-          return { username, display_name: username, account_type: AccountType.individual };
+          return { username, display_name: username, account_type: InnerAccountType.individual };
         }
       })
     );

@@ -1,5 +1,4 @@
 import { Cooperative } from 'cooptypes';
-import { AccountType } from '~/application/account/enum/account-type.enum';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   BLAGOROST_OFFER_AGREEMENT_ID,
@@ -10,7 +9,9 @@ import {
   GENERATOR_OFFER_AGREEMENT_ID,
 } from '../../constants/capital-agreement-ids';
 import type { IConfig } from '../../capital-extension.module';
-import { type IRegistrationRegistryPort } from '@coopenomics/innercoop';
+import { type IRegistrationRegistryPort,
+  InnerAccountType,
+} from '@coopenomics/innercoop';
 
 /**
  * Регистрация оферт и программ Capital в платформенном AgreementRegistry.
@@ -86,7 +87,7 @@ export function registerCapitalInAgreementRegistry(
     title: 'Программа Генерация',
     description:
       'Участвовать в производстве Кооперативной Экономики через паевой взнос временем, имуществом или деньгами в конкретные проекты.',
-    applicable_account_types: [AccountType.individual, AccountType.entrepreneur],
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [GENERATOR_OFFER_AGREEMENT_ID],
     order: 1,
     extension_name: CAPITAL_EXTENSION_NAME,
@@ -97,7 +98,7 @@ export function registerCapitalInAgreementRegistry(
     title: 'Программа Благорост',
     description:
       'Участвовать в производстве Кооперативной Экономики через паевой взнос имуществом или денег в систему. Минимальный паевой взнос 100 000 руб в течение 14 дней.',
-    applicable_account_types: [AccountType.individual, AccountType.entrepreneur],
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [BLAGOROST_OFFER_AGREEMENT_ID],
     order: 2,
     extension_name: CAPITAL_EXTENSION_NAME,

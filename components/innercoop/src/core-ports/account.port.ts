@@ -14,7 +14,27 @@ import type { IMonoAccount } from './mono-account.contract';
  */
 
 /** Тип субъекта: физлицо, организация, индивидуальный предприниматель. */
-export type InnerAccountType = 'individual' | 'organization' | 'entrepreneur';
+/**
+ * Кем пайщик состоит в кооперативе. Перечень, а не строки: значения нужны и
+ * расширению для сравнения, и ядру — для регистрации в схеме GraphQL, а два
+ * параллельных списка со временем разошлись бы.
+ */
+export enum InnerAccountType {
+  individual = 'individual',
+  entrepreneur = 'entrepreneur',
+  organization = 'organization',
+}
+
+/** Организационно-правовая форма юридического лица. */
+export enum InnerOrganizationType {
+  COOP = 'coop',
+  PRODCOOP = 'prodcoop',
+  OOO = 'ooo',
+  OAO = 'oao',
+  ZAO = 'zao',
+  PAO = 'pao',
+  AO = 'ao',
+}
 
 /**
  * Персональные данные пайщика. Состав зависит от типа субъекта, поэтому блоки

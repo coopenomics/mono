@@ -3,7 +3,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { formatInventoryLocation } from '../../domain/entities/marketplace-inventory.types';
 import { UserCertificateInteractor } from '~/application/user/interactors/user-certificate.interactor';
-import { AccountType } from '~/application/account/enum/account-type.enum';
 
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -27,7 +26,9 @@ import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-orde
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
 import { isStockOrder } from '../shared/order-kind.util';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
-import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
+import { ORGANIZATION_PORT, type IOrganizationPort,
+  InnerAccountType,
+} from '@coopenomics/innercoop';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -417,7 +418,7 @@ export class MarketplaceOrderDisplayService {
     try {
       const cert = await this.userCertificate.getCertificateByUsername(account);
       if (!cert) return null;
-      if (cert.type === AccountType.organization) {
+      if (cert.type === InnerAccountType.organization) {
         return cert.short_name?.trim() || null;
       }
       return (
