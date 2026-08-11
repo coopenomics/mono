@@ -37,8 +37,35 @@ const BACKEND_OVERRIDES: Record<string, string> = {
 };
 
 /**
+ * Операции, которые физически идут внутри чужой нитки процесса и потому не
+ * дают ей имени.
+ *
+ * `branch::accrue` и `branch::retfee` вызываются инлайн контрактом-источником с
+ * его собственным `process_hash`: `marketplace::signiss2` зачисляет членский
+ * взнос в общий кошелёк КУ по хэшу заказа, `marketplace::accretrn` возвращает
+ * его по хэшу заявки на возврат. Поэтому `o.brn.common` / `o.brn.retfee` живут
+ * в нитках поставки и гарантийного возврата, хотя в реестре операций объявлены
+ * под собственным `p.brn.fees` (там они относятся к экономике КУ).
+ *
+ * Без этого списка у нитки два претендента на имя, и она называлась по
+ * алфавиту `operation_code`: `o.brn.common` < `o.mkt.lock`, поэтому поставка
+ * подписывалась «Членские взносы кооперативного участка».
+ *
+ * Список нужен только для блоков, записанных до того, как контракт начал
+ * эмитить `process_type` в `ledger2::apply`. Для новых операций имя читается из
+ * цепи — дописывать сюда ничего не нужно.
+ */
+export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
+  'o.brn.common',
+  'o.brn.retfee',
+]);
+
+/**
  * Phase A: operation_code → process_type. Строится из cooptypes +
  * бэкенд-оверрайдов.
+ *
+ * Историческая карта: применяется только к блокам без явного `process_type` в
+ * данных экшена (см. `OPERATIONS_NOT_NAMING_PROCESS`).
  */
 export const OPERATION_CODE_TO_PROCESS_TYPE: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
@@ -133,13 +160,17 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
   // requirement b6 «Экономика КУ».
-  // p.brn.fees — распределение членских взносов КУ. Единственный сущностный
-  // якорь — заказ: при зачислении (branch::accrue) process_hash = orders.hash.
-  // Ручное распределение (branch::distribute) и перевод персональных средств
-  // (o.brn.conv) — одноактовые команды: их process_hash (round_hash /
-  // convert_hash, генерятся backend'ом) в сущностных таблицах не хранится,
-  // данные читаются из blockchain_actions (как у p.adj.fix).
-  'p.brn.fees': [{ code: 'marketplace', table: 'orders', field: 'hash' }],
+  // p.brn.fees — распределение членских взносов КУ: ручное распределение
+  // председателем (branch::distribute, round_hash) и перевод персональных
+  // средств доверенным (o.brn.conv, convert_hash). Оба хэша генерятся
+  // backend'ом и в сущностных таблицах не хранятся — данные читаются из
+  // blockchain_actions (как у p.adj.fix), поэтому локаций нет.
+  //
+  // Хэш заказа (`marketplace.orders.hash`) здесь НЕ значится: зачисление взноса
+  // (branch::accrue) идёт внутри нитки поставки и её имени не определяет
+  // (см. OPERATIONS_NOT_NAMING_PROCESS). Пока обе нитки были объявлены на одном
+  // якоре, поставка подписывалась именем этого процесса.
+  'p.brn.fees': [],
 
   // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
   'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],

@@ -12,6 +12,7 @@ import {
   PROCESS_HASH_LOCATOR,
   KNOWN_PROCESS_TYPES,
   OPERATION_CODE_TO_PROCESS_TYPE,
+  OPERATIONS_NOT_NAMING_PROCESS,
   type HashLocation,
 } from '../config/process-hash-locator';
 import { DOCUMENT_FIELDS, looksLikeSignedDocument } from '../config/document-field-detector';
@@ -40,6 +41,12 @@ const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // unbounded scan при заведомо некорректном process_hash или ошибке в локаторе.
 const HARD_LIMIT = 200;
 const CACHE_TTL_SECONDS = 60;
+
+/** Ссылка на одну операцию нитки: код операции + имя нитки, если контракт его эмитил. */
+type ProcessApplyRef = {
+  operationCode: string;
+  processType: string | null;
+};
 
 type RedisClient = {
   subscriber: Redis;
@@ -114,24 +121,27 @@ export class ProcessRegistryService {
       throw new NotFoundException(`Процесс с хэшем ${normHash} не найден`);
     }
 
-    // process_type выводим из ledger2::apply (он всегда присутствует в трио).
-    const applyAnchor = allActions.find((a) => a.account === LEDGER2_CODE && a.name === 'apply');
-    if (!applyAnchor) {
+    // Имя нитки берём из ledger2::apply (он всегда присутствует в трио).
+    const applies = allActions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
+    if (applies.length === 0) {
       throw new BadRequestException(
         `Якорь ledger2::apply отсутствует для process_hash=${normHash}; без него нельзя вывести process_type`
       );
     }
-    const applyData = (applyAnchor.data ?? {}) as Record<string, unknown>;
-    const operationCode = String(applyData.operation_code ?? '').trim();
-    const processType = OPERATION_CODE_TO_PROCESS_TYPE[operationCode];
-    if (!processType) {
+    const naming = this.resolveProcessNaming(
+      applies.map((a) => this.toApplyRef(a.data)),
+      normHash
+    );
+    if (!naming) {
+      const codes = applies.map((a) => this.toApplyRef(a.data).operationCode).join(', ');
       this.logger.error(
-        `ProcessRegistry: operation_code='${operationCode}' нет в OPERATION_CODE_TO_PROCESS_TYPE (hash=${normHash}). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
+        `ProcessRegistry: ни одна операция нитки не даёт имени процессу (hash=${normHash}, коды=[${codes}]). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
       );
       throw new BadRequestException(
-        `Неизвестный operation_code: ${operationCode}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
+        `Неизвестные operation_code: ${codes}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
       );
     }
+    const processType = naming.processType;
     if (!KNOWN_PROCESS_TYPES.has(processType)) {
       throw new BadRequestException(
         `Неизвестный process_type: ${processType}. PROCESS_HASH_LOCATOR требует обновления.`
@@ -184,22 +194,34 @@ export class ProcessRegistryService {
     const limit = Math.max(1, Math.min(100, pagination.limit ?? 10));
     const offset = (page - 1) * limit;
 
-    // Фильтр по processType трансформируется в список operation_code, т.к. в
-    // blockchain_actions есть только operation_code (process_type не пишется в
-    // data — его выводит backend через OPERATION_CODE_TO_PROCESS_TYPE).
+    // Фильтр по типу процесса двухчастный: новые блоки несут имя нитки прямо в
+    // данных экшена, у старых есть только operation_code — для них имя выводится
+    // по исторической карте. Из списка кодов исключаются операции, идущие внутри
+    // чужой нитки, иначе фильтр «Членские взносы КУ» вытаскивал бы поставки, в
+    // которых взнос зачислялся в общий кошелёк участка.
     const operationCodesForFilter = filter.processType
       ? Object.entries(OPERATION_CODE_TO_PROCESS_TYPE)
-          .filter(([, pt]) => pt === filter.processType)
+          .filter(([oc, pt]) => pt === filter.processType && !OPERATIONS_NOT_NAMING_PROCESS.has(oc))
           .map(([oc]) => oc)
       : null;
 
     const params: any[] = [LEDGER2_CODE, filter.coopname];
     let pIdx = 3;
-    let operationCodeClause = '';
-    if (operationCodesForFilter && operationCodesForFilter.length > 0) {
-      operationCodeClause = ` AND a.data ->> 'operation_code' = ANY($${pIdx})`;
-      params.push(operationCodesForFilter);
+    let processTypeClause = '';
+    if (filter.processType) {
+      const typeIdx = pIdx;
+      params.push(filter.processType);
       pIdx += 1;
+      if (operationCodesForFilter && operationCodesForFilter.length > 0) {
+        const codesIdx = pIdx;
+        params.push(operationCodesForFilter);
+        pIdx += 1;
+        processTypeClause =
+          ` AND (a.data ->> 'process_type' = $${typeIdx}` +
+          ` OR (a.data ->> 'process_type' IS NULL AND a.data ->> 'operation_code' = ANY($${codesIdx})))`;
+      } else {
+        processTypeClause = ` AND a.data ->> 'process_type' = $${typeIdx}`;
+      }
     }
     let usernameClause = '';
     if (filter.username) {
@@ -233,7 +255,7 @@ export class ProcessRegistryService {
       AND a.name = 'apply'
       AND a.data ->> 'coopname' = $2
       AND (a.data ->> 'process_hash') IS NOT NULL
-      ${operationCodeClause}
+      ${processTypeClause}
       ${usernameClause}
       ${processHashClause}
       ${fromBlockClause}
@@ -251,12 +273,20 @@ export class ProcessRegistryService {
 
     // GROUP BY только по (process_hash, coopname) — иначе мульти-операционные
     // процессы (p.cap.rid с двумя operation_code под одним hash; p.reg.accept с
-    // payent+putmin) дают двойные строки
-    // и totalCount (считаемый через DISTINCT process_hash) не совпадает с
-    // items.length. MIN(operation_code) → любой из двух одинаково выводит
-    // processType через OPERATION_CODE_TO_PROCESS_TYPE (у p.cap.rid оба
-    // operation_code маппятся в один тип; для multi-op типа p.reg.accept тоже
-    // единый процесс).
+    // payent+putmin) дают двойные строки и totalCount (считаемый через DISTINCT
+    // process_hash) не совпадает с items.length.
+    //
+    // Операции нитки собираются массивами, а имя выбирается в TS тем же
+    // правилом, что и в getProcess (resolveProcessNaming) — иначе список и
+    // деталь процесса называют один процесс по-разному. Прежний
+    // MIN(operation_code) брал минимум ПО АЛФАВИТУ кода: в нитке поставки
+    // `o.brn.common` (взнос в общий кошелёк КУ, инлайн из signiss2) опережал
+    // `o.mkt.lock`, и поставка подписывалась «Членские взносы кооперативного
+    // участка». MIN(username) по той же причине мог подставить имя участка
+    // вместо заказчика.
+    //
+    // Порядок внутри массивов — по блоку и global_sequence (varchar-колонка,
+    // поэтому приведение к numeric: лексикографически '9' > '10').
     const limitIdx = pIdx;
     params.push(limit);
     pIdx += 1;
@@ -265,10 +295,14 @@ export class ProcessRegistryService {
 
     const rows = await this.actionRepository.manager.query(
       `SELECT
-         MIN(a.data ->> 'operation_code')     AS "operationCode",
+         ARRAY_AGG(a.data ->> 'operation_code'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "operationCodes",
+         ARRAY_AGG(a.data ->> 'process_type'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "processTypes",
+         ARRAY_AGG(a.data ->> 'username'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "usernames",
          LOWER(a.data ->> 'process_hash')     AS "processHash",
          (a.data ->> 'coopname')              AS "coopname",
-         MIN(a.data ->> 'username')           AS "username",
          MIN(a.created_at)                    AS "firstSeenAt",
          MAX(a.created_at)                    AS "lastSeenAt",
          MAX(a.block_num)                     AS "lastBlockNum"
@@ -285,25 +319,42 @@ export class ProcessRegistryService {
     // на N=100 строк × 3 SQL = 300 запросов на каждый listProcesses =
     // connection pool exhaustion под нагрузкой. Счётчики доступны через
     // getProcess(hash) для конкретного процесса.
-    const items: ProcessSummary[] = (rows as any[])
-      .map((r): ProcessSummary | null => {
-        const derivedType = OPERATION_CODE_TO_PROCESS_TYPE[r.operationCode];
-        if (!derivedType || !KNOWN_PROCESS_TYPES.has(derivedType)) {
-          this.logger.warn(
-            `listProcesses: неизвестный operation_code='${r.operationCode}' для hash=${r.processHash} — строка пропущена`
-          );
-          return null;
-        }
-        return {
-          processType: derivedType,
-          processHash: r.processHash,
-          coopname: r.coopname,
-          username: r.username ?? null,
-          firstSeenAt: new Date(r.firstSeenAt),
-          lastSeenAt: new Date(r.lastSeenAt),
-        };
-      })
-      .filter((x): x is ProcessSummary => x !== null);
+    // Строку реестра не выбрасываем никогда: процесс, чьё имя вывести не удалось
+    // (незнакомый код операции, запись старее текущего реестра), остаётся видимым
+    // с пустым типом — реестр обязан показывать всё, что есть в цепи.
+    const items: ProcessSummary[] = (rows as any[]).map((r): ProcessSummary => {
+      const codes: (string | null)[] = r.operationCodes ?? [];
+      const types: (string | null)[] = r.processTypes ?? [];
+      const usernames: (string | null)[] = r.usernames ?? [];
+      const applies = codes.map((code, i) => this.toApplyRef({
+        operation_code: code,
+        process_type: types[i],
+      }));
+
+      const naming = this.resolveProcessNaming(applies, r.processHash);
+      if (!naming) {
+        this.logger.warn(
+          `listProcesses: имя нитки не выводится для hash=${r.processHash} (коды=[${codes.join(', ')}]) — строка показана без типа`
+        );
+      } else if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
+        this.logger.warn(
+          `listProcesses: process_type='${naming.processType}' отсутствует в PROCESS_HASH_LOCATOR (hash=${r.processHash}) — локатор требует обновления`
+        );
+      }
+
+      // Субъект процесса — пайщик той операции, что дала нитке имя. У инлайновых
+      // операций экономики КУ в username стоит имя участка, а не заказчика.
+      const subject = naming ? usernames[naming.index] : usernames.find((u) => !!u);
+
+      return {
+        processType: naming?.processType ?? '',
+        processHash: r.processHash,
+        coopname: r.coopname,
+        username: subject ?? null,
+        firstSeenAt: new Date(r.firstSeenAt),
+        lastSeenAt: new Date(r.lastSeenAt),
+      };
+    });
 
     return { items, totalCount, totalPages, currentPage: page };
   }
@@ -311,6 +362,55 @@ export class ProcessRegistryService {
   // =====================================================================
   // private helpers
   // =====================================================================
+
+  private toApplyRef(data: unknown): ProcessApplyRef {
+    const d = (data ?? {}) as Record<string, unknown>;
+    const processType = String(d.process_type ?? '').trim();
+    return {
+      operationCode: String(d.operation_code ?? '').trim(),
+      processType: processType.length > 0 ? processType : null,
+    };
+  }
+
+  /**
+   * Имя нитки процесса и операция, которая его дала.
+   *
+   * Приоритет — `process_type` из данных экшена: его эмитит контракт, открывший
+   * нитку, поэтому имя не зависит ни от порядка операций, ни от их кодов. Для
+   * блоков, записанных до появления поля, имя выводится по исторической карте
+   * `operation_code → process_type`, из которой исключены операции, идущие
+   * внутри чужой нитки (`OPERATIONS_NOT_NAMING_PROCESS`).
+   *
+   * `null` — ни одна операция нитки имени не даёт (незнакомые коды).
+   */
+  private resolveProcessNaming(
+    applies: ProcessApplyRef[],
+    processHash: string
+  ): { index: number; processType: string } | null {
+    const emitted = applies.findIndex((a) => a.processType !== null);
+    if (emitted >= 0) {
+      const emittedType = applies[emitted].processType as string;
+      const conflicting = applies.find((a) => a.processType !== null && a.processType !== emittedType);
+      if (conflicting) {
+        this.logger.warn(
+          `resolveProcessNaming: под одним process_hash=${processHash} эмитированы разные имена нитки ` +
+            `('${emittedType}' и '${conflicting.processType}') — взято первое. Проверьте инициатора нитки в контракте.`
+        );
+      }
+      return { index: emitted, processType: emittedType };
+    }
+
+    const historical = (predicate: (a: ProcessApplyRef) => boolean): number =>
+      applies.findIndex((a) => predicate(a) && !!OPERATION_CODE_TO_PROCESS_TYPE[a.operationCode]);
+
+    // Сначала операции, которые нитку открывают, и только если таких нет —
+    // сопутствующие: иначе процесс потерял бы имя совсем.
+    const naming = historical((a) => !OPERATIONS_NOT_NAMING_PROCESS.has(a.operationCode));
+    const index = naming >= 0 ? naming : historical(() => true);
+    if (index < 0) return null;
+
+    return { index, processType: OPERATION_CODE_TO_PROCESS_TYPE[applies[index].operationCode] };
+  }
 
   private normalizeHash(hash: string): string {
     const trimmed = (hash ?? '').trim().toLowerCase();
