@@ -1,17 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CANDIDATE_DATA_PORT, CandidateDataPort } from '~/domain/registration/ports/candidate-data.port';
 import { PaginationInputDTO, PaginationResult,
   CandidateFilterInputDTO,
+  CandidateStatus,
 } from '@coopenomics/extension-kit';
-import { IMonoAccount } from '@coopenomics/innercoop';
+import { IMonoAccount,
+  CANDIDATE_PORT,
+  type ICandidatePort,
+} from '@coopenomics/innercoop';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
 import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../../domain/repositories/contributor.repository';
 
 @Injectable()
 export class CapitalRegistrationService {
   constructor(
-    @Inject(CANDIDATE_DATA_PORT)
-    private readonly candidateDataPort: CandidateDataPort,
+    @Inject(CANDIDATE_PORT)
+    private readonly candidateDataPort: ICandidatePort,
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository
   ) {}
@@ -34,6 +37,9 @@ export class CapitalRegistrationService {
 
         return {
           ...item,
+          // Состояние заявки контракт описывает строкой, форма ответа —
+          // перечнем с теми же значениями: приведение на границе.
+          status: item.status as CandidateStatus,
           capital_status: contributor?.status,
           rate_per_hour: contributor?.rate_per_hour,
           hours_per_day: contributor?.hours_per_day,

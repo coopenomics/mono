@@ -1,5 +1,6 @@
 import { Global, Module, Scope } from '@nestjs/common';
 import {
+  CANDIDATE_PORT,
   CHAIN_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
@@ -79,6 +80,8 @@ import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-inne
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
+import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
+import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
@@ -136,6 +139,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     // Шина подписок объявлена глобальной, но глобальность не загружает модуль:
     // раньше его тянул к себе marketplace, теперь — composition root.
     PubSubModule,
+    // Отсюда берётся доступ к заявкам на вступление для порта кандидатов.
+    RegistrationInfrastructureModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -161,6 +166,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     UserDirectoryInnercoopAdapter,
     ProgramAgreementInnercoopAdapter,
     MutationLogInnercoopAdapter,
+    CandidateInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -312,6 +318,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: MutationLogInnercoopAdapter,
     },
     {
+      provide: CANDIDATE_PORT,
+      useExisting: CandidateInnercoopAdapter,
+    },
+    {
       // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
@@ -372,6 +382,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     USER_DIRECTORY_PORT,
     PROGRAM_AGREEMENT_PORT,
     MUTATION_LOG_PORT,
+    CANDIDATE_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
