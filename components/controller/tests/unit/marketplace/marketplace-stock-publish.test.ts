@@ -88,6 +88,7 @@ function buildService(position: unknown) {
 const publish = (service: MarketplaceStockService, price?: string) =>
   service.publishStock({
     coopname: COOP,
+    operator_account: 'chairkrg',
     inventory_ids: [INV_ID],
     price_per_unit: price,
     warranty_days: 14,

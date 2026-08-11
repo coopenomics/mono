@@ -109,7 +109,7 @@ export default async ({ page, shot, expect }) => {
     await page.waitForTimeout(800);
     await page.locator('.q-menu .q-item').first().click();
     await page.waitForTimeout(500);
-    const weightInput = page.locator('.economy__add-weight input').first();
+    const weightInput = page.locator('.economy__add-weight .amount-input__native').first();
     await weightInput.click();
     await weightInput.fill('3');
     await weightInput.blur();
@@ -146,7 +146,9 @@ export default async ({ page, shot, expect }) => {
   // Распределяем половину доступного: остаток нужен возврату (он снимает
   // членский взнос обратно из того же пула) и плановым расходам.
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Распределить из общего кошелька' }).first();
-  const amountInput = dialog.locator('input').first();
+  // Поле суммы форматирует значение при вводе, поэтому целимся в нативный
+  // input виджета, а не в первый попавшийся в диалоге.
+  const amountInput = dialog.locator('.amount-input__native').first();
   const half = Math.max(1, Math.floor(commonBefore / 2));
   await amountInput.click();
   await amountInput.fill(String(half));
