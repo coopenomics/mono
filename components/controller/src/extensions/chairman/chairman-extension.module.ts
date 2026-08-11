@@ -7,9 +7,6 @@ import { LOGGER_PORT, type ILoggerPort,
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { merge } from 'lodash';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
-import { SystemDomainModule } from '~/domain/system/system-domain.module';
 
 // Chairman Database and Infrastructure
 import { ChairmanDatabaseModule } from './infrastructure/database/chairman-database.module';
@@ -229,9 +226,6 @@ export class ChairmanExtension extends BaseExtensionModule {
 @Module({
   imports: [
     ChairmanDatabaseModule,
-    AccountInfrastructureModule,
-    SystemInfrastructureModule,
-    SystemDomainModule,
   ],
   providers: [
     ChairmanExtension,

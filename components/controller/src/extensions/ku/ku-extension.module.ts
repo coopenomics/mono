@@ -29,7 +29,6 @@ import { KuDecisionQuestionSyncService } from './application/syncers/ku-decision
 import { KuTrustRequestSyncService } from './application/syncers/ku-trust-request-sync.service';
 
 // Application
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { KuService } from './application/services/ku.service';
 import { KuEventsService } from './application/services/ku-events.service';
 import { KuResolver } from './application/resolvers/ku.resolver';
@@ -66,7 +65,7 @@ export class KuExtension extends BaseExtensionModule {
 }
 
 @Module({
-  imports: [KuDatabaseModule, AccountInfrastructureModule],
+  imports: [KuDatabaseModule, ],
   providers: [
     // Extension
     KuExtension,

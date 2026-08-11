@@ -20,7 +20,6 @@ import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, C
 } from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import * as crypto from 'crypto';
 import config from '~/config/config';
@@ -509,7 +508,6 @@ export class ChatCoopExtension extends BaseExtensionModule {
   imports: [
     ChatCoopDatabaseModule,
     ConfigModule,
-    AccountInfrastructureModule,
   ],
   controllers: [
     LiveKitWebhookController,

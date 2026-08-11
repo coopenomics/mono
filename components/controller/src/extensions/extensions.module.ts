@@ -13,8 +13,6 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
-import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
-import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 
 @Module({})
 export class ExtensionsModule {
@@ -24,8 +22,6 @@ export class ExtensionsModule {
     return {
       module: ExtensionsModule,
       imports: [
-        ExtensionDomainModule,
-        GatewayDomainModule,
         BuiltinExtensionModule,
         ChairmanExtensionModule,
         CapitalExtensionModule,

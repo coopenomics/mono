@@ -3,15 +3,16 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
   platformSettings,
 } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
+// Документный модуль ядра здесь ради циклической связи: capital регистрирует
+// свои документы, а модуль документов знает про capital.
+import { DocumentModule } from '~/application/document/document.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
   PROGRAM_DOCUMENT_PARAMETERS_HOOK,
 } from '@coopenomics/innercoop';
-import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { z } from 'zod';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
@@ -391,7 +392,6 @@ import { LogService } from './application/services/log.service';
 // CAPITAL Application Dependencies
 import { CapitalBlockchainAdapter } from './infrastructure/blockchain/adapters/capital-blockchain.adapter';
 import { CAPITAL_BLOCKCHAIN_PORT } from './domain/interfaces/capital-blockchain.port';
-import { RegistrationModule } from '~/application/registration/registration.module';
 import { CapitalRegistrationService } from './application/registration/services/capital-registration.service';
 import { CapitalRegistrationResolver } from './application/registration/resolvers/capital-registration.resolver';
 
@@ -460,7 +460,6 @@ import { SegmentsInteractor } from './application/use-cases/segments.interactor'
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
-import { WalletModule } from '~/application/wallet/wallet.module';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
@@ -689,11 +688,8 @@ export class CapitalExtension extends BaseExtensionModule {
 @Module({
   imports: [
     CapitalDatabaseModule,
-    AccountInfrastructureModule,
-    DocumentModule,
     DocumentInfrastructureModule,
-    WalletModule,
-    forwardRef(() => RegistrationModule),
+    forwardRef(() => DocumentModule),
     RegistrationInfrastructureModule,
   ],
   providers: [

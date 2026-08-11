@@ -3,9 +3,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
 import { ExpensesExtensionModule } from '../../expenses/expenses-extension.module';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { UserModule } from '~/application/user/user.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -187,19 +184,23 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
  * Модуль приложения marketplace
  * Содержит GraphQL резолверы и сервисы приложения
  */
+// Модуль пользователей ядра: отсюда берётся сертификат подписанта для показа
+// в заказе. Уедет вместе с остальной инфраструктурой ядра.
+import { UserModule } from '~/application/user/user.module';
+
 @Module({
   imports: [
+    UserModule,
     MarketplaceExtensionDomainModule,
     // Резолверы (Story 3.x/4.x/5.x/...) инжектят MARKETPLACE_*_REPOSITORY и
     // MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT — прямой импорт инфраструктуры
     // (а не транзит через ExtensionsModule, который ломается forwardRef'ом
-    // на ExtensionDomainModule ниже).
+    // на ниже).
     MarketplaceInfrastructureModule,
     // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
     // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
     ExpensesExtensionModule,
     // ACCOUNT_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
-    AccountInfrastructureModule,
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
     // если AppModule тоже инициализирует его, NestJS использует singleton
     // SchedulerRegistry.
@@ -207,12 +208,10 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
     // нужен PAYMENT_DESK_PORT для синхронизации с core-реестром
     // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
-    GatewayInfrastructureModule,
     // DocumentDomainService для генерации preview-документов АПП приёмки
     // через GENERATOR_PORT (registry_id=1102).
     // UserCertificateInteractor — резолв ФИО/наименования участников по аккаунту
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
-    UserModule,
     // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
     // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
     // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
@@ -227,7 +226,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
-    // импортировать ExtensionDomainModule сюда нельзя (цикл AppModule → ExtensionDomainModule →
+    // импортировать сюда нельзя (цикл AppModule → →
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
   ],
   providers: [

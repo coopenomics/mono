@@ -6,9 +6,9 @@ import type { IConfig } from '../../types';
 /**
  * Чтение конфига расширения «Стол заказов».
  *
- * Почему через `ModuleRef`, а не обычной инъекцией: `ExtensionDomainModule`
+ * Почему через `ModuleRef`, а не обычной инъекцией: ``
  * нельзя импортировать в модуль расширения — получается цикл
- * `AppModule → ExtensionDomainModule → ExtensionsModule → MarketplaceExtensionModule
+ * `AppModule → → ExtensionsModule → MarketplaceExtensionModule
  * → MarketplaceExtensionApplicationModule`. Прежний обход — `@Optional()`
  * инъекция — цикл действительно разрывал, но молча подставлял `null`: сервис
  * никогда не видел конфига и всегда отдавал значения по умолчанию. Для

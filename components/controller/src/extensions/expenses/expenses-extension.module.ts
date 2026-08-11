@@ -5,7 +5,6 @@ import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 // остаётся ядру — расширение получит его через собственный порт вместе с
 // остальной инфраструктурой, это следующий шаг.
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
-import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
 import { ExpenseProposalDeltaMapper } from './infrastructure/blockchain/mappers/expense-proposal-delta.mapper';
@@ -55,7 +54,6 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
   imports: [
     NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
-    GeneratorInfrastructureModule,
     FileStorageInfrastructureModule.forFeature([ExpenseFilesService]),
   ],
   providers: [

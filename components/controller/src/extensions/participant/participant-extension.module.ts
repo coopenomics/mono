@@ -3,7 +3,6 @@ import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema, ILog } from './types';
 import { NotificationSenderService } from './notification-sender.service';
@@ -100,7 +99,6 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
 
 @Module({
   imports: [
-    AccountInfrastructureModule,
   ],
   providers: [NotificationSenderService, MeetTrackerService, MeetWorkflowNotificationService, ParticipantExtension],
   exports: [ParticipantExtension],
