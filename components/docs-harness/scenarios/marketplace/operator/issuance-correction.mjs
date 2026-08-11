@@ -198,7 +198,7 @@ export default async ({ page, shot, expect }) => {
   // Заказ на этом стенде — одна единица, поэтому «забрать меньше» здесь
   // означает не забрать вовсе: галочка снимается, и вся сумма возвращается.
   await setFactField(dialog, 0, plannedQty);
-  await dialog.locator('.correction-table__check input').first().click();
+  await dialog.locator('.correction-table__check .q-checkbox').first().click();
   await page.waitForTimeout(1500);
 
   const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
@@ -221,7 +221,7 @@ export default async ({ page, shot, expect }) => {
 
   // Возвращаем позицию и уходим без подписи: заказ должен остаться нетронутым
   // для следующих сценариев цепочки.
-  await dialog.locator('.correction-table__check input').first().click();
+  await dialog.locator('.correction-table__check .q-checkbox').first().click();
   await page.waitForTimeout(1000);
   await dialog.locator('button:has-text("Отмена"), button:has-text("Закрыть")').first().click();
   await page.waitForTimeout(2000);
