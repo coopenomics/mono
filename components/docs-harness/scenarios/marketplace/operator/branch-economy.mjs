@@ -30,7 +30,12 @@ export const meta = {
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',
-  fixtures: ['chairkrg'],
+  // Второй участник распределения нужен, чтобы доли были не «100% одному»:
+  // сетка со единственным участником не проверяет пропорцию вовсе. Аккаунт
+  // trustedkrg создаётся раньше фаз подготовки, и только тогда
+  // `branch::addtrusted` в фазе 02-branches проходит — без фикстуры она
+  // падала с «Аккаунт не найден», и доверенных на участке не было совсем.
+  fixtures: ['chairkrg', 'trustedkrg'],
   feature: 'marketplace.economy',
   cases: ['mkt.eco.ui.01', 'mkt.eco.ui.02'],
   prepare: [
@@ -101,17 +106,24 @@ export default async ({ page, shot, expect }) => {
   await cleanViteOverlays(page);
 
   // Пока веса не заданы, распределять нечего и некому — форма добавления
-  // участника видна, кнопка «Распределить» заблокирована.
-  const gridEmpty = (await page.locator('text=Веса распределения не настроены').count()) > 0;
-  if (gridEmpty) {
+  // участника видна, кнопка «Распределить» заблокирована. Наполняем сетку
+  // разными весами: одинаковые не показали бы, что доля считается пропорцией,
+  // а не «поровну на всех».
+  for (const weight of ['3', '1']) {
     const select = page.locator('.economy__add-select').first();
+    if ((await select.count()) === 0) break;
     await select.click();
     await page.waitForTimeout(800);
-    await page.locator('.q-menu .q-item').first().click();
+    const option = page.locator('.q-menu .q-item').first();
+    if ((await option.count()) === 0) {
+      await page.keyboard.press('Escape');
+      break;
+    }
+    await option.click();
     await page.waitForTimeout(500);
     const weightInput = page.locator('.economy__add-weight .amount-input__native').first();
     await weightInput.click();
-    await weightInput.fill('3');
+    await weightInput.fill(weight);
     await weightInput.blur();
     await page.waitForTimeout(400);
     await page.locator('button:has-text("Добавить в распределение")').first().click();
@@ -120,6 +132,11 @@ export default async ({ page, shot, expect }) => {
   }
 
   const shares = await page.locator('table.table tbody tr').count();
+  // Доли по строкам — колонка «Доля» третья.
+  const sharePercents = await page
+    .locator('table.table tbody tr td:nth-child(3)')
+    .allInnerTexts()
+    .then((cells) => cells.map(parseMoney).filter((n) => Number.isFinite(n)));
 
   await shot(
     page,
@@ -131,6 +148,10 @@ export default async ({ page, shot, expect }) => {
         // Сетка обязана быть непустой: без неё распределение недоступно.
         expect(shares).toBeGreaterThan(0);
         await expect(p.locator('text=Доля').first()).toBeVisible({ timeout: 15000 });
+        // Доли обязаны складываться в целое: если сумма не сходится к 100%,
+        // часть взносов при распределении повиснет ничьей.
+        const sum = sharePercents.reduce((a, b) => a + b, 0);
+        expect(Math.abs(sum - 100)).toBeLessThan(0.5);
       },
     },
   );
