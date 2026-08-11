@@ -142,7 +142,7 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 Расширению (`extensions/<name>/`) **запрещено** напрямую импортировать сервис другого расширения или ядрового модуля (например `Ledger2Service`, сервис другого `extensions/*`). Единственный легитимный путь — контракт (`port` + DI-токен) в пакете `components/innercoop` (`@coopenomics/innercoop`).
 
-- Порт — plain TS-интерфейс `I<Domain>Port` (без Nest/GraphQL-декораторов, без class-validator) в секции пакета по владельцу реализации: `components/innercoop/src/core-ports/<domain>.port.ts`, если провайдер — ядро, и `cross-plugin-ports/<domain>.port.ts`, если провайдер — расширение. Секция `hooks/` зарезервирована (расширение → ядро), в MVP пуста.
+- Порт — plain TS-интерфейс `I<Domain>Port` (без Nest/GraphQL-декораторов, без class-validator) в секции пакета по владельцу реализации: `components/innercoop/src/core-ports/<domain>.port.ts`, если провайдер — ядро, и `cross-plugin-ports/<domain>.port.ts`, если провайдер — расширение. Секция `hooks/` — обратное направление (расширение реализует, ядро вызывает); там уже живут параметры оферт для потока вступления и права пайщика на рабочем столе. Ядро инжектит хуки необязательными: расширения может не быть в кооперативе.
 - DI-токен объявляется **в файле своего порта**, не в общем `tokens.ts`: `export const <DOMAIN>_PORT = Symbol.for('Innercoop.CorePort.<Domain>')` (или `Innercoop.CrossPlugin.<Domain>`). Экспорт подхватывается бочкой секции.
 - Реализация — адаптер в `infrastructure/innercoop/` **того модуля, который владеет данными** (ядровой — `application/<module>/infrastructure/innercoop/`, extension'а — `extensions/<name>/infrastructure/innercoop/`), `implements I<Domain>Port`.
 - Биндинг токен→адаптер — только в `src/extensions/innercoop-bridge.module.ts` (`@Global()`, `useExisting`). Consumer инжектит `@Inject(<DOMAIN>_PORT) private readonly x: I<Domain>Port` — про конкретную реализацию не знает.
@@ -163,6 +163,10 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 **Что осталось в контроллере и почему.** `domain/extension/services/*` и `extension-domain.module.ts` в кит не переехали: они знают о конкретных расширениях — реестр, дефолты конфигов шести расширений, список из двух десятков миграций, `nestApp` из `~/index`. Это composition root, а не переиспользуемый каркас. `ExtensionSchemaMigrationService` дополнительно завязан на `WinstonLoggerService`; он сможет переехать, когда появится `ILoggerPort`.
 
 **Токены — `Symbol.for`, не `Symbol()`.** Расширение и ядро резолвят токен каждый из своей копии пакета, совпасть они обязаны по глобальному реестру символов — иначе DI молча не найдёт провайдера.
+
+**`@Global()` не загружает модуль, а только раздаёт уже загруженный.** Если единственный, кто импортировал глобальный модуль, перестал это делать, модуль выпадает из графа целиком, и его провайдеры исчезают — Nest сообщит об этом уже на старте, компилятор промолчит. Кейс 2026-08-11: `PubSubModule` держал в графе маркетплейс; после перевода подписок на порт модуль пришлось подключить в composition root.
+
+**Пакет не пересобирают одновременно с компиляцией контроллера.** `ts-node` прочитает `dist/**/*.d.ts` на середине записи и выдаст `Cannot find module '@coopenomics/...'` или «нет такого экспорта» в файлах, которых правка не касалась. Сначала сборка пакета, только потом `touch` файла контроллера — иначе полчаса уходит на поиск несуществующей ошибки.
 
 Новое расширение: класс `<X>Extension extends BaseExtensionModule` (импорт из `@coopenomics/extension-kit`), модуль `<X>ExtensionModule`, запись в `AppRegistry` c `extensionClass`. Слова «плагин» в коде и комментариях не используем — сущность называется расширением.
 
