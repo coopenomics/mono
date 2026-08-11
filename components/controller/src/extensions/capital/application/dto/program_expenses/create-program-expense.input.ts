@@ -1,6 +1,10 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { ArrayMinSize, IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+// Последний прямой импорт из соседнего расширения. Через контракт его не
+// провести: это класс GraphQL с декораторами, а контракт от Nest и GraphQL не
+// зависит. Уедет вместе с шасси расходов в собственный пакет — тогда capital
+// будет зависеть от пакета, а не от пути внутрь чужого расширения.
 import { ExpenseItemInputDTO } from '~/extensions/expenses/application/dto/expense-item.input';
 import { ExpenseProposalStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
 

@@ -7,7 +7,7 @@ import type { EditProjectDomainInput } from '../../domain/actions/edit-project-d
 import type { AddAuthorDomainInput } from '../../domain/actions/add-author-domain-input.interface';
 import type { DeleteProjectDomainInput } from '../../domain/actions/delete-project-domain-input.interface';
 import type { OpenProjectDomainInput } from '../../domain/actions/open-project-domain-input.interface';
-import type { CloseProjectDomainInput } from '~/extensions/capital/domain/actions/close-project-domain-input.interface';
+import type { CloseProjectDomainInput } from '../../domain/actions/close-project-domain-input.interface';
 import type { SetMasterDomainInput } from '../../domain/actions/set-master-domain-input.interface';
 import type { SetPlanDomainInput } from '../../domain/actions/set-plan-domain-input.interface';
 import type { StartProjectDomainInput } from '../../domain/actions/start-project-domain-input.interface';

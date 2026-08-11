@@ -104,6 +104,50 @@ export interface InnerExpenseRequisiteItemInput {
   paymentPurpose?: string;
 }
 
+/**
+ * Состояние служебной записки-сметы. Значения — часть контракта: расширение,
+ * заказавшее расход, сравнивает с ними напрямую, чтобы понять, дошла ли смета
+ * до оплаты.
+ *
+ * Регистрация перечня в схеме GraphQL остаётся у шасси: потребителю нужны
+ * значения, а не тип поля.
+ */
+export enum InnerExpenseProposalState {
+  CREATED = 'CREATED',
+  AUTHORIZED = 'AUTHORIZED',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  REPORT_SUBMITTED = 'REPORT_SUBMITTED',
+  CLOSED = 'CLOSED',
+  DECLINED = 'DECLINED',
+  UNDEFINED = 'UNDEFINED',
+}
+
+/** Как оплачивается строка расхода: авансом под отчёт или напрямую получателю. */
+export enum InnerExpenseMechanics {
+  ADVANCE = 'ADVANCE',
+  DIRECT = 'DIRECT',
+}
+
+/** Кому уходит платёж по строке расхода. */
+export enum InnerExpenseRecipientType {
+  /** Самому инициатору сметы. */
+  SELF = 'SELF',
+  /** Другому пайщику. */
+  MEMBER = 'MEMBER',
+  /** Организации. */
+  ORG = 'ORG',
+}
+
+/** Состояние отдельной строки расхода. */
+export enum InnerExpenseItemState {
+  APPROVED = 'APPROVED',
+  PAID = 'PAID',
+  REPORTED = 'REPORTED',
+  RETURNED = 'RETURNED',
+  OVERSPENT = 'OVERSPENT',
+  UNDEFINED = 'UNDEFINED',
+}
+
 export interface IExpenseChassisPort {
   /**
    * Чтение proposal'а по хэшу. Возвращает null, если шасси не видит

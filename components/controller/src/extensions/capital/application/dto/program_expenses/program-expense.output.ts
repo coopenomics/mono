@@ -1,8 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import { ExpenseProposalStatus } from '~/extensions/expenses/domain/enums/expense-proposal-status.enum';
-import { ExpenseMechanics } from '~/extensions/expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '~/extensions/expenses/domain/enums/expense-recipient-type.enum';
-import { ExpenseItemStatus } from '~/extensions/expenses/domain/enums/expense-item-status.enum';
+import { InnerExpenseProposalState, InnerExpenseMechanics, InnerExpenseRecipientType, InnerExpenseItemState } from '@coopenomics/innercoop';
 
 /** Owner-callback из шасси (зеркало InnerExpenseCallbackHandler). */
 @ObjectType('CapitalProgramExpenseCallback')
@@ -16,15 +13,15 @@ export class ProgramExpenseCallbackOutputDTO {
 @ObjectType('CapitalProgramExpenseItem')
 export class ProgramExpenseItemOutputDTO {
   @Field(() => String) item_hash!: string;
-  @Field(() => ExpenseMechanics) mechanics!: ExpenseMechanics;
-  @Field(() => ExpenseRecipientType) recipient_type!: ExpenseRecipientType;
+  @Field(() => InnerExpenseMechanics) mechanics!: InnerExpenseMechanics;
+  @Field(() => InnerExpenseRecipientType) recipient_type!: InnerExpenseRecipientType;
   @Field(() => String) recipient!: string;
   @Field(() => String, { description: 'Имя получателя (ФИО пайщика или название организации)' })
   recipient_name!: string;
   @Field(() => String) description!: string;
   @Field(() => String) planned_amount!: string;
   @Field(() => String) actual_amount!: string;
-  @Field(() => ExpenseItemStatus) status!: ExpenseItemStatus;
+  @Field(() => InnerExpenseItemState) status!: InnerExpenseItemState;
 }
 
 /**
@@ -40,7 +37,7 @@ export class ProgramExpenseOutputDTO {
   @Field(() => String, { description: 'Имя инициатора (ФИО пайщика или название организации)' })
   creator_name!: string;
   @Field(() => String) source_wallet!: string;
-  @Field(() => ExpenseProposalStatus) status!: ExpenseProposalStatus;
+  @Field(() => InnerExpenseProposalState) status!: InnerExpenseProposalState;
   @Field(() => ProgramExpenseCallbackOutputDTO, { nullable: true })
   callback?: ProgramExpenseCallbackOutputDTO;
   @Field(() => [ProgramExpenseItemOutputDTO]) items!: ProgramExpenseItemOutputDTO[];

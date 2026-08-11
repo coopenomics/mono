@@ -4,7 +4,7 @@ import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
-import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '~/extensions/capital/domain/repositories/contributor.repository';
+import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../../domain/repositories/contributor.repository';
 
 @Injectable()
 export class CapitalRegistrationService {

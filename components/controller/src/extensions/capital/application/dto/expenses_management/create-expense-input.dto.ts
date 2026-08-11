@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { CreateExpenseDomainInput } from '~/extensions/capital/domain/actions/create-expense-domain-input.interface';
+import type { CreateExpenseDomainInput } from '../../../domain/actions/create-expense-domain-input.interface';
 
 /**
  * GraphQL DTO для создания расхода CAPITAL контракта

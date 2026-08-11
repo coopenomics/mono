@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { SignActAsChairmanDomainInput } from '~/extensions/capital/domain/actions/sign-act-as-chairman-domain-input.interface';
+import type { SignActAsChairmanDomainInput } from '../../../domain/actions/sign-act-as-chairman-domain-input.interface';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**

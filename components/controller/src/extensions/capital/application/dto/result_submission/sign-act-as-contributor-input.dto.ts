@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { SignActAsContributorDomainInput } from '~/extensions/capital/domain/actions/sign-act-as-contributor-domain-input.interface';
+import type { SignActAsContributorDomainInput } from '../../../domain/actions/sign-act-as-contributor-domain-input.interface';
 
 /**
  * GraphQL DTO для подписания акта участником CAPITAL контракта

@@ -2,6 +2,10 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort,
   type InnerTransactResult,
+  InnerExpenseProposalState,
+  InnerExpenseMechanics,
+  InnerExpenseRecipientType,
+  InnerExpenseItemState,
 } from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils,
@@ -14,10 +18,6 @@ import type {
   ProgramExpenseItemOutputDTO,
   ProgramExpenseOutputDTO,
 } from '../dto/program_expenses/program-expense.output';
-import { ExpenseProposalStatus } from '~/extensions/expenses/domain/enums/expense-proposal-status.enum';
-import { ExpenseMechanics } from '~/extensions/expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '~/extensions/expenses/domain/enums/expense-recipient-type.enum';
-import { ExpenseItemStatus } from '~/extensions/expenses/domain/enums/expense-item-status.enum';
 
 /**
  * Управление программными расходами Капитала.
@@ -45,8 +45,8 @@ export class ProgramExpensesManagementService {
       proposalHash: data.expense_hash,
       itemHash: it.item_hash,
       recipient: it.recipient,
-      isOrganization: it.recipient_type === ExpenseRecipientType.ORG,
-      mechanics: it.mechanics === ExpenseMechanics.DIRECT ? 'DIRECT' : 'ADVANCE',
+      isOrganization: it.recipient_type === InnerExpenseRecipientType.ORG,
+      mechanics: it.mechanics === InnerExpenseMechanics.DIRECT ? 'DIRECT' : 'ADVANCE',
       paymentMethodId: it.payment_method_id,
       requisites: it.requisites,
       paymentPurpose: it.payment_purpose,
@@ -60,11 +60,11 @@ export class ProgramExpensesManagementService {
       creator: data.creator,
       items: data.items.map((it) => ({
         item_hash: it.item_hash,
-        mechanics: it.mechanics === ExpenseMechanics.DIRECT ? 1 : 0,
+        mechanics: it.mechanics === InnerExpenseMechanics.DIRECT ? 1 : 0,
         recipient_type:
-          it.recipient_type === ExpenseRecipientType.SELF
+          it.recipient_type === InnerExpenseRecipientType.SELF
             ? 0
-            : it.recipient_type === ExpenseRecipientType.MEMBER
+            : it.recipient_type === InnerExpenseRecipientType.MEMBER
               ? 1
               : 2,
         recipient: it.recipient,
@@ -120,7 +120,7 @@ export class ProgramExpensesManagementService {
   /** Получатели-пайщики СЗ (у ORG-строк recipient — уже название организации). */
   private memberRecipients(p: InnerExpenseProposalRead): string[] {
     return p.items
-      .filter((it) => this.mapRecipientType(it.recipientType) !== ExpenseRecipientType.ORG)
+      .filter((it) => this.mapRecipientType(it.recipientType) !== InnerExpenseRecipientType.ORG)
       .map((it) => it.recipient);
   }
 
@@ -165,7 +165,7 @@ export class ProgramExpensesManagementService {
       recipient_type: recipientType,
       recipient: it.recipient,
       recipient_name:
-        recipientType === ExpenseRecipientType.ORG
+        recipientType === InnerExpenseRecipientType.ORG
           ? it.recipient
           : (names.get(it.recipient) ?? it.recipient),
       description: it.description,
@@ -179,49 +179,49 @@ export class ProgramExpensesManagementService {
     return { contract: cb.contract, action: cb.action, data: cb.data };
   }
 
-  private mapStatus(status: InnerExpenseProposalStatus): ExpenseProposalStatus {
+  private mapStatus(status: InnerExpenseProposalStatus): InnerExpenseProposalState {
     switch (status) {
       case 'CREATED':
-        return ExpenseProposalStatus.CREATED;
+        return InnerExpenseProposalState.CREATED;
       case 'AUTHORIZED':
-        return ExpenseProposalStatus.AUTHORIZED;
+        return InnerExpenseProposalState.AUTHORIZED;
       case 'PARTIALLY_PAID':
-        return ExpenseProposalStatus.PARTIALLY_PAID;
+        return InnerExpenseProposalState.PARTIALLY_PAID;
       case 'REPORT_SUBMITTED':
-        return ExpenseProposalStatus.REPORT_SUBMITTED;
+        return InnerExpenseProposalState.REPORT_SUBMITTED;
       case 'CLOSED':
-        return ExpenseProposalStatus.CLOSED;
+        return InnerExpenseProposalState.CLOSED;
       case 'DECLINED':
-        return ExpenseProposalStatus.DECLINED;
+        return InnerExpenseProposalState.DECLINED;
       default:
-        return ExpenseProposalStatus.UNDEFINED;
+        return InnerExpenseProposalState.UNDEFINED;
     }
   }
 
-  private mapMechanics(raw: number): ExpenseMechanics {
-    return raw === 1 ? ExpenseMechanics.DIRECT : ExpenseMechanics.ADVANCE;
+  private mapMechanics(raw: number): InnerExpenseMechanics {
+    return raw === 1 ? InnerExpenseMechanics.DIRECT : InnerExpenseMechanics.ADVANCE;
   }
 
-  private mapRecipientType(raw: number): ExpenseRecipientType {
-    if (raw === 2) return ExpenseRecipientType.ORG;
-    if (raw === 1) return ExpenseRecipientType.MEMBER;
-    return ExpenseRecipientType.SELF;
+  private mapRecipientType(raw: number): InnerExpenseRecipientType {
+    if (raw === 2) return InnerExpenseRecipientType.ORG;
+    if (raw === 1) return InnerExpenseRecipientType.MEMBER;
+    return InnerExpenseRecipientType.SELF;
   }
 
-  private mapItemStatus(raw: number): ExpenseItemStatus {
+  private mapItemStatus(raw: number): InnerExpenseItemState {
     switch (raw) {
       case 0:
-        return ExpenseItemStatus.APPROVED;
+        return InnerExpenseItemState.APPROVED;
       case 1:
-        return ExpenseItemStatus.PAID;
+        return InnerExpenseItemState.PAID;
       case 2:
-        return ExpenseItemStatus.REPORTED;
+        return InnerExpenseItemState.REPORTED;
       case 3:
-        return ExpenseItemStatus.RETURNED;
+        return InnerExpenseItemState.RETURNED;
       case 4:
-        return ExpenseItemStatus.OVERSPENT;
+        return InnerExpenseItemState.OVERSPENT;
       default:
-        return ExpenseItemStatus.UNDEFINED;
+        return InnerExpenseItemState.UNDEFINED;
     }
   }
 }
