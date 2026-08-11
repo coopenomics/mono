@@ -8,7 +8,6 @@ import {
   PaymentProvider,
   type PaymentDetails,
 } from '@coopenomics/extension-kit';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -121,10 +120,6 @@ export class QrPayExtension extends PaymentProvider {
 @Module({
   providers: [
     QrPayExtension,
-    {
-      provide: EXTENSION_REPOSITORY, // токен для инъекции
-      useClass: TypeOrmExtensionDomainRepository, // Реализация для интерфейса
-    },
   ], // Регистрируем PowerupExtension как провайдер
   exports: [QrPayExtension], // Экспортируем его для доступа в других модулях
 })

@@ -88,7 +88,6 @@ export type IConfig = z.infer<typeof Schema>;
 
 // Репозитории
 import { MatrixUserTypeormRepository } from './infrastructure/repositories/matrix-user.typeorm-repository';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
@@ -538,10 +537,6 @@ export class ChatCoopExtension extends BaseExtensionModule {
     },
 
     // Repositories
-    {
-      provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
-    },
 
     // Domain Services
     MatrixUserManagementService,

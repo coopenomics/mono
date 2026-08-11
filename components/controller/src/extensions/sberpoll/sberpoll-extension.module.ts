@@ -27,7 +27,6 @@ import {
   type PaymentDetails,
   platformSettings,
 } from '@coopenomics/extension-kit';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
@@ -352,10 +351,6 @@ export class SberpollExtension extends PollingProvider {
   imports: [],
   providers: [
     SberpollExtension,
-    {
-      provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
-    },
   ], // Регистрируем SberpollExtension как провайдер
   exports: [SberpollExtension], // Экспортируем его для доступа в других модулях
 })

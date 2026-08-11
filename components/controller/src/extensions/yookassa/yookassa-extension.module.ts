@@ -26,7 +26,6 @@ import {
   PaymentStatus,
   PaymentDirection,
 } from '@coopenomics/innercoop';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 
 export const Schema = z.object({
   client: z.string(),
@@ -309,10 +308,6 @@ export class YookassaExtension extends IPNProvider {
 @Module({
   providers: [
     YookassaExtension,
-    {
-      provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
-    },
   ],
   exports: [YookassaExtension],
 })
