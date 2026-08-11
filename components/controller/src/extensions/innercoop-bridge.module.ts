@@ -5,6 +5,7 @@ import {
   ACCOUNT_PORT,
   BRANCH_PORT,
   COOPERATIVE_VARS_PORT,
+  COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
@@ -68,6 +69,7 @@ import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innerc
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
+import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
@@ -144,6 +146,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ChainInnercoopAdapter,
     SecretCipherInnercoopAdapter,
     RealtimeChannelInnercoopAdapter,
+    CouncilInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -275,6 +278,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: RealtimeChannelInnercoopAdapter,
     },
     {
+      provide: COUNCIL_PORT,
+      useExisting: CouncilInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -325,6 +332,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CHAIN_PORT,
     SECRET_CIPHER_PORT,
     REALTIME_CHANNEL_PORT,
+    COUNCIL_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

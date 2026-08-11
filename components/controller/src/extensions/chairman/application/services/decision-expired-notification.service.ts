@@ -1,8 +1,10 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import cron from 'node-cron';
-import { LOGGER_PORT, type ILoggerPort, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
+} from '@coopenomics/innercoop';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
-import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
@@ -24,8 +26,8 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
     private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(LOG_EXTENSION_REPOSITORY)
     private readonly logExtensionRepository: LogExtensionDomainRepository,
-    @Inject(SOVIET_BLOCKCHAIN_PORT)
-    private readonly sovietBlockchainPort: SovietBlockchainPort,
+    @Inject(COUNCIL_PORT)
+    private readonly sovietBlockchainPort: ICouncilPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(DecisionExpiredNotificationService.name);

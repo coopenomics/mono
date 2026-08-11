@@ -6,8 +6,9 @@ import {
 } from '~/domain/wallet/repositories/user-agreement.repository';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
+  COUNCIL_PORT,
+  type ICouncilPort,
 } from '@coopenomics/innercoop';
-import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 
@@ -43,7 +44,7 @@ import { platformSettings } from '@coopenomics/extension-kit';
 export class MarketplaceOnboardingService {
   constructor(
     @Inject(USER_AGREEMENT_REPOSITORY) private readonly userAgreementRepository: UserAgreementRepository,
-    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
+    @Inject(COUNCIL_PORT) private readonly sovietBlockchainPort: ICouncilPort,
     @Inject(WALLET_BLOCKCHAIN_PORT) private readonly walletBlockchainPort: WalletBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
