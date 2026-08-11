@@ -18,3 +18,4 @@ export * from './date-utils';
 export * from './post-transact-chain-read-delay';
 export * from './transact-block-num';
 export * from './hash.utils';
+export * from './currency-validation.utils';

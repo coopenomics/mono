@@ -14,12 +14,14 @@ import { TranscriptionResolver } from './application/resolvers/transcription.res
 import { ProjectCommunicationResolver } from './application/resolvers/project-communication.resolver';
 import { SecretaryRoomsResolver } from './application/resolvers/secretary-rooms.resolver';
 import { SecretaryRoomManagementService } from './application/services/secretary-room-management.service';
-import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort,
+  SECRET_CIPHER_PORT,
+  type ISecretCipherPort,
+} from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
-import { encrypt } from '~/utils/aes';
 import * as crypto from 'crypto';
 import config from '~/config/config';
 
@@ -102,7 +104,8 @@ export class ChatCoopExtension extends BaseExtensionModule {
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly matrixApiService: MatrixApiService,
-    private readonly chatCoopApplicationService: ChatCoopApplicationService
+    private readonly chatCoopApplicationService: ChatCoopApplicationService,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort
   ) {
     super();
     this.logger.setContext(ChatCoopExtension.name);
@@ -429,7 +432,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Комната пайщиков — plaintext в реестре; секретарь вступит при ensureSecretaryInEligibleMatrixRooms.
 
       // Шифруем пароль для хранения в конфигурации
-      const encryptedPassword = encrypt(secretaryPassword);
+      const encryptedPassword = this.secretCipher.encrypt(secretaryPassword);
 
       await this.chatcoopState.merge({
         secretaryMatrixUserId: registerResponse.user_id,

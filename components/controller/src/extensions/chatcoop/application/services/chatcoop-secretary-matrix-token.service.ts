@@ -4,7 +4,7 @@ import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
-import { decrypt } from '~/utils/aes';
+import { SECRET_CIPHER_PORT, type ISecretCipherPort } from '@coopenomics/innercoop';
 
 const SECRETARY_TOKEN_EXPIRY_MS = 23 * 60 * 60 * 1000;
 
@@ -19,7 +19,8 @@ export class ChatCoopSecretaryMatrixTokenService {
 
   constructor(
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
-    private readonly matrixApiService: MatrixApiService
+    private readonly matrixApiService: MatrixApiService,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort
   ) {}
 
   async getAccessToken(): Promise<string | null> {
@@ -35,7 +36,7 @@ export class ChatCoopSecretaryMatrixTokenService {
     }
 
     try {
-      const password = decrypt(encryptedPassword);
+      const password = this.secretCipher.decrypt(encryptedPassword);
       const username = String(matrixUserId).replace(/^@/, '').split(':')[0];
       const loginResponse = await this.matrixApiService.loginUser(username, password);
       this.cachedToken = loginResponse.access_token;

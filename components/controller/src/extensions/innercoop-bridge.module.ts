@@ -27,6 +27,7 @@ import {
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   REGISTRATION_REGISTRY_PORT,
+  SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
@@ -64,6 +65,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
+import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
   OrganizationInnercoopAdapter,
@@ -134,6 +136,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     VaultInnercoopAdapter,
     BranchInnercoopAdapter,
     ChainInnercoopAdapter,
+    SecretCipherInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -257,6 +260,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ChainInnercoopAdapter,
     },
     {
+      provide: SECRET_CIPHER_PORT,
+      useExisting: SecretCipherInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -305,6 +312,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     VAULT_PORT,
     BRANCH_PORT,
     CHAIN_PORT,
+    SECRET_CIPHER_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

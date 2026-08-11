@@ -14,7 +14,6 @@ import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
-import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
@@ -23,7 +22,9 @@ import type { DeallocateFundsInputDTO } from '../dto/invests_management/dealloca
 import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallocation-limit.dto';
 import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils,
+  CurrencyValidationUtil,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта

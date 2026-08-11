@@ -26,6 +26,7 @@ export * from './onboarding.port';
 export * from './branch.port';
 export * from './registration.port';
 export * from './chain.port';
+export * from './secret-cipher.port';
 export * from './mass-notification-eligibility';
 export * from './user-data.port';
 export * from './party-card.port';
