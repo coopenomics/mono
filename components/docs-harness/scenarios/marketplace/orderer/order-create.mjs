@@ -22,6 +22,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
+/**
+ * Заказ оформляется на несколько единиц, а не на одну.
+ *
+ * Одна единица делала непредставимой половину расхождений: «принять на единицу
+ * меньше» это ноль, то есть не недоприём, а отказ от позиции; частичная выдача
+ * тоже сводилась к «всё или ничего». Десять единиц дают запас, чтобы принять
+ * девять и выдать восемь, и при этом заказ остаётся по карману заказчице
+ * (10 × 250 ₽ + членский взнос 30% = 3250 ₽ при балансе 30 000 ₽).
+ *
+ * Число вынесено сюда: от него считаются суммы во всей цепочке ниже — приёмка,
+ * выдача, возврат, остаток склада.
+ */
+export const ORDER_QUANTITY = 10;
+
 export const meta = {
   title: 'Стол заказчика — оформление заказа',
   docPath: 'new/marketplace/orderer/order-create.md',
@@ -71,10 +85,34 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
+  // Количество — управляемое поле: fill() без blur оставляет модель на единице,
+  // и заказ уходит на одну штуку при внешне правильном экране.
+  const cartDialog = page
+    .locator('[id^="q-portal--dialog--"]')
+    .filter({ hasText: 'Добавить в корзину' })
+    .first();
+  const qtyInput = cartDialog.locator('input[type="number"]').first();
+  await qtyInput.click();
+  await qtyInput.fill('');
+  await qtyInput.type(String(ORDER_QUANTITY));
+  await qtyInput.blur();
+  await page.waitForTimeout(800);
+
   await shot(
     page,
     '02-quantity-dialog',
-    'Диалог выбора количества: заказчица указывает, сколько единиц берёт, и видит итоговую сумму до подтверждения.',
+    `Диалог выбора количества: заказчица берёт ${ORDER_QUANTITY} единиц и видит итоговую сумму до подтверждения — цена уже с членским взносом.`,
+    {
+      expect: async () => {
+        // Значение должно быть в модели, а не только на экране: итог считается
+        // от неё, и расхождение здесь тихо уронит суммы всей цепочки.
+        expect(await qtyInput.inputValue()).toBe(String(ORDER_QUANTITY));
+        const total = await cartDialog.locator('.add-to-cart__total').first().innerText();
+        const price = await cartDialog.locator('.add-to-cart__price').first().innerText();
+        const num = (t) => Number.parseFloat(String(t).replace(/[^\d,.]/g, '').replace(/\s/g, '').replace(',', '.'));
+        expect(num(total)).toBeCloseTo(num(price) * ORDER_QUANTITY, 2);
+      },
+    },
   );
 
   await page.locator('button:has-text("Добавить в корзину")').first().click();
