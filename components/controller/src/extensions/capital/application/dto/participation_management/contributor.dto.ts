@@ -2,6 +2,9 @@ import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ContributorStatus } from '../../../domain/enums/contributor-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
+// Форма программного кошелька остаётся в ядре: она объявляет поле перечнем
+// программ, который живёт в контракте, а каркас от контракта не зависит.
+// Перенос потребовал бы заменить перечень строкой — то есть изменить схему.
 import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 

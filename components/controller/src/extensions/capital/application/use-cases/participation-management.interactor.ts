@@ -28,13 +28,14 @@ import httpStatus from 'http-status';
 import { Cooperative } from 'cooptypes';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
-import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
 import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort,
   ProgramKey,
   type InnerTransactResult,
+  CANDIDATE_PORT,
+  type ICandidatePort,
 } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
@@ -63,8 +64,8 @@ export class ParticipationManagementInteractor {
     private readonly appendixRepository: AppendixRepository,
     @Inject(ACCOUNT_PORT)
     private readonly accountDataPort: IAccountPort,
-    @Inject(CANDIDATE_REPOSITORY)
-    private readonly candidateRepository: CandidateRepository,
+    @Inject(CANDIDATE_PORT)
+    private readonly candidateRepository: ICandidatePort,
     @Inject(UDATA_DOCUMENT_PARAMETERS_SERVICE)
     private readonly udataDocumentParametersService: UdataDocumentParametersService,
     private readonly projectManagementInteractor: ProjectManagementInteractor,

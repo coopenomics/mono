@@ -44,7 +44,21 @@ export interface InnerCandidateFilter {
   [key: string]: any;
 }
 
+/** Подписанный кандидатом документ вступления. */
+export interface InnerCandidateDocument {
+  doc_hash: string;
+  [key: string]: any;
+}
+
 export interface ICandidatePort {
+  /**
+   * Заявка по учётному имени; `null`, если её нет.
+   *
+   * Отдаёт и подписанные при вступлении документы: расширению нужен хэш своей
+   * оферты, чтобы связать участие с подписью, а искать её отдельно негде.
+   */
+  findByUsername(username: string): Promise<(InnerCandidate & { documents?: Record<string, InnerCandidateDocument> }) | null>;
+
   getCandidates(
     currentUser: IMonoAccount,
     filter?: InnerCandidateFilter,
