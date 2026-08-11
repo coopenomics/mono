@@ -7,8 +7,8 @@ import { Workflows } from '@coopenomics/notifications';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
   BRANCH_PORT,
   type IBranchPort,
+  type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
-import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
@@ -42,7 +42,7 @@ export class KuEventsService {
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::startdec`)
-  async handleVotingStarted(actionData: ActionDomainInterface): Promise<void> {
+  async handleVotingStarted(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
       if (action.coopname !== platformSettings().coopname) return;
@@ -145,7 +145,7 @@ export class KuEventsService {
 
   /** Новая заявка доверенного → уведомление председателю участка */
   @OnEvent(`action::${BranchContract.contractName.production}::reqtrusted`)
-  async handleTrustedRequested(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedRequested(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; braname: string; username: string; hash: string };
       if (action.coopname !== platformSettings().coopname) return;
@@ -172,17 +172,17 @@ export class KuEventsService {
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
-  async handleTrustedApproved(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedApproved(actionData: InnerChainActionRecord): Promise<void> {
     await this.notifyTrustedResolved(actionData, 'одобрена');
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
-  async handleTrustedDeclined(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedDeclined(actionData: InnerChainActionRecord): Promise<void> {
     await this.notifyTrustedResolved(actionData, 'отклонена');
   }
 
   /** Решение председателя по заявке доверенного → уведомление заявителю */
-  private async notifyTrustedResolved(actionData: ActionDomainInterface, resolution: string): Promise<void> {
+  private async notifyTrustedResolved(actionData: InnerChainActionRecord, resolution: string): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
       if (action.coopname !== platformSettings().coopname) return;
@@ -208,7 +208,7 @@ export class KuEventsService {
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::confirmdec`)
-  async handleBranchEstablished(actionData: ActionDomainInterface): Promise<void> {
+  async handleBranchEstablished(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
       if (action.coopname !== platformSettings().coopname) return;

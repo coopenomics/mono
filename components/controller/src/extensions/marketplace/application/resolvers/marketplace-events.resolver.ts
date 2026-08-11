@@ -1,12 +1,10 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import { PubSub } from 'graphql-subscriptions';
 import logger from '~/config/logger';
 import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
-import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
@@ -19,7 +17,10 @@ import {
   marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from '../realtime/marketplace-realtime.topics';
-import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
+import { BRANCH_PORT, type IBranchPort,
+  REALTIME_CHANNEL_PORT,
+  type IRealtimeChannelPort,
+} from '@coopenomics/innercoop';
 
 /**
  * Единственная подписка приложения marketplace: поток событий для пайщика.
@@ -38,7 +39,7 @@ import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 @Injectable()
 export class MarketplaceEventsResolver {
   constructor(
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    @Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     @Inject(BRANCH_PORT) private readonly branchPort: IBranchPort

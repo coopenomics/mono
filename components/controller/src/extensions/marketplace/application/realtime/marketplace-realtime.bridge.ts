@@ -1,7 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PubSub } from 'graphql-subscriptions';
-import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { platformSettings } from '@coopenomics/extension-kit';
 import logger from '~/config/logger';
 import {
@@ -71,6 +69,7 @@ import {
   marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from './marketplace-realtime.topics';
+import { REALTIME_CHANNEL_PORT, type IRealtimeChannelPort } from '@coopenomics/innercoop';
 
 /**
  * Решение председателя по возврату → статус заявления. Маппинг закреплён
@@ -99,7 +98,7 @@ const RETURN_DECISION_TO_STATUS: Record<
  */
 @Injectable()
 export class MarketplaceRealtimeBridge {
-  constructor(@Inject(PUB_SUB) private readonly pubSub: PubSub) {}
+  constructor(@Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort) {}
 
   @OnEvent(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT)
   async onOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {

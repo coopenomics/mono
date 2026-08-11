@@ -176,7 +176,6 @@ import {
   MARKETPLACE_CHECKOUT_SERVICE,
 } from './services/marketplace-checkout.service';
 // Фаза 2: realtime-подписка marketplace (GraphQL subscription поверх graphql-ws).
-import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { MarketplaceEventsResolver } from './resolvers/marketplace-events.resolver';
 import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridge';
 
@@ -223,7 +222,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // крон-закрытие выданных заказов — marketplace_orders
     TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
-    PubSubModule,
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
     // импортировать ExtensionDomainModule сюда нельзя (цикл AppModule → ExtensionDomainModule →
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).

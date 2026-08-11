@@ -26,6 +26,7 @@ import {
   PAYMENT_PROVIDER_REGISTRY_PORT,
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
+  REALTIME_CHANNEL_PORT,
   REGISTRATION_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
@@ -66,6 +67,8 @@ import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onb
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
+import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
+import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
   OrganizationInnercoopAdapter,
@@ -118,6 +121,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     GatewayInfrastructureModule,
     WalletModule,
     VaultDomainModule,
+    // Шина подписок объявлена глобальной, но глобальность не загружает модуль:
+    // раньше его тянул к себе marketplace, теперь — composition root.
+    PubSubModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -137,6 +143,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     BranchInnercoopAdapter,
     ChainInnercoopAdapter,
     SecretCipherInnercoopAdapter,
+    RealtimeChannelInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -264,6 +271,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: SecretCipherInnercoopAdapter,
     },
     {
+      provide: REALTIME_CHANNEL_PORT,
+      useExisting: RealtimeChannelInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -313,6 +324,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     BRANCH_PORT,
     CHAIN_PORT,
     SECRET_CIPHER_PORT,
+    REALTIME_CHANNEL_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

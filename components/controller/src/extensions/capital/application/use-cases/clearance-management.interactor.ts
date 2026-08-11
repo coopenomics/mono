@@ -3,8 +3,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { CapitalContract } from 'cooptypes';
 import { CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
 
@@ -47,7 +48,7 @@ export class ClearanceManagementInteractor {
   /**
    * Обработать одобрение приложения
    */
-  async handleConfirmClearance(actionData: ActionDomainInterface): Promise<void> {
+  async handleConfirmClearance(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.ConfirmClearance.IConfirmClearance;
@@ -81,7 +82,7 @@ export class ClearanceManagementInteractor {
   /**
    * Обработать отклонение приложения
    */
-  async handleDeclineClearance(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineClearance(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.DeclineClearance.IDeclineClearance;

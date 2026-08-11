@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
+  type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
@@ -10,7 +11,6 @@ import { CommitDeltaMapper } from '../../infrastructure/blockchain/mappers/commi
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
 import { GenerationInteractor } from '../use-cases/generation.interactor';
 import { CapitalContract } from 'cooptypes';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
@@ -87,7 +87,7 @@ export class CommitSyncService
    * Обработчик одобрения коммита
    */
   @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitApprove.actionName}`)
-  async handleApproveCommit(actionData: ActionDomainInterface): Promise<void> {
+  async handleApproveCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       await this.generationInteractor.handleApproveCommit(actionData);
     } catch (error: any) {
@@ -99,7 +99,7 @@ export class CommitSyncService
    * Обработчик отклонения коммита
    */
   @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitDecline.actionName}`)
-  async handleDeclineCommit(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       await this.generationInteractor.handleDeclineCommit(actionData);
     } catch (error: any) {

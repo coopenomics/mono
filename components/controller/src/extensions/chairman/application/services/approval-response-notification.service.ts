@@ -1,8 +1,9 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
-import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
@@ -37,7 +38,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
    * Отправляет уведомление автору запроса об одобрении
    */
   @OnEvent(`action::${SovietContract.contractName.production}::${SovietContract.Actions.Approves.ConfirmApprove.actionName}`)
-  async handleConfirmApprove(actionData: ActionDomainInterface): Promise<void> {
+  async handleConfirmApprove(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as SovietContract.Actions.Approves.ConfirmApprove.IConfirmApprove;
 
@@ -59,7 +60,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
    * Отправляет уведомление автору запроса об отклонении
    */
   @OnEvent(`action::${SovietContract.contractName.production}::${SovietContract.Actions.Approves.DeclineApprove.actionName}`)
-  async handleDeclineApprove(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineApprove(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as SovietContract.Actions.Approves.DeclineApprove.IDeclineApprove;
 

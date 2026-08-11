@@ -11,8 +11,9 @@ import { CommitDomainEntity, type CommitContentData, type CommitData } from '../
 import type { CapitalContract } from 'cooptypes';
 import { PermissionsService } from '../services/permissions.service';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
@@ -400,7 +401,7 @@ export class GenerationInteractor {
   /**
    * Обработать одобрение коммита из блокчейна
    */
-  async handleApproveCommit(actionData: ActionDomainInterface): Promise<void> {
+  async handleApproveCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.CommitApprove.ICommitApprove;
@@ -431,7 +432,7 @@ export class GenerationInteractor {
   /**
    * Обработать отклонение коммита из блокчейна
    */
-  async handleDeclineCommit(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.CommitDecline.ICommitDecline;
