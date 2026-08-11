@@ -106,18 +106,50 @@ cases:
       Выдача заказа из остатка по цене ниже цены прибытия
     expect: >
       разница выбывает прочим расходом (o.mkt.loss) вместе со списанием
-      себестоимости — на складе не зависает непокрытая стоимость
-    test: ~
-    status: missing
-    # Считается в submitMarkdownLoss на закрытии выдачи. Ветка best-effort:
-    # сбой отправки расхода не роняет выдачу, поэтому молчаливое расхождение
-    # здесь возможно — тем нужнее прицельная проверка.
+      себестоимости — на складе не зависает непокрытая стоимость; сбой отправки
+      расхода не роняет выдачу, но виден в логе с суммой
+    test: components/controller/tests/unit/marketplace/marketplace-stock-markdown.test.ts
+    status: written
 
   - id: mkt.stock.side.03
     level: backend
     kind: side
     scenario: >
       Заказ остатка на количество больше, чем свободно на складе участка
-    expect: отказ — зарезервировать больше свободного остатка нельзя
-    test: ~
-    status: missing
+    expect: >
+      отказ — зарезервировать больше свободного остатка нельзя; оптимистический
+      счётчик предложения при отказе не двигается
+    test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    status: written
+
+  - id: mkt.stock.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Председатель публикует остаток дороже цены прибытия
+    expect: >
+      отказ — допускается только уценка: продажа дороже потребовала бы доходной
+      проводки, которой в модели нет
+    test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    status: written
+
+  - id: mkt.stock.side.05
+    level: backend
+    kind: side
+    scenario: >
+      К публикации выбрана позиция, которую публиковать нельзя: адресная под
+      заказ пайщика, уже зарезервированная, чужого кооператива, ушедшая со
+      склада либо уже опубликованная
+    expect: отказ по каждой из причин; предложение кооператива не создаётся
+    test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    status: written
+
+  - id: mkt.stock.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Предложение поставщика заказывают путём заказа из остатка, либо
+      предложение остатка неактивно
+    expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
+    test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    status: written
