@@ -5,15 +5,11 @@ export type IName = string
 export type IChecksum256 = string
 export type IPublicKey = string
 export type ISignature = string
+export type ITimePoint = string
 export type ITimePointSec = string
+export type IUint16 = number
 export type IUint32 = number
 export type IUint64 = number | string
-
-export interface IApprovewthd {
-  coopname: IName
-  withdraw_hash: IChecksum256
-  approved_statement: IDocument2
-}
 
 export interface IAuthwthd {
   coopname: IName
@@ -80,6 +76,38 @@ export interface IDocument2 {
 export interface IMigrate {
 }
 
+export interface IMigrate3 {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+  doc_hash: IChecksum256
+  version: IUint16
+  draft_id: IUint64
+  signed_at: ITimePoint
+}
+
+export interface IProgramAgreement {
+  program_id: IUint64
+  doc_hash: IChecksum256
+  version: IUint16
+  draft_id: IUint64
+  signed_at: ITimePoint
+}
+
+export interface IRevokeagree {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+}
+
+export interface ISignagree {
+  coopname: IName
+  username: IName
+  program_id: IUint64
+  document: IDocument2
+  draft_id: IUint64
+}
+
 export interface ISignatureInfo {
   id: IUint32
   signed_hash: IChecksum256
@@ -88,6 +116,11 @@ export interface ISignatureInfo {
   signature: ISignature
   signed_at: ITimePointSec
   meta: string
+}
+
+export interface IUser {
+  username: IName
+  programs: IProgramAgreement[]
 }
 
 export interface IWithdraw {

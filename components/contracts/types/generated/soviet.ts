@@ -221,6 +221,7 @@ export interface IConverttoaxn {
   coopname: IName
   amount: IAsset
   statement: IDocument2
+  process_hash: IChecksum256
 }
 
 export interface ICounts extends ICountsBase {
@@ -326,6 +327,11 @@ export interface IDeclineapprv {
   reason: string
 }
 
+export interface IDeclinedec {
+  coopname: IName
+  decision_id: IUint64
+}
+
 export interface IDeclinedoc {
   coopname: IName
   username: IName
@@ -342,6 +348,11 @@ export interface IDeladdress {
 export interface IDeletebranch {
   coopname: IName
   braname: IName
+}
+
+export interface IDelpartcpnt {
+  coopname: IName
+  username: IName
 }
 
 export interface IDisableprog {
@@ -591,6 +602,18 @@ export interface ISelectbranch {
   username: IName
   braname: IName
   document: IDocument2
+}
+
+export interface ISetbranch {
+  coopname: IName
+  username: IName
+  braname: IName
+}
+
+export interface ISetminamt {
+  coopname: IName
+  username: IName
+  minimum: IAsset
 }
 
 export interface ISetrights {

@@ -273,3 +273,31 @@ export interface IVerification {
   last_update: ITimePointSec
   notice: string
 }
+
+export interface ICandidateLegacy {
+  username: IName
+  coopname: IName
+  braname: IName
+  status: IName
+  created_at: ITimePointSec
+  statement: IDocument
+  registration_hash: IChecksum256
+  initial: IAsset
+  minimum: IAsset
+}
+
+export interface IDeclinerfnd {
+  coopname: IName
+  registration_hash: IChecksum256
+  reason: string
+}
+
+export interface IDecparticpnt {
+  coopname: IName
+  username: IName
+}
+
+export interface IRefundpay {
+  coopname: IName
+  registration_hash: IChecksum256
+}
