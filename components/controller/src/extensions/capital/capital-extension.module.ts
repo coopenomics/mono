@@ -7,6 +7,7 @@ import { RegistrationInfrastructureModule } from '~/infrastructure/registration/
 import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
+  PROGRAM_DOCUMENT_PARAMETERS_HOOK,
 } from '@coopenomics/innercoop';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
@@ -269,7 +270,6 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 // Инфраструктурные адаптеры
 import { UdataDocumentParametersAdapter } from './infrastructure/adapters/udata-document-parameters.adapter';
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
-import { UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
 
@@ -954,12 +954,12 @@ IssueIdGenerationService,
 
     // Infrastructure Adapters (после всех сервисов)
     {
-      provide: UDATA_DOCUMENT_PARAMETERS_PORT,
+      provide: PROGRAM_DOCUMENT_PARAMETERS_HOOK,
       useClass: UdataDocumentParametersAdapter,
     },
     CapitalInnercoopProjectCapitalClearanceAdapter,
   ],
-  exports: [CapitalExtension, UDATA_DOCUMENT_PARAMETERS_PORT, CapitalInnercoopProjectCapitalClearanceAdapter],
+  exports: [CapitalExtension, PROGRAM_DOCUMENT_PARAMETERS_HOOK, CapitalInnercoopProjectCapitalClearanceAdapter],
 })
 export class CapitalExtensionModule {
   constructor(private readonly capitalExtension: CapitalExtension) {}

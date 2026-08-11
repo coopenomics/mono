@@ -5,6 +5,7 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
 import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
+  MARKETPLACE_DOCUMENT_PARAMETERS_HOOK,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
@@ -15,7 +16,6 @@ import { MarketplaceExtensionApplicationModule } from './application/marketplace
 import { Cooperative } from 'cooptypes';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
-import { MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
 import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
@@ -179,11 +179,11 @@ export class MarketplaceExtension extends BaseExtensionModule {
   providers: [
     MarketplaceExtension,
     {
-      provide: MARKETPLACE_UDATA_PARAMETERS_PORT,
+      provide: MARKETPLACE_DOCUMENT_PARAMETERS_HOOK,
       useClass: MarketplaceUdataParametersAdapter,
     },
   ],
-  exports: [MarketplaceExtension, MARKETPLACE_UDATA_PARAMETERS_PORT],
+  exports: [MarketplaceExtension, MARKETPLACE_DOCUMENT_PARAMETERS_HOOK],
 })
 export class MarketplaceExtensionModule {
   constructor(private readonly marketplaceExtension: MarketplaceExtension) {}

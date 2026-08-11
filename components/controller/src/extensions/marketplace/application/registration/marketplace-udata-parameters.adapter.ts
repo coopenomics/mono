@@ -3,11 +3,12 @@ import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import { randomBytes } from 'crypto';
 
-import type { MarketplaceUdataParametersPort } from '~/domain/common/ports/marketplace-udata-parameters.port';
-import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
+import { USER_DATA_PORT, type IUserDataPort,
+  type IMarketplaceDocumentParametersHook,
+} from '@coopenomics/innercoop';
 
 /**
- * Реализация `MarketplaceUdataParametersPort` для расширения marketplace.
+ * Реализация `IMarketplaceDocumentParametersHook` для расширения marketplace.
  *
  * Генерирует и персистит уникальный номер и дату оферты ЦПП «Стол заказов» для
  * пары (coopname, username) в Udata. Эти значения читает фабрика инстанса оферты
@@ -18,7 +19,7 @@ import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
  * повторного рендера разойдётся с тем, что подписал пайщик.
  */
 @Injectable()
-export class MarketplaceUdataParametersAdapter implements MarketplaceUdataParametersPort {
+export class MarketplaceUdataParametersAdapter implements IMarketplaceDocumentParametersHook {
   private readonly logger = new Logger(MarketplaceUdataParametersAdapter.name);
 
   constructor(@Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort) {}

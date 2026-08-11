@@ -1,12 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { UdataDocumentParametersPort } from '~/domain/common/ports/udata-document-parameters.port';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
+import { type IProgramDocumentParametersHook } from '@coopenomics/innercoop';
 
 /**
- * Адаптер для реализации порта UdataDocumentParametersPort в Capital расширении
+ * Адаптер для реализации порта IProgramDocumentParametersHook в Capital расширении
  */
 @Injectable()
-export class UdataDocumentParametersAdapter implements UdataDocumentParametersPort {
+export class UdataDocumentParametersAdapter implements IProgramDocumentParametersHook {
   constructor(
     @Inject(UDATA_DOCUMENT_PARAMETERS_SERVICE)
     private readonly udataDocumentParametersService: UdataDocumentParametersService
