@@ -48,6 +48,10 @@ const STATE_DIR = path.join(REPO_ROOT, 'components/docs-harness/state/participan
 const TARGETS: Array<{ username: string; amountRub: number }> = [
   { username: 'ivanpetrov', amountRub: 30_000 },
   { username: 'ekaterina', amountRub: 30_000 },
+  // Второй заказчик: покупает обезличенный остаток кооператива, оставшийся
+  // после недовыдачи и возвратов. Без баланса заказ отбивается сервером на
+  // подсчёте стоимости, и сценарий упирается в открытый диалог.
+  { username: 'orderer2', amountRub: 30_000 },
 ]
 
 function rndHash(): string {

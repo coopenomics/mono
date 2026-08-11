@@ -1,0 +1,159 @@
+feature: marketplace.economy
+title: Экономика кооперативного участка — членские взносы на балансе и распределение по доверенным
+
+# Членский взнос с каждого исполненного заказа оседает в общем кошельке
+# участка (`w.brn.common`). Председатель участка распределяет его между
+# доверенными по сетке весов: доля каждого = вес / Σ весов, деньги уходят в
+# персональные кошельки (`w.brn.person`). Часть общего кошелька заморожена
+# плановым резервом расходов ближайших 30 дней — распределить её нельзя.
+#
+# Дальше персональные средства доверенный либо переводит в «Стол заказов»
+# (o.brn.conv), либо получает деньгами через заявление на материальную помощь
+# (o.brn.aid) — оно идёт на решение совета, платит кассир.
+#
+# Источник истины конфигурации — цепь: marketplace::config (ставка взноса),
+# branch::weights / branch::weighttotals (сетка), ledger2::userwallets
+# (балансы). Плановые расходы — общесистемный реестр расширения `expenses`.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-economy.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-economy.dto.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/**Economy**/**
+
+cases:
+  - id: mkt.eco.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Экономика участка показывает общий кошелёк, плановый резерв и доступную
+      к распределению сумму раздельно
+    expect: >
+      доступно = общий кошелёк минус резерв ближайших 30 дней; резерв
+      неприкосновенен
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Доли доверенных считаются по сетке весов, рядом видны их персональные
+      кошельки
+    expect: >
+      доля = вес / Σ весов в процентах; персональный баланс каждого доверенного
+      показан рядом с долей
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель участка распределяет доступную сумму по сетке
+    expect: >
+      распределение уходит на цепь с источником «marketplace» и запрошенной
+      суммой
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.01
+    level: backend
+    kind: side
+    scenario: Распределение затрагивает плановый резерв расходов участка
+    expect: отказ с указанием остатка, резерва и доступной суммы; на цепь ничего не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.02
+    level: backend
+    kind: side
+    scenario: Распределение запрашивает не председатель этого участка
+    expect: отказ доступа, сетка и кошельки не меняются
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.03
+    level: backend
+    kind: side
+    scenario: Распределение при ненастроенной сетке весов
+    expect: отказ — распределять некому, пока веса не заданы
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.04
+    level: backend
+    kind: side
+    scenario: Сумма распределения нулевая или отрицательная
+    expect: отказ, на цепь ничего не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.05
+    level: backend
+    kind: side
+    scenario: >
+      В реестре весов есть записи другого участка и другого контракта-источника
+    expect: в сетку участка попадают только его собственные веса по «marketplace»
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.06
+    level: backend
+    kind: side
+    scenario: Вес доверенного дробный, нулевой или задаётся чужим председателем
+    expect: отказ; сетка не меняется ни при задании веса, ни при исключении участника
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив не задавал ставку членского взноса, либо задаёт её вне
+      диапазона 0…100 процентов
+    expect: >
+      без своей ставки действует умолчание 30%; ставка вне диапазона на цепь
+      не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+    # Умолчание обязано совпадать с DEFAULT_MEMBERSHIP_FEE_PERCENT контракта:
+    # пока кооператив не вызвал setfee, сумма в чекауте считается бэкендом, а
+    # списывается контрактом — разойдутся ставки, разойдутся и деньги.
+
+  - id: mkt.eco.side.08
+    level: backend
+    kind: side
+    scenario: Плановый резерв больше остатка общего кошелька
+    expect: доступно к распределению ноль, а не отрицательная сумма
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      После исполненных заказов председатель участка видит накопленные членские
+      взносы на балансе участка
+    expect: >
+      общий кошелёк участка вырос ровно на сумму взносов по исполненным заказам
+    test: ~
+    status: missing
+    # Пункт плана заказчика «экономика показывает членские взносы на балансе
+    # после операций». Требует прогона цепочки заказов до выдачи, поэтому
+    # ставится после сценария выдачи и читает баланс на экране участка.
+
+  - id: mkt.eco.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель распределяет накопленные взносы, и они появляются в
+      персональных кошельках доверенных согласно сетке
+    expect: >
+      каждый доверенный получает долю по своему весу; общий кошелёк уменьшается
+      на распределённую сумму
+    test: ~
+    status: missing
+    # Пункт плана заказчика «экономика распределяет членские взносы по
+    # доверенным согласно сетке».
