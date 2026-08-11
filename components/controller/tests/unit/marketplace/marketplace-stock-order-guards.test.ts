@@ -47,7 +47,9 @@ function buildService(offer: unknown) {
   } as unknown as jest.Mocked<MarketplaceInventoryDomainRepository>;
 
   const orderRepo = {
-    create: jest.fn(),
+    // Заказ сохраняется уже после успешной отправки в цепь — до этого места
+    // доходит только сценарий без отказов.
+    persistAfterBlock: jest.fn().mockResolvedValue({ id: 'order-stock-1' }),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
 
   const offerCounters = {

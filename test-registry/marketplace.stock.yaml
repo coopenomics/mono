@@ -109,7 +109,7 @@ cases:
       себестоимости — на складе не зависает непокрытая стоимость; сбой отправки
       расхода не роняет выдачу, но виден в логе с суммой
     test: components/controller/tests/unit/marketplace/marketplace-stock-markdown.test.ts
-    status: written
+    status: passing
 
   - id: mkt.stock.side.03
     level: backend
@@ -120,7 +120,7 @@ cases:
       отказ — зарезервировать больше свободного остатка нельзя; оптимистический
       счётчик предложения при отказе не двигается
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
-    status: written
+    status: passing
 
   - id: mkt.stock.side.04
     level: backend
@@ -131,7 +131,7 @@ cases:
       отказ — допускается только уценка: продажа дороже потребовала бы доходной
       проводки, которой в модели нет
     test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
-    status: written
+    status: passing
 
   - id: mkt.stock.side.05
     level: backend
@@ -142,7 +142,7 @@ cases:
       склада либо уже опубликованная
     expect: отказ по каждой из причин; предложение кооператива не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
-    status: written
+    status: passing
 
   - id: mkt.stock.side.06
     level: backend
@@ -152,4 +152,4 @@ cases:
       предложение остатка неактивно
     expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
-    status: written
+    status: passing

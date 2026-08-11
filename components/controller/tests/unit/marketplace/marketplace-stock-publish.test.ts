@@ -51,10 +51,26 @@ function buildService(position: unknown) {
   } as unknown as jest.Mocked<MarketplaceInventoryDomainRepository>;
 
   const orderRepo = {
+    // Происхождение позиции: через заказ находится исходное предложение
+    // поставщика, от которого наследуются название, категория и фасовки.
+    findById: jest.fn().mockResolvedValue({ id: 'order-1', offer_id: 'origin-offer-1' }),
     findByIds: jest.fn().mockResolvedValue([{ id: 'order-1', offer_id: 'origin-offer-1' }]),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
 
+  const originOffer = {
+    id: 'origin-offer-1',
+    coopname: COOP,
+    product_name: 'Берёзовый сок',
+    description: 'демо',
+    category_id: 1,
+    price_per_unit: '250.0000',
+    unit_of_measure: 'piece',
+    packages: [],
+    shelf_life_days: 30,
+  };
+
   const offerRepo = {
+    findByIds: jest.fn().mockResolvedValue([originOffer]),
     findById: jest.fn().mockResolvedValue({
       id: 'origin-offer-1',
       coopname: COOP,
@@ -66,7 +82,9 @@ function buildService(position: unknown) {
       packages: [],
       shelf_life_days: 30,
     }),
-    list: jest.fn().mockResolvedValue([]),
+    // Поиск существующего предложения кооператива идёт постранично —
+    // репозиторий отдаёт страницу, а не голый массив.
+    list: jest.fn().mockResolvedValue({ items: [], totalCount: 0, totalPages: 0, currentPage: 1 }),
     create: jest.fn().mockResolvedValue({ id: 'coop-offer-1' }),
     update: jest.fn().mockResolvedValue({ id: 'coop-offer-1' }),
   } as unknown as jest.Mocked<MarketplaceOfferDomainRepository>;

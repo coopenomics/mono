@@ -52,11 +52,30 @@ function buildStockOrder(
 /**
  * `issued_arrival_cost` — во сколько выданное обошлось кооперативу по ценам
  * прибытия; именно от него считается уценка.
+ *
+ * Уценка считается не при открытии выдачи, а при её ЗАКРЫТИИ финальной
+ * подписью заказчика (`finalizeIssuance`): к этому моменту факт уже
+ * зафиксирован снапшотом на заказе, и списывать разницу есть от чего.
  */
-function buildService(reserved: number, issued_arrival_cost: string) {
+function buildService(reserved: number, issued_arrival_cost: string, fact: { quantity: number; price: string }) {
+  const order = buildStockOrder({
+    status: 'READY_TO_RECEIVE',
+    chairman_account: 'chairkrg',
+    // Заказчик ещё не подписывал: повторная финальная подпись отбивается до
+    // всякой арифметики.
+    orderer_signed_at: null,
+    issuance_fact: {
+      actual_quantity: fact.quantity,
+      fact_unit_price: fact.price,
+      fact_cost: (fact.quantity * Number.parseFloat(fact.price)).toFixed(4),
+      diff_state: 'less',
+    },
+  } as never);
+
   const orderRepo = {
-    findById: jest.fn().mockImplementation(async (id: string) => buildStockOrder({ id })),
-    applyIssuanceOpened: jest.fn().mockImplementation(async (id: string) => buildStockOrder({ id })),
+    findById: jest.fn().mockResolvedValue(order),
+    applyIssuanceOpened: jest.fn().mockResolvedValue(order),
+    applyIssuanceFinalized: jest.fn().mockResolvedValue(order),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
 
   const inventoryRepo = {
@@ -72,7 +91,8 @@ function buildService(reserved: number, issued_arrival_cost: string) {
 
   const chainPort = {
     signIss1: jest.fn().mockResolvedValue({ transaction: { id: 'tx-1' } }),
-    markdown: jest.fn().mockResolvedValue({ transaction: { id: 'tx-2' } }),
+    signIss2: jest.fn().mockResolvedValue({ transaction: { id: 'tx-2' } }),
+    markdown: jest.fn().mockResolvedValue({ transaction: { id: 'tx-3' } }),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const assetConfig: MarketplaceAssetConfig = { symbol: 'RUB', decimals: 4 };
@@ -108,27 +128,24 @@ function buildService(reserved: number, issued_arrival_cost: string) {
   return { service, chainPort, inventoryRepo, logger };
 }
 
-async function issue(
-  service: MarketplaceIssuanceService,
-  actual_quantity: number,
-  actual_unit_price: string
-) {
-  await service.openIssuance({
+/** Закрытие выдачи финальной подписью заказчика — здесь считается уценка. */
+async function issue(service: MarketplaceIssuanceService) {
+  return service.finalizeIssuance({
     coopname: COOP,
+    orderer_account: 'orderer2',
     order_id: 'order-stock-1',
-    chairman_account: 'chairkrg',
-    actual_quantity,
-    actual_unit_price,
-    signed_document: { signatures: [] } as any,
+    // Подпись заказчика обязана быть в акте: без неё сервис отказывает до
+    // всякой арифметики. Криптопроверка заглушена отдельно.
+    signed_document: { signatures: [{ signer: 'orderer2' }] } as any,
   } as never);
 }
 
 describe('Выдача остатка кооператива: уценка выбывает прочим расходом', () => {
   it('продано дешевле цены прибытия — разница уходит в расход', async () => {
     // Прибытие 4 × 250 = 1000 ₽, продано 4 × 200 = 800 ₽ → уценка 200 ₽.
-    const { service, chainPort } = buildService(4, '1000.0000');
+    const { service, chainPort } = buildService(4, '1000.0000', { quantity: 4, price: '200.0000' });
 
-    await issue(service, 4, '200.0000');
+    await issue(service);
 
     expect(chainPort.markdown).toHaveBeenCalledWith(
       expect.objectContaining({ coopname: COOP, amount: '200.0000 RUB' })
@@ -137,9 +154,9 @@ describe('Выдача остатка кооператива: уценка вы�
 
   it('уценка считается от выданного, а не от всего резерва', async () => {
     // Выдали 2 из 4: прибытие выданного 2 × 250 = 500 ₽, продано 2 × 200 = 400 ₽.
-    const { service, chainPort } = buildService(4, '500.0000');
+    const { service, chainPort } = buildService(4, '500.0000', { quantity: 2, price: '200.0000' });
 
-    await issue(service, 2, '200.0000');
+    await issue(service);
 
     expect(chainPort.markdown).toHaveBeenCalledWith(
       expect.objectContaining({ amount: '100.0000 RUB' })
@@ -147,19 +164,19 @@ describe('Выдача остатка кооператива: уценка вы�
   });
 
   it('продано по цене прибытия — расхода нет', async () => {
-    const { service, chainPort } = buildService(4, '800.0000');
+    const { service, chainPort } = buildService(4, '800.0000', { quantity: 4, price: '200.0000' });
 
-    await issue(service, 4, '200.0000');
+    await issue(service);
 
     expect(chainPort.markdown).not.toHaveBeenCalled();
   });
 
   it('сбой отправки расхода не роняет выдачу, но оставляет след в логе', async () => {
-    const { service, chainPort, logger } = buildService(4, '1000.0000');
+    const { service, chainPort, logger } = buildService(4, '1000.0000', { quantity: 4, price: '200.0000' });
     (chainPort.markdown as jest.Mock).mockRejectedValueOnce(new Error('цепь недоступна'));
 
     // Выдача обязана закрыться: деньги пайщика важнее бухгалтерии остатка.
-    await expect(issue(service, 4, '200.0000')).resolves.toBeDefined();
+    await expect(issue(service)).resolves.toBeDefined();
     // Молчаливой потери быть не должно — разница названа в предупреждении.
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('200.0000'));
   });
