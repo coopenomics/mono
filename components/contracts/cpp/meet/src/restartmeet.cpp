@@ -62,17 +62,12 @@ void meet::restartmeet(name coopname, checksum256 hash, checksum256 new_hash, do
         
         // Уменьшаем требуемый процент кворума по заданной логике:
         //  1) при cycle=2 -> 50%
-        //  2) при cycle=3 -> 25%
-        //  3) при cycle >=4 -> делим текущее вдвое
-        if (old_cycle == 1) {
-            m.quorum_percent = 50.0;
-        } else if (old_cycle == 2) {
-            m.quorum_percent = 25.0;
-        } else {
-            // при cycle>=3 (т.е. после третьего запуска)
-            // каждый раз делим предыдущее значение на 2
-            m.quorum_percent = old_quorum / 2.0;
-        }
+        //  2) при cycle>=3 -> делим предыдущее значение вдвое,
+        //     но не опускаемся ниже MIN_QUORUM_PERCENT (25%).
+        // Планка 25% — нижняя граница: сколько бы раз собрание ни
+        // перезапускалось, требование к явке остаётся 25%.
+        double next_quorum = (old_cycle == 1) ? 50.0 : old_quorum / 2.0;
+        m.quorum_percent = std::max(next_quorum, MIN_QUORUM_PERCENT);
         m.notified_users.clear(); // Очищаем уведомления
     });
 
