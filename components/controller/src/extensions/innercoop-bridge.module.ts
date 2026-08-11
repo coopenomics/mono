@@ -31,6 +31,7 @@ import {
   REGISTRATION_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
+  USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -70,6 +71,7 @@ import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoo
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
+import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
@@ -147,6 +149,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     SecretCipherInnercoopAdapter,
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
+    UserDirectoryInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -282,6 +285,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: CouncilInnercoopAdapter,
     },
     {
+      provide: USER_DIRECTORY_PORT,
+      useExisting: UserDirectoryInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -333,6 +340,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     SECRET_CIPHER_PORT,
     REALTIME_CHANNEL_PORT,
     COUNCIL_PORT,
+    USER_DIRECTORY_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

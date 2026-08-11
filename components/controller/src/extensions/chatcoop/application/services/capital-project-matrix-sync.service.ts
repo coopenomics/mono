@@ -8,11 +8,13 @@ import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
-import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
 import type { IConfig } from '../../chatcoop-extension.module';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
-import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { ACCOUNT_PORT, type IAccountPort,
+  USER_DIRECTORY_PORT,
+  type IUserDirectoryPort,
+} from '@coopenomics/innercoop';
 import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateRepository,
@@ -36,7 +38,7 @@ export class CapitalProjectMatrixSyncService {
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(USER_DIRECTORY_PORT) private readonly userRepository: IUserDirectoryPort,
     @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort
   ) {}
 

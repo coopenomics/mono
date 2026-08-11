@@ -2,9 +2,6 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
 import logger from '~/config/logger';
 import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
-import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
-import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
@@ -20,6 +17,8 @@ import {
 import { BRANCH_PORT, type IBranchPort,
   REALTIME_CHANNEL_PORT,
   type IRealtimeChannelPort,
+  USER_DIRECTORY_PORT,
+  type IUserDirectoryPort,
 } from '@coopenomics/innercoop';
 
 /**
@@ -40,8 +39,7 @@ import { BRANCH_PORT, type IBranchPort,
 export class MarketplaceEventsResolver {
   constructor(
     @Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
+    @Inject(USER_DIRECTORY_PORT) private readonly userRepository: IUserDirectoryPort,
     @Inject(BRANCH_PORT) private readonly branchPort: IBranchPort
   ) {}
 
@@ -125,7 +123,7 @@ export class MarketplaceEventsResolver {
     if (!sub) {
       throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
     }
-    const account = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
+    const account = await this.userRepository.findBySubject(sub);
     return account.username;
   }
 }
