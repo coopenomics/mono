@@ -48,21 +48,56 @@ cases:
     test: components/docs-harness/scenarios/marketplace/orderer/stock-order.mjs
     status: written
 
+  - id: mkt.stock.happy.03
+    level: ui
+    kind: happy
+    scenario: Оператор выдаёт второму пайщику заказ из остатка
+    expect: >
+      выдача открывается по коду второго пайщика и закрывается его актом;
+      остаток кооператива на складе уменьшается на выданное
+    test: components/docs-harness/scenarios/marketplace/operator/stock-issuance.mjs
+    status: written
+
+  - id: mkt.stock.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      Второй пайщик подаёт гарантийный возврат по имуществу, купленному из
+      остатка
+    expect: >
+      действует срок гарантии, назначенный при публикации остатка, а не срок
+      исходного предложения поставщика; сумма к возврату — по цене публикации
+    test: components/docs-harness/scenarios/marketplace/orderer/stock-return.mjs
+    status: written
+
+  - id: mkt.stock.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель принимает возврат по заказу из остатка: имущество
+      возвращается кооперативу
+    expect: >
+      деньги восстановлены второму пайщику; имущество снова числится
+      обезличенным остатком кооператива на том же участке — первый заказчик к
+      нему отношения не имеет
+    test: components/docs-harness/scenarios/marketplace/operator/stock-return-accept.mjs
+    status: written
+
   - id: mkt.stock.side.01
     level: backend
     kind: side
     scenario: >
-      Гарантийный возврат по заказу из остатка: имущество возвращается
-      кооперативу, а не первому заказчику
+      Партия возвращаемого имущества по заказу из остатка определяется через
+      резерв, а не через прямую принадлежность заказу
     expect: >
-      возвращённая позиция снова числится обезличенным остатком кооператива
-      (ownership = COOP) на том же участке; деньги возвращаются второму
-      пайщику, членский взнос — из пула участка
-    test: ~
-    status: missing
-    # Разбор партии для возврата умеет оба пути (`order_id` и
-    # `reserved_order_id` — см. resolveRestockOrigin), но проверки на заказе из
-    # остатка нет: она требует полной второй цепочки заказ → выдача → возврат.
+      возврат находит исходную позицию по `reserved_order_id` (у заказов из
+      остатка `order_id` на позицию не переносится) и зачисляет имущество в ту
+      же партию поставки
+    test: components/controller/tests/unit/marketplace/marketplace-return-restock.test.ts
+    status: passing
+    # Второй путь разбора (`reserved_order_id`) существует именно ради заказов
+    # из остатка: без него возврат по такому заказу не нашёл бы партию и не
+    # зачислил имущество на склад вовсе.
 
   - id: mkt.stock.side.02
     level: backend
