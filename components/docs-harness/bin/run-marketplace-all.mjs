@@ -135,6 +135,27 @@ const GROUPS = [
     ],
   },
   {
+    // Строго ПОСЛЕ списания: перепредложение берёт позиции из того же
+    // свободного остатка кооператива, из которого списание набирает
+    // кандидатов. Здесь имущество проходит второй круг — от публикации до
+    // возврата, но уже у другого пайщика и в пользу кооператива.
+    name: 'Перевыдача остатка второму пайщику',
+    scenarios: [
+      'marketplace/operator/stock-republish',
+      'marketplace/orderer/stock-order',
+      'marketplace/operator/stock-issuance',
+      'marketplace/orderer/stock-return',
+      'marketplace/operator/stock-return-accept',
+    ],
+  },
+  {
+    // После всех возвратов: приём возврата снимает членский взнос обратно из
+    // того же пула участка, который здесь распределяется. Распределив его
+    // раньше, мы обрушили бы возврат на пустом кошельке.
+    name: 'Экономика участка',
+    scenarios: ['marketplace/operator/branch-economy'],
+  },
+  {
     name: 'Обзорные экраны (состояние не меняют)',
     scenarios: [
       'marketplace/chairman/dashboard-overview',
