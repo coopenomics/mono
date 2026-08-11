@@ -26,6 +26,7 @@ import {
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
   PAYMENT_PROVIDER_REGISTRY_PORT,
+  PROGRAM_AGREEMENT_PORT,
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   REALTIME_CHANNEL_PORT,
@@ -74,6 +75,7 @@ import { IntegrationSettingsInnercoopAdapter } from '~/infrastructure/innercoop/
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
+import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
@@ -153,6 +155,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
+    ProgramAgreementInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -296,6 +299,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: UserDirectoryInnercoopAdapter,
     },
     {
+      provide: PROGRAM_AGREEMENT_PORT,
+      useExisting: ProgramAgreementInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -349,6 +356,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     REALTIME_CHANNEL_PORT,
     COUNCIL_PORT,
     USER_DIRECTORY_PORT,
+    PROGRAM_AGREEMENT_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

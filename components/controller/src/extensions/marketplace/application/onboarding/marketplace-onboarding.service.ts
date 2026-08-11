@@ -1,15 +1,12 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
-import {
-  USER_AGREEMENT_REPOSITORY,
-  UserAgreementRepository,
-} from '~/domain/wallet/repositories/user-agreement.repository';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
   COUNCIL_PORT,
   type ICouncilPort,
+  PROGRAM_AGREEMENT_PORT,
+  type IProgramAgreementPort,
 } from '@coopenomics/innercoop';
-import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 
 import {
@@ -29,7 +26,7 @@ import { platformSettings } from '@coopenomics/extension-kit';
  * ВАЖНО — правильный источник: ЦПП «Стол заказов» это ПРОГРАММА (program_id=2),
  * и подпись пайщика делается через `wallet::signagree` в `wallet::users.programs[]`,
  * а НЕ в `soviet::agreements3`. Поэтому состояние читаем из
- * `UserAgreementRepository` (синк `user-agreement-sync.service` из `wallet::users`),
+ * `IProgramAgreementPort` (синк `user-agreement-sync.service` из `wallet::users`),
  * а не из `AgreementRepository` (синк `agreement-sync.service` из `agreements3`).
  * Это тот же канон, что в `AgreementService.fetchProgrammatic`. Раньше здесь
  * читался `AgreementRepository`, куда программная подпись НИКОГДА не попадает —
@@ -43,9 +40,8 @@ import { platformSettings } from '@coopenomics/extension-kit';
 @Injectable()
 export class MarketplaceOnboardingService {
   constructor(
-    @Inject(USER_AGREEMENT_REPOSITORY) private readonly userAgreementRepository: UserAgreementRepository,
+    @Inject(PROGRAM_AGREEMENT_PORT) private readonly programAgreements: IProgramAgreementPort,
     @Inject(COUNCIL_PORT) private readonly sovietBlockchainPort: ICouncilPort,
-    @Inject(WALLET_BLOCKCHAIN_PORT) private readonly walletBlockchainPort: WalletBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOnboardingService.name);
@@ -79,10 +75,8 @@ export class MarketplaceOnboardingService {
       });
     }
 
-    // Подпись программной оферты живёт в `wallet::users.programs[]`.
-    const owner = await this.userAgreementRepository.findByUsername(coopname, username);
-    const program =
-      owner && owner.present !== false ? owner.findProgram(programId) : undefined;
+    // Подпись программной оферты хранит ядро; порт отвечает, есть ли она.
+    const program = await this.programAgreements.findProgramSignature(coopname, username, programId);
 
     if (program) {
       const source: MarketplaceOnboardingSource = 'agreement_signed';
@@ -154,7 +148,7 @@ export class MarketplaceOnboardingService {
       `[MARKETPLACE.L3] signOnboardingOffer → wallet::signagree (${input.coopname}/${input.username} program_id=${programId} draft_id=${coagreement.draft_id})`
     );
 
-    return await this.walletBlockchainPort.signProgramAgreement({
+    return await this.programAgreements.signProgramAgreement({
       coopname: input.coopname,
       username: input.username,
       program_id: programId,
