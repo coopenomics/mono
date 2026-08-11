@@ -194,34 +194,64 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  // ── Позиция снята с выдачи целиком ───────────────────────────────────────
-  // Заказ на этом стенде — одна единица, поэтому «забрать меньше» здесь
-  // означает не забрать вовсе: галочка снимается, и вся сумма возвращается.
+  // ── Позиция снята с выдачи ───────────────────────────────────────────────
+  // Снятая позиция не выдаётся сегодня, но и не возвращается: расчёт возврата
+  // идёт только по включённым позициям. Деньги пайщика остаются в резерве
+  // заказа, имущество — на складе участка. Возврат — это другая ситуация:
+  // позиция выдаётся, но на меньшую сумму (следующий шаг).
   await setFactField(dialog, 0, plannedQty);
   await dialog.locator('.correction-table__check .q-checkbox').first().click();
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
 
   const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
-  const refund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
+  const droppedRefund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
+  const leftOnStock = dialog.locator('.issue-act__sum').filter({ hasText: 'Остаётся на складе' });
 
   await shot(
     page,
     '05-position-dropped',
-    'Позиция снята с выдачи: к оплате не остаётся ничего, а вся сумма возвращается в кошелёк Стола заказов. Само имущество остаётся на складе участка — обезличенным остатком кооператива.',
+    'Позиция снята с выдачи: к оплате не остаётся ничего, и в итогах появляется строка «Остаётся на складе». Возврата здесь нет — снятая позиция просто не выдаётся сегодня, деньги пайщика остаются в резерве заказа.',
     {
       preserveNotifications: true,
       expect: async () => {
         expect(droppedTotal).toBe(0);
-        // Деньги не должны раствориться: снятая позиция обязана превратиться
-        // в возврат, а не просто исчезнуть из итога.
-        expect(refund).toBeGreaterThan(0);
+        // Именно отложенная выдача, а не возврат: расчёт возврата идёт только
+        // по позициям, которые выдаются.
+        expect(droppedRefund).toBeNull();
+        await expect(leftOnStock.first()).toBeVisible({ timeout: 10000 });
       },
     },
   );
 
-  // Возвращаем позицию и уходим без подписи: заказ должен остаться нетронутым
-  // для следующих сценариев цепочки.
+  // ── Позиция выдаётся, но на нулевое количество ───────────────────────────
+  // Вот это уже возврат: позиция в выдаче, а забрать по ней нечего — вся
+  // сумма уходит обратно в кошелёк Стола заказов. Подписать такой акт нельзя,
+  // и форма об этом честно предупреждает.
   await dialog.locator('.correction-table__check .q-checkbox').first().click();
+  await page.waitForTimeout(2000);
+  await setFactField(dialog, 0, 0);
+  await page.waitForTimeout(1500);
+
+  const zeroTotal = await sumByLabel(dialog, 'Итого к оплате');
+  const zeroRefund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
+
+  await shot(
+    page,
+    '06-zero-quantity',
+    'Позиция остаётся в выдаче, но количество нулевое: к оплате ничего, а вся сумма показана как возврат в кошелёк Стола заказов. Подписать акт на ноль нельзя — внизу об этом сказано прямо.',
+    {
+      preserveNotifications: true,
+      expect: async () => {
+        expect(zeroTotal).toBe(0);
+        // Деньги не должны раствориться: они обязаны быть названы возвратом.
+        expect(zeroRefund).toBeGreaterThan(0);
+      },
+    },
+  );
+
+  // Возвращаем план и уходим без подписи: заказ должен остаться нетронутым
+  // для следующих сценариев цепочки.
+  await setFactField(dialog, 0, plannedQty);
   await page.waitForTimeout(1000);
   await dialog.locator('button:has-text("Отмена"), button:has-text("Закрыть")').first().click();
   await page.waitForTimeout(2000);
@@ -229,7 +259,7 @@ export default async ({ page, shot, expect }) => {
 
   await shot(
     page,
-    '06-closed-without-signing',
+    '07-closed-without-signing',
     'Диалог закрыт без подписи: правка факта сама по себе ничего не меняет — пока акт не подписан, заказ остаётся в прежнем состоянии.',
     {
       preserveNotifications: true,
