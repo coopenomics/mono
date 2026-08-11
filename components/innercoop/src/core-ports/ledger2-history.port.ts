@@ -69,8 +69,33 @@ export interface InnerLedger2HistoryResult {
   currentPage: number;
 }
 
+/**
+ * Счёт плана счетов кооператива с текущим сальдо.
+ *
+ * Суммы — строки с символом токена, как в цепи: разбирать их числом нельзя,
+ * точность зависит от токена.
+ */
+export interface InnerLedger2Account {
+  /** Номер счёта по плану: 51000, 80000, 86000 и далее. */
+  id: number;
+  /** Название счёта по-русски. */
+  name: string;
+  balance: string;
+  debitBalance: string;
+  creditBalance: string;
+  [key: string]: any;
+}
+
 export interface ILedger2HistoryPort {
   getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>;
+
+  /**
+   * План счетов кооператива с сальдо.
+   *
+   * На один номер счёта может прийти несколько записей — по субсчетам и
+   * валютам; потребитель, которому нужен итог, суммирует их сам.
+   */
+  getAccounts(coopname: string): Promise<InnerLedger2Account[]>;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

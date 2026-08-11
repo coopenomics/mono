@@ -19,7 +19,6 @@ import {
   ReportPreviewInputDTO,
 } from '../dto/report.dto';
 import type { LedgerAccountData } from '../../domain/interfaces/report-generator.interface';
-import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
   GENERATED_REPORT_REPOSITORY,
   type GeneratedReportRepository,
@@ -28,6 +27,7 @@ import {
   BALANCE_CORRECTION_REPOSITORY,
   type BalanceCorrectionRepository,
 } from '../../domain/repositories/balance-correction.repository';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort } from '@coopenomics/innercoop';
 
 const HISTORY_MAX_LIMIT = 100;
 const HISTORY_DEFAULT_LIMIT = 20;
@@ -53,7 +53,7 @@ export class ReportResolver {
     private readonly reportRegistry: ReportRegistryService,
     private readonly previewService: ReportPreviewService,
     private readonly requisitesService: ReportRequisitesService,
-    private readonly ledger2Service: Ledger2Service,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2Service: ILedger2HistoryPort,
     private readonly xsdValidator: XsdValidatorService,
     @Inject(GENERATED_REPORT_REPOSITORY)
     private readonly reportRepo: GeneratedReportRepository,

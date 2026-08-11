@@ -10,7 +10,6 @@ import { ReportResolver } from './application/resolvers/report.resolver';
 import { ReportRequisitesResolver } from './application/resolvers/report-requisites.resolver';
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
-import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
 import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
 import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
@@ -31,7 +30,6 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
 // поэтому его явно импортировать в imports не надо.
 @Module({
   imports: [
-    Ledger2Module,
     NestTypeOrmModule.forFeature([
       GeneratedReportEntity,
       BalanceCorrectionEntity,
