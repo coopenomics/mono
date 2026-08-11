@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { platformSettings } from '@coopenomics/extension-kit';
 import { formatInventoryLocation } from '../../domain/entities/marketplace-inventory.types';
-import { UserCertificateInteractor } from '~/application/user/interactors/user-certificate.interactor';
 
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -28,6 +27,8 @@ import { isStockOrder } from '../shared/order-kind.util';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import { ORGANIZATION_PORT, type IOrganizationPort,
   InnerAccountType,
+  USER_CERTIFICATE_PORT,
+  type IUserCertificatePort,
 } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
@@ -62,7 +63,7 @@ export class MarketplaceOrderDisplayService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    private readonly userCertificate: UserCertificateInteractor,
+    @Inject(USER_CERTIFICATE_PORT) private readonly userCertificate: IUserCertificatePort,
     private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 

@@ -33,6 +33,8 @@ export * from './realtime.port';
 export * from './council.port';
 export * from './user-directory.port';
 export * from './candidate.port';
+export * from './user-certificate.port';
+export * from './agreement-catalog.port';
 export * from './mutation-log.port';
 export * from './secret-cipher.port';
 export * from './integration-settings.port';

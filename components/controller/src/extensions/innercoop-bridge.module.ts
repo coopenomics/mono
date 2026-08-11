@@ -4,6 +4,7 @@ import {
   CHAIN_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
+  AGREEMENT_CATALOG_PORT,
   BRANCH_PORT,
   COOPERATIVE_VARS_PORT,
   COUNCIL_PORT,
@@ -36,6 +37,7 @@ import {
   REGISTRATION_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
+  USER_CERTIFICATE_PORT,
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
@@ -81,6 +83,9 @@ import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-d
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
 import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
+import { UserCertificateInnercoopAdapter } from '~/infrastructure/innercoop/user-certificate-innercoop.adapter';
+import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agreement-catalog-innercoop.adapter';
+import { UserModule } from '~/application/user/user.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
@@ -141,6 +146,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PubSubModule,
     // Отсюда берётся доступ к заявкам на вступление для порта кандидатов.
     RegistrationInfrastructureModule,
+    // Отсюда берётся сборка сертификата подписанта для порта.
+    UserModule,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -167,6 +174,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ProgramAgreementInnercoopAdapter,
     MutationLogInnercoopAdapter,
     CandidateInnercoopAdapter,
+    UserCertificateInnercoopAdapter,
+    AgreementCatalogInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -322,6 +331,14 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: CandidateInnercoopAdapter,
     },
     {
+      provide: USER_CERTIFICATE_PORT,
+      useExisting: UserCertificateInnercoopAdapter,
+    },
+    {
+      provide: AGREEMENT_CATALOG_PORT,
+      useExisting: AgreementCatalogInnercoopAdapter,
+    },
+    {
       // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
@@ -383,6 +400,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_AGREEMENT_PORT,
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
+    USER_CERTIFICATE_PORT,
+    AGREEMENT_CATALOG_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,

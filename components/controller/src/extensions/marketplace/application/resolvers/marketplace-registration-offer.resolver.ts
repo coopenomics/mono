@@ -2,14 +2,11 @@ import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
 import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
-import {
-  AGREEMENT_QUERY_PORT,
-  AgreementQueryPort,
-} from '~/domain/registration/ports/agreement-query.port';
 
 import { MARKETPLACE_OFFER_AGREEMENT_ID } from '../../constants/marketplace-agreement-ids';
 import { MarketplaceRegistrationOfferStatusDTO } from '../dto/marketplace-registration-offer-status.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { AGREEMENT_CATALOG_PORT, type IAgreementCatalogPort } from '@coopenomics/innercoop';
 
 /**
  * Story 1.10: Query видимости marketplace-оферты в registration-flow.
@@ -26,8 +23,8 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
 @Injectable()
 export class MarketplaceRegistrationOfferResolver {
   constructor(
-    @Inject(AGREEMENT_QUERY_PORT)
-    private readonly agreementQueryPort: AgreementQueryPort
+    @Inject(AGREEMENT_CATALOG_PORT)
+    private readonly agreementQueryPort: IAgreementCatalogPort
   ) {}
 
   @Query(() => MarketplaceRegistrationOfferStatusDTO, {

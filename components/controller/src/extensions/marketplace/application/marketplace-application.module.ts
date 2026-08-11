@@ -184,13 +184,9 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
  * Модуль приложения marketplace
  * Содержит GraphQL резолверы и сервисы приложения
  */
-// Модуль пользователей ядра: отсюда берётся сертификат подписанта для показа
-// в заказе. Уедет вместе с остальной инфраструктурой ядра.
-import { UserModule } from '~/application/user/user.module';
 
 @Module({
   imports: [
-    UserModule,
     MarketplaceExtensionDomainModule,
     // Резолверы (Story 3.x/4.x/5.x/...) инжектят MARKETPLACE_*_REPOSITORY и
     // MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT — прямой импорт инфраструктуры
