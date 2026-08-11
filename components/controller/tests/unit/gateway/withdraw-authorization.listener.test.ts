@@ -41,11 +41,11 @@ describe('WithdrawAuthorizationListener', () => {
       expect(repository.setPaymentStatus).toHaveBeenCalledWith(PAYMENT_ID, PaymentStatusEnum.PENDING);
     });
 
-    it('принимает и устаревшее имя поля withdraw_hash', async () => {
+    it('не реагирует на withdraw_hash — у этого действия поля с таким именем нет', async () => {
       await listener.onAuthWithdraw(action({ coopname: 'voskhod', withdraw_hash: HASH_UPPER }));
 
-      expect(repository.findByHash).toHaveBeenCalledWith(HASH_LOWER);
-      expect(repository.setPaymentStatus).toHaveBeenCalledWith(PAYMENT_ID, PaymentStatusEnum.PENDING);
+      expect(repository.findByHash).not.toHaveBeenCalled();
+      expect(repository.setPaymentStatus).not.toHaveBeenCalled();
     });
 
     it('не трогает платёж, который уже вышел из ожидания решения', async () => {

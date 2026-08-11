@@ -29,15 +29,10 @@ export class WithdrawAuthorizationListener {
   ) {}
 
   /**
-   * Хэш заявки в callback-действиях совета приходит под разными именами:
-   * `authwthd` объявлен через AUTHORIZE_CALLBACK_SIGNATURE и несёт поле `hash`,
-   * `declinewthd` — собственное `withdraw_hash`. Блокчейн отдаёт checksum256
-   * в верхнем регистре, в БД платёж хранится в нижнем — без нормализации
-   * поиск по хэшу не находит платёж.
+   * Блокчейн отдаёт checksum256 в верхнем регистре, платёж хранится в нижнем —
+   * без нормализации поиск по хэшу не находит платёж.
    */
-  private extractWithdrawHash(action: ActionDomainInterface, actionLabel: string): string | undefined {
-    const data = action?.data as { hash?: string; withdraw_hash?: string } | undefined;
-    const raw = data?.hash ?? data?.withdraw_hash;
+  private normalizeHash(raw: string | undefined, actionLabel: string): string | undefined {
     if (!raw) {
       this.logger.warn(`${actionLabel}: в действии нет хэша заявки — пропуск`);
       return undefined;
@@ -47,7 +42,9 @@ export class WithdrawAuthorizationListener {
 
   @OnEvent(AUTH_WITHDRAW_EVENT)
   async onAuthWithdraw(action: ActionDomainInterface): Promise<void> {
-    const withdraw_hash = this.extractWithdrawHash(action, 'authwthd');
+    // `authwthd` объявлен через AUTHORIZE_CALLBACK_SIGNATURE — хэш заявки лежит
+    // в поле `hash`, а не в `withdraw_hash`, как у остальных действий wallet.
+    const withdraw_hash = this.normalizeHash(action?.data?.hash as string | undefined, 'authwthd');
     if (!withdraw_hash) return;
 
     const payment = await this.paymentRepository.findByHash(withdraw_hash);
@@ -65,7 +62,7 @@ export class WithdrawAuthorizationListener {
 
   @OnEvent(DECLINE_WITHDRAW_EVENT)
   async onDeclineWithdraw(action: ActionDomainInterface): Promise<void> {
-    const withdraw_hash = this.extractWithdrawHash(action, 'declinewthd');
+    const withdraw_hash = this.normalizeHash(action?.data?.withdraw_hash as string | undefined, 'declinewthd');
     if (!withdraw_hash) return;
 
     const payment = await this.paymentRepository.findByHash(withdraw_hash);
