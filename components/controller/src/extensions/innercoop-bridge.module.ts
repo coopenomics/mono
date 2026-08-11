@@ -2,6 +2,7 @@ import { Global, Module, Scope } from '@nestjs/common';
 import {
   CANDIDATE_PORT,
   CHAIN_PORT,
+  CHAIN_RESOURCES_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   AGREEMENT_CATALOG_PORT,
@@ -12,6 +13,7 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
+  EXTENSION_CONFIG_PORT,
   FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
@@ -85,6 +87,8 @@ import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation
 import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
 import { UserCertificateInnercoopAdapter } from '~/infrastructure/innercoop/user-certificate-innercoop.adapter';
 import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agreement-catalog-innercoop.adapter';
+import { ExtensionConfigInnercoopAdapter } from '~/infrastructure/innercoop/extension-config-innercoop.adapter';
+import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain-resources-innercoop.adapter';
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
@@ -176,6 +180,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CandidateInnercoopAdapter,
     UserCertificateInnercoopAdapter,
     AgreementCatalogInnercoopAdapter,
+    ExtensionConfigInnercoopAdapter,
+    ChainResourcesInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -339,6 +345,14 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: AgreementCatalogInnercoopAdapter,
     },
     {
+      provide: EXTENSION_CONFIG_PORT,
+      useExisting: ExtensionConfigInnercoopAdapter,
+    },
+    {
+      provide: CHAIN_RESOURCES_PORT,
+      useExisting: ChainResourcesInnercoopAdapter,
+    },
+    {
       // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
@@ -402,6 +416,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CANDIDATE_PORT,
     USER_CERTIFICATE_PORT,
     AGREEMENT_CATALOG_PORT,
+    EXTENSION_CONFIG_PORT,
+    CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,

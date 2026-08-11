@@ -2,8 +2,10 @@ import cron from 'node-cron';
 import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
-import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  CHAIN_RESOURCES_PORT,
+  type IChainResourcesPort,
+} from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
@@ -129,7 +131,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort
   ) {
     super();
     this.logger.setContext(PowerupExtension.name);
