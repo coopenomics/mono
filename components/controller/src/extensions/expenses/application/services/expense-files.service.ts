@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
-import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
 import { ExpenseFileKind } from '../../domain/enums/expense-file-kind.enum';
 import {
   EXPENSE_FILE_REPOSITORY,
@@ -17,6 +16,7 @@ import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-f
 import { EXPENSES_BUCKET } from '../../constants/expenses-bucket';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
 import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
+import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',

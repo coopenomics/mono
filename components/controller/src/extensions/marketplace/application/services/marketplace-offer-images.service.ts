@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
+import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
 
 const MB = 1024 * 1024;
 

@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
+// Динамический модуль ядра: `forFeature` создаёт хранилища для перечисленных
+// сервисов по их объявлениям. Сами объявления уже в каркасе, а вот создание
+// остаётся ядру — расширение получит его через собственный порт вместе с
+// остальной инфраструктурой, это следующий шаг.
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';

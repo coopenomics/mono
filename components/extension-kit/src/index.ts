@@ -16,6 +16,7 @@
 export * from './auth';
 export * from './base-extension.module';
 export * from './payment/payment-provider';
+export * from './file-storage/bucket';
 export * from './onboarding/onboarding-ttl';
 export * from './entities/extension.entity';
 export * from './entities/log-extension.entity';

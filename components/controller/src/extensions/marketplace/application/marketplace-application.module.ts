@@ -154,6 +154,10 @@ import {
 } from './services/marketplace-return-claim.service';
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
+// Динамический модуль ядра: `forFeature` создаёт хранилища для перечисленных
+// сервисов по их объявлениям. Сами объявления уже в каркасе, а вот создание
+// остаётся ядру — расширение получит его через собственный порт вместе с
+// остальной инфраструктурой, это следующий шаг.
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 // Эпик 8 — списание скоропорта через решение совета
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
