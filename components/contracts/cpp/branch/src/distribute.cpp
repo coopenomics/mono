@@ -66,11 +66,13 @@
     // Первая нога: изъятие доли из общего кошелька в транзитный пул.
     Ledger2::apply(_branch, coopname,
                    operations::branch::RELEASE_FROM_COMMON,
+                   processes::branch::FEES,
                    share_asset, braname, round_hash, memo);
 
     // Вторая нога: зачисление доли доверенному из транзитного пула.
     Ledger2::apply(_branch, coopname,
                    operations::branch::DISTRIBUTE_PERSONAL,
+                   processes::branch::FEES,
                    share_asset, it->username, round_hash, memo);
 
     distributed += share;

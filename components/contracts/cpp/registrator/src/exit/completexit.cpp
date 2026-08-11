@@ -26,6 +26,7 @@ void registrator::completexit(eosio::name coopname, checksum256 exit_hash) {
   // Проводка возврата паевого: списываем резерв w.wal.wpend, Дт80/Кт51.
   std::string memo = "Возврат паевого взноса при выходе из кооператива, username=" + username.to_string();
   Ledger2::apply(_registrator, coopname, operations::wallet::COMPLETE_WITHDRAW,
+                 processes::wallet::WITHDRAW,
                  e->quantity, username, exit_hash, memo);
 
   // Финализируем выход: удаляем пайщика и блокируем аккаунт.

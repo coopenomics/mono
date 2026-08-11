@@ -54,13 +54,13 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
  * (distribute / createexp) после контроля планового резерва бэкендом.
  */
 inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
-                   eosio::asset amount,
+                   eosio::asset amount, eosio::name process_type,
                    eosio::checksum256 process_hash, std::string memo) {
   eosio::action(
     eosio::permission_level{actor, "active"_n},
     _branch,
     "accrue"_n,
-    std::make_tuple(coopname, braname, actor, amount, process_hash, memo)
+    std::make_tuple(coopname, braname, actor, amount, process_type, process_hash, memo)
   ).send();
 }
 
@@ -80,13 +80,13 @@ inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
  * председатель сначала пополняет общий кошелёк.
  */
 inline void retfee(eosio::name actor, eosio::name coopname, eosio::name braname,
-                   eosio::asset amount,
+                   eosio::asset amount, eosio::name process_type,
                    eosio::checksum256 process_hash, std::string memo) {
   eosio::action(
     eosio::permission_level{actor, "active"_n},
     _branch,
     "retfee"_n,
-    std::make_tuple(coopname, braname, actor, amount, process_hash, memo)
+    std::make_tuple(coopname, braname, actor, amount, process_type, process_hash, memo)
   ).send();
 }
 

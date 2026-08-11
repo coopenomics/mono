@@ -132,6 +132,7 @@ public:
   [[eosio::action]] void accrue(eosio::name coopname, eosio::name braname,
                                  eosio::name source_contract,
                                  eosio::asset amount,
+                                 eosio::name process_type,
                                  eosio::checksum256 process_hash,
                                  std::string memo);
 
@@ -145,6 +146,7 @@ public:
   [[eosio::action]] void retfee(eosio::name coopname, eosio::name braname,
                                  eosio::name source_contract,
                                  eosio::asset amount,
+                                 eosio::name process_type,
                                  eosio::checksum256 process_hash,
                                  std::string memo);
 

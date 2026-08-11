@@ -60,14 +60,14 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // (CRPS перераспределяет доли между сегментами без compensating TRANSFER) —
   // именно поэтому L3-разрез по пайщику снят (см. wallets.hpp:103).
   if (segment.available_for_program.amount > 0) {
-    Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_RID, segment.available_for_program, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_RID, processes::capital::RID, segment.available_for_program, result -> username, result_hash, memo);
   }
 
   // Возврат беспроцентного займа пайщика: Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY.
   // Семантика: пайщик погасил ссуду результатом (интеллектуальным взносом),
   // у кооперативa уменьшилось фин. вложение 58, деньги вернулись на расчётный.
   if (result -> debt_amount.amount > 0){
-    Ledger2::apply(_capital, coopname, operations::capital::REPAY, result -> debt_amount, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, operations::capital::REPAY, processes::capital::RID, result -> debt_amount, result -> username, result_hash, memo);
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

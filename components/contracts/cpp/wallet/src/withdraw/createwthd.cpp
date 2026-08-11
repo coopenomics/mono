@@ -44,7 +44,7 @@ void wallet::createwthd(eosio::name coopname, eosio::name username, checksum256 
   std::string memo_in = "Возврат части целевого паевого взноса по ЦПП 'Цифровой Кошелёк'";
 
   // ledger2: BLOCK на w.wal.share — резервируем сумму под рассмотрение заявки.
-  Ledger2::apply(_wallet, coopname, operations::wallet::REQUEST_WITHDRAW, quantity,
+  Ledger2::apply(_wallet, coopname, operations::wallet::REQUEST_WITHDRAW, processes::wallet::WITHDRAW, quantity,
                  username, withdraw_hash, memo_in);
 };
 

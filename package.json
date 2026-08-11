@@ -74,6 +74,7 @@
     "check:boundaries": "bash scripts/check.sh boundaries",
     "check:changed": "bash scripts/check.sh changed",
     "check:registry": "bash scripts/check.sh registry",
+    "check:ledger2": "bash scripts/check.sh ledger2",
     "registry:audit": "node scripts/registry-audit.mjs",
     "mutate:changed": "bash scripts/mutate-changed.sh",
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",

@@ -76,12 +76,12 @@
   std::string memo = "Минимальный паевой взнос при вступлении пайщика с username=" + username.to_string();
 
   // Минимальный паевой взнос через ledger2 (ISSUE в SHARE_FUND, Dr: BANK_ACCOUNT, Cr: SHARE_FUND)
-  Ledger2::apply(_registrator, coopname, operations::registrator::PUT_MINSHARE, minimum, username, registration_hash, memo);
+  Ledger2::apply(_registrator, coopname, operations::registrator::PUT_MINSHARE, processes::registrator::ACCEPT, minimum, username, registration_hash, memo);
 
   if (spread_initial) {
     memo = "Вступительный взнос при вступлении пайщика с username=" + username.to_string();
     // Вступительный взнос через ledger2 (ISSUE в ENTRANCE_FEES, Dr: BANK_ACCOUNT, Cr: ENTRANCE_FEES)
-    Ledger2::apply(_registrator, coopname, operations::registrator::PAY_ENTRANCE, initial, username, registration_hash, memo);
+    Ledger2::apply(_registrator, coopname, operations::registrator::PAY_ENTRANCE, processes::registrator::ACCEPT, initial, username, registration_hash, memo);
   }
   
   // Увеличиваем счётчик активных пайщиков

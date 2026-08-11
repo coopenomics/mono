@@ -42,6 +42,7 @@ void marketplace::confirmwroff(eosio::name coopname,
     if (item.executed || item.braname != braname) continue;
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::WRITE_OFF_PERISHABLE,
+                   processes::marketplace::WRITEOFF,
                    item.amount, item.braname, p.hash,
                    Marketplace::Memo::get_writeoff_memo(p.id, i));
     confirmed_count++;

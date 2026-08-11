@@ -96,6 +96,7 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
   // Σ wallet_amount + capital_amount == available_for_program (проверено выше).
   if (wallet_amount.amount > 0) {
     Ledger2::apply(_capital, coopname, operations::capital::CONVERT_TO_SHARE,
+                   processes::capital::RID,
                    wallet_amount, username, result_hash,
                    Capital::Memo::get_convert_segment_to_wallet_memo(result_hash));
 
@@ -105,6 +106,7 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
 
   if (capital_amount.amount > 0) {
     Ledger2::apply(_capital, coopname, operations::capital::CONVERT_TO_BLAGO,
+                   processes::capital::RID,
                    capital_amount, username, result_hash,
                    Capital::Memo::get_convert_segment_to_capital_memo(result_hash));
   }

@@ -73,6 +73,7 @@
   // если перевод не прошёл, записка не создаётся.
   Ledger2::apply(_branch, coopname,
                  operations::branch::EXPENSE_FUND,
+                 processes::branch::SPEND,
                  amount, braname, expense_hash,
                  "Выделение средств кооперативного участка под расход");
 

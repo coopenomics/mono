@@ -30,6 +30,7 @@
 [[eosio::action]] void branch::retfee(eosio::name coopname, eosio::name braname,
                                        eosio::name source_contract,
                                        eosio::asset amount,
+                                       eosio::name process_type,
                                        eosio::checksum256 process_hash,
                                        std::string memo) {
   if (!has_auth(coopname)) {
@@ -64,5 +65,6 @@
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::RETURN_FEE_FROM_COMMON,
+                 process_type,
                  amount, braname, process_hash, memo);
 }

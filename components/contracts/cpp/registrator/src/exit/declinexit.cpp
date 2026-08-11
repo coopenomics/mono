@@ -31,6 +31,7 @@ void registrator::declinexit(eosio::name coopname, checksum256 exit_hash, std::s
   if (e->status == "authorized"_n && e->quantity.amount > 0) {
     std::string memo = "Снятие резерва паевого при отмене выхода из кооператива: " + reason;
     Ledger2::apply(_registrator, coopname, operations::wallet::DECLINE_WITHDRAW,
+                   processes::wallet::WITHDRAW,
                    e->quantity, username, exit_hash, memo);
   }
 

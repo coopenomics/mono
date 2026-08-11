@@ -29,7 +29,7 @@ void registrator::refundpay(name coopname, checksum256 registration_hash) {
   eosio::check(pending.amount > 0, "Нет средств на возврат");
 
   std::string memo = "Возврат регистрационного взноса при отказе совета, username=" + candidate -> username.to_string();
-  Ledger2::apply(_registrator, coopname, operations::registrator::REFUND, pending, candidate -> username, registration_hash, memo);
+  Ledger2::apply(_registrator, coopname, operations::registrator::REFUND, processes::registrator::REFUND, pending, candidate -> username, registration_hash, memo);
 
   // Возврат завершён — удаляем кандидата из картотеки.
   Registrator::candidates_index candidates(_registrator, coopname.value);
