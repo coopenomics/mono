@@ -129,7 +129,9 @@ const documents = computed<RegistrationDoc[]>(() => {
   if (pack.generation_contract?.html && !contributorStore.self?.is_external_contract) {
     list.push({
       key: 'generation_contract',
-      title: `${n++}. Договор об участии в управлении хозяйственной деятельностью`,
+      // Название — как в реестре документов (1001.GenerationContract): договор
+      // УХД — это «участия в хозяйственной деятельности», управления в нём нет.
+      title: `${n++}. Договор участия в хозяйственной деятельности`,
       html: pack.generation_contract.html,
     });
   }
