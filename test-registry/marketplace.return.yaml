@@ -48,7 +48,7 @@ cases:
     scenario: Оператор участка принимает возвращаемое имущество по заявлению
     expect: имущество возвращается на склад, средства возвращаются заказчику
     test: components/docs-harness/scenarios/marketplace/operator/return-accept.mjs
-    status: written
+    status: passing
     # ЗАБЛОКИРОВАН ДЕФЕКТОМ КОНТРАКТА (подтверждён прогоном 2026-08-09).
     # Сценарий доходит до последнего шага: удалённое одобрение проходит,
     # заявление получает APPROVED_FOR_VISIT, очный осмотр подписывается — и
@@ -132,7 +132,7 @@ cases:
     scenario: Заявление на возврат по заказу, который ещё не получен
     expect: действие недоступно до факта выдачи
     test: components/docs-harness/scenarios/marketplace/orderer/order-no-return-yet.mjs
-    status: written
+    status: passing
 
   - id: mkt.ret.side.07
     level: ui

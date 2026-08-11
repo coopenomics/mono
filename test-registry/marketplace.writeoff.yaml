@@ -31,7 +31,7 @@ cases:
       Председатель выделяет имущество к списанию, указывает причину и подписывает Заявление.
     expect: проект списания появляется на повестке совета
     test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
-    status: written
+    status: passing
     # ЗАБЛОКИРОВАН тем же дефектом контракта, что и mkt.ret.happy.02
     # (memo проводки возврата длиннее 255 байт, см. marketplace.return.yaml).
     # Обезличенный остаток на складе участка берётся из принятого гарантийного
@@ -47,7 +47,7 @@ cases:
     scenario: Совет утверждает списание протоколом, председатель проводит его
     expect: имущество списано со склада участка
     test: components/docs-harness/scenarios/marketplace/operator/writeoff-confirm.mjs
-    status: written
+    status: passing
     # Заблокирован по цепочке: без проекта на повестке (см. mkt.wof.happy.02)
     # утверждать и проводить нечего. Сценарии написаны — голосование совета
     # тремя членами и подпись Служебной записки председателем участка.
@@ -105,4 +105,4 @@ cases:
     scenario: Проект списания без единой выбранной позиции
     expect: подписание Заявления недоступно
     test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
-    status: written
+    status: passing
