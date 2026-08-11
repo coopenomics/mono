@@ -16,7 +16,6 @@ import { LOGGER_PORT, type ILoggerPort,
 } from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
-import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
 import {
@@ -25,7 +24,9 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
-import { AssetUtils } from '@coopenomics/extension-kit';
+import { AssetUtils,
+  generateHashFromString,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -150,7 +151,7 @@ export class GenerationInteractor {
 
             // Генерируем commit_hash на основе diff (только для первого Git элемента)
             if (!commitHash) {
-              commitHash = sha256(gitDiffData.diff);
+              commitHash = generateHashFromString(gitDiffData.diff);
               // Добавляем URL в мета-данные для блокчейна
               metaData.git_url = gitDiffData.url;
               this.logger.debug(`Сгенерирован commit_hash: ${commitHash} на основе diff`);
@@ -205,7 +206,7 @@ export class GenerationInteractor {
           },
         });
       }
-      commitHash = sha256(combined);
+      commitHash = generateHashFromString(combined);
       metaData.git_linked_commits = linkedRows.map((r) => r.github_sha);
       linkedRowIdsToConsume = linkedRows.map((r) => r.id);
       this.logger.debug(`Сгенерирован commit_hash из ${linkedRows.length} привязанных GitHub-коммитов`);
@@ -215,7 +216,7 @@ export class GenerationInteractor {
       this.appendContributionFeedbackItems(enrichedData, feedbackItems);
       const nonce = randomUUID();
       metaData.artifact_contribution_nonce = nonce;
-      commitHash = sha256(
+      commitHash = generateHashFromString(
         JSON.stringify({
           kind: 'capital_contribution_artifact_v1',
           coopname: data.coopname,

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { platformSettings } from '@coopenomics/extension-kit';
-import logger from '~/config/logger';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
@@ -69,7 +68,10 @@ import {
   marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from './marketplace-realtime.topics';
-import { REALTIME_CHANNEL_PORT, type IRealtimeChannelPort } from '@coopenomics/innercoop';
+import { REALTIME_CHANNEL_PORT, type IRealtimeChannelPort,
+  LOGGER_PORT,
+  type ILoggerPort,
+} from '@coopenomics/innercoop';
 
 /**
  * Решение председателя по возврату → статус заявления. Маппинг закреплён
@@ -98,7 +100,12 @@ const RETURN_DECISION_TO_STATUS: Record<
  */
 @Injectable()
 export class MarketplaceRealtimeBridge {
-  constructor(@Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort) {}
+  constructor(
+    @Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+  ) {
+    this.logger.setContext(MarketplaceRealtimeBridge.name);
+  }
 
   @OnEvent(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT)
   async onOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
@@ -109,7 +116,7 @@ export class MarketplaceRealtimeBridge {
       braname: event.braname,
     };
     const topic = marketplaceMemberTopic(event.coopname, event.orderer_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH ORDER_READY_TO_RECEIVE → topic=${topic} order=${event.order_id}`
     );
     await this.pubSub.publish(topic, payload);
@@ -128,7 +135,7 @@ export class MarketplaceRealtimeBridge {
       ku_name: event.ku_name,
     };
     const topic = marketplaceMemberTopic(event.coopname, event.supplier_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH RECEPTION_PENDING_SIGN (очно) → topic=${topic} reception=${event.apl_reception_id} supplier_account=${event.supplier_account}`
     );
     await this.pubSub.publish(topic, payload);
@@ -145,7 +152,7 @@ export class MarketplaceRealtimeBridge {
       unlimited_flag: event.unlimited_flag,
     };
     const topic = marketplaceCatalogTopic(platformSettings().coopname);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH OFFER_STOCK_CHANGED → topic=${topic} offer=${event.offer_id} available=${event.quantity_available}`
     );
     await this.pubSub.publish(topic, payload);
@@ -161,7 +168,7 @@ export class MarketplaceRealtimeBridge {
       category_id: event.category_id,
     };
     const topic = marketplaceCatalogTopic(platformSettings().coopname);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH OFFER_PUBLISHED → topic=${topic} offer=${event.offer_id} category=${event.category_id}`
     );
     await this.pubSub.publish(topic, payload);
@@ -177,7 +184,7 @@ export class MarketplaceRealtimeBridge {
       braname: event.braname,
     };
     const topic = marketplaceMemberTopic(event.coopname, event.member_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH STOCK_PROPOSAL_CREATED → topic=${topic} proposal=${event.proposal_id}`
     );
     await this.pubSub.publish(topic, payload);
@@ -194,7 +201,7 @@ export class MarketplaceRealtimeBridge {
     };
     const staffTopic = marketplaceStaffTopic(event.coopname);
     const memberTopic = marketplaceMemberTopic(event.coopname, event.member_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH STOCK_PROPOSAL_RESOLVED → topics=${staffTopic},${memberTopic} proposal=${event.proposal_id} resolution=${event.resolution}`
     );
     await this.pubSub.publish(staffTopic, payload);
@@ -218,7 +225,7 @@ export class MarketplaceRealtimeBridge {
     const recipients = new Set([event.orderer_account, event.supplier_account]);
     for (const account of recipients) {
       const topic = marketplaceMemberTopic(event.coopname, account);
-      logger.info(
+      this.logger.info(
         `[mp-ws] PUBLISH ORDER_STATUS_CHANGED → topic=${topic} order=${event.order_id} ${event.previous_status}→${event.status}`
       );
       await this.pubSub.publish(topic, payload);
@@ -242,7 +249,7 @@ export class MarketplaceRealtimeBridge {
     };
     const staffTopic = marketplaceStaffTopic(event.coopname);
     const supplierTopic = marketplaceMemberTopic(event.coopname, event.supplier_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH RECEPTION_STATUS_CHANGED → topics=${staffTopic},${supplierTopic} reception=${event.apl_reception_id} status=${event.status}`
     );
     await this.pubSub.publish(staffTopic, payload);
@@ -292,7 +299,7 @@ export class MarketplaceRealtimeBridge {
     };
     const staffTopic = marketplaceStaffTopic(coopname);
     const ordererTopic = marketplaceMemberTopic(coopname, orderer_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH RETURN_CLAIM_STATUS_CHANGED → topics=${staffTopic},${ordererTopic} claim=${claim_id} status=${status}`
     );
     await this.pubSub.publish(staffTopic, payload);
@@ -346,7 +353,7 @@ export class MarketplaceRealtimeBridge {
       status,
     };
     const moderationTopic = marketplaceModerationTopic(platformSettings().coopname);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH OFFER_MODERATION_CHANGED → topic=${moderationTopic} offer=${offer_id} status=${status}`
     );
     await this.pubSub.publish(moderationTopic, payload);
@@ -398,7 +405,7 @@ export class MarketplaceRealtimeBridge {
       status,
     };
     const topic = marketplaceMemberTopic(coopname, supplier_account);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH PAYMENT_STATUS_CHANGED → topic=${topic} payment=${payment_request_id} status=${status}`
     );
     await this.pubSub.publish(topic, payload);
@@ -468,7 +475,7 @@ export class MarketplaceRealtimeBridge {
     };
     const boardTopic = marketplaceBoardTopic(coopname);
     const staffTopic = marketplaceStaffTopic(coopname);
-    logger.info(
+    this.logger.info(
       `[mp-ws] PUBLISH WRITEOFF_STATUS_CHANGED → topics=${boardTopic},${staffTopic} proposal=${proposal_id} status=${status}`
     );
     await this.pubSub.publish(boardTopic, payload);

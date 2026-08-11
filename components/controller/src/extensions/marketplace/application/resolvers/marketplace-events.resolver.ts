@@ -1,6 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import logger from '~/config/logger';
 import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import {
   MarketplaceEventPayload,
@@ -19,6 +18,8 @@ import { BRANCH_PORT, type IBranchPort,
   type IRealtimeChannelPort,
   USER_DIRECTORY_PORT,
   type IUserDirectoryPort,
+  LOGGER_PORT,
+  type ILoggerPort,
 } from '@coopenomics/innercoop';
 
 /**
@@ -38,6 +39,7 @@ import { BRANCH_PORT, type IBranchPort,
 @Injectable()
 export class MarketplaceEventsResolver {
   constructor(
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort,
     @Inject(USER_DIRECTORY_PORT) private readonly userRepository: IUserDirectoryPort,
     @Inject(BRANCH_PORT) private readonly branchPort: IBranchPort
@@ -74,7 +76,7 @@ export class MarketplaceEventsResolver {
     if (role === 'chairman' || role === 'member') {
       topics.push(marketplaceBoardTopic(platformSettings().coopname));
     }
-    logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
+    this.logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topics);
   }
 
@@ -91,7 +93,7 @@ export class MarketplaceEventsResolver {
       const record = await this.userRepository.findByUsername(username);
       return record?.role ?? null;
     } catch (err: any) {
-      logger.warn(
+      this.logger.warn(
         `[mp-ws] не удалось проверить роль ${username}: ${err.message} — служебные каналы не подключены`
       );
       return null;
@@ -112,7 +114,7 @@ export class MarketplaceEventsResolver {
         (b) => b.trustee === username || (b.trusted?.includes(username) ?? false)
       );
     } catch (err: any) {
-      logger.warn(
+      this.logger.warn(
         `[mp-ws] не удалось проверить персонал КУ для ${username}: ${err.message} — служебный канал не подключён`
       );
       return false;
