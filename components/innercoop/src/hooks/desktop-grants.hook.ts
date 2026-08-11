@@ -38,3 +38,13 @@ export interface IDesktopGrantsHook {
    */
   resolveGrants(context: InnerDesktopGrantsContext): Promise<string[]>;
 }
+
+/**
+ * Реестр провайдеров прав. Расширение кладёт себя сюда при запуске, а собирает
+ * рабочий стол ядро.
+ */
+export interface IDesktopGrantsRegistryPort {
+  register(provider: IDesktopGrantsHook): void;
+}
+
+export const DESKTOP_GRANTS_REGISTRY_PORT = Symbol.for('Innercoop.CorePort.DesktopGrantsRegistry');

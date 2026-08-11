@@ -5,7 +5,9 @@ import type {
   InnerGetAccountsFilter,
   InnerPaginatedAccounts,
   InnerPaginationOptions,
+  InnerChainAccountRow,
 } from '@coopenomics/innercoop';
+import { ACCOUNT_DOMAIN_SERVICE, type AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 
 /**
@@ -17,7 +19,10 @@ import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/
  */
 @Injectable()
 export class AccountInnercoopAdapter implements IAccountPort {
-  constructor(@Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort) {}
+  constructor(
+    @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService
+  ) {}
 
   async getAccount(username: string): Promise<InnerAccount> {
     return (await this.accountDataPort.getAccount(username)) as unknown as InnerAccount;
@@ -33,5 +38,9 @@ export class AccountInnercoopAdapter implements IAccountPort {
 
   async getDisplayName(username: string): Promise<string> {
     return this.accountDataPort.getDisplayName(username);
+  }
+
+  async getChainAccount(username: string): Promise<InnerChainAccountRow | null> {
+    return this.accountDomainService.getUserAccount(username);
   }
 }

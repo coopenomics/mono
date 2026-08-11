@@ -20,6 +20,7 @@ export * from './payment-provider.port';
 export * from './payment-method.port';
 export * from './payment-desk.port';
 export * from './program.contract';
+export * from './participant-registered.event';
 export * from './wallet.port';
 export * from './program-agreement.port';
 export * from './vault.port';

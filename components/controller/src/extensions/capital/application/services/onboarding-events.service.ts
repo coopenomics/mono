@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent,
   ProgramKey,
+  type InnerParticipantRegisteredEvent,
 } from '@coopenomics/innercoop';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
@@ -95,7 +95,7 @@ export class CapitalOnboardingEventsService {
   }
 
   @OnEvent('participant::registered')
-  async handleParticipantRegistered(event: ParticipantRegisteredEvent): Promise<void> {
+  async handleParticipantRegistered(event: InnerParticipantRegisteredEvent): Promise<void> {
     const { username, program_key, blagorost_offer_hash, generator_offer_hash } = event;
 
     this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${platformSettings().coopname}`);

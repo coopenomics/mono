@@ -7,6 +7,7 @@ import {
   COOPERATIVE_VARS_PORT,
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
+  DESKTOP_GRANTS_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   FREE_DECISION_PORT,
@@ -78,6 +79,7 @@ import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-inne
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
+import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
@@ -310,6 +312,11 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: MutationLogInnercoopAdapter,
     },
     {
+      // Реестр ядра совпадает с портом по форме: расширение только кладёт себя.
+      provide: DESKTOP_GRANTS_REGISTRY_PORT,
+      useExisting: ExtensionGrantsRegistry,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -365,6 +372,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     USER_DIRECTORY_PORT,
     PROGRAM_AGREEMENT_PORT,
     MUTATION_LOG_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

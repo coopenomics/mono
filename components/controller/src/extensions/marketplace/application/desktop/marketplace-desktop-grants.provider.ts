@@ -3,8 +3,9 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { MonoAccountStatus,
   type IDesktopGrantsHook,
   type InnerDesktopGrantsContext,
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  type IDesktopGrantsRegistryPort,
 } from '@coopenomics/innercoop';
-import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
 import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
@@ -66,7 +67,7 @@ export class MarketplaceDesktopGrantsProvider
   readonly extensionName = 'market';
 
   constructor(
-    private readonly grantsRegistry: ExtensionGrantsRegistry,
+    @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
     @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
     private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)

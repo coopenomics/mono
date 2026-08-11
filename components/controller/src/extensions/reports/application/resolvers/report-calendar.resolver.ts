@@ -4,7 +4,6 @@ import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
   platformSettings,
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import { ReportSubmissionMark } from '../../domain/enums/report-submission-mark.enum';
 import {
@@ -30,6 +29,7 @@ import {
   ReportCalendarPeriodEntryDTO,
   ReportCalendarRowDTO,
 } from '../dto/report-calendar.dto';
+import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 
 /**
  * Календарь отчётности — матрица 5 форм × 12 месяцев для UI.
@@ -54,7 +54,7 @@ export class ReportCalendarResolver {
     private readonly draftRepo: ReportDraftRepository,
     @Inject(REPORT_SUBMISSION_MARK_REPOSITORY)
     private readonly markRepo: ReportSubmissionMarkRepository,
-    private readonly accountDomainService: AccountDomainService,
+    @Inject(ACCOUNT_PORT) private readonly accountDomainService: IAccountPort,
   ) {}
 
   @Query(() => [ReportCalendarRowDTO], {
@@ -90,7 +90,7 @@ export class ReportCalendarResolver {
         this.markRepo.list({ coopname, year }),
         // registered_at живёт в registrator::accounts (общая таблица аккаунтов),
         // у cooperatives есть только created_at. Берём userAccount для coopname.
-        this.accountDomainService.getUserAccount(coopname).catch((e) => {
+        this.accountDomainService.getChainAccount(coopname).catch((e) => {
           // Чейн временно недоступен или конфиг кривой — фолбэк к старому
           // поведению (без фильтра по дате регистрации). Лучше показать всё
           // как раньше, чем ронять весь календарь.
