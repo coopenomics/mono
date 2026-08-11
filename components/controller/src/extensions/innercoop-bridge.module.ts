@@ -15,6 +15,7 @@ import {
   MATRIX_ROOM_MESSAGING_PORT,
   MEET_PORT,
   MESSAGE_CHANNEL_PORT,
+  MUTATION_LOG_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
@@ -76,6 +77,7 @@ import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/real
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
+import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import {
@@ -156,6 +158,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
     ProgramAgreementInnercoopAdapter,
+    MutationLogInnercoopAdapter,
     OrganizationInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
@@ -303,6 +306,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ProgramAgreementInnercoopAdapter,
     },
     {
+      provide: MUTATION_LOG_PORT,
+      useExisting: MutationLogInnercoopAdapter,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -357,6 +364,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     COUNCIL_PORT,
     USER_DIRECTORY_PORT,
     PROGRAM_AGREEMENT_PORT,
+    MUTATION_LOG_PORT,
     REGISTRATION_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,

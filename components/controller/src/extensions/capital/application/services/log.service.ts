@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { MUTATION_LOG_REPOSITORY, MutationLogRepository } from '~/domain/mutation-log/repositories/mutation-log.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
@@ -9,7 +8,10 @@ import {
   isFreeIssueParticipant,
   isLocalProjectOwner,
 } from '../../domain/utils/private-project-access';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort,
+  MUTATION_LOG_PORT,
+  type IMutationLogPort,
+} from '@coopenomics/innercoop';
 import { MutationLogMapperService, IMappedCapitalLog, LogEntityType } from './mutation-log-mapper.service';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
@@ -53,8 +55,8 @@ export interface ICapitalLogFilterInput {
 @Injectable()
 export class LogService {
   constructor(
-    @Inject(MUTATION_LOG_REPOSITORY)
-    private readonly mutationLogRepository: MutationLogRepository,
+    @Inject(MUTATION_LOG_PORT)
+    private readonly mutationLogRepository: IMutationLogPort,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     @Inject(ISSUE_REPOSITORY)

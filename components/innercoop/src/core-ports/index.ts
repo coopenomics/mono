@@ -31,6 +31,7 @@ export * from './chain-action.contract';
 export * from './realtime.port';
 export * from './council.port';
 export * from './user-directory.port';
+export * from './mutation-log.port';
 export * from './secret-cipher.port';
 export * from './integration-settings.port';
 export * from './mass-notification-eligibility';

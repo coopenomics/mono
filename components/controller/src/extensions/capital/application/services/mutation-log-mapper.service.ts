@@ -1,12 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { MutationLogDomainEntity } from '~/domain/mutation-log/entities/mutation-log-domain.entity';
 import { LogEventType } from '../../domain/enums/log-event-type.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
-import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
+import { ACCOUNT_PORT, type IAccountPort,
+  type InnerMutationLogEntry,
+} from '@coopenomics/innercoop';
 
 /**
  * Типы сущностей для логов
@@ -112,7 +113,7 @@ export class MutationLogMapperService {
     );
   }
 
-  private collectUsernamesFromLog(mutationLog: MutationLogDomainEntity): string[] {
+  private collectUsernamesFromLog(mutationLog: InnerMutationLogEntry): string[] {
     const args = mutationLog.arguments || {};
     const data = args.data || args.input || args || {};
     const names: string[] = [mutationLog.username];
@@ -360,7 +361,7 @@ export class MutationLogMapperService {
   /**
    * Преобразование лога мутации в лог события capital
    */
-  async mapToCapitalLog(mutationLog: MutationLogDomainEntity): Promise<IMappedCapitalLog | null> {
+  async mapToCapitalLog(mutationLog: InnerMutationLogEntry): Promise<IMappedCapitalLog | null> {
     const eventType = this.mutationToEventType[mutationLog.mutation_name];
     if (!eventType) return null;
 
@@ -939,7 +940,7 @@ export class MutationLogMapperService {
     }
   }
 
-  async mapMultipleToCapitalLogs(mutationLogs: MutationLogDomainEntity[]): Promise<IMappedCapitalLog[]> {
+  async mapMultipleToCapitalLogs(mutationLogs: InnerMutationLogEntry[]): Promise<IMappedCapitalLog[]> {
     this.nameCache.clear();
     const allNames = mutationLogs.flatMap((log) => this.collectUsernamesFromLog(log));
     await this.resolveNames(allNames);
