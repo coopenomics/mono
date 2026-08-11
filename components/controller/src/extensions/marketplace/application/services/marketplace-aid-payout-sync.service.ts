@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
@@ -41,7 +42,7 @@ export class MarketplaceAidPayoutSyncService {
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.AidConfirm.actionName}`
   )
-  async handleAidConfirm(action: IAction): Promise<void> {
+  async handleAidConfirm(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as { coopname?: string; outcome_hash?: string };
       if (!data?.coopname || !data?.outcome_hash) {

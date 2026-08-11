@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
@@ -12,7 +14,6 @@ import {
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
@@ -51,7 +52,7 @@ export class MarketplacePayoutSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.PayConfirm.actionName}`
   )
-  async handlePayConfirm(action: IAction): Promise<void> {
+  async handlePayConfirm(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.PayConfirm.IPayConfirm;
       if (!data?.coopname || !data?.outcome_hash) {
@@ -109,7 +110,7 @@ export class MarketplacePayoutSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.PayDecline.actionName}`
   )
-  async handlePayDecline(action: IAction): Promise<void> {
+  async handlePayDecline(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.PayDecline.IPayDecline;
       if (!data?.coopname || !data?.outcome_hash) {

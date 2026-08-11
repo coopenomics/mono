@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, PaymentStatus } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { MARKETPLACE_AID_COUNCIL_DECIDED_EVENT } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
@@ -35,19 +36,19 @@ export class MarketplaceAidCouncilSyncService {
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.OnAidAuth.actionName}`
   )
-  async handleCouncilAuthorized(action: IAction): Promise<void> {
+  async handleCouncilAuthorized(action: InnerChainActionRecord): Promise<void> {
     await this.applyDecision(action, true, 'onaidauth');
   }
 
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.OnAidDecl.actionName}`
   )
-  async handleCouncilDeclined(action: IAction): Promise<void> {
+  async handleCouncilDeclined(action: InnerChainActionRecord): Promise<void> {
     await this.applyDecision(action, false, 'onaiddecl');
   }
 
   private async applyDecision(
-    action: IAction,
+    action: InnerChainActionRecord,
     approved: boolean,
     actionLabel: string
   ): Promise<void> {

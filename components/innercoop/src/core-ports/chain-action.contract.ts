@@ -10,7 +10,11 @@
  * после переподключения к потоку, и обработчик обязан это пережить.
  */
 export interface InnerChainActionRecord {
-  id: string;
+  /**
+   * Идентификатор записи в журнале действий. У события, пришедшего по
+   * внутренней шине, его ещё нет: он появляется, когда действие записано.
+   */
+  id?: string;
   transaction_id: string;
   /** Контракт, которому действие адресовано. */
   account: string;
@@ -47,5 +51,6 @@ export interface InnerChainActionRecord {
   elapsed: number;
   /** Повторная доставка того же действия. */
   repeat?: boolean;
-  created_at: Date;
+  /** Когда действие записано в журнал; у события из шины отсутствует. */
+  created_at?: Date;
 }
