@@ -12,12 +12,12 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { ExpenseProposalStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
 // Способ оплаты и тип получателя — общий словарь шасси расходов: расход
 // участка идёт тем же процессом, свой параллельный набор значений развёл бы
 // схему и заставил фронт конвертировать типы.
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
+import { ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 
 @InputType('BranchExpenseItemInput', {
   description: 'Позиция расхода кооперативного участка: кому, сколько и каким способом платим.',

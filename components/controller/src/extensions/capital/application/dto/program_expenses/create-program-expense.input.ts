@@ -6,7 +6,7 @@ import { Type } from 'class-transformer';
 // зависит. Уедет вместе с шасси расходов в собственный пакет — тогда capital
 // будет зависеть от пакета, а не от пути внутрь чужого расширения.
 import { ExpenseItemInputDTO } from '~/extensions/expenses/application/dto/expense-item.input';
-import { ExpenseProposalStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
+import { ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Создание программного расхода капитала через шасси `expense`.

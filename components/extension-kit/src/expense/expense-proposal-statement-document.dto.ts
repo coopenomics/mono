@@ -2,7 +2,9 @@ import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graph
 import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
-import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO } from '../document/signed-digital-document-input.dto';
+import { MetaDocumentInputDTO } from '../document/meta-document-input.dto';
+import { GenerateMetaDocumentInputDTO } from '../document/generate-meta-document-input.dto';
 
 type Action = Cooperative.Registry.ExpenseProposalStatement.Action;
 type ItemAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseItem;
@@ -15,42 +17,42 @@ type HeaderAction = Cooperative.Registry.ExpenseProposalStatement.IExpensePropos
  */
 @InputType('ExpenseProposalItemInput')
 class ExpenseProposalItemInputDTO {
-  @Field({ description: 'Порядковый номер строки' })
+  @Field(() => String, { description: 'Порядковый номер строки' })
   @IsString()
   number!: string;
 
-  @Field({ description: 'Описание расхода' })
+  @Field(() => String, { description: 'Описание расхода' })
   @IsString()
   description!: string;
 
-  @Field({ description: 'Сумма строки' })
+  @Field(() => String, { description: 'Сумма строки' })
   @IsString()
   amount!: string;
 
-  @Field({ description: 'Тип получателя (SELF / MEMBER / ORG)' })
+  @Field(() => String, { description: 'Тип получателя (SELF / MEMBER / ORG)' })
   @IsString()
   recipient_type!: 'SELF' | 'MEMBER' | 'ORG';
 
-  @Field({ description: 'Способ оплаты (ADVANCE / DIRECT)' })
+  @Field(() => String, { description: 'Способ оплаты (ADVANCE / DIRECT)' })
   @IsString()
   mechanics!: 'ADVANCE' | 'DIRECT';
 
-  @Field({ description: 'Имя получателя', nullable: true })
+  @Field(() => String, { description: 'Имя получателя', nullable: true })
   @IsOptional()
   @IsString()
   recipient_name?: string;
 
-  @Field({ description: 'Реквизиты получателя', nullable: true })
+  @Field(() => String, { description: 'Реквизиты получателя', nullable: true })
   @IsOptional()
   @IsString()
   requisites?: string;
 
-  @Field({ description: 'Назначение платежа — отдельной строкой после реквизитов', nullable: true })
+  @Field(() => String, { description: 'Назначение платежа — отдельной строкой после реквизитов', nullable: true })
   @IsOptional()
   @IsString()
   payment_purpose?: string;
 
-  @Field({
+  @Field(() => String, {
     description:
       'Идентификатор сохранённых реквизитов получателя-пайщика — сервер подставит полные реквизиты в документ.',
     nullable: true,
@@ -59,7 +61,7 @@ class ExpenseProposalItemInputDTO {
   @IsString()
   payment_method_id?: string;
 
-  @Field({
+  @Field(() => String, {
     description: 'Имя аккаунта получателя-пайщика (владелец реквизитов).',
     nullable: true,
   })
@@ -74,34 +76,34 @@ class ExpenseProposalItemInputDTO {
  */
 @InputType('ExpenseProposalSignedItemInput')
 class ExpenseProposalSignedItemInputDTO implements ItemAction {
-  @Field({ description: 'Порядковый номер строки' })
+  @Field(() => String, { description: 'Порядковый номер строки' })
   @IsString()
   number!: string;
 
-  @Field({ description: 'Описание расхода' })
+  @Field(() => String, { description: 'Описание расхода' })
   @IsString()
   description!: string;
 
-  @Field({ description: 'Сумма строки' })
+  @Field(() => String, { description: 'Сумма строки' })
   @IsString()
   amount!: string;
 
-  @Field({ description: 'Тип получателя (SELF / MEMBER / ORG)' })
+  @Field(() => String, { description: 'Тип получателя (SELF / MEMBER / ORG)' })
   @IsString()
   recipient_type!: 'SELF' | 'MEMBER' | 'ORG';
 
-  @Field({ description: 'Способ оплаты (ADVANCE / DIRECT)' })
+  @Field(() => String, { description: 'Способ оплаты (ADVANCE / DIRECT)' })
   @IsString()
   mechanics!: 'ADVANCE' | 'DIRECT';
 }
 
 @InputType('ExpenseProposalHeaderInput')
 class ExpenseProposalHeaderInputDTO implements HeaderAction {
-  @Field({ description: 'Описание цели расходов' })
+  @Field(() => String, { description: 'Описание цели расходов' })
   @IsString()
   description!: string;
 
-  @Field({ description: 'Итоговая сумма расходов' })
+  @Field(() => String, { description: 'Итоговая сумма расходов' })
   @IsString()
   total_amount!: string;
 
@@ -109,21 +111,21 @@ class ExpenseProposalHeaderInputDTO implements HeaderAction {
   @IsInt()
   items_count!: number;
 
-  @Field({ description: 'Кошелёк-источник' })
+  @Field(() => String, { description: 'Кошелёк-источник' })
   @IsString()
   source_wallet!: string;
 
   // Срок обязателен: он попадает в текст записки, и совет должен видеть,
   // к какой дате расход надо оплатить. Формат проверяем здесь, иначе в
   // документ уходит нечитаемая дата.
-  @Field({ description: 'Срок исполнения («в срок до»), формат DD.MM.YYYY' })
+  @Field(() => String, { description: 'Срок исполнения («в срок до»), формат DD.MM.YYYY' })
   @IsString()
   @Matches(/^\d{2}\.\d{2}\.\d{4}$/, {
     message: 'Укажите срок исполнения расхода в формате ДД.ММ.ГГГГ',
   })
   deadline!: string;
 
-  @Field({
+  @Field(() => String, {
     description: 'Фонд списания — подставляется сервером из параметров шасси расходов, передавать не нужно',
     nullable: true,
   })
@@ -138,7 +140,7 @@ class ExpenseProposalHeaderInputDTO implements HeaderAction {
  */
 @InputType('BaseExpenseProposalStatementGenerateMetaDocumentInput')
 class BaseExpenseProposalStatementGenerateMetaDocumentInputDTO {
-  @Field({ description: 'Хеш сметы расхода (детерминированный)' })
+  @Field(() => String, { description: 'Хеш сметы расхода (детерминированный)' })
   @IsString()
   @IsNotEmpty()
   proposal_hash!: string;
@@ -162,7 +164,7 @@ class BaseExpenseProposalStatementGenerateMetaDocumentInputDTO {
  */
 @InputType('BaseExpenseProposalStatementSignedMetaDocumentInput')
 class BaseExpenseProposalStatementSignedMetaDocumentInputDTO implements Omit<Action, 'coopname' | 'username' | 'registry_id' | 'block_num' | 'lang' | 'title' | 'generator' | 'version' | 'created_at' | 'timezone' | 'links'> {
-  @Field({ description: 'Хеш сметы расхода (детерминированный)' })
+  @Field(() => String, { description: 'Хеш сметы расхода (детерминированный)' })
   @IsString()
   @IsNotEmpty()
   proposal_hash!: string;
@@ -179,7 +181,7 @@ class BaseExpenseProposalStatementSignedMetaDocumentInputDTO implements Omit<Act
   @Type(() => ExpenseProposalSignedItemInputDTO)
   items!: ExpenseProposalSignedItemInputDTO[];
 
-  @Field({ description: 'Идентификатор приватных данных документа off-chain (реквизиты/имя/назначение)' })
+  @Field(() => String, { description: 'Идентификатор приватных данных документа off-chain (реквизиты/имя/назначение)' })
   @IsString()
   @IsNotEmpty()
   doc_data_hash!: string;

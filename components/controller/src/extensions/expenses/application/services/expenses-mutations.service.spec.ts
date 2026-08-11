@@ -1,6 +1,5 @@
 import { ExpensesMutationsService } from './expenses-mutations.service'
 import type { ExpensesBlockchainPort } from '../../domain/interfaces/expenses-blockchain.port'
-import type { IDocumentPort } from '~/infrastructure/generator/generator.service'
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository'
 import type { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
 import type { ReportExpenseItemInputDTO } from '../dto/report-expense-item.input'
@@ -34,7 +33,7 @@ const asset = (n: number) => `${n.toFixed(PREC)} ${SYM}`
 describe('ExpensesMutationsService', () => {
   let service: ExpensesMutationsService
   let chain: jest.Mocked<ExpensesBlockchainPort>
-  let generator: jest.Mocked<Pick<IDocumentPort, 'generateDocument'>>
+  let generator: jest.Mocked<Pick<IDocumentPort, 'generate' | 'saveData'>>
   let requisiteSnapshots: {
     validate: jest.Mock
     snapshot: jest.Mock
@@ -57,7 +56,10 @@ describe('ExpensesMutationsService', () => {
       closeExp: jest.fn().mockResolvedValue(fakeResult),
     } as unknown as jest.Mocked<ExpensesBlockchainPort>
     generator = {
-      generateDocument: jest.fn().mockResolvedValue({} as never),
+      generate: jest.fn().mockResolvedValue({} as never),
+      // Приватная часть сметы сохраняется отдельно от документа: сервис берёт
+      // из ответа только хэш и кладёт его в документ.
+      saveData: jest.fn().mockResolvedValue({ hash: 'test-doc-data-hash' } as never),
     }
     requisiteSnapshots = {
       validate: jest.fn().mockResolvedValue(undefined),
