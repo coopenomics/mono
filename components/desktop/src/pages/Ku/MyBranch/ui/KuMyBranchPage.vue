@@ -16,6 +16,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useBranchStore } from 'src/entities/Branch/model';
+import { findChairedBranch } from 'src/entities/Branch/lib';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
@@ -42,10 +43,7 @@ const loading = ref(true);
 const myBraname = computed(() => {
   const selected = session.currentUserAccount?.participant_account?.braname;
   if (selected) return selected;
-  const chaired = branchStore.publicBranches.find(
-    (item: any) => item.trustee_certificate?.username === session.username,
-  ) as any;
-  return chaired?.braname ?? '';
+  return findChairedBranch(branchStore.publicBranches, session.username)?.braname ?? '';
 });
 
 onMounted(async () => {

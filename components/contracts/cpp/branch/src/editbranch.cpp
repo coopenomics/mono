@@ -37,12 +37,20 @@
     });
 
     if (previous_trustee != trustee) {
-      // прежний председатель освобождается от привязки и выбирает участок заново заявлением
+      // Прежний председатель освобождается от привязки и выбирает участок заново заявлением.
+      // Но если он остался председателем другого участка — привязываем к нему: пустая привязка
+      // оставила бы его пайщиком без участка, а подать заявление о выборе ему нельзя
+      // (soviet::selectbranch запрещает смену участка действующему председателю).
+      auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
+      auto still_chairs = branches_by_trustee.find(previous_trustee.value);
+      eosio::name previous_trustee_braname =
+        still_chairs == branches_by_trustee.end() ? ""_n : still_chairs->braname;
+
       action(
         permission_level{ _branch, "active"_n},
         _soviet,
         "setbranch"_n,
-        std::make_tuple(coopname, previous_trustee, ""_n)
+        std::make_tuple(coopname, previous_trustee, previous_trustee_braname)
       ).send();
 
       // новый председатель привязывается к собственному участку
