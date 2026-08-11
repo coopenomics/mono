@@ -1,0 +1,88 @@
+feature: marketplace.stock
+title: Обезличенный остаток кооператива — перепредложение, заказ и возврат в кооператив
+
+# Остаток появляется двумя путями: недовыдача (заказчик забрал меньше, чем
+# приняли на склад) и принятый гарантийный возврат. Адресность с такого
+# имущества снята — оно принадлежит кооперативу (`ownership = COOP`) и может
+# быть предложено пайщикам заново: председатель участка публикует его в
+# каталоге со своей ценой (обычно с уценкой) и своим сроком гарантийного
+# возврата.
+#
+# Заказ такого предложения идёт без цикла поставки: имущество уже на участке,
+# позиции резервируются (`reserved_order_id`), выдача — сразу со склада.
+# Уценка при выдаче выбывает как прочий расход (o.mkt.loss), чтобы на складе
+# не зависала разница между ценой прибытия и фактической суммой.
+#
+# Ключевое отличие возврата: имущество возвращается КООПЕРАТИВУ, а не первому
+# заказчику, чей заказ породил остаток.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
+  ui:
+    - components/desktop/src/widgets/Marketplace/CoopStockSection/**
+    - components/desktop/src/pages/Marketplace/OperatorOwnWarehouse/**
+
+cases:
+  - id: mkt.stock.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка публикует обезличенный остаток в каталог со своей
+      ценой и своим сроком гарантийного возврата
+    expect: >
+      позиция переходит в состояние «На витрине»; цена публикации заменяет цену
+      исходного предложения поставщика
+    test: components/docs-harness/scenarios/marketplace/operator/stock-republish.mjs
+    status: written
+
+  - id: mkt.stock.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Другой пайщик заказывает опубликованный остаток кооператива
+    expect: >
+      предложение видно в каталоге как «Со склада кооператива — выдача сразу»;
+      заказ оформляется по цене публикации и принадлежит второму пайщику
+    test: components/docs-harness/scenarios/marketplace/orderer/stock-order.mjs
+    status: written
+
+  - id: mkt.stock.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Гарантийный возврат по заказу из остатка: имущество возвращается
+      кооперативу, а не первому заказчику
+    expect: >
+      возвращённая позиция снова числится обезличенным остатком кооператива
+      (ownership = COOP) на том же участке; деньги возвращаются второму
+      пайщику, членский взнос — из пула участка
+    test: ~
+    status: missing
+    # Разбор партии для возврата умеет оба пути (`order_id` и
+    # `reserved_order_id` — см. resolveRestockOrigin), но проверки на заказе из
+    # остатка нет: она требует полной второй цепочки заказ → выдача → возврат.
+
+  - id: mkt.stock.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Выдача заказа из остатка по цене ниже цены прибытия
+    expect: >
+      разница выбывает прочим расходом (o.mkt.loss) вместе со списанием
+      себестоимости — на складе не зависает непокрытая стоимость
+    test: ~
+    status: missing
+    # Считается в submitMarkdownLoss на закрытии выдачи. Ветка best-effort:
+    # сбой отправки расхода не роняет выдачу, поэтому молчаливое расхождение
+    # здесь возможно — тем нужнее прицельная проверка.
+
+  - id: mkt.stock.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Заказ остатка на количество больше, чем свободно на складе участка
+    expect: отказ — зарезервировать больше свободного остатка нельзя
+    test: ~
+    status: missing
