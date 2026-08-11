@@ -1,12 +1,8 @@
-import { forwardRef, Module, Injectable, Inject } from '@nestjs/common';
+import { Module, Injectable, Inject } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
   platformSettings,
 } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
-// Документный модуль ядра здесь ради циклической связи: capital регистрирует
-// свои документы, а модуль документов знает про capital.
-import { DocumentModule } from '~/application/document/document.module';
-import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
 import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
@@ -16,7 +12,6 @@ import { LOGGER_PORT, type ILoggerPort,
   INTEGRATION_SETTINGS_PORT,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
-import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
 import { z } from 'zod';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
@@ -695,12 +690,7 @@ export class CapitalExtension extends BaseExtensionModule {
 }
 
 @Module({
-  imports: [
-    CapitalDatabaseModule,
-    DocumentInfrastructureModule,
-    forwardRef(() => DocumentModule),
-    RegistrationInfrastructureModule,
-  ],
+  imports: [CapitalDatabaseModule],
   providers: [
     // Extension
     CapitalExtension,

@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
-// Динамический модуль ядра: `forFeature` создаёт хранилища для перечисленных
-// сервисов по их объявлениям. Сами объявления уже в каркасе, а вот создание
-// остаётся ядру — расширение получит его через собственный порт вместе с
-// остальной инфраструктурой, это следующий шаг.
-import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
 import { ExpenseProposalDeltaMapper } from './infrastructure/blockchain/mappers/expense-proposal-delta.mapper';
@@ -54,9 +51,11 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
   imports: [
     NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
-    FileStorageInfrastructureModule.forFeature([ExpenseFilesService]),
   ],
   providers: [
+    // Хранилище файлов расхода: объявление висит на самом сервисе
+    // (`@UseBucket`), здесь оно превращается в провайдер.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [ExpenseFilesService]),
     ExpenseContractInfoService,
     ExpenseProposalDeltaMapper,
     ExpenseProposalTypeormRepository,

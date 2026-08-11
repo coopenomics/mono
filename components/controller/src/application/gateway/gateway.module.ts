@@ -15,7 +15,8 @@ import { SystemModule } from '~/application/system/system.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
-import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 
 @Module({
   imports: [
@@ -27,11 +28,11 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
     AccountInfrastructureModule,
     SystemModule,
     RedisModule,
-    // Чек об оплате (gateway:files) — ядровый механизм, бакет по @UseBucket.
-    FileStorageInfrastructureModule.forFeature([PaymentFilesService]),
   ],
   controllers: [PaymentController],
   providers: [
+    // Чек об оплате (gateway:files) — ядровый механизм, бакет по @UseBucket.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [PaymentFilesService]),
     GatewayResolver,
     PaymentFilesResolver,
     GatewayService,

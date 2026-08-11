@@ -151,11 +151,8 @@ import {
 } from './services/marketplace-return-claim.service';
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
-// Динамический модуль ядра: `forFeature` создаёт хранилища для перечисленных
-// сервисов по их объявлениям. Сами объявления уже в каркасе, а вот создание
-// остаётся ядру — расширение получит его через собственный порт вместе с
-// остальной инфраструктурой, это следующий шаг.
-import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
@@ -208,15 +205,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // через GENERATOR_PORT (registry_id=1102).
     // UserCertificateInteractor — резолв ФИО/наименования участников по аккаунту
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
-    // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
-    // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
-    // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
-    // метадату и провайдит ему `InnerFileStorageBucket`.
-    FileStorageInfrastructureModule.forFeature([
-      MarketplaceReturnClaimImagesService,
-      // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.
-      MarketplaceOfferImagesService,
-    ]),
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
     // крон-закрытие выданных заказов — marketplace_orders
     TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
@@ -226,6 +214,14 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
   ],
   providers: [
+    // Хранилища изображений: `stol-zakazov:images` для фотографий гарантийного
+    // возврата (Эпик 7 / Story 7.1) и для изображений Offer'а (Story 3.2).
+    // Имя объявлено декоратором `@UseBucket` на самих сервисах, здесь
+    // объявление превращается в провайдер.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [
+      MarketplaceReturnClaimImagesService,
+      MarketplaceOfferImagesService,
+    ]),
     // GraphQL резолверы
     CategoryTreeResolver,
     AttributeResolver,
