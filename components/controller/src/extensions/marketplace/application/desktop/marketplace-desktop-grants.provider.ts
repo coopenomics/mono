@@ -1,11 +1,10 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 
-import { MonoAccountStatus } from '@coopenomics/innercoop';
+import { MonoAccountStatus,
+  type IDesktopGrantsHook,
+  type InnerDesktopGrantsContext,
+} from '@coopenomics/innercoop';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
-import type {
-  IDesktopGrantsContext,
-  IExtensionDesktopGrantsProvider,
-} from '~/domain/desktop/ports/extension-grants.port';
 
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
 import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
@@ -62,7 +61,7 @@ import {
  */
 @Injectable()
 export class MarketplaceDesktopGrantsProvider
-  implements IExtensionDesktopGrantsProvider, OnModuleInit
+  implements IDesktopGrantsHook, OnModuleInit
 {
   readonly extensionName = 'market';
 
@@ -81,7 +80,7 @@ export class MarketplaceDesktopGrantsProvider
     this.grantsRegistry.register(this);
   }
 
-  async resolveGrants(ctx: IDesktopGrantsContext): Promise<string[]> {
+  async resolveGrants(ctx: InnerDesktopGrantsContext): Promise<string[]> {
     if (!ctx.username) return [];
     if (ctx.userStatus !== MonoAccountStatus.Active) return [];
 

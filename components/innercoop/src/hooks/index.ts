@@ -6,3 +6,4 @@
  * — расширения может не быть в кооперативе.
  */
 export * from './registration-document-parameters.hook';
+export * from './desktop-grants.hook';
