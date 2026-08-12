@@ -46,11 +46,17 @@ router-view(v-if='!isResultsRoot')
         @updated='reloadSegmentsToSign'
       )
 
-    //- Все результаты: сводный список проектов для совета
+    //- Все результаты: доли всех участников — теми же строками и статусами
     template(v-else-if='activeTab === "all" && canSeeAll')
-      ListResultProjectsWidget(
+      ContributorResultsListWidget(
+        :rows='allRows',
         :coopname='info.coopname',
-        @open-project='handleOpenProject'
+        :current-username='username',
+        :loading='isAllLoading',
+        show-owner,
+        empty-title='Результатов пока нет',
+        empty-body='Здесь появятся доли участников в объектах авторских прав по всем компонентам кооператива.',
+        @updated='reloadAllSegments'
       )
 </template>
 
@@ -64,10 +70,7 @@ import { PageTabs } from 'src/shared/ui/layout';
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
 import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
-import {
-  ListResultProjectsWidget,
-  ContributorResultsListWidget,
-} from 'app/extensions/capital/widgets';
+import { ContributorResultsListWidget } from 'app/extensions/capital/widgets';
 import { api as SegmentApi } from 'app/extensions/capital/entities/Segment/api';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 import {
@@ -107,8 +110,10 @@ const activeTab = ref<ResultsTab>(tabFromRoute());
 
 const mySegments = ref<ISegment[]>([]);
 const segmentsToSign = ref<ISegment[]>([]);
+const allSegments = ref<ISegment[]>([]);
 const isSegmentsLoading = ref(true);
 const isToSignLoading = ref(true);
+const isAllLoading = ref(true);
 
 /**
  * Порядок строк задаётся явно и не зависит от порядка ответа сервера:
@@ -149,6 +154,8 @@ const pendingRows = computed(() =>
 const myRows = computed(() => sortRows(mySegments.value));
 
 const toSignRows = computed(() => sortRows(segmentsToSign.value));
+
+const allRows = computed(() => sortRows(allSegments.value));
 
 const pendingActionCount = computed(
   () =>
@@ -251,22 +258,40 @@ const reloadSegmentsToSign = async () => {
   }
 };
 
+/** Сводный список долей: доступен совету и председателю */
+const reloadAllSegments = async () => {
+  if (!canSeeAll.value) {
+    isAllLoading.value = false;
+    return;
+  }
+  try {
+    const loaded = await SegmentApi.loadSegments({
+      filter: {
+        coopname: info.coopname,
+        is_component: true,
+      },
+      options: { page: 1, limit: SEGMENTS_LIMIT, sortOrder: 'DESC' },
+    });
+    allSegments.value = loaded.items as ISegment[];
+  } catch (error) {
+    console.error('Ошибка при загрузке сводного списка долей:', error);
+  } finally {
+    isAllLoading.value = false;
+  }
+};
+
 const reloadAll = async () => {
-  await Promise.all([reloadMySegments(), reloadSegmentsToSign()]);
+  await Promise.all([
+    reloadMySegments(),
+    reloadSegmentsToSign(),
+    reloadAllSegments(),
+  ]);
 };
 
 const { start: startPoll, stop: stopPoll } = useDataPoller(reloadAll, {
   interval: POLL_INTERVALS.MEDIUM,
   immediate: false,
 });
-
-const handleOpenProject = (projectHash: string) => {
-  router.push({
-    name: 'results-detail',
-    params: { project_hash: projectHash },
-    query: { _backRoute: 'results' },
-  });
-};
 
 onMounted(async () => {
   await reloadAll();

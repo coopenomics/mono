@@ -11,9 +11,9 @@ export const getSegmentStatusLabel = (status: string, isCompleted = false, segme
   }
   switch (status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Стоимость доли уточняется по мере учёта работ по компоненту';
+      return 'Ожидаем пересчета стоимости результата интеллектуальной деятельности';
     case Zeus.SegmentStatus.READY:
-      return 'Можно вносить результат интеллектуальной деятельности';
+      return 'Готов к внесению результата интеллектуальной деятельности';
     case Zeus.SegmentStatus.STATEMENT:
       return 'Заявление на предварительном рассмотрении председателя';
     case Zeus.SegmentStatus.APPROVED:
@@ -32,7 +32,11 @@ export const getSegmentStatusLabel = (status: string, isCompleted = false, segme
 };
 
 /**
- * Короткая подпись статуса — для бейджа в строке списка
+ * Короткая подпись статуса — для бейджа в строке списка.
+ *
+ * Единственный источник подписей: и стол «Результаты», и список участников
+ * компонента показывают одну и ту же долю, и расхождение в словах читается как
+ * расхождение в состоянии.
  */
 export const getSegmentShortStatus = (segment: {
   status: string;
@@ -41,17 +45,17 @@ export const getSegmentShortStatus = (segment: {
   if (segment.is_completed) return 'Получен';
   switch (segment.status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Стоимость уточняется';
+      return 'Расчёт';
     case Zeus.SegmentStatus.READY:
-      return 'Можно вносить';
+      return 'Готов';
     case Zeus.SegmentStatus.STATEMENT:
-      return 'У председателя';
+      return 'На рассмотрении';
     case Zeus.SegmentStatus.APPROVED:
-      return 'У совета';
+      return 'Одобрен';
     case Zeus.SegmentStatus.AUTHORIZED:
-      return 'Ждёт подписи пайщика';
+      return 'Подпись пайщика';
     case Zeus.SegmentStatus.ACT1:
-      return 'Ждёт председателя';
+      return 'Подпись председателя';
     case Zeus.SegmentStatus.CONTRIBUTED:
       return 'Принят';
     case Zeus.SegmentStatus.FINALIZED:
@@ -137,58 +141,6 @@ export const getSegmentOwnerAction = (segment: SegmentActionSource): SegmentOwne
     default:
       return 'none';
   }
-};
-
-/** Что показывает бейдж строки: одно состояние, а не набор пометок */
-export interface SegmentBadge {
-  label: string;
-  variant: 'pos' | 'info' | 'warn' | 'neutral';
-  hint: string;
-}
-
-const OWNER_ACTION_BADGE: Record<
-  Exclude<SegmentOwnerAction, 'none'>,
-  { label: string; hint: string }
-> = {
-  vote: {
-    label: 'Требуется голос',
-    hint: 'Распределите голосующую сумму между остальными участниками компонента',
-  },
-  push_result: {
-    label: 'Внести результат',
-    hint: 'Подайте заявление о внесении результата интеллектуальной деятельности',
-  },
-  sign_act: {
-    label: 'Нужна подпись',
-    hint: 'Совет принял решение — подпишите акт приёма-передачи доли',
-  },
-  receive: {
-    label: 'Можно получить',
-    hint: 'Результат принят — получите долю в объекте авторских прав',
-  },
-};
-
-/**
- * Бейдж строки: когда ход за пайщиком, показывается требуемое действие, иначе —
- * состояние процесса. Две пометки рядом («стоимость уточняется» и «требуется
- * голос») пайщику ничего не добавляют: ему нужно знать одно — его ход или нет.
- */
-export const getSegmentBadge = (
-  segment: Parameters<typeof getSegmentOwnerAction>[0] & { is_completed?: boolean },
-  isOwn = true,
-): SegmentBadge => {
-  const action = isOwn ? getSegmentOwnerAction(segment) : 'none';
-
-  if (action !== 'none') {
-    const badge = OWNER_ACTION_BADGE[action];
-    return { label: badge.label, variant: 'warn', hint: badge.hint };
-  }
-
-  return {
-    label: getSegmentShortStatus(segment),
-    variant: getSegmentStatusVariant(segment),
-    hint: getSegmentStatusLabel(segment.status, segment.is_completed),
-  };
 };
 
 /**

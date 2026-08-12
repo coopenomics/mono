@@ -9,28 +9,32 @@
       RefreshSegmentButton(
         :segment='segment',
         :mini='compact',
-        @click.stop
+        @click.stop,
+        @refreshed='emit("updated")'
       )
 
     template(v-if='segment.status === Zeus.SegmentStatus.READY && segment.has_vote && segment.is_votes_calculated === false')
       CalculateVotesButton(
         :coopname='coopname',
         :project-hash='segment.project_hash',
-        :username='segment.username'
+        :username='segment.username',
+        @calculated='emit("updated")'
       )
 
     template(v-if='segment.username === currentUsername')
       template(v-if='segment.status === Zeus.SegmentStatus.READY && (!segment.has_vote || segment.is_votes_calculated === true)')
         PushResultButton(
           :segment='segment',
-          @click.stop
+          @click.stop,
+          @submitted='emit("updated")'
         )
 
       template(v-if='segment.status === Zeus.SegmentStatus.AUTHORIZED')
         SignActButton(
           :segment='segment',
           :coopname='coopname',
-          @click.stop
+          @click.stop,
+          @signed='emit("updated")'
         )
 
       template(v-if='segment.status === Zeus.SegmentStatus.CONTRIBUTED && !segment.is_completed')
@@ -43,12 +47,14 @@
         SignActButtonByChairman(
           :segment='segment',
           :coopname='coopname',
-          @click.stop
+          @click.stop,
+          @signed='emit("updated")'
         )
 
   ConvertSegmentDialog(
     v-model='showConvertDialog',
-    :segment='segment'
+    :segment='segment',
+    @converted='emit("updated")'
   )
 </template>
 
@@ -76,6 +82,12 @@ interface Props {
 
 
 const props = defineProps<Props>();
+
+/**
+ * Любое совершённое действие меняет долю: список держит собственные строки и
+ * без этого сигнала показывал бы прежнюю стоимость и прежний статус.
+ */
+const emit = defineEmits<{ updated: [] }>();
 
 const { info } = useSystemStore();
 const { username, isChairman } = useSessionStore();

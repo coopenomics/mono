@@ -21,6 +21,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
+/** После разнесения голосов доля готова к внесению — строка перечитывается */
+const emit = defineEmits<{ calculated: [] }>();
+
 const { calculateVotes } = useCalculateVotes();
 const loading = ref(false);
 
@@ -32,6 +35,7 @@ const handleCalculateVotes = async () => {
       project_hash: props.projectHash,
       username: props.username,
     });
+    emit('calculated');
   } catch (error) {
     FailAlert(error);
   } finally {
