@@ -212,8 +212,13 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     try {
       // Сохраняем действие в базу данных через интерактор
       await this.parserInteractor.saveAction(action);
-      this.logger.debug(
-        `Action saved to database: ${action.account}::${action.name} with sequence ${action.global_sequence}`
+      // Уровень log, а не debug: это единственная строка, по которой на проде
+      // видно, что транспорт живой и что именно поймано. Шума не создаёт —
+      // сюда доходят только действия, прошедшие фильтры receiver == account
+      // (иначе одно действие логировалось бы по разу на каждого нотифицируемого)
+      // и coopname == нашего кооператива.
+      this.logger.log(
+        `Действие поймано: ${action.account}::${action.name} (блок ${action.block_num}, seq ${action.global_sequence})`
       );
     } catch (error: any) {
       this.logger.error(`Не удалось сохранить действие ${action.account}::${action.name}: ${error.message}`, error.stack);
@@ -288,7 +293,12 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     try {
       // Сохраняем дельту в базу данных через интерактор
       await this.parserInteractor.saveDelta(delta);
-      this.logger.log(`Дельта сохранена в базу: ${delta.code}::${delta.table} с primary_key ${delta.primary_key}`);
+      // present=false — запись стёрта из он-чейн таблицы (терминальный переход),
+      // это стоит видеть отдельно: по логу иначе не отличить правку от удаления.
+      this.logger.log(
+        `Дельта сохранена: ${delta.code}::${delta.table}#${delta.primary_key} ` +
+          `(блок ${delta.block_num}${delta.present === false ? ', удаление' : ''})`
+      );
     } catch (error: any) {
       this.logger.error(`Не удалось сохранить дельту ${delta.code}::${delta.table}: ${error.message}`, error.stack);
       throw error; // Перебрасываем ошибку чтобы событие не было подтверждено
