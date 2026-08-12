@@ -189,7 +189,7 @@ BaseDialog(
             td.num
             td.num {{ formatAsset2Digits(p.total_cost) }} ₽
           tr(v-if='feePercent > 0')
-            td Членский взнос ({{ feePercent }}%)
+            td Кооперативная наценка ({{ feePercent }}%)
             td.num
             td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
           tr
