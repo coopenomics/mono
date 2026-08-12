@@ -150,6 +150,41 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 Канон: `INTER_EXPENSE_CHASSIS`/`expense-chassis.port.ts` (шасси расходов → capital/marketplace/EMP), `INTER_LEDGER2_HISTORY`/`ledger2-history.port.ts` (ядро ledger2 → любой consumer, читающий историю кошелька).
 
+### Доступ к полю объекта: роль ИЛИ принадлежность (`@AuthRoles`) — СТРОГО
+
+Роль в `@AuthRoles` — это капабилити уровня кооператива (`chairman`, `member`,
+`user`). Её недостаточно там, где данные принадлежат самому пайщику:
+председатель кооперативного участка для кооператива — обычный пайщик, и по
+ролям он не прочитал бы даже собственный участок.
+
+Для таких полей объявляется принадлежность — пути внутри самого объекта:
+
+```ts
+const SELF_AT_BRANCH = ['trustee.username', 'trusted[].username'];
+
+@Field(() => [IndividualDTO], { nullable: true, description: '…' })
+@AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+public readonly trusted: IndividualDTO[];
+```
+
+Правила:
+
+- **Путь считается от корня объекта, которому принадлежит поле**; сегмент `[]`
+  разворачивает массив (`trusted[].username`). Совпадение любого значения с
+  именем аккаунта запрашивающего открывает поле.
+- **Поле с `self` обязано быть `nullable`.** При отказе оно пустеет, а не
+  роняет ответ: в списке объектов часть своя, часть чужая, и исключение
+  обнулило бы весь список (`trusted: [Individual!]!` уронил бы весь
+  `getBranches`). Поля без `self` отказывают исключением, как раньше.
+- **Потребитель обязан пережить пустоту**: `branch.trustee?.username`, а не
+  `branch.trustee.username`.
+- **Директива `@auth` объявлена явно** в `graphql.module.ts`
+  (`buildSchemaOptions.directives`). Новый аргумент, не попавший в объявление,
+  graphql-tools молча отбрасывает — условие доступа теряется без единой ошибки.
+- Это тот же принцип, что квалификаторы `:own` / `:own-KU` в матрице доступа
+  расширений: роль отвечает за «такой род данных вообще доступен»,
+  принадлежность — за «эти данные твои».
+
 ### Read-path (ADR-011) — СТРОГО
 
 - Queries / resolvers / application reads → **только Repository из Postgres**.

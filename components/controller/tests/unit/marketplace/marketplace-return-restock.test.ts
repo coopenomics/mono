@@ -37,10 +37,19 @@ const claim = {
  * `originShipment` — партия исходной позиции на складе (null = позиции нет),
  * `orderShipment` — партия самого заказа (null = заказ пришёл не поставкой).
  */
-function buildService(originShipment: string | null, orderShipment: string | null) {
+function buildService(
+  originShipment: string | null,
+  orderShipment: string | null,
+  /**
+   * Как позиция связана с заказом. Обычный заказ несёт `order_id` прямо на
+   * позиции; заказ из остатка кооператива её только резервирует, и связь
+   * живёт в `reserved_order_id` — разбор обязан уметь оба пути.
+   */
+  link: 'order_id' | 'reserved_order_id' = 'order_id'
+) {
   const inventoryRepo = {
     list: jest.fn().mockImplementation(async (filter: Record<string, unknown>) => {
-      if (originShipment && filter.order_id === ORDER_ID) {
+      if (originShipment && filter[link] === ORDER_ID) {
         return [
           {
             shipment_id: originShipment,
@@ -142,6 +151,22 @@ describe('Приём возврата: имущество возвращаетс
 
     expect(inventoryRepo.create).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('не зачислен в остаток'));
+  });
+
+  it('заказ из остатка: партия берётся у зарезервированной позиции', async () => {
+    // У заказов из остатка `order_id` на позицию не переносится — связь
+    // только через `reserved_order_id`. Без второго пути разбора возврат по
+    // такому заказу не нашёл бы партию и имущество не вернулось бы
+    // кооперативу вовсе.
+    const { service, inventoryRepo } = buildService(ORIGIN_SHIPMENT, null, 'reserved_order_id');
+
+    await restock(service);
+
+    expect(inventoryRepo.create).toHaveBeenCalledTimes(1);
+    const created = inventoryRepo.create.mock.calls[0][0];
+    expect(created.shipment_id).toBe(ORIGIN_SHIPMENT);
+    // Имущество возвращается кооперативу, а не первому заказчику.
+    expect(created.ownership).toBe('COOP');
   });
 
   it('заказ не найден — молча не создаём чужую позицию', async () => {

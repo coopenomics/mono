@@ -3455,6 +3455,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	Account:{
 		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
@@ -5846,6 +5850,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost_with_fee:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime",
+		warehouse_arrival_price:"String",
 		warehouse_locations:"String",
 		warehouse_quantity:"Float",
 		warranty_period_secs:"Int",

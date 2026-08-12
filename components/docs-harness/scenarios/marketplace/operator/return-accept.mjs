@@ -18,7 +18,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { acceptFirstReturnClaim } from '../../../lib/marketplace-returns.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,113 +59,23 @@ export default async ({ page, shot, expect }) => {
   await loginAs(page, loadFixture('chairkrg'));
   await pickBranchIfAsked(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/returns`, {
-    waitUntil: 'domcontentloaded',
-    timeout: 60000,
-  });
-  await page.waitForFunction(() => document.body.innerText.includes('заявлени'), { timeout: 90000 });
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(2000);
-  await cleanViteOverlays(page);
-
-  // Заявление пайщика подано предыдущим сценарием — в ленте участка оно
-  // обязано быть, иначе принимать нечего.
-  const claimRow = page.locator('.return-row').first();
-  await claimRow.waitFor({ state: 'visible', timeout: 30000 });
-
-  await shot(
-    page,
-    '01-claims-list',
-    'Лента гарантийных возвратов участка: заявление пайщика ждёт рассмотрения. Табы разделяют работу по стадиям — ждут рассмотрения, ожидают визита, архив.',
-  );
-
-  await claimRow.click();
-  await page.waitForFunction(() => document.body.innerText.includes('Хронология')
-    || document.body.innerText.includes('Обращение'), { timeout: 30000 }).catch(() => {});
-  await page.waitForTimeout(1500);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '02-claim-detail',
-    'Карточка заявления: обращение пайщика, фотографии товара, суммы к возврату и хронология. Отсюда принимается решение.',
-  );
-
-  // ── Ступень 1: удалённое решение ────────────────────────────────────────
-  await page.locator('button:has-text("Принять решение")').first().click({ timeout: 20000 });
-
-  // Диалоги двух ступеней различаем по заголовку, а не по `.first()`: на
-  // переходе между ними в разметке недолго живут оба, и безымянный селектор
-  // может поймать закрывающийся.
-  const remoteDialog = page.locator('.mp-takeover').filter({ hasText: 'Удалённое решение' }).first();
-  await remoteDialog.waitFor({ state: 'visible', timeout: 20000 });
-  await page.waitForTimeout(600);
-
-  // Приглашение на очный осмотр выбрано по умолчанию; комментарий при нём
-  // необязателен, но в документации важно показать, что пайщику пишут.
-  await remoteDialog.locator('textarea').first().fill(VISIT_INVITE);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '03-remote-decision',
-    'Удалённое решение по фотографиям: пригласить заказчика на очный осмотр либо отказать сразу. Отказ обязан быть мотивирован, приглашение — нет.',
-  );
-
-  await remoteDialog.locator('.mp-takeover__confirm').click();
-
-  // После приглашения заявление переходит в «ожидает визита», и на карточке
-  // появляется второе действие — очный осмотр.
-  const onSiteBtn = page.locator('button:has-text("Очный осмотр")').first();
-  await onSiteBtn.waitFor({ state: 'visible', timeout: 90000 });
-  await page.waitForTimeout(1200);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '04-approved-for-visit',
-    'Заявление одобрено к очному осмотру: пайщик приглашён на участок с имуществом. Пока осмотр не проведён, деньги не двигаются.',
-  );
-
-  // ── Ступень 2: очный осмотр и приём ─────────────────────────────────────
-  await onSiteBtn.click();
-
-  const onSiteDialog = page.locator('.mp-takeover').filter({ hasText: 'Очный осмотр по заявлению' }).first();
-  await onSiteDialog.waitFor({ state: 'visible', timeout: 20000 });
-  await page.waitForTimeout(600);
-
-  // Результат осмотра — обязательное поле: без него кнопка подтверждения
-  // остаётся заблокированной.
-  await onSiteDialog.locator('textarea').first().fill(INSPECTION_RESULT);
-  await page.waitForTimeout(400);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '05-onsite-inspection',
-    'Очный осмотр: председатель фиксирует, что обнаружено, и принимает возврат. Подтверждение — вторая подпись на том же заявлении пайщика, контракт требует обе.',
-  );
-
-  await onSiteDialog.locator('.mp-takeover__confirm').click();
-
-  // Приём возврата — движение средств на цепи плюс зачисление имущества на
-  // склад, ждём дольше обычного.
-  await page.locator('text=Восстановлено пайщику').first().waitFor({ state: 'visible', timeout: 120000 });
-  await page.waitForTimeout(1500);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '06-return-accepted',
-    'Возврат принят: средства восстановлены пайщику, имущество зачислено на склад участка обезличенным остатком кооператива. Дальше председатель либо предлагает его снова, либо списывает.',
+  await acceptFirstReturnClaim(
+    { page, shot, expect },
     {
-      expect: async (p) => {
-        // Деньги вернулись — это и есть результат приёма, а не сам факт клика.
-        await expect(p.locator('text=Восстановлено пайщику').first()).toBeVisible({ timeout: 20000 });
-        // Решение окончательное — действий по заявлению больше нет.
-        await expect(p.locator('button:has-text("Очный осмотр")')).toHaveCount(0);
-        await expect(p.locator('button:has-text("Принять решение")')).toHaveCount(0);
+      texts: { visitInvite: VISIT_INVITE, inspectionResult: INSPECTION_RESULT },
+      captions: {
+        list: 'Лента гарантийных возвратов участка: заявление пайщика ждёт рассмотрения. Табы разделяют работу по стадиям — ждут рассмотрения, ожидают визита, архив.',
+        detail:
+          'Карточка заявления: обращение пайщика, фотографии товара, суммы к возврату и хронология. Отсюда принимается решение.',
+        remoteDecision:
+          'Удалённое решение по фотографиям: пригласить заказчика на очный осмотр либо отказать сразу. Отказ обязан быть мотивирован, приглашение — нет.',
+        approvedForVisit:
+          'Заявление одобрено к очному осмотру: пайщик приглашён на участок с имуществом. Пока осмотр не проведён, деньги не двигаются.',
+        onsiteInspection:
+          'Очный осмотр: председатель фиксирует, что обнаружено, и принимает возврат. Подтверждение — вторая подпись на том же заявлении пайщика, контракт требует обе.',
+        accepted:
+          'Возврат принят: средства восстановлены пайщику, имущество зачислено на склад участка обезличенным остатком кооператива. Дальше председатель либо предлагает его снова, либо списывает.',
       },
-    },
+    }
   );
 };

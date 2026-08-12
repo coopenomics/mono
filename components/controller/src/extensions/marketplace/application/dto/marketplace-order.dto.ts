@@ -182,6 +182,13 @@ export class MarketplaceOrderDTO {
   })
   public readonly warehouse_locations!: string[] | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался',
+  })
+  public readonly warehouse_arrival_price!: string | null;
+
   @Field(() => Float, {
     nullable: true,
     description:
@@ -408,6 +415,7 @@ export interface MarketplaceOrderDisplayFields {
   group_min_volume?: number | null;
   warehouse_quantity?: number | null;
   warehouse_locations?: string[] | null;
+  warehouse_arrival_price?: string | null;
   warranty_until?: Date | null;
 }
 
@@ -448,6 +456,7 @@ export function toMarketplaceOrderDTO(
     package_size: o.package_size,
     warehouse_quantity: display?.warehouse_quantity ?? null,
     warehouse_locations: display?.warehouse_locations ?? null,
+    warehouse_arrival_price: display?.warehouse_arrival_price ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
     group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,

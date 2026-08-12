@@ -13,9 +13,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { makeSolidPng } from '../../../lib/png.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,59 +24,15 @@ const loadFixture = (username) =>
     fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
   );
 
-// CRC32 (PNG-полином) — нужен для корректных chunk-CRC, иначе строгий декодер
-// браузера отвергает картинку (naturalWidth=0, broken-иконка), хотя HTTP 200.
-const CRC_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    t[n] = c >>> 0;
-  }
-  return t;
-})();
-function crc32(buf) {
-  let c = 0xffffffff;
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-function pngChunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length, 0);
-  const typeBuf = Buffer.from(type, 'ascii');
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
-  return Buffer.concat([len, typeBuf, data, crc]);
-}
-// Валидный RGB-PNG заданного размера, залитый одним цветом. В отличие от
-// «минимального» 1×1 — гарантированно декодируется и в операторском диалоге
-// показывается осмысленной миниатюрой фото.
-function makeSolidPng(width, height, [r, g, b]) {
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // color type RGB
-  // 10,11,12 = compression/filter/interlace = 0
-  const row = Buffer.alloc(1 + width * 3);
-  for (let x = 0; x < width; x++) {
-    row[1 + x * 3] = r;
-    row[1 + x * 3 + 1] = g;
-    row[1 + x * 3 + 2] = b;
-  }
-  const raw = Buffer.concat(Array.from({ length: height }, () => row));
-  const idat = zlib.deflateSync(raw);
-  return Buffer.concat([
-    sig,
-    pngChunk('IHDR', ihdr),
-    pngChunk('IDAT', idat),
-    pngChunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
 /** Фото «дефекта», которое пайщик прикладывает к заявлению. */
 const RETURN_PHOTO = makeSolidPng(480, 360, [176, 92, 76]);
+
+/**
+ * Сколько единиц пайщица возвращает. Возврат частичный намеренно: полный
+ * возврат забирает у участка весь членский взнос по заказу, и следующая за
+ * ним экономика участка смотрит на пустой кошелёк.
+ */
+const RETURN_QUANTITY = 3;
 
 /** Причина возврата — свободный текст, его читает председатель участка. */
 const RETURN_REASON = 'Упаковка вскрыта, содержимое с посторонним запахом — товар к употреблению непригоден.';
@@ -179,12 +135,30 @@ export default async ({ page, shot, expect }) => {
 
   await dialog.locator('textarea').first().fill(RETURN_REASON);
   await page.waitForTimeout(400);
+
+  // Возвращается ЧАСТЬ выданного, а не всё. Так проверяется больше:
+  // у заказа остаётся невозвращённая доля, членский взнос по ней остаётся у
+  // участка (иначе кошелёк участка обнуляется и экономику не на чем смотреть),
+  // а на складе появляется остаток кооператива — материал для перепредложения
+  // и списания.
+  const qtyInput = dialog.locator('input[type="number"]').first();
+  await qtyInput.click();
+  await qtyInput.fill(String(RETURN_QUANTITY));
+  await qtyInput.blur();
+  await page.waitForTimeout(600);
   await cleanViteOverlays(page);
 
   await shot(
     page,
     '03-claim-reason',
-    'Шаг «Описание»: пайщик своими словами объясняет, что не так с товаром, — этот текст увидит председатель участка при удалённом рассмотрении. Количество можно не указывать: тогда возвращается всё выданное.',
+    `Шаг «Описание»: пайщик своими словами объясняет, что не так с товаром, — этот текст увидит председатель участка при удалённом рассмотрении. Здесь возвращается ${RETURN_QUANTITY} единицы из выданных: количество можно не указывать вовсе, тогда вернётся всё.`,
+    {
+      expect: async () => {
+        // Количество обязано дойти до модели: иначе вернётся всё выданное, и
+        // проверка частичного возврата превратится в проверку полного.
+        expect(await qtyInput.inputValue()).toBe(String(RETURN_QUANTITY));
+      },
+    },
   );
 
   await confirmBtn.click();

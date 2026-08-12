@@ -103,7 +103,7 @@ export class MarketplaceOrderDisplayService {
     const cycleIds = opts?.withGroupProgress
       ? ([...new Set(orders.map((o) => o.cycle_id).filter((c): c is string => !!c))])
       : [];
-    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId, locationsByOrderId] =
+    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId, locationsByOrderId, arrivalPriceByOrderId] =
       await Promise.all([
         this.offerRepo.findByIds(offerIds),
         this.resolveBranches(branames),
@@ -124,6 +124,11 @@ export class MarketplaceOrderDisplayService {
         opts?.withWarehouseQuantity
           ? this.resolveWarehouseLocations(orders)
           : Promise.resolve(new Map<string, string[]>()),
+        // Цена прибытия — той же опцией: лента выдачи считает от неё факт,
+        // иначе пайщик заплатил бы за принятое с уценкой по полной цене.
+        opts?.withWarehouseQuantity
+          ? this.resolveWarehouseArrivalPrice(orders)
+          : Promise.resolve(new Map<string, string>()),
       ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     // Обложка товара — первое изображение оффера (как в каталоге/корзине).
@@ -189,6 +194,9 @@ export class MarketplaceOrderDisplayService {
           : null,
         warehouse_locations: opts?.withWarehouseQuantity
           ? (locationsByOrderId.get(order.id) ?? null)
+          : null,
+        warehouse_arrival_price: opts?.withWarehouseQuantity
+          ? (arrivalPriceByOrderId.get(order.id) ?? null)
           : null,
         warranty_until: order.warranty_until ?? null,
       });
@@ -346,6 +354,15 @@ export class MarketplaceOrderDisplayService {
    * приёмке от поставщика. У заказа из остатка кооператива своего места нет
    * (резерв позиций остатка не переносит их физический адрес на заказ).
    */
+  /** Цена прибытия имущества заказа на складе — база факта выдачи. */
+  private async resolveWarehouseArrivalPrice(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, string>> {
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    if (!regularIds.length) return new Map();
+    return this.inventoryRepo.arrivalPriceOnWarehouseByOrders(config.coopname, regularIds);
+  }
+
   private async resolveWarehouseLocations(
     orders: MarketplaceOrderDomainEntity[]
   ): Promise<Map<string, string[]>> {

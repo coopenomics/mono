@@ -13,6 +13,13 @@ import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 
+/**
+ * Пути внутри карточки участка, по которым пайщик считается «своим»:
+ * председатель участка и его доверенные лица. Совпадение с именем аккаунта
+ * запрашивающего открывает поля состава без ролей кооператива.
+ */
+const SELF_AT_BRANCH = ['trustee.username', 'trusted[].username'];
+
 @ObjectType('Branch')
 export class BranchDTO implements BranchDomainInterface {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -23,13 +30,23 @@ export class BranchDTO implements BranchDomainInterface {
   @IsString()
   public readonly braname: string;
 
-  @Field(() => IndividualDTO, { description: 'Председатель кооперативного участка' })
-  @AuthRoles(['chairman', 'member'])
+  // Состав участка виден совету кооператива, а также самому участку —
+  // председателю и его доверенным. Без этого председатель участка не может
+  // прочитать даже собственный участок: для кооператива он обычный пайщик, а
+  // отказ поля роняет весь запрос карточки.
+  @Field(() => IndividualDTO, {
+    nullable: true,
+    description: 'Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
   @IsString()
   public readonly trustee: IndividualDTO;
 
-  @Field(() => [IndividualDTO], { description: 'Доверенные аккаунты' })
-  @AuthRoles(['chairman', 'member'])
+  @Field(() => [IndividualDTO], {
+    nullable: true,
+    description: 'Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
   @IsArray()
   public readonly trusted: IndividualDTO[];
 
@@ -103,8 +120,11 @@ export class BranchDTO implements BranchDomainInterface {
   public readonly is_available: boolean;
 
   // список ФИО пайщиков белого списка нужен председателю для управления приватным участком
-  @Field(() => [IndividualCertificateDTO], { description: 'Пайщики в белом списке приватного участка (ФИО)' })
-  @AuthRoles(['chairman', 'member'])
+  @Field(() => [IndividualCertificateDTO], {
+    nullable: true,
+    description: 'Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
   public readonly whitelist_certificates: IndividualCertificateDTO[];
 
   constructor(entity: BranchDomainEntity) {
