@@ -12,7 +12,7 @@ fi
 
 # Останавливаем и удаляем контейнеры вместе с volumes
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+docker compose down -v mongo postgres monoredis cooparser parser2 coopback || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
@@ -58,6 +58,14 @@ pnpm run boot
 # Запускаем parser
 echo "Запускаем parser..."
 docker compose up -d cooparser
+
+# Индексер parser2 — источник событий для контроллера. Поднимаем его ДО
+# контроллера: тот читает только стрим parser2, и без индексера синхронизация
+# с цепью просто стоит, а состояние в базе остаётся тем, что записали прямые
+# вызовы API. Стрим пуст после down -v (redis-том удалён), поэтому индексер
+# перечитывает цепь с первого блока.
+echo "Запускаем индексер parser2..."
+docker compose up -d parser2
 
 echo "Запускаем контроллер..."
 docker compose up -d --force-recreate coopback || true
