@@ -41,7 +41,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useProjectStore } from '../../entities/Project/model';
+import { api as ProjectApi } from '../../entities/Project/api';
+import type { IProject } from '../../entities/Project/model';
 import { Zeus } from '@coopenomics/sdk';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -61,7 +62,6 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const projectStore = useProjectStore();
 const { info } = useSystemStore();
 
 const loading = ref(false);
@@ -71,8 +71,21 @@ const pagination = ref({
   rowsNumber: 0,
 });
 
-const projects = computed(() => projectStore.projects);
-const rows = computed(() => projects.value?.items || []);
+/**
+ * Список держится в собственном состоянии, а не в общем хранилище проектов:
+ * заход в отдельный результат подмешивает туда одиночный проект и переставляет
+ * строки — при возврате список оказывался в другом порядке.
+ */
+const items = ref<IProject[]>([]);
+
+/** Порядок задаётся явно: сервер отдаёт строки в порядке, который меняется между запросами */
+const rows = computed(() =>
+  [...items.value].sort((left, right) => {
+    const byTitle = (left.title || '').localeCompare(right.title || '', 'ru');
+    if (byTitle !== 0) return byTitle;
+    return left.project_hash.localeCompare(right.project_hash);
+  }),
+);
 
 const governSymbol = computed(
   () => info.symbols?.root_govern_symbol || 'RUB',
@@ -100,7 +113,7 @@ const openProject = (projectHash: string) => {
 const loadProjects = async () => {
   loading.value = true;
   try {
-    await projectStore.loadProjects({
+    const loaded = await ProjectApi.loadProjects({
       filter: {
         coopname: props.coopname,
         statuses: [
@@ -111,15 +124,14 @@ const loadProjects = async () => {
       options: {
         page: pagination.value.page,
         limit: pagination.value.rowsPerPage,
-        sortOrder: 'DESC',
+        sortBy: 'title',
+        sortOrder: 'ASC',
       },
     });
 
-    pagination.value.rowsNumber = projects.value.totalCount;
-    emit(
-      'data-loaded',
-      projects.value?.items.map((p) => p.project_hash) || [],
-    );
+    items.value = loaded.items as IProject[];
+    pagination.value.rowsNumber = loaded.totalCount;
+    emit('data-loaded', items.value.map((p) => p.project_hash));
   } catch (error) {
     console.error('Error loading result projects:', error);
   } finally {

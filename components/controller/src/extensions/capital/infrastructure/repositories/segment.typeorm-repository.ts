@@ -17,6 +17,7 @@ import type {
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
 import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
+import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
@@ -157,6 +158,64 @@ export class SegmentTypeormRepository
     segments.forEach((segment) => {
       const key = `${segment.username}_${segment.project_hash}`;
       segment.result = resultMap.get(key) || undefined;
+    });
+  }
+
+  /**
+   * Заполняет контекст проекта: название проекта-родителя и признак отданного голоса.
+   *
+   * Доли участника читаются общим списком по всем проектам сразу (стол «Результаты»),
+   * поэтому строке нужны название проекта и ответ на вопрос «от меня ещё что-то
+   * требуется?». Оба значения берутся пакетно: поэлементные запросы на списке
+   * в сотню долей дали бы сотню обращений к базе.
+   */
+  private async populateProjectContextForSegments(segments: SegmentTypeormEntity[]): Promise<void> {
+    if (segments.length === 0) {
+      return;
+    }
+
+    const NULL_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+
+    // Названия проектов-родителей
+    const parentHashes = Array.from(
+      new Set(
+        segments
+          .map((segment) => segment.project?.parent_hash)
+          .filter((hash): hash is string => !!hash && hash !== NULL_HASH)
+      )
+    );
+
+    const parentTitles = new Map<string, string>();
+    if (parentHashes.length > 0) {
+      const parents = await this.repository.manager
+        .createQueryBuilder(ProjectTypeormEntity, 'p')
+        .select(['p.project_hash', 'p.title'])
+        .where('p.project_hash IN (:...parentHashes)', { parentHashes })
+        .getMany();
+
+      parents.forEach((parent) => parentTitles.set(parent.project_hash, parent.title));
+    }
+
+    // Отданные голоса: пара «проект + голосующий»
+    const projectHashes = Array.from(new Set(segments.map((segment) => segment.project_hash)));
+    const usernames = Array.from(new Set(segments.map((segment) => segment.username)));
+
+    const votedKeys = new Set<string>();
+    if (projectHashes.length > 0 && usernames.length > 0) {
+      const votes = await this.repository.manager
+        .createQueryBuilder(VoteTypeormEntity, 'v')
+        .select(['v.project_hash', 'v.voter'])
+        .where('v.project_hash IN (:...projectHashes)', { projectHashes })
+        .andWhere('v.voter IN (:...usernames)', { usernames })
+        .getMany();
+
+      votes.forEach((vote) => votedKeys.add(`${vote.voter}_${vote.project_hash}`));
+    }
+
+    segments.forEach((segment) => {
+      const parentHash = segment.project?.parent_hash;
+      segment.parent_title = parentHash ? parentTitles.get(parentHash) : undefined;
+      segment.has_voted = votedKeys.has(`${segment.username}_${segment.project_hash}`);
     });
   }
 
@@ -396,6 +455,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результаты для сегментов
       await this.populateResultsForSegments(entities);
+      await this.populateProjectContextForSegments(entities);
 
       // Преобразуем в доменные сущности
       const items = entities.map((entity) => SegmentMapper.toDomain(entity));
@@ -422,6 +482,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результаты для сегментов
       await this.populateResultsForSegments(entities);
+      await this.populateProjectContextForSegments(entities);
 
       // Преобразуем в доменные сущности
       const items = entities.map((entity) => SegmentMapper.toDomain(entity));
@@ -534,6 +595,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результат для сегмента
       await this.populateResultsForSegments([entity]);
+      await this.populateProjectContextForSegments([entity]);
 
       // Преобразуем в доменную сущность
       return SegmentMapper.toDomain(entity);
@@ -551,6 +613,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результат для сегмента
       await this.populateResultsForSegments([entity]);
+      await this.populateProjectContextForSegments([entity]);
 
       // Преобразуем в доменную сущность
       return SegmentMapper.toDomain(entity);

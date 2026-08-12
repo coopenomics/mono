@@ -3455,10 +3455,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	Account:{
 		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
@@ -4521,6 +4517,7 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		equal_author_bonus:"String",
 		has_vote:"Boolean",
+		has_voted:"Boolean",
 		id:"Int",
 		intellectual_cost:"String",
 		investor_amount:"String",
@@ -4539,8 +4536,11 @@ export const ReturnTypes: Record<string,any> = {
 		last_known_coordinators_investment_pool:"String",
 		last_known_creators_base_pool:"String",
 		last_known_invest_pool:"String",
+		parent_title:"String",
 		present:"Boolean",
 		project_hash:"String",
+		project_status:"ProjectStatus",
+		project_title:"String",
 		property_base:"String",
 		provisional_amount:"String",
 		share_percent:"Float",

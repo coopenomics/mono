@@ -294,15 +294,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             children: [],
           },
           {
+            // Отдельного стола голосований нет: голосование — часть приёмки
+            // результата, и пайщик видит его на «Результатах». Ветка оставлена
+            // ради ссылок на страницу голосования по конкретному компоненту.
             path: 'voting',
             name: 'voting',
             component: markRaw(ProjectsVotingPage),
             meta: {
               title: 'Голосования',
-              icon: 'fa-solid fa-vote-yea',
+              icon: 'how_to_vote',
               roles: [],
               agreements: agreementsBase,
               requiresAuth: true,
+              hidden: true,
             },
             children: [
               {

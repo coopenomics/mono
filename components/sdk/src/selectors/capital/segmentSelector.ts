@@ -69,6 +69,11 @@ export const rawSegmentSelector = {
   share_percent: true,
   available_for_program: true,
   available_for_wallet: true,
+  // Контекст проекта: доли участника читаются общим списком по всем проектам
+  project_title: true,
+  parent_title: true,
+  project_status: true,
+  has_voted: true,
 }
 
 // Валидация типа

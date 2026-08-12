@@ -122,6 +122,12 @@ export class SegmentMapper {
     return new SegmentDomainEntity(databaseData, blockchainData, {
       display_name: entity.contributor?.display_name,
       result: entity.result ? ResultMapper.toDomain(entity.result) : undefined,
+      // Контекст проекта: список долей участника собирается по всем проектам сразу,
+      // и без названия проекта строка в таком списке неопознаваема.
+      project_title: entity.project?.title,
+      project_status: entity.project?.status,
+      parent_title: entity.parent_title,
+      has_voted: entity.has_voted,
     });
   }
 
@@ -293,6 +299,9 @@ export class SegmentMapper {
       display_name: displayName,
       value: contribution,
       result: enrichedResult,
+      // Признак голоса заполняется только на путях чтения списков; на остальных
+      // отсутствие записи о голосе равнозначно «не голосовал»
+      has_voted: domain.has_voted ?? false,
     } as SegmentOutputDTO;
   }
 }

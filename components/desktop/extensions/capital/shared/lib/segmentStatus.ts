@@ -1,32 +1,6 @@
 import { Zeus } from '@coopenomics/sdk';
 
 /**
- * Получение цвета статуса сегмента
- */
-export const getSegmentStatusColor = (status: string) => {
-  switch (status) {
-    case Zeus.SegmentStatus.GENERATION:
-      return 'orange';
-    case Zeus.SegmentStatus.READY:
-      return 'blue';
-    case Zeus.SegmentStatus.STATEMENT:
-      return 'purple';
-    case Zeus.SegmentStatus.APPROVED:
-      return 'teal';
-    case Zeus.SegmentStatus.AUTHORIZED:
-      return 'cyan';
-    case Zeus.SegmentStatus.ACT1:
-      return 'indigo';
-    case Zeus.SegmentStatus.CONTRIBUTED:
-      return 'green';
-    case Zeus.SegmentStatus.FINALIZED:
-      return 'blue';
-    default:
-      return 'grey';
-  }
-};
-
-/**
  * Получение текста статуса сегмента
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -35,7 +9,6 @@ export const getSegmentStatusLabel = (status: string, isCompleted = false, segme
   if (isCompleted) {
     return 'Сегмент получен';
   }
-  console.log('status', status);
   switch (status) {
     case Zeus.SegmentStatus.GENERATION:
       return 'Ожидаем пересчета стоимости результата интеллектуальной деятельности';
@@ -59,29 +32,131 @@ export const getSegmentStatusLabel = (status: string, isCompleted = false, segme
 };
 
 /**
- * Получение иконки статуса сегмента
+ * Короткая подпись статуса — для бейджа в строке списка
  */
-export const getSegmentStatusIcon = (status: string) => {
-  switch (status) {
+export const getSegmentShortStatus = (segment: {
+  status: string;
+  is_completed?: boolean;
+}): string => {
+  if (segment.is_completed) return 'Получен';
+  switch (segment.status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'fa-solid fa-spinner';
+      return 'Расчёт';
     case Zeus.SegmentStatus.READY:
-      return 'fa-solid fa-clock';
+      return 'Готов';
     case Zeus.SegmentStatus.STATEMENT:
-      return 'fa-solid fa-file-invoice';
+      return 'На рассмотрении';
     case Zeus.SegmentStatus.APPROVED:
-      return 'fa-solid fa-user-check';
+      return 'Одобрен';
     case Zeus.SegmentStatus.AUTHORIZED:
-      return 'fa-solid fa-users-gear';
+      return 'Подпись пайщика';
     case Zeus.SegmentStatus.ACT1:
-      return 'fa-solid fa-file-signature';
+      return 'Подпись председателя';
     case Zeus.SegmentStatus.CONTRIBUTED:
-      return 'fa-solid fa-circle-check';
+      return 'Принят';
     case Zeus.SegmentStatus.FINALIZED:
-      return 'fa-solid fa-trophy';
+      return 'Завершён';
     default:
-      return 'fa-regular fa-circle-question';
+      return getSegmentStatusLabel(segment.status, segment.is_completed);
   }
+};
+
+/**
+ * Вариант бейджа под статус доли
+ */
+export const getSegmentStatusVariant = (segment: {
+  status: string;
+  is_completed?: boolean;
+}): 'pos' | 'info' | 'warn' | 'neutral' => {
+  if (segment.is_completed) return 'pos';
+  switch (segment.status) {
+    case Zeus.SegmentStatus.GENERATION:
+      return 'warn';
+    case Zeus.SegmentStatus.READY:
+    case Zeus.SegmentStatus.STATEMENT:
+    case Zeus.SegmentStatus.APPROVED:
+    case Zeus.SegmentStatus.AUTHORIZED:
+    case Zeus.SegmentStatus.ACT1:
+      return 'info';
+    case Zeus.SegmentStatus.CONTRIBUTED:
+    case Zeus.SegmentStatus.FINALIZED:
+      return 'pos';
+    default:
+      return 'neutral';
+  }
+};
+
+/** Что требуется от пайщика по его собственной доле прямо сейчас */
+export type SegmentOwnerAction = 'vote' | 'push_result' | 'sign_act' | 'receive' | 'none';
+
+/**
+ * Действие, которого доля ждёт от своего владельца.
+ *
+ * Порядок разбора повторяет ход процесса: сначала голосование (пока проект на
+ * голосовании, доля ещё не рассчитана), затем внесение результата, подпись акта
+ * и получение доли. Пункты, где ход за председателем или советом
+ * (`statement`, `approved`, `act1`), для пайщика — ожидание, а не действие.
+ */
+export const getSegmentOwnerAction = (segment: {
+  status: string;
+  is_completed?: boolean;
+  has_vote?: boolean;
+  has_voted?: boolean;
+  is_votes_calculated?: boolean;
+  project_status?: string | null;
+}): SegmentOwnerAction => {
+  if (segment.is_completed) return 'none';
+
+  if (
+    segment.project_status === Zeus.ProjectStatus.VOTING &&
+    segment.has_vote &&
+    !segment.has_voted
+  ) {
+    return 'vote';
+  }
+
+  switch (segment.status) {
+    case Zeus.SegmentStatus.READY:
+      // Пока голоса участника не разнесены по долям, вносить результат рано
+      return segment.has_vote && segment.is_votes_calculated === false
+        ? 'none'
+        : 'push_result';
+    case Zeus.SegmentStatus.AUTHORIZED:
+      return 'sign_act';
+    case Zeus.SegmentStatus.CONTRIBUTED:
+      return 'receive';
+    default:
+      return 'none';
+  }
+};
+
+/**
+ * Доля проходит приёмку: работа по компоненту закончена, а доля ещё не получена.
+ *
+ * Пока компонент в работе, доля пересчитывается на каждый коммит и от пайщика
+ * ничего не ждут — на вкладке «На приёмке» такой строке делать нечего. Отсчёт
+ * идёт от статуса проекта: приёмка начинается голосованием. Собственный статус
+ * доли учитывается на случай, когда заявление уже подано.
+ */
+export const isSegmentOnAcceptance = (segment: {
+  status: string;
+  is_completed?: boolean;
+  project_status?: string | null;
+}): boolean => {
+  if (segment.is_completed) return false;
+  if (
+    segment.status === Zeus.SegmentStatus.FINALIZED ||
+    segment.status === Zeus.SegmentStatus.SKIPPED
+  ) {
+    return false;
+  }
+
+  const acceptanceStarted =
+    segment.project_status === Zeus.ProjectStatus.VOTING ||
+    segment.project_status === Zeus.ProjectStatus.RESULT ||
+    segment.project_status === Zeus.ProjectStatus.FINALIZED;
+
+  return acceptanceStarted || segment.status !== Zeus.SegmentStatus.GENERATION;
 };
 
 /**
