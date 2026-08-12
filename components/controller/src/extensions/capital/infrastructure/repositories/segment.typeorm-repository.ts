@@ -22,6 +22,9 @@ import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
 
+/** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
+const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+
 /**
  * TypeORM реализация репозитория сегментов
  */
@@ -104,6 +107,17 @@ export class SegmentTypeormRepository
     if (filter.parent_hash !== undefined) {
       queryBuilder = queryBuilder.andWhere('project.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
     }
+    if (filter.is_component !== undefined) {
+      // Результат приходуется по компоненту: у проекта верхнего уровня своего
+      // результата нет, он складывается из результатов компонентов
+      queryBuilder = filter.is_component
+        ? queryBuilder.andWhere('(project.parent_hash IS NOT NULL AND project.parent_hash != :emptyHash)', {
+            emptyHash: NULL_PROJECT_HASH,
+          })
+        : queryBuilder.andWhere('(project.parent_hash IS NULL OR project.parent_hash = :emptyHash)', {
+            emptyHash: NULL_PROJECT_HASH,
+          });
+    }
 
     return queryBuilder;
   }
@@ -174,14 +188,12 @@ export class SegmentTypeormRepository
       return;
     }
 
-    const NULL_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
-
     // Названия проектов-родителей
     const parentHashes = Array.from(
       new Set(
         segments
           .map((segment) => segment.project?.parent_hash)
-          .filter((hash): hash is string => !!hash && hash !== NULL_HASH)
+          .filter((hash): hash is string => !!hash && hash !== NULL_PROJECT_HASH)
       )
     );
 
@@ -214,7 +226,9 @@ export class SegmentTypeormRepository
 
     segments.forEach((segment) => {
       const parentHash = segment.project?.parent_hash;
-      segment.parent_title = parentHash ? parentTitles.get(parentHash) : undefined;
+      const hasParent = !!parentHash && parentHash !== NULL_PROJECT_HASH;
+      segment.parent_hash = hasParent ? parentHash : undefined;
+      segment.parent_title = hasParent ? parentTitles.get(parentHash) : undefined;
       segment.has_voted = votedKeys.has(`${segment.username}_${segment.project_hash}`);
     });
   }
@@ -227,8 +241,7 @@ export class SegmentTypeormRepository
     if (!project || !project.parent_hash) {
       return false;
     }
-    const NULL_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
-    return project.parent_hash !== NULL_HASH;
+    return project.parent_hash !== NULL_PROJECT_HASH;
   }
 
   /**

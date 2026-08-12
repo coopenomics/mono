@@ -274,6 +274,12 @@ export class SegmentOutputDTO extends BaseOutputDTO {
   })
   parent_title?: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Хеш проекта, в который входит компонент',
+  })
+  parent_hash?: string;
+
   @Field(() => ProjectStatus, {
     nullable: true,
     description: 'Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке',

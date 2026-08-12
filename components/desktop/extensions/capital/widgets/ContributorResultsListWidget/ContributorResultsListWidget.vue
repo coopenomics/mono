@@ -21,14 +21,21 @@
 
         .contrib-results__main
           .contrib-results__title-row
-            span.contrib-results__title {{ row.project_title || 'Компонент' }}
+            button.contrib-results__title(
+              type='button',
+              @click='navigateToComponent(row.project_hash)'
+            ) {{ row.project_title || 'Компонент' }}
             BaseBadge(:variant='getSegmentStatusVariant(row)')
               | {{ getSegmentShortStatus(row) }}
+              q-tooltip {{ getSegmentStatusLabel(row.status, row.is_completed) }}
             BaseBadge(v-if='ownerAction(row) === "vote"', variant='warn') Требуется голос
 
-          .contrib-results__sub(v-if='row.parent_title')
+          .contrib-results__sub(v-if='row.parent_hash')
             q-icon(name='folder', size='14px')
-            span.t-sm.t-muted {{ row.parent_title }}
+            button.contrib-results__parent.t-sm(
+              type='button',
+              @click='navigateToProject(row.parent_hash)'
+            ) {{ row.parent_title || 'Проект' }}
 
           .contrib-results__owner(v-if='showOwner')
             q-icon(name='person', size='14px')
@@ -43,7 +50,7 @@
               span.t-mono {{ Number(row.share_percent || 0).toFixed(2) }}%
 
         .contrib-results__side
-          ResultSubmissionActionsWidget(:segment='row')
+          ResultSubmissionActionsWidget(:segment='row', hide-hint)
           BaseButton(
             v-if='ownerAction(row) === "vote"',
             variant='primary',
@@ -86,9 +93,11 @@ import { FailAlert } from 'src/shared/api';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
+import { useListNavigation } from 'app/extensions/capital/shared/composables/useListNavigation';
 import {
   getSegmentShortStatus,
   getSegmentStatusVariant,
+  getSegmentStatusLabel,
   getSegmentOwnerAction,
 } from 'app/extensions/capital/shared/lib/segmentStatus';
 import { SegmentResultInfoWidget } from '../SegmentResultInfoWidget';
@@ -114,6 +123,7 @@ defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const { info } = useSystemStore();
+const { navigateToProject, navigateToComponent } = useListNavigation();
 
 const expanded = ref<Record<string, boolean>>({});
 const votingOpen = ref<Record<string, boolean>>({});
@@ -225,13 +235,51 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
 }
 
 .contrib-results__title {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
   font-weight: 600;
   font-size: var(--p-fs-body);
   color: var(--p-ink);
+  text-align: left;
+  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+
+  &:hover {
+    color: var(--p-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--p-focus-ring);
+    border-radius: var(--p-r-sm);
+  }
+}
+
+.contrib-results__parent {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: var(--p-ink-2);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--p-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--p-focus-ring);
+    border-radius: var(--p-r-sm);
+  }
 }
 
 .contrib-results__sub,

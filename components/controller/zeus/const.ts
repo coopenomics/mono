@@ -4536,6 +4536,7 @@ export const ReturnTypes: Record<string,any> = {
 		last_known_coordinators_investment_pool:"String",
 		last_known_creators_base_pool:"String",
 		last_known_invest_pool:"String",
+		parent_hash:"String",
 		parent_title:"String",
 		present:"Boolean",
 		project_hash:"String",

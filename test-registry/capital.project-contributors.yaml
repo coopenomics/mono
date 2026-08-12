@@ -315,6 +315,18 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.contrib.side.15
+    level: backend
+    kind: side
+    scenario: >
+      Доли отбираются по признаку «компонент»: у проекта верхнего уровня
+      родителя нет, у компонента — есть.
+    expect: >
+      отбор идёт по проекту доли, а не по самой доле, и «нет родителя»
+      понимается одинаково для пустого хэша и незаполненного поля
+    test: ~
+    status: missing
+
   - id: cap.contrib.side.13
     level: backend
     kind: side

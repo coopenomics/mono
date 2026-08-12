@@ -4552,6 +4552,8 @@ export type ValueTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
 	/** Название проекта, в который входит компонент */
 	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -4593,6 +4595,8 @@ export type ValueTypes = {
 	has_vote?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null | Variable<any, string>,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли координатора */
@@ -18746,6 +18750,8 @@ export type ResolverInputTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
 	/** Название проекта, в который входит компонент */
 	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -18786,6 +18792,8 @@ export type ResolverInputTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -32553,6 +32561,8 @@ export type ModelTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
 	/** Название проекта, в который входит компонент */
 	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -32592,6 +32602,8 @@ export type ModelTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -47206,6 +47218,8 @@ export type GraphQLTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
 	/** Название проекта, в который входит компонент */
 	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -47246,6 +47260,8 @@ export type GraphQLTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */

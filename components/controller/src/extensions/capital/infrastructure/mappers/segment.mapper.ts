@@ -127,6 +127,7 @@ export class SegmentMapper {
       project_title: entity.project?.title,
       project_status: entity.project?.status,
       parent_title: entity.parent_title,
+      parent_hash: entity.parent_hash,
       has_voted: entity.has_voted,
     });
   }

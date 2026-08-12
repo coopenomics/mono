@@ -48,8 +48,9 @@ export class SegmentTypeormEntity extends BaseTypeormEntity {
   @JoinColumn({ name: 'project_hash', referencedColumnName: 'project_hash' })
   project?: ProjectTypeormEntity;
 
-  // Название проекта, в который входит компонент (заполняется в репозитории пакетно)
+  // Проект, в который входит компонент (заполняется в репозитории пакетно)
   parent_title?: string;
+  parent_hash?: string;
 
   // Отдан ли голос участником в этом проекте (заполняется в репозитории пакетно)
   has_voted?: boolean;

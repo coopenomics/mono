@@ -1,6 +1,6 @@
 <template lang="pug">
 .participant-actions
-  p.participant-actions__hint.t-sm.t-muted {{ statusLabel }}
+  p.participant-actions__hint.t-sm.t-muted(v-if='!hideHint') {{ statusLabel }}
 
   .participant-actions__btns
     template(v-if='segment.status === Zeus.SegmentStatus.GENERATION')
@@ -64,6 +64,8 @@ import { getSegmentStatusLabel } from 'app/extensions/capital/shared/lib/segment
 
 interface Props {
   segment: ISegment;
+  /** Не показывать текст статуса: в списке его уже несёт бейдж строки */
+  hideHint?: boolean;
 }
 
 

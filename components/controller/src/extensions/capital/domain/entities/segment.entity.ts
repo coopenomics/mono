@@ -12,6 +12,7 @@ interface SegmentAdditionalData {
   result?: ResultDomainEntity;
   project_title?: string;
   parent_title?: string;
+  parent_hash?: string;
   project_status?: ProjectStatus;
   has_voted?: boolean;
 }
@@ -43,6 +44,7 @@ export class SegmentDomainEntity
   public result?: ResultDomainEntity; // Связанный результат
   public project_title?: string; // Название проекта (компонента), к которому относится доля
   public parent_title?: string; // Название проекта, в который входит компонент
+  public parent_hash?: string; // Хеш проекта, в который входит компонент
   public project_status?: ProjectStatus; // Статус проекта: по нему видно, идёт ли голосование
   public has_voted?: boolean; // Участник уже отдал голос в этом проекте
 
@@ -236,6 +238,7 @@ export class SegmentDomainEntity
     this.result = additionalData.result;
     this.project_title = additionalData.project_title;
     this.parent_title = additionalData.parent_title;
+    this.parent_hash = additionalData.parent_hash;
     this.project_status = additionalData.project_status;
     this.has_voted = additionalData.has_voted;
   }

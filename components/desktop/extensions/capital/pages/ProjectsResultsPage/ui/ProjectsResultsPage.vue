@@ -80,6 +80,7 @@ type ResultsTab = 'pending' | 'mine' | 'sign' | 'all';
 /** Сколько долей читается за раз: у участника их десятки, не тысячи */
 const SEGMENTS_LIMIT = 1000;
 
+
 const router = useRouter();
 const route = useRoute();
 const { info } = useSystemStore();
@@ -181,6 +182,9 @@ const reloadMySegments = async () => {
       filter: {
         coopname: info.coopname,
         username: username.value,
+        // Результат приходуется по компоненту: у проекта верхнего уровня своего
+        // результата нет — он складывается из результатов компонентов
+        is_component: true,
       },
       options: { page: 1, limit: SEGMENTS_LIMIT, sortOrder: 'DESC' },
     });
@@ -202,6 +206,7 @@ const reloadSegmentsToSign = async () => {
       filter: {
         coopname: info.coopname,
         status: Zeus.SegmentStatus.ACT1,
+        is_component: true,
       },
       options: { page: 1, limit: SEGMENTS_LIMIT, sortOrder: 'DESC' },
     });

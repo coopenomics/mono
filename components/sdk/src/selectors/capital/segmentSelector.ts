@@ -72,6 +72,7 @@ export const rawSegmentSelector = {
   // Контекст проекта: доли участника читаются общим списком по всем проектам
   project_title: true,
   parent_title: true,
+  parent_hash: true,
   project_status: true,
   has_voted: true,
 }
