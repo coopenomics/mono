@@ -16,6 +16,11 @@ title: Кто читает документы проекта и его пере�
 #
 # Выдача самого допуска — соседний слайс (capital.project-contributors), здесь только
 # последствия для чтения.
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts

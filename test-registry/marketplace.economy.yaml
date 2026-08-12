@@ -15,6 +15,11 @@ title: Экономика кооперативного участка — чле
 # branch::weights / branch::weighttotals (сетка), ledger2::userwallets
 # (балансы). Плановые расходы — общесистемный реестр расширения `expenses`.
 
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts

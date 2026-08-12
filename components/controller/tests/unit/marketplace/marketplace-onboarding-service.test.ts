@@ -34,6 +34,7 @@ const makeProgram = (overrides: any = {}) => ({
 const makeProgramAgreements = (signature: any) =>
   ({
     findProgramSignature: jest.fn().mockResolvedValue(signature),
+    signProgramAgreement: jest.fn().mockResolvedValue({}),
   } as any);
 
 const makeSovietPort = (coagreement: any, programs: any[] = []) =>
@@ -170,19 +171,14 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
   // подпись обязана уйти с шаблоном программы, и подмена источника сразу видна.
   async function loadService(
     coagreement: unknown,
-    wallet = makeWalletPort(),
+    wallet = makeProgramAgreements(null),
     programs: any[] = [{ id: PROGRAM_ID, draft_id: 1102 }]
   ) {
     jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const service = new MarketplaceOnboardingService(
-      makeUserAgreementRepo(null),
-      makeSovietPort(coagreement, programs),
-      wallet,
-      makeLogger()
-    );
+    const service = new MarketplaceOnboardingService(wallet, makeSovietPort(coagreement, programs), makeLogger());
     return { service, wallet };
   }
 
@@ -212,7 +208,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
     // при следующем заходе.
     const wallet = {
       signProgramAgreement: jest.fn().mockRejectedValue(new Error('chain timeout')),
-    } as never as ReturnType<typeof makeWalletPort>;
+    } as never as ReturnType<typeof makeProgramAgreements>;
     const { service } = await loadService(COAGREEMENT, wallet);
 
     await expect(
@@ -227,7 +223,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
     // подпись падала бы «draft_id соглашения не совпадает с draft_id программы».
     const wallet = {
       signProgramAgreement: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
-    } as never as ReturnType<typeof makeWalletPort>;
+    } as never as ReturnType<typeof makeProgramAgreements>;
     const { service } = await loadService({ ...COAGREEMENT, draft_id: 699 }, wallet);
 
     await service.signOnboardingOffer({
@@ -247,7 +243,7 @@ describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
   });
 
   it('программа ЦПП не создана в кооперативе → отказ, подпись не отправляется', async () => {
-    const { service, wallet } = await loadService(COAGREEMENT, makeWalletPort(), []);
+    const { service, wallet } = await loadService(COAGREEMENT, makeProgramAgreements(null), []);
 
     await expect(
       service.signOnboardingOffer({
