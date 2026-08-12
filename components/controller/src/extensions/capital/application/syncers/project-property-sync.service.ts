@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
 import { ProjectPropertyDomainEntity } from '../../domain/entities/project-property.entity';
@@ -49,13 +49,5 @@ export class ProjectPropertySyncService
     allPatterns.forEach((pattern) => {
       this.eventEmitter.on(pattern, this.processDelta.bind(this));
     });
-  }
-
-  /**
-   * Обработчик форков для проектных имущественных взносов
-   */
-  @OnEvent('fork::*')
-  async handleProjectPropertyFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { IDelta } from '~/types/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '../../../../../shared/services/abstract-entity-sync.service';
@@ -56,15 +56,6 @@ export class ApprovalSyncService
   async handleApprovalDelta(delta: IDelta): Promise<void> {
     await this.processDelta(delta);
   }
-
-  /**
-   * Обработчик форков для одобрений
-   */
-  @OnEvent('fork::*')
-  async handleApprovalFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
-
   /**
    * Получение поддерживаемых версий контрактов и таблиц
    */

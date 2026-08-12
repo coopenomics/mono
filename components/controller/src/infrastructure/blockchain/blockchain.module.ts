@@ -29,6 +29,7 @@ import { LEDGER2_BLOCKCHAIN_PORT } from '~/domain/ledger2/ports/ledger2-blockcha
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
+import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockchain-archive-retention.service';
 
 @Global()
 @Module({
@@ -86,6 +87,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
   exports: [
     BlockchainService,
@@ -105,6 +107,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
 })
 export class BlockchainModule {}

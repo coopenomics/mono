@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
@@ -84,14 +84,5 @@ export class ContributorSyncService
     );
 
     return contributorEntity;
-  }
-
-  /**
-   * Обработка форков для участников
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleContributorFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

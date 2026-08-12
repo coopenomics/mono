@@ -58,6 +58,7 @@ _Критичные правила и паттерны для AI-агентов 
 ### Language-Specific (TypeScript)
 
 - **Bigint из PostgreSQL приходит как STRING.** Всегда `Number(blockNum) < Number(currentBlockNum)`, никогда не полагаться на `<`/`>` для `bigint`-колонок напрямую.
+- **block_num — разнобой типов в текущей кодовой базе (Story 4.3 audit).** `BaseTypeormEntity` (capital + shared) использует `@Column({ type: 'integer' }) block_num!: number` (PG возвращает number — корректно). Инфраструктурные entity (`ActionEntity`, `DeltaEntity`, `ForkEntity`, `SyncStateEntity`) используют `@Column({ type: 'bigint' }) block_num!: number` — **type-mismatch** (runtime будет string, TS говорит number). `ConsumerDedupEntity` — `bigint` + `string | null` (корректно). Это технический долг (Epic 9 backlog: bigint Transformer). Hot-path везде явно делает `Number()` либо использует TypeORM bind, так что runtime safe. При добавлении нового блокчейн-зеркала — выбрать одно из: (a) `integer` + `number`; (b) `bigint` + Transformer возвращающий `number`; (c) `bigint` + `string` с явным `Number()` в кодe. НЕ `bigint` + declaration `number` без Transformer.
 - **`Object.assign(this, blockchainData)` запрещено** в sync-сущностях — ломает типизацию. Только явное копирование полей.
 - **Lowercase hash полей (`project_hash`, `listing_hash`)** — нормализация **в конструкторе/mapValue**, НЕ в mapper'ах и НЕ повторно в `updateFromBlockchain`.
 - **Discriminated union для write-mutation response:** `{ status: 'applied' | 'pending' | 'failed' | 'conflict' }`. Клиент должен switch на статусе.
@@ -76,6 +77,8 @@ _Критичные правила и паттерны для AI-агентов 
 - `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
 - Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
+- **Контракт «entity с block_num → repo extends BaseBlockchainRepository» (Story 4.3).** Любая `*.typeorm-entity.ts` extends `BaseTypeormEntity` ОБЯЗАНА иметь репозиторий extends `BaseBlockchainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
+- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно через DataSource.transaction). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
@@ -87,14 +90,16 @@ _Критичные правила и паттерны для AI-агентов 
 - `{contract}{Entity}Updated` / `Deleted` / `RolledBack` / `PendingRetry` / `Failed` — **pubsub канал** для GraphQL subscriptions. Per-contract, не global.
 - `entitysynced::{contract}::{table}` — для business-side-effect listeners (Matrix / Notification / и т.п.).
 
-### Composite-Entity (ADR-008) — СТРОГО
+### Composite-Entity (ADR-008) — будущая цель, не сейчас
 
-- Namespaced: `entity.db.X` (DB-поля) / `entity.bc?.Y` (blockchain, nullable) / `entity.derived.Z` (computed getters).
-- **НЕ** писать `entity.X` напрямую — ломает изоляцию.
-- Конструктор `(databaseData, blockchainData?)` — обязан `throw` на sync-key mismatch.
-- `updateFromBlockchain` возвращает **новый экземпляр** (immutable) или мутирует только `this.bc`, `this.block_num`, `this.present` — БЕЗ `Object.assign`.
-- `derived` getter — детерминирован (NO `new Date()` в конструкторе / getter — ломает snapshot tests).
-- Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper.
+ADR-008 описывает целевой паттерн `entity.db.X` / `entity.bc?.Y` / `entity.derived.Z`, заменяющий
+`Object.assign(this, blockchainData)`. Переход вынесен за пределы MVP-релиза parser2 в отдельный
+sync-arch sanitation-эпик: blast radius на 22 entity + потребители «плоских» полей в resolver'ах
+делают эту миграцию большой и рискованной задачей, несвязанной с заменой транспорта parser1→parser2.
+
+До отдельного эпика — текущий код продолжает использовать flat-namespace + `Object.assign` в
+`updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
+старого.
 
 ### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
 
@@ -263,7 +268,6 @@ public readonly trusted: IndividualDTO[];
 - `BLOCKCHAIN_RECONCILE_CRON` default `'0 * * * *'`
 - `BLOCKCHAIN_RECONCILE_SAMPLE_SIZE` default 100
 - `BLOCKCHAIN_RECONCILE_TOLERANCE_BLOCKS` default 10
-- `BLOCKCHAIN_FORK_PAUSE_TIMEOUT_MS` default 30000
 - `BLOCKCHAIN_DLQ_MAX_RETRIES` default 5
 - `BLOCKCHAIN_MAX_TX_RETRIES` default 3
 - `BLOCKCHAIN_PENDING_TX_MAX_AGE_SECONDS` default 3600
@@ -316,12 +320,13 @@ public readonly trusted: IndividualDTO[];
 - `await capitalBlockchainPort.getProject(hash)` в resolver / application — **retire**. Только `repository.findBySyncKey`.
 - RPC fallback "если PG не отдал" — **запрещено**. Если PG null → pending status наверх.
 
-### ❌ Composite-entity anti-patterns
+### ❌ Domain-entity anti-patterns
 
-- `project.matrix_room_id` (flat access) — **запрещено**. Правильно: `project.db.matrix_room_id`.
-- `project.master` (flat access) — **запрещено**. Правильно: `project.bc?.master`.
-- `Object.assign(this, blockchainData)` в update — **запрещено**.
 - Новый `new Date()` в конструкторе или derived-getter — **запрещено** (ломает snapshot-tests).
+- Миграция на namespace `entity.db.X` / `entity.bc?.Y` — целевой паттерн ADR-008, но отложен
+  в отдельный sync-arch sanitation-эпик: текущий код всё ещё использует flat-namespace +
+  `Object.assign(this, blockchainData)` в `updateFromBlockchain`. Не разводить два стандарта
+  частично.
 
 ### ❌ Fork handling anti-patterns
 
@@ -361,7 +366,6 @@ public readonly trusted: IndividualDTO[];
 
 ### ⚡ Performance
 
-- `JSON.stringify` на сущностях с nested signed-documents — использовать `json-stable-stringify` для canonical checksum.
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
 - `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).

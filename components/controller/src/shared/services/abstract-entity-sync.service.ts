@@ -7,6 +7,9 @@ import type {
   IBlockchainSyncRepository,
   ISyncResult,
 } from '~/shared/interfaces/blockchain-sync.interface';
+import { FORK_AWARE_MARKER, type IForkAwareSyncer } from '~/shared/sync/fork';
+import { UnsupportedContractVersionError } from '~/shared/sync/errors/unsupported-contract-version.error';
+import config from '~/config/config';
 
 /**
  * Абстрактный сервис для синхронизации сущностей с блокчейном
@@ -14,11 +17,22 @@ import type {
  * Предоставляет базовую логику для:
  * - Обработки дельт блокчейна
  * - Создания/обновления сущностей
- * - Обработки форков
+ * - Обработки форков (Story 4.1: реализует IForkAwareSyncer — ForkRegistryService
+ *   собирает наследников через DiscoveryService по symbol-маркеру и обходит
+ *   sequential при форке)
  */
 @Injectable()
-export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynchronizable, TBlockchainData = any> {
+export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynchronizable, TBlockchainData = any>
+  implements IForkAwareSyncer
+{
   protected abstract readonly entityName: string;
+
+  /**
+   * Symbol-маркер для ForkRegistryService (Story 4.1). Все 20+ наследников
+   * автоматически попадают в реестр через bootstrap-сканирование Discovery —
+   * без правок их onModuleInit.
+   */
+  readonly [FORK_AWARE_MARKER] = true;
 
   constructor(
     protected readonly repository: IBlockchainSyncRepository<TEntity>,
@@ -44,7 +58,21 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
       // Маппинг дельты в блокчейн-данные
       const blockchainData = this.mapper.mapDeltaToBlockchainData(delta);
       if (!blockchainData) {
-        this.logger.warn(`Failed to map delta to blockchain data for ${this.entityName} ${syncValue}`);
+        // Story 6.5: silent loss заменён на audit-trail error. В strict-mode дополнительно
+        // throw UnsupportedContractVersionError — парсер не ACK'нет дельту, dead-letter сработает.
+        const ctx = {
+          contract: (delta as any).contract ?? (delta as any).code,
+          table: (delta as any).table,
+          primary_key: (delta as any).primary_key,
+          block_num: Number((delta as any).block_num),
+        };
+        this.logger.error(
+          `UNSUPPORTED_CONTRACT_VERSION: mapDeltaToBlockchainData returned null for ${this.entityName} ${syncValue}`,
+          { entity: this.entityName, syncValue, ...ctx }
+        );
+        if (config.blockchain.unsupported_version_strict) {
+          throw new UnsupportedContractVersionError(this.entityName, ctx);
+        }
         return null;
       }
 
@@ -54,6 +82,9 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
       // Обработка создания/обновления сущности
       return await this.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
     } catch (error: any) {
+      // Story 6.5: UnsupportedContractVersionError пробрасываем дальше, чтобы парсер
+      // не ACK'нул дельту в strict-mode.
+      if (error instanceof UnsupportedContractVersionError) throw error;
       this.logger.error(`Error processing ${this.entityName} delta: ${error.message}`, error.stack);
       // Не перебрасываем ошибку, чтобы не падало приложение
       return null;
@@ -133,37 +164,56 @@ export abstract class AbstractEntitySyncService<TEntity extends IBlockchainSynch
   }
 
   /**
-   * Обработка форка - удаление данных после указанного блока
+   * Обработка форка — архивирование снесённых сущностей + восстановление из versions
+   * + архивирование инвалидированных версий.
+   *
+   * Story 4.1: ошибки больше НЕ глотаются — обязательный re-throw для контракта
+   * sequential ForkRegistry.runAll (INV-T03). Если rollback упадёт — parser2 не
+   * ACK'нет fork-event, повторная доставка пересыграет цепочку. Уже отработавшие
+   * syncer'ы в цепи будут no-op (versions уже подняты), сбойный — попробует ещё раз.
+   *
+   * Story 4.4: hard-delete заменён на «архив + delete» атомарно. Порядок:
+   *   1) archiveInvalidatedSince — live-ряды WHERE block_num > N переезжают в
+   *      invalidated_entities, оригинал удаляется (одна транзакция).
+   *   2) restoreFromVersions — поднять previous_data из ещё-живых entity_versions.
+   *   3) archiveInvalidatedVersionsSince — entity_versions WHERE entity_table=... AND
+   *      block_num > N переезжают в invalidated_entity_versions, оригинал удаляется.
+   *      Запускается ПОСЛЕ restore, иначе restore не сможет прочитать живые версии.
+   * Если репо не реализует archive методы (off-chain) — graceful no-op + fallback
+   * на старую findByBlockNumGreaterThan/deleteByBlockNumGreaterThan для бэк-совместимости.
    */
-  async handleFork(forkBlockNum: number): Promise<void> {
-    try {
-      this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum}`);
+  async handleFork(forkBlockNum: number, forkEventId?: string | null): Promise<void> {
+    this.logger.log(`Handling fork for ${this.entityName} at block ${forkBlockNum} (eventId=${forkEventId ?? 'n/a'})`);
 
-      // Находим все сущности, обновленные после форка
-      const affectedEntities = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
-
-      this.logger.debug(
-        `Found ${affectedEntities.length} ${this.entityName} entities affected by fork at block ${forkBlockNum}`
+    let archivedLive = 0;
+    if (this.repository.archiveInvalidatedSince) {
+      archivedLive = await this.repository.archiveInvalidatedSince(forkBlockNum, forkEventId);
+      this.logger.log(
+        `Архивировано ${archivedLive} live-рядов ${this.entityName} на форке ${forkBlockNum}`
       );
-
-      // Удаляем затронутые форком сущности
+    } else {
+      // Бэк-совместимость для off-chain репозиториев без архива (Story 4.3 allowlist)
+      const affected = await this.repository.findByBlockNumGreaterThan(forkBlockNum);
       await this.repository.deleteByBlockNumGreaterThan(forkBlockNum);
-
-      this.logger.log(`Removed ${affectedEntities.length} ${this.entityName} entities after fork at block ${forkBlockNum}`);
-
-      // Восстанавливаем сущности из версий
-      if (this.repository.restoreFromVersions) {
-        await this.repository.restoreFromVersions(forkBlockNum);
-        this.logger.log(`Restored ${this.entityName} entities from versions after fork at block ${forkBlockNum}`);
-      }
-
-      // Вызываем метод для дополнительных действий после форка
-      await this.afterForkProcessing(forkBlockNum, affectedEntities);
-    } catch (error: any) {
-      this.logger.error(`Error handling fork for ${this.entityName}: ${error.message}`, error.stack);
-      // Не перебрасываем ошибку, чтобы не падало приложение
-      return;
+      archivedLive = affected.length;
+      this.logger.warn(
+        `${this.entityName}: archiveInvalidatedSince не реализован — fallback на hard-delete (${archivedLive} рядов)`
+      );
     }
+
+    if (this.repository.restoreFromVersions) {
+      await this.repository.restoreFromVersions(forkBlockNum);
+      this.logger.log(`Restored ${this.entityName} entities from versions after fork at block ${forkBlockNum}`);
+    }
+
+    if (this.repository.archiveInvalidatedVersionsSince) {
+      const archivedVersions = await this.repository.archiveInvalidatedVersionsSince(forkBlockNum, forkEventId);
+      this.logger.log(
+        `Архивировано ${archivedVersions} версий ${this.entityName} на форке ${forkBlockNum}`
+      );
+    }
+
+    await this.afterForkProcessing(forkBlockNum, []);
   }
 
   /**
