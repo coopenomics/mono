@@ -21,6 +21,12 @@ import { Reflector } from '@nestjs/core';
 
 import { MARKETPLACE_ROLES_METADATA_KEY } from '~/extensions/marketplace/application/decorators/marketplace-role.decorator';
 import { MarketplaceRoleGuard } from '~/extensions/marketplace/application/guards/marketplace-role.guard';
+import { configureExtensionAuth } from '@coopenomics/extension-kit';
+
+// Секрет межсервисного обхода живёт в каркасе: guard'ы спрашивают его там,
+// а не в конфиге ядра. Хост обязан задать его на старте — тест тоже хост.
+configureExtensionAuth({ serverSecret: 'svc-secret' });
+
 
 const makeLogger = () =>
   ({

@@ -26,28 +26,17 @@ const makeProgram = (overrides: any = {}) => ({
   ...overrides,
 });
 
-const makeOwner = (programs: any[], present = true) =>
+// Подпись программной оферты хранит ядро: расширение только спрашивает порт,
+// есть ли она. Отсутствие записи, откат подписи форком и подпись по чужой
+// программе снаружи неразличимы — во всех трёх случаях порт отвечает `null`.
+const makeProgramAgreements = (signature: any) =>
   ({
-    present,
-    programs,
-    findProgram(pid: number | string) {
-      return programs.find((p) => Number(p.program_id) === Number(pid));
-    },
-  } as any);
-
-const makeUserAgreementRepo = (owner: any) =>
-  ({
-    findByUsername: jest.fn().mockResolvedValue(owner),
+    findProgramSignature: jest.fn().mockResolvedValue(signature),
   } as any);
 
 const makeSovietPort = (coagreement: any) =>
   ({
     getCoagreement: jest.fn().mockResolvedValue(coagreement),
-  } as any);
-
-const makeWalletPort = () =>
-  ({
-    signProgramAgreement: jest.fn(),
   } as any);
 
 const makeLogger = () =>
@@ -61,9 +50,15 @@ const makeLogger = () =>
 
 const COAGREEMENT = { program_id: PROGRAM_ID, draft_id: 1100, type: 'marketplace' };
 
+import { configurePlatformSettingsForTest } from '../../mocks/platform-settings';
+
 describe('MarketplaceOnboardingService.getOnboardingState', () => {
   afterEach(() => {
     jest.resetModules();
+  });
+
+  beforeEach(async () => {
+    await configurePlatformSettingsForTest();
   });
 
   it('placeholder=0 (rollback Story 1.7) → requires_gate=false, source=not_configured', async () => {
@@ -77,16 +72,16 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
+    const repo = makeProgramAgreements(null);
     const soviet = makeSovietPort(COAGREEMENT);
-    const service = new MarketplaceOnboardingService(repo, soviet, makeWalletPort(), makeLogger());
+    const service = new MarketplaceOnboardingService(repo, soviet, makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe('not_configured');
     expect(state.template_registry_id).toBe(0);
     expect(soviet.getCoagreement).not.toHaveBeenCalled();
-    expect(repo.findByUsername).not.toHaveBeenCalled();
+    expect(repo.findProgramSignature).not.toHaveBeenCalled();
   });
 
   it('ЦПП не настроена как программа (нет коагримента) → not_configured', async () => {
@@ -94,13 +89,13 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(null), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(null), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe('not_configured');
-    expect(repo.findByUsername).not.toHaveBeenCalled();
+    expect(repo.findProgramSignature).not.toHaveBeenCalled();
   });
 
   it('подпись программы есть → requires_gate=false, source=agreement_signed, completed_at из signed_at', async () => {
@@ -108,9 +103,8 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram()]);
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(makeProgram());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
@@ -123,8 +117,8 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
@@ -136,9 +130,9 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram({ program_id: 1 })]); // capital, не marketplace
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    // Подпись есть, но по другой программе (capital) — порт её не отдаёт.
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
@@ -149,9 +143,9 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram()], false);
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    // Подпись откатило форком — порт больше её не видит.
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);

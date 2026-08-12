@@ -3,18 +3,14 @@
 // отсутствие GEOCODER_API_KEY и rate-limit sliding-window.
 import { YandexGeocoderAdapter } from '~/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter';
 
-jest.mock('~/config/config', () => ({
-  __esModule: true,
-  default: {
-    geocoder: {
-      provider: 'yandex',
-      api_key: 'test-key',
-      base_url: 'https://geocode-maps.yandex.ru/1.x/',
-      rate_limit_rps: 10,
-      timeout_ms: 5000,
-    },
-  },
-}));
+// Настройки службы адаптер получает аргументом: их отдаёт ядро через порт
+// доступов к внешним службам, а не конфиг контроллера.
+const settings = {
+  api_key: 'test-key',
+  base_url: 'https://geocode-maps.yandex.ru/1.x/',
+  rate_limit_rps: 10,
+  timeout_ms: 5000,
+} as any;
 
 interface FetchMock {
   (input: string, init?: any): Promise<any>;
@@ -40,7 +36,7 @@ describe('YandexGeocoderAdapter', () => {
   let adapter: YandexGeocoderAdapter;
 
   beforeEach(() => {
-    adapter = new YandexGeocoderAdapter();
+    adapter = new YandexGeocoderAdapter(settings);
   });
 
   it('happy-path парсит pos в lat/lng', async () => {
@@ -84,28 +80,11 @@ describe('YandexGeocoderAdapter', () => {
   });
 
   it('отсутствие GEOCODER_API_KEY → FAILED без HTTP-запроса', async () => {
-    jest.resetModules();
-    jest.doMock('~/config/config', () => ({
-      __esModule: true,
-      default: {
-        geocoder: {
-          provider: 'yandex',
-          api_key: undefined,
-          base_url: 'https://geocode-maps.yandex.ru/1.x/',
-          rate_limit_rps: 10,
-          timeout_ms: 5000,
-        },
-      },
-    }));
     const fetchSpy = installFetch({ ok: true, body: {} });
-    const { YandexGeocoderAdapter: ReloadedAdapter } = await import(
-      '~/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter'
-    );
-    const r = await new ReloadedAdapter().geocode('addr');
+    const r = await new YandexGeocoderAdapter({ ...settings, api_key: undefined }).geocode('addr');
     expect(r.status).toBe('FAILED');
     if (r.status === 'FAILED') expect(r.errorMessage).toMatch(/GEOCODER_API_KEY не задан/);
     expect(fetchSpy).not.toHaveBeenCalled();
-    jest.resetModules();
   });
 
   it('rate-limit: 11-й запрос ждёт до следующего окна', async () => {

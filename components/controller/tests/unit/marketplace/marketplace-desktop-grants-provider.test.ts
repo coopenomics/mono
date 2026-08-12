@@ -14,7 +14,7 @@
  *        - прочие роли (admin/operator/offerer) от L3-гейта не зависят.
  *   Гость / не-active → [].
  */
-import { MonoAccountStatus } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { MarketplaceDesktopGrantsProvider } from '~/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider';
 
 function makeProvider(opts: {
