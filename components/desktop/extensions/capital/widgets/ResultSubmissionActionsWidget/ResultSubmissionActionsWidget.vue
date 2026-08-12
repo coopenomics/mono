@@ -1,11 +1,14 @@
 <template lang="pug">
-.participant-actions
-  p.participant-actions__hint.t-sm.t-muted(v-if='!hideHint') {{ statusLabel }}
+.participant-actions(:class='{ "participant-actions--compact": compact }')
+  p.participant-actions__hint.t-sm.t-muted(v-if='!compact') {{ statusLabel }}
 
   .participant-actions__btns
-    template(v-if='segment.status === Zeus.SegmentStatus.GENERATION')
+    //- В строке списка пересчёт доступен всегда, пока доля не получена: пайщик
+    //- пересчитывает стоимость в любой момент, а не только в стадии расчёта
+    template(v-if='canRefresh')
       RefreshSegmentButton(
         :segment='segment',
+        :mini='compact',
         @click.stop
       )
 
@@ -64,8 +67,11 @@ import { getSegmentStatusLabel } from 'app/extensions/capital/shared/lib/segment
 
 interface Props {
   segment: ISegment;
-  /** Не показывать текст статуса: в списке его уже несёт бейдж строки */
-  hideHint?: boolean;
+  /**
+   * Строка списка: текст статуса не дублируется (его несёт бейдж строки),
+   * а пересчёт доли показывается компактной кнопкой-иконкой.
+   */
+  compact?: boolean;
 }
 
 
@@ -86,6 +92,14 @@ const currentUsername = computed(() => username);
 // Текст статуса сегмента
 const statusLabel = computed(() => getSegmentStatusLabel(props.segment.status, props.segment.is_completed, props.segment));
 
+const canRefresh = computed(() => {
+  if (props.segment.is_completed) return false;
+  if (props.compact) {
+    return props.segment.status !== Zeus.SegmentStatus.FINALIZED;
+  }
+  return props.segment.status === Zeus.SegmentStatus.GENERATION;
+});
+
 </script>
 
 <style lang="scss" scoped>
@@ -95,6 +109,14 @@ const statusLabel = computed(() => getSegmentStatusLabel(props.segment.status, p
   align-items: flex-end;
   gap: var(--p-2);
   max-width: 280px;
+}
+
+// В строке списка виджет — не колонка, а продолжение ряда действий
+.participant-actions--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--p-1);
+  max-width: none;
 }
 
 .participant-actions__hint {

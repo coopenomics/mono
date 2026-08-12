@@ -11,9 +11,9 @@ export const getSegmentStatusLabel = (status: string, isCompleted = false, segme
   }
   switch (status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Ожидаем пересчета стоимости результата интеллектуальной деятельности';
+      return 'Стоимость доли уточняется по мере учёта работ по компоненту';
     case Zeus.SegmentStatus.READY:
-      return 'Готов к внесению результата результата интеллектуальной деятельности';
+      return 'Можно вносить результат интеллектуальной деятельности';
     case Zeus.SegmentStatus.STATEMENT:
       return 'Заявление на предварительном рассмотрении председателя';
     case Zeus.SegmentStatus.APPROVED:
@@ -41,17 +41,17 @@ export const getSegmentShortStatus = (segment: {
   if (segment.is_completed) return 'Получен';
   switch (segment.status) {
     case Zeus.SegmentStatus.GENERATION:
-      return 'Расчёт';
+      return 'Стоимость уточняется';
     case Zeus.SegmentStatus.READY:
-      return 'Готов';
+      return 'Можно вносить';
     case Zeus.SegmentStatus.STATEMENT:
-      return 'На рассмотрении';
+      return 'У председателя';
     case Zeus.SegmentStatus.APPROVED:
-      return 'Одобрен';
+      return 'У совета';
     case Zeus.SegmentStatus.AUTHORIZED:
-      return 'Подпись пайщика';
+      return 'Ждёт подписи пайщика';
     case Zeus.SegmentStatus.ACT1:
-      return 'Подпись председателя';
+      return 'Ждёт председателя';
     case Zeus.SegmentStatus.CONTRIBUTED:
       return 'Принят';
     case Zeus.SegmentStatus.FINALIZED:
@@ -128,6 +128,58 @@ export const getSegmentOwnerAction = (segment: {
     default:
       return 'none';
   }
+};
+
+/** Что показывает бейдж строки: одно состояние, а не набор пометок */
+export interface SegmentBadge {
+  label: string;
+  variant: 'pos' | 'info' | 'warn' | 'neutral';
+  hint: string;
+}
+
+const OWNER_ACTION_BADGE: Record<
+  Exclude<SegmentOwnerAction, 'none'>,
+  { label: string; hint: string }
+> = {
+  vote: {
+    label: 'Требуется голос',
+    hint: 'Распределите голосующую сумму между остальными участниками компонента',
+  },
+  push_result: {
+    label: 'Внести результат',
+    hint: 'Подайте заявление о внесении результата интеллектуальной деятельности',
+  },
+  sign_act: {
+    label: 'Нужна подпись',
+    hint: 'Совет принял решение — подпишите акт приёма-передачи доли',
+  },
+  receive: {
+    label: 'Можно получить',
+    hint: 'Результат принят — получите долю в объекте авторских прав',
+  },
+};
+
+/**
+ * Бейдж строки: когда ход за пайщиком, показывается требуемое действие, иначе —
+ * состояние процесса. Две пометки рядом («стоимость уточняется» и «требуется
+ * голос») пайщику ничего не добавляют: ему нужно знать одно — его ход или нет.
+ */
+export const getSegmentBadge = (
+  segment: Parameters<typeof getSegmentOwnerAction>[0] & { is_completed?: boolean },
+  isOwn = true,
+): SegmentBadge => {
+  const action = isOwn ? getSegmentOwnerAction(segment) : 'none';
+
+  if (action !== 'none') {
+    const badge = OWNER_ACTION_BADGE[action];
+    return { label: badge.label, variant: 'warn', hint: badge.hint };
+  }
+
+  return {
+    label: getSegmentShortStatus(segment),
+    variant: getSegmentStatusVariant(segment),
+    hint: getSegmentStatusLabel(segment.status, segment.is_completed),
+  };
 };
 
 /**

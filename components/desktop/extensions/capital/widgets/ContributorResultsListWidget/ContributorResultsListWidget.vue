@@ -25,32 +25,26 @@
               type='button',
               @click='navigateToComponent(row.project_hash)'
             ) {{ row.project_title || 'Компонент' }}
-            BaseBadge(:variant='getSegmentStatusVariant(row)')
-              | {{ getSegmentShortStatus(row) }}
-              q-tooltip {{ getSegmentStatusLabel(row.status, row.is_completed) }}
-            BaseBadge(v-if='ownerAction(row) === "vote"', variant='warn') Требуется голос
+            BaseBadge(:variant='badge(row).variant')
+              | {{ badge(row).label }}
+              q-tooltip {{ badge(row).hint }}
 
-          .contrib-results__sub(v-if='row.parent_hash')
+          .contrib-results__path
             q-icon(name='folder', size='14px')
             button.contrib-results__parent.t-sm(
+              v-if='row.parent_hash',
               type='button',
               @click='navigateToProject(row.parent_hash)'
             ) {{ row.parent_title || 'Проект' }}
+            span.t-sm.t-muted(v-if='showOwner') · {{ row.display_name || row.username }}
 
-          .contrib-results__owner(v-if='showOwner')
-            q-icon(name='person', size='14px')
-            span.t-sm.t-muted {{ row.display_name || row.username }}
+        .contrib-results__meta
+          span.contrib-results__amount.t-mono {{ formatMoney(row.intellectual_cost) }}
+          span.contrib-results__share.t-sm.t-muted
+            | {{ Number(row.share_percent || 0).toFixed(2) }}% объекта
+            q-tooltip {{ showOwner ? 'Доля участника в объекте авторских прав' : 'Ваша доля в объекте авторских прав' }}
 
-          .contrib-results__metrics
-            .contrib-results__metric
-              span.t-sm.t-muted {{ showOwner ? 'Доля участника' : 'Моя доля' }}
-              span.t-mono {{ formatMoney(row.intellectual_cost) }}
-            .contrib-results__metric
-              span.t-sm.t-muted Доля в объекте
-              span.t-mono {{ Number(row.share_percent || 0).toFixed(2) }}%
-
-        .contrib-results__side
-          ResultSubmissionActionsWidget(:segment='row', hide-hint)
+        .contrib-results__actions
           BaseButton(
             v-if='ownerAction(row) === "vote"',
             variant='primary',
@@ -59,7 +53,9 @@
           )
             template(#icon-left)
               q-icon(name='how_to_vote', size='16px')
-            | {{ votingOpen[rowKey(row)] ? 'Свернуть голосование' : 'Голосовать' }}
+            | {{ votingOpen[rowKey(row)] ? 'Свернуть' : 'Голосовать' }}
+
+          ResultSubmissionActionsWidget(:segment='row', compact)
 
       //- Голосование прямо в строке: пайщику незачем искать себя внутри проекта
       .contrib-results__panel(v-if='votingOpen[rowKey(row)]')
@@ -84,10 +80,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { EmptyState, BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { useExpandableState } from 'src/shared/lib/composables';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
@@ -95,9 +92,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import { useListNavigation } from 'app/extensions/capital/shared/composables/useListNavigation';
 import {
-  getSegmentShortStatus,
-  getSegmentStatusVariant,
-  getSegmentStatusLabel,
+  getSegmentBadge,
   getSegmentOwnerAction,
 } from 'app/extensions/capital/shared/lib/segmentStatus';
 import { SegmentResultInfoWidget } from '../SegmentResultInfoWidget';
@@ -119,13 +114,22 @@ interface Emits {
   (e: 'updated'): void;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const { info } = useSystemStore();
 const { navigateToProject, navigateToComponent } = useListNavigation();
 
-const expanded = ref<Record<string, boolean>>({});
+/**
+ * Раскрытые строки переживают уход на страницу компонента и возврат назад:
+ * иначе список каждый раз схлопывается и пайщик разворачивает его заново.
+ */
+const {
+  expanded,
+  loadExpandedState,
+  toggleExpanded: toggleExpandedRow,
+} = useExpandableState('capital_results_rows_expanded');
+
 const votingOpen = ref<Record<string, boolean>>({});
 const votingProjects = ref<Record<string, IProject>>({});
 const votingExpanded = ref<Record<string, boolean>>({});
@@ -136,7 +140,12 @@ const governSymbol = computed(() => info.symbols?.root_govern_symbol || 'RUB');
 /** Ключ строки: одна доля — это пара «проект + участник» */
 const rowKey = (segment: ISegment) => `${segment.project_hash}_${segment.username}`;
 
-const ownerAction = (segment: ISegment) => getSegmentOwnerAction(segment);
+const isOwnRow = (segment: ISegment) => segment.username === props.currentUsername;
+
+const ownerAction = (segment: ISegment) =>
+  isOwnRow(segment) ? getSegmentOwnerAction(segment) : 'none';
+
+const badge = (segment: ISegment) => getSegmentBadge(segment, isOwnRow(segment));
 
 const formatMoney = (raw?: string | null) => {
   const value = parseFloat(String(raw || '0'));
@@ -144,7 +153,7 @@ const formatMoney = (raw?: string | null) => {
 };
 
 const toggleExpanded = (key: string) => {
-  expanded.value[key] = !expanded.value[key];
+  toggleExpandedRow(key);
 };
 
 const toggleVoting = async (segment: ISegment) => {
@@ -179,6 +188,9 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   emit('updated');
 };
 
+onMounted(() => {
+  loadExpandedState();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -192,7 +204,7 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   gap: var(--p-3);
 
   .skel {
-    height: 84px;
+    height: 68px;
     border-radius: var(--p-r-md);
   }
 }
@@ -210,20 +222,21 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   min-width: 0;
 }
 
+// Строка в один ряд: название с состоянием, суммы, действия
 .contrib-results__row {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
   gap: var(--p-3);
-  padding: var(--p-4) var(--p-5);
+  padding: var(--p-3) var(--p-4);
   min-width: 0;
 }
 
 .contrib-results__main {
-  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--p-1);
+  gap: 2px;
 }
 
 .contrib-results__title-row {
@@ -260,6 +273,18 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   }
 }
 
+.contrib-results__path {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  min-width: 0;
+
+  .q-icon {
+    flex-shrink: 0;
+    color: var(--p-ink-3);
+  }
+}
+
 .contrib-results__parent {
   padding: 0;
   border: none;
@@ -282,49 +307,32 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   }
 }
 
-.contrib-results__sub,
-.contrib-results__owner {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--p-1);
-  min-width: 0;
-
-  .q-icon {
-    flex-shrink: 0;
-    color: var(--p-ink-3);
-  }
-}
-
-.contrib-results__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--p-2) var(--p-6);
-  padding-top: var(--p-2);
-}
-
-.contrib-results__metric {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 120px;
-
-  .t-mono {
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-}
-
-.contrib-results__side {
-  flex: 0 1 280px;
-  min-width: 160px;
+// Суммы держатся правым краем и не переносятся: числа читаются столбиком
+.contrib-results__meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.contrib-results__amount {
+  font-weight: 600;
+  font-size: var(--p-fs-body);
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.contrib-results__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--p-2);
+  flex-shrink: 0;
 }
 
 .contrib-results__panel {
-  padding: 0 var(--p-5) var(--p-4) var(--p-8);
+  padding: 0 var(--p-4) var(--p-4) var(--p-8);
   min-width: 0;
 }
 
@@ -335,20 +343,43 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   padding: var(--p-3) 0;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
+  // На узком экране строка раскладывается в столбик: название, суммы, действия
   .contrib-results__row {
-    flex-wrap: wrap;
-    padding: var(--p-3) var(--p-4);
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'toggle main'
+      'meta meta'
+      'actions actions';
+    row-gap: var(--p-2);
+    padding: var(--p-3);
+
+    // Кнопка раскрытия — первый элемент ряда, ей нужна своя ячейка
+    > :first-child {
+      grid-area: toggle;
+    }
   }
 
-  .contrib-results__side {
-    flex: 1 1 100%;
-    align-items: stretch;
-    min-width: 0;
+  .contrib-results__main {
+    grid-area: main;
+  }
+
+  .contrib-results__meta {
+    grid-area: meta;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: var(--p-2);
+  }
+
+  .contrib-results__actions {
+    grid-area: actions;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .contrib-results__panel {
-    padding: 0 var(--p-4) var(--p-4);
+    padding: 0 var(--p-3) var(--p-3);
   }
 }
 </style>

@@ -55,7 +55,7 @@ router-view(v-if='!isResultsRoot')
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
@@ -92,7 +92,18 @@ const username = computed(() => session.username || '');
 const isChairman = computed(() => session.isChairman);
 const canSeeAll = computed(() => session.isChairman || session.isMember);
 
-const activeTab = ref<ResultsTab>('pending');
+/**
+ * Вкладка живёт в адресе: пайщик уходит со стола на компонент и возвращается
+ * кнопкой «назад» — без адреса он попадал бы на первую вкладку вместо своей.
+ */
+const TABS: ResultsTab[] = ['pending', 'mine', 'sign', 'all'];
+
+const tabFromRoute = (): ResultsTab => {
+  const tab = route.query.tab as string | undefined;
+  return TABS.includes(tab as ResultsTab) ? (tab as ResultsTab) : 'pending';
+};
+
+const activeTab = ref<ResultsTab>(tabFromRoute());
 
 const mySegments = ref<ISegment[]>([]);
 const segmentsToSign = ref<ISegment[]>([]);
@@ -172,8 +183,30 @@ const tabs = computed<PageTab[]>(() => {
 });
 
 function onSelectTab(tab: PageTab) {
-  activeTab.value = tab.key as ResultsTab;
+  selectTab(tab.key as ResultsTab);
 }
+
+function selectTab(tab: ResultsTab) {
+  if (activeTab.value === tab && route.query.tab === tab) return;
+  activeTab.value = tab;
+  // Замена, а не переход: перебор вкладок не должен копиться в истории
+  router.replace({ query: { ...route.query, tab } });
+}
+
+// Возврат назад и переход по ссылке приводят вкладку в соответствие адресу
+watch(
+  () => route.query.tab,
+  () => {
+    activeTab.value = tabFromRoute();
+  },
+);
+
+// Адрес с чужой вкладкой (у пайщика нет прав совета) не оставляет пустой экран
+watch(tabs, (list) => {
+  if (!list.some((tab) => tab.key === activeTab.value)) {
+    selectTab('pending');
+  }
+});
 
 const reloadMySegments = async () => {
   if (!username.value) return;
@@ -238,9 +271,9 @@ const handleOpenProject = (projectHash: string) => {
 onMounted(async () => {
   await reloadAll();
   // Пайщику без своих долей показывать пустую вкладку незачем — совет
-  // приходит сюда за сводным списком
-  if (!mySegments.value.length && canSeeAll.value) {
-    activeTab.value = 'all';
+  // приходит сюда за сводным списком. Явно выбранную вкладку не трогаем.
+  if (!route.query.tab && !mySegments.value.length && canSeeAll.value) {
+    selectTab('all');
   }
   startPoll();
 });
