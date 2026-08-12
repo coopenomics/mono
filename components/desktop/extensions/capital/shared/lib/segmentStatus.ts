@@ -97,23 +97,32 @@ export type SegmentOwnerAction = 'vote' | 'push_result' | 'sign_act' | 'receive'
  * и получение доли. Пункты, где ход за председателем или советом
  * (`statement`, `approved`, `act1`), для пайщика — ожидание, а не действие.
  */
-export const getSegmentOwnerAction = (segment: {
+type SegmentActionSource = {
   status: string;
   is_completed?: boolean;
   has_vote?: boolean;
   has_voted?: boolean;
+  voting_completed?: boolean;
   is_votes_calculated?: boolean;
   project_status?: string | null;
-}): SegmentOwnerAction => {
-  if (segment.is_completed) return 'none';
+};
 
-  if (
-    segment.project_status === Zeus.ProjectStatus.VOTING &&
-    segment.has_vote &&
-    !segment.has_voted
-  ) {
-    return 'vote';
-  }
+/**
+ * Голос участника ещё ждут.
+ *
+ * Голосование бывает закрыто и без записи о голосе: когда распределять не между
+ * кем, цепь засчитывает голоса сразу. Звать голосовать в таком компоненте
+ * некуда — форма распределения там пустая.
+ */
+const isVoteRequired = (segment: SegmentActionSource): boolean =>
+  segment.project_status === Zeus.ProjectStatus.VOTING &&
+  !!segment.has_vote &&
+  !segment.has_voted &&
+  !segment.voting_completed;
+
+export const getSegmentOwnerAction = (segment: SegmentActionSource): SegmentOwnerAction => {
+  if (segment.is_completed) return 'none';
+  if (isVoteRequired(segment)) return 'vote';
 
   switch (segment.status) {
     case Zeus.SegmentStatus.READY:

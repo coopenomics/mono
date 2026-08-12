@@ -230,6 +230,12 @@ export class SegmentTypeormRepository
       segment.parent_hash = hasParent ? parentHash : undefined;
       segment.parent_title = hasParent ? parentTitles.get(parentHash) : undefined;
       segment.has_voted = votedKeys.has(`${segment.username}_${segment.project_hash}`);
+
+      // Голосование бывает закрыто и без записей о голосах: когда распределять
+      // не между кем, цепь засчитывает голоса сразу. Без этого признака участник
+      // видел бы призыв голосовать там, где голосовать уже не за кого.
+      const voting = segment.project?.voting;
+      segment.voting_completed = voting ? voting.votes_received >= voting.total_voters : false;
     });
   }
 

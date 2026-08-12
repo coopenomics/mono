@@ -4551,7 +4551,8 @@ export const ReturnTypes: Record<string,any> = {
 		total_segment_cost:"String",
 		username:"String",
 		value:"String",
-		voting_bonus:"String"
+		voting_bonus:"String",
+		voting_completed:"Boolean"
 	},
 	CapitalState:{
 		_created_at:"DateTime",

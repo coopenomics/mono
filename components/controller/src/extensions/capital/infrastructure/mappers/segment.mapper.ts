@@ -129,6 +129,7 @@ export class SegmentMapper {
       parent_title: entity.parent_title,
       parent_hash: entity.parent_hash,
       has_voted: entity.has_voted,
+      voting_completed: entity.voting_completed,
     });
   }
 
@@ -303,6 +304,7 @@ export class SegmentMapper {
       // Признак голоса заполняется только на путях чтения списков; на остальных
       // отсутствие записи о голосе равнозначно «не голосовал»
       has_voted: domain.has_voted ?? false,
+      voting_completed: domain.voting_completed ?? false,
     } as SegmentOutputDTO;
   }
 }

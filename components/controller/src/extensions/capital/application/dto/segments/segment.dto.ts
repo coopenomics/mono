@@ -291,4 +291,10 @@ export class SegmentOutputDTO extends BaseOutputDTO {
     defaultValue: false,
   })
   has_voted!: boolean;
+
+  @Field(() => Boolean, {
+    description: 'Голосование по проекту закрыто: все голоса получены',
+    defaultValue: false,
+  })
+  voting_completed!: boolean;
 }

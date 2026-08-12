@@ -327,6 +327,18 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.contrib.side.16
+    level: backend
+    kind: side
+    scenario: >
+      Доля читается из компонента, где все голоса уже получены (в том числе
+      когда голосующий один и распределять не между кем).
+    expect: >
+      доля приходит с признаком закрытого голосования. Считать закрытость по
+      записям о голосах нельзя: в таком компоненте их не появляется вовсе
+    test: ~
+    status: missing
+
   - id: cap.contrib.side.13
     level: backend
     kind: side

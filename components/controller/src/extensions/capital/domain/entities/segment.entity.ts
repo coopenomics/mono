@@ -15,6 +15,7 @@ interface SegmentAdditionalData {
   parent_hash?: string;
   project_status?: ProjectStatus;
   has_voted?: boolean;
+  voting_completed?: boolean;
 }
 
 /**
@@ -47,6 +48,7 @@ export class SegmentDomainEntity
   public parent_hash?: string; // Хеш проекта, в который входит компонент
   public project_status?: ProjectStatus; // Статус проекта: по нему видно, идёт ли голосование
   public has_voted?: boolean; // Участник уже отдал голос в этом проекте
+  public voting_completed?: boolean; // Голосование по проекту закрыто
 
   // Поля из блокчейна (segments.hpp)
   public project_hash?: ISegmentBlockchainData['project_hash'];
@@ -241,6 +243,7 @@ export class SegmentDomainEntity
     this.parent_hash = additionalData.parent_hash;
     this.project_status = additionalData.project_status;
     this.has_voted = additionalData.has_voted;
+    this.voting_completed = additionalData.voting_completed;
   }
 
   /**

@@ -55,6 +55,9 @@ export class SegmentTypeormEntity extends BaseTypeormEntity {
   // Отдан ли голос участником в этом проекте (заполняется в репозитории пакетно)
   has_voted?: boolean;
 
+  // Закрыто ли голосование по проекту (заполняется в репозитории пакетно)
+  voting_completed?: boolean;
+
   // Роли участника в проекте
   @Column({ type: 'boolean', default: false })
   is_author!: boolean;

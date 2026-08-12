@@ -14,11 +14,6 @@
   .contrib-results__items(v-else)
     .contrib-results__item(v-for='row in rows', :key='rowKey(row)')
       .contrib-results__row
-        ExpandToggleButton(
-          :expanded='!!expanded[rowKey(row)]',
-          @click='toggleExpanded(rowKey(row))'
-        )
-
         .contrib-results__main
           .contrib-results__title-row
             button.contrib-results__title(
@@ -45,43 +40,62 @@
             q-tooltip {{ showOwner ? 'Доля участника в объекте авторских прав' : 'Ваша доля в объекте авторских прав' }}
 
         .contrib-results__actions
+          //- Голосование не отдельная шторка: кнопка открывает ту же панель
+          //- подробностей, где голосование стоит первой секцией
           BaseButton(
-            v-if='ownerAction(row) === "vote"',
+            v-if='ownerAction(row) === "vote" && !isOpen(row)',
             variant='primary',
             size='sm',
-            @click='toggleVoting(row)'
+            @click='open(row)'
           )
             template(#icon-left)
               q-icon(name='how_to_vote', size='16px')
-            | {{ votingOpen[rowKey(row)] ? 'Свернуть' : 'Голосовать' }}
+            | Голосовать
 
           ResultSubmissionActionsWidget(:segment='row', compact)
 
-      //- Голосование прямо в строке: пайщику незачем искать себя внутри проекта
-      .contrib-results__panel(v-if='votingOpen[rowKey(row)]')
-        .contrib-results__panel-loading(v-if='!votingProjects[row.project_hash]')
-          q-spinner(color='primary', size='24px')
-          span.t-sm.t-muted Загружаем голосование…
-        ProjectVotingSegmentsWidget(
-          v-else,
-          :project-hash='row.project_hash',
-          :coopname='coopname',
-          :expanded='votingExpanded',
-          :project='votingProjects[row.project_hash]',
-          :current-username='currentUsername',
-          :segments-to-reload='segmentsToReload',
-          @toggle-expand='toggleVotingSegment',
-          @segment-click='toggleVotingSegment',
-          @votes-changed='handleVotesChanged'
-        )
+          BaseButton(
+            variant='ghost',
+            size='sm',
+            @click='toggle(row)'
+          )
+            template(#icon-right)
+              q-icon(:name='isOpen(row) ? "expand_less" : "expand_more"', size='18px')
+            | {{ isOpen(row) ? 'Свернуть' : 'Подробнее' }}
 
-      .contrib-results__panel(v-if='expanded[rowKey(row)]')
-        SegmentResultInfoWidget(:segment='row')
+      .contrib-results__details(v-if='isOpen(row)')
+        section.contrib-results__section(v-if='ownerAction(row) === "vote"')
+          .contrib-results__section-head
+            q-icon(name='how_to_vote', size='18px')
+            span.t-eyebrow Голосование
+          .contrib-results__section-body
+            .contrib-results__loading(v-if='!votingProjects[row.project_hash]')
+              q-spinner(color='primary', size='24px')
+              span.t-sm.t-muted Загружаем голосование…
+            ProjectVotingSegmentsWidget(
+              v-else,
+              :project-hash='row.project_hash',
+              :coopname='coopname',
+              :expanded='votingExpanded',
+              :project='votingProjects[row.project_hash]',
+              :current-username='currentUsername',
+              :segments-to-reload='segmentsToReload',
+              @toggle-expand='toggleVotingSegment',
+              @segment-click='toggleVotingSegment',
+              @votes-changed='handleVotesChanged'
+            )
+
+        section.contrib-results__section
+          .contrib-results__section-head
+            q-icon(name='pie_chart', size='18px')
+            span.t-eyebrow {{ showOwner ? 'Доля участника' : 'Моя доля' }}
+          .contrib-results__section-body
+            SegmentResultInfoWidget(:segment='row')
+
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { EmptyState, BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useExpandableState } from 'src/shared/lib/composables';
@@ -130,7 +144,6 @@ const {
   toggleExpanded: toggleExpandedRow,
 } = useExpandableState('capital_results_rows_expanded');
 
-const votingOpen = ref<Record<string, boolean>>({});
 const votingProjects = ref<Record<string, IProject>>({});
 const votingExpanded = ref<Record<string, boolean>>({});
 const segmentsToReload = ref<Record<string, number>>({});
@@ -152,15 +165,22 @@ const formatMoney = (raw?: string | null) => {
   return formatAsset2Digits(`${value} ${governSymbol.value}`);
 };
 
-const toggleExpanded = (key: string) => {
-  toggleExpandedRow(key);
+const isOpen = (segment: ISegment) => !!expanded.value[rowKey(segment)];
+
+const open = async (segment: ISegment) => {
+  if (!isOpen(segment)) toggleExpandedRow(rowKey(segment));
+  await ensureVotingProject(segment);
 };
 
-const toggleVoting = async (segment: ISegment) => {
-  const key = rowKey(segment);
-  const open = !votingOpen.value[key];
-  votingOpen.value[key] = open;
-  if (!open) return;
+const toggle = async (segment: ISegment) => {
+  const willOpen = !isOpen(segment);
+  toggleExpandedRow(rowKey(segment));
+  if (willOpen) await ensureVotingProject(segment);
+};
+
+/** Данные голосования нужны только раскрытой строке — грузим по требованию */
+const ensureVotingProject = async (segment: ISegment) => {
+  if (getSegmentOwnerAction(segment) !== 'vote') return;
 
   const projectHash = segment.project_hash;
   if (votingProjects.value[projectHash]) return;
@@ -175,7 +195,6 @@ const toggleVoting = async (segment: ISegment) => {
   } catch (error) {
     console.error('Ошибка при загрузке проекта для голосования:', error);
     FailAlert('Не удалось загрузить данные голосования');
-    votingOpen.value[key] = false;
   }
 };
 
@@ -225,9 +244,9 @@ onMounted(() => {
 // Строка в один ряд: название с состоянием, суммы, действия
 .contrib-results__row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--p-3);
+  gap: var(--p-4);
   padding: var(--p-3) var(--p-4);
   min-width: 0;
 }
@@ -331,12 +350,43 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.contrib-results__panel {
-  padding: 0 var(--p-4) var(--p-4) var(--p-8);
+// Одна панель подробностей на строку: голосование и сведения о доле — её секции
+.contrib-results__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+  padding: var(--p-4);
+  border-top: 1px solid var(--p-line);
   min-width: 0;
 }
 
-.contrib-results__panel-loading {
+.contrib-results__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  min-width: 0;
+}
+
+.contrib-results__section-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-2);
+
+  .q-icon {
+    color: var(--p-primary);
+  }
+}
+
+.contrib-results__section-body {
+  min-width: 0;
+  padding: 0 var(--p-3);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface);
+}
+
+.contrib-results__loading {
   display: flex;
   align-items: center;
   gap: var(--p-2);
@@ -346,26 +396,12 @@ onMounted(() => {
 @media (max-width: 720px) {
   // На узком экране строка раскладывается в столбик: название, суммы, действия
   .contrib-results__row {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      'toggle main'
-      'meta meta'
-      'actions actions';
+    grid-template-columns: minmax(0, 1fr);
     row-gap: var(--p-2);
     padding: var(--p-3);
-
-    // Кнопка раскрытия — первый элемент ряда, ей нужна своя ячейка
-    > :first-child {
-      grid-area: toggle;
-    }
-  }
-
-  .contrib-results__main {
-    grid-area: main;
   }
 
   .contrib-results__meta {
-    grid-area: meta;
     flex-direction: row;
     align-items: baseline;
     justify-content: flex-start;
@@ -373,13 +409,16 @@ onMounted(() => {
   }
 
   .contrib-results__actions {
-    grid-area: actions;
     justify-content: flex-start;
     flex-wrap: wrap;
   }
 
-  .contrib-results__panel {
-    padding: 0 var(--p-3) var(--p-3);
+  .contrib-results__details {
+    padding: var(--p-3);
+  }
+
+  .contrib-results__section-body {
+    padding: 0 var(--p-2);
   }
 }
 </style>

@@ -75,6 +75,7 @@ export const rawSegmentSelector = {
   parent_hash: true,
   project_status: true,
   has_voted: true,
+  voting_completed: true,
 }
 
 // Валидация типа

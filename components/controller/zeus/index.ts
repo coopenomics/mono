@@ -4584,6 +4584,8 @@ export type ValueTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalSegment']?: Omit<ValueTypes["CapitalSegment"], "...on CapitalSegment">
 }>;
@@ -18782,6 +18784,8 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
@@ -32592,7 +32596,9 @@ export type ModelTypes = {
 	/** Вклад участника словами участника */
 	value?: string | undefined | null,
 	/** Бонус голосования */
-	voting_bonus: string
+	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
 ["CapitalSegmentFilter"]: {
@@ -47250,6 +47256,8 @@ export type GraphQLTypes = {
 	value?: string | undefined | null,
 	/** Бонус голосования */
 	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean,
 	['...on CapitalSegment']: Omit<GraphQLTypes["CapitalSegment"], "...on CapitalSegment">
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
