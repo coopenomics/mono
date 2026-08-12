@@ -137,6 +137,31 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return out;
   }
 
+  async arrivalPriceOnWarehouseByOrders(
+    coopname: string,
+    order_ids: string[]
+  ): Promise<Map<string, string>> {
+    if (order_ids.length === 0) return new Map();
+    // Позиции одного заказа приходят одной приёмкой и по одной цене, но
+    // берём минимальную: если приёмок было несколько, платить пайщику по
+    // худшей для кооператива цене честнее, чем по лучшей.
+    const rows = await this.repo
+      .createQueryBuilder('inv')
+      .select('inv.order_id', 'order_id')
+      .addSelect('MIN(inv.arrival_price)', 'arrival_price')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
+      .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.ORDER })
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .andWhere('inv.arrival_price IS NOT NULL')
+      .groupBy('inv.order_id')
+      .getRawMany<{ order_id: string; arrival_price: string }>();
+
+    return new Map(rows.map((r) => [r.order_id, String(r.arrival_price)]));
+  }
+
   async list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.order_id) where.order_id = filter.order_id;

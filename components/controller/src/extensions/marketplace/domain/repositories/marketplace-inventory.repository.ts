@@ -114,6 +114,16 @@ export interface MarketplaceInventoryDomainRepository {
    * показывает оператору, куда идти за имуществом. Заказы без размещённых
    * позиций в карте отсутствуют.
    */
+  /**
+   * Цена прибытия имущества на складе по заказам — во столько единица
+   * обошлась кооперативу при приёмке. От неё считается факт выдачи: пайщик не
+   * должен платить за принятое дешевле как за полную цену заказа, иначе
+   * выбытие со счёта имущества превышает поступление.
+   *
+   * Заказы без позиций на складе в карте отсутствуют.
+   */
+  arrivalPriceOnWarehouseByOrders(coopname: string, order_ids: string[]): Promise<Map<string, string>>;
+
   locationsOnWarehouseByOrders(
     coopname: string,
     order_ids: string[]
