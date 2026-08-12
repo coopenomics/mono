@@ -55,8 +55,7 @@ export class KuService {
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -457,13 +456,13 @@ export class KuService {
     // для страницы собрания. Договор матответственности (328) и доверенность (329)
     // содержат паспортные данные и сюда НЕ выносятся.
     if (decision.protocol) {
-      const aggregate = await this.documents
+      const aggregate = await this.documentPort
         .buildAggregate(decision.protocol as unknown as ISignedDocument)
         .catch(() => null);
       dto.protocol_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
     if (decision.authorization) {
-      const aggregate = await this.documents
+      const aggregate = await this.documentPort
         .buildAggregate(decision.authorization as unknown as ISignedDocument)
         .catch(() => null);
       dto.authorization_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
@@ -487,14 +486,14 @@ export class KuService {
         // договор заявителя с сертификатами подписантов — председатель смотрит документ
         // и накладывает встречную подпись на него же, без регенерации
         if (item.application) {
-          const aggregate = await this.documents
+          const aggregate = await this.documentPort
             .buildAggregate(item.application as unknown as ISignedDocument)
             .catch(() => null);
           dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
         }
         // доверенность доверенному лицу — председатель так же накладывает встречную подпись
         if (item.authority) {
-          const authorityAggregate = await this.documents
+          const authorityAggregate = await this.documentPort
             .buildAggregate(item.authority as unknown as ISignedDocument)
             .catch(() => null);
           dto.authority_document = authorityAggregate ? new DocumentAggregateDTO(authorityAggregate) : undefined;

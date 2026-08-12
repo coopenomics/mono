@@ -1,5 +1,5 @@
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocument } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { MARKETPLACE_OFFER_AGREEMENT_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import {
   getCandidateAgreementDocument,
