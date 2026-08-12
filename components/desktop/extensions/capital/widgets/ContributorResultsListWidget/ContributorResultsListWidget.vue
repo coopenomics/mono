@@ -63,34 +63,26 @@
               q-icon(:name='isOpen(row) ? "expand_less" : "expand_more"', size='18px')
             | {{ isOpen(row) ? 'Свернуть' : 'Подробнее' }}
 
+      //- Подробности одной панелью: голосование (если голос ещё ждут) и сведения о доле
       .contrib-results__details(v-if='isOpen(row)')
-        section.contrib-results__section(v-if='ownerAction(row) === "vote"')
-          .contrib-results__section-head
-            q-icon(name='how_to_vote', size='18px')
-            span.t-eyebrow Голосование
-          .contrib-results__section-body
-            .contrib-results__loading(v-if='!votingProjects[row.project_hash]')
-              q-spinner(color='primary', size='24px')
-              span.t-sm.t-muted Загружаем голосование…
-            ProjectVotingSegmentsWidget(
-              v-else,
-              :project-hash='row.project_hash',
-              :coopname='coopname',
-              :expanded='votingExpanded',
-              :project='votingProjects[row.project_hash]',
-              :current-username='currentUsername',
-              :segments-to-reload='segmentsToReload',
-              @toggle-expand='toggleVotingSegment',
-              @segment-click='toggleVotingSegment',
-              @votes-changed='handleVotesChanged'
-            )
+        template(v-if='ownerAction(row) === "vote"')
+          .contrib-results__loading(v-if='!votingProjects[row.project_hash]')
+            q-spinner(color='primary', size='24px')
+            span.t-sm.t-muted Загружаем голосование…
+          ProjectVotingSegmentsWidget(
+            v-else,
+            :project-hash='row.project_hash',
+            :coopname='coopname',
+            :expanded='votingExpanded',
+            :project='votingProjects[row.project_hash]',
+            :current-username='currentUsername',
+            :segments-to-reload='segmentsToReload',
+            @toggle-expand='toggleVotingSegment',
+            @segment-click='toggleVotingSegment',
+            @votes-changed='handleVotesChanged'
+          )
 
-        section.contrib-results__section
-          .contrib-results__section-head
-            q-icon(name='pie_chart', size='18px')
-            span.t-eyebrow {{ showOwner ? 'Доля участника' : 'Моя доля' }}
-          .contrib-results__section-body
-            SegmentResultInfoWidget(:segment='row')
+        SegmentResultInfoWidget(:segment='row')
 
 </template>
 
@@ -350,40 +342,13 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-// Одна панель подробностей на строку: голосование и сведения о доле — её секции
+// Одна панель подробностей на строку: голосование и сведения о доле
 .contrib-results__details {
   display: flex;
   flex-direction: column;
-  gap: var(--p-5);
-  padding: var(--p-4);
-  border-top: 1px solid var(--p-line);
+  gap: var(--p-4);
+  padding: 0 var(--p-4) var(--p-4);
   min-width: 0;
-}
-
-.contrib-results__section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-  min-width: 0;
-}
-
-.contrib-results__section-head {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--p-1);
-  color: var(--p-ink-2);
-
-  .q-icon {
-    color: var(--p-primary);
-  }
-}
-
-.contrib-results__section-body {
-  min-width: 0;
-  padding: 0 var(--p-3);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-sm);
-  background: var(--p-surface);
 }
 
 .contrib-results__loading {
@@ -414,11 +379,8 @@ onMounted(() => {
   }
 
   .contrib-results__details {
-    padding: var(--p-3);
+    padding: 0 var(--p-3) var(--p-3);
   }
 
-  .contrib-results__section-body {
-    padding: 0 var(--p-2);
-  }
 }
 </style>
