@@ -27,6 +27,28 @@ redis:
 
 abiFallback: rpc-current
 
+publish:
+  # Список повторяет `subscribedContracts` из components/parser/src/config.ts —
+  # тот же набор, что парсер1 писал в стрим `notifications`. Без него в стрим
+  # уходит вся цепь: `eosio::onblock` и дельты `eosio::global`/`eosio::emission`
+  # на каждом блоке, которые controller разбирает и выбрасывает как «wrong coopname».
+  #
+  # Добавляя контракт в стек, вписывать его сюда обязательно: не перечисленный
+  # контракт не попадёт в стрим, и его сущности молча перестанут синхронизироваться.
+  contracts:
+    - draft
+    - meet
+    - soviet
+    - branch
+    - registrator
+    - eosio.token
+    - capital
+    - wallet
+    - ledger
+    - ledger2
+    - marketplace
+    - expense
+
 xtrim:
   # Обрезка стрима по самому старому неподтверждённому pending всех групп.
   # При пустом pending парсер не режет вовсе — непрочитанное потерять нельзя.

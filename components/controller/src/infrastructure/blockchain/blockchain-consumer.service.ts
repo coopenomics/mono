@@ -104,7 +104,16 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     this.client = new ParserClient({
       subscriptionId: this.subscriptionId,
       // Без фильтров: получаем все события, фильтрация по coopname — в processDelta/processAction.
-      startFrom: 'last_known',
+      //
+      // Точка старта — начало стрима, а не его конец ('last_known' = '$').
+      // Индексер читает цепь быстрее, чем поднимается приложение, поэтому к
+      // моменту первой подписки в стриме уже лежат события первых блоков:
+      // с '$' они не были бы прочитаны никогда, и состояние из них (участники,
+      // совет, кошельки) в базу бы не попало. Прежний консьюмер создавал группу
+      // ровно с '0' по той же причине. Повторной обработки это не вызывает:
+      // точка чтения группы живёт в Redis, а каждое событие проходит dedup-gate
+      // по event_id.
+      startFrom: 0,
       redis: {
         url: `redis://${config.redis.host}:${config.redis.port}`,
         password: config.redis.password || undefined,

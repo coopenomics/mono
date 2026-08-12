@@ -55,30 +55,50 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
     page: number,
     limit: number
   ): Promise<PaginatedResultDomainInterface<ActionDomainInterface>> {
-    const whereClause: any = {};
+    const qb = this.actionRepository.createQueryBuilder('a');
 
     if (filter.account) {
-      whereClause.account = filter.account;
+      qb.andWhere('a.account = :account', { account: filter.account });
     }
     if (filter.name) {
-      whereClause.name = filter.name;
+      qb.andWhere('a.name = :name', { name: filter.name });
+    }
+    if (filter.receiver) {
+      qb.andWhere('a.receiver = :receiver', { receiver: filter.receiver });
     }
     if (filter.block_num) {
-      whereClause.block_num = filter.block_num;
+      qb.andWhere('a.block_num = :block_num', { block_num: filter.block_num });
     }
     if (filter.global_sequence) {
-      whereClause.global_sequence = filter.global_sequence;
+      qb.andWhere('a.global_sequence = :global_sequence', { global_sequence: filter.global_sequence });
     }
     if (filter.repeat !== undefined) {
-      whereClause.repeat = filter.repeat;
+      qb.andWhere('a.repeat = :repeat', { repeat: filter.repeat });
     }
-
-    const [results, total] = await this.actionRepository.findAndCount({
-      where: whereClause,
-      order: { block_num: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
+    // Поля полезной нагрузки лежат в jsonb и сравниваются как текст (->> / #>>):
+    // число из цепи и его строковая запись совпадают одинаково. Ключ с точками —
+    // путь вглубь (`document.hash`), поэтому берём #>> с массивом пути. Имена
+    // параметров нумеруем: двух одинаковых плейсхолдеров TypeORM не разведёт.
+    Object.entries(filter.data ?? {}).forEach(([field, value], i) => {
+      const path = field.split('.');
+      if (path.length === 1) {
+        qb.andWhere(`a.data ->> :dataField${i} = :dataValue${i}`, {
+          [`dataField${i}`]: field,
+          [`dataValue${i}`]: String(value),
+        });
+      } else {
+        qb.andWhere(`a.data #>> :dataPath${i}::text[] = :dataValue${i}`, {
+          [`dataPath${i}`]: `{${path.join(',')}}`,
+          [`dataValue${i}`]: String(value),
+        });
+      }
     });
+
+    const [results, total] = await qb
+      .orderBy('a.block_num', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       results,

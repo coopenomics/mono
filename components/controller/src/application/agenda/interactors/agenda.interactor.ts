@@ -3,7 +3,7 @@ import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchai
 import config from '~/config/config';
 import { SovietContract } from 'cooptypes';
 import type { AgendaWithDocumentsDomainInterface } from '~/domain/agenda/interfaces/agenda-with-documents-domain.interface';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import type { VotingAgendaDomainInterface } from '~/domain/agenda/interfaces/voting-agenda-domain.interface';
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
 
@@ -11,7 +11,8 @@ import { DocumentPackageAggregator } from '~/domain/document/aggregators/documen
 export class AgendaInteractor {
   constructor(
     private readonly documentPackageAggregator: DocumentPackageAggregator,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   async getAgenda(): Promise<AgendaWithDocumentsDomainInterface[]> {
@@ -55,18 +56,11 @@ export class AgendaInteractor {
     const agenda: VotingAgendaDomainInterface[] = [];
     for (const decision of decisions) {
       // Ищем экшен, связанный с конкретным решением
-      const actionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-        filter: JSON.stringify({
-          account: SovietContract.contractName.production,
-          name: SovietContract.Actions.Registry.NewSubmitted.actionName,
-          receiver: process.env.COOPNAME,
-          'data.package': String(decision.hash.toUpperCase()),
-        }),
-        page: 1,
-        limit: 1,
+      const action = await this.actionHistory.findLast({
+        account: SovietContract.contractName.production,
+        name: SovietContract.Actions.Registry.NewSubmitted.actionName,
+        data: { package: String(decision.hash).toUpperCase() },
       });
-
-      const action = actionResponse?.results?.[0];
 
       // if (action)
       //TODO: здесь нужно добавить в action actor_certificate
@@ -103,18 +97,11 @@ export class AgendaInteractor {
 
     // action newsubmitted индексируется парсером с лагом (~2 c) — пока его нет,
     // вернём null, и вызывающая сторона повторит тик.
-    const actionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewSubmitted.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': target,
-      }),
-      page: 1,
-      limit: 1,
+    const action = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewSubmitted.actionName,
+      data: { package: target },
     });
-
-    const action = actionResponse?.results?.[0];
     if (!action) return null;
 
     const documents = await this.documentPackageAggregator.buildDocumentPackageAggregate(action);
