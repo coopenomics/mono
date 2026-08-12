@@ -3455,6 +3455,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	Account:{
 		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
