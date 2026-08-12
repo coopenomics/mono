@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-// Доступ к отдельной базе расширения. Своя база — не внешняя служба и не
-// настройка контура: расширению нужен собственный порт на инфраструктуру
-// хранения, это отдельная работа. Пока подключение берётся из ядра.
-import config from '~/config/config';
+import { EXTENSION_DATABASE_PORT, type IExtensionDatabasePort } from '@coopenomics/innercoop';
 
 // TypeORM entities
 import { CategoryEntity } from './entities/category.entity';
@@ -142,51 +139,65 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
 @Module({
   imports: [
     // Создаем отдельное подключение для marketplace
-    TypeOrmModule.forRoot({
+    // Своё подключение под собственный набор сущностей. Реквизиты приходят от
+    // ядра через порт: где стоит база расширения — знание контура, а не
+    // расширения.
+    TypeOrmModule.forRootAsync({
       name: 'marketplace', // Имя подключения
-      type: 'postgres',
-      host: config.postgres.host,
-      port: Number(config.postgres.port),
-      username: config.postgres.username,
-      password: config.postgres.password,
-      database: config.postgres.database,
-      entities: [
-        CategoryEntity,
-        TypeEntity,
-        AttributeEntity,
-        DictionaryEntity,
-        DictionaryValueEntity,
-        CategoryTypeAttributeEntity,
-        AvailableCategoryEntity,
-        RequestEntity,
-        RequestAttributeValueEntity,
-        RequestImageEntity,
-        KuDetailsTypeormEntity,
-        MarketplaceVitrineEntity,
-        MarketplaceSupplierEntity,
-        MarketplaceCategoryEntity,
-        MarketplaceOfferEntity,
-        MarketplaceModerationLogEntity,
-        MarketplaceOrderEntity,
-        MarketplaceConsolidatedRequestEntity,
-        MarketplaceShipmentEntity,
-        MarketplaceSupplyValidationLogEntity,
-        MarketplaceInventoryEntity,
-        MarketplaceStorageCellEntity,
-        MarketplaceContainerTypeEntity,
-        MarketplaceContainerEntity,
-        MarketplaceStockProposalEntity,
-        MarketplaceAplReceptionEntity,
-        MarketplaceOutgoingPaymentRequestEntity,
-        MarketplaceTtnDocumentEntity,
-        MarketplaceReturnClaimEntity,
-        MarketplaceWriteoffProposalEntity,
-        MarketplaceCartEntity,
-        MarketplaceCartItemEntity,
-        MarketplaceSupplierSettingsEntity,
-      ],
-      synchronize: true,
-      logging: false,
+      inject: [EXTENSION_DATABASE_PORT],
+      useFactory: (databases: IExtensionDatabasePort) => {
+        const connection = databases.getConnection('marketplace');
+        if (!connection) {
+          throw new Error(
+            'Расширению marketplace не заведена отдельная база: без неё каталог, склад и заказы читать неоткуда'
+          );
+        }
+        return {
+          type: 'postgres',
+          host: connection.host,
+          port: connection.port,
+          username: connection.username,
+          password: connection.password,
+          database: connection.database,
+          entities: [
+            CategoryEntity,
+            TypeEntity,
+            AttributeEntity,
+            DictionaryEntity,
+            DictionaryValueEntity,
+            CategoryTypeAttributeEntity,
+            AvailableCategoryEntity,
+            RequestEntity,
+            RequestAttributeValueEntity,
+            RequestImageEntity,
+            KuDetailsTypeormEntity,
+            MarketplaceVitrineEntity,
+            MarketplaceSupplierEntity,
+            MarketplaceCategoryEntity,
+            MarketplaceOfferEntity,
+            MarketplaceModerationLogEntity,
+            MarketplaceOrderEntity,
+            MarketplaceConsolidatedRequestEntity,
+            MarketplaceShipmentEntity,
+            MarketplaceSupplyValidationLogEntity,
+            MarketplaceInventoryEntity,
+            MarketplaceStorageCellEntity,
+            MarketplaceContainerTypeEntity,
+            MarketplaceContainerEntity,
+            MarketplaceStockProposalEntity,
+            MarketplaceAplReceptionEntity,
+            MarketplaceOutgoingPaymentRequestEntity,
+            MarketplaceTtnDocumentEntity,
+            MarketplaceReturnClaimEntity,
+            MarketplaceWriteoffProposalEntity,
+            MarketplaceCartEntity,
+            MarketplaceCartItemEntity,
+            MarketplaceSupplierSettingsEntity,
+          ],
+          synchronize: true,
+          logging: false,
+        };
+      },
     }),
     // Регистрируем entities для этого подключения
     TypeOrmModule.forFeature(

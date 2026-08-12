@@ -15,7 +15,7 @@ import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, 
   CurrencyValidationUtil,
 } from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
-import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-draft-verification.util';
+import { verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
 import { DOCUMENT_PORT, type IDocumentPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';

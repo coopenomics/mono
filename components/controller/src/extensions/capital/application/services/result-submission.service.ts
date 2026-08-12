@@ -72,8 +72,6 @@ export class ResultSubmissionService {
     private readonly storyRepository: StoryRepository,
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
-    @Inject(DOCUMENT_PORT)
-    private readonly documents: IDocumentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionService.name);
@@ -95,7 +93,7 @@ export class ResultSubmissionService {
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
-    const generatedDocument = await this.documents.getByHash(data.statement.doc_hash);
+    const generatedDocument = await this.documentPort.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
       throw new Error(
         `Сгенерированный документ с хешем ${data.statement.doc_hash} не найден. Необходимо сначала сгенерировать заявление.`

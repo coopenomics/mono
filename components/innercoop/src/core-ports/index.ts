@@ -30,6 +30,7 @@ export * from './registration.port';
 export * from './chain.port';
 export * from './chain-resources.port';
 export * from './extension-config.port';
+export * from './extension-database.port';
 export * from './chain-action.contract';
 export * from './realtime.port';
 export * from './council.port';

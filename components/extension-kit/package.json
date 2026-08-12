@@ -38,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@coopenomics/sdk": "workspace:*",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/graphql": "^12.2.1",

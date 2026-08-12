@@ -3163,7 +3163,7 @@ export type ValueTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ValueTypes["ProgramWallet"],
+	blagorost_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -3199,7 +3199,7 @@ export type ValueTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ValueTypes["ProgramWallet"],
+	generation_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -3215,7 +3215,7 @@ export type ValueTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ValueTypes["ProgramWallet"],
+	main_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -3260,7 +3260,7 @@ export type ValueTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string | Variable<any, string>,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ValueTypes["ExpenseItemInput"]> | Variable<any, string>,
+	items: Array<ValueTypes["CapitalExpenseItemInput"]> | Variable<any, string>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ValueTypes["ExpenseProposalStatementSignedDocumentInput"] | Variable<any, string>
 };
@@ -3413,6 +3413,26 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string | Variable<any, string>,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string | Variable<any, string>,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ValueTypes["ExpenseMechanics"] | Variable<any, string>,
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string | Variable<any, string>,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string | Variable<any, string>,
+	/** Тип получателя. */
+	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null | Variable<any, string>
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -4024,6 +4044,26 @@ export type ValueTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalProgramExpenseItem']?: Omit<ValueTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalProgramWallet']?: Omit<ValueTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 }>;
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: AliasType<{
@@ -6726,7 +6766,7 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -17380,7 +17420,7 @@ export type ResolverInputTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ResolverInputTypes["ProgramWallet"],
+	blagorost_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -17416,7 +17456,7 @@ export type ResolverInputTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ResolverInputTypes["ProgramWallet"],
+	generation_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -17432,7 +17472,7 @@ export type ResolverInputTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ResolverInputTypes["ProgramWallet"],
+	main_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -17476,7 +17516,7 @@ export type ResolverInputTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ResolverInputTypes["ExpenseItemInput"]>,
+	items: Array<ResolverInputTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ResolverInputTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -17625,6 +17665,26 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ResolverInputTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -18213,6 +18273,25 @@ export type ResolverInputTypes = {
 	recipient_name?:boolean | `@${string}`,
 	recipient_type?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Проект в системе CAPITAL с компонентами */
@@ -20860,7 +20939,7 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -31210,7 +31289,7 @@ export type ModelTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -31246,7 +31325,7 @@ export type ModelTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -31262,7 +31341,7 @@ export type ModelTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -31305,7 +31384,7 @@ export type ModelTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ModelTypes["ExpenseItemInput"]>,
+	items: Array<ModelTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ModelTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -31449,6 +31528,26 @@ export type ModelTypes = {
 	status: ModelTypes["ExpenseStatus"],
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ModelTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ModelTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 		/** Фибо-коэффициент */
@@ -32017,6 +32116,24 @@ export type ModelTypes = {
 	recipient_name: string,
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	status: ModelTypes["ExpenseItemStatus"]
+};
+	["CapitalProgramWallet"]: {
+		/** Идентификатор соглашения */
+	agreement_id: ModelTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: ModelTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: ModelTypes["ID"],
+	/** Тип программы */
+	program_type?: ModelTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -45773,7 +45890,7 @@ export type GraphQLTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -45809,7 +45926,7 @@ export type GraphQLTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -45825,7 +45942,7 @@ export type GraphQLTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -45869,7 +45986,7 @@ export type GraphQLTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<GraphQLTypes["ExpenseItemInput"]>,
+	items: Array<GraphQLTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: GraphQLTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -46021,6 +46138,26 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
+};
+	["CapitalExpenseItemInput"]: {
+		/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: GraphQLTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: GraphQLTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 	__typename: "CapitalFibLevel",
@@ -46633,6 +46770,26 @@ export type GraphQLTypes = {
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	status: GraphQLTypes["ExpenseItemStatus"],
 	['...on CapitalProgramExpenseItem']: Omit<GraphQLTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+};
+	["CapitalProgramWallet"]: {
+	__typename: "CapitalProgramWallet",
+	/** Идентификатор соглашения */
+	agreement_id: GraphQLTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: GraphQLTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: GraphQLTypes["ID"],
+	/** Тип программы */
+	program_type?: GraphQLTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string,
+	['...on CapitalProgramWallet']: Omit<GraphQLTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -49335,7 +49492,7 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]: ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]: ExpenseRecipientType;
@@ -59229,7 +59386,7 @@ export enum ExpensePlanRecurrence {
 	QUARTERLY = "QUARTERLY",
 	YEARLY = "YEARLY"
 }
-/** Статус сметы расхода. */
+/** Состояние служебной записки-сметы */
 export enum ExpenseProposalStatus {
 	AUTHORIZED = "AUTHORIZED",
 	CLOSED = "CLOSED",
@@ -59959,6 +60116,7 @@ type ZEUS_VARIABLES = {
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
+	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];

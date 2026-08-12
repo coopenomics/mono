@@ -82,6 +82,32 @@ export interface InnerExpensePaginatedResult<T> {
 }
 
 
+/**
+ * Строка расхода в том виде, в каком её подаёт заказчик расхода.
+ *
+ * Форма общая: с ней сверяются и шасси, которое расход исполняет, и расширение,
+ * которое его заказывает. Здесь она объявлена простым объектом — вид в схеме
+ * каждая сторона объявляет у себя (INV-003: в контракте нет `@InputType` и
+ * `@Field`).
+ */
+export interface InnerExpenseItemInput {
+  /** Хэш строки, детерминированный, приходит из интерфейса. */
+  item_hash: string;
+  mechanics: InnerExpenseMechanics;
+  recipient_type: InnerExpenseRecipientType;
+  /** Получатель: имя пайщика; у организации аккаунта в кооперативе нет — пустая строка. */
+  recipient: string;
+  description: string;
+  /** Планируемая сумма, например `1000.0000 RUB`. */
+  planned_amount: string;
+  /** Сохранённые реквизиты получателя-пайщика: снимаются при создании расхода. */
+  payment_method_id?: string;
+  /** Реквизиты получателя-организации — вводятся вручную. */
+  requisites?: string;
+  /** Назначение платежа при оплате по счёту — попадает в снимок для кассира. */
+  payment_purpose?: string;
+}
+
 /** Строка СЗ для снимка реквизитов получателя (фиксация «куда платить» на момент создания). */
 export interface InnerExpenseRequisiteItemInput {
   proposalHash: string;

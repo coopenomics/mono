@@ -26,6 +26,7 @@ import {
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
   INTEGRATION_SETTINGS_PORT,
+  EXTENSION_DATABASE_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
   PAYMENT_METHOD_PORT,
@@ -79,6 +80,7 @@ import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innerc
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
 import { IntegrationSettingsInnercoopAdapter } from '~/infrastructure/innercoop/integration-settings-innercoop.adapter';
+import { ExtensionDatabaseInnercoopAdapter } from '~/infrastructure/innercoop/extension-database-innercoop.adapter';
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
@@ -172,6 +174,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ChainInnercoopAdapter,
     SecretCipherInnercoopAdapter,
     IntegrationSettingsInnercoopAdapter,
+    ExtensionDatabaseInnercoopAdapter,
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
@@ -313,6 +316,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: IntegrationSettingsInnercoopAdapter,
     },
     {
+      provide: EXTENSION_DATABASE_PORT,
+      useExisting: ExtensionDatabaseInnercoopAdapter,
+    },
+    {
       provide: REALTIME_CHANNEL_PORT,
       useExisting: RealtimeChannelInnercoopAdapter,
     },
@@ -408,6 +415,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CHAIN_PORT,
     SECRET_CIPHER_PORT,
     INTEGRATION_SETTINGS_PORT,
+    EXTENSION_DATABASE_PORT,
     REALTIME_CHANNEL_PORT,
     COUNCIL_PORT,
     USER_DIRECTORY_PORT,

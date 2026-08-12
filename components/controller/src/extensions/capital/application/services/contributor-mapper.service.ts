@@ -3,7 +3,7 @@ import type { ContributorDomainEntity } from '../../domain/entities/contributor.
 import { ContributorOutputDTO } from '../dto/participation_management/contributor.dto';
 import { ContributorDocumentParametersDTO } from '../dto/participation_management/contributor-document-parameters.dto';
 import { Cooperative } from 'cooptypes';
-import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
+import { CapitalProgramWalletDTO } from '../dto/participation_management/capital-program-wallet.dto';
 import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
@@ -95,7 +95,7 @@ export class ContributorMapperService {
     coopname: string,
     username: string,
     programType: ProgramType
-  ): Promise<ProgramWalletDTO | null> {
+  ): Promise<CapitalProgramWalletDTO | null> {
     try {
       const program_id = getProgramId(programType);
       const wallet = await this.walletDomainPort.getProgramWallet({
@@ -104,7 +104,7 @@ export class ContributorMapperService {
         program_id,
       });
 
-      return wallet ? ProgramWalletDTO.fromDomain(wallet) : null;
+      return wallet ? CapitalProgramWalletDTO.fromPort(wallet) : null;
     } catch (error) {
       // Если кошелек не найден, возвращаем null
       return null;

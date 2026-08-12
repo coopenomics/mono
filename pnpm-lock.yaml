@@ -1083,6 +1083,10 @@ importers:
         version: 0.34.5
 
   components/extension-kit:
+    dependencies:
+      '@coopenomics/sdk':
+        specifier: workspace:*
+        version: link:../sdk
     devDependencies:
       '@nestjs/common':
         specifier: ^10.0.0

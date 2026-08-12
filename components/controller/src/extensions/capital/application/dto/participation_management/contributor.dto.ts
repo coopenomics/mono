@@ -2,10 +2,7 @@ import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ContributorStatus } from '../../../domain/enums/contributor-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
-// Форма программного кошелька остаётся в ядре: она объявляет поле перечнем
-// программ, который живёт в контракте, а каркас от контракта не зависит.
-// Перенос потребовал бы заменить перечень строкой — то есть изменить схему.
-import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
+import { CapitalProgramWalletDTO } from './capital-program-wallet.dto';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
@@ -209,21 +206,21 @@ export class ContributorOutputDTO extends BaseOutputDTO {
   })
   document_parameters?: ContributorDocumentParametersDTO;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Main',
   })
-  main_wallet?: ProgramWalletDTO | null;
+  main_wallet?: CapitalProgramWalletDTO | null;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Generation',
   })
-  generation_wallet?: ProgramWalletDTO | null;
+  generation_wallet?: CapitalProgramWalletDTO | null;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Blagorost',
   })
-  blagorost_wallet?: ProgramWalletDTO | null;
+  blagorost_wallet?: CapitalProgramWalletDTO | null;
 }

@@ -18,3 +18,4 @@ export * from './generate-meta-document-input.dto';
 export * from './generate-document-input.dto';
 export * from './signed-digital-document.dto';
 export * from './document-aggregate.dto';
+export * from './signed-document-draft-verification';
