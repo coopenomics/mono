@@ -76,7 +76,7 @@
     "@coopenomics/factory": "workspace:*",
     "@coopenomics/inter": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
-    "@coopenomics/parser2": "^1.2.0",
+    "@coopenomics/parser2": "^1.4.0",
     "@coopenomics/provider-client": "2025.11.12-alpha-1",
     "@coopenomics/sdk": "workspace:*",
     "@graphql-codegen/typescript-graphql-request": "^6.2.0",
