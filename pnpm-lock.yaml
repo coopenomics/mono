@@ -275,8 +275,8 @@ importers:
         specifier: workspace:*
         version: link:../notifications
       '@coopenomics/parser2':
-        specifier: ^1.4.0
-        version: 1.4.0
+        specifier: ^1.5.1
+        version: 1.5.1
       '@coopenomics/provider-client':
         specifier: 2025.11.12-alpha-1
         version: 2025.11.12-alpha-1
@@ -2831,8 +2831,8 @@ packages:
   '@coopenomics/coopos-ship-reader@0.3.1':
     resolution: {integrity: sha512-qaCdEy72do/mje/YNCiZLvGHzcVbwIXjesKLJdm9Q0rGFxFSBwfbHv45G2hjUmc36NAhzh2a+blULRk5m/pSgA==}
 
-  '@coopenomics/parser2@1.4.0':
-    resolution: {integrity: sha512-Gu+z4Ny0lOUrM0tQRTFsIvufMIUumJ7a2N6PcFYf+tHybfQ5Ed9CGo64QSXHVMA1oShqTVg8CpNp+vYLdJqt3A==}
+  '@coopenomics/parser2@1.5.1':
+    resolution: {integrity: sha512-JeHaHjsSY0xUmYGIOG9fUzJq3QAthyz4oZdhqEXLPlf6qdFzlUmHAZGadIQcfJFZEfwyX7x0OAyEJwNKHDLHiA==}
     hasBin: true
 
   '@coopenomics/provider-client@2025.11.12-alpha-1':
@@ -21322,7 +21322,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@coopenomics/parser2@1.4.0':
+  '@coopenomics/parser2@1.5.1':
     dependencies:
       '@coopenomics/coopos-ship-reader': 0.3.1
       '@wharfkit/antelope': 1.2.0

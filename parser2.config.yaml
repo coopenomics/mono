@@ -1,0 +1,55 @@
+# Конфиг индексера @coopenomics/parser2 для локального dev-стека (docker-compose.yaml).
+#
+# Зачем отдельный сервис: controller с переходом на ParserClient читает события
+# ТОЛЬКО из стрима `ce:parser2:<chain_id>:events`. Старый cooparser (components/parser)
+# пишет в стрим `notifications` и остаётся в стеке не как транспорт, а ради
+# explorer-API на :4000 — из него controller тянет историю действий
+# (SIMPLE_EXPLORER_API в agenda/document-аггрегаторах). Поэтому парсера в стеке два.
+#
+# Хосты — имена сервисов из docker-compose.yaml.
+
+ship:
+  # state_history_plugin ноды: порт 8070 внутри сети compose (наружу проброшен
+  # как NODE_HISTORY_PORT). Тот же адрес, что у components/parser/.env → SHIP.
+  url: ws://node:8070
+  timeoutMs: 15000
+
+chain:
+  # Chain API нужен для abiFallback: rpc-current — если ABI контракта нет
+  # в истории Redis, парсер добирает текущую версию через /v1/chain/get_abi.
+  url: http://node:8888
+
+redis:
+  # dev-redis поднят без requirepass, поэтому URL без пароля.
+  # На проде пароль подставляется через ${REDIS_PASSWORD} — хардкод секрета
+  # парсер отвергает на старте (ConfigSecurityError).
+  url: redis://monoredis:6379
+
+abiFallback: rpc-current
+
+xtrim:
+  # Обрезка стрима по самому старому неподтверждённому pending всех групп.
+  # При пустом pending парсер не режет вовсе — непрочитанное потерять нельзя.
+  enabled: true
+  intervalMs: 60000
+
+backpressure:
+  # Пауза чтения SHiP, когда backlog стрима упирается в highWater: защищает
+  # Redis от неограниченного роста на репарсинге.
+  enabled: true
+  highWater: 100000
+  lowWater: 50000
+  pollMs: 200
+
+logger:
+  level: info
+  # pretty — только для разработки: человекочитаемый вывод в docker logs.
+  pretty: true
+
+health:
+  enabled: true
+  port: 8081
+
+metrics:
+  enabled: true
+  port: 9090
