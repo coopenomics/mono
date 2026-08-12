@@ -114,11 +114,26 @@ export function setupNavigationGuard(router: Router) {
     // Проверка доступа к маршруту: канон авторизации столов (grants).
     // Стор сам решает — grant-стол (по `meta.requires` против выданных бэкендом
     // прав) или legacy (по `meta.roles`). Настоящий enforcement — на резолверах.
-    if (desktops.hasRouteAccess(to.matched.map((r) => r.name ?? null), to.meta)) {
+    const matchedNames = to.matched.map((r) => r.name ?? null);
+    if (desktops.hasRouteAccess(matchedNames, to.meta)) {
       next();
-    } else {
-      next({ name: 'permissionDenied', query: to.query });
+      return;
     }
+
+    // Права на страницу нет — но у стола может быть шлюз (`meta.gate`), на
+    // котором пайщик получает допуск сам: подписывает оферту ЦПП и выбирает
+    // пункт выдачи (заказчик), подаёт заявку на допуск (поставщик). Тогда
+    // правильный ответ на «хочу в каталог» — «сначала подключение», а не
+    // «недостаточно прав». На сам шлюз не перенаправляем (иначе цикл) — если
+    // закрыт он, это уже честный отказ.
+    const wsName = desktops.workspaceNameFromRoute(matchedNames);
+    const gate = wsName ? desktops.gateRouteFor(wsName) : null;
+    if (gate && gate.name !== to.name) {
+      next({ name: gate.name, params: to.params, query: to.query });
+      return;
+    }
+
+    next({ name: 'permissionDenied', query: to.query });
   });
 
   // Синхронизация активного рабочего стола с маршрутом после КАЖДОГО успешного

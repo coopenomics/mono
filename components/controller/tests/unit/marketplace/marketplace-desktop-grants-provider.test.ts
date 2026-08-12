@@ -16,11 +16,13 @@
  */
 import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { MarketplaceDesktopGrantsProvider } from '~/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider';
+import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
 
 function makeProvider(opts: {
   isOfferer?: boolean;
   isKuChairman?: boolean;
   requiresGate?: boolean;
+  source?: MarketplaceOnboardingSource;
   hasDeliveryPoint?: boolean;
 }) {
   const registry = { register: jest.fn() } as any;
@@ -30,10 +32,16 @@ function makeProvider(opts: {
   const kuChairman = {
     isKuChairman: jest.fn().mockResolvedValue(opts.isKuChairman ?? false),
   } as any;
+  const requiresGate = opts.requiresGate ?? false;
   const onboarding = {
-    getOnboardingState: jest
-      .fn()
-      .mockResolvedValue({ requires_gate: opts.requiresGate ?? false }),
+    getOnboardingState: jest.fn().mockResolvedValue({
+      requires_gate: requiresGate,
+      source:
+        opts.source ??
+        (requiresGate
+          ? MarketplaceOnboardingSource.GATE_REQUIRED
+          : MarketplaceOnboardingSource.AGREEMENT_SIGNED),
+    }),
   } as any;
   const cart = {
     findByOrderer: jest
@@ -162,6 +170,26 @@ describe('MarketplaceDesktopGrantsProvider', () => {
       // у admin/board его нет, а из orderer-набора оно не выдаётся до подписи.
       // (read-права заказчика председатель видит через разворот Order:read:all —
       // это привилегия совета, не предмет L3-гейта пайщика.)
+      expect(grants).not.toContain('Order:create');
+    });
+
+    it('ЦПП не подключена кооперативом до конца → КУ выбран, но рабочих прав нет', async () => {
+      // Инцидент 2026-08-10: в цепи не было создано программы ЦПП, из-за чего
+      // состояние приходило как requires_gate=false (подписывать нечем). Одного
+      // выбора пункта выдачи хватало, чтобы получить полный стол заказчика без
+      // единой подписи. Подпись отсутствует ⇒ прав быть не должно.
+      const { provider } = makeProvider({
+        requiresGate: false,
+        source: MarketplaceOnboardingSource.NOT_CONFIGURED,
+        hasDeliveryPoint: true,
+      });
+      const grants = await provider.resolveGrants({
+        ...baseCtx,
+        userRole: 'user',
+        config: acceptedConfig,
+      });
+      expect(grants).toContain('Onboarding:orderer');
+      expect(grants).not.toContain('Offer:read');
       expect(grants).not.toContain('Order:create');
     });
 

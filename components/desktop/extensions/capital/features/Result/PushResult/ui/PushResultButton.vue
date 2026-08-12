@@ -61,6 +61,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
+/** Заявление меняет статус доли — список обязан перечитать строку */
+const emit = defineEmits<{ submitted: [] }>();
+
 const { info } = useSystemStore();
 const { pushResultWithGeneratedStatement } = usePushResult();
 
@@ -106,6 +109,7 @@ const handlePushResult = async () => {
       props.segment.username,
     );
     SuccessAlert('Заявление отправлено в совет на рассмотрение');
+    emit('submitted');
     clear();
   } catch (error) {
     FailAlert(error);

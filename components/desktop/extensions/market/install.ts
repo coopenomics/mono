@@ -141,6 +141,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Подключение к Столу заказов',
                 icon: 'handshake',
                 requires: 'Onboarding:orderer',
+                gate: true,
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -304,6 +305,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Подключение к Столу поставщика',
                 icon: 'storefront',
                 requires: 'Onboarding:offerer',
+                gate: true,
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -898,6 +900,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               // — единственная видимая до принятия ЦПП (право `Extension:configure`
               // у председателя есть и до, и после; остальные admin-права
               // появляются только после принятия).
+              //
+              // `gate: true` здесь СОЗНАТЕЛЬНО не ставим: право не исчезает после
+              // принятия ЦПП, поэтому шлюз остался бы «активным» навсегда и гард
+              // уводил бы сюда с любой закрытой admin-страницы вместо отказа.
+              // Условие шлюза — маркер, исчезающий после прохождения (см.
+              // IWorkspaceRouteMeta.gate).
               path: 'onboarding/coop-cpp',
               name: 'marketplace-onboarding-coop-cpp',
               component: markRaw(OnboardingCoopAcceptCppPage),

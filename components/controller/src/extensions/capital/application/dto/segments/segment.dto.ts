@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { SegmentStatus } from '../../../domain/enums/segment-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
+import { ProjectStatus } from '../../../domain/enums/project-status.enum';
 
 /**
  * GraphQL Output DTO для сегмента участника в проекте CAPITAL
@@ -257,4 +258,43 @@ export class SegmentOutputDTO extends BaseOutputDTO {
     description: 'Доступная сумма для конвертации в кошелек',
   })
   available_for_wallet!: string;
+
+  // Контекст проекта: доли участника показываются общим списком по всем проектам,
+  // и без названия и статуса проекта такая строка нечитаема
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название проекта, к которому относится доля участника',
+  })
+  project_title?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название проекта, в который входит компонент',
+  })
+  parent_title?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Хеш проекта, в который входит компонент',
+  })
+  parent_hash?: string;
+
+  @Field(() => ProjectStatus, {
+    nullable: true,
+    description: 'Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке',
+  })
+  project_status?: ProjectStatus;
+
+  @Field(() => Boolean, {
+    description: 'Участник уже отдал свой голос в этом проекте',
+    defaultValue: false,
+  })
+  has_voted!: boolean;
+
+  @Field(() => Boolean, {
+    description: 'Голосование по проекту закрыто: все голоса получены',
+    defaultValue: false,
+  })
+  voting_completed!: boolean;
 }

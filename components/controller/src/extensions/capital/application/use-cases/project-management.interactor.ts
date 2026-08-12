@@ -29,6 +29,7 @@ import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interface
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -366,12 +367,13 @@ export class ProjectManagementInteractor {
    */
   async getProjectsWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResult<ProjectDomainEntity>> {
     if (filter?.parent_hash === '') {
       filter.parent_hash = DomainToBlockchainUtils.getEmptyHash();
     }
-    return await this.projectRepository.findAllPaginatedWithComponents(filter, options);
+    return await this.projectRepository.findAllPaginatedWithComponents(filter, options, scope);
   }
 
   /**

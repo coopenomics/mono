@@ -205,7 +205,7 @@ async function onSubmit(): Promise<void> {
           });
         },
       },
-      { caption: addedLabel, dismissText: 'Продолжить покупки' },
+      { caption: addedLabel, dismissText: 'Продолжить заказы' },
     );
     emit('added');
     open.value = false;

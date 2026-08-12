@@ -29,6 +29,7 @@ void marketplace::expireorder(eosio::name coopname,
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNLOCK_ORDER,
+                 processes::marketplace::SUPPLY,
                  o.total_cost, o.orderer, o.hash,
                  Marketplace::Memo::get_expire_order_memo(o.id));
 

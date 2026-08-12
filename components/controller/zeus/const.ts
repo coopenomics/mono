@@ -1197,6 +1197,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceOfferStatus: "enum" as const,
+	MarketplaceOnboardingSource: "enum" as const,
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
@@ -4530,6 +4531,7 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		equal_author_bonus:"String",
 		has_vote:"Boolean",
+		has_voted:"Boolean",
 		id:"Int",
 		intellectual_cost:"String",
 		investor_amount:"String",
@@ -4548,8 +4550,12 @@ export const ReturnTypes: Record<string,any> = {
 		last_known_coordinators_investment_pool:"String",
 		last_known_creators_base_pool:"String",
 		last_known_invest_pool:"String",
+		parent_hash:"String",
+		parent_title:"String",
 		present:"Boolean",
 		project_hash:"String",
+		project_status:"ProjectStatus",
+		project_title:"String",
 		property_base:"String",
 		provisional_amount:"String",
 		share_percent:"Float",
@@ -4559,7 +4565,8 @@ export const ReturnTypes: Record<string,any> = {
 		total_segment_cost:"String",
 		username:"String",
 		value:"String",
-		voting_bonus:"String"
+		voting_bonus:"String",
+		voting_completed:"Boolean"
 	},
 	CapitalState:{
 		_created_at:"DateTime",
@@ -5809,7 +5816,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreement_id:"Int",
 		completed_at:"String",
 		requires_gate:"Boolean",
-		source:"String",
+		source:"MarketplaceOnboardingSource",
 		template_registry_id:"Int"
 	},
 	MarketplaceOrder:{
@@ -5859,6 +5866,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost_with_fee:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime",
+		warehouse_arrival_price:"String",
 		warehouse_locations:"String",
 		warehouse_quantity:"Float",
 		warranty_period_secs:"Int",

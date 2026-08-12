@@ -39,7 +39,7 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
   //
   // process_hash формируется бэкендом явно (допустимо совпадение с
   // statement.hash — одноактовый процесс p.sov.axncnv).
-  Ledger2::apply(_soviet, _provider, operations::soviet::CONVERT_AXN, amount, coopname, process_hash, memo);
+  Ledger2::apply(_soviet, _provider, operations::soviet::CONVERT_AXN, processes::soviet::AXN_CONVERT, amount, coopname, process_hash, memo);
 
   // Вызываем инъекцию AXON токенов на кооператив
   action(

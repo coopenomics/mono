@@ -33,7 +33,7 @@ export const meta = {
   fixtures: ['ivanpetrov'],
   feature: 'marketplace.offer',
   cases: ['mkt.offer.happy.01'],
-  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier', 'marketplace:05-sign-offer'],
 };
 
 // Числовые поля — управляемые: fill() без последующего blur оставляет модель

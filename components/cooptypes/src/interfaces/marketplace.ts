@@ -347,3 +347,187 @@ export interface IWriteoffProposal {
   status: IName
   protocol: IDocument2
 }
+
+export interface IAcceptorder {
+  coopname: IName
+  offerer: IName
+  order_hash: IChecksum256
+}
+
+export interface IAccretrn {
+  coopname: IName
+  signer: IName
+  braname: IName
+  request_hash: IChecksum256
+  statement: IDocument2
+}
+
+export interface IAprretrem {
+  coopname: IName
+  signer: IName
+  braname: IName
+  request_hash: IChecksum256
+}
+
+export interface ICancelorder {
+  coopname: IName
+  orderer: IName
+  order_hash: IChecksum256
+}
+
+export interface ICloseorder {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
+export interface IConfirmwroff {
+  coopname: IName
+  signer: IName
+  proposal_hash: IChecksum256
+  braname: IName
+  memo: IDocument2
+}
+
+export interface ICreateorder {
+  coopname: IName
+  orderer: IName
+  order_hash: IChecksum256
+  offer_hash: IChecksum256
+  offerer: IName
+  delivery_braname: IName
+  quantity: IAsset
+  unit_price: IAsset
+  package_size: IAsset
+  warranty_period_secs: IUint32
+  batch_hash: IChecksum256
+  convert_statement: IDocument2
+}
+
+export interface IDeclineorder {
+  coopname: IName
+  offerer: IName
+  order_hash: IChecksum256
+}
+
+export interface IExecwroff {
+  coopname: IName
+  signer: IName
+  proposal_hash: IChecksum256
+  item_index: IUint64
+}
+
+export interface IExpireorder {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
+export interface IOnmktwoauth {
+  coopname: IName
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface IOnmktwodecl {
+  coopname: IName
+  hash: IChecksum256
+  reason: string
+}
+
+export interface IPayconfirm {
+  coopname: IName
+  outcome_hash: IChecksum256
+}
+
+export interface IPaydecline {
+  coopname: IName
+  outcome_hash: IChecksum256
+  reason: string
+}
+
+export interface IPropwroff {
+  coopname: IName
+  proposed_by: IName
+  proposal_hash: IChecksum256
+  items: IWroffItem[]
+  statement: IDocument2
+  meta: string
+}
+
+export interface IRejretrem {
+  coopname: IName
+  signer: IName
+  braname: IName
+  request_hash: IChecksum256
+  reason: string
+}
+
+export interface IRejretrn {
+  coopname: IName
+  signer: IName
+  braname: IName
+  request_hash: IChecksum256
+  reason: string
+}
+
+export interface ISetfee {
+  coopname: IName
+  membership_fee_percent: IUint64
+}
+
+export interface ISignchair {
+  coopname: IName
+  signer: IName
+  order_hash: IChecksum256
+  actual_quantity: IAsset
+  actual_unit_price: IAsset
+  act: IDocument2
+}
+
+export interface ISigniss1 {
+  coopname: IName
+  signer: IName
+  order_hash: IChecksum256
+  act: IDocument2
+}
+
+export interface ISigniss2 {
+  coopname: IName
+  orderer: IName
+  order_hash: IChecksum256
+  actual_quantity: IAsset
+  actual_unit_price: IAsset
+  delivery_signer: IName
+  act: IDocument2
+}
+
+export interface ISignsupp {
+  coopname: IName
+  offerer: IName
+  order_hash: IChecksum256
+  accept_braname: IName
+  act: IDocument2
+}
+
+export interface IStockorder {
+  coopname: IName
+  orderer: IName
+  order_hash: IChecksum256
+  offer_hash: IChecksum256
+  delivery_braname: IName
+  quantity: IAsset
+  unit_price: IAsset
+  package_size: IAsset
+  warranty_period_secs: IUint32
+  batch_hash: IChecksum256
+}
+
+export interface ISubmretrn {
+  coopname: IName
+  orderer: IName
+  request_hash: IChecksum256
+  original_order_hash: IChecksum256
+  actual_quantity: IAsset
+  reason_text: string
+  photos: IChecksum256[]
+  statement: IDocument2
+}

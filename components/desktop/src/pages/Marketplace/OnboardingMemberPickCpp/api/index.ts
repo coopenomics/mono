@@ -78,7 +78,7 @@ export async function buildOnboardingOfferDocument(): Promise<DigitalDocument> {
  *     контроллер сам выполнит on-chain `wallet::signagree` от лица coopname.
  *
  * Возвращает свежее состояние онбординга — UI решает что показать
- * (`requires_gate=false, source='agreement_signed'` → редирект на /market).
+ * (`source='agreement_signed'` → редирект на /market).
  */
 export async function signOnboardingOffer(
   prepared?: DigitalDocument,

@@ -26,6 +26,9 @@ import { CapitalDevelopmentRepositoryGitSyncService } from './capital-developmen
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { canViewLocalProject } from '../../domain/utils/private-project-access';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
+import { PermissionsService } from './permissions.service';
+import { ProjectAction } from '../../domain/services/access-policy.service';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 /**
  * Сервис уровня приложения для управления проектами CAPITAL
@@ -38,7 +41,8 @@ export class ProjectManagementService {
   constructor(
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly projectMapperService: ProjectMapperService,
-    private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService
+    private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
+    private readonly permissionsService: PermissionsService
   ) {}
 
   /**
@@ -268,8 +272,25 @@ export class ProjectManagementService {
     // Конвертируем параметры пагинации в доменные
     const domainOptions: PaginationInputDTO | undefined = options;
 
+    // Каталог проектов кооператива открыт всем пайщикам — он и нужен, чтобы попросить допуск.
+    // Флаг only_with_artifact_access сужает выборку до проектов, документы которых пайщику
+    // разрешено читать: так рабочую копию синхронизирует не только председатель.
+    let scope: ArtifactAccessScope | undefined;
+    if (filter?.only_with_artifact_access === true) {
+      const accessible = await this.permissionsService.listAccessibleProjectHashes(
+        ProjectAction.VIEW_ARTIFACTS,
+        currentUser
+      );
+      if (accessible !== null) {
+        if (accessible.size === 0) {
+          return { items: [], totalCount: 0, totalPages: 0, currentPage: options?.page || 1 };
+        }
+        scope = { projectHashes: [...accessible], username: currentUser?.username };
+      }
+    }
+
     // Получаем результат с пагинацией из домена
-    const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions);
+    const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions, scope);
     const visible = this.filterAccessibleProjects(result.items, currentUser?.username);
 
     // Маппим проекты с компонентами в DTO с правами доступа

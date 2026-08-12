@@ -59,24 +59,26 @@ describe('MarketplaceCategoryRepositoryAdapter.deleteCustom', () => {
 });
 
 /**
- * Дубликат названия в пределах кооператива.
+ * Дубликат названия категории. Уникальность **глобальная** (решение заказчика
+ * 2026-08-10): название занято, если оно есть где угодно в справочнике —
+ * у базовых категорий платформы, у самого кооператива или у соседнего.
  *
- * Область сравнения — то, что кооператив видит: базовые категории платформы
- * плюс его собственные. Чужие категории других кооперативов в сравнение не
- * попадают — вопрос о глобальной уникальности открыт (mkt.cat.side.07),
- * поэтому здесь проверяется ровно определённая часть правила.
+ * Сервис спрашивает про занятость название целиком, а не читает свой список:
+ * чужие кастомные категории в `listForCoop` не попадают, и на старой проверке
+ * глобальное правило было недостижимо.
  */
 describe('MarketplaceCategoryService.createCustom: дубликат названия', () => {
-  function makeService(visible: Array<{ display_name: string }>) {
+  function makeService(taken: boolean) {
     const repo = {
-      listForCoop: jest.fn().mockResolvedValue(visible),
+      listForCoop: jest.fn().mockResolvedValue([]),
+      existsByDisplayName: jest.fn().mockResolvedValue(taken),
       createCustom: jest.fn().mockResolvedValue({ id: 42, display_name: 'Мёд' }),
     };
     return { service: new MarketplaceCategoryService(repo as never), repo };
   }
 
-  it('совпадение с собственной категорией кооператива → отказ, создания нет', async () => {
-    const { service, repo } = makeService([{ display_name: 'Мёд' }]);
+  it('название занято где-то в справочнике → отказ, создания нет', async () => {
+    const { service, repo } = makeService(true);
 
     await expect(service.createCustom(COOP, 'Мёд')).rejects.toThrow(
       'Категория с таким названием уже существует'
@@ -84,49 +86,141 @@ describe('MarketplaceCategoryService.createCustom: дубликат назван
     expect(repo.createCustom).not.toHaveBeenCalled();
   });
 
-  it('совпадение с базовой категорией платформы → тоже отказ', async () => {
-    // listForCoop отдаёт базовые вместе с собственными, поэтому занять имя
-    // «Овощи и фрукты» кооператив не может.
-    const { service, repo } = makeService([{ display_name: 'Овощи и фрукты' }]);
+  it('занятость проверяется по всему справочнику, а не по списку кооператива', async () => {
+    const { service, repo } = makeService(false);
 
-    await expect(service.createCustom(COOP, 'Овощи и фрукты')).rejects.toThrow(
-      'Категория с таким названием уже существует'
-    );
-    expect(repo.createCustom).not.toHaveBeenCalled();
+    await service.createCustom(COOP, 'Мёд');
+
+    expect(repo.existsByDisplayName).toHaveBeenCalledWith('Мёд');
+    expect(repo.listForCoop).not.toHaveBeenCalled();
   });
 
-  it('различие только в регистре — тот же дубликат', async () => {
-    const { service, repo } = makeService([{ display_name: 'Мёд' }]);
-
-    await expect(service.createCustom(COOP, 'МЁД')).rejects.toThrow(
-      'Категория с таким названием уже существует'
-    );
-    expect(repo.createCustom).not.toHaveBeenCalled();
-  });
-
-  it('пробелы по краям обрезаются до сравнения — тоже дубликат', async () => {
-    const { service, repo } = makeService([{ display_name: 'Мёд' }]);
-
-    await expect(service.createCustom(COOP, '  Мёд  ')).rejects.toThrow(
-      'Категория с таким названием уже существует'
-    );
-    expect(repo.createCustom).not.toHaveBeenCalled();
-  });
-
-  it('пустое имя (одни пробелы) → отказ до чтения списка', async () => {
-    const { service, repo } = makeService([]);
+  it('пустое имя (одни пробелы) → отказ до обращения к справочнику', async () => {
+    const { service, repo } = makeService(false);
 
     await expect(service.createCustom(COOP, '   ')).rejects.toThrow(
       'Название категории не может быть пустым'
     );
-    expect(repo.listForCoop).not.toHaveBeenCalled();
+    expect(repo.existsByDisplayName).not.toHaveBeenCalled();
   });
 
   it('свободное имя создаётся — обрезанным', async () => {
-    const { service, repo } = makeService([{ display_name: 'Овощи и фрукты' }]);
+    const { service, repo } = makeService(false);
 
     await service.createCustom(COOP, '  Мёд  ');
 
     expect(repo.createCustom).toHaveBeenCalledWith(COOP, 'Мёд');
+  });
+});
+
+/**
+ * Гонка двух одновременных запросов с одним названием (`mkt.cat.side.08`).
+ *
+ * Проверка в сервисе гонку не закрывает: оба запроса читают справочник до того,
+ * как хоть один вставил строку, и оба видят имя свободным. Ловит дубль
+ * уникальный индекс в базе — проигравшая вставка падает, и адаптер обязан
+ * превратить это в тот же отказ, а не в внутреннюю ошибку.
+ *
+ * Отдельно — гонка за номер: идентификатор считается как MAX(id)+1, поэтому две
+ * вставки разных названий претендуют на один номер. Это не конфликт имён,
+ * повторная попытка обязана пройти.
+ */
+describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => {
+  const uniqueViolation = (constraint: string) =>
+    Object.assign(new Error('duplicate key value violates unique constraint'), {
+      driverError: { code: '23505', constraint },
+    });
+
+  function makeAdapter(saveImpl: jest.Mock) {
+    const repo = {
+      createQueryBuilder: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ maxId: 12, maxSort: 12 }),
+      }),
+      create: jest.fn((row) => row),
+      save: saveImpl,
+    };
+    const mapper = { toDomain: jest.fn((r) => r) };
+    return {
+      adapter: new MarketplaceCategoryRepositoryAdapter(repo as never, mapper as never),
+      repo,
+    };
+  }
+
+  it('индекс отбил дубль названия → тот же отказ, что и на проверке', async () => {
+    const save = jest
+      .fn()
+      .mockRejectedValue(uniqueViolation('ux_marketplace_category_display_name_lower'));
+    const { adapter } = makeAdapter(save);
+
+    await expect(adapter.createCustom(COOP, 'Мёд')).rejects.toThrow(
+      'Категория с таким названием уже существует'
+    );
+    // Конфликт имени повторять бессмысленно — имя занято навсегда.
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('проигранная гонка за номер → номер пересчитывается, категория создаётся', async () => {
+    const save = jest
+      .fn()
+      .mockRejectedValueOnce(uniqueViolation('marketplace_category_pkey'))
+      .mockResolvedValueOnce({ id: 14, display_name: 'Мёд' });
+    const { adapter } = makeAdapter(save);
+
+    await expect(adapter.createCustom(COOP, 'Мёд')).resolves.toEqual({
+      id: 14,
+      display_name: 'Мёд',
+    });
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  it('ошибка не про уникальность наверх идёт как есть', async () => {
+    const save = jest.fn().mockRejectedValue(new Error('соединение с базой потеряно'));
+    const { adapter } = makeAdapter(save);
+
+    await expect(adapter.createCustom(COOP, 'Мёд')).rejects.toThrow(
+      'соединение с базой потеряно'
+    );
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Область поиска занятого названия. Условие обязано совпадать с выражением
+ * уникального индекса: индекс построен по `lower(display_name)` без фильтра по
+ * кооперативу, и любое сужение здесь вернуло бы «свободно» там, где база
+ * откажет.
+ */
+describe('MarketplaceCategoryRepositoryAdapter.existsByDisplayName', () => {
+  function makeAdapter(count: number) {
+    const qb = {
+      where: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(count),
+    };
+    const repo = { createQueryBuilder: jest.fn().mockReturnValue(qb) };
+    return {
+      adapter: new MarketplaceCategoryRepositoryAdapter(
+        repo as never,
+        { toDomain: jest.fn() } as never
+      ),
+      qb,
+    };
+  }
+
+  it('сравнивает без учёта регистра и без фильтра по кооперативу', async () => {
+    const { adapter, qb } = makeAdapter(1);
+
+    await expect(adapter.existsByDisplayName('Мёд')).resolves.toBe(true);
+    expect(qb.where).toHaveBeenCalledWith('lower(c.display_name) = lower(:name)', {
+      name: 'Мёд',
+    });
+    expect(qb.where).toHaveBeenCalledTimes(1);
+  });
+
+  it('совпадений нет → название свободно', async () => {
+    const { adapter } = makeAdapter(0);
+
+    await expect(adapter.existsByDisplayName('Мёд')).resolves.toBe(false);
   });
 });

@@ -9,15 +9,10 @@ export type ITimePointSec = string
 export type IUint32 = number
 export type IUint64 = number | string
 
-export interface IApprovewthd {
-  coopname: IName
-  withdraw_hash: IChecksum256
-  approved_statement: IDocument2
-}
-
 export interface IAuthwthd {
   coopname: IName
-  withdraw_hash: IChecksum256
+  hash: IChecksum256
+  authorization: IDocument2
 }
 
 export interface ICompletedpst {
@@ -28,7 +23,6 @@ export interface ICompletedpst {
 export interface ICompletewthd {
   coopname: IName
   withdraw_hash: IChecksum256
-  memo: string
 }
 
 export interface ICreatedpst {

@@ -4,6 +4,8 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
 } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { LOGGER_PORT, type ILoggerPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
   PROGRAM_DOCUMENT_PARAMETERS_HOOK,
@@ -271,6 +273,10 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 import { UdataDocumentParametersAdapter } from './infrastructure/adapters/udata-document-parameters.adapter';
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
+import {
+  BLAGOROST_AGREEMENT_TYPE,
+  GENERATOR_AGREEMENT_TYPE,
+} from './constants/capital-agreement-ids';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
 
 // Репозитории
@@ -478,10 +484,47 @@ export class CapitalExtension extends BaseExtensionModule {
     @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
-    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);
+  }
+
+  /**
+   * Самоинициализация ЦПП в цепи: расширение само открывает свои программы в
+   * кооперативе, если их там нет. Обе обязательны — `capital::regcontrib`
+   * подписывает оферту Благороста и оферту Генератора через
+   * `wallet::signagree`, а тот падает, если программы не существует.
+   *
+   * Идемпотентно: `ensureProgram` не шлёт транзакцию, когда программа уже
+   * открыта, — а `initialize()` зовётся на каждом старте и рестарте.
+   *
+   * Ошибки логируем, но не роняем расширение: цепь может быть недоступна на
+   * старте, следующий рестарт повторит попытку.
+   */
+  private async ensureCppPrograms(): Promise<void> {
+    const programs = [
+      { type: BLAGOROST_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Благорост»' },
+      { type: GENERATOR_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Генератор»' },
+    ];
+
+    for (const program of programs) {
+      try {
+        const { created, program_id } = await this.council.ensureProgram({
+          coopname: platformSettings().coopname,
+          ...program,
+        });
+        if (created) {
+          this.logger.log(
+            `Программа «${program.title}» открыта в кооперативе ${platformSettings().coopname} (program_id=${program_id})`
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Не удалось открыть программу «${program.title}»: ${message}`);
+      }
+    }
   }
 
 
@@ -494,6 +537,9 @@ export class CapitalExtension extends BaseExtensionModule {
   async initialize(config?: IConfig): Promise<void> {
     this.logger.log('Модуль благороста инициализирован');
     this.capitalDevelopmentRepositoryGitSync.abortAllInFlightRepositorySyncs();
+
+    // Открыть программы ЦПП в цепи, если кооператив их ещё не открыл.
+    await this.ensureCppPrograms();
 
     // Загружаем конфигурацию расширения
     const extensionData = await this.extensionRepository.findByName(this.name);

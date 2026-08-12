@@ -34,6 +34,7 @@
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::FINANCIAL_AID,
+                 processes::branch::AID,
                  it->amount, it->username, it->hash,
                  "Материальная помощь доверенному кооперативного участка");
 

@@ -60,6 +60,7 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
     std::string memo = "Зачисление минимального паевого взноса по решению совета, username=" + candidate -> username.to_string();
     Ledger2::apply(_registrator, coopname,
       has_pending ? operations::registrator::SETTLE_MINSHARE : operations::registrator::PUT_MINSHARE,
+      processes::registrator::ACCEPT,
       candidate -> minimum, candidate -> username, registration_hash, memo);
   }
 
@@ -67,6 +68,7 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
     std::string memo = "Зачисление вступительного взноса по решению совета, username=" + candidate -> username.to_string();
     Ledger2::apply(_registrator, coopname,
       has_pending ? operations::registrator::SETTLE_ENTRANCE : operations::registrator::PAY_ENTRANCE,
+      processes::registrator::ACCEPT,
       candidate -> initial, candidate -> username, registration_hash, memo);
   }
   // Увеличиваем счетчик активных пайщиков

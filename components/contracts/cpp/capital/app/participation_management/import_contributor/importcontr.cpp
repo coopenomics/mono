@@ -76,6 +76,7 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
       // больше не используется, проверка preimp.blocked == 0 излишня.
       Ledger2::apply(
         _capital, coopname, operations::capital::DROP_PREIMP,
+        processes::capital::IMPORT,
         preimp_it->available, username, contributor_hash,
         std::string{"Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт"}
       );
@@ -83,6 +84,6 @@ void capital::importcontrib(eosio::name coopname, eosio::name username, checksum
   }
 
   // Увеличиваем паевой фонд через ledger2: ISSUE BLAGOROST_FUND, Dr 04 / Cr 80.
-  Ledger2::apply(_capital, coopname, operations::capital::IMPORT, contribution_amount, username, contributor_hash, internal_memo);
+  Ledger2::apply(_capital, coopname, operations::capital::IMPORT, processes::capital::IMPORT, contribution_amount, username, contributor_hash, internal_memo);
 
 }

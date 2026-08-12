@@ -23,6 +23,14 @@ const loadFixture = (username) =>
 
 const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ekaterina`;
 
+/**
+ * Заказчица забирает не всё принятое: приняли девять единиц, выдаём восемь.
+ * Невыданное не пропадает и не остаётся за пайщицей — оно превращается в
+ * обезличенный остаток кооператива, который потом можно предложить заново
+ * (см. operator/stock-republish).
+ */
+const ISSUE_QUANTITY = 8;
+
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи заказа',
   docPath: 'new/marketplace/operator/issuance-open.md',
@@ -38,6 +46,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
 };
@@ -82,16 +91,34 @@ export default async ({ page, shot, expect }) => {
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
 
+  await expect(page.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
+  const issueDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
+  await expect(issueDialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 15000 });
+
+  // Выдаём меньше принятого: поле факта управляемое, без blur модель остаётся
+  // с прежним количеством и акт уйдёт на полном объёме.
+  const factQty = issueDialog.locator('.correction-table__fact input').first();
+  const acceptedQty = Number.parseFloat(await factQty.inputValue());
+  await factQty.click();
+  await factQty.fill(String(ISSUE_QUANTITY));
+  await factQty.blur();
+  await page.waitForTimeout(2500);
+  await cleanViteOverlays(page);
+
   await shot(
     page,
     '03-issuance-opened',
-    'Код принят: открылась выдача пайщику. Оператор сверяет имущество с заказами — «План» это сколько заказано, «Принято» сколько на складе; выдать больше нельзя, снятые позиции остаются на складе. Внизу — себестоимость, членский взнос и итог к оплате.',
+    `Код принят: открылась выдача пайщику. Оператор сверяет имущество с заказами — «План» это сколько заказано, «Принято» сколько на складе. Здесь заказчица забирает ${ISSUE_QUANTITY} единиц из принятых ${acceptedQty}: невыданное останется на складе обезличенным остатком кооператива, а разница вернётся в кошелёк Стола заказов.`,
     {
       preserveNotifications: true,
-      expect: async (p) => {
-        // Нераспознанный код оставил бы диалог с ошибкой — проверяем, что её нет.
-        await expect(p.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
-        await expect(p.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 15000 });
+      expect: async () => {
+        // Количество обязано быть в модели: от него считается и сумма к
+        // оплате, и возврат, и то, что осядет на складе.
+        expect(Number.parseFloat(await factQty.inputValue())).toBe(ISSUE_QUANTITY);
+        expect(acceptedQty).toBeGreaterThan(ISSUE_QUANTITY);
+        // Недовыдача обязана быть названа деньгами, а не просто уменьшить итог.
+        const refund = issueDialog.locator('.issue-act__sum').filter({ hasText: 'Вернётся в кошелёк' });
+        await expect(refund.first()).toBeVisible({ timeout: 15000 });
       },
     },
   );

@@ -3,6 +3,8 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
   platformSettings,
 } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
   MARKETPLACE_DOCUMENT_PARAMETERS_HOOK,
@@ -13,6 +15,7 @@ import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
 import { Cooperative } from 'cooptypes';
+import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
@@ -39,6 +42,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
     private readonly agreementRegistrationPort: IRegistrationRegistryPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
@@ -65,6 +69,11 @@ export class MarketplaceExtension extends BaseExtensionModule {
       config: merge({}, defaultConfig, extensionData.config),
     };
 
+    // Открыть программу ЦПП в цепи, если кооператив её ещё не открыл. Без неё
+    // пайщик не может подписать оферту, а ledger2 не пропускает операции по
+    // кошелькам Стола заказов.
+    await this.ensureCppProgram();
+
     // Декларируем шаги L1-онбординга в платформенном реестре. Дальше весь flow
     // (free-decision → tracking-rule → DecisionTrackedEvent → _done →
     // ONBOARDING_COMPLETED → restartApp) делает generic-слой.
@@ -81,6 +90,39 @@ export class MarketplaceExtension extends BaseExtensionModule {
     this.registerInAgreementRegistry();
 
     this.logger.info('marketplace-extension готов');
+  }
+
+  /**
+   * Самоинициализация ЦПП в цепи: расширение само открывает свою программу в
+   * кооперативе, если её там нет. Раньше это делали руками через cleos на
+   * каждый кооператив — и «Восход» на тестнете приехал без программы: оферту
+   * подписать было нельзя, а стол при этом рапортовал, что она уже подписана
+   * (инцидент 2026-08-10).
+   *
+   * Идемпотентно: `ensureProgram` не шлёт транзакцию, если программа открыта, —
+   * а `initialize()` вызывается на каждом старте и рестарте расширения.
+   *
+   * Ошибку намеренно проглатываем в лог: цепь может быть недоступна в момент
+   * старта, и это не повод не поднимать расширение целиком. Следующий рестарт
+   * повторит попытку, а до тех пор гейт честно покажет, что подключение ЦПП не
+   * завершено.
+   */
+  private async ensureCppProgram(): Promise<void> {
+    try {
+      const { created, program_id } = await this.council.ensureProgram({
+        coopname: platformSettings().coopname,
+        type: MARKETPLACE_AGREEMENT_TYPE,
+        title: 'Целевая потребительская программа «Стол заказов»',
+      });
+      if (created) {
+        this.logger.info(
+          `[MARKETPLACE.L1] программа ЦПП «Стол заказов» открыта в кооперативе ${platformSettings().coopname} (program_id=${program_id})`
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[MARKETPLACE.L1] не удалось открыть программу ЦПП: ${message}`);
+    }
   }
 
   /**

@@ -40,6 +40,9 @@ import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
 import { canViewPrivateScopedIssue } from '../../domain/utils/private-project-access';
+import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { ProjectAction } from '../../domain/services/access-policy.service';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { EMPTY_BPMN_STORY_XML } from '../constants/empty-bpmn-story-xml';
 import { DEFAULT_MERMAID_STORY_SOURCE } from '../constants/default-mermaid-story';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
@@ -794,15 +797,15 @@ export class GenerationService {
       };
     }
 
-    // Для остальных случаев (без project_hash/issue_hash) — стандартная пагинация только
-    // для председателя/члена совета. Обычным пайщикам общий список артефактов недоступен:
-    // обращение должно быть строго в скоупе проекта или задачи, где допуск проверен выше.
-    const role = currentUser?.role;
-    const isBoard = role === 'chairman' || role === 'member';
-    if (!isBoard) {
+    // Для остальных случаев (без project_hash/issue_hash) — общий список в границах допуска:
+    // председатель и член совета видят всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Это путь синхронизации рабочей копии, где проект заранее не назван.
+    const scope = await this.buildArtifactAccessScope(undefined, currentUser, new PermissionsLookupCache());
+    const listScope: ArtifactAccessScope | undefined = scope === 'denied' ? { projectHashes: [] } : scope;
+    if (listScope !== undefined && listScope.projectHashes.length === 0) {
       return emptyResult;
     }
-    const result = await this.storyRepository.findAllPaginated(filter, options);
+    const result = await this.storyRepository.findAllPaginated(filter, options, listScope);
     return {
       items: result.items as StoryOutputDTO[],
       totalCount: result.totalCount,
@@ -1284,12 +1287,26 @@ export class GenerationService {
     options?: PaginationInputDTO,
     currentUser?: IMonoAccount
   ): Promise<PaginationResult<IssueOutputDTO>> {
-    // Получаем результат с пагинацией из домена
-    const result = await this.issueRepository.findAllPaginated(filter, options);
+    // Кэш справочных чтений — один на весь список (проект, допуск, участие переспрашиваются
+    // для каждой задачи заново).
+    const cache = new PermissionsLookupCache();
+
+    // Область доступа: совет видит всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Ограничение уходит в SQL, чтобы пагинация оставалась целой.
+    const scope = await this.buildArtifactAccessScope(filter?.project_hash, currentUser, cache);
+    if (scope === 'denied') {
+      return { items: [], totalCount: 0, currentPage: options?.page || 1, totalPages: 0 };
+    }
+
+    const result = await this.issueRepository.findAllPaginated(filter, options, scope);
     const visibleIssues = await this.filterAccessibleIssues(result.items, currentUser?.username);
 
     // Рассчитываем права доступа для всех задач пакетно
-    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(visibleIssues, currentUser);
+    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(
+      visibleIssues,
+      currentUser,
+      cache
+    );
 
     // Обогащаем задачи правами доступа
     const itemsWithPermissions = visibleIssues.map((issue) => {
@@ -1530,6 +1547,37 @@ export class GenerationService {
   }
 
   /** Чужие свободные / LOCAL-задачи не отдаём. */
+  /**
+   * Область доступа к артефактам для общих списков.
+   *
+   * Совет — `undefined` (ограничения нет). Остальным — проекты, где пайщик ведущий или получил
+   * допуск, плюс их компоненты. Если запрошен конкретный проект вне этого набора — `'denied'`:
+   * список пуст, содержимое чужого проекта не раскрывается даже количеством строк.
+   */
+  private async buildArtifactAccessScope(
+    requestedProjectHash: string | undefined,
+    currentUser: IMonoAccount | undefined,
+    cache: PermissionsLookupCache
+  ): Promise<ArtifactAccessScope | undefined | 'denied'> {
+    const accessible = await this.permissionsService.listAccessibleProjectHashes(
+      ProjectAction.VIEW_ARTIFACTS,
+      currentUser,
+      cache
+    );
+    if (accessible === null) {
+      return undefined;
+    }
+    const username = currentUser?.username;
+    const requested = requestedProjectHash?.trim().toLowerCase();
+    if (requested) {
+      if (!accessible.has(requested)) {
+        return 'denied';
+      }
+      return { projectHashes: [requested], username };
+    }
+    return { projectHashes: [...accessible], username };
+  }
+
   private async canAccessIssue(issue: IssueDomainEntity, username?: string): Promise<boolean> {
     if (!issue.project_hash?.trim()) {
       return canViewPrivateScopedIssue(issue, null, username);

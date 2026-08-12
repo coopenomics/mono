@@ -7,7 +7,7 @@
       BaseButton(variant='ghost', size='sm', @click='goBack')
         template(#icon-left)
           q-icon(name='arrow_back')
-        | К голосованиям
+        | К результатам
 
     EmptyState(
       v-if='!canShowVoting',
@@ -198,7 +198,7 @@ const goBack = () => {
     router.push({ name: back });
     return;
   }
-  router.push({ name: 'voting' });
+  router.push({ name: 'results' });
 };
 
 const SEGMENTS_EXPANDED_KEY = 'capital_component_voting_segments_expanded';

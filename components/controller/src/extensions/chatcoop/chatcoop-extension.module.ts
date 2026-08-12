@@ -23,6 +23,7 @@ import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, C
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
+import { ChatcoopCommunicationAccessService } from './application/services/chatcoop-communication-access.service';
 import * as crypto from 'crypto';
 
 // Новые сервисы и репозитории для секретаря и транскрипции
@@ -533,6 +534,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
     ChatcoopInnercoopChatCoopCalendarAdapter,
     ChatCoopCalendarApplicationService,
     ChatcoopCalendarEventNotificationService,
+    ChatcoopCommunicationAccessService,
     {
       provide: COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
       useExisting: ChatcoopCalendarEventNotificationService,

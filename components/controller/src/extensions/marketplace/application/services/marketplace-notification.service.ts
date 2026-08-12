@@ -24,6 +24,9 @@ import {
   MARKETPLACE_SUPPLIER_APPROVED_EVENT,
   MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT,
   MARKETPLACE_AID_COUNCIL_DECIDED_EVENT,
+  MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
+  MARKETPLACE_OFFER_APPROVED_EVENT,
+  MARKETPLACE_OFFER_REJECTED_EVENT,
   type MarketplaceAidPayoutConfirmedEvent,
   type MarketplaceAidCouncilDecidedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
@@ -40,6 +43,9 @@ import {
   type MarketplaceSupplierPaymentDeclinedEvent,
   type MarketplaceNewSupplierRequestEvent,
   type MarketplaceSupplierApprovedEvent,
+  type MarketplaceOfferModerationRequestedEvent,
+  type MarketplaceOfferApprovedEvent,
+  type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -190,20 +196,13 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT)
   async handleNewSupplierRequest(event: MarketplaceNewSupplierRequestEvent): Promise<void> {
     try {
-      // Адресат — председатель кооператива: он рассматривает заявки в реестре
-      // поставщиков (стол администратора). extension-роль cashier/registrar
-      // появится позже — тогда поменять фильтр.
-      const chairmen = await this.accountPort.getAccounts(
-        { role: 'chairman' },
-        { page: 1, limit: 1, sortOrder: 'ASC' }
-      );
-      if (!chairmen.items || chairmen.items.length === 0) {
+      const chairman = await this.findAdminRecipient();
+      if (!chairman) {
         this.logger.warn(
-          `Заявка поставщика ${event.member_account}: председатель не найден — push пропущен.`
+          `Заявка поставщика ${event.member_account}: администратор не найден — push пропущен.`
         );
         return;
       }
-      const chairman = chairmen.items[0];
 
       const chairmanName = await this.accountPort.getDisplayName(chairman.username);
       const supplierName = await this.accountPort.getDisplayName(event.member_account);
@@ -336,9 +335,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         event.reason_text.length > 240 ? event.reason_text.slice(0, 240) + '…' : event.reason_text;
       for (const operatorAccount of operators) {
         try {
-          const chairmanName = await this.accountPort.getDisplayName(operatorAccount);
+          const recipientName = await this.accountPort.getDisplayName(operatorAccount);
           const payload: Workflows.MarketplaceReturnClaimSubmitted.IPayload = {
-            chairmanName,
+            recipientName,
             ordererName,
             brananame: event.delivery_braname,
             coopname: event.coopname,
@@ -642,6 +641,102 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Заявление на возврат ${event.claim_id}: ошибка отправки уведомления поставщику о приёме возврата (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+  /**
+   * Адресат уведомлений стола администратора.
+   *
+   * Право `Offer:moderate` и реестр поставщиков живут в extension-роли `admin`,
+   * а её по маппингу core-ролей получает председатель — поэтому ищем аккаунт с
+   * core-ролью `chairman`. Отдельной extension-роли модератора пока нет; когда
+   * появится, менять фильтр нужно здесь одном месте.
+   */
+  private async findAdminRecipient(): Promise<{ username: string } | null> {
+    const admins = await this.accountPort.getAccounts(
+      { role: 'chairman' },
+      { page: 1, limit: 1, sortOrder: 'ASC' }
+    );
+    return admins.items?.[0] ?? null;
+  }
+
+  @OnEvent(MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT)
+  async handleOfferOnModeration(event: MarketplaceOfferModerationRequestedEvent): Promise<void> {
+    try {
+      const admin = await this.findAdminRecipient();
+      if (!admin) {
+        this.logger.warn(
+          `Предложение ${event.offer_id}: администратор не найден — уведомление о модерации пропущено.`
+        );
+        return;
+      }
+      const payload: Workflows.MarketplaceOfferOnModeration.IPayload = {
+        recipientName: await this.accountPort.getDisplayName(admin.username),
+        supplierName: await this.accountPort.getDisplayName(event.supplier_account),
+        productName: event.product_name,
+        coopname: event.coopname,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-admin/moderation`,
+      };
+      await this.notificationSenderService.notifyUser(
+        admin.username,
+        Workflows.MarketplaceOfferOnModeration.id,
+        payload
+      );
+      this.logger.log(
+        `Предложение ${event.offer_id}: уведомление о модерации администратору ${admin.username} отправлено.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Предложение ${event.offer_id}: ошибка уведомления администратора о модерации (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_OFFER_APPROVED_EVENT)
+  async handleOfferApproved(event: MarketplaceOfferApprovedEvent): Promise<void> {
+    try {
+      const payload: Workflows.MarketplaceOfferApproved.IPayload = {
+        supplierName: await this.accountPort.getDisplayName(event.supplier_account),
+        productName: event.product_name,
+        coopname: event.coopname,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.supplier_account,
+        Workflows.MarketplaceOfferApproved.id,
+        payload
+      );
+      this.logger.log(
+        `Предложение ${event.offer_id}: уведомление об одобрении поставщику ${event.supplier_account} отправлено.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Предложение ${event.offer_id}: ошибка уведомления поставщика об одобрении (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_OFFER_REJECTED_EVENT)
+  async handleOfferRejected(event: MarketplaceOfferRejectedEvent): Promise<void> {
+    try {
+      const payload: Workflows.MarketplaceOfferRejected.IPayload = {
+        supplierName: await this.accountPort.getDisplayName(event.supplier_account),
+        productName: event.product_name,
+        reason: event.reason,
+        coopname: event.coopname,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.supplier_account,
+        Workflows.MarketplaceOfferRejected.id,
+        payload
+      );
+      this.logger.log(
+        `Предложение ${event.offer_id}: уведомление об отказе поставщику ${event.supplier_account} отправлено.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Предложение ${event.offer_id}: ошибка уведомления поставщика об отказе (${err.message}) — flow не блокируется.`
       );
     }
   }

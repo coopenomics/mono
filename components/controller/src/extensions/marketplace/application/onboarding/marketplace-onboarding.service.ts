@@ -13,8 +13,7 @@ import {
   MARKETPLACE_AGREEMENT_TYPE,
   MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID,
 } from '../../constants/marketplace-agreement-ids';
-import type { MarketplaceOnboardingSource } from '../dto/marketplace-onboarding-state.dto';
-import { MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
+import { MarketplaceOnboardingSource, MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
 import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
@@ -51,16 +50,20 @@ export class MarketplaceOnboardingService {
     const templateRegistryId = MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID;
 
     if (templateRegistryId <= 0) {
-      // Story 1.7 не выполнена — нечего показывать в gate, фронт пропускает.
+      // Шаблона оферты нет — подписывать нечего. Это состояние кооператива:
+      // потребитель обязан развести его с «подписал» по source (см. enum).
       return new MarketplaceOnboardingStateDTO({
         requires_gate: false,
-        source: 'not_configured',
+        source: MarketplaceOnboardingSource.NOT_CONFIGURED,
         template_registry_id: 0,
       });
     }
 
     // program_id ЦПП «Стол заказов» из `soviet::coagreements` (тот же лукап, что
-    // и при подписи). Без настроенной как программа ЦПП гейтить нечем — пропускаем.
+    // и при подписи). Пока программа в кооперативе не создана, подписать оферту
+    // физически невозможно (`wallet::signagree` упадёт «Программа не найдена»),
+    // поэтому это НЕ «подписи не требуется», а «кооператив не завершил
+    // подключение ЦПП» — инцидент 2026-08-10.
     const coopname = platformSettings().coopname;
     const coagreement = await this.sovietBlockchainPort.getCoagreement(
       coopname,
@@ -70,7 +73,7 @@ export class MarketplaceOnboardingService {
     if (!coagreement || programId <= 0) {
       return new MarketplaceOnboardingStateDTO({
         requires_gate: false,
-        source: 'not_configured',
+        source: MarketplaceOnboardingSource.NOT_CONFIGURED,
         template_registry_id: templateRegistryId,
       });
     }
@@ -79,10 +82,9 @@ export class MarketplaceOnboardingService {
     const program = await this.programAgreements.findProgramSignature(coopname, username, programId);
 
     if (program) {
-      const source: MarketplaceOnboardingSource = 'agreement_signed';
       return new MarketplaceOnboardingStateDTO({
         requires_gate: false,
-        source,
+        source: MarketplaceOnboardingSource.AGREEMENT_SIGNED,
         template_registry_id: templateRegistryId,
         completed_at: program.signed_at ? String(program.signed_at) : undefined,
       });
@@ -90,7 +92,7 @@ export class MarketplaceOnboardingService {
 
     return new MarketplaceOnboardingStateDTO({
       requires_gate: true,
-      source: 'gate_required',
+      source: MarketplaceOnboardingSource.GATE_REQUIRED,
       template_registry_id: templateRegistryId,
     });
   }
@@ -105,14 +107,16 @@ export class MarketplaceOnboardingService {
    * стола, без повторной регистрации.
    *
    * Flow:
-   *  1. Лукап `soviet::coagreements(coopname, type='marketplace')` →
-   *     program_id (должен быть 2) + draft_id (должен быть 1100).
-   *  2. `walletBlockchainPort.signProgramAgreement` → on-chain
+   *  1. Лукап `soviet::coagreements(coopname, type='marketplace')` → program_id
+   *     (2 по `program_map` контракта).
+   *  2. Лукап `soviet::programs[program_id]` → draft_id подписываемого шаблона
+   *     (1102, персональный инстанс оферты). Источник именно программа — см.
+   *     комментарий в теле метода.
+   *  3. `walletBlockchainPort.signProgramAgreement` → on-chain
    *     `wallet::signagree` пишет запись в `wallet::users.programs[]` с
-   *     program_id=2. После next-block `AgreementSyncService` подтягивает
-   *     запись в PG-кеш `AgreementRepository`, и следующий
-   *     `getOnboardingState` вернёт `requires_gate=false,
-   *     source='agreement_signed'`.
+   *     program_id=2. После next-block `UserAgreementSyncService` подтягивает
+   *     запись в PG-кеш, и следующий `getOnboardingState` вернёт
+   *     `requires_gate=false, source=AGREEMENT_SIGNED`.
    *
    * Auth: вызывающий = пайщик (JWT в `MarketplaceMembershipGuard`).
    * `coopname` берётся из guard'а, `username` тоже — фронт не передаёт.
@@ -144,15 +148,30 @@ export class MarketplaceOnboardingService {
       );
     }
 
+    // Шаблон подписи берём из самой программы, а не из `coagreements`:
+    // `wallet::signagree` сверяет присланный draft_id именно с
+    // `soviet::programs[program_id].draft_id`. Значения расходятся, когда
+    // шаблон программы правили через `soviet::editprog` — тот меняет
+    // `programs`, но не `coagreements`. Взяли бы из coagreement — подпись
+    // падала бы «draft_id соглашения не совпадает с draft_id программы».
+    const programs = await this.sovietBlockchainPort.getPrograms(input.coopname);
+    const program = programs.find((p) => Number(p.id) === programId);
+    if (!program) {
+      throw new BadRequestException(
+        `Программа ЦПП «Стол заказов» (program_id=${programId}) не найдена в кооперативе '${input.coopname}': кооператив не завершил подключение ЦПП`
+      );
+    }
+    const draftId = Number(program.draft_id);
+
     this.logger.info(
-      `[MARKETPLACE.L3] signOnboardingOffer → wallet::signagree (${input.coopname}/${input.username} program_id=${programId} draft_id=${coagreement.draft_id})`
+      `[MARKETPLACE.L3] signOnboardingOffer → wallet::signagree (${input.coopname}/${input.username} program_id=${programId} draft_id=${draftId})`
     );
 
     return await this.programAgreements.signProgramAgreement({
       coopname: input.coopname,
       username: input.username,
       program_id: programId,
-      draft_id: Number(coagreement.draft_id),
+      draft_id: draftId,
       document: input.document,
     });
   }

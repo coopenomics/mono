@@ -72,8 +72,8 @@ export class BranchService {
     return new BranchDTO(branch);
   }
 
-  public async selectBranch(data: SelectBranchInputDTO): Promise<boolean> {
-    const selected = await this.branchInteractor.selectBranch(data);
+  public async selectBranch(data: SelectBranchInputDTO, currentUsername?: string): Promise<boolean> {
+    const selected = await this.branchInteractor.selectBranch(data, currentUsername);
     return selected;
   }
 

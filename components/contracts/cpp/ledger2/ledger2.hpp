@@ -67,11 +67,17 @@ public:
    * Не пишет в state напрямую: рассылает 3 atomic inline action
    * (`walletop`, `debit`, `credit`), связанных общим `process_hash`.
    *
+   * `process_type` — имя нитки процесса, к которой относится операция: его
+   * называет контракт-инициатор, поэтому одна и та же операция может идти в
+   * разных процессах (членский взнос КУ зачисляется и внутри поставки, и
+   * внутри гарантийного возврата). См. processes.hpp.
+   *
    * @ingroup public_ledger2_actions
    */
   [[eosio::action]] void apply(eosio::name coopname,
                                 eosio::name initiator,
                                 eosio::name operation_code,
+                                eosio::name process_type,
                                 eosio::asset amount,
                                 eosio::name username,
                                 eosio::checksum256 process_hash,
@@ -185,7 +191,7 @@ public:
    * @param to_wallet    кошелёк-получатель
    * @param amount       сумма в _root_govern_symbol
    * @param process_hash уникальный хэш корректировки (генерирует backend)
-   * @param memo         обязательное обоснование (≤ 255 символов)
+   * @param memo         обязательное обоснование (длина не ограничена)
    *
    * @ingroup public_ledger2_actions
    */
@@ -227,7 +233,7 @@ public:
    * @param mirror_debit_account_id     Dr-счёт зеркала (0 если оригинал был без бухпроводок)
    * @param mirror_credit_account_id    Cr-счёт зеркала (0 если оригинал был без бухпроводок)
    * @param process_hash                уникальный хэш для зеркальной операции
-   * @param memo                        обязательное обоснование (≤ 255 символов)
+   * @param memo                        обязательное обоснование (длина не ограничена)
    *
    * @ingroup public_ledger2_actions
    */

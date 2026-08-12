@@ -106,7 +106,7 @@ async function confirm(): Promise<void> {
   }
   const wif = decision.value === DECISION_ACCEPT ? globalStore.wif?.toString() : undefined;
   if (decision.value === DECISION_ACCEPT && !wif) {
-    FailAlert(new Error('Приватный ключ председателя не найден. Войдите в кооператив.'));
+    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
     return;
   }
 

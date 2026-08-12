@@ -14,6 +14,7 @@ void wallet::declinewthd(eosio::name coopname, checksum256 withdraw_hash, std::s
 
   // ledger2: UNBLOCK на w.wal.share — снимаем резерв (зеркало REQUEST_WITHDRAW).
   Ledger2::apply(_wallet, coopname, operations::wallet::DECLINE_WITHDRAW,
+                 processes::wallet::WITHDRAW,
                  withdraw -> quantity, withdraw -> username, withdraw_hash, memo);
 
   withdraws.erase(withdraw);

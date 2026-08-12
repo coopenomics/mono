@@ -325,7 +325,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
           span Себестоимость
           span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
         .mp-cart__summary-line(v-if="feePercent > 0")
-          span Членский взнос ({{ feePercent }}%)
+          span Кооперативная наценка ({{ feePercent }}%)
           span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
           span Итого

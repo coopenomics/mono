@@ -691,3 +691,38 @@ export interface IConverttoaxn {
   statement: IDocument2
   process_hash: IChecksum256
 }
+
+export interface IRepairdec {
+  coopname: IName
+  decision_id: IUint64
+  username: IName
+  type: IName
+  batch_id: IUint64
+  statement: IDocument2
+  votes_for: IName[]
+  votes_against: IName[]
+  validated: boolean
+  approved: boolean
+  authorized: boolean
+  authorized_by: IName
+  authorization: IDocument2
+  created_at: ITimePointSec
+  expired_at: ITimePointSec
+  meta: string
+  callback_contract: IName
+  confirm_callback: IName
+  decline_callback: IName
+  hash: IChecksum256
+}
+
+export interface ISetbranch {
+  coopname: IName
+  username: IName
+  braname: IName
+}
+
+export interface ISetminamt {
+  coopname: IName
+  username: IName
+  minimum: IAsset
+}

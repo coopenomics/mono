@@ -66,24 +66,24 @@ cases:
     kind: side
     scenario: Оператор указывает к приёмке больше единиц, чем было заказано
     expect: отказ — принять больше заказанного нельзя
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   - id: mkt.supply.side.03
     level: backend
     kind: side
     scenario: Приёмка партии оператором чужого кооперативного участка
     expect: отказ доступа, статус партии не меняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-apl-reception-resolver-scoping.test.ts
+    status: passing
 
   - id: mkt.supply.side.04
     level: backend
     kind: side
     scenario: Код передачи принадлежит пайщику, который не является поставщиком
     expect: приёмка не открывается, состав партии не показывается
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   # Вопрос «что с подписанными актами при пересборке» снят чтением кода
   # (2026-08-08): пересобрать можно только черновик до подписи поставщика.
@@ -123,8 +123,8 @@ cases:
     kind: side
     scenario: Партия, собранная на один участок, открывается оператором другого участка
     expect: партия не видна в ожидаемых поставках чужого участка
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/incoming-shipments-foreign.mjs
+    status: passing
 
   - id: mkt.supply.side.08
     level: ui
@@ -160,11 +160,40 @@ cases:
     level: ui
     kind: side
     scenario: >
-      Привязка этикетки к позиции склада отсканированным кодом
+      Привязка этикетки к позиции склада введённым вручную номером
     expect: позиция перестаёт числиться немаркированной
+    test: components/docs-harness/scenarios/marketplace/operator/inventory-label.mjs
+    status: passing
+    # Номера этикеток сервером не выдаются: лист печатается со случайными
+    # EAN-13 на клиенте (randomEAN13), поэтому диалог привязки принимает любой
+    # корректный номер. Прежняя пометка «сканер отбивает произвольный код»
+    # была ошибкой — отбивает УНИВЕРСАЛЬНЫЙ сканер стола (он ищет код
+    # передачи, ТТН или код получения), а привязка этикетки — другой диалог.
+
+  - id: mkt.supply.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Оператор принимает партию по цене НИЖЕ заказанной (уценка на приёмке):
+      какой ценой имущество приходуется на склад и по какой цене оно потом
+      отпускается пайщику
+    expect: decision_needed
     test: ~
     status: missing
-    # Не закрывается сценарием: коды этикеток система выдаёт печатной формой
-    # (PDF), прочитать их из harness нечем. Ручной ввод произвольного номера
-    # сканер отбивает справедливо — «Нераспознанный код». Закрытие требует
-    # чтения печатной формы либо тестового кода из API.
+    decision_needed: true
+    # Обнаружено прогоном 2026-08-11 на заказе 10 × 250 ₽, принятом как
+    # 9 × 200 ₽:
+    #   • акт приёмки фиксирует факт верно — 9 единиц, 200 ₽, сумма 1800 ₽;
+    #   • на склад позиция приходуется по цене ЗАКАЗА, а не по цене приёмки
+    #     (`arrival_price: order.price_per_unit` в marketplace-apl-reception),
+    #     то есть по 250 ₽;
+    #   • диалог выдачи подставляет в факт тоже цену заказа
+    #     (`o.price_per_unit` в IssueActOpenDialog), и пайщик платит 250 ₽ за
+    #     единицу, принятую по 200 ₽.
+    # Разница между уценённой закупкой и ценой заказа нигде не проводится, а
+    # завышенная цена прибытия задаёт потолок цены перепубликации остатка и
+    # базу расчёта уценки при его выдаче.
+    # Из кода не выводится, как должно быть: уценка на приёмке — это только
+    # расчёт с поставщиком (и тогда разнице нужна своя проводка) либо она
+    # обязана переноситься на цену для пайщика (и тогда и цена прибытия, и
+    # факт выдачи должны браться из акта приёмки). Нужен ответ владельца.

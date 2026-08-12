@@ -10,6 +10,7 @@ import type { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {
@@ -239,7 +240,8 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResult<IssueDomainEntity>> {
     // Валидируем параметры пагинации
     const validatedOptions: PaginationInputDTO = options
@@ -299,6 +301,29 @@ export class IssueTypeormRepository implements IssueRepository {
       queryBuilder = queryBuilder.andWhere(
         'EXISTS (SELECT 1 FROM capital_projects p WHERE i.project_hash = p.project_hash AND p.master = :master)',
         { master: filter.master }
+      );
+    }
+
+    // Ограничение правами доступа: задачи разрешённых проектов плюс собственная работа пайщика.
+    // Своё видно всегда — постановщик, ответственный и исполнитель не должны терять задачу из
+    // списка, даже если допуск к проекту ещё не оформлен или уже снят. Отсев именно здесь, а не
+    // после выборки, иначе totalCount/totalPages считаются по недоступным строкам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      const scopeUser = scope.username ?? null;
+      queryBuilder = queryBuilder.andWhere(
+        `(
+          lower(i.project_hash) = ANY(CAST(:scopeHashes AS text[]))
+          OR (
+            CAST(:scopeUser AS text) IS NOT NULL
+            AND (
+              i.created_by = CAST(:scopeUser AS text)
+              OR i.submaster = CAST(:scopeUser AS text)
+              OR CAST(:scopeUser AS text) = ANY(i.creators)
+            )
+          )
+        )`,
+        { scopeHashes, scopeUser }
       );
     }
 

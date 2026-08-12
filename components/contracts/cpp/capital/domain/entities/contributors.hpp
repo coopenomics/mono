@@ -243,6 +243,24 @@ inline std::optional<contributor> get_contributor_for_regshare_or_fail(eosio::na
   return contributor;
 }
 
+/**
+ * @brief Контрибьютор, допустимый для программной инвестиции (@ref capital::createpinv).
+ * Подходит любой статус — @p pending (договор УХД подписан пайщиком и ждёт одобрения
+ * председателя), @p active и @p import.
+ *
+ * Одобренный договор УХД для инвестиции в программу «Благорост» не требуется:
+ * участие в программе оформлено офертой, кошелёк программы уже открыт, юридических
+ * ограничений на паевой взнос до одобрения УХД нет. Проверка активности здесь была
+ * лишней и блокировала инвестицию сразу после регистрации, пока председатель не дошёл
+ * до одобрения. На остальных действиях (проекты, коммиты, имущество) требование
+ * активного УХД сохраняется.
+ */
+inline std::optional<contributor> get_contributor_for_program_invest_or_fail(eosio::name coopname, eosio::name username) {
+  auto contributor = get_contributor(coopname, username);
+  eosio::check(contributor.has_value(), "Исполнитель не подписывал договор УХД");
+  return contributor;
+}
+
 
 
 /**

@@ -42,6 +42,7 @@
   if (unspent.amount > 0) {
     Ledger2::apply(_branch, coopname,
                    operations::branch::EXPENSE_UNFUND,
+                   processes::branch::SPEND,
                    unspent, it->braname, expense_hash,
                    "Возврат неизрасходованных средств в общий кошелёк кооперативного участка");
   }

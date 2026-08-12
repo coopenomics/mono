@@ -356,13 +356,26 @@ export class BranchInteractor {
     return await this.getBranch(data.coopname, data.braname);
   }
 
-  async selectBranch(data: SelectBranchInputDomainInterface): Promise<boolean> {
+  async selectBranch(data: SelectBranchInputDomainInterface, currentUsername?: string): Promise<boolean> {
+    // Заявление о выборе участка пайщик подаёт только за себя: контракт
+    // авторизует кооператив целиком, поэтому сверка подателя — обязанность backend.
+    if (currentUsername && currentUsername !== data.username)
+      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
+
     // TODO move it to separate document domain service for validate
     const document = await this.documentRepository.findByHash(data.document.doc_hash);
     if (!document) throw new BadRequestException('Документ не найден');
 
     if (data.document.meta.registry_id != Cooperative.Registry.SelectBranchStatement.registry_id)
       throw new BadRequestException('Неверный registry_id в переданном документе, ожидается registry_id == 101');
+
+    // подписанное заявление должно быть выписано на того же пайщика,
+    // иначе на цепь уедет документ одного пайщика с участком другого
+    if (data.document.meta.username !== data.username)
+      throw new BadRequestException('Пайщик в документе не совпадает с пайщиком заявления');
+
+    if (data.document.meta.braname !== data.braname)
+      throw new BadRequestException('Кооперативный участок в документе не совпадает с выбранным');
 
     if (data.coopname != config.coopname)
       throw new HttpApiError(httpStatus.BAD_REQUEST, 'Указанное имя аккаунта кооператива не обслуживается здесь');

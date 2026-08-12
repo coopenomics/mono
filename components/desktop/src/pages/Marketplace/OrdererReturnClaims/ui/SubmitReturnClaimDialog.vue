@@ -195,7 +195,7 @@ async function confirm(): Promise<void> {
       photos,
     });
 
-    SuccessAlert('Заявление подано. Председатель кооперативного участка рассмотрит обращение.');
+    SuccessAlert('Заявление подано. Обращение рассмотрит оператор пункта выдачи.');
     emit('submitted');
     emit('update:modelValue', false);
   } catch (e) {
@@ -252,7 +252,7 @@ TakeoverDialog(
           .banner.banner--info.q-mb-md
             q-icon.banner__icon(name="info", size="20px")
             .banner__body
-              | Опишите, что не так с полученным товаром. Это сообщение увидит председатель кооперативного участка при удалённом рассмотрении.
+              | Опишите, что не так с полученным товаром. Это сообщение увидит оператор пункта выдачи при удалённом рассмотрении.
           BaseInput.mp-return-submit__reason(
             v-model="reasonText"
             type="textarea"

@@ -35,6 +35,14 @@ export const KNOWN_FIXTURES = {
   sidorov: { email: 'sidorov@voskhod.coop', firstName: 'Дмитрий', lastName: 'Сидоров', middleName: 'Николаевич' },
   petrova: { email: 'petrova@voskhod.coop', firstName: 'Екатерина', lastName: 'Петрова', middleName: 'Александровна' },
 
+  // Заказчик, который ничего не заказывал: нужен для пустых состояний стола
+  // (список заказов, готовые к получению). Рабочая фикстура `ekaterina` для
+  // этого не годится — через неё проходит вся цепочка заказа, и к моменту
+  // проверки пустого экрана у неё уже есть заказы. Оферту ЦПП и участок
+  // получения ему проставляет фаза `marketplace:05-sign-offer`, иначе стол
+  // отдаёт «Недостаточно прав доступа» вместо пустого списка.
+  orderer2: { email: 'orderer2@voskhod.coop', firstName: 'Анна', lastName: 'Зайцева', middleName: 'Павловна' },
+
   // Пул для сценария первого входа на Стол заказов. Подпись оферты ЦПП —
   // ончейн-действие, отменить его нельзя, поэтому пайщик «расходуется» за один
   // прогон. Чтобы сценарий воспроизводился без reboot, берём следующего
@@ -157,6 +165,15 @@ export function fixturesOfScenario(scenario, meta = {}) {
   if (fs.existsSync(file)) {
     const src = fs.readFileSync(file, 'utf8');
     for (const m of src.matchAll(/state\/participants\/([\w-]+)\.json/g)) names.add(m[1]);
+    // Путь к state-файлу почти везде строится через переменную
+    // (`.../participants/${username}.json`), поэтому поиск литералов выше
+    // ничего не находит, а состав объявлен в `meta.fixtures`. Читаем его из
+    // исходника: до создания пайщиков сценарий импортировать нельзя — он
+    // тянет Playwright и лезет в state, которого ещё нет.
+    const declared = src.match(/^\s*fixtures:\s*\[([^\]]*)\]/m);
+    if (declared) {
+      for (const m of declared[1].matchAll(/['"]([\w-]+)['"]/g)) names.add(m[1]);
+    }
   }
   return [...names];
 }

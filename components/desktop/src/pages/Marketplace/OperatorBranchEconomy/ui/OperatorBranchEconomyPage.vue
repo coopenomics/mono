@@ -68,7 +68,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 const branch = computed(() => store.activeBranch?.branch ?? null)
 const isBranchTrustee = computed(
-  () => !!branch.value && branch.value.trustee.username === session.username
+  () => !!branch.value?.trustee && branch.value.trustee.username === session.username
 )
 
 const loading = ref(true)
@@ -135,8 +135,9 @@ function personName(p: { first_name?: string; last_name?: string; middle_name?: 
 const nameByUsername = computed<Record<string, string>>(() => {
   const b = branch.value
   if (!b) return {}
+  if (!b.trustee) return {}
   const map: Record<string, string> = { [b.trustee.username]: personName(b.trustee) }
-  for (const t of b.trusted) map[t.username] = personName(t)
+  for (const t of b.trusted ?? []) map[t.username] = personName(t)
   return map
 })
 
@@ -365,7 +366,8 @@ const weightCandidates = computed(() => {
   const b = branch.value
   if (!b || !economy.value) return []
   const present = new Set(economy.value.weights.map((w) => w.username))
-  return [b.trustee, ...b.trusted]
+  if (!b.trustee) return []
+  return [b.trustee, ...(b.trusted ?? [])]
     .filter((p) => !present.has(p.username))
     .map((p) => ({ label: personName(p), value: p.username }))
 })
@@ -536,8 +538,8 @@ q-page.economy
 
   template(v-else)
     PageHint(storage-key='mp:operator-economy:banner-dismissed')
-      | С каждого исполненного заказа участок получает членский взнос по единой
-      | ставке кооператива — он целиком зачисляется в общий кошелёк участка.
+      | С каждого исполненного заказа участок получает кооперативную наценку по
+      | единой ставке кооператива — она целиком зачисляется в общий кошелёк участка.
       | Сначала из него покрываются плановые расходы (срочные и ближайшие
       | 30 дней образуют неснижаемый резерв), и только остаток председатель
       | распределяет между участниками по весам — когда и сколько решит сам.

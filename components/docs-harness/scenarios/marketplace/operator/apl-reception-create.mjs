@@ -23,6 +23,17 @@ const loadFixture = (username) =>
 
 const SUPPLIER_CODE = `blago:pickup:${process.env.COOPNAME || 'voskhod'}:ivanpetrov`;
 
+/**
+ * Партия приходит не такой, какой её заказали: поставщик привёз на единицу
+ * меньше и товар приняли дешевле объявленного. Оба расхождения оператор
+ * фиксирует в одной сверке, и от них считается, сколько вернётся заказчику.
+ *
+ * Заказ — 10 единиц по 250 ₽. Принимаем 9 по 200 ₽: 9 × 200 = 1800 ₽ вместо
+ * 2500 ₽, и разница вместе с частью членского взноса возвращается пайщице.
+ */
+const FACT_QUANTITY = 9;
+const FACT_UNIT_PRICE = 200;
+
 export const meta = {
   title: 'Стол ПВЗ — приёмка партии поставщика',
   docPath: 'new/marketplace/operator/apl-reception-create.md',
@@ -38,6 +49,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
 };
@@ -83,13 +95,35 @@ export default async ({ page, shot, expect }) => {
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
 
+  await expect(page.locator('text=Приёмка имущества поставщика').first()).toBeVisible({ timeout: 15000 });
+
+  // Правим факт: количество и цену. Поля управляемые — без blur модель
+  // остаётся с прежним значением, и акт уйдёт на заказанных числах при
+  // внешне правильном экране.
+  const factInputs = page.locator('.reception__unit-fact input');
+  const qtyInput = factInputs.nth(1); // 0 — «Заказано», только для чтения
+  const priceInput = factInputs.nth(2);
+  await qtyInput.click();
+  await qtyInput.fill(String(FACT_QUANTITY));
+  await qtyInput.blur();
+  await page.waitForTimeout(500);
+  await priceInput.click();
+  await priceInput.fill(String(FACT_UNIT_PRICE));
+  await priceInput.blur();
+  await page.waitForTimeout(800);
+  await cleanViteOverlays(page);
+
   await shot(
     page,
     '03-reception-check',
-    'Сверка с фактом: по каждой позиции оператор поправляет количество (не выше заказанного) и цену. Снятая галка означает, что позицию не принимают — партия без выбранных позиций не создаётся и ждёт.',
+    `Сверка с фактом: поставщик привёз ${FACT_QUANTITY} единиц вместо заказанных десяти, и принимают их по ${FACT_UNIT_PRICE} ₽ вместо 250 ₽. Оба расхождения оператор фиксирует здесь; снятая галка означала бы, что позицию не принимают вовсе.`,
     {
       preserveNotifications: true,
       expect: async (p) => {
+        // Значения обязаны быть в модели, а не только на экране: от них
+        // считается и сумма акта, и возврат заказчику.
+        expect(await qtyInput.inputValue()).toBe(String(FACT_QUANTITY));
+        expect(await priceInput.inputValue()).toBe(String(FACT_UNIT_PRICE));
         await expect(p.locator('text=Приёмка имущества поставщика').first()).toBeVisible({ timeout: 15000 });
       },
     },

@@ -1,9 +1,22 @@
 import { SegmentStatus } from '../enums/segment-status.enum';
+import type { ProjectStatus } from '../enums/project-status.enum';
 import type { ISegmentDatabaseData } from '../interfaces/segment-database.interface';
 import type { ISegmentBlockchainData } from '../interfaces/segment-blockchain.interface';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 import type { ResultDomainEntity } from './result.entity';
+
+/** Поля сегмента, приходящие не из блокчейна, а из связанных сущностей */
+interface SegmentAdditionalData {
+  display_name?: string;
+  result?: ResultDomainEntity;
+  project_title?: string;
+  parent_title?: string;
+  parent_hash?: string;
+  project_status?: ProjectStatus;
+  has_voted?: boolean;
+  voting_completed?: boolean;
+}
 
 /**
  * Доменная сущность сегмента участника в проекте
@@ -30,6 +43,12 @@ export class SegmentDomainEntity
   // Дополнительные поля из связанных сущностей
   public display_name?: string; // Отображаемое имя из участника
   public result?: ResultDomainEntity; // Связанный результат
+  public project_title?: string; // Название проекта (компонента), к которому относится доля
+  public parent_title?: string; // Название проекта, в который входит компонент
+  public parent_hash?: string; // Хеш проекта, в который входит компонент
+  public project_status?: ProjectStatus; // Статус проекта: по нему видно, идёт ли голосование
+  public has_voted?: boolean; // Участник уже отдал голос в этом проекте
+  public voting_completed?: boolean; // Голосование по проекту закрыто
 
   // Поля из блокчейна (segments.hpp)
   public project_hash?: ISegmentBlockchainData['project_hash'];
@@ -120,7 +139,7 @@ export class SegmentDomainEntity
   constructor(
     databaseData: ISegmentDatabaseData,
     blockchainData?: ISegmentBlockchainData,
-    additionalData?: { display_name?: string; result?: ResultDomainEntity }
+    additionalData?: SegmentAdditionalData
   ) {
     // Вызываем конструктор базового класса с данными
     super(databaseData, SegmentStatus.UNDEFINED);
@@ -205,10 +224,26 @@ export class SegmentDomainEntity
     }
 
     // Устанавливаем дополнительные поля
-    if (additionalData) {
-      this.display_name = additionalData.display_name;
-      this.result = additionalData.result;
+    this.applyAdditionalData(additionalData);
+  }
+
+  /**
+   * Поля из связанных сущностей: имя участника, поданный результат и контекст
+   * проекта. В блокчейне их нет — они подтягиваются на чтении.
+   */
+  private applyAdditionalData(additionalData?: SegmentAdditionalData): void {
+    if (!additionalData) {
+      return;
     }
+
+    this.display_name = additionalData.display_name;
+    this.result = additionalData.result;
+    this.project_title = additionalData.project_title;
+    this.parent_title = additionalData.parent_title;
+    this.parent_hash = additionalData.parent_hash;
+    this.project_status = additionalData.project_status;
+    this.has_voted = additionalData.has_voted;
+    this.voting_completed = additionalData.voting_completed;
   }
 
   /**

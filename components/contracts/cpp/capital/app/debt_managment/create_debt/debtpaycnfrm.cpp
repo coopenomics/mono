@@ -30,7 +30,7 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   // вложение (58) против уменьшения расчётного (51). Возврат займа —
   // operations::capital::REPAY при подписании акта-2 через результат (signact2.cpp).
   auto memo = Capital::Memo::get_debt_memo(exist_debt.username);
-  Ledger2::apply(_capital, coopname, operations::capital::LEND, exist_debt.amount, exist_debt.username, debt_hash, memo);
+  Ledger2::apply(_capital, coopname, operations::capital::LEND, processes::capital::DEBT, exist_debt.amount, exist_debt.username, debt_hash, memo);
 
   // Увеличиваем долг contributor (теперь долг активен и должен быть погашен через внесение результата)
   Capital::Contributors::increase_debt_amount(coopname, contributor->id, exist_debt.amount);

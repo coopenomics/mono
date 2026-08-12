@@ -3,6 +3,9 @@ import type {
   ICouncilPort,
   InnerCoopAgreement,
   InnerCouncilDecision,
+  InnerCoopProgram,
+  InnerEnsureProgramParams,
+  InnerEnsureProgramResult,
   InnerTransactResult,
 } from '@coopenomics/innercoop';
 import type { SovietContract } from 'cooptypes';
@@ -29,6 +32,14 @@ export class CouncilInnercoopAdapter implements ICouncilPort {
 
   async getCoagreement(coopname: string, agreementType: string): Promise<InnerCoopAgreement | null> {
     return this.sovietBlockchainPort.getCoagreement(coopname, agreementType);
+  }
+
+  async getPrograms(coopname: string): Promise<InnerCoopProgram[]> {
+    return this.sovietBlockchainPort.getPrograms(coopname);
+  }
+
+  async ensureProgram(params: InnerEnsureProgramParams): Promise<InnerEnsureProgramResult> {
+    return this.sovietBlockchainPort.ensureProgram(params);
   }
 
   async cancelExpiredDecision(input: {

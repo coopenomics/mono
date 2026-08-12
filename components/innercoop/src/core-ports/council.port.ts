@@ -32,11 +32,53 @@ export interface InnerCoopAgreement {
   [key: string]: any;
 }
 
+/**
+ * Программа кооператива в его реестре.
+ *
+ * `draft_id` — шаблон оферты именно этой программы: подпись сверяется с ним, а
+ * не со справочником соглашений. Значения расходятся, когда шаблон программы
+ * правили отдельно, и подпись по справочнику тогда не проходит.
+ */
+export interface InnerCoopProgram {
+  id: string | number;
+  draft_id: string | number;
+  [key: string]: any;
+}
+
+/** Заявка на открытие целевой программы в кооперативе. */
+export interface InnerEnsureProgramParams {
+  coopname: string;
+  /** Вид программы в реестре кооператива: `marketplace`, `capital`, `generator`. */
+  type: string;
+  /** Название программы для реестра. */
+  title: string;
+  /** Вправе ли кооператив расходовать паевые взносы программы. */
+  is_can_coop_spend_share_contributions?: boolean;
+}
+
+export interface InnerEnsureProgramResult {
+  /** `false` — программа уже была открыта, в цепь ничего не отправляли. */
+  created: boolean;
+  program_id: number;
+}
+
 export interface ICouncilPort {
   getDecisions(coopname: string): Promise<InnerCouncilDecision[]>;
 
   /** Типовое соглашение по его виду; `null`, если такого в кооперативе нет. */
   getCoagreement(coopname: string, agreementType: string): Promise<InnerCoopAgreement | null>;
+
+  /** Программы, открытые в кооперативе. */
+  getPrograms(coopname: string): Promise<InnerCoopProgram[]>;
+
+  /**
+   * Открыть программу расширения в кооперативе, если её ещё нет.
+   *
+   * Идемпотентно: открытую программу второй раз не заводят и транзакцию не
+   * шлют. Номер программы и шаблон её оферты назначает контракт по виду —
+   * это константы протокола, кооператив их не выбирает.
+   */
+  ensureProgram(params: InnerEnsureProgramParams): Promise<InnerEnsureProgramResult>;
 
   /**
    * Погасить просроченное решение. Отказ по существу — отдельное действие

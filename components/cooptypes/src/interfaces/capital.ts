@@ -362,8 +362,6 @@ export interface IDebt {
   approved_statement: IDocument2
   authorization: IDocument2
   memo: string
-  last_pay_error?: string
-  due_at?: ITimePointSec
 }
 
 export interface IDebtauthcnfr {
@@ -813,9 +811,6 @@ export interface ISegment {
   available_for_program: IAsset
   available_for_wallet: IAsset
   share_percent: IFloat64
-  approved_rate_per_hour?: IAsset
-  approved_hours_per_day?: IUint64
-  active_debts_count?: IUint32
 }
 
 export interface ISetconfig {
@@ -840,7 +835,7 @@ export interface ISetplan {
 
 export interface ISettledebt {
   coopname: IName
-  debt_hash: IChecksum256
+  username: IName
   amount: IAsset
   statement: IDocument2
 }
@@ -984,4 +979,15 @@ export interface IProgramExpense {
   approved_statement: IDocument2
   authorization: IDocument2
   spended_at: ITimePointSec
+}
+
+export interface IItem {
+  item_hash: IChecksum256
+  mechanics: IUint8
+  recipient_type: IUint8
+  recipient: IName
+  description: string
+  planned_amount: IAsset
+  actual_amount: IAsset
+  status: IUint8
 }

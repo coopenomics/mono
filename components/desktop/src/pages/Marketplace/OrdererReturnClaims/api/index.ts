@@ -63,7 +63,7 @@ export const OPEN_RETURN_CLAIM_STATUSES = new Set<MarketplaceReturnClaimView['st
 // Гуманизация решений из decision_log — используется и в деталях заявления,
 // и в хронологии заказа (DRY: один источник вместо двух локальных карт).
 const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
-  approve_visit: 'Председатель пригласил на очный осмотр',
+  approve_visit: 'Приглашение на очный осмотр',
   reject_remote: 'Отказано удалённо',
   accept_at_visit: 'Возврат принят на очном осмотре',
   reject_at_visit: 'Отказано на очном осмотре',

@@ -207,7 +207,19 @@ const rows = computed(() => segments.value?.items || []);
  * 0.0001 копит погрешность и контракт отбивает голос.
  */
 const voteUnits = ref<Record<string, number>>({});
-const hasVoted = ref(false);
+/**
+ * Голос отдаётся один раз, и после перезагрузки страницы это должно быть видно:
+ * признак приходит с сервера, а собственная отправка поднимает его сразу, не
+ * дожидаясь следующего чтения списка.
+ */
+const voteSubmitted = ref(false);
+const hasVoted = computed(
+  () =>
+    voteSubmitted.value ||
+    !!segments.value?.items.some(
+      (segment) => segment.username === props.currentUsername && segment.has_voted,
+    ),
+);
 
 const governSymbol = computed(
   () => info.symbols?.root_govern_symbol || 'RUB',
@@ -413,7 +425,7 @@ const handleToggleExpand = (username: string) => {
 };
 
 const handleVoteSubmitted = () => {
-  hasVoted.value = true;
+  voteSubmitted.value = true;
   resetAll();
   emit('votes-changed', {
     projectHash: props.projectHash,

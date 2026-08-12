@@ -2130,13 +2130,13 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
@@ -2144,7 +2144,7 @@ export type ValueTypes = {
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
@@ -4314,6 +4314,8 @@ export type ValueTypes = {
 	is_planed?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null | Variable<any, string>,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null | Variable<any, string>,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
@@ -4552,6 +4554,8 @@ export type ValueTypes = {
 	equal_author_bonus?:boolean | `@${string}`,
 	/** Наличие права голоса */
 	has_vote?:boolean | `@${string}`,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted?:boolean | `@${string}`,
 	/** ID в блокчейне */
 	id?:boolean | `@${string}`,
 	/** Интеллектуальная стоимость сегмента */
@@ -4588,10 +4592,18 @@ export type ValueTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
+	/** Название проекта, в который входит компонент */
+	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?:boolean | `@${string}`,
+	/** Название проекта, к которому относится доля участника */
+	project_title?:boolean | `@${string}`,
 	/** Базовый имущественный вклад */
 	property_base?:boolean | `@${string}`,
 	/** Предварительная сумма */
@@ -4612,6 +4624,8 @@ export type ValueTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalSegment']?: Omit<ValueTypes["CapitalSegment"], "...on CapitalSegment">
 }>;
@@ -4623,6 +4637,8 @@ export type ValueTypes = {
 	has_vote?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null | Variable<any, string>,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли координатора */
@@ -9893,11 +9909,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -9998,6 +10017,8 @@ export type ValueTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?:boolean | `@${string}`,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?:boolean | `@${string}`,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -16402,13 +16423,13 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
@@ -16416,7 +16437,7 @@ export type ResolverInputTypes = {
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
@@ -18538,6 +18559,8 @@ export type ResolverInputTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -18770,6 +18793,8 @@ export type ResolverInputTypes = {
 	equal_author_bonus?:boolean | `@${string}`,
 	/** Наличие права голоса */
 	has_vote?:boolean | `@${string}`,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted?:boolean | `@${string}`,
 	/** ID в блокчейне */
 	id?:boolean | `@${string}`,
 	/** Интеллектуальная стоимость сегмента */
@@ -18806,10 +18831,18 @@ export type ResolverInputTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
+	/** Название проекта, в который входит компонент */
+	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?:boolean | `@${string}`,
+	/** Название проекта, к которому относится доля участника */
+	project_title?:boolean | `@${string}`,
 	/** Базовый имущественный вклад */
 	property_base?:boolean | `@${string}`,
 	/** Предварительная сумма */
@@ -18830,6 +18863,8 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
@@ -18840,6 +18875,8 @@ export type ResolverInputTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -23981,11 +24018,14 @@ export type ResolverInputTypes = {
 	unlimited_flag?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -24085,6 +24125,8 @@ export type ResolverInputTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?:boolean | `@${string}`,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?:boolean | `@${string}`,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -30288,24 +30330,24 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trusted: Array<ModelTypes["Individual"]>,
+	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trustee: ModelTypes["Individual"],
+	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
-	whitelist_certificates: Array<ModelTypes["IndividualCertificate"]>
+	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -32374,6 +32416,8 @@ export type ModelTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -32600,6 +32644,8 @@ export type ModelTypes = {
 	equal_author_bonus: string,
 	/** Наличие права голоса */
 	has_vote: boolean,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted: boolean,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Интеллектуальная стоимость сегмента */
@@ -32636,10 +32682,18 @@ export type ModelTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
+	/** Название проекта, в который входит компонент */
+	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Хеш проекта */
 	project_hash: string,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?: ModelTypes["ProjectStatus"] | undefined | null,
+	/** Название проекта, к которому относится доля участника */
+	project_title?: string | undefined | null,
 	/** Базовый имущественный вклад */
 	property_base: string,
 	/** Предварительная сумма */
@@ -32659,7 +32713,9 @@ export type ModelTypes = {
 	/** Вклад участника словами участника */
 	value?: string | undefined | null,
 	/** Бонус голосования */
-	voting_bonus: string
+	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
 ["CapitalSegmentFilter"]: {
@@ -32669,6 +32725,8 @@ export type ModelTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -37628,12 +37686,14 @@ export type ModelTypes = {
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag: boolean
 };
+	["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: ModelTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number
 };
@@ -37731,6 +37791,8 @@ export type ModelTypes = {
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: ModelTypes["DateTime"],
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?: string | undefined | null,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?: Array<string> | undefined | null,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -39604,7 +39666,7 @@ export type ModelTypes = {
 	chatcoopUpdateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: ModelTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -44857,24 +44919,24 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trusted: Array<GraphQLTypes["Individual"]>,
+	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trustee: GraphQLTypes["Individual"],
+	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
-	whitelist_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
+	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -47040,6 +47102,8 @@ export type GraphQLTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -47279,6 +47343,8 @@ export type GraphQLTypes = {
 	equal_author_bonus: string,
 	/** Наличие права голоса */
 	has_vote: boolean,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted: boolean,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Интеллектуальная стоимость сегмента */
@@ -47315,10 +47381,18 @@ export type GraphQLTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
+	/** Название проекта, в который входит компонент */
+	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Хеш проекта */
 	project_hash: string,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?: GraphQLTypes["ProjectStatus"] | undefined | null,
+	/** Название проекта, к которому относится доля участника */
+	project_title?: string | undefined | null,
 	/** Базовый имущественный вклад */
 	property_base: string,
 	/** Предварительная сумма */
@@ -47339,6 +47413,8 @@ export type GraphQLTypes = {
 	value?: string | undefined | null,
 	/** Бонус голосования */
 	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean,
 	['...on CapitalSegment']: Omit<GraphQLTypes["CapitalSegment"], "...on CapitalSegment">
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
@@ -47349,6 +47425,8 @@ export type GraphQLTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -52620,13 +52698,16 @@ export type GraphQLTypes = {
 	unlimited_flag: boolean,
 	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 };
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]: MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: GraphQLTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number,
 	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
@@ -52726,6 +52807,8 @@ export type GraphQLTypes = {
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: GraphQLTypes["DateTime"],
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?: string | undefined | null,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?: Array<string> | undefined | null,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -54743,7 +54826,7 @@ export type GraphQLTypes = {
 	chatcoopUpdateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: GraphQLTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -59624,6 +59707,12 @@ export enum MarketplaceOfferStatus {
 	REJECTED = "REJECTED",
 	WITHDRAWN = "WITHDRAWN"
 }
+/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+export enum MarketplaceOnboardingSource {
+	AGREEMENT_SIGNED = "AGREEMENT_SIGNED",
+	GATE_REQUIRED = "GATE_REQUIRED",
+	NOT_CONFIGURED = "NOT_CONFIGURED"
+}
 /** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 export enum MarketplaceOrderIssuanceFactDiffState {
 	EQUAL = "EQUAL",
@@ -60437,6 +60526,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOfferPackageInput"]: ValueTypes["MarketplaceOfferPackageInput"];
 	["MarketplaceOfferStatus"]: ValueTypes["MarketplaceOfferStatus"];
+	["MarketplaceOnboardingSource"]: ValueTypes["MarketplaceOnboardingSource"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];

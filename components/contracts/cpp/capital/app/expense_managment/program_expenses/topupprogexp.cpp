@@ -28,6 +28,6 @@ void capital::topupprogexp(name coopname, eosio::asset amount) {
   const std::string anchor = coopname.to_string() + ":pgtopup:" + std::to_string(now_us);
   const checksum256 process_hash = eosio::sha256(anchor.c_str(), anchor.size());
 
-  Ledger2::apply(_capital, coopname, operations::capital::PROGRAM_EXPENSE_TOPUP, amount,
+  Ledger2::apply(_capital, coopname, operations::capital::PROGRAM_EXPENSE_TOPUP, processes::capital::PGEXP, amount,
                  name{}, process_hash, "capital:topupprogexp");
 }

@@ -100,8 +100,8 @@ cases:
     kind: side
     scenario: Итоговая сумма заказа получается нулевой
     expect: отказ с требованием проверить количество и цену
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.08
     level: backend
@@ -169,11 +169,9 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Массовый приём, где один из заказов непроходной (чужой, не найден
-      или уже не активен)
+      Массовый приём, где один из заказов непроходной (чужой, не найден или уже не активен)
     expect: >
-      отказ до первого обращения к цепи; ни один заказ не принят,
-      партия не создаётся
+      отказ до первого обращения к цепи; ни один заказ не принят, партия не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
     status: passing
 
@@ -184,7 +182,6 @@ cases:
     expect: отказ до первого обращения к цепи; ни один отказ не отправлен
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
     status: passing
-
     # ── Отмена заказчиком ───────────────────────────────────────────────────
   - id: mkt.order.side.15
     level: backend
@@ -199,8 +196,8 @@ cases:
     kind: side
     scenario: Отмена заказа после открытия акта выдачи
     expect: отказ с указанием, что отмена закрыта после открытия акта выдачи
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.17
     level: backend
@@ -217,14 +214,20 @@ cases:
     expect: создаётся один заказ, второе обращение не создаёт дубль
     test: ~
     status: missing
+    # Не берётся в основную цепочку сознательно: если защита от дубля не
+    # сработает, на стенде появится второй заказ, и все последующие сценарии
+    # (отгрузка, приёмка, выдача, возврат, списание) поедут по нему же —
+    # прогон развалится, а причина будет выглядеть как поломка интерфейса.
+    # Место случая — отдельная цепочка на своём заказе либо backend-проба
+    # dedup'а в пуле write-мутаций.
 
   - id: mkt.order.side.19
     level: ui
     kind: side
     scenario: «Мои заказы» у пайщика без единого заказа
     expect: пустое состояние с пояснением, без ошибок
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/orders-empty.mjs
+    status: passing
 
   # ── Отказ инфраструктуры ────────────────────────────────────────────────
   - id: mkt.order.break.01

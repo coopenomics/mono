@@ -162,7 +162,15 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       location: (o.warehouse_locations ?? []).join(', ') || undefined,
       fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
       expectedPrice: Number.parseFloat(o.price_per_unit),
-      factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
+      // Факт считается от цены прибытия: если на приёмке имущество взяли
+      // дешевле объявленного, пайщик платит по цене приёмки, а разница
+      // возвращается ему как недостача. Цены прибытия нет (заказ из остатка
+      // либо склад не запрашивали) — остаётся цена заказа.
+      factPrice:
+        f?.price ??
+        (o.warehouse_arrival_price != null
+          ? Number.parseFloat(o.warehouse_arrival_price)
+          : Number.parseFloat(o.price_per_unit)),
       included: f?.included ?? availableOf(o) > 0,
     };
   }),
@@ -472,7 +480,7 @@ BaseDialog(
           span.issue-act__sum-label Себестоимость ({{ includedCount }} из {{ positionsCount }} позиц.)
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
         .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label Членский взнос ({{ feePercent }}%)
+          span.issue-act__sum-label Кооперативная наценка ({{ feePercent }}%)
           span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
         .issue-act__sum
           span.issue-act__sum-label Итого к оплате

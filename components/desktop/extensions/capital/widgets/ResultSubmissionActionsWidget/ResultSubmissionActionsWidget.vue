@@ -1,33 +1,40 @@
 <template lang="pug">
-.participant-actions
-  p.participant-actions__hint.t-sm.t-muted {{ statusLabel }}
+.participant-actions(:class='{ "participant-actions--compact": compact }')
+  p.participant-actions__hint.t-sm.t-muted(v-if='!compact') {{ statusLabel }}
 
   .participant-actions__btns
-    template(v-if='segment.status === Zeus.SegmentStatus.GENERATION')
+    //- В строке списка пересчёт доступен всегда, пока доля не получена: пайщик
+    //- пересчитывает стоимость в любой момент, а не только в стадии расчёта
+    template(v-if='canRefresh')
       RefreshSegmentButton(
         :segment='segment',
-        @click.stop
+        :mini='compact',
+        @click.stop,
+        @refreshed='emit("updated")'
       )
 
     template(v-if='segment.status === Zeus.SegmentStatus.READY && segment.has_vote && segment.is_votes_calculated === false')
       CalculateVotesButton(
         :coopname='coopname',
         :project-hash='segment.project_hash',
-        :username='segment.username'
+        :username='segment.username',
+        @calculated='emit("updated")'
       )
 
     template(v-if='segment.username === currentUsername')
       template(v-if='segment.status === Zeus.SegmentStatus.READY && (!segment.has_vote || segment.is_votes_calculated === true)')
         PushResultButton(
           :segment='segment',
-          @click.stop
+          @click.stop,
+          @submitted='emit("updated")'
         )
 
       template(v-if='segment.status === Zeus.SegmentStatus.AUTHORIZED')
         SignActButton(
           :segment='segment',
           :coopname='coopname',
-          @click.stop
+          @click.stop,
+          @signed='emit("updated")'
         )
 
       template(v-if='segment.status === Zeus.SegmentStatus.CONTRIBUTED && !segment.is_completed')
@@ -40,12 +47,14 @@
         SignActButtonByChairman(
           :segment='segment',
           :coopname='coopname',
-          @click.stop
+          @click.stop,
+          @signed='emit("updated")'
         )
 
   ConvertSegmentDialog(
     v-model='showConvertDialog',
-    :segment='segment'
+    :segment='segment',
+    @converted='emit("updated")'
   )
 </template>
 
@@ -64,10 +73,21 @@ import { getSegmentStatusLabel } from 'app/extensions/capital/shared/lib/segment
 
 interface Props {
   segment: ISegment;
+  /**
+   * Строка списка: текст статуса не дублируется (его несёт бейдж строки),
+   * а пересчёт доли показывается компактной кнопкой-иконкой.
+   */
+  compact?: boolean;
 }
 
 
 const props = defineProps<Props>();
+
+/**
+ * Любое совершённое действие меняет долю: список держит собственные строки и
+ * без этого сигнала показывал бы прежнюю стоимость и прежний статус.
+ */
+const emit = defineEmits<{ updated: [] }>();
 
 const { info } = useSystemStore();
 const { username, isChairman } = useSessionStore();
@@ -84,6 +104,14 @@ const currentUsername = computed(() => username);
 // Текст статуса сегмента
 const statusLabel = computed(() => getSegmentStatusLabel(props.segment.status, props.segment.is_completed, props.segment));
 
+const canRefresh = computed(() => {
+  if (props.segment.is_completed) return false;
+  if (props.compact) {
+    return props.segment.status !== Zeus.SegmentStatus.FINALIZED;
+  }
+  return props.segment.status === Zeus.SegmentStatus.GENERATION;
+});
+
 </script>
 
 <style lang="scss" scoped>
@@ -93,6 +121,14 @@ const statusLabel = computed(() => getSegmentStatusLabel(props.segment.status, p
   align-items: flex-end;
   gap: var(--p-2);
   max-width: 280px;
+}
+
+// В строке списка виджет — не колонка, а продолжение ряда действий
+.participant-actions--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--p-1);
+  max-width: none;
 }
 
 .participant-actions__hint {

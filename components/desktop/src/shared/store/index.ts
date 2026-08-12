@@ -160,12 +160,46 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       return await sendAction(actionOrActions, broadcast);
     }
   }
+  // Кэш ABI контрактов. Раньше каждое действие пайщика тянуло ABI с ноды заново
+  // (для soviet это ~26 КБ и отдельный round-trip), а ABI меняется только при
+  // деплое контракта. На HTTP/1.1 браузер держит всего 6 соединений на origin —
+  // тот же бюджет делят вызовы цепи и GraphQL, поэтому лишний запрос на каждое
+  // действие реально стоит места в очереди.
+  //
+  // Инвалидация двухступенчатая, потому что по отдельности ни одна не годится:
+  //   • TTL — страхует от бесконечно протухшей записи во вкладке, которую не
+  //     перезагружали. Сверять хэш ABI перед использованием бессмысленно: сама
+  //     сверка — это запрос к ноде, ровно то, от чего уходим.
+  //   • Сброс при ЛЮБОЙ неудачной транзакции — основной предохранитель. После
+  //     деплоя контракта со сменой сигнатуры действия старый ABI даёт ошибку
+  //     сериализации; кэш сбрасывается, и повтор пайщика уже уходит с новым ABI.
+  //     Сбрасываем не разбирая текст ошибки — дешевле один лишний get_abi на
+  //     редкий сбой, чем разбор сообщений цепи, который разъедется с версией.
+  //
+  // Повтор транзакции автоматически НЕ делаем: она могла успеть уйти в цепь, и
+  // авто-ретрай означал бы риск двойного голоса или двойного платежа.
+  const ABI_TTL_MS = 5 * 60 * 1000;
+  const abiCache = new Map<string, { abi: any; fetchedAt: number }>();
+
+  const dropAbiCache = (accounts: string[]) => {
+    for (const account of accounts) abiCache.delete(account);
+  };
+
   const formActionFromAbi = async (action: any) => {
-    const { abi } = (await readBlockchain?.v1.chain.get_abi(
-      action.account,
-    )) ?? {
+    const account = String(action.account);
+    const cached = abiCache.get(account);
+
+    if (cached && Date.now() - cached.fetchedAt < ABI_TTL_MS) {
+      return Action.from(action, cached.abi);
+    }
+
+    const { abi } = (await readBlockchain?.v1.chain.get_abi(account)) ?? {
       abi: undefined,
     };
+
+    // Пустой ABI не кэшируем: это не «контракт без интерфейса», а неответ ноды.
+    if (abi) abiCache.set(account, { abi, fetchedAt: Date.now() });
+
     return Action.from(action, abi);
   };
 
@@ -176,12 +210,17 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     ).useSessionStore();
     const formedAction = await formActionFromAbi(action);
 
-    return sessionStore.session?.transact(
-      {
-        action: formedAction,
-      },
-      { broadcast },
-    );
+    try {
+      return await sessionStore.session?.transact(
+        {
+          action: formedAction,
+        },
+        { broadcast },
+      );
+    } catch (e) {
+      dropAbiCache([String(action.account)]);
+      throw e;
+    }
   };
 
   const sendActions = async (actions: any[], broadcast: boolean) => {
@@ -196,12 +235,17 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       data.push(formedAction);
     }
 
-    return sessionStore.session?.transact(
-      {
-        actions: data,
-      },
-      { broadcast },
-    );
+    try {
+      return await sessionStore.session?.transact(
+        {
+          actions: data,
+        },
+        { broadcast },
+      );
+    } catch (e) {
+      dropAbiCache(actions.map((action) => String(action.account)));
+      throw e;
+    }
   };
 
   return {

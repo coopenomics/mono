@@ -61,9 +61,16 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
       " на главный при выходе — добавьте маппинг в consolidate_share_to_main");
   }
 
+  // Нитку называет её инициатор — выход из кооператива, поэтому имя одно на
+  // все консолидируемые кошельки. Иначе у одного exit_hash оказалось бы два
+  // имени (p.wal.wthdrw и p.cap.wthcap), и какое победит, зависело бы от того,
+  // на каком кошельке у пайщика ненулевой остаток. Операция возврата из
+  // «Благороста» при этом остаётся собственной операцией — в чужой нитке она
+  // идёт по тому же правилу, что членский взнос КУ внутри поставки.
   std::string memo = "Консолидация паевого взноса при выходе, кошелёк=" +
                      wallet_name.to_string() + ", username=" + username.to_string();
-  Ledger2::apply(_registrator, coopname, op, amount, username, exit_hash, memo);
+  Ledger2::apply(_registrator, coopname, op, processes::wallet::WITHDRAW,
+                 amount, username, exit_hash, memo);
 }
 
 /**

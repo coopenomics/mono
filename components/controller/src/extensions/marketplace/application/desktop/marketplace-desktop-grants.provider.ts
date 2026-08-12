@@ -19,6 +19,7 @@ import {
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
 import { MarketplaceOnboardingService } from '../onboarding/marketplace-onboarding.service';
+import { MarketplaceOnboardingSource } from '../dto/marketplace-onboarding-state.dto';
 import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
@@ -41,8 +42,9 @@ import {
  *
  *  L3 (пайщик-заказчик): даже после принятия ЦПП кооперативом orderer-права
  *  выдаются ТОЛЬКО если выполнены ОБА независимых факта: (а) пайщик подписал
- *  персональную оферту ЦПП (`MarketplaceOnboardingService.requires_gate ===
- *  false` — могло произойти ещё на L2, при регистрации) И (б) пайщик выбрал
+ *  персональную оферту ЦПП (`MarketplaceOnboardingService` отдаёт
+ *  `source = AGREEMENT_SIGNED` — подпись могла быть дана ещё на L2, при
+ *  регистрации; на один `requires_gate` смотреть нельзя) И (б) пайщик выбрал
  *  кооперативный участок (КУ/пункт выдачи) — `MarketplaceCart.delivery_braname
  *  !== null`. Подпись оферты на L2 НЕ подразумевает выбор КУ — это отдельный
  *  шаг, которого при регистрации не было. Пока хотя бы одно из двух не
@@ -112,11 +114,18 @@ export class MarketplaceDesktopGrantsProvider
     // L2 (регистрации), где выбора КУ не было вовсе, поэтому проверяем оба
     // факта независимо (см. класс-JSDoc выше).
     if (roles.includes('orderer')) {
-      const [{ requires_gate }, cart] = await Promise.all([
+      const [{ requires_gate, source }, cart] = await Promise.all([
         this.onboardingService.getOnboardingState(ctx.username),
         this.cartRepository.findByOrderer(ctx.coopname, ctx.username),
       ]);
-      const needsGate = requires_gate || !cart?.delivery_braname;
+      // `requires_gate=false` само по себе НЕ означает «оферта подписана»: при
+      // незавершённом подключении ЦПП кооперативом подписывать нечего, и гейт
+      // тоже отдаёт false. Раньше этого различия не было, и пайщик получал
+      // полные права заказчика без единой подписи, стоило выбрать пункт выдачи
+      // (инцидент 2026-08-10). Права выдаём только когда оферта действительно
+      // подписана.
+      const signed = source === MarketplaceOnboardingSource.AGREEMENT_SIGNED;
+      const needsGate = !signed || requires_gate || !cart?.delivery_braname;
       if (needsGate) {
         grants.add('Onboarding:orderer');
       } else {

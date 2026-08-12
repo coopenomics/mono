@@ -1481,6 +1481,14 @@ export class MarketplaceAplReceptionService {
     const factByOrderId = new Map(
       reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity] as const)
     );
+    // Фактическая цена приёмки: оператор мог принять дешевле объявленного
+    // (уценка при расхождении качества или комплектности). Не указана —
+    // принято по цене заказа.
+    const factPriceByOrderId = new Map(
+      reception.fact_quantity_per_order
+        .filter((f) => f.fact_unit_price)
+        .map((f) => [f.order_id, String(f.fact_unit_price)] as const)
+    );
     const offerIds = [...new Set(groupOrders.map((o) => o.offer_id))];
     const offerById = new Map(
       (await this.offerRepo.findByIds(offerIds)).map((off) => [off.id, off] as const)
@@ -1493,6 +1501,7 @@ export class MarketplaceAplReceptionService {
     for (const order of groupOrders) {
       const factQty = factByOrderId.get(order.id) ?? order.quantity;
       if (factQty <= 0) continue;
+      const factUnitPrice = factPriceByOrderId.get(order.id) ?? order.price_per_unit;
       const already = await this.inventoryRepo.countByOrder(reception.coopname, order.id);
       if (already > 0) continue;
       const offer = offerById.get(order.offer_id);
@@ -1535,9 +1544,14 @@ export class MarketplaceAplReceptionService {
           labeled_at: barcode ? receivedAt : null,
           labeled_by_operator_account: barcode ? reception.created_by_operator_account : null,
           expiry_date: expiry,
-          // Цена прибытия — закупочная цена заказа: база цены публикации,
-          // если дельта позже уйдёт в обезличенный остаток КУ (requirement 76).
-          arrival_price: order.price_per_unit,
+          // Цена прибытия — фактическая цена приёмки: во столько имущество
+          // обошлось кооперативу, и ровно на эту сумму контракт оприходовал
+          // его на склад (o.mkt.purch считает fact_cost от факта акта).
+          // Цена заказа здесь не годится: при уценке на приёмке склад
+          // числил бы дороже, чем пришло, и выбытие превышало бы поступление.
+          // От цены прибытия считаются и потолок цены перепубликации остатка,
+          // и уценка при его выдаче.
+          arrival_price: factUnitPrice,
         });
         created += 1;
         if (part.container_id || part.cell_id) placedCount += 1;

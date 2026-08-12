@@ -3,6 +3,7 @@ import type { IssuePriority } from '../enums/issue-priority.enum';
 import type { IssueStatus } from '../enums/issue-status.enum';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from './artifact-access-scope';
 
 export interface IssueRepository {
   create(issue: IssueDomainEntity): Promise<IssueDomainEntity>;
@@ -31,7 +32,8 @@ export interface IssueRepository {
   findByProjectHashWithStories(projectHash: string): Promise<IssueDomainEntity[]>;
   findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResult<IssueDomainEntity>>;
   update(entity: IssueDomainEntity): Promise<IssueDomainEntity>;
   delete(_id: string): Promise<void>;

@@ -22,8 +22,10 @@ void capital::createpinv(name coopname, name username, checksum256 invest_hash, 
   // Проверяем сумму инвестиции
   Wallet::validate_asset(amount);
   
-  // Проверяем основной договор УХД
-  auto contributor = Capital::Contributors::get_active_contributor_or_fail(coopname, username);
+  // Договор УХД должен быть подписан пайщиком, но одобрение председателя (статус active)
+  // здесь не требуется: инвестиция в программу «Благорост» идёт по оферте программы,
+  // юридических ограничений до одобрения УХД нет.
+  auto contributor = Capital::Contributors::get_contributor_for_program_invest_or_fail(coopname, username);
   
   // Проверяем наличие кошелька в программе благороста (_capital_wallet)
   eosio::check(Capital::Wallets::has_program_capital_wallet(coopname, username),
@@ -46,7 +48,7 @@ void capital::createpinv(name coopname, name username, checksum256 invest_hash, 
 
   // ledger2: TRANSFER w.wal.share → w.cap.blago (без бухпроводки — оба счёта 80).
   // Источник правды UI для балансов кошельков пайщика — L3 ledger2::userwallets.
-  Ledger2::apply(_capital, coopname, operations::capital::INVEST, amount,
+  Ledger2::apply(_capital, coopname, operations::capital::INVEST, processes::capital::INVEST, amount,
                  contributor -> username, invest_hash, memo);
 
   Capital::Core::add_program_investment_funds(coopname, amount);

@@ -125,6 +125,7 @@ function makeCategoryRepo(): jest.Mocked<MarketplaceCategoryDomainRepository> {
     findById: jest.fn(),
     upsertBaseline: jest.fn(),
     listForCoop: jest.fn(),
+    existsByDisplayName: jest.fn(),
     createCustom: jest.fn(),
     deleteCustom: jest.fn(),
   };

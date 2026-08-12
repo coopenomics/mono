@@ -22,7 +22,7 @@ export function useEditBranch() {
       full_name: branch.full_name,
       phone: branch.phone,
       short_name: branch.short_name,
-      trustee: branch.trustee.username
+      trustee: branch.trustee?.username ?? ''
     }
 
     const result = await api.editBranch(data)

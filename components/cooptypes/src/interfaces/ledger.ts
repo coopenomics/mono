@@ -26,6 +26,8 @@ export interface IBlock {
   account_id: IUint64
   quantity: IAsset
   comment: string
+  hash: IChecksum256
+  username: IName
 }
 
 export interface IComplete {
@@ -91,6 +93,8 @@ export interface IUnblock {
   account_id: IUint64
   quantity: IAsset
   comment: string
+  hash: IChecksum256
+  username: IName
 }
 
 export interface IWriteoff {
@@ -98,6 +102,8 @@ export interface IWriteoff {
   account_id: IUint64
   quantity: IAsset
   comment: string
+  hash: IChecksum256
+  username: IName
 }
 
 export interface IWriteoffOp {
@@ -117,4 +123,24 @@ export interface IWriteoffcnsl {
   account_id: IUint64
   quantity: IAsset
   comment: string
+  hash: IChecksum256
+  username: IName
+}
+
+export interface IAdd {
+  coopname: IName
+  account_id: IUint64
+  quantity: IAsset
+  comment: string
+  hash: IChecksum256
+  username: IName
+}
+
+export interface ISub {
+  coopname: IName
+  account_id: IUint64
+  quantity: IAsset
+  comment: string
+  hash: IChecksum256
+  username: IName
 }

@@ -54,8 +54,9 @@ function personName(p: { first_name?: string; last_name?: string; middle_name?: 
 const rows = computed<PersonRow[]>(() => {
   const b = branch.value
   if (!b) return []
+  if (!b.trustee) return []
   const out: PersonRow[] = [{ username: b.trustee.username, name: personName(b.trustee), isTrustee: true }]
-  for (const t of b.trusted) {
+  for (const t of b.trusted ?? []) {
     out.push({ username: t.username, name: personName(t), isTrustee: false })
   }
   return out

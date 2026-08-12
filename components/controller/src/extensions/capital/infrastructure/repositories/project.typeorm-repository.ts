@@ -10,6 +10,7 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
@@ -486,7 +487,8 @@ export class ProjectTypeormRepository
    */
   async findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
   ): Promise<PaginationResult<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
     const validatedOptions: PaginationInputDTO = options
@@ -594,6 +596,15 @@ export class ProjectTypeormRepository
       }
 
       queryBuilder = queryBuilder.andWhere(existsQuery, params);
+    }
+
+    // Ограничение правами доступа к артефактам. Отсев в SQL, иначе постраничные
+    // totalCount/totalPages считаются по недоступным проектам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      queryBuilder = queryBuilder.andWhere('lower(p.project_hash) = ANY(CAST(:scopeHashes AS text[]))', {
+        scopeHashes,
+      });
     }
 
     // Получаем общее количество записей
