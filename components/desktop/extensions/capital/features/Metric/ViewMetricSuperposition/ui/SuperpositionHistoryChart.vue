@@ -17,7 +17,6 @@
 import { computed, defineAsyncComponent } from 'vue';
 import { useQuasar } from 'quasar';
 import type { ApexOptions } from 'apexcharts';
-import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { formatPeriodLabel } from 'app/extensions/capital/features/Metric/ViewMetricSeries/lib/formatPeriodLabel';
 import { metricChartPalette } from 'app/extensions/capital/features/Metric/ViewMetricSeries/lib/metricChartTheme';
@@ -27,7 +26,6 @@ import type { IMetricSuperpositionFrame } from 'app/extensions/capital/entities/
 const props = defineProps<{
   frames: IMetricSuperpositionFrame[];
   frameIndex: number;
-  period: Zeus.ModelTypes['MetricSeriesPeriod'];
 }>();
 
 const emit = defineEmits<{
@@ -40,7 +38,7 @@ const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'));
 const toPct = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 100);
 
 const categories = computed(() =>
-  props.frames.map((f) => formatPeriodLabel(f.at, props.period)),
+  props.frames.map((f) => formatPeriodLabel(f.at)),
 );
 
 const scoreSeries = computed(() =>

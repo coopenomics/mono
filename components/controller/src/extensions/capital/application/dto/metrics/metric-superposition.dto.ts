@@ -1,6 +1,5 @@
 import { ObjectType, Field, Float, Int } from '@nestjs/graphql';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 import { MetricDriveDirection } from '../../../domain/enums/metric-drive-direction.enum';
 import { WaveLabel, WavePhase } from '../../../domain/enums/wave-label.enum';
 
@@ -77,9 +76,6 @@ export class MetricComponentRollupOutputDTO {
 export class MetricSuperpositionOutputDTO {
   @Field(() => String, { description: 'Хеш запрошенного проекта/компонента' })
   project_hash!: string;
-
-  @Field(() => MetricSeriesPeriod, { description: 'Период агрегации' })
-  period!: MetricSeriesPeriod;
 
   @Field(() => Float, { description: 'Суммарный факт по охвату' })
   fact_sum!: number;
@@ -206,9 +202,6 @@ export class MetricSuperpositionFrameOutputDTO {
 export class MetricSuperpositionHistoryOutputDTO {
   @Field(() => String, { description: 'Хеш запрошенного проекта/компонента' })
   project_hash!: string;
-
-  @Field(() => MetricSeriesPeriod, { description: 'Период агрегации' })
-  period!: MetricSeriesPeriod;
 
   @Field(() => Date, { description: 'Начало окна истории' })
   from!: Date;

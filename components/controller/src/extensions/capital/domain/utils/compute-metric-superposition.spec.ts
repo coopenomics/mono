@@ -1,5 +1,4 @@
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../enums/metric-series-period.enum';
 import {
   computeSuperpositionAt,
   defaultSuperpositionFrom,
@@ -15,7 +14,6 @@ const metricA: SuperpositionMetricInput = {
   unit: 'шт',
   target_value: 100,
   series_mode: MetricSeriesMode.RATE,
-  wave_period: MetricSeriesPeriod.DAY,
   plan_start: new Date('2026-01-01T00:00:00.000Z'),
   deadline: new Date('2026-12-31T00:00:00.000Z'),
 };
@@ -29,15 +27,12 @@ const metricB: SuperpositionMetricInput = {
 describe('compute-metric-superposition', () => {
   it('покой: нет вкладов → balance≈1, growth≈0', () => {
     const to = new Date('2026-07-28T12:00:00.000Z');
-    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.DAY);
     const r = computeSuperpositionAt(
       [metricA, metricB],
       new Map([
         ['m1', []],
         ['m2', []],
       ]),
-      MetricSeriesPeriod.DAY,
-      from,
       to
     );
     expect(r.activity).toBe(0);
@@ -48,7 +43,6 @@ describe('compute-metric-superposition', () => {
 
   it('усечение: вклад после to не входит в fact и фазоры', () => {
     const to = new Date('2026-07-15T00:00:00.000Z');
-    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.DAY);
     const contribs = new Map([
       [
         'm1',
@@ -58,13 +52,7 @@ describe('compute-metric-superposition', () => {
         ],
       ],
     ]);
-    const r = computeSuperpositionAt(
-      [metricA],
-      contribs,
-      MetricSeriesPeriod.DAY,
-      from,
-      to
-    );
+    const r = computeSuperpositionAt([metricA], contribs, to);
     expect(r.fact_sum).toBe(10);
     expect(r.items[0].fact).toBe(10);
   });
@@ -72,11 +60,7 @@ describe('compute-metric-superposition', () => {
   it('история кадров: синхронный рост поднимает growth на поздних кадрах', () => {
     const windowTo = new Date('2026-07-20T12:00:00.000Z');
     const windowFrom = new Date('2026-07-10T00:00:00.000Z');
-    const frameAts = listSuperpositionFrameAts(
-      windowFrom,
-      windowTo,
-      MetricSeriesPeriod.DAY
-    );
+    const frameAts = listSuperpositionFrameAts(windowFrom, windowTo);
     expect(frameAts.length).toBeGreaterThan(3);
 
     const contribs = new Map([
@@ -102,32 +86,30 @@ describe('compute-metric-superposition', () => {
 
     const earlyAt = frameAts[1];
     const lateAt = frameAts[frameAts.length - 1];
-    const early = computeSuperpositionAt(
-      [metricA, metricB],
-      contribs,
-      MetricSeriesPeriod.DAY,
-      defaultSuperpositionFrom(earlyAt, MetricSeriesPeriod.DAY),
-      earlyAt
-    );
-    const late = computeSuperpositionAt(
-      [metricA, metricB],
-      contribs,
-      MetricSeriesPeriod.DAY,
-      defaultSuperpositionFrom(lateAt, MetricSeriesPeriod.DAY),
-      lateAt
-    );
+    const early = computeSuperpositionAt([metricA, metricB], contribs, earlyAt);
+    const late = computeSuperpositionAt([metricA, metricB], contribs, lateAt);
 
     expect(late.fact_sum).toBeGreaterThan(early.fact_sum);
     expect(late.growth).toBeGreaterThanOrEqual(0);
   });
 
-  it('кадр на period_end дня с вкладом: импульс и growth>0 (без ложного нулевого бакета)', () => {
+  it('кадры истории идут по дням и упираются в `to`', () => {
     const to = new Date('2026-07-28T19:05:00.000Z');
-    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.DAY);
-    const frameAts = listSuperpositionFrameAts(from, to, MetricSeriesPeriod.DAY);
+    const from = defaultSuperpositionFrom(to);
+    const frameAts = listSuperpositionFrameAts(from, to);
+
+    expect(frameAts).toHaveLength(30);
     const lastAt = frameAts[frameAts.length - 1];
-    // последний кадр упирается в `to`, а не в будущий period_end
+    // последний кадр упирается в `to`, а не в будущий конец суток
     expect(lastAt.toISOString()).toBe('2026-07-28T19:05:00.000Z');
+    const prevAt = frameAts[frameAts.length - 2];
+    expect(prevAt.toISOString()).toBe('2026-07-28T00:00:00.000Z');
+  });
+
+  it('кадр на дне с вкладом: импульс и growth>0 (без ложного нулевого бакета)', () => {
+    const to = new Date('2026-07-28T19:05:00.000Z');
+    const frameAts = listSuperpositionFrameAts(defaultSuperpositionFrom(to), to);
+    const lastAt = frameAts[frameAts.length - 1];
 
     const contribs = new Map([
       [
@@ -140,39 +122,21 @@ describe('compute-metric-superposition', () => {
       ],
     ]);
 
-    const r = computeSuperpositionAt(
-      [metricA, metricB],
-      contribs,
-      MetricSeriesPeriod.DAY,
-      defaultSuperpositionFrom(lastAt, MetricSeriesPeriod.DAY),
-      lastAt
-    );
+    const r = computeSuperpositionAt([metricA, metricB], contribs, lastAt);
 
     expect(r.growth).toBeGreaterThan(0.5);
     expect(r.items.every((i) => i.phase_rad < 0.5)).toBe(true);
   });
 
-  it('недельный кадр не гасит рост пустыми днями из будущего', () => {
+  it('пауза в несколько дней не обнуляет активность: окно свежести — неделя', () => {
     const to = new Date('2026-07-28T19:05:00.000Z');
-    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.WEEK);
-    const frameAts = listSuperpositionFrameAts(from, to, MetricSeriesPeriod.WEEK);
-    const lastAt = frameAts[frameAts.length - 1];
-    expect(lastAt.getTime()).toBe(to.getTime());
-
     const contribs = new Map([
-      ['m1', [{ delta: 6, occurred_at: new Date('2026-07-28T19:00:00.000Z') }]],
-      ['m2', [{ delta: 8, occurred_at: new Date('2026-07-28T19:00:00.000Z') }]],
+      ['m1', [{ delta: 6, occurred_at: new Date('2026-07-23T10:00:00.000Z') }]],
+      ['m2', [{ delta: 8, occurred_at: new Date('2026-07-23T10:00:00.000Z') }]],
     ]);
 
-    const r = computeSuperpositionAt(
-      [metricA, metricB],
-      contribs,
-      MetricSeriesPeriod.WEEK,
-      defaultSuperpositionFrom(lastAt, MetricSeriesPeriod.WEEK),
-      lastAt
-    );
+    const r = computeSuperpositionAt([metricA, metricB], contribs, to);
 
-    expect(r.growth).toBeGreaterThan(0.5);
-    expect(r.activity).toBeGreaterThan(0.5);
+    expect(r.activity).toBeGreaterThan(0);
   });
 });

@@ -1,5 +1,4 @@
 import { ref, watch } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
 import type {
   IMetricSeries,
@@ -8,15 +7,14 @@ import type {
 import { FailAlert } from 'src/shared/api';
 
 /**
- * На UI сейчас только два сценария коридора текущего периода:
- * optimistic (0.382) и base/скромный (0.5).
- * Пессимистичный 0.618 и мульти-ТФ волны не грузим — веер не нужен.
+ * Ряд и волна считаются по дням — другого таймфрейма нет.
+ * На UI только два сценария коридора: optimistic (0.382) и base/скромный (0.5);
+ * пессимистичный 0.618 не грузим — веер не нужен.
  */
 export function useMetricSeries(metricHash: () => string) {
   const series = ref<IMetricSeries | null>(null);
   const wave = ref<IMetricWave | null>(null);
   const isLoading = ref(false);
-  const period = ref(Zeus.MetricSeriesPeriod.WEEK);
 
   const loadSeries = async () => {
     const hash = metricHash();
@@ -24,14 +22,8 @@ export function useMetricSeries(metricHash: () => string) {
     isLoading.value = true;
     try {
       const [nextSeries, nextWave] = await Promise.all([
-        api.getMetricSeries({
-          metric_hash: hash,
-          period: period.value,
-        }),
-        api.getMetricWave({
-          metric_hash: hash,
-          period: period.value,
-        }),
+        api.getMetricSeries({ metric_hash: hash }),
+        api.getMetricWave({ metric_hash: hash }),
       ]);
       series.value = nextSeries;
       wave.value = nextWave;
@@ -43,7 +35,7 @@ export function useMetricSeries(metricHash: () => string) {
   };
 
   watch(
-    () => [metricHash(), period.value] as const,
+    () => metricHash(),
     () => {
       void loadSeries();
     },
@@ -54,7 +46,6 @@ export function useMetricSeries(metricHash: () => string) {
     series,
     wave,
     isLoading,
-    period,
     loadSeries,
   };
 }

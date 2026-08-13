@@ -453,9 +453,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CreateMeasureInput:{
-		series_mode:"MetricSeriesMode",
-		tag:"MeasureCatalogTag",
-		wave_period:"MetricSeriesPeriod"
+		series_mode:"MetricSeriesMode"
 	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
@@ -799,17 +797,16 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	GetMetricSeriesInput:{
 		from:"DateTime",
-		period:"MetricSeriesPeriod",
 		to:"DateTime"
 	},
 	GetMetricSuperpositionHistoryInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetMetricSuperpositionInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetMetricWaveInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetPaymentMethodsInput:{
 
@@ -1349,7 +1346,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceWriteoffStatementSignablePayloadInput:{
 
 	},
-	MeasureCatalogTag: "enum" as const,
 	MembershipExitApplicationGenerateDocumentInput:{
 
 	},
@@ -1367,7 +1363,6 @@ export const AllTypesProps: Record<string,any> = {
 	MetricContributionSource: "enum" as const,
 	MetricDriveDirection: "enum" as const,
 	MetricSeriesMode: "enum" as const,
-	MetricSeriesPeriod: "enum" as const,
 	MetricStatus: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
@@ -3363,9 +3358,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UpdateMeasureInput:{
 		series_mode:"MetricSeriesMode",
-		status:"MetricStatus",
-		tag:"MeasureCatalogTag",
-		wave_period:"MetricSeriesPeriod"
+		status:"MetricStatus"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -4133,10 +4126,8 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		series_mode:"MetricSeriesMode",
 		status:"MetricStatus",
-		tag:"MeasureCatalogTag",
 		title:"String",
-		unit:"String",
-		wave_period:"MetricSeriesPeriod"
+		unit:"String"
 	},
 	CapitalMetricComponentRollup:{
 		fact_sum:"Float",
@@ -4162,7 +4153,6 @@ export const ReturnTypes: Record<string,any> = {
 	CapitalMetricSeries:{
 		fact:"Float",
 		metric_hash:"String",
-		period:"MetricSeriesPeriod",
 		points:"CapitalMetricSeriesPoint",
 		series_mode:"MetricSeriesMode",
 		target_value:"Float",
@@ -4187,7 +4177,6 @@ export const ReturnTypes: Record<string,any> = {
 		flat_count:"Int",
 		growth:"Float",
 		items:"CapitalMetricSuperpositionItem",
-		period:"MetricSeriesPeriod",
 		project_hash:"String",
 		resultant_angle:"Float",
 		resultant_im:"Float",
@@ -4216,7 +4205,6 @@ export const ReturnTypes: Record<string,any> = {
 	CapitalMetricSuperpositionHistory:{
 		frames:"CapitalMetricSuperpositionFrame",
 		from:"DateTime",
-		period:"MetricSeriesPeriod",
 		project_hash:"String",
 		to:"DateTime"
 	},
@@ -4244,7 +4232,6 @@ export const ReturnTypes: Record<string,any> = {
 		fact:"Float",
 		fib_levels:"CapitalFibLevel",
 		metric_hash:"String",
-		period:"MetricSeriesPeriod",
 		point_labels:"WaveLabel",
 		series_mode:"MetricSeriesMode",
 		swings:"CapitalWaveSwing",

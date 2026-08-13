@@ -29,7 +29,6 @@ const rawMetricWaveSelector = {
   target_value: true,
   fact: true,
   series_mode: true,
-  period: true,
   values: true,
   current_label: true,
   current_phase: true,

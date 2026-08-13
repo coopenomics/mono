@@ -131,8 +131,8 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
   });
 
   it('при застое LEVEL прогноз плоский на последнем факте', () => {
-    // рывок был, потом несколько периодов без движения
-    const values = [0, 0, 20, 20, 20, 20, 20];
+    // рывок был, потом неделя без движения — окно свежести пусто
+    const values = [0, 0, 20, 20, 20, 20, 20, 20, 20, 20];
     const result = analyzeWave({
       values,
       series_mode: MetricSeriesMode.LEVEL,
@@ -142,6 +142,18 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     const last = 20;
     expect(result.corridor.base[0]).toBeCloseTo(last, 5);
     expect(result.corridor.base[1]).toBeCloseTo(last, 5);
+  });
+
+  it('пауза короче недели застоем не считается — коридор живой', () => {
+    // рывок и четыре дня тишины: на дневках это обычный перерыв в работе
+    const values = [0, 0, 20, 20, 20, 20, 20];
+    const result = analyzeWave({
+      values,
+      series_mode: MetricSeriesMode.LEVEL,
+      fact: 20,
+      target_value: 65,
+    });
+    expect(result.corridor.base[1]).toBeGreaterThan(20);
   });
 
   it('при свежем движении LEVEL коридор не плоский', () => {

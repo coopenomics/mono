@@ -61,7 +61,6 @@
         SuperpositionHistoryChart(
           :frames='frames',
           :frame-index='frameIndex',
-          :period='period',
           @select='onChartSelect'
         )
       .superposition__stage(
@@ -101,12 +100,7 @@
         :label='frameLabel'
       )
       .superposition__footer-spacer(v-else)
-      .superposition__period
-        BaseSelect(
-          v-model='period',
-          :options='periodOptions',
-          placeholder='Период'
-        )
+      .superposition__scale.t-sm.t-muted Дни
 
   .superposition__empty(v-else-if='!isLoading')
     EmptyState(title='Нет активных метрик для резонанса')
@@ -122,8 +116,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import { useQuasar } from 'quasar';
-import { Zeus } from '@coopenomics/sdk';
-import { BaseButton, BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { useMetricSuperposition } from '../model';
 import {
   buildPolarSectors,
@@ -142,20 +135,10 @@ const props = defineProps<{
 
 const $q = useQuasar();
 const projectHashRef = toRef(props, 'projectHash');
-const { data, frames, frameIndex, isLoading, period } = useMetricSuperposition(
+const { data, frames, frameIndex, isLoading } = useMetricSuperposition(
   () => projectHashRef.value,
 );
 const helpOpen = ref(false);
-
-const periodOptions = [
-  { label: '1 мин', value: Zeus.MetricSeriesPeriod.MINUTE },
-  { label: '5 мин', value: Zeus.MetricSeriesPeriod.MINUTE_5 },
-  { label: '15 мин', value: Zeus.MetricSeriesPeriod.MINUTE_15 },
-  { label: 'Час', value: Zeus.MetricSeriesPeriod.HOUR },
-  { label: 'День', value: Zeus.MetricSeriesPeriod.DAY },
-  { label: 'Неделя', value: Zeus.MetricSeriesPeriod.WEEK },
-  { label: 'Месяц', value: Zeus.MetricSeriesPeriod.MONTH },
-];
 
 const onChartSelect = (index: number) => {
   frameIndex.value = index;
@@ -168,20 +151,6 @@ const frameLabel = computed(() => {
   const at = list[idx]?.at;
   if (!at) return '';
   const d = new Date(at);
-  const p = period.value;
-  const fine =
-    p === Zeus.MetricSeriesPeriod.MINUTE ||
-    p === Zeus.MetricSeriesPeriod.MINUTE_5 ||
-    p === Zeus.MetricSeriesPeriod.MINUTE_15 ||
-    p === Zeus.MetricSeriesPeriod.HOUR;
-  if (fine) {
-    return d.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
   return d.toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: 'short',
@@ -582,42 +551,11 @@ const ariaLabel = computed(() => {
   min-width: 0;
 }
 
-.superposition__period {
-  width: 120px;
+.superposition__scale {
   height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-}
-
-.superposition__period :deep(.q-field) {
-  width: 100%;
-  height: 32px;
-  margin: 0;
-  padding: 0;
-}
-
-.superposition__period :deep(.q-field__bottom) {
-  display: none;
-}
-
-.superposition__period :deep(.q-field__control),
-.superposition__period :deep(.q-field--dense .q-field__control) {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px;
-}
-
-.superposition__period :deep(.q-field__marginal),
-.superposition__period :deep(.q-field__native),
-.superposition__period :deep(.q-field__prefix),
-.superposition__period :deep(.q-field__suffix),
-.superposition__period :deep(.q-field__input) {
-  height: 32px;
-  min-height: 32px;
-  padding-top: 0;
-  padding-bottom: 0;
-  line-height: 32px;
 }
 
 .superposition__empty {
