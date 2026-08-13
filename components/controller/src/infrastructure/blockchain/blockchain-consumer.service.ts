@@ -9,7 +9,7 @@ import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor'
 import { ForkRegistryService } from '~/shared/sync/fork';
 import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
-import { isPlatformWideTable } from './platform-wide-tables';
+import { isDeltaOwnedByCoop } from './delta-ownership';
 import { config } from '~/config';
 
 // Выносим исключения в конфиг или отдельный файл
@@ -277,27 +277,13 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async processDeltaDelayed(delta: IDelta): Promise<void> {
-    // Пропускаем дельту, если она не относится к нашему кооперативу.
-    // coopname может быть в value (таблицы с value.coopname: candidates2,
-    // deposits, withdraws, debts, contributors, ...) ИЛИ в scope (ончейн-
-    // таблицы с scope=coopname: ledger2 accounts/wallets, capital results/
-    // segments/pgproperties, marketplace requests, ...).
-    //
-    // Строгая проверка непустой строки: если value.coopname = "" (битый
-    // ABI) — `?? scope` НЕ сработает, и пустая строка пройдёт `!= config.coopname`,
-    // но саму дельту мы потеряем. Поэтому пустой value.coopname — тоже fallback на scope.
-    //
-    // Исключение — общеплатформенные таблицы: реестр шаблонов документов и их
-    // переводы принадлежат не кооперативу, а платформе, и лежат в скоупе самого
-    // контракта. По имени кооператива они не проходят никогда, поэтому узел о
-    // них не узнал бы вовсе — а без шаблонов не собрать ни один документ.
-    if (!isPlatformWideTable(delta.code, delta.table)) {
-      const valueCoop = (delta.value as any)?.coopname;
-      const valueCoopValid = typeof valueCoop === 'string' && valueCoop.length > 0;
-      const deltaCoop = valueCoopValid ? valueCoop : delta.scope;
-      if (deltaCoop !== config.coopname) {
-        return;
-      }
+    // Пропускаем дельту, если она не относится к нашему кооперативу. Правило
+    // принадлежности вместе со всеми исключениями из него живёт в
+    // delta-ownership: обычные таблицы называют кооператив в value.coopname
+    // либо в scope, реестр шаблонов принадлежит платформе целиком, а реестр
+    // кооперативов сети — полю username.
+    if (!isDeltaOwnedByCoop(delta, config.coopname)) {
+      return;
     }
 
     // Idempotency: признак уникальности события (INV-09).
