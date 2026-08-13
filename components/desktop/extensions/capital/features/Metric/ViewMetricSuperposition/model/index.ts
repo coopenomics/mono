@@ -1,5 +1,4 @@
 import { computed, ref, watch } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
 import type {
   IMetricSuperpositionFrame,
@@ -25,10 +24,9 @@ function firstDataFrameIndex(frames: IMetricSuperpositionFrame[]): number {
 export function useMetricSuperposition(projectHash: () => string) {
   const history = ref<IMetricSuperpositionHistory | null>(null);
   const isLoading = ref(false);
-  const period = ref(Zeus.MetricSeriesPeriod.DAY);
   const frameIndex = ref(0);
 
-  /** Кадры от начала данных до сейчас (без пустого префикса окна периода). */
+  /** Кадры от начала данных до сейчас (без пустого префикса окна). */
   const frames = computed(() => {
     const raw = history.value?.frames ?? [];
     if (raw.length <= 1) return raw;
@@ -50,7 +48,6 @@ export function useMetricSuperposition(projectHash: () => string) {
     if (!f || !h) return null;
     return {
       project_hash: h.project_hash,
-      period: h.period,
       fact_sum: f.fact_sum,
       target_sum: f.target_sum,
       up_count: f.up_count,
@@ -75,10 +72,7 @@ export function useMetricSuperposition(projectHash: () => string) {
     if (!hash) return;
     isLoading.value = true;
     try {
-      history.value = await api.getMetricSuperpositionHistory({
-        project_hash: hash,
-        period: period.value,
-      });
+      history.value = await api.getMetricSuperpositionHistory({ project_hash: hash });
       const raw = history.value.frames ?? [];
       const start = raw.length ? firstDataFrameIndex(raw) : 0;
       const trimmedLen = Math.max(0, raw.length - start);
@@ -92,7 +86,7 @@ export function useMetricSuperposition(projectHash: () => string) {
   };
 
   watch(
-    () => [projectHash(), period.value] as const,
+    () => projectHash(),
     () => {
       void load();
     },
@@ -106,7 +100,6 @@ export function useMetricSuperposition(projectHash: () => string) {
     frame,
     frameIndex,
     isLoading,
-    period,
     load,
   };
 }

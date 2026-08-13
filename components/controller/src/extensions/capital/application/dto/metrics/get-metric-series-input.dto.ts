@@ -1,6 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 @InputType('GetMetricSeriesInput')
 export class GetMetricSeriesInputDTO {
@@ -9,16 +8,9 @@ export class GetMetricSeriesInputDTO {
   @IsString()
   metric_hash!: string;
 
-  @Field(() => MetricSeriesPeriod, {
-    description: 'Период агрегации ряда',
-    defaultValue: MetricSeriesPeriod.WEEK,
-  })
-  @IsEnum(MetricSeriesPeriod)
-  period!: MetricSeriesPeriod;
-
   @Field(() => Date, {
     nullable: true,
-    description: 'Начало окна ряда (включительно). По умолчанию — 12 периодов назад',
+    description: 'Начало окна ряда (включительно). По умолчанию — 30 дней назад',
   })
   @IsOptional()
   from?: Date;

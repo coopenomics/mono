@@ -1,6 +1,5 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 import { MetricSeriesPointOutputDTO } from './metric-series-point.dto';
 
 @ObjectType('CapitalMetricSeries')
@@ -19,9 +18,6 @@ export class MetricSeriesOutputDTO {
 
   @Field(() => MetricSeriesMode, { description: 'Режим ряда' })
   series_mode!: MetricSeriesMode;
-
-  @Field(() => MetricSeriesPeriod, { description: 'Период агрегации' })
-  period!: MetricSeriesPeriod;
 
   @Field(() => Float, { description: 'Текущий накопленный факт' })
   fact!: number;

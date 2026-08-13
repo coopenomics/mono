@@ -1,7 +1,5 @@
-import { MeasureCatalogTag } from '../../domain/enums/measure-catalog-tag.enum';
 import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import type { IMeasureDatabaseData } from '../../domain/interfaces/measure-database.interface';
 import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
@@ -15,8 +13,6 @@ export class MeasureMapper {
       title: entity.title,
       unit: entity.unit,
       series_mode: entity.series_mode ?? MetricSeriesMode.RATE,
-      wave_period: entity.wave_period ?? MetricSeriesPeriod.DAY,
-      tag: entity.tag ?? MeasureCatalogTag.PRODUCT,
       created_by: entity.created_by,
       status: (entity.status as MetricStatus) ?? MetricStatus.ACTIVE,
       block_num: entity.block_num,
@@ -35,8 +31,6 @@ export class MeasureMapper {
       title: domain.title,
       unit: domain.unit,
       series_mode: domain.series_mode,
-      wave_period: domain.wave_period,
-      tag: domain.tag,
       created_by: domain.created_by,
       status: domain.status,
       block_num: domain.block_num,

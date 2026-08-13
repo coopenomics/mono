@@ -22,7 +22,6 @@ const rawMetricSuperpositionFrameSelector = {
 
 const rawMetricSuperpositionHistorySelector = {
   project_hash: true,
-  period: true,
   from: true,
   to: true,
   frames: rawMetricSuperpositionFrameSelector,

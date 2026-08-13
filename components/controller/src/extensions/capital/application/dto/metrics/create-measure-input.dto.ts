@@ -1,9 +1,12 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
-import { MeasureCatalogTag } from '../../../domain/enums/measure-catalog-tag.enum';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 
+/**
+ * Заведение меры в коллекцию кооператива.
+ * Название и единица — свободный текст; повтор той же пары возвращает
+ * существующую меру, а не плодит дубль.
+ */
 @InputType('CreateMeasureInput')
 export class CreateMeasureInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -29,22 +32,4 @@ export class CreateMeasureInputDTO {
   @IsOptional()
   @IsEnum(MetricSeriesMode)
   series_mode?: MetricSeriesMode;
-
-  @Field(() => MetricSeriesPeriod, {
-    nullable: true,
-    description: 'Волна: шаг локального анализа; по умолчанию день',
-    defaultValue: MetricSeriesPeriod.DAY,
-  })
-  @IsOptional()
-  @IsEnum(MetricSeriesPeriod)
-  wave_period?: MetricSeriesPeriod;
-
-  @Field(() => MeasureCatalogTag, {
-    nullable: true,
-    description: 'Категория меры; по умолчанию продукт',
-    defaultValue: MeasureCatalogTag.PRODUCT,
-  })
-  @IsOptional()
-  @IsEnum(MeasureCatalogTag)
-  tag?: MeasureCatalogTag;
 }

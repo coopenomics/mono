@@ -374,6 +374,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,
+              // Меры заводятся текстом прямо в плане компонента, отдельный
+              // раздел в меню только отвлекает. Страница остаётся доступной
+              // по прямой ссылке — там видно свои меры и можно их выключить.
+              hidden: true,
             },
             children: [],
           },

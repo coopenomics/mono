@@ -1,6 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 @InputType('GetMetricSuperpositionInput')
 export class GetMetricSuperpositionInputDTO {
@@ -10,11 +9,4 @@ export class GetMetricSuperpositionInputDTO {
   @IsNotEmpty()
   @IsString()
   project_hash!: string;
-
-  @Field(() => MetricSeriesPeriod, {
-    description: 'Период агрегации для волновой фазы',
-    defaultValue: MetricSeriesPeriod.WEEK,
-  })
-  @IsEnum(MetricSeriesPeriod)
-  period!: MetricSeriesPeriod;
 }

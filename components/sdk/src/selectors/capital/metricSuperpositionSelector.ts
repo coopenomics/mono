@@ -28,7 +28,6 @@ const rawMetricComponentRollupSelector = {
 
 const rawMetricSuperpositionSelector = {
   project_hash: true,
-  period: true,
   fact_sum: true,
   target_sum: true,
   up_count: true,

@@ -1,6 +1,5 @@
 import { ObjectType, Field, Float, Int } from '@nestjs/graphql';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 import { WaveLabel, WavePhase } from '../../../domain/enums/wave-label.enum';
 
 @ObjectType('CapitalWaveSwing')
@@ -26,7 +25,7 @@ export class FibLevelOutputDTO {
 
 @ObjectType('CapitalWaveCorridor')
 export class WaveCorridorOutputDTO {
-  @Field(() => Int, { description: 'Горизонт прогноза в периодах' })
+  @Field(() => Int, { description: 'Горизонт прогноза в днях' })
   periods_ahead!: number;
 
   @Field(() => [Float], { description: 'Оптимистичный прогноз ряда' })
@@ -76,9 +75,6 @@ export class MetricWaveOutputDTO {
 
   @Field(() => MetricSeriesMode, { description: 'Режим ряда, на котором построена волна' })
   series_mode!: MetricSeriesMode;
-
-  @Field(() => MetricSeriesPeriod, { description: 'Период агрегации' })
-  period!: MetricSeriesPeriod;
 
   @Field(() => [Float], { description: 'Значения ряда для разметки (скорость или уровень)' })
   values!: number[];
