@@ -38,7 +38,8 @@ function makeService() {
   const service = new MarketplaceWriteoffService(
     repo as never,
     inventoryRepo as never,
-    { findById: jest.fn() } as never,
+    // Оффер нужен сервису за единицей отпуска и размером упаковки; в границах
+    // этого файла до него не доходит — валидация отбивает раньше.
     { findById: jest.fn() } as never,
     chainPort as never,
     { symbol: 'RUB', decimals: 4 } as never,

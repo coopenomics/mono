@@ -91,7 +91,6 @@ function buildMocks() {
   // Обогащение позиций списания названием товара/заказа и адресом КУ
   // (см. MarketplaceOrderDisplayService.resolveBranchDisplay) — по умолчанию
   // «нет данных», тесты бизнес-логики списания эти поля не проверяют.
-  const orderRepo = { findById: jest.fn().mockResolvedValue(null) } as any;
   const offerRepo = { findById: jest.fn().mockResolvedValue(null) } as any;
   const orderDisplay = {
     resolveBranchDisplay: jest
@@ -120,7 +119,6 @@ function buildMocks() {
   return {
     repo,
     inventoryRepo,
-    orderRepo,
     offerRepo,
     chainPort,
     assetConfig,
