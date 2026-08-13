@@ -5476,7 +5476,7 @@ export type ValueTypes = {
 	measure_hash?: string | undefined | null | Variable<any, string>,
 	/** Хеш компонента */
 	project_hash: string | Variable<any, string>,
-	/** Режим ряда новой меры: скорость (по умолчанию) или уровень */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Целевое значение на компоненте */
 	target_value: number | Variable<any, string>,
@@ -19617,7 +19617,7 @@ export type ResolverInputTypes = {
 	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда новой меры: скорость (по умолчанию) или уровень */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
@@ -33367,7 +33367,7 @@ export type ModelTypes = {
 	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда новой меры: скорость (по умолчанию) или уровень */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
@@ -48047,7 +48047,7 @@ export type GraphQLTypes = {
 	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда новой меры: скорость (по умолчанию) или уровень */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,

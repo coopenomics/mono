@@ -27,7 +27,6 @@ export class CreateMeasureInputDTO {
   @Field(() => MetricSeriesMode, {
     nullable: true,
     description: 'Режим ряда; по умолчанию скорость',
-    defaultValue: MetricSeriesMode.RATE,
   })
   @IsOptional()
   @IsEnum(MetricSeriesMode)

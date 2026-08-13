@@ -243,6 +243,60 @@ describe('ComponentMetricService — меры кооператива', () => {
     expect(measures.items[0].status).toBe(MetricStatus.ACTIVE);
   });
 
+  it('тип меры выбирается в строке цели: уровень вместо скорости', async () => {
+    const measures = new InMemoryMeasureRepository();
+    const { service } = makeService(measures);
+
+    await service.createMetric(
+      {
+        coopname: 'voskhod',
+        project_hash: 'project-1',
+        title: 'Вес',
+        unit: 'кг',
+        series_mode: MetricSeriesMode.LEVEL,
+        target_value: 70,
+      },
+      currentUser
+    );
+
+    expect(measures.items[0].series_mode).toBe(MetricSeriesMode.LEVEL);
+  });
+
+  it('явно выбранный тип применяется к уже заведённой мере', async () => {
+    const measures = new InMemoryMeasureRepository();
+    makeMeasure(measures, { title: 'Вес', unit: 'кг' });
+    const { service } = makeService(measures);
+
+    await service.createMetric(
+      {
+        coopname: 'voskhod',
+        project_hash: 'project-1',
+        title: 'Вес',
+        unit: 'кг',
+        series_mode: MetricSeriesMode.LEVEL,
+        target_value: 70,
+      },
+      currentUser
+    );
+
+    expect(measures.createCalls).toBe(0);
+    expect(measures.items[0].series_mode).toBe(MetricSeriesMode.LEVEL);
+  });
+
+  it('без указания типа режим уже заведённой меры не сбрасывается', async () => {
+    const measures = new InMemoryMeasureRepository();
+    const measure = makeMeasure(measures, { title: 'Вес', unit: 'кг' });
+    measure.series_mode = MetricSeriesMode.LEVEL;
+    const { service } = makeService(measures);
+
+    await service.createMetric(
+      { coopname: 'voskhod', project_hash: 'project-1', title: 'Вес', unit: 'кг', target_value: 70 },
+      currentUser
+    );
+
+    expect(measures.items[0].series_mode).toBe(MetricSeriesMode.LEVEL);
+  });
+
   it('смена названия в цели заводит новую меру, а старую не переименовывает', async () => {
     const measures = new InMemoryMeasureRepository();
     const { service } = makeService(measures);

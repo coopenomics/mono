@@ -98,7 +98,7 @@ export class ComponentMetricService {
       data.coopname,
       data.title,
       data.unit,
-      data.series_mode ?? MetricSeriesMode.RATE,
+      data.series_mode,
       currentUser
     );
     return this.toMeasureOutput(measure);
@@ -205,7 +205,7 @@ export class ComponentMetricService {
     coopname: string,
     titleInput: string,
     unitInput: string,
-    seriesMode: MetricSeriesMode,
+    seriesMode: MetricSeriesMode | undefined,
     currentUser: MonoAccountDomainInterface
   ): Promise<MeasureDomainEntity> {
     const title = (titleInput ?? '').trim();
@@ -219,11 +219,14 @@ export class ComponentMetricService {
 
     const existing = await this.measureRepository.findByCoopnameAndTitleUnit(coopname, title, unit);
     if (existing) {
+      // Тип меры (скорость / уровень) задают в той же строке плана — явно
+      // выбранный применяем к уже заведённой мере, а не молча игнорируем.
       if (existing.status === MetricStatus.ARCHIVED) {
         existing.status = MetricStatus.ACTIVE;
+        existing.series_mode = seriesMode ?? existing.series_mode;
         return this.measureRepository.update(existing);
       }
-      return existing;
+      return this.applySeriesModeIfChanged(existing, seriesMode);
     }
 
     return this.measureRepository.create(
@@ -233,7 +236,7 @@ export class ComponentMetricService {
         coopname,
         title,
         unit,
-        series_mode: seriesMode,
+        series_mode: seriesMode ?? MetricSeriesMode.RATE,
         created_by: currentUser.username,
         status: MetricStatus.ACTIVE,
         present: false,
@@ -880,7 +883,7 @@ export class ComponentMetricService {
       data.coopname,
       data.title,
       data.unit ?? '',
-      data.series_mode ?? MetricSeriesMode.RATE,
+      data.series_mode,
       currentUser
     );
   }

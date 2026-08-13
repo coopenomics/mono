@@ -80,6 +80,11 @@ CreateDialog(
             label='Ед. изм.',
             placeholder='шт'
           )
+          BaseSelect.plan-dialog__metric-mode(
+            v-model='row.series_mode',
+            :options='seriesModeOptions',
+            label='Тип'
+          )
           BaseInput.plan-dialog__metric-target(
             v-model.number='row.target_value',
             label='Цель',
@@ -108,7 +113,8 @@ import { Zeus } from '@coopenomics/sdk';
 import { useSetPlan } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { BaseButton, BaseInput } from 'src/shared/ui/base';
+import { BaseButton, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import type { BaseSelectOption } from 'src/shared/ui/base';
 import type { IProject } from '../../../../../entities/Project/model';
 import { isComponent } from 'app/extensions/capital/shared/lib/project-utils';
 import { useSystemStore } from 'src/entities/System/model/store';
@@ -126,6 +132,8 @@ interface MetricDraftRow {
   measure_hash: string | null;
   title: string;
   unit: string;
+  /** Скорость (Δ за день) или уровень значения — как строится ряд меры */
+  series_mode: Zeus.ModelTypes['MetricSeriesMode'];
   target_value: number;
 }
 
@@ -202,6 +210,11 @@ const validateFinanceFields = (): boolean => {
   return ok;
 };
 
+const seriesModeOptions: BaseSelectOption[] = [
+  { value: Zeus.MetricSeriesMode.RATE, label: 'Скорость' },
+  { value: Zeus.MetricSeriesMode.LEVEL, label: 'Уровень' },
+];
+
 let draftKeySeq = 0;
 const nextKey = () => `m-${++draftKeySeq}`;
 
@@ -210,6 +223,7 @@ const emptyMetricRow = (): MetricDraftRow => ({
   measure_hash: null,
   title: '',
   unit: '',
+  series_mode: Zeus.MetricSeriesMode.RATE,
   target_value: 0,
 });
 
@@ -219,6 +233,7 @@ const metricToRow = (m: IComponentMetric): MetricDraftRow => ({
   measure_hash: m.measure_hash,
   title: m.title,
   unit: m.unit,
+  series_mode: m.series_mode,
   target_value: m.target_value,
 });
 
@@ -273,6 +288,7 @@ const addMetricRowFromMeasure = (measure: IMeasure) => {
     measure_hash: measure.measure_hash,
     title: measure.title,
     unit: measure.unit,
+    series_mode: measure.series_mode,
   });
 };
 
@@ -326,6 +342,7 @@ const syncMetrics = async (projectHash: string) => {
         metric_hash: row.metric_hash,
         title,
         unit,
+        series_mode: row.series_mode,
         target_value: Number(row.target_value),
       });
       metricStore.updateMetric(result);
@@ -335,6 +352,7 @@ const syncMetrics = async (projectHash: string) => {
         project_hash: projectHash,
         title,
         unit,
+        series_mode: row.series_mode,
         target_value: Number(row.target_value),
       });
       metricStore.addMetric(result);
@@ -511,9 +529,14 @@ defineExpose({
   width: 110px;
 }
 
+.plan-dialog__metric-mode {
+  flex: 0 0 130px;
+  width: 130px;
+}
+
 .plan-dialog__metric-target {
-  flex: 0 0 120px;
-  width: 120px;
+  flex: 0 0 110px;
+  width: 110px;
 }
 
 .plan-dialog__metrics-hint {

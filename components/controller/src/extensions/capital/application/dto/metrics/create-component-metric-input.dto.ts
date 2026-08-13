@@ -56,8 +56,7 @@ export class CreateComponentMetricInputDTO {
 
   @Field(() => MetricSeriesMode, {
     nullable: true,
-    description: 'Режим ряда новой меры: скорость (по умолчанию) или уровень',
-    defaultValue: MetricSeriesMode.RATE,
+    description: 'Режим ряда меры: скорость (по умолчанию) или уровень значения',
   })
   @IsOptional()
   @IsEnum(MetricSeriesMode)
