@@ -30,6 +30,8 @@ export class MarketplaceInventoryMapper {
       expiry_date: row.expiry_date,
       ownership: row.ownership,
       arrival_price: row.arrival_price,
+      package_size: row.package_size,
+      unit_of_measure: row.unit_of_measure,
       published_offer_id: row.published_offer_id,
       reserved_order_id: row.reserved_order_id,
       created_at: row.created_at,

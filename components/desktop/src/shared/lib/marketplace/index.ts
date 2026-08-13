@@ -38,6 +38,11 @@ export {
   type SaleQuantityOffer,
 } from './sale-quantity-step';
 export {
+  marketplaceLineCost,
+  marketplaceLineCostAmount,
+  marketplaceSaleUnits,
+} from './line-cost';
+export {
   printLabelSheet,
   escapeHtml,
   type PrintLabelSheetOptions,

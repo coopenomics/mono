@@ -1559,6 +1559,10 @@ export class MarketplaceAplReceptionService {
           // От цены прибытия считаются и потолок цены перепубликации остатка,
           // и уценка при его выдаче.
           arrival_price: factUnitPrice,
+          // Фасовка и единица приёмки едут вместе с ценой: цена — за единицу
+          // отпуска, и без размера упаковки склад не знает, на что её умножать.
+          package_size: order.package_size,
+          unit_of_measure: order.unit_of_measure,
         });
         created += 1;
         if (part.container_id || part.cell_id) placedCount += 1;

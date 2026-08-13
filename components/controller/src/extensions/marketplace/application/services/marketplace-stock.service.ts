@@ -186,12 +186,23 @@ export class MarketplaceStockService {
       // Только уценка (requirement 76, решение 12): продажа выше цены прибытия
       // потребовала бы доходной проводки, которой в модели нет; уценка же
       // закрывается расходом o.mkt.loss при выдаче.
-      const tooHigh = positions.find(
-        (p) => p.arrival_price !== null && price > Number.parseFloat(p.arrival_price) + 1e-9
-      );
+      //
+      // Сравнение — в одной размерности: цена публикации задаётся за базовую
+      // единицу (витринная), а цена прибытия упаковочной позиции — за
+      // упаковку. Без приведения гард пропускал цену, которая после
+      // масштабирования упаковок выходила кратно выше закупочной.
+      const tooHigh = positions.find((p) => {
+        if (p.arrival_price === null) return false;
+        const publishedPerSaleUnit = p.package_size > 0 ? price * p.package_size : price;
+        return publishedPerSaleUnit > Number.parseFloat(p.arrival_price) + 1e-9;
+      });
       if (tooHigh) {
+        const perSaleUnit =
+          tooHigh.package_size > 0
+            ? ` за упаковку ${tooHigh.package_size} ед.`
+            : ' за единицу';
         throw new BadRequestException(
-          `Цена публикации выше цены прибытия позиции «${tooHigh.product_name_snapshot}» (${tooHigh.arrival_price}) — допускается только уценка.`
+          `Цена публикации выше цены прибытия позиции «${tooHigh.product_name_snapshot}» (${tooHigh.arrival_price}${perSaleUnit}) — допускается только уценка.`
         );
       }
     }
@@ -206,10 +217,15 @@ export class MarketplaceStockService {
     const touched: MarketplaceOfferDomainEntity[] = [];
     for (const [origin, group] of byOrigin) {
       const qty = group.reduce((s, p) => s + p.quantity_per_label, 0);
-      // Цена публикации: явная → она; иначе цена прибытия первой позиции.
+      // Цена публикации: явная → она; иначе цена прибытия первой позиции,
+      // приведённая к базовой единице. `price_per_unit` оффера — витринная
+      // цена за базовую единицу, а цена прибытия упаковочной позиции задана
+      // за упаковку: без деления она и в витрину попадала кратно завышенной,
+      // и задирала цены упаковок через ratio в `scalePackagePrices`.
+      const priced = group.find((p) => p.arrival_price !== null);
       const price =
         input.price_per_unit ??
-        group.find((p) => p.arrival_price !== null)?.arrival_price ??
+        (priced ? this.arrivalPricePerBaseUnit(priced) : null) ??
         origin.price_per_unit;
       let coopOffer = await this.findCoopOffer(input.coopname, braname, origin.id);
 
@@ -223,7 +239,7 @@ export class MarketplaceStockService {
       const alreadyPublished = coopOffer
         ? await this.inventoryRepo.list({ coopname: input.coopname, published_offer_id: coopOffer.id })
         : [];
-      const receivedPackageSizes = await this.resolveReceivedPackageSizes([...group, ...alreadyPublished]);
+      const receivedPackageSizes = this.resolveReceivedPackageSizes([...group, ...alreadyPublished]);
       const availablePackages = this.filterReceivedPackages(origin.packages, receivedPackageSizes);
 
       if (!coopOffer) {
@@ -307,17 +323,13 @@ export class MarketplaceStockService {
 
   /**
    * Размеры упаковок (Эпик 18), которыми переданные позиции физически
-   * прибыли на склад, — по `package_size` их исходных заказов. Позиции без
-   * заказа/package_size (легаси, докладка вручную) в множество не попадают —
-   * тогда фильтр `filterReceivedPackages` честно откатится к полному
-   * каталогу origin (см. её комментарий).
+   * прибыли на склад, — по `package_size` самих позиций (снапшот приёмки).
+   * Позиции без фасовки (отпуск по мере, легаси-записи) в множество не
+   * попадают — тогда фильтр `filterReceivedPackages` честно откатится к
+   * полному каталогу origin (см. её комментарий).
    */
-  private async resolveReceivedPackageSizes(
-    positions: MarketplaceInventoryDomainEntity[]
-  ): Promise<Set<number>> {
-    const orderIds = [...new Set(positions.map((p) => p.order_id).filter((id): id is string => Boolean(id)))];
-    const orders = await Promise.all(orderIds.map((id) => this.orderRepo.findById(id)));
-    return new Set(orders.map((o) => o?.package_size).filter((s): s is number => Boolean(s)));
+  private resolveReceivedPackageSizes(positions: MarketplaceInventoryDomainEntity[]): Set<number> {
+    return new Set(positions.map((p) => p.package_size).filter((s): s is number => Boolean(s)));
   }
 
   /**
@@ -707,6 +719,19 @@ export class MarketplaceStockService {
         (o) => o.stock_braname === braname && o.stock_origin_offer_id === origin_offer_id
       ) ?? null
     );
+  }
+
+  /**
+   * Цена прибытия позиции, приведённая к базовой единице: цена хранится за
+   * единицу отпуска (за упаковку при упаковочной приёмке), а витрина ведёт
+   * `price_per_unit` за базовую единицу. Позиция без цены — null.
+   */
+  private arrivalPricePerBaseUnit(position: MarketplaceInventoryDomainEntity): string | null {
+    if (position.arrival_price === null) return null;
+    const price = Number.parseFloat(position.arrival_price);
+    if (!Number.isFinite(price)) return null;
+    if (!(position.package_size > 0)) return this.normalizePrice(position.arrival_price);
+    return this.normalizePrice(String(price / position.package_size));
   }
 
   private normalizePrice(price: string): string {

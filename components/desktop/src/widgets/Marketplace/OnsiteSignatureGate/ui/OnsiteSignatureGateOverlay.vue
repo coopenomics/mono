@@ -4,7 +4,10 @@ import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import {
+  marketplaceOrderSaleUnit,
+  marketplaceSaleUnitLabel,
+} from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
@@ -56,6 +59,9 @@ function kuAddr(braname: string): string {
   return kuStore.details.find((d) => d.coreBraname === braname)?.addressFull ?? '';
 }
 
+// Позиция предложения ведётся в единицах отпуска: количество — число
+// упаковок, `unit_price` — цена за упаковку. Размерности совпадают, поэтому
+// произведение прямое (см. канон единицы отпуска в README расширения).
 function proposalLineCost(i: { quantity: number; unit_price: string }): string {
   return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
 }
@@ -78,8 +84,18 @@ function receptionLineQuantity(l: { quantity: number; unit: string; packageSize:
 
 // Единица измерения у позиции предложения необязательна (услуги её не имеют),
 // поэтому принимаем и отсутствующее значение, а не только явный null.
-function proposalItemQuantity(i: { quantity: number; unit_of_measure?: string | null }): string {
-  return marketplaceQuantityLabel(i.quantity, i.unit_of_measure ?? null);
+/**
+ * Количество позиции предложения уже ведётся в единицах отпуска (число
+ * упаковок при упаковочном отпуске) — как её набирал оператор и как считается
+ * `unit_price`. Поэтому подпись строится без пересчёта: делить количество на
+ * фасовку здесь нельзя, иначе «2 упаковки» превращаются в «0».
+ */
+function proposalItemQuantity(i: {
+  quantity: number;
+  unit_of_measure?: string | null;
+  package_size?: number | null;
+}): string {
+  return `${i.quantity}×${marketplaceSaleUnitLabel(i.unit_of_measure ?? null, i.package_size ?? null)}`;
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
