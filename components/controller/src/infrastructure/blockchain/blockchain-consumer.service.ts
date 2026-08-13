@@ -9,6 +9,7 @@ import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor'
 import { ForkRegistryService } from '~/shared/sync/fork';
 import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
+import { isPlatformWideTable } from './platform-wide-tables';
 import { config } from '~/config';
 
 // Выносим исключения в конфиг или отдельный файл
@@ -285,11 +286,18 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // Строгая проверка непустой строки: если value.coopname = "" (битый
     // ABI) — `?? scope` НЕ сработает, и пустая строка пройдёт `!= config.coopname`,
     // но саму дельту мы потеряем. Поэтому пустой value.coopname — тоже fallback на scope.
-    const valueCoop = (delta.value as any)?.coopname;
-    const valueCoopValid = typeof valueCoop === 'string' && valueCoop.length > 0;
-    const deltaCoop = valueCoopValid ? valueCoop : delta.scope;
-    if (deltaCoop !== config.coopname) {
-      return;
+    //
+    // Исключение — общеплатформенные таблицы: реестр шаблонов документов и их
+    // переводы принадлежат не кооперативу, а платформе, и лежат в скоупе самого
+    // контракта. По имени кооператива они не проходят никогда, поэтому узел о
+    // них не узнал бы вовсе — а без шаблонов не собрать ни один документ.
+    if (!isPlatformWideTable(delta.code, delta.table)) {
+      const valueCoop = (delta.value as any)?.coopname;
+      const valueCoopValid = typeof valueCoop === 'string' && valueCoop.length > 0;
+      const deltaCoop = valueCoopValid ? valueCoop : delta.scope;
+      if (deltaCoop !== config.coopname) {
+        return;
+      }
     }
 
     // Idempotency: признак уникальности события (INV-09).

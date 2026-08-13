@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
 import { EventsInfrastructureModule } from '../events/events.module';
@@ -37,6 +38,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
   providers: [
     BlockchainService,
     BlockchainConsumerService,
+    DraftRegistrySyncService,
     BlockchainRepeatService,
     {
       provide: BLOCKCHAIN_PORT,

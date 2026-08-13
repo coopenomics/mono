@@ -39,6 +39,9 @@ import { AgreementTypeormRepository } from './repositories/agreement.typeorm-rep
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { ActionEntity } from './entities/action.entity';
+import { DraftTemplateEntity } from './entities/draft-template.entity';
+import { DraftTranslationEntity } from './entities/draft-translation.entity';
+import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-registry.repository';
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
@@ -136,6 +139,8 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
+      DraftTemplateEntity,
+      DraftTranslationEntity,
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
@@ -209,6 +214,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     AgreementTypeormRepository,
     AgreementDeltaMapper,
     AgreementSyncService,
+    TypeOrmDraftRegistryRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
       useClass: TypeOrmActionRepository,
@@ -293,6 +299,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
   ],
   exports: [
     NestTypeOrmModule,
+    TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
