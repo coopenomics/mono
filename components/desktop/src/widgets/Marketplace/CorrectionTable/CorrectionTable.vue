@@ -33,7 +33,7 @@
         label='Кол-во',
         :min='0',
         :max='factCeiling(r)',
-        :step='stepFor(r.unit)',
+        :step='stepFor(r)',
         :disabled='isOff(r)',
         :suffix='r.unit',
         @update:model-value='(v) => onFactInput(r, v)'
@@ -42,7 +42,7 @@
         v-if='hasPrice',
         :model-value='r.factPrice',
         type='number',
-        label='Цена/ед.',
+        :label='r.packaged ? "Цена/упак." : "Цена/ед."',
         :disabled='isOff(r)',
         @update:model-value='(v) => onPriceInput(r, v)'
       )
@@ -84,6 +84,11 @@ export interface CorrectionRow {
   location?: string;
   expectedPrice?: number;
   factPrice?: number;
+  /**
+   * Позиция отпускается упаковкой: количество ведётся целыми упаковками и
+   * дробить его нельзя — упаковку не вскрывают, договариваются ценой.
+   */
+  packaged?: boolean;
 }
 
 const props = defineProps({
@@ -118,10 +123,11 @@ function factCeiling(r: EnrichedRow): number | undefined {
   return undefined;
 }
 
-// Шаг ввода количества по единице: штука неделима (1), вес/объём — дробный шаг
-// 0.001 (граммы/миллилитры), чтобы браузер не блокировал дробное значение.
-function stepFor(unit: string): string {
-  return unit === 'шт' || unit === 'шт.' ? '1' : '0.001';
+// Шаг ввода количества: упаковка и штука неделимы (1), вес/объём — дробный
+// шаг 0.001 (граммы/миллилитры), чтобы браузер не блокировал дробное значение.
+function stepFor(r: EnrichedRow): string {
+  if (r.packaged) return '1';
+  return r.unit === 'шт' || r.unit === 'шт.' ? '1' : '0.001';
 }
 
 function toNumber(v: unknown): number {
@@ -132,6 +138,9 @@ function toNumber(v: unknown): number {
 function onFactInput(r: EnrichedRow, raw: unknown): void {
   let fact = toNumber(raw);
   if (fact < 0) fact = 0;
+  // Упаковку не дробим: 1,5 упаковки не существует ни физически, ни на цепи
+  // (контракт требует кратности количества размеру упаковки).
+  if (r.packaged) fact = Math.floor(fact);
   const ceiling = factCeiling(r);
   if (ceiling !== undefined && fact > ceiling) fact = ceiling;
   emit('change', { sku: r.sku, fact, factPrice: r.factPrice });

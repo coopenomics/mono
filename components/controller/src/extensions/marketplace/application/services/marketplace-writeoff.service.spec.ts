@@ -14,6 +14,7 @@ import {
   MarketplaceWriteoffProposalStatuses,
   MarketplaceWriteoffProposalTriggers,
 } from '../../domain/entities/marketplace-writeoff-proposal.types';
+import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
 
 function buildProposal(
   overrides: Partial<MarketplaceWriteoffProposalDomainEntity> = {}
@@ -667,6 +668,80 @@ describe('MarketplaceWriteoffService', () => {
       await service.executeAuthorizedProposal('p-1', 'chairman1');
 
       expect(mocks.chainPort.execWroff).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── listCandidates: сумма партии по цене прибытия ─────────────────────
+
+  describe('listCandidates — стоимость партии в единицах отпуска', () => {
+    function candidate(over: Record<string, unknown> = {}) {
+      return {
+        inventory_id: 'inv-1',
+        braname: 'voskhod1',
+        asset_title: 'Яйцо куриное',
+        quantity: 10,
+        arrival_price: '150.0000',
+        package_size: 10,
+        unit_of_measure: MarketplaceUnitsOfMeasure.PIECE,
+        expiry_date: null,
+        is_expired: false,
+        ...over,
+      };
+    }
+
+    beforeEach(() => {
+      mocks.repo.findActiveLockedInventoryIds = jest.fn().mockResolvedValue([]);
+    });
+
+    it('упаковкой: десяток по 150 ₽ стоит 150 ₽, а не 1500 ₽', async () => {
+      mocks.inventoryRepo.findWriteoffCandidates = jest.fn().mockResolvedValue([candidate()]);
+
+      const [row] = await service.listCandidates('voskhod');
+
+      expect(row.amount).toBe('150.0000');
+      expect(row.package_size).toBe(10);
+      expect(row.unit_of_measure).toBe(MarketplaceUnitsOfMeasure.PIECE);
+    });
+
+    it('по мере: цена за базовую единицу умножается на количество', async () => {
+      mocks.inventoryRepo.findWriteoffCandidates = jest
+        .fn()
+        .mockResolvedValue([
+          candidate({
+            quantity: 2.5,
+            arrival_price: '80.0000',
+            package_size: 0,
+            unit_of_measure: MarketplaceUnitsOfMeasure.KG,
+          }),
+        ]);
+
+      const [row] = await service.listCandidates('voskhod');
+
+      expect(row.amount).toBe('200.0000');
+      expect(row.package_size).toBeNull();
+    });
+
+    it('несколько партий одного товара складываются по своим упаковкам', async () => {
+      mocks.inventoryRepo.findWriteoffCandidates = jest
+        .fn()
+        .mockResolvedValue([candidate(), candidate({ inventory_id: 'inv-2', quantity: 20 })]);
+
+      const [row] = await service.listCandidates('voskhod');
+
+      // 1 упаковка + 2 упаковки по 150 ₽ = 450 ₽; количество — в базовой единице.
+      expect(row.amount).toBe('450.0000');
+      expect(row.quantity).toBe('30');
+      expect(row.lots_count).toBe(2);
+    });
+
+    it('партия без цены прибытия стоит 0 и не роняет список', async () => {
+      mocks.inventoryRepo.findWriteoffCandidates = jest
+        .fn()
+        .mockResolvedValue([candidate({ arrival_price: null })]);
+
+      const [row] = await service.listCandidates('voskhod');
+
+      expect(row.amount).toBe('0.0000');
     });
   });
 

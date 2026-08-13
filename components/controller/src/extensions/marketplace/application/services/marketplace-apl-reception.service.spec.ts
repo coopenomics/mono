@@ -768,6 +768,38 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
     expect(action.total_amount).toBe('500.0000');
     expect(action.unit_of_measurement).toBe('упак. 0,1 кг');
   });
+
+  it('оприходование пишет в позицию склада фасовку и единицу приёмки', async () => {
+    // Цена прибытия хранится за единицу отпуска, поэтому склад обязан знать
+    // размер упаковки и базовую единицу — иначе списание и публикация остатка
+    // умножают цену на базовое количество (инцидент 2026-08-12).
+    const reception = buildReception({
+      braname: 'voskhod1',
+      fact_quantity_per_order: [
+        { order_id: 'order-1', fact_quantity: 20, fact_unit_price: '150.0000' } as any,
+      ],
+    });
+    const order = buildOrder({
+      id: 'order-1',
+      offer_id: 'offer-1',
+      delivery_braname: 'voskhod1',
+      quantity: 20,
+      unit_of_measure: 'piece',
+      package_size: 10,
+      price_per_unit: '150.0000',
+    });
+    mocks.offerRepo.findByIds.mockResolvedValue([
+      { id: 'offer-1', product_name: 'Яйцо куриное', shelf_life_days: 0 },
+    ]);
+
+    await (service as any).materializeInventory(reception, [order]);
+
+    const created = mocks.inventoryRepo.create.mock.calls[0][0];
+    expect(created.quantity_per_label).toBe(20);
+    expect(created.arrival_price).toBe('150.0000');
+    expect(created.package_size).toBe(10);
+    expect(created.unit_of_measure).toBe('piece');
+  });
 });
 
 /**

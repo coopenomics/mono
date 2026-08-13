@@ -98,6 +98,22 @@ export function marketplaceQuantityLabel(
  * (`controller/.../application/shared/packaging.util.ts`) — там же source of
  * truth формата подписи.
  */
+/**
+ * Подпись единицы отпуска без пересчёта количества: «упак. 0,5 л» либо «кг».
+ * Нужна там, где количество УЖЕ ведётся в единицах отпуска (набор докладки,
+ * ввод факта приёмки и выдачи) — делить его на размер упаковки нельзя.
+ */
+export function marketplaceSaleUnitLabel(
+  unit: string | null | undefined,
+  packageSize: number | null | undefined,
+): string {
+  const baseLabel = marketplaceUnitShort(unit);
+  if (packageSize && packageSize > 0) {
+    return `упак. ${String(packageSize).replace('.', ',')} ${baseLabel}`;
+  }
+  return baseLabel;
+}
+
 export function marketplaceOrderSaleUnit(
   quantity: number,
   unit: string | null | undefined,

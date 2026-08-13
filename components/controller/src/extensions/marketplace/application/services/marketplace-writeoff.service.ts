@@ -36,6 +36,8 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { calcCostAmount } from '../shared/cost.util';
+import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
@@ -264,28 +266,27 @@ export class MarketplaceWriteoffService {
   private async resolveItemDisplay(
     invId: string
   ): Promise<{ unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }> {
-    const EMPTY = { unit_of_measure: null, package_size: null };
     const inv = await this.inventoryRepo.findById(invId);
-    if (!inv) return EMPTY;
-    let offerId = inv.published_offer_id;
-    let package_size: number | null = null;
-    if (inv.order_id) {
-      const order = await this.orderRepo.findById(inv.order_id);
-      if (order) {
-        offerId = offerId ?? order.offer_id;
-        package_size = order.package_size || null;
-      }
-    }
-    if (!offerId) return { unit_of_measure: null, package_size };
-    const offer = await this.offerRepo.findById(offerId);
-    return { unit_of_measure: offer?.unit_of_measure ?? null, package_size };
+    if (!inv) return { unit_of_measure: null, package_size: null };
+    // Единица и фасовка — снапшот самой позиции склада (пишутся приёмкой).
+    // Раньше их восстанавливали через заказ и оферту, двумя запросами на
+    // партию: позиция знала цену, но не знала её размерность.
+    return {
+      unit_of_measure: inv.unit_of_measure,
+      package_size: inv.package_size || null,
+    };
   }
 
   /**
    * Кандидаты на списание для admin-стола: все позиции на складах кооператива.
    * Председатель выделяет нужные и создаёт из них черновик — вручную можно
    * списать как просроченный скоропорт (флаг is_expired), так и ещё годное
-   * имущество (порча, невозврат). Сумма = arrival_price × quantity.
+   * имущество (порча, невозврат).
+   *
+   * Сумма позиции считается через `calcCostAmount` — ту же формулу, что и на
+   * цепи: цена прибытия задана за единицу отпуска, поэтому при отпуске
+   * упаковкой умножать её на базовое количество нельзя (десяток яиц по 150 ₽
+   * давал 1500 ₽ вместо 150 ₽ — инцидент 2026-08-12).
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
@@ -312,6 +313,10 @@ export class MarketplaceWriteoffService {
         asset_title: string;
         quantity: number;
         amount: number;
+        // Размерность строки — из первой партии группы: ключ группировки
+        // включает наименование и КУ, у таких партий фасовка одна.
+        unit_of_measure: MarketplaceUnitOfMeasure;
+        package_size: number;
         expiry_ms: number | null;
         is_expired: boolean;
         state: string;
@@ -323,8 +328,7 @@ export class MarketplaceWriteoffService {
       // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
       const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
       const key = `${c.braname}|${c.asset_title}|${state}`;
-      const unit = c.arrival_price !== null ? Number(c.arrival_price) : 0;
-      const amount = Number.isFinite(unit) ? unit * c.quantity : 0;
+      const amount = this.candidateAmount(c);
       const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
 
       const existing = groups.get(key);
@@ -344,6 +348,8 @@ export class MarketplaceWriteoffService {
           asset_title: c.asset_title,
           quantity: c.quantity,
           amount,
+          unit_of_measure: c.unit_of_measure,
+          package_size: c.package_size,
           expiry_ms: expiryMs,
           is_expired: c.is_expired,
           state,
@@ -365,20 +371,14 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
-        unit_of_measure: null,
-        package_size: null,
+        unit_of_measure: g.unit_of_measure,
+        package_size: g.package_size || null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
         expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
       });
-    }
-    const display = await this.resolveItemDisplayMap(result);
-    for (const r of result) {
-      const d = display.get(r.inventory_ids[0] ?? '');
-      r.unit_of_measure = d?.unit_of_measure ?? null;
-      r.package_size = d?.package_size ?? null;
     }
     // Просроченное — наверх (первоочередные кандидаты), затем остальное.
     result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
@@ -1010,6 +1010,25 @@ export class MarketplaceWriteoffService {
         executed: false,
       };
     });
+  }
+
+  /**
+   * Стоимость партии-кандидата по цене прибытия. Единственная формула суммы в
+   * списании: `calcCostAmount` делит количество на упаковку там, где цена
+   * задана за упаковку, и перемножает напрямую только при отпуске по мере.
+   * Позиция без цены прибытия (записи до введения остатка) стоит 0.
+   */
+  private candidateAmount(candidate: MarketplaceWriteoffCandidate): number {
+    if (candidate.arrival_price === null) return 0;
+    return Number(
+      calcCostAmount({
+        quantity: candidate.quantity,
+        unit: candidate.unit_of_measure,
+        unitPrice: candidate.arrival_price,
+        packageSize: candidate.package_size,
+        decimals: this.assetDecimals,
+      })
+    );
   }
 
   sumItems(items: MarketplaceWriteoffProposalItem[]): number {

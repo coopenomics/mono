@@ -233,6 +233,8 @@ watch(
   { immediate: true },
 )
 
+// Строка ТТН приходит в единицах отпуска (упаковки при упаковочном отпуске),
+// цена — за ту же единицу: произведение прямое, делить на фасовку не нужно.
 const total = computed(() => props.data.items.reduce((acc, i) => acc + i.qty * i.price, 0))
 const totalQty = computed(() => props.data.items.reduce((acc, i) => acc + i.qty, 0))
 

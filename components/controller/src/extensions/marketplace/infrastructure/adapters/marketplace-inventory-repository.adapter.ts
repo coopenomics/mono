@@ -19,6 +19,7 @@ import type {
   MarketplaceInventoryListFilter,
   MarketplaceWriteoffCandidate,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceInventoryMapper } from '../mappers/marketplace-inventory.mapper';
 
@@ -52,6 +53,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       expiry_date: input.expiry_date ?? null,
       ownership: input.ownership ?? MarketplaceInventoryOwnerships.ORDER,
       arrival_price: input.arrival_price ?? null,
+      package_size: input.package_size ?? 0,
+      unit_of_measure: input.unit_of_measure ?? MarketplaceUnitsOfMeasure.PIECE,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
@@ -206,6 +209,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
         asset_title: r.product_name_snapshot,
         quantity: r.quantity_per_label,
         arrival_price: r.arrival_price,
+        package_size: r.package_size,
+        unit_of_measure: r.unit_of_measure,
         expiry_date: r.expiry_date,
         is_expired: r.expiry_date !== null && r.expiry_date.getTime() <= cutoffMs,
       }))
@@ -572,6 +577,10 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       expiry_date: row.expiry_date,
       ownership: MarketplaceInventoryOwnerships.COOP,
       arrival_price: row.arrival_price ?? arrival_price,
+      // Фасовка едет с отколотой частью: цена позиции — за единицу отпуска,
+      // без размера упаковки её не с чем перемножать.
+      package_size: row.package_size,
+      unit_of_measure: row.unit_of_measure,
       published_offer_id: null,
       reserved_order_id: null,
     };

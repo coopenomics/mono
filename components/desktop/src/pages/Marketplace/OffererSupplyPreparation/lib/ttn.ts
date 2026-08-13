@@ -1,4 +1,4 @@
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import type { TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import type { MarketplaceShipmentView } from '../api';
@@ -61,12 +61,18 @@ export function buildTtnData(
     deliveryEstimate: t?.delivery_datetime_estimate || undefined,
     items: matched.map((o) => {
       const unitsPerBox = packMap.get(o.id);
+      // Коробки экспедитора считаются от физического количества в базовой
+      // единице: в коробку кладут штуки/литры, а не «единицы отпуска».
       const boxes = unitsPerBox && unitsPerBox > 0 ? Math.ceil(o.quantity / unitsPerBox) : undefined;
+      // Строка ТТН ведётся в единицах отпуска — как и акт приёмки: цена
+      // заказа задана за упаковку, поэтому и количество в строке должно быть
+      // в упаковках, иначе сумма завышается в размер фасовки.
+      const saleUnit = marketplaceOrderSaleUnit(o.quantity, o.unit_of_measure, o.package_size);
       return {
         sku: o.offer_id ? String(o.offer_id).slice(0, 8) : '—',
         title: o.product_name || 'Товар по предложению',
-        qty: o.quantity,
-        unit: marketplaceOrderUnitLabel(o.unit_of_measure),
+        qty: saleUnit.units,
+        unit: saleUnit.unitLabel,
         price: parseFloat(o.price_per_unit) || 0,
         unitsPerBox: unitsPerBox ?? undefined,
         boxes,

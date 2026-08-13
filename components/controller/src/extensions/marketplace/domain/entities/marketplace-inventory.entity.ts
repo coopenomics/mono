@@ -5,6 +5,10 @@ import type {
   MarketplaceInventoryProps,
   MarketplaceInventoryStatus,
 } from './marketplace-inventory.types';
+import {
+  MarketplaceUnitsOfMeasure,
+  type MarketplaceUnitOfMeasure,
+} from './marketplace-offer.types';
 
 /**
  * Единица имущества на складе КУ. Рождается на приёмке кооперативом по акту
@@ -35,6 +39,10 @@ export class MarketplaceInventoryDomainEntity {
   public readonly expiry_date: Date | null;
   public readonly ownership: MarketplaceInventoryOwnership;
   public readonly arrival_price: string | null;
+  /** Фасовка приёмки: 0 — по мере, >0 — упаковкой (см. `arrival_price`). */
+  public readonly package_size: number;
+  /** Базовая единица измерения имущества (штука/килограмм/литр). */
+  public readonly unit_of_measure: MarketplaceUnitOfMeasure;
   public readonly published_offer_id: string | null;
   public readonly reserved_order_id: string | null;
   public readonly created_at: Date;
@@ -70,6 +78,8 @@ export class MarketplaceInventoryDomainEntity {
     this.expiry_date = props.expiry_date ?? null;
     this.ownership = props.ownership;
     this.arrival_price = props.arrival_price ?? null;
+    this.package_size = props.package_size ?? 0;
+    this.unit_of_measure = props.unit_of_measure ?? MarketplaceUnitsOfMeasure.PIECE;
     this.published_offer_id = props.published_offer_id ?? null;
     this.reserved_order_id = props.reserved_order_id ?? null;
     this.created_at = props.created_at;

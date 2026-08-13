@@ -96,6 +96,9 @@ function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number
     return { qty, ordered, total: costWithFee(o, factCost) };
   }
   const qty = Math.min(ordered, o.warehouse_quantity ?? ordered);
+  // Цена выводится делением суммы заказа на его базовое количество, поэтому
+  // она за базовую единицу — и умножается на базовое же количество. Фасовка
+  // здесь не участвует (канон единицы отпуска — README расширения).
   const unitPriceWithFee = ordered ? orderedTotalWithFee / ordered : 0;
   return { qty, ordered, total: qty * unitPriceWithFee };
 }
