@@ -18,18 +18,61 @@ import { IAction, IDelta } from '~/types/common';
  * для string.
  */
 
+/**
+ * Хэши приводятся к заглавным — так, как их всегда отдавал прежний индексер.
+ *
+ * Это не косметика, а сохранение формата данных. Прежний индексер собирал
+ * шестнадцатеричные значения через eosjs, а тот заканчивает `arrayToHex`
+ * вызовом `toUpperCase()`: заглавными приходило всё — идентификатор транзакции,
+ * идентификатор блока, любой `checksum256` внутри полезной нагрузки. Узел годами
+ * складывал их в свои таблицы «как пришло» и ищет по ним точным сравнением, а
+ * половина кода платформы приводит хэш к заглавным перед сравнением именно
+ * поэтому.
+ *
+ * Новый индексер разбирает цепь через @wharfkit/antelope, а он отдаёт то же
+ * значение строчными. Без нормализации переход менял бы регистр всех новых
+ * записей: в одной таблице оказались бы старые строки заглавными и новые
+ * строчными, а поиск по хэшу молча перестал бы их находить — ни ошибки, ни
+ * расхождения в сумме, просто «документ не найден» на исправных данных.
+ *
+ * Поэтому регистр восстанавливается здесь, в единственной точке входа событий,
+ * а не правкой сотен мест сравнения. Регистронезависимый поиск в репозиториях
+ * остаётся второй линией защиты — на случай, если хэш придёт со стороны.
+ */
+const CHECKSUM_HEX = /^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$/;
+
+function normalizeHashes<T>(value: T): T {
+  if (typeof value === 'string') {
+    return (CHECKSUM_HEX.test(value) ? value.toUpperCase() : value) as unknown as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeHashes(item)) as unknown as T;
+  }
+
+  // Дата и прочие объекты со своим поведением копированию полей не подлежат:
+  // у события они не встречаются, но проверка дешевле, чем испорченное значение.
+  if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, normalizeHashes(v)])
+    ) as unknown as T;
+  }
+
+  return value;
+}
+
 export function mapParserDeltaToIDelta(event: DeltaEvent): IDelta {
   return {
     chain_id: event.chain_id,
     block_num: event.block_num,
-    block_id: event.block_id,
+    block_id: normalizeHashes(event.block_id),
     block_time: event.block_time,
     present: event.present,
     code: event.code,
     scope: event.scope,
     table: event.table,
     primary_key: event.primary_key,
-    value: event.value,
+    value: normalizeHashes(event.value),
   };
 }
 
@@ -39,7 +82,7 @@ export function mapParserActionToIAction(event: ActionEvent): IAction {
   const receipt = r
     ? {
         receiver: r.receiver,
-        act_digest: r.actDigest,
+        act_digest: normalizeHashes(r.actDigest),
         global_sequence: String(r.globalSequence),
         recv_sequence: String(r.recvSequence),
         auth_sequence: r.authSequence.map((s) => ({ account: s.account, sequence: String(s.sequence) })),
@@ -59,10 +102,10 @@ export function mapParserActionToIAction(event: ActionEvent): IAction {
       };
 
   return {
-    transaction_id: event.transaction_id,
+    transaction_id: normalizeHashes(event.transaction_id),
     account: event.account,
     block_num: event.block_num,
-    block_id: event.block_id,
+    block_id: normalizeHashes(event.block_id),
     block_time: event.block_time,
     chain_id: event.chain_id,
     name: event.name,
@@ -70,7 +113,7 @@ export function mapParserActionToIAction(event: ActionEvent): IAction {
     // чтобы guard processAction (receiver != account → skip) пропускал событие.
     receiver: receipt.receiver,
     authorization: event.authorization.map((a) => ({ actor: a.actor, permission: a.permission })),
-    data: event.data,
+    data: normalizeHashes(event.data),
     action_ordinal: event.action_ordinal,
     global_sequence: globalSequence,
     account_ram_deltas: event.account_ram_deltas.map((d) => ({ account: d.account, delta: d.delta })),
