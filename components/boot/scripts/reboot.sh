@@ -12,7 +12,7 @@ fi
 
 # Останавливаем и удаляем контейнеры вместе с volumes
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser parser2 coopback || true
+docker compose down -v mongo postgres monoredis parser2 coopback || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."
@@ -54,10 +54,6 @@ echo "MinIO готов!"
 # Запускаем boot процесс
 echo "Запускаем boot процесс..."
 pnpm run boot
-
-# Запускаем parser
-echo "Запускаем parser..."
-docker compose up -d cooparser
 
 # Индексер parser2 — источник событий для контроллера. Поднимаем его ДО
 # контроллера: тот читает только стрим parser2, и без индексера синхронизация

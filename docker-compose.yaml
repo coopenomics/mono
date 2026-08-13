@@ -70,27 +70,10 @@ services:
     working_dir: /app
     command: pnpm --filter @coopenomics/controller run dev
 
-  cooparser:
-    build:
-      context: ./
-      dockerfile: components/parser/Dockerfile
-    image: cooparser
-    env_file:
-      - ./components/parser/.env
-    restart: unless-stopped
-    # См. coopback: пишем от хостового ant (uid 1000), HOME=/tmp.
-    user: "1000:1000"
-    environment:
-      HOME: /tmp
-    volumes:
-      - ./:/app
-    working_dir: /app
-    command: pnpm --filter @coopenomics/parser run dev
-
   # Индексер @coopenomics/parser2 — единственный источник событий для controller
   # после перехода на ParserClient: тот читает стрим ce:parser2:<chain_id>:events,
-  # а cooparser выше пишет в notifications и остаётся только ради explorer-API :4000
-  # (SIMPLE_EXPLORER_API). Без этого сервиса стрим пуст и синхронизация с цепью стоит.
+  # Единственный парсер в стеке: реестр шаблонов, история действий и строки
+  # таблиц читаются узлом из собственной базы, отдельный обозреватель не нужен.
   #
   # Образ переиспользуем от coopback (node:22-slim) — тот же runtime, что и у
   # node_modules на хосте, поэтому бинарь пакета запускается прямо из bind-mount'а
