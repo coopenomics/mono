@@ -8,6 +8,7 @@ import type {
   PaginatedResultDomainInterface,
 } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import { ActionEntity } from '../entities/action.entity';
+import { isHexHash } from '~/shared/sql/hex-value.util';
 
 /**
  * TypeORM реализация репозитория действий блокчейна
@@ -79,17 +80,23 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
     // число из цепи и его строковая запись совпадают одинаково. Ключ с точками —
     // путь вглубь (`document.hash`), поэтому берём #>> с массивом пути. Имена
     // параметров нумеруем: двух одинаковых плейсхолдеров TypeORM не разведёт.
+    //
+    // Хэш сравнивается без учёта регистра — см. isHexHash.
     Object.entries(filter.data ?? {}).forEach(([field, value], i) => {
       const path = field.split('.');
+      const text = String(value);
+      const wrap = (expression: string) => (isHexHash(text) ? `lower(${expression})` : expression);
+      const param = isHexHash(text) ? text.toLowerCase() : text;
+
       if (path.length === 1) {
-        qb.andWhere(`a.data ->> :dataField${i} = :dataValue${i}`, {
+        qb.andWhere(`${wrap(`a.data ->> :dataField${i}`)} = :dataValue${i}`, {
           [`dataField${i}`]: field,
-          [`dataValue${i}`]: String(value),
+          [`dataValue${i}`]: param,
         });
       } else {
-        qb.andWhere(`a.data #>> :dataPath${i}::text[] = :dataValue${i}`, {
+        qb.andWhere(`${wrap(`a.data #>> :dataPath${i}::text[]`)} = :dataValue${i}`, {
           [`dataPath${i}`]: `{${path.join(',')}}`,
-          [`dataValue${i}`]: String(value),
+          [`dataValue${i}`]: param,
         });
       }
     });

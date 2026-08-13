@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
+import { isHexHash } from '~/shared/sql/hex-value.util';
 
 /**
  * Данные цепи для фабрики документов — из собственной базы узла.
@@ -99,13 +100,17 @@ export class ControllerChainDataSource implements IChainDataSource {
 
     Object.entries(query.filter ?? {}).forEach(([field, value]) => {
       const path = field.split('.');
-      params.push(String(value));
+      const text = String(value);
+      // Хэш сравнивается без учёта регистра: цепь отдаёт его заглавными,
+      // а в журнале он лежит так, как пришёл в теле события. См. isHexHash.
+      const hex = isHexHash(text);
+      params.push(hex ? text.toLowerCase() : text);
       const placeholder = `$${params.length}`;
-      conditions.push(
+      const expression =
         path.length === 1
-          ? `d.value ->> '${sanitizeKey(field)}' = ${placeholder}`
-          : `d.value #>> '{${path.map(sanitizeKey).join(',')}}' = ${placeholder}`
-      );
+          ? `d.value ->> '${sanitizeKey(field)}'`
+          : `d.value #>> '{${path.map(sanitizeKey).join(',')}}'`;
+      conditions.push(`${hex ? `lower(${expression})` : expression} = ${placeholder}`);
     });
 
     const rows = await this.dataSource.query(

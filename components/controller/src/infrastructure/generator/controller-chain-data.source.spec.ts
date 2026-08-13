@@ -94,6 +94,21 @@ describe('ControllerChainDataSource', () => {
     expect(rows).toEqual([{ id: 2 }]);
   });
 
+  it('хэш в условии сравнивается без учёта регистра', async () => {
+    const hash = '2F158D869466CD9DBF127607A8A284EB8624CDA2E91465D6BF08AC5089488003';
+
+    await source.getTableRows({
+      code: 'soviet',
+      scope: 'voskhod',
+      table: 'decisions',
+      filter: { hash },
+    });
+
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain("lower(d.value ->> 'hash')");
+    expect(params).toContain(hash.toLowerCase());
+  });
+
   it('вложенный путь в условии разворачивается, мусорное имя поля отвергается', async () => {
     await source.getTableRows({
       code: 'soviet',
