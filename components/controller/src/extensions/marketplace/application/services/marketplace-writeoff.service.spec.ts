@@ -135,7 +135,6 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceWriteoff
   return new MarketplaceWriteoffService(
     mocks.repo,
     mocks.inventoryRepo,
-    mocks.orderRepo,
     mocks.offerRepo,
     mocks.chainPort,
     mocks.assetConfig,
@@ -742,6 +741,46 @@ describe('MarketplaceWriteoffService', () => {
       const [row] = await service.listCandidates('voskhod');
 
       expect(row.amount).toBe('0.0000');
+    });
+  });
+
+  // ── представление позиции в документах ────────────────────────────────
+
+  describe('resolveItemPresentations — документы говорят упаковками', () => {
+    it('упаковочная позиция: «1 × упак. 10 шт» вместо «10 шт»', async () => {
+      mocks.inventoryRepo.findById = jest.fn().mockResolvedValue({
+        unit_of_measure: MarketplaceUnitsOfMeasure.PIECE,
+        package_size: 10,
+      });
+
+      const [pres] = await service.resolveItemPresentations([
+        { inventory_ids: ['inv-1'], quantity: '10' },
+      ]);
+
+      expect(pres).toEqual({ quantity: '1', unit: 'упак. 10 шт' });
+    });
+
+    it('отпуск по мере: количество и базовая единица как есть', async () => {
+      mocks.inventoryRepo.findById = jest.fn().mockResolvedValue({
+        unit_of_measure: MarketplaceUnitsOfMeasure.KG,
+        package_size: 0,
+      });
+
+      const [pres] = await service.resolveItemPresentations([
+        { inventory_ids: ['inv-1'], quantity: '2.5' },
+      ]);
+
+      expect(pres).toEqual({ quantity: '2.5', unit: 'кг' });
+    });
+
+    it('партия не найдена — фолбэк «ед.» без падения', async () => {
+      mocks.inventoryRepo.findById = jest.fn().mockResolvedValue(null);
+
+      const [pres] = await service.resolveItemPresentations([
+        { inventory_ids: ['inv-1'], quantity: '3' },
+      ]);
+
+      expect(pres).toEqual({ quantity: '3', unit: 'ед.' });
     });
   });
 

@@ -28,14 +28,11 @@ import {
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
-  MARKETPLACE_ORDER_REPOSITORY,
-  type MarketplaceOrderDomainRepository,
-} from '../../domain/repositories/marketplace-order.repository';
-import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { presentSaleUnit } from '../shared/packaging.util';
 import { calcCostAmount } from '../shared/cost.util';
 import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
@@ -140,6 +137,14 @@ export interface MarketplaceWriteoffConfirmationGroup {
   total_amount: string;
 }
 
+/** Количество и единица позиции списания в том виде, в каком их читает человек. */
+export interface MarketplaceWriteoffItemPresentation {
+  /** Количество в единицах отпуска: число упаковок либо базовое количество. */
+  quantity: string;
+  /** Подпись единицы отпуска: «упак. 10 шт» либо «шт.». */
+  unit: string;
+}
+
 export interface MarketplaceWriteoffServiceMemoData {
   proposal: MarketplaceWriteoffProposalDomainEntity;
   braname: string;
@@ -157,8 +162,6 @@ export class MarketplaceWriteoffService {
     private readonly repo: MarketplaceWriteoffProposalDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
@@ -215,31 +218,37 @@ export class MarketplaceWriteoffService {
   }
 
   /**
-   * Человекочитаемая единица измерения (шт./кг/л/упак.) для каждой позиции
-   * проекта — по её партиям. Единица живёт на оффере (снапшот товара); партии
-   * одного наименования агрегированы в одну позицию, поэтому берём единицу по
-   * первой партии: inventory → оффер (через published_offer_id либо заказ,
-   * который сослался на оффер). Фолбэк «ед.» — если товар/оффер уже удалён.
+   * Как позиция списания читается человеком в документах: количество в
+   * ЕДИНИЦАХ ОТПУСКА и подпись этой единицы. Списывают целыми упаковками —
+   * значит и Заявление, и Служебная записка говорят «1 × упак. 10 шт», а не
+   * «10 шт»: десяток яиц уходит на списание десятком, а не десятью штуками
+   * (решение 2026-08-13). Хранится количество по-прежнему в базовой единице.
+   *
+   * Размерность берётся с первой партии позиции (партии одного наименования
+   * агрегированы, фасовка у них одна). Партия не найдена — фолбэк «ед.» и
+   * количество как есть.
    */
-  async resolveUnitLabels(items: { inventory_ids: string[] }[]): Promise<string[]> {
-    return Promise.all(items.map((it) => this.resolveUnitLabel(it.inventory_ids)));
+  async resolveItemPresentations(
+    items: { inventory_ids: string[]; quantity: string }[]
+  ): Promise<MarketplaceWriteoffItemPresentation[]> {
+    return Promise.all(items.map((it) => this.resolveItemPresentation(it)));
   }
 
-  private async resolveUnitLabel(inventoryIds: string[]): Promise<string> {
-    const FALLBACK = 'ед.';
-    const invId = inventoryIds[0];
+  private async resolveItemPresentation(item: {
+    inventory_ids: string[];
+    quantity: string;
+  }): Promise<MarketplaceWriteoffItemPresentation> {
+    const FALLBACK = { quantity: item.quantity, unit: 'ед.' };
+    const invId = item.inventory_ids[0];
     if (!invId) return FALLBACK;
     const inv = await this.inventoryRepo.findById(invId);
     if (!inv) return FALLBACK;
-    let offerId = inv.published_offer_id;
-    if (!offerId && inv.order_id) {
-      const order = await this.orderRepo.findById(inv.order_id);
-      offerId = order?.offer_id ?? null;
+    const baseQuantity = Number.parseFloat(item.quantity);
+    if (!Number.isFinite(baseQuantity)) {
+      return { quantity: item.quantity, unit: marketplaceOrderUnitLabel(inv.unit_of_measure) };
     }
-    if (!offerId) return FALLBACK;
-    const offer = await this.offerRepo.findById(offerId);
-    if (!offer) return FALLBACK;
-    return marketplaceOrderUnitLabel(offer.unit_of_measure);
+    const pres = presentSaleUnit(baseQuantity, inv.unit_of_measure, inv.package_size);
+    return { quantity: String(pres.units), unit: pres.unitLabel };
   }
 
   /**
@@ -456,7 +465,7 @@ export class MarketplaceWriteoffService {
     }
     const branch = await this.orderDisplay.resolveBranchDisplay(braname);
     const total = this.sumItems(items);
-    const units = await this.resolveUnitLabels(items);
+    const presentations = await this.resolveItemPresentations(items);
     return {
       proposal,
       braname,
@@ -465,8 +474,8 @@ export class MarketplaceWriteoffService {
       proposal_hash: proposal.proposal_hash,
       items: items.map((it, i) => ({
         asset_title: it.asset_title,
-        quantity: it.quantity,
-        unit: units[i],
+        quantity: presentations[i].quantity,
+        unit: presentations[i].unit,
         amount: it.amount,
         reason: it.reason,
       })),
