@@ -25,6 +25,12 @@ import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
 } from '../services/marketplace-economy.service';
+import { MarketplaceTaxService } from '../services/marketplace-tax.service';
+import {
+  MarketplacePayTaxInputDTO,
+  MarketplaceTaxStateDTO,
+  toMarketplaceTaxStateDTO,
+} from '../dto/marketplace-tax.dto';
 import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
@@ -72,7 +78,8 @@ export class MarketplaceEconomyResolver {
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly taxService: MarketplaceTaxService
   ) {}
 
   // ── Единая ставка членского взноса ───────────────────────────────────
@@ -335,6 +342,31 @@ export class MarketplaceEconomyResolver {
     const username = canReadAll ? data?.username : member.username;
     const aids = await this.economyService.listAids(config.coopname, username);
     return aids.map(toMarketplaceAidDTO);
+  }
+
+  // ── Удержанный налог на доходы физических лиц ────────────────────────
+
+  @Query(() => MarketplaceTaxStateDTO, {
+    name: 'marketplaceGetTaxState',
+    description:
+      'Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Tax', 'read')
+  async marketplaceGetTaxState(): Promise<MarketplaceTaxStateDTO> {
+    const view = await this.taxService.getTaxState(config.coopname);
+    return toMarketplaceTaxStateDTO(view);
+  }
+
+  @Mutation(() => String, {
+    name: 'marketplacePayTax',
+    description:
+      'Отправить удержанный налог на оплату в бюджет одним платежом: заявка появляется у кассира в реестре исходящих, он платит по реквизитам налоговой и подтверждает перевод. Возвращает сумму, отправленную на оплату.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Tax', 'pay')
+  async marketplacePayTax(@Args('data') data: MarketplacePayTaxInputDTO): Promise<string> {
+    return this.taxService.createTaxPayment(config.coopname, data.amount);
   }
 
   // ── Внутреннее ────────────────────────────────────────────────────────

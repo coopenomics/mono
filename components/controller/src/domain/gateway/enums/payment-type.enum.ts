@@ -36,6 +36,12 @@ export enum PaymentTypeEnum {
   // branch::aidconfirm; отказ — branch::aiddecline (средства остаются на
   // персональном кошельке).
   AID = 'aid',
+  // Исходящее перечисление удержанного НДФЛ в бюджет единым налоговым платежом
+  // (Стол заказов, requirement b6). Создаётся бухгалтером на сумму не больше
+  // накопленного удержания; подтверждение кассиром проводит on-chain
+  // branch::taxconfirm, отказ — branch::taxdecline (долг перед бюджетом
+  // остаётся в полном объёме).
+  TAX = 'tax',
 }
 
 /**
@@ -60,6 +66,7 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
   [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
   [PaymentTypeEnum.AID]: 'Материальная помощь',
+  [PaymentTypeEnum.TAX]: 'Перечисление удержанного НДФЛ',
 };
 
 /**
@@ -105,4 +112,5 @@ export const OUTGOING_PAYMENT_TYPES = [
   PaymentTypeEnum.EXPENSE,
   PaymentTypeEnum.EXPENSE_OVERSPEND,
   PaymentTypeEnum.AID,
+  PaymentTypeEnum.TAX,
 ];

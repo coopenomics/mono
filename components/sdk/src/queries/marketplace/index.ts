@@ -114,6 +114,7 @@ export * as StockIssuancePayloads from './stockIssuancePayloads'
 
 // requirement b6 «Экономика КУ»
 export * as GetEconomyConfig from './getEconomyConfig'
+export * as GetTaxState from './getTaxState'
 /** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации */
 export * as GetSupplierPaymentSettings from './getSupplierPaymentSettings'
 export * as GetBranchEconomy from './getBranchEconomy'

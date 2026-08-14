@@ -119,6 +119,7 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
       [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
       [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
       [PaymentTypeEnum.AID]: 'Материальная помощь',
+      [PaymentTypeEnum.TAX]: 'Перечисление удержанного НДФЛ',
     };
     return typeLabels[this.type] || this.type;
   }
