@@ -364,7 +364,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Выдача заказов доступна председателю участка и его доверенным лицам.'
+    body='Выдача заказов доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')

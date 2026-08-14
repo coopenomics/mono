@@ -93,7 +93,12 @@ const SHIPMENT_VARIANT_LABEL: Record<string, string> = {
 
 const RECEPTION_STATUS_LABEL: Record<string, string> = {
   PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя',
+  // Ключ статуса пришёл из контракта (`signchair`) и говорит «председатель»,
+  // но закрывающую подпись на участке накладывает ОПЕРАТОР — председатель
+  // совета в Столе заказов не участвует вовсе (решение владельца 2026-08-13).
+  // Меняем только то, что читает человек; имена статусов и действий на цепи
+  // остаются прежними.
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи оператора',
   ACCEPTED_TO_COOP: 'Принят кооперативом',
   CANCELLED: 'Отменён',
 };
@@ -730,7 +735,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Приёмка партий доступна председателю участка и его доверенным лицам.'
+    body='Приёмка партий доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -802,7 +807,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           BaseButton(variant='primary', @click='signChairman(g)')
             template(#icon-left)
               q-icon(name='draw', size='18px')
-            | Подписать председателем
+            | Подписать оператором
 
         //- Поставщик ещё не подписал — оператор может отменить акт и пересобрать
         //- (поставщик не согласен со снятыми позициями, повезёт замену позже).

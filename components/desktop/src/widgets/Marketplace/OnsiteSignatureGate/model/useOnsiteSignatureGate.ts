@@ -144,7 +144,7 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
       SuccessAlert(
         allRejected
           ? 'Отказ в приёмке подтверждён. Заказчикам вернётся оплата.'
-          : 'Поставка подписана. Ожидается закрывающая подпись председателя КУ.',
+          : 'Поставка подписана. Ожидается закрывающая подпись оператора участка.',
       );
     } else {
       for (const { receptionId, error } of errors) {

@@ -456,7 +456,7 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
   EmptyState(
     v-if='branchStore.loaded && !branchStore.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Боксы участка доступны председателю участка и его доверенным лицам.'
+    body='Боксы участка доступны оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')

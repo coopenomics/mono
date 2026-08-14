@@ -111,7 +111,7 @@
           <div class="mp-ttn__sign-name">{{ data.expeditorName || '____________________' }}</div>
         </div>
         <div class="mp-ttn__sign">
-          <div class="mp-ttn__sign-role">Груз получил — оператор / председатель КУ</div>
+          <div class="mp-ttn__sign-role">Груз получил — оператор участка</div>
           <div class="mp-ttn__sign-line" />
           <div class="mp-ttn__sign-name">{{ data.acceptedBy ?? '____________________' }}</div>
         </div>
