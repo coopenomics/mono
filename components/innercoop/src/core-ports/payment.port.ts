@@ -72,7 +72,7 @@ export enum PaymentDirection {
 /** Сумма платежа в разбивке на тело и комиссию провайдера. */
 export interface InnerPaymentDetails {
   /** Реквизиты, QR-код или токен провайдера — форма зависит от способа оплаты. */
-  data: any;
+  data: Record<string, any>;
   amount_plus_fee: string;
   amount_without_fee: string;
   fee_amount: string;
@@ -123,7 +123,7 @@ export interface InnerPayment {
   payment_details?: InnerPaymentDetails;
 
   /** Данные для проводки в цепь: состав зависит от типа платежа. */
-  blockchain_data?: any;
+  blockchain_data?: Record<string, any>;
 
   /** Подписанное заявление пайщика — у исходящих платежей по заявлению. */
   statement?: ISignedDocument;

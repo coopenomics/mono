@@ -15,10 +15,14 @@
  */
 export interface IMessageChannelPort {
   /** Опубликовать сообщение в канал. Доставка — best-effort, без подтверждения. */
-  publish(channel: string, message: any): Promise<void>;
+  publish(channel: string, message: unknown): Promise<void>;
 
-  /** Подписаться на канал. Обработчик вызывается на каждое сообщение. */
-  subscribe(channel: string, handler: (message: any) => void): void;
+  /**
+   * Подписаться на канал. Обработчик вызывается на каждое сообщение, уже
+   * разобранное из JSON, — форму знает только тот, кто публикует, поэтому
+   * потребитель сверяет её сам.
+   */
+  subscribe(channel: string, handler: (message: unknown) => void): void;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

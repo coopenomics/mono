@@ -27,7 +27,7 @@ export interface InnerChainActionRecord {
   receiver: string;
   authorization: Array<{ actor: string; permission: string }>;
   /** Поля действия; состав задаёт ABI контракта. */
-  data: any;
+  data: Record<string, any>;
   /** Порядковый номер действия внутри транзакции. */
   action_ordinal: number;
   /** Сквозной номер действия в цепи — строка, потому что не помещается в число. */

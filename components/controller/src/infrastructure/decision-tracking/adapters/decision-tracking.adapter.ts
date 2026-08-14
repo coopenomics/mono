@@ -155,7 +155,10 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
   @OnEvent(`action::${MeetContract.contractName.production}::${MeetContract.Actions.RestartMeet.actionName}`)
   async handleMeetRestart(actionData: ActionDomainInterface): Promise<void> {
     try {
-      const data: MeetContract.Actions.RestartMeet.IInput = actionData.data;
+      // Поля действия описывает ABI контракта, а не контракт портов: контракт
+      // отдаёт их открытой формой, а потребитель сверяет с тем типом, который
+      // ждёт от конкретного действия.
+      const data = actionData.data as unknown as MeetContract.Actions.RestartMeet.IInput;
 
       const oldHash = data.hash;
       const newHash = data.new_hash;

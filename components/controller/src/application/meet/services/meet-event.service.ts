@@ -28,9 +28,12 @@ export class MeetEventService {
       // Преобразуем блокчейн-документ в формат ISignedDocument
       const decisionDocument = DomainToBlockchainUtils.convertChainDocumentToSignedDocument2(event.data.decision);
 
-      // Нормализуем числовые значения
+      // Нормализуем числовые значения.
+      // Поля действия описывает ABI контракта, а не контракт портов: он отдаёт
+      // их открытой формой, а здесь мы сверяем их с типом решения собрания.
+      const chainDecision = event.data as unknown as MeetDecisionDomainInterface;
       const decisionData: MeetDecisionDomainInterface = {
-        ...event.data,
+        ...chainDecision,
         signed_ballots: Number(event.data.signed_ballots),
         quorum_percent: Number(event.data.quorum_percent),
         results: event.data.results.map((item: any) => ({

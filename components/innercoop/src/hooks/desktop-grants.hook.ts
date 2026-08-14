@@ -21,7 +21,7 @@ export interface InnerDesktopGrantsContext {
   /** Состояние членства — для прав, требующих активного пайщика. */
   userStatus?: string;
   /** Настройка расширения: по ней видно, принята ли программа кооперативом. */
-  config?: any;
+  config?: Record<string, any>;
 }
 
 export interface IDesktopGrantsHook {
