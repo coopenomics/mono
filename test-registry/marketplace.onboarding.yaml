@@ -198,8 +198,8 @@ cases:
     kind: side
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    status: passing
 
   - id: mkt.onb.break.01
     level: backend

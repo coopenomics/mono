@@ -47,8 +47,8 @@ cases:
     kind: side
     scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
     expect: отказ — выдать чужой заказ нельзя
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
+    status: passing
 
   - id: mkt.iss.side.03
     level: backend

@@ -297,8 +297,8 @@ cases:
     expect: >
       уведомление о модерации НЕ отправляется, поставщик получает только сигнал
       о публикации — иначе администратора дёргали бы на каждый возврат в каталог
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
+    status: passing
 
   - id: mkt.offer.break.03
     level: backend
