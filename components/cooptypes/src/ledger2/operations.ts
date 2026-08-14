@@ -299,6 +299,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 51,
     human_name: 'Материальная помощь доверенному кооперативного участка' },
 
+  { code: 'o.brn.aidtax',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.brn.ndfl',
+    debit: 86, credit: 68,
+    human_name: 'Удержание налога на доходы физических лиц из материальной помощи' },
+
+  { code: 'o.brn.taxpay',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'TAX_PAYMENT',    wallet_op: 'BURN', wallet_from: 'w.brn.ndfl', wallet_to: null,
+    debit: 68, credit: 51,
+    human_name: 'Перечисление удержанного налога на доходы физических лиц в бюджет' },
+
   { code: 'o.brn.conv',    process_type: 'p.brn.fees',    contract: 'branch',
     name: 'CONVERT_TO_MKT', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.mkt.member',
     debit: null, credit: null,

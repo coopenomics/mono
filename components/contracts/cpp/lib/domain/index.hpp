@@ -50,6 +50,7 @@
 #include "table_branch_branches.hpp"
 #include "table_branch_branchstat.hpp"
 #include "table_branch_expenses.hpp"
+#include "table_branch_taxes.hpp"
 #include "table_branch_weights.hpp"
 #include "table_branch_decisions.hpp"
 #include "table_branch_trustreqs.hpp"

@@ -192,5 +192,10 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "kind": "COOPERATIVE",
     "name": "w.cap.pgexp",
   },
+  {
+    "human_name": "Удержанный НДФЛ к перечислению",
+    "kind": "COOPERATIVE",
+    "name": "w.brn.ndfl",
+  },
 ]
 `;

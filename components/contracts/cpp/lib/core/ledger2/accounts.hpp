@@ -37,13 +37,14 @@ enum class AccountType : uint8_t {
  * состояния «принятый коммит» (паевой взнос имуществом в переходе РИД
  * в программу Благорост): commit → Dr 08 / Cr 80, accept → Dr 04 / Cr 08.
  *
- * Состав (9 счетов):
+ * Состав (10 счетов):
  *
  * - 04  — Нематериальные активы (РИД, принятые в паевой фонд)
  * - 08  — Вложения во внеоборотные активы (промежуточное состояние)
  * - 10  — Материалы (склад имущества на кооперативных участках; per-КУ субсчета)
  * - 51  — Расчётный счёт
  * - 58  — Финансовые вложения (выданные пайщикам беспроцентные займы)
+ * - 68  — Расчёты по налогам и сборам (удержанный НДФЛ до перечисления в бюджет)
  * - 76  — Расчёты с пайщиками (суспенс регистрационного взноса до решения совета)
  * - 80  — Паевой фонд (складочный капитал)
  * - 86  — Целевое финансирование (без субсчетов)
@@ -53,6 +54,12 @@ enum class AccountType : uint8_t {
  * Счёт 67 удалён: беспроцентные займы пайщикам идут через 58/51, без 67.
  *
  * Счета 10 и 91 добавлены 2026-05-11 под членскую модель «Стола заказов».
+ *
+ * Счёт 68 добавлен 2026-08-13: кооператив стал налоговым агентом по
+ * материальной помощи доверенным (решение владельца отменяет прежнее «НДФЛ
+ * платит получатель сам»). Удержанный налог не уходит с расчётного счёта в
+ * момент выплаты — он повисает обязательством перед бюджетом и гасится
+ * отдельным платежом бухгалтера, поэтому нужен свой пассивный счёт.
  *
  * Правило кодирования id: integer(code) * 1000.
  * Детализация — через wallets (см. wallets.hpp).
@@ -71,6 +78,7 @@ struct ledger2_accounts {
   static constexpr uint64_t PARTICIPANT_SETTLEMENTS   = 76 * 1000;   ///< 76 — Расчёты с пайщиками (А-П): суспенс регистрационного взноса до решения совета
 
   // Пассивы
+  static constexpr uint64_t TAX_SETTLEMENTS           = 68 * 1000;   ///< 68 — Расчёты по налогам и сборам (П): удержанный НДФЛ до перечисления в бюджет
   static constexpr uint64_t SHARE_FUND                = 80 * 1000;   ///< 80 — Паевой фонд (П)
   static constexpr uint64_t TARGET_RECEIPTS           = 86 * 1000;   ///< 86 — Целевое финансирование (П)
 
@@ -92,18 +100,19 @@ struct Ledger2AccountMeta {
 };
 
 /**
- * @brief Хардкод-справочник плана счетов (MVP, 9 записей).
+ * @brief Хардкод-справочник плана счетов (MVP, 10 записей).
  *
  * `constexpr std::array` + `string_view` — чтобы не было dynamic init
  * при загрузке контракта и тип был полностью заморожен на этапе сборки.
  */
-inline constexpr std::array<Ledger2AccountMeta, 9> LEDGER2_ACCOUNT_MAP = {{
+inline constexpr std::array<Ledger2AccountMeta, 10> LEDGER2_ACCOUNT_MAP = {{
   { ledger2_accounts::INTANGIBLE_ASSETS,       "Нематериальные активы",                 AccountType::ACTIVE },
   { ledger2_accounts::NON_CURRENT_INVESTMENTS, "Вложения во внеоборотные активы",       AccountType::ACTIVE },
   { ledger2_accounts::MATERIALS,               "Материалы",                             AccountType::ACTIVE },
   { ledger2_accounts::BANK_ACCOUNT,            "Расчётный счёт",                        AccountType::ACTIVE },
   { ledger2_accounts::FINANCIAL_INVESTMENTS,   "Финансовые вложения",                   AccountType::ACTIVE },
   { ledger2_accounts::PARTICIPANT_SETTLEMENTS, "Расчёты с пайщиками",                   AccountType::ACTIVE_PASSIVE },
+  { ledger2_accounts::TAX_SETTLEMENTS,         "Расчёты по налогам и сборам",           AccountType::PASSIVE },
   { ledger2_accounts::SHARE_FUND,              "Паевой фонд (складочный капитал)",      AccountType::PASSIVE },
   { ledger2_accounts::TARGET_RECEIPTS,         "Целевое финансирование",                AccountType::PASSIVE },
   { ledger2_accounts::OTHER_INCOME_EXPENSES,   "Прочие доходы и расходы",               AccountType::ACTIVE_PASSIVE },

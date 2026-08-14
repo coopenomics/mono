@@ -80,6 +80,8 @@ struct ledger2_wallets {
   static constexpr eosio::name BRANCH_DISTRIBUTION_POOL = "w.brn.pool"_n;  ///< Транзитный пул ручного распределения КУ (COOPERATIVE; баланс нулевой вне транзакции). Нужен из-за инварианта walletop «один username на обе стороны»: прямой TRANSFER w.brn.common (разрез по braname) → w.brn.person (разрез по доверенному) невозможен; двухходовка o.brn.release (username = braname) + o.brn.person (username = доверенный) внутри одной транзакции распределения.
   static constexpr eosio::name BRANCH_EXPENSE_POOL    = "w.brn.expns"_n;  ///< Пул расходов кооперативного участка (COOPERATIVE) — источник средств шасси расходов для КУ. Наполняется под конкретный расход при создании служебной записки (o.brn.expfnd, username = braname), расходуется прямой оплатой по реквизитам (o.brn.spend) либо выдачей аванса под отчёт (o.brn.expadv); неизрасходованный остаток возвращается в общий кошелёк участка (o.brn.expunf). Транзит нужен и по существу (видно, сколько средств участка отдано под расходы), и технически: шасси расходов требует COOPERATIVE-пул, а w.brn.common ведёт L3-разрез по braname.
 
+  static constexpr eosio::name BRANCH_NDFL_WITHHELD   = "w.brn.ndfl"_n;   ///< Удержанный НДФЛ к перечислению в бюджет (COOPERATIVE, счёт 68). Наполняется при выплате материальной помощи (o.brn.aidtax, TRANSFER с w.brn.person получателя), гасится единым налоговым платежом бухгалтера (o.brn.taxpay, BURN, Дт 68 / Кт 51). Остаток кошелька = долг кооператива перед бюджетом; он же ограничивает сумму платежа — перечислить больше удержанного налоговый агент не вправе. Деньги при удержании с расчётного счёта НЕ уходят: кооператив просто выплатил получателю меньше.
+
   // expense — шасси расходов (подотчёт пайщика, USER_SHARED)
   // Зеркало паттерна w.wal.wpend: кошелёк-резерв на пайщике-получателе ADVANCE-механики.
   // На момент выдачи аванса фиксирует ответственность пайщика; на отчёте — BURN без новой бухпроводки
@@ -113,7 +115,7 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 25> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (11) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
@@ -127,7 +129,7 @@ inline constexpr std::array<Ledger2WalletMeta, 25> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::ADVANCE_HOLD,          "Подотчётные средства пайщика",                             WalletKind::USER_SHARED },
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
 
-  // COOPERATIVE (13) — единый кооперативный баланс, без L3
+  // COOPERATIVE (14) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
@@ -146,6 +148,7 @@ inline constexpr std::array<Ledger2WalletMeta, 25> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::BRANCH_DISTRIBUTION_POOL, "Транзитный пул ручного распределения кооперативного участка", WalletKind::COOPERATIVE },
   { ledger2_wallets::BRANCH_EXPENSE_POOL,   "Пул расходов кооперативного участка",                       WalletKind::COOPERATIVE },
   { ledger2_wallets::PROGRAM_EXPENSE_POOL, "Пул программных расходов ЦПП «Благорост»",              WalletKind::COOPERATIVE },
+  { ledger2_wallets::BRANCH_NDFL_WITHHELD, "Удержанный НДФЛ к перечислению",                        WalletKind::COOPERATIVE },
 }};
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();
