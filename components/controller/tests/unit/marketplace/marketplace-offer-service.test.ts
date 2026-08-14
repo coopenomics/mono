@@ -860,7 +860,15 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
       sale_form: 'packaged',
       unit_of_measure: 'liter',
       packages: [
-        { id: 'pkg-1', size: 1, price: '100.0000', label: null, sort_order: 0, is_default: true },
+        {
+          id: 'pkg-1',
+          size: 1,
+          price: '100.0000',
+          label: null,
+          package_type: 'пластиковая бутылка',
+          sort_order: 0,
+          is_default: true,
+        },
       ],
     });
 
@@ -872,7 +880,9 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
     const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', {
-      packages: [{ id: 'pkg-1', size: 1, price: '120.00', is_default: true }],
+      packages: [
+        { id: 'pkg-1', size: 1, price: '120.00', package_type: 'стекло', is_default: true },
+      ],
     });
     const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string; price: string }> };
     expect(patchArg.packages).toHaveLength(1);
@@ -889,14 +899,45 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
 
     await service.update('offer-1', 'alice', {
       packages: [
-        { id: 'pkg-1', size: 1, price: '100.00', is_default: true },
-        { size: 5, price: '450.00' },
+        { id: 'pkg-1', size: 1, price: '100.00', package_type: 'стекло', is_default: true },
+        { size: 5, price: '450.00', package_type: 'канистра' },
       ],
     });
     const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string }> };
     expect(patchArg.packages[0].id).toBe('pkg-1');
     expect(patchArg.packages[1].id).not.toBe('pkg-1');
     expect(patchArg.packages[1].id).toHaveLength(36);
+  });
+
+  it('упаковка без вида (тары) не принимается — заказчик должен знать, в чём получит', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.update('offer-1', 'alice', {
+        packages: [{ id: 'pkg-1', size: 1, price: '120.00', package_type: '  ', is_default: true }],
+      })
+    ).rejects.toThrow(/вид упаковки/i);
+  });
+
+  it('вид упаковки сохраняется без лишних пробелов', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      packages: [
+        { id: 'pkg-1', size: 1, price: '120.00', package_type: '  корзинка (возвратная) ', is_default: true },
+      ],
+    });
+    const patchArg = repo.applyUpdate.mock.calls[0][1] as {
+      packages: Array<{ package_type: string }>;
+    };
+    expect(patchArg.packages[0].package_type).toBe('корзинка (возвратная)');
   });
 
   it('неизвестный идентификатор упаковки не принимается — выдаётся новый', async () => {
@@ -907,7 +948,15 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
     const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', {
-      packages: [{ id: 'pkg-from-another-offer', size: 2, price: '200.00', is_default: true }],
+      packages: [
+        {
+          id: 'pkg-from-another-offer',
+          size: 2,
+          price: '200.00',
+          package_type: 'стекло',
+          is_default: true,
+        },
+      ],
     });
     const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string }> };
     expect(patchArg.packages[0].id).not.toBe('pkg-from-another-offer');
@@ -922,7 +971,9 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
     const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', {
-      packages: [{ id: 'pkg-1', size: 1, price: '120.00', is_default: true }],
+      packages: [
+        { id: 'pkg-1', size: 1, price: '120.00', package_type: 'стекло', is_default: true },
+      ],
     });
     expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
   });
@@ -966,7 +1017,7 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
 
       await expect(
         service.update('offer-1', 'alice', {
-          packages: [{ size: 1, price: '0.0000', is_default: true }],
+          packages: [{ size: 1, price: '0.0000', package_type: 'стекло', is_default: true }],
         })
       ).rejects.toThrow('Цена упаковки должна быть положительным числом');
       expect(repo.applyUpdate).not.toHaveBeenCalled();

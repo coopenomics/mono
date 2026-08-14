@@ -590,6 +590,16 @@ export class MarketplaceOfferService {
       if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
         throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
       }
+      // Вид упаковки обязателен: заказчик должен знать, в чём получит товар.
+      const package_type = typeof p.package_type === 'string' ? p.package_type.trim() : '';
+      if (!package_type) {
+        throw new BadRequestException(
+          'Укажите вид упаковки — в чём поставляется товар (например «стекло», «пластиковая бутылка», «корзинка»).'
+        );
+      }
+      if (package_type.length > 64) {
+        throw new BadRequestException('Вид упаковки не длиннее 64 символов.');
+      }
       const is_default = p.is_default === true && !hasDefault;
       if (is_default) hasDefault = true;
       // Чужой или повторно присланный идентификатор игнорируем — упаковка
@@ -601,6 +611,7 @@ export class MarketplaceOfferService {
         size: p.size,
         price: p.price,
         label: p.label?.trim() ? p.label.trim() : null,
+        package_type,
         sort_order: index,
         is_default,
       };

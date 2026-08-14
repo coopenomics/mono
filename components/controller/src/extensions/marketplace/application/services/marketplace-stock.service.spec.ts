@@ -63,7 +63,15 @@ function buildOriginOffer(): MarketplaceOfferDomainEntity {
     unit_of_measure: MarketplaceUnitsOfMeasure.PIECE,
     sale_form: MarketplaceSaleForms.PACKAGED,
     packages: [
-      { id: 'pkg-10', size: 10, price: '150.0000', label: 'Десяток', sort_order: 1, is_default: true },
+      {
+        id: 'pkg-10',
+        size: 10,
+        price: '150.0000',
+        label: 'Десяток',
+        package_type: 'картонная коробка',
+        sort_order: 1,
+        is_default: true,
+      },
     ],
     quantity_available: 0,
     unlimited_flag: false,

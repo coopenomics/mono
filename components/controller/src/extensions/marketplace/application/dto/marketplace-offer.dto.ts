@@ -105,6 +105,11 @@ export class MarketplaceOfferPackageDTO {
   @Field(() => String, { nullable: true, description: 'Подпись упаковки («Пакет 0,5 л»).' })
   public readonly label!: string | null;
 
+  @Field(() => String, {
+    description: 'Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)».',
+  })
+  public readonly package_type!: string;
+
   @Field(() => Int, { description: 'Порядок показа упаковки в карточке.' })
   public readonly sort_order!: number;
 

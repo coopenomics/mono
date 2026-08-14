@@ -5766,6 +5766,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		is_default:"Boolean",
 		label:"String",
+		package_type:"String",
 		price:"String",
 		size:"Float",
 		sort_order:"Int"
