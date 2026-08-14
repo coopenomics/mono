@@ -17,20 +17,30 @@
 import { configureExtensionAuth, configurePlatformSettings } from '@coopenomics/extension-kit';
 import config from './config';
 
-configureExtensionAuth({ serverSecret: config.server_secret });
+/**
+ * Передать каркасу настройки контура. Вызывается при импорте этого файла, а
+ * отдельно — из точек входа, которые поднимают модули сами: генератора схемы и
+ * тестов, сбрасывающих реестр модулей. Повторный вызов безвреден: настройки
+ * перезаписываются теми же значениями.
+ */
+export function applyPlatformBootstrap(): void {
+  configureExtensionAuth({ serverSecret: config.server_secret });
 
-configurePlatformSettings({
-  coopname: config.coopname,
-  frontendUrl: config.frontend_url,
-  backendUrl: config.backend_url,
-  timezone: config.timezone,
-  environment: config.env,
-  blockchain: {
-    rootGovernSymbol: config.blockchain.root_govern_symbol,
-    rootGovernPrecision: config.blockchain.root_govern_precision,
-    rootSymbol: config.blockchain.root_symbol,
-    rootPrecision: config.blockchain.root_precision,
-    postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
-    chainId: config.blockchain.id,
-  },
-});
+  configurePlatformSettings({
+    coopname: config.coopname,
+    frontendUrl: config.frontend_url,
+    backendUrl: config.backend_url,
+    timezone: config.timezone,
+    environment: config.env,
+    blockchain: {
+      rootGovernSymbol: config.blockchain.root_govern_symbol,
+      rootGovernPrecision: config.blockchain.root_govern_precision,
+      rootSymbol: config.blockchain.root_symbol,
+      rootPrecision: config.blockchain.root_precision,
+      postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
+      chainId: config.blockchain.id,
+    },
+  });
+}
+
+applyPlatformBootstrap();

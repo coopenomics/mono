@@ -24,8 +24,8 @@ for (const [key, value] of Object.entries(PLACEHOLDER_ENV_DEFAULTS)) {
 process.env.NODE_ENV = 'test';
 
 /**
- * Настройки контура для каркаса расширений — то же, что делает composition root
- * в `src/index.ts` при старте приложения.
+ * Настройки контура для каркаса расширений — то же предусловие, что и у
+ * приложения.
  *
  * Зачем здесь. Утилиты каркаса (`QuantityUtils`, `AssetUtils`, форматирование
  * сумм) берут символ и точность токена из `platformSettings()`, а не из
@@ -34,22 +34,4 @@ process.env.NODE_ENV = 'test';
  * внутри — до заполнения `process.env` выше конфиг не поднять.
  */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { configurePlatformSettings } = require('@coopenomics/extension-kit');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const config = require('../src/config/config').default;
-
-configurePlatformSettings({
-  coopname: config.coopname,
-  frontendUrl: config.frontend_url,
-  backendUrl: config.backend_url,
-  timezone: config.timezone,
-  environment: config.env,
-  blockchain: {
-    rootGovernSymbol: config.blockchain.root_govern_symbol,
-    rootGovernPrecision: config.blockchain.root_govern_precision,
-    rootSymbol: config.blockchain.root_symbol,
-    rootPrecision: config.blockchain.root_precision,
-    postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
-    chainId: config.blockchain.id,
-  },
-});
+require('../src/config/platform-bootstrap');
