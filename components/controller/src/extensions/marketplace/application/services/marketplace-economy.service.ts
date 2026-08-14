@@ -32,14 +32,14 @@ import {
 } from './marketplace-ku-chairman.service';
 import { rethrowChainError } from '../shared/chain-tx.util';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
-import {
-  EXPENSE_PLANS_SERVICE,
-  EXPENSE_RESERVE_HORIZON_DAYS,
-  type ExpensePlansService,
-} from '../../../expenses/application/services/expense-plans.service';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
-import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
+// Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
+// контракта. Регистрацию перечня в схеме держит само шасси, потребителю нужны
+// значения.
+import {
+  InnerExpenseMechanics as ExpenseMechanics,
+  InnerExpenseRecipientType as ExpenseRecipientType,
+} from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
@@ -152,8 +152,6 @@ export class MarketplaceEconomyService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(EXPENSE_PLANS_SERVICE)
-    private readonly expensePlansService: ExpensePlansService,
     @Inject(LEDGER2_HISTORY_PORT)
     private readonly ledger2History: ILedger2HistoryPort,
     @Inject(PAYMENT_DESK_PORT)
@@ -275,7 +273,7 @@ export class MarketplaceEconomyService {
       this.chainPort.getBranchWeights(coopname),
       this.chainPort.getBranchWeightTotals(coopname),
       this.chainPort.listBranchWalletBalances(coopname),
-      this.expensePlansService.getReservedAmount(coopname, braname),
+      this.expenseChassis.getPlannedReserve(coopname, braname),
     ]);
 
     const branchWeights = weights.filter(
@@ -294,7 +292,7 @@ export class MarketplaceEconomyService {
       balances.find((b) => b.wallet_name === 'w.brn.common' && b.username === braname)
         ?.available ?? this.zeroAsset();
 
-    const available = Math.max(0, this.assetToNumber(commonBalance) - reserve);
+    const available = Math.max(0, this.assetToNumber(commonBalance) - reserve.amount);
 
     return {
       braname,
@@ -306,7 +304,7 @@ export class MarketplaceEconomyService {
         personal_balance: personalBalanceOf(w.username),
       })),
       common_balance: commonBalance,
-      reserve_amount: this.formatAsset(reserve),
+      reserve_amount: this.formatAsset(reserve.amount),
       available_to_distribute: this.formatAsset(available),
     };
   }
@@ -427,8 +425,11 @@ export class MarketplaceEconomyService {
     const common = this.assetToNumber(economy.common_balance);
     const reserve = this.assetToNumber(economy.reserve_amount);
     if (common - amount < reserve) {
+      // Горизонт планирования принадлежит шасси расходов; спрашиваем его на
+      // пути отказа, чтобы объяснить человеку, за какой срок посчитан резерв.
+      const { horizonDays } = await this.expenseChassis.getPlannedReserve(coopname, braname);
       throw new BadRequestException(
-        `Распределение нарушает плановый резерв расходов на ${EXPENSE_RESERVE_HORIZON_DAYS} дней: ` +
+        `Распределение нарушает плановый резерв расходов на ${horizonDays} дней: ` +
           `в общем кошельке ${economy.common_balance}, резерв ${economy.reserve_amount}, ` +
           `доступно к распределению ${economy.available_to_distribute}`
       );
@@ -779,7 +780,7 @@ export class MarketplaceEconomyService {
     await this.expenseChassis.snapshotRequisites(coopname, requisiteItems);
 
     if (input.plan_id) {
-      await this.expensePlansService.attachProposal(coopname, input.plan_id, input.expense_hash);
+      await this.expenseChassis.attachPlanToProposal(coopname, input.plan_id, input.expense_hash);
     }
 
     return input.expense_hash;

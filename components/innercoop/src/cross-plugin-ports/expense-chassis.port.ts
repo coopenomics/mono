@@ -174,6 +174,22 @@ export enum InnerExpenseItemState {
   UNDEFINED = 'UNDEFINED',
 }
 
+/**
+ * Плановый резерв расходов: сколько денег нельзя распределять, потому что они
+ * уже расписаны на ближайшие платежи.
+ *
+ * Горизонт возвращается вместе с суммой намеренно. Он принадлежит шасси — это
+ * его правило планирования, — а заказчику расхода нужен только чтобы объяснить
+ * человеку, за какой срок посчитан резерв. Своя копия числа у заказчика
+ * разошлась бы с расчётом молча.
+ */
+export interface InnerExpensePlannedReserve {
+  /** Сумма резерва в валюте кооператива. */
+  amount: number;
+  /** За сколько дней вперёд посчитан резерв. */
+  horizonDays: number;
+}
+
 export interface IExpenseChassisPort {
   /**
    * Чтение proposal'а по хэшу. Возвращает null, если шасси не видит
@@ -243,6 +259,22 @@ export interface IExpenseChassisPort {
    * совпал с авансом и расчёт разницы не нужен.
    */
   reportItem(coopname: string, proposalHash: string, itemHash: string): Promise<void>;
+
+  /**
+   * Плановый резерв расходов подразделения: сумма ближайших запланированных
+   * платежей, которую нельзя пускать в распределение.
+   *
+   * `branchName` = `null` — расходы кооператива целиком, без привязки к
+   * подразделению.
+   */
+  getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>;
+
+  /**
+   * Связать плановую запись с поданной сметой: пока смета идёт по шасси
+   * (решение совета, оплата, отчёт), в реестре планов видно, что оплата уже
+   * запущена, и второй раз её не подадут.
+   */
+  attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void>;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

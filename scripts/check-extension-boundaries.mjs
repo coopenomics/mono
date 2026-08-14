@@ -1,0 +1,120 @@
+#!/usr/bin/env node
+/**
+ * Граница расширения: то, что ESLint не видит.
+ *
+ * `no-restricted-imports` разбирает только статические `import ... from '…'` и
+ * сравнивает спецификатор с шаблоном. Мимо него проходят два способа достать
+ * ядро из расширения:
+ *
+ *   1. Динамика — `require('~/domain/…')`, `await import('~/infrastructure/…')`.
+ *      Строка вычисляется в рантайме, шаблоны линтера к ней неприменимы.
+ *   2. Относительный путь — `../../../../domain/user/…`. Спецификатор не
+ *      начинается с `~`, шаблон `~/**` его не ловит, а ведёт он ровно туда же.
+ *
+ * Оба способа ломают вынос одинаково: в пакете `@coopenomics/extension-<name>`
+ * этих файлов нет. Скрипт резолвит каждый путь физически и требует, чтобы он
+ * остался внутри каталога своего расширения.
+ *
+ * Запуск: node scripts/check-extension-boundaries.mjs
+ * Код возврата: 0 — чисто, 1 — есть нарушения.
+ */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const EXTENSIONS_DIR = join(REPO_ROOT, 'components/controller/src/extensions');
+
+/**
+ * Точки сборки. Им положено знать про всё сразу — это composition root, а не
+ * расширение: лежат в корне `extensions/`, в пакет не уезжают.
+ */
+const COMPOSITION_ROOT = new Set(['extensions.module.ts', 'extensions.registry.ts', 'innercoop-bridge.module.ts']);
+
+/** Тесты живут рядом с кодом и по своей природе лезут куда угодно. */
+const isTest = (file) => /\.(spec|test)\.ts$/.test(file);
+
+/**
+ * Спецификаторы модулей во всех формах, которыми можно дотянуться до файла:
+ * статический импорт и реэкспорт, динамический `import()`, `require()`.
+ */
+const SPECIFIER_PATTERNS = [
+  { kind: 'import', re: /(?:^|[\s;}])(?:import|export)\s[^;]*?from\s*['"]([^'"]+)['"]/g },
+  { kind: 'import', re: /(?:^|[\s;}])import\s*['"]([^'"]+)['"]/g },
+  { kind: 'dynamic', re: /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g },
+  { kind: 'require', re: /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g },
+];
+
+function walk(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) walk(full, out);
+    else if (entry.isFile() && entry.name.endsWith('.ts') && !isTest(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+function lineOf(source, index) {
+  return source.slice(0, index).split('\n').length;
+}
+
+const violations = [];
+
+const extensionNames = readdirSync(EXTENSIONS_DIR, { withFileTypes: true })
+  .filter((e) => e.isDirectory())
+  .map((e) => e.name);
+
+for (const name of extensionNames) {
+  const root = join(EXTENSIONS_DIR, name);
+  for (const file of walk(root)) {
+    if (COMPOSITION_ROOT.has(relative(EXTENSIONS_DIR, file))) continue;
+
+    const source = readFileSync(file, 'utf8');
+    for (const { kind, re } of SPECIFIER_PATTERNS) {
+      re.lastIndex = 0;
+      let match;
+      while ((match = re.exec(source)) !== null) {
+        const spec = match[1];
+        const line = lineOf(source, match.index);
+
+        if (spec.startsWith('~/')) {
+          // `~` — алиас на `src` контроллера. Своё расширение через него тоже
+          // недостижимо после выноса, но об этом уже говорит ESLint; здесь
+          // важен именно динамический путь, который линтер пропускает.
+          if (kind !== 'import') {
+            violations.push({ file, line, spec, why: `динамический доступ к ядру через алиас ~ (${kind})` });
+          }
+          continue;
+        }
+
+        if (!spec.startsWith('.')) continue; // пакет из node_modules — легитимно
+
+        const target = resolve(dirname(file), spec);
+        if (target !== root && !target.startsWith(root + sep)) {
+          violations.push({
+            file,
+            line,
+            spec,
+            why: `относительный путь ведёт за пределы расширения (${relative(REPO_ROOT, target)})`,
+          });
+        }
+      }
+    }
+  }
+}
+
+if (violations.length === 0) {
+  console.log(`  расширений проверено: ${extensionNames.length}; выходов за границу нет`);
+  process.exit(0);
+}
+
+console.error(`  выходов за границу расширения: ${violations.length}`);
+for (const v of violations) {
+  console.error(`    ${relative(REPO_ROOT, v.file)}:${v.line}  '${v.spec}'`);
+  console.error(`      ${v.why}`);
+}
+console.error('');
+console.error('  Расширение обязано собираться за пределами контроллера: этих файлов');
+console.error('  в пакете @coopenomics/extension-<name> не будет. Ядро — через порт');
+console.error('  @coopenomics/innercoop, каркас — через @coopenomics/extension-kit.');
+process.exit(1);

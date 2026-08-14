@@ -12,31 +12,9 @@ import { migrateData } from './migrator/migrate';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
-import { configureExtensionAuth, configurePlatformSettings } from '@coopenomics/extension-kit';
-
-// Guard'ы авторизации живут в @coopenomics/extension-kit и не знают про config
-// контроллера. Секрет межсервисного обхода передаём один раз здесь — на уровне
-// модуля, задолго до того как приложение начнёт принимать запросы.
-configureExtensionAuth({ serverSecret: config.server_secret });
-
-// Настройки контура — то же самое: расширению нужно имя кооператива и адреса,
-// но путь `~/config/config` за пределами монолита не существует. Передаём здесь,
-// на уровне модуля: расширения читают их уже при построении своих провайдеров.
-configurePlatformSettings({
-  coopname: config.coopname,
-  frontendUrl: config.frontend_url,
-  backendUrl: config.backend_url,
-  timezone: config.timezone,
-  environment: config.env,
-  blockchain: {
-    rootGovernSymbol: config.blockchain.root_govern_symbol,
-    rootGovernPrecision: config.blockchain.root_govern_precision,
-    rootSymbol: config.blockchain.root_symbol,
-    rootPrecision: config.blockchain.root_precision,
-    postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
-    chainId: config.blockchain.id,
-  },
-});
+// Настройки контура и секрет межсервисного обхода передаются каркасу в
+// './config/platform-bootstrap' — он импортирован первой строкой app.module.ts,
+// то есть раньше любого расширения. См. комментарий в самом файле.
 
 export let nestApp;
 

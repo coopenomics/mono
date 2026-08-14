@@ -6,6 +6,7 @@ import type {
   InnerExpenseItem,
   InnerExpensePagination,
   InnerExpensePaginatedResult,
+  InnerExpensePlannedReserve,
   InnerExpenseProposalRead,
   InnerExpenseProposalStatus,
   InnerExpenseRequisiteItemInput,
@@ -14,6 +15,10 @@ import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeo
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum';
 import { ExpenseRequisiteSnapshotsService } from '../../application/services/expense-requisite-snapshots.service';
+import {
+  EXPENSE_RESERVE_HORIZON_DAYS,
+  ExpensePlansService,
+} from '../../application/services/expense-plans.service';
 import {
   EXPENSES_BLOCKCHAIN_PORT,
   ExpensesBlockchainPort,
@@ -36,6 +41,7 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
     @InjectRepository(ExpenseProposalTypeormEntity)
     private readonly repository: Repository<ExpenseProposalTypeormEntity>,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
+    private readonly plans: ExpensePlansService,
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
     private readonly chain: ExpensesBlockchainPort,
     @Inject(PAYMENT_PORT)
@@ -83,6 +89,17 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
         blockchain_data: { ...(payment.blockchain_data ?? {}), report_state: ExpenseReportState.CLOSED },
       });
     }
+  }
+
+  async getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve> {
+    return {
+      amount: await this.plans.getReservedAmount(coopname, branchName),
+      horizonDays: EXPENSE_RESERVE_HORIZON_DAYS,
+    };
+  }
+
+  async attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
+    await this.plans.attachProposal(coopname, planId, proposalHash);
   }
 
   async validateRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {

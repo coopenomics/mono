@@ -18,6 +18,16 @@ const CORE_MESSAGE =
   'Ядро не знает про расширения: импорт из ~/extensions/** в ядре запрещён. ' +
   'Расширение подключается через реестр и innercoop, а не прямой ссылкой.';
 
+// Алиас `~` объявлен в tsconfig контроллера и указывает на его `src`. Расширение
+// обязано собираться за пределами контроллера — там этого алиаса нет вовсе,
+// поэтому запрет полный, а не пообластной: и `~/domain`, и `~/infrastructure`,
+// и `~/shared` одинаково недостижимы из пакета `@coopenomics/extension-<name>`.
+const CORE_REACH_MESSAGE =
+  'Граница расширения: алиас ~/ ведёт внутрь контроллера, а расширение обязано ' +
+  'собираться за его пределами — там этого пути не существует. ' +
+  'Данные ядра — через порт @coopenomics/innercoop (порт+токен, биндинг в ' +
+  'InnercoopBridgeModule), каркас и общие утилиты — из @coopenomics/extension-kit.';
+
 // Точки сборки. Им по определению нужно знать обо всех расширениях —
 // это composition root, а не нарушение границы.
 const COMPOSITION_ROOT = [
@@ -36,8 +46,8 @@ const CROSS_EXTENSION_DEBT = [
   'src/extensions/capital/application/services/program-expenses-management.service.ts',
 ];
 
-// Внутри расширения X запрещены импорты из ~/extensions/<любое кроме X>/**.
-// Собственное расширение через `~` разрешено — так уже написан capital.
+// Внутри расширения X запрещены импорты из ~/extensions/<любое кроме X>/**
+// и любые обращения к ядру через алиас `~`.
 const extensionBoundaryOverrides = extensions.map((name) => ({
   files: [`src/extensions/${name}/**/*.ts`],
   excludedFiles: [...COMPOSITION_ROOT, ...CROSS_EXTENSION_DEBT],
@@ -49,6 +59,14 @@ const extensionBoundaryOverrides = extensions.map((name) => ({
           {
             group: ['~/extensions/*/**', `!~/extensions/${name}/**`],
             message: BOUNDARY_MESSAGE,
+          },
+          {
+            // Всё остальное под `~` — это ядро. Отрицание оставлено на случай
+            // возврата собственных путей вида `~/extensions/<name>/**`:
+            // они ловятся правилом выше как «своё» и здесь не должны падать
+            // второй раз с чужим сообщением.
+            group: ['~/**', `!~/extensions/${name}/**`],
+            message: CORE_REACH_MESSAGE,
           },
         ],
       },

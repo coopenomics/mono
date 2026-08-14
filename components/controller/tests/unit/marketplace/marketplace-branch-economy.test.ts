@@ -68,8 +68,11 @@ function buildService(setup: StandSetup = {}) {
     isMemberOfBranch: jest.fn().mockResolvedValue(true),
   } as any;
 
-  const expensePlansService = {
-    getReservedAmount: jest.fn().mockResolvedValue(reserve),
+  // Плановый резерв приходит из шасси расходов через межрасширенческий порт:
+  // горизонт планирования — правило шасси, потребитель его только показывает.
+  const expenseChassis = {
+    getPlannedReserve: jest.fn().mockResolvedValue({ amount: reserve, horizonDays: 30 }),
+    attachPlanToProposal: jest.fn().mockResolvedValue(undefined),
   } as any;
 
   const assetConfig: MarketplaceAssetConfig = { symbol: 'RUB', decimals: 4 };
@@ -79,15 +82,14 @@ function buildService(setup: StandSetup = {}) {
     kuChairmanService,
     assetConfig,
     {} as any, // documentDomainService — заявление на матпомощь здесь не собирается
-    expensePlansService,
     {} as any, // ledger2History — история кошелька проверяется отдельно
     {} as any, // coreGateway
     {} as any, // paymentMethodRepo
     {} as any, // orderRepo
-    {} as any // expenseChassis
+    expenseChassis
   );
 
-  return { service, chainPort, kuChairmanService, expensePlansService };
+  return { service, chainPort, kuChairmanService, expenseChassis };
 }
 
 const weight = (username: string, w: number, over: Partial<Weight> = {}): Weight => ({

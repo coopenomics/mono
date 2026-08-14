@@ -12,11 +12,14 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-// Способ оплаты и тип получателя — общий словарь шасси расходов: расход
-// участка идёт тем же процессом, свой параллельный набор значений развёл бы
-// схему и заставил фронт конвертировать типы.
-import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
+// Способ оплаты и тип получателя — общий словарь шасси расходов из
+// межрасширенческого контракта: расход участка идёт тем же процессом, свой
+// параллельный набор значений развёл бы схему и заставил фронт конвертировать
+// типы. Имя перечня в схеме регистрирует шасси — оно его владелец.
+import {
+  InnerExpenseMechanics as ExpenseMechanics,
+  InnerExpenseRecipientType as ExpenseRecipientType,
+} from '@coopenomics/innercoop';
 import { ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 
 @InputType('BranchExpenseItemInput', {

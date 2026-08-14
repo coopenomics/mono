@@ -1,4 +1,7 @@
 // app.module.ts
+// Первым — предусловие: расширения читают настройки контура уже при построении
+// своих схем конфига, то есть раньше, чем выполнится любой код приложения.
+import './config/platform-bootstrap';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';

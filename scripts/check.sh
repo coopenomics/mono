@@ -7,7 +7,9 @@
 #     Сюда попадают только правила, которых код УЖЕ придерживается
 #     (нарушений ноль), поэтому включение ничего не ломает и ничего не требует
 #     чинить. Сегодня это архитектурные границы: ядро не знает про расширения,
-#     расширения не ходят друг в друга напрямую — только через inter; и
+#     расширения не ходят друг в друга и в ядро напрямую — только через порты
+#     @coopenomics/innercoop (статические импорты ловит eslint, динамические и
+#     относительные пути — check-extension-boundaries.mjs); и
 #     согласованность реестров имён процессов ledger2 между контрактом,
 #     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs).
 #
@@ -93,6 +95,10 @@ gate_boundaries_desktop() {
     | node "$GATE" no-restricted-imports
 }
 
+gate_extension_boundaries() {
+  node "$REPO_ROOT/scripts/check-extension-boundaries.mjs"
+}
+
 gate_changed() {
   bash "$REPO_ROOT/scripts/lint-changed.sh"
 }
@@ -112,6 +118,7 @@ gate_unit_tests() {
 case "$MODE" in
   boundaries)
     run_gate "границы: controller" gate_boundaries_controller
+    run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
@@ -127,6 +134,7 @@ case "$MODE" in
     ;;
   all)
     run_gate "границы: controller" gate_boundaries_controller
+    run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "канон: изменённые файлы" gate_changed

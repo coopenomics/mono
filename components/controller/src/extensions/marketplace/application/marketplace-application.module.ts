@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
-import { ExpensesExtensionModule } from '../../expenses/expenses-extension.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -190,9 +189,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // (а не транзит через ExtensionsModule, который ломается forwardRef'ом
     // на ниже).
     MarketplaceInfrastructureModule,
-    // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
-    // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
-    ExpensesExtensionModule,
     // ACCOUNT_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
     // если AppModule тоже инициализирует его, NestJS использует singleton

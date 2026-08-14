@@ -1,7 +1,6 @@
 import cron from 'node-cron';
-import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
   type IChainResourcesPort,
@@ -15,11 +14,16 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
   return JSON.stringify(description);
 }
 
+// Символ и точность системного токена — свойство контура, а не расширения:
+// расширение обязано подставлять их в суммы пополнения ровно такими, какими их
+// понимает цепь. Настройки задаёт composition root до загрузки расширений.
+const { rootSymbol, rootPrecision } = platformSettings().blockchain;
+
 // Дефолтные параметры конфигурации
 export const defaultConfig = {
   dailyPackageSize: 5,
-  systemSymbol: config.blockchain.root_symbol,
-  systemPrecision: config.blockchain.root_precision,
+  systemSymbol: rootSymbol,
+  systemPrecision: rootPrecision,
   thresholds: {
     cpu: 70, // Процент использования (0-100)
     net: 70,
@@ -200,7 +204,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
-      const username = coopConfig.coopname;
+      const username = platformSettings().coopname;
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
@@ -246,7 +250,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
   private async runTask() {
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
-      const username = coopConfig.coopname;
+      const username = platformSettings().coopname;
 
       const account = await this.blockchainPort.getAccount(username);
 
