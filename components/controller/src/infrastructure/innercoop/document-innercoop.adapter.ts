@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   IDocumentPort,
   InnerDocumentAggregate,
@@ -25,10 +25,7 @@ import {
 @Injectable()
 export class DocumentInnercoopAdapter implements IDocumentPort {
   constructor(
-    // Тот же forwardRef, что и у DocumentDataAdapter: интерактор документов
-    // участвует в цикле модулей ядра. Цикл снимается отдельно, после того как
-    // расширения перестанут тянуть ядро напрямую.
-    @Inject(forwardRef(() => DocumentInteractor))
+    @Inject(DocumentInteractor)
     private readonly documentInteractor: DocumentInteractor,
     private readonly documentDomainService: DocumentDomainService,
     private readonly documentAggregationService: DocumentAggregationService,

@@ -1,4 +1,4 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DocumentAggregator } from './document.aggregator';
 import { DocumentPackageUtils } from './document-package-utils.aggregator';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
@@ -18,10 +18,10 @@ import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/in
 @Injectable()
 export class DocumentPackageV0Aggregator {
   constructor(
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => DocumentPackageUtils)) private readonly documentPackageUtils: DocumentPackageUtils,
-    @Inject(forwardRef(() => ACCOUNT_DOMAIN_SERVICE)) private readonly accountDomainService: AccountDomainService,
-    @Inject(forwardRef(() => USER_CERTIFICATE_DOMAIN_SERVICE))
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentPackageUtils) private readonly documentPackageUtils: DocumentPackageUtils,
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
+    @Inject(USER_CERTIFICATE_DOMAIN_SERVICE)
     private readonly userCertificateService: UserCertificateDomainService
   ) {}
 

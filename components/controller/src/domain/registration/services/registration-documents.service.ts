@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, forwardRef, Optional } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { AgreementConfigurationService, AGREEMENT_CONFIGURATION_SERVICE } from './agreement-configuration.service';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { UdataDocumentParametersPort, UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
@@ -29,7 +29,7 @@ export class RegistrationDocumentsService {
   constructor(
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigService: AgreementConfigurationService,
-    @Inject(forwardRef(() => DocumentInteractor))
+    @Inject(DocumentInteractor)
     private readonly documentInteractor: DocumentInteractor,
     @Optional()
     @Inject(UDATA_DOCUMENT_PARAMETERS_PORT)

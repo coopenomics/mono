@@ -20,6 +20,11 @@ import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 
 @Module({
   imports: [
+    // Цикл: gateway.module → gateway-infrastructure.module → gateway.module
+    // (домен шлюза замкнут через ту же инфраструктуру). Законен на сегодня:
+    // приложение шлюза владеет сценариями платежей, а инфраструктура —
+    // провайдерами, и провайдер вызывает сценарий обратно при подтверждении
+    // платежа. Разрывается портом провайдера, это отдельная работа.
     forwardRef(() => GatewayDomainModule),
     forwardRef(() => GatewayInfrastructureModule),
     UserInfrastructureModule,

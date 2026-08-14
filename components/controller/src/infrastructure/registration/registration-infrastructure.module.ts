@@ -4,7 +4,15 @@ import { CANDIDATE_DATA_PORT } from '~/domain/registration/ports/candidate-data.
 import { RegistrationModule } from '~/application/registration/registration.module';
 
 @Module({
-  imports: [forwardRef(() => RegistrationModule)],
+  imports: [
+    // Цикл проходит через composition root расширений:
+    // обратная сторона: registration-domain → extension-domain → extensions.module →
+    // innercoop-bridge → registration-infrastructure → registration.module →
+    // registration-domain. Законен: мост по своей роли знает обе стороны —
+    // и порты ядра, и расширения, которые их реализуют, — а поток вступления
+    // спрашивает у расширений условия участия (хуки онбординга).
+    forwardRef(() => RegistrationModule),
+  ],
   providers: [
     CandidateDataAdapter,
     {

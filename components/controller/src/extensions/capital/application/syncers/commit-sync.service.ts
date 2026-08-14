@@ -33,6 +33,10 @@ export class CommitSyncService
     commitDeltaMapper: CommitDeltaMapper,
     @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
+    // Цикл внутри расширения: синхронизатор коммитов сообщает сценарию
+    // генерации о подтверждённой работе, а сценарий поручает синхронизатору
+    // пересчёт долей. Законен: это две половины одной операции, разносить их
+    // третьим модулем значило бы разорвать её на ровном месте.
     @Inject(forwardRef(() => GenerationInteractor))
     private readonly generationInteractor: GenerationInteractor,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)

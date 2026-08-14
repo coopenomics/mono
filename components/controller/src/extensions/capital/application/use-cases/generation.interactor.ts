@@ -46,6 +46,7 @@ export class GenerationInteractor {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
+    // Обратная сторона того же цикла, см. commit-sync.service.ts.
     @Inject(forwardRef(() => CommitSyncService))
     private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)

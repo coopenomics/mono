@@ -99,6 +99,10 @@ gate_extension_boundaries() {
   node "$REPO_ROOT/scripts/check-extension-boundaries.mjs"
 }
 
+gate_ports_catalog() {
+  node "$REPO_ROOT/scripts/generate-ports-catalog.mjs" --check
+}
+
 gate_changed() {
   bash "$REPO_ROOT/scripts/lint-changed.sh"
 }
@@ -120,6 +124,7 @@ case "$MODE" in
     run_gate "границы: controller" gate_boundaries_controller
     run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "каталог портов" gate_ports_catalog
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
   ledger2)
@@ -136,6 +141,7 @@ case "$MODE" in
     run_gate "границы: controller" gate_boundaries_controller
     run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "каталог портов" gate_ports_catalog
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry

@@ -17,7 +17,16 @@ import { ExtensionDomainModule } from '~/domain/extension/extension-domain.modul
  */
 @Global()
 @Module({
-  imports: [forwardRef(() => DocumentModule), forwardRef(() => ExtensionDomainModule)],
+  imports: [
+    // Цикл проходит через composition root расширений:
+    // registration-domain → extension-domain → extensions.module →
+    // innercoop-bridge → registration-infrastructure → registration.module →
+    // registration-domain. Законен: мост по своей роли знает обе стороны —
+    // и порты ядра, и расширения, которые их реализуют, — а поток вступления
+    // спрашивает у расширений условия участия (хуки онбординга).
+    DocumentModule,
+    forwardRef(() => ExtensionDomainModule),
+  ],
   providers: [
     CooperativeConfigService,
     AgreementConfigurationService,

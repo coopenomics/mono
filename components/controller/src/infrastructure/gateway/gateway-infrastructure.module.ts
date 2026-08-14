@@ -7,7 +7,12 @@ import { ProviderDomainService } from '~/domain/gateway/provider-domain.service'
 import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 
 @Module({
-  imports: [forwardRef(() => GatewayModule)],
+  imports: [
+    // Обратная сторона цикла gateway.module ↔ gateway-infrastructure.module:
+    // провайдер платежей вызывает сценарий приложения, сценарий обращается к
+    // провайдеру. Причина та же, см. комментарий в application/gateway.
+    forwardRef(() => GatewayModule),
+  ],
   providers: [
     GatewayInteractorAdapter,
     ProviderDomainService,

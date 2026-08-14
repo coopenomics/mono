@@ -1,4 +1,4 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '../interfaces/generate-document-domain-with-options.interface';
@@ -17,8 +17,8 @@ export class DocumentDomainService {
   constructor(
     @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: DocumentRepository,
     private readonly generatorInfrastructureService: GeneratorInfrastructureService,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => DocumentPackageAggregator))
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentPackageAggregator)
     private readonly documentPackageAggregator: DocumentPackageAggregator
   ) {}
 

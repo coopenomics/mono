@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { DocumentAggregator } from '../aggregators/document.aggregator';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
@@ -13,7 +13,7 @@ export class DocumentAggregationService {
   // Пустой хеш для проверки документов
   private readonly EMPTY_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
-  constructor(@Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator) {}
+  constructor(@Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator) {}
 
   /**
    * Создает агрегат документа из формата ISignedDocument

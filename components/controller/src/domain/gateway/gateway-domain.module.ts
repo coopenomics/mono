@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { GatewayExpiryCronService } from './gateway-expiry-cron.service';
 import { ProviderDomainService } from './provider-domain.service';
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
@@ -13,9 +13,9 @@ import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-in
 @Module({
   imports: [
     AccountDomainModule,
-    forwardRef(() => AccountModule),
-    forwardRef(() => UserDomainModule),
-    forwardRef(() => TokenApplicationModule),
+    AccountModule,
+    UserDomainModule,
+    TokenApplicationModule,
     EventsInfrastructureModule,
     SystemDomainModule,
     GatewayInfrastructureModule,

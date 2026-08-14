@@ -1,4 +1,4 @@
-import { BadGatewayException, HttpStatus, Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import { BadGatewayException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { BlockchainService } from '../blockchain.service';
 import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -25,7 +25,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(forwardRef(() => AGREEMENT_CONFIGURATION_SERVICE))
+    @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigService: AgreementConfigurationService,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort

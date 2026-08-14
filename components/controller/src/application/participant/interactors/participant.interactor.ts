@@ -1,7 +1,7 @@
 import { Cooperative } from 'cooptypes';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AddParticipantDomainInterface } from '~/domain/participant/interfaces/add-participant-domain.interface';
 import type { RegisterAccountDomainInterface } from '~/domain/account/interfaces/register-account-input.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
@@ -53,7 +53,7 @@ export class ParticipantInteractor {
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly gatewayInteractorPort: GatewayInteractorPort,
     private readonly notificationSenderService: NotificationSenderService,
-    @Inject(forwardRef(() => DOCUMENT_VALIDATION_SERVICE))
+    @Inject(DOCUMENT_VALIDATION_SERVICE)
     private readonly documentValidationService: DocumentValidationService,
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigurationService: AgreementConfigurationService,

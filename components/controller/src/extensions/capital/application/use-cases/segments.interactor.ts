@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import type { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
@@ -22,7 +22,7 @@ export class SegmentsInteractor {
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly segmentSyncService: SegmentSyncService,
-    @Inject(forwardRef(() => ResultSubmissionService))
+    @Inject(ResultSubmissionService)
     private readonly resultSubmissionService: ResultSubmissionService
   ) {
     this.logger.setContext(SegmentsInteractor.name);

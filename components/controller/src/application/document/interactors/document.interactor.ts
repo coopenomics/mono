@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -19,10 +19,10 @@ import config from '~/config/config';
 @Injectable()
 export class DocumentInteractor {
   constructor(
-    @Inject(forwardRef(() => DocumentDomainService)) private readonly documentDomainService: DocumentDomainService,
-    @Inject(forwardRef(() => DocumentPackageAggregator))
+    @Inject(DocumentDomainService) private readonly documentDomainService: DocumentDomainService,
+    @Inject(DocumentPackageAggregator)
     private readonly documentPackageAggregator: DocumentPackageAggregator,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
     @Inject(SIGNED_DOCUMENT_REPOSITORY) private readonly signedDocumentRepository: SignedDocumentRepository
   ) {}
 

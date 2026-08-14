@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { DocumentModule } from '../document/document.module';
 import { FreeDecisionResolver } from './resolvers/free-decision.resolver';
 import { FreeDecisionService } from './services/free-decision.service';
@@ -15,7 +15,7 @@ import { AgendaModule } from '../agenda/agenda.module';
     FreeDecisionDomainModule,
     DocumentDomainModule,
     GeneratorInfrastructureModule,
-    forwardRef(() => UserDomainModule),
+    UserDomainModule,
     AgendaModule,
   ],
   controllers: [],
