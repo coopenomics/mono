@@ -41,6 +41,67 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     };
   }
 
+  /**
+   * Сверить capability-заявку расширения с тем, что контур действительно даёт.
+   *
+   * Заявка отвечает на вопрос «что этому расширению позволено просить», а не
+   * «что позволено пайщику» — права пайщика проверяет само расширение на
+   * границе своего API. Проверка делается один раз, при запуске: без
+   * обязательного порта расширение всё равно упадёт, но упадёт позже, в
+   * середине пользовательского сценария и с невнятной ошибкой DI.
+   */
+  private async assertRequestedPortsAvailable(
+    appName: string,
+    ports?: { required: ReadonlyArray<symbol>; optional: ReadonlyArray<symbol> }
+  ): Promise<void> {
+    if (!ports) return;
+
+    const missing: string[] = [];
+    for (const token of ports.required) {
+      if (!(await this.isPortProvided(token))) {
+        missing.push(token.description ?? String(token));
+      }
+    }
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Расширение ${appName} не запускается: контур не предоставляет заявленные порты — ${missing.join(', ')}. ` +
+          'Либо порт не привязан в InnercoopBridgeModule, либо расширение просит то, чего в этом кооперативе нет.'
+      );
+    }
+
+    for (const token of ports.optional) {
+      if (!(await this.isPortProvided(token))) {
+        this.logger.warn(
+          `[RUN_APP] Расширение ${appName}: необязательный порт ${token.description ?? String(token)} ` +
+            'не предоставлен — связанные с ним возможности выключены'
+        );
+      }
+    }
+  }
+
+  /**
+   * Есть ли у порта реализация в этом контуре.
+   *
+   * Двумя способами намеренно: `get` не умеет провайдеров с областью видимости
+   * (логгер объявлен транзиентным, потому что `setContext` мутирует инстанс),
+   * а `resolve` создаёт экземпляр и потому дороже. Порт, доступный любым из
+   * двух, — предоставлен.
+   */
+  private async isPortProvided(token: symbol): Promise<boolean> {
+    try {
+      this.moduleRef.get(token as never, { strict: false });
+      return true;
+    } catch {
+      try {
+        await this.moduleRef.resolve(token as never, undefined, { strict: false });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  }
+
   async runApps() {
     const apps = await this.extensionDomainService.getAppList({ enabled: true });
     for (const appData of apps) {
@@ -75,6 +136,8 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     // Применяем миграции схемы перед инициализацией
     const AppClass = AppRegistry[appName];
     if (AppClass) {
+      await this.assertRequestedPortsAvailable(appName, AppClass.ports);
+
       this.logger.debug(`[RUN_APP] Запуск миграции схемы для расширения ${appName}`);
 
       if (AppClass.extensionClass) {

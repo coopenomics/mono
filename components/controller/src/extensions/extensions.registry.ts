@@ -29,6 +29,19 @@ import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
 import { powerupMigrations } from './powerup/powerup.migrations';
 
+import { builtinPorts } from './builtin/builtin.ports';
+import { capitalPorts } from './capital/capital.ports';
+import { chairmanPorts } from './chairman/chairman.ports';
+import { chatcoopPorts } from './chatcoop/chatcoop.ports';
+import { kuPorts } from './ku/ku.ports';
+import { marketplacePorts } from './marketplace/marketplace.ports';
+import { participantPorts } from './participant/participant.ports';
+import { powerupPorts } from './powerup/powerup.ports';
+import { qrpayPorts } from './qrpay/qrpay.ports';
+import { reportsPorts } from './reports/reports.ports';
+import { sberpollPorts } from './sberpoll/sberpoll.ports';
+import { yookassaPorts } from './yookassa/yookassa.ports';
+
 import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
@@ -83,6 +96,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: BuiltinExtension,
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
+    ports: builtinPorts,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),
@@ -107,6 +121,7 @@ export const AppRegistry: INamedExtension = {
     class: CapitalExtensionModule,
     extensionClass: CapitalExtension,
     entities: capitalEntities,
+    ports: capitalPorts,
     schema: CapitalSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./capital'),
@@ -133,6 +148,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: ChairmanExtension,
     entities: chairmanEntities,
     defaults: { enabled: true, config: chairmanDefaultConfig },
+    ports: chairmanPorts,
     schema: ChairmanSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./chairman'),
@@ -158,6 +174,7 @@ export const AppRegistry: INamedExtension = {
     class: KuExtensionModule,
     extensionClass: KuExtension,
     entities: kuEntities,
+    ports: kuPorts,
     schema: KuSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./ku'),
@@ -184,6 +201,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: BuiltinExtension, // Participant использует тот же BuiltinExtension
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: ParticipantSchema,
+    ports: participantPorts,
     tags: ['стол', 'управление', 'уведомления'],
     readme: getReadmeContent('./participant'),
     instructions: getInstructionsContent('./participant'),
@@ -209,6 +227,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: PowerupExtension,
     migrations: powerupMigrations,
     defaults: { enabled: true, config: powerupDefaultConfig },
+    ports: powerupPorts,
     schema: PowerupSchema,
     tags: ['утилиты', 'ресурсы'],
     readme: getReadmeContent('./powerup'),
@@ -228,6 +247,7 @@ export const AppRegistry: INamedExtension = {
     class: YookassaExtensionModule,
     extensionClass: YookassaExtension,
     defaults: { enabled: false, config: yookassaDefaultConfig },
+    ports: yookassaPorts,
     schema: YookassaSchema,
     // Реквизиты магазина ЮKassa принадлежат кооперативу, но значением наружу не
     // уходят: `getExtensions` отдаёт «задано»/«не задано». До этого секретный
@@ -254,6 +274,7 @@ export const AppRegistry: INamedExtension = {
     class: SberpollExtensionModule,
     extensionClass: SberpollExtension,
     defaults: { enabled: false, config: sberpollDefaultConfig },
+    ports: sberpollPorts,
     schema: SberpollSchema,
     tags: ['платежи'],
     readme: getReadmeContent('./sberpoll'),
@@ -273,6 +294,7 @@ export const AppRegistry: INamedExtension = {
     class: QrPayExtensionModule,
     extensionClass: QrPayExtension,
     defaults: { enabled: true, config: qrpayDefaultConfig },
+    ports: qrpayPorts,
     schema: QRPaySchema,
     tags: ['платежи'],
     readme: getReadmeContent('./qrpay'),
@@ -299,6 +321,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: ChatCoopExtension,
     entities: chatcoopEntities,
     migrations: chatcoopMigrations,
+    ports: chatcoopPorts,
     schema: ChatCoopSchema,
     tags: ['стол', 'общение'],
     readme: getReadmeContent('./chatcoop'),
@@ -324,6 +347,7 @@ export const AppRegistry: INamedExtension = {
     class: ReportsExtensionModule,
     extensionClass: BuiltinExtension,
     entities: reportsEntities,
+    ports: reportsPorts,
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
     tags: ['бухгалтерия', 'отчётность', 'ФНС'],
@@ -378,6 +402,7 @@ export const AppRegistry: INamedExtension = {
     extensionClass: MarketplaceExtension,
     entities: marketplaceEntities,
     migrations: marketplaceMigrations,
+    ports: marketplacePorts,
     schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),

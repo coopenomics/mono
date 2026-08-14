@@ -153,9 +153,66 @@ if (undeclared.length > 0) {
   process.exit(1);
 }
 
+/**
+ * Третья проверка: расширение не пользуется портом, которого нет в его
+ * capability-заявке (ADR-16).
+ *
+ * Мост раздаёт токены глобально — на уровне DI ограничить выдачу «этому
+ * расширению только это» нельзя, не размножая модули. Поэтому заявка
+ * проверяется здесь, статически: незаявленный порт не пройдёт сборку. Плюс
+ * рантайм-проверка при запуске расширения — та ловит обратный случай, когда
+ * заявленного порта в контуре нет.
+ */
+const unrequested = [];
+
+for (const name of extensionNames) {
+  const root = join(EXTENSIONS_DIR, name);
+  const used = new Set();
+
+  for (const file of walk(root)) {
+    if (file === join(root, `${name}.ports.ts`)) continue;
+    const source = readFileSync(file, 'utf8');
+    for (const block of source.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+'@coopenomics\/innercoop'/gs)) {
+      for (const raw of block[1].split(',')) {
+        const token = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim();
+        if (token.endsWith('_PORT')) used.add(token);
+      }
+    }
+  }
+
+  if (used.size === 0) continue;
+
+  let declaration = '';
+  try {
+    declaration = readFileSync(join(root, `${name}.ports.ts`), 'utf8');
+  } catch {
+    declaration = '';
+  }
+  const declared = new Set(
+    [...declaration.matchAll(/^\s{4}(\w+_PORT),$/gm)].map((match) => match[1])
+  );
+
+  for (const token of used) {
+    if (!declared.has(token)) unrequested.push({ extension: name, token });
+  }
+}
+
+if (unrequested.length > 0) {
+  console.error(`  портов вне capability-заявки: ${unrequested.length}`);
+  for (const u of unrequested) {
+    console.error(`    расширение ${u.extension} пользуется ${u.token}, не объявив его`);
+    console.error(`      объявить в components/controller/src/extensions/${u.extension}/${u.extension}.ports.ts`);
+  }
+  console.error('');
+  console.error('  Заявка — это то, что расширению позволено просить у кооператива.');
+  console.error('  Молча взятый порт делает её недостоверной, а установку — непроверяемой.');
+  process.exit(1);
+}
+
 if (violations.length === 0) {
   console.log(
-    `  расширений проверено: ${extensionNames.length}; выходов за границу нет, все таблицы объявлены`
+    `  расширений проверено: ${extensionNames.length}; ` +
+      'выходов за границу нет, таблицы объявлены, порты в пределах заявок'
   );
   process.exit(0);
 }
