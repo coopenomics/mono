@@ -3,7 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import path from 'path';
 import config from '~/config/config';
-import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY, extensionEntities } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
@@ -97,28 +97,37 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
 @Global()
 @Module({
   imports: [
-    NestTypeOrmModule.forRoot({
-      type: 'postgres',
-      host: config.postgres.host,
-      port: Number(config.postgres.port),
-      username: config.postgres.username,
-      password: config.postgres.password,
-      database: config.postgres.database,
-      entities: [
-        'src/infrastructure/**/entities/*entity.{ts,js}',
-        'src/extensions/**/entities/*entity.{ts,js}',
-        'src/shared/**/entities/*entity.{ts,js}',
-        // Таблица версий приехала из `src/shared/sync/entities/` в
-        // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
-        // глоб по `src/` её больше не находит. Классом — находит; DataSource
-        // принимает и пути, и классы. Базовые классы каркаса (BaseTypeormEntity)
-        // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
-        // глобального хранилища метаданных по цепочке прототипов наследника.
-        EntityVersionTypeormEntity,
-      ],
-      //      synchronize: config.env === 'development', // Используем миграции для production
-      synchronize: true, // Временно всегда синхронизируем
-      logging: false,
+    // forRootAsync, а не forRoot: состав таблиц расширений известен только
+    // после того, как загрузился реестр, а он загружается позже подключения к
+    // базе. Фабрика вычисляется при инициализации модуля — к этому моменту
+    // граф уже собран и каждое расширение свой состав объявило.
+    NestTypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres' as const,
+        host: config.postgres.host,
+        port: Number(config.postgres.port),
+        username: config.postgres.username,
+        password: config.postgres.password,
+        database: config.postgres.database,
+        entities: [
+          'src/infrastructure/**/entities/*entity.{ts,js}',
+          'src/shared/**/entities/*entity.{ts,js}',
+          // Таблица версий приехала из `src/shared/sync/entities/` в
+          // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
+          // глоб по `src/` её больше не находит. Классом — находит; DataSource
+          // принимает и пути, и классы. Базовые классы каркаса (BaseTypeormEntity)
+          // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
+          // глобального хранилища метаданных по цепочке прототипов наследника.
+          EntityVersionTypeormEntity,
+          // Таблицы расширений — по декларации самого расширения, а не по его
+          // положению на диске: установленное пакетом расширение ни под какой
+          // глоб по `src/` не попадёт и своих таблиц не получит.
+          ...extensionEntities(),
+        ],
+        //      synchronize: config.env === 'development', // Используем миграции для production
+        synchronize: true, // Временно всегда синхронизируем
+        logging: false,
+      }),
     }),
     NestTypeOrmModule.forFeature([
       ExtensionEntity,

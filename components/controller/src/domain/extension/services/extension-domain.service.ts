@@ -2,12 +2,8 @@
 
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
-import { defaultConfig as chairmanDefaultConfig } from '~/extensions/chairman/chairman-extension.module';
-import { defaultConfig as powerupDefaultConfig } from '~/extensions/powerup/powerup-extension.module';
-import { defaultConfig as qrpayDefaultConfig } from '~/extensions/qrpay/qrpay-extension.module';
+import { AppRegistry } from '~/extensions/extensions.registry';
 import { defaultConfig as builtinDefaultConfig } from '~/extensions/builtin/builtin-extension.module';
-import { defaultConfig as yookassaDefaultConfig } from '~/extensions/yookassa/yookassa-extension.module';
-import { defaultConfig as sberpollDefaultConfig } from '~/extensions/sberpoll/sberpoll-extension.module';
 
 @Injectable()
 export class ExtensionDomainService<TConfig = any> {
@@ -53,53 +49,29 @@ export class ExtensionDomainService<TConfig = any> {
     return this.extensionDomainRepository.deleteByName(appData.name);
   }
 
+  /**
+   * Расширения, которые новый кооператив получает сразу.
+   *
+   * Состав и дефолты конфига объявляет каждое расширение записью в реестре:
+   * ядру незачем знать, из чего состоит чужой конфиг. Раньше этот список
+   * держал сам сервис и импортировал дефолты шести расширений напрямую.
+   */
   getDefaultApps(): Partial<ExtensionDomainEntity>[] {
+    const fromRegistry = Object.entries(AppRegistry)
+      .filter(([, extension]) => extension.defaults)
+      .map(([name, extension]) => ({
+        name,
+        enabled: extension.defaults!.enabled,
+        config: extension.defaults!.config,
+      }));
+
     return [
-      {
-        name: 'powerup',
-        enabled: true,
-        config: powerupDefaultConfig,
-      },
-      {
-        name: 'qrpay',
-        enabled: true,
-        config: qrpayDefaultConfig,
-      },
-      {
-        name: 'chairman',
-        enabled: true,
-        config: chairmanDefaultConfig,
-      },
-      {
-        name: 'soviet',
-        enabled: true,
-        config: builtinDefaultConfig,
-      },
-      {
-        name: 'participant',
-        enabled: true,
-        config: builtinDefaultConfig,
-      },
-      {
-        name: 'contributor',
-        enabled: true,
-        config: builtinDefaultConfig,
-      },
-      {
-        name: 'reports',
-        enabled: true,
-        config: builtinDefaultConfig,
-      },
-      {
-        name: 'yookassa',
-        enabled: false,
-        config: yookassaDefaultConfig,
-      },
-      {
-        name: 'sberpoll',
-        enabled: false,
-        config: sberpollDefaultConfig,
-      },
+      ...fromRegistry,
+      // Стол вкладчика записи в реестре не имеет, но ставится с самого начала
+      // и присутствует у всех действующих кооперативов. Убрать его отсюда —
+      // значит расстроить установленный состав на ровном месте; вернуть в
+      // реестр — отдельное решение о том, что это за стол сегодня.
+      { name: 'contributor', enabled: true, config: builtinDefaultConfig },
     ];
   }
 }

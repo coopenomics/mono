@@ -5,7 +5,16 @@
 // только применение миграций: сервис знает про логгер ядра и Nest-приложение,
 // поэтому в каркас не выносится.
 
-import { Injectable, Inject, type INestApplication } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+
+/**
+ * Чем миграция достаёт провайдеры. Ровно `get` — сузили намеренно: полный
+ * `INestApplication` здесь означал бы, что домен расширений знает про точку
+ * входа приложения.
+ */
+export interface ExtensionDependencyResolver {
+  get<T = unknown>(token: string | symbol | (new (...args: any[]) => any)): T;
+}
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainEntity,
@@ -108,7 +117,9 @@ export class ExtensionSchemaMigrationService {
   async migrateAndUpdateExtension<TConfig = any>(
     extensionName: string,
     defaultConfig: TConfig,
-    appContext?: INestApplication
+    // Миграции нужен только резолвинг провайдеров, а не всё приложение:
+    // ссылка на само приложение тянула бы за собой точку входа контроллера.
+    dependencies?: ExtensionDependencyResolver
   ): Promise<ExtensionDomainEntity<TConfig> | null> {
     this.logger.debug(`[MIGRATION] Начало миграции расширения ${extensionName}`);
 
@@ -140,15 +151,15 @@ export class ExtensionSchemaMigrationService {
       this.logger.info(`[MIGRATION] Применяем обновление для ${extensionName}`);
 
       const needsAfterMigrate = appliedMigrations.some((m) => typeof m.afterMigrate === 'function');
-      if (needsAfterMigrate && !appContext) {
+      if (needsAfterMigrate && !dependencies) {
         this.logger.warn(
-          `[MIGRATION] Расширение ${extensionName}: заданы afterMigrate, но appContext не передан — фаза данных пропущена`
+          `[MIGRATION] Расширение ${extensionName}: заданы afterMigrate, но резолвер зависимостей не передан — фаза данных пропущена`
         );
       }
 
-      if (needsAfterMigrate && appContext) {
+      if (needsAfterMigrate && dependencies) {
         const afterCtx: ExtensionSchemaMigrationAfterContext = {
-          resolve: (token) => appContext.get(token as never),
+          resolve: (token) => dependencies.get(token),
           logInfo: (m) => this.logger.info(m),
           logWarn: (m) => this.logger.warn(m),
           logError: (m, err) =>

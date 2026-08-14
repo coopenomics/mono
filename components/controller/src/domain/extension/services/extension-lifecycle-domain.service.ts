@@ -1,6 +1,7 @@
 // domain/appstore/appstore-lifecycle-domain.service.ts
 
-import { Injectable, type INestApplication } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { ExtensionSchemaMigrationService } from './extension-schema-migration.service';
@@ -18,19 +19,26 @@ import {
 @Injectable()
 export class ExtensionLifecycleDomainService<TConfig = any> {
   private activeAppMap: { [key: string]: { appInstance: any } } = {};
-  private appContext!: INestApplication;
 
   constructor(
     private readonly extensionDomainService: ExtensionDomainService<TConfig>,
     private readonly migrationService: ExtensionSchemaMigrationService,
     private readonly logger: WinstonLoggerService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    // Провайдеры расширений резолвятся через ModuleRef, а не через ссылку на
+    // само приложение из `~/index`: та ссылка делала домен зависимым от точки
+    // входа — модуль ядра импортировал файл, который его же и запускает.
+    private readonly moduleRef: ModuleRef
   ) {
     this.logger.setContext(ExtensionLifecycleDomainService.name);
   }
 
-  setAppContext(appContext: INestApplication) {
-    this.appContext = appContext;
+  /** Резолвер провайдеров для миграций расширения: тот же DI, вид попроще. */
+  private get dependencyResolver() {
+    return {
+      get: <T,>(token: string | symbol | (new (...args: any[]) => any)): T =>
+        this.moduleRef.get(token as never, { strict: false }),
+    };
   }
 
   async runApps() {
@@ -70,12 +78,12 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
       this.logger.debug(`[RUN_APP] Запуск миграции схемы для расширения ${appName}`);
 
       if (AppClass.extensionClass) {
-        const extensionInstance = this.appContext.get(AppClass.extensionClass);
+        const extensionInstance = this.moduleRef.get(AppClass.extensionClass, { strict: false });
         if (extensionInstance?.defaultConfig) {
           const migratedExtension = await this.migrationService.migrateAndUpdateExtension(
             appName,
             extensionInstance.defaultConfig,
-            this.appContext
+            this.dependencyResolver
           );
           if (migratedExtension) {
             appData = migratedExtension;
@@ -83,7 +91,7 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
         }
       }
 
-      const moduleInstance = this.appContext.get(AppClass.class); // Получаем инстанс модуля для инициализации
+      const moduleInstance = this.moduleRef.get(AppClass.class, { strict: false }); // Получаем инстанс модуля для инициализации
 
       await moduleInstance.initialize(appData.config); // Вызываем инициализацию модуля
       this.activeAppMap[appName] = { appInstance: moduleInstance }; // Сохраняем модуль как appInstance

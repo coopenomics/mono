@@ -103,8 +103,60 @@ for (const name of extensionNames) {
   }
 }
 
+/**
+ * Вторая проверка: каждая таблица расширения объявлена его файлом
+ * `<name>.entities.ts`.
+ *
+ * Раньше состав таблиц собирал файловый глоб, и забыть про новую сущность было
+ * нельзя. Теперь состав объявляется явно (иначе расширение не переживёт выноса
+ * в пакет), и забывчивость стала возможной — причём молчаливой: таблица просто
+ * не создастся, а упадёт это позже и в другом месте.
+ */
+const undeclared = [];
+
+for (const name of extensionNames) {
+  const root = join(EXTENSIONS_DIR, name);
+  const declarationFile = join(root, `${name}.entities.ts`);
+
+  const declared = new Set();
+  let declaration = '';
+  try {
+    declaration = readFileSync(declarationFile, 'utf8');
+  } catch {
+    declaration = '';
+  }
+  for (const match of declaration.matchAll(/^\s{2}(\w+),$/gm)) declared.add(match[1]);
+
+  for (const file of walk(root)) {
+    if (!/entities[/\\][^/\\]*entity\.ts$/.test(file)) continue;
+    const source = readFileSync(file, 'utf8');
+    if (!source.includes('@Entity(')) continue;
+
+    for (const match of source.matchAll(/^export class (\w+)/gm)) {
+      const cls = match[1];
+      if (!declared.has(cls)) {
+        undeclared.push({ extension: name, cls, file, declarationFile });
+      }
+    }
+  }
+}
+
+if (undeclared.length > 0) {
+  console.error(`  таблиц расширений вне декларации: ${undeclared.length}`);
+  for (const u of undeclared) {
+    console.error(`    ${relative(REPO_ROOT, u.file)}  класс ${u.cls}`);
+    console.error(`      не объявлен в ${relative(REPO_ROOT, u.declarationFile)}`);
+  }
+  console.error('');
+  console.error('  Состав таблиц расширение объявляет само: файлового глоба больше нет,');
+  console.error('  необъявленная сущность молча не доедет до базы.');
+  process.exit(1);
+}
+
 if (violations.length === 0) {
-  console.log(`  расширений проверено: ${extensionNames.length}; выходов за границу нет`);
+  console.log(
+    `  расширений проверено: ${extensionNames.length}; выходов за границу нет, все таблицы объявлены`
+  );
   process.exit(0);
 }
 

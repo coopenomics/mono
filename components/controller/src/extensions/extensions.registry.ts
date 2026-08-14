@@ -17,10 +17,30 @@ import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 
+import { capitalEntities } from './capital/capital.entities';
+import { chairmanEntities } from './chairman/chairman.entities';
+import { chatcoopEntities } from './chatcoop/chatcoop.entities';
+import { expensesEntities } from './expenses/expenses.entities';
+import { kuEntities } from './ku/ku.entities';
+import { marketplaceEntities } from './marketplace/marketplace.entities';
+import { reportsEntities } from './reports/reports.entities';
+
+import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
+import { marketplaceMigrations } from './marketplace/marketplace.migrations';
+import { powerupMigrations } from './powerup/powerup.migrations';
+
+import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
+import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
+import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
+import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
+import { defaultConfig as sberpollDefaultConfig } from './sberpoll/sberpoll-extension.module';
+import { defaultConfig as yookassaDefaultConfig } from './yookassa/yookassa-extension.module';
+
 import {
   ExtensionAvailability,
   ExtensionConfigSuppliedBy,
   isExtensionAvailable,
+  registerExtensionEntities,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
 
@@ -61,6 +81,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
     class: BuiltinExtensionModule,
     extensionClass: BuiltinExtension,
+    defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./yookassa'),
@@ -85,6 +106,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: CapitalExtensionModule,
     extensionClass: CapitalExtension,
+    entities: capitalEntities,
     schema: CapitalSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./capital'),
@@ -109,6 +131,8 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ChairmanExtensionModule,
     extensionClass: ChairmanExtension,
+    entities: chairmanEntities,
+    defaults: { enabled: true, config: chairmanDefaultConfig },
     schema: ChairmanSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./chairman'),
@@ -133,6 +157,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
     class: KuExtensionModule,
     extensionClass: KuExtension,
+    entities: kuEntities,
     schema: KuSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./ku'),
@@ -157,6 +182,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/gFHMX4s9/Chat-GPT-Image-11-2025-18-17-27.png',
     class: ParticipantExtensionModule,
     extensionClass: BuiltinExtension, // Participant использует тот же BuiltinExtension
+    defaults: { enabled: true, config: builtinDefaultConfig },
     schema: ParticipantSchema,
     tags: ['стол', 'управление', 'уведомления'],
     readme: getReadmeContent('./participant'),
@@ -181,6 +207,8 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/7np8Bpm/DALL-E-Futuristic-Robot-Art-Nouveau.webp',
     class: PowerupExtensionModule,
     extensionClass: PowerupExtension,
+    migrations: powerupMigrations,
+    defaults: { enabled: true, config: powerupDefaultConfig },
     schema: PowerupSchema,
     tags: ['утилиты', 'ресурсы'],
     readme: getReadmeContent('./powerup'),
@@ -199,6 +227,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/Hq6CJFj/Yookassa-Image.png',
     class: YookassaExtensionModule,
     extensionClass: YookassaExtension,
+    defaults: { enabled: false, config: yookassaDefaultConfig },
     schema: YookassaSchema,
     // Реквизиты магазина ЮKassa принадлежат кооперативу, но значением наружу не
     // уходят: `getExtensions` отдаёт «задано»/«не задано». До этого секретный
@@ -224,6 +253,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/5rQTPLN/sber.png',
     class: SberpollExtensionModule,
     extensionClass: SberpollExtension,
+    defaults: { enabled: false, config: sberpollDefaultConfig },
     schema: SberpollSchema,
     tags: ['платежи'],
     readme: getReadmeContent('./sberpoll'),
@@ -242,6 +272,7 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: QrPayExtensionModule,
     extensionClass: QrPayExtension,
+    defaults: { enabled: true, config: qrpayDefaultConfig },
     schema: QRPaySchema,
     tags: ['платежи'],
     readme: getReadmeContent('./qrpay'),
@@ -266,6 +297,8 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/3yWV8Wdp/Chat-GPT-Image-8-2025-22-45-36.png',
     class: ChatCoopExtensionModule,
     extensionClass: ChatCoopExtension,
+    entities: chatcoopEntities,
+    migrations: chatcoopMigrations,
     schema: ChatCoopSchema,
     tags: ['стол', 'общение'],
     readme: getReadmeContent('./chatcoop'),
@@ -290,6 +323,8 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ReportsExtensionModule,
     extensionClass: BuiltinExtension,
+    entities: reportsEntities,
+    defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
     tags: ['бухгалтерия', 'отчётность', 'ФНС'],
     readme: getReadmeContent('./reports'),
@@ -341,6 +376,8 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
     class: MarketplaceExtensionModule,
     extensionClass: MarketplaceExtension,
+    entities: marketplaceEntities,
+    migrations: marketplaceMigrations,
     schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),
@@ -350,3 +387,20 @@ export const AppRegistry: INamedExtension = {
     },
   },
 };
+
+/**
+ * Состав таблиц установленных расширений — то, что уходит в подключение к базе.
+ *
+ * Собирается из деклараций самих расширений, а не из положения файлов на диске:
+ * расширение, установленное пакетом, ни под какой глоб по `src/` не попадёт.
+ * Одно и то же расширение может стоять в реестре несколькими записями (у
+ * встроенных на один модуль приходится несколько столов), поэтому список
+ * схлопывается по классу.
+ *
+ * Шасси расходов витрины не имеет и записи в реестре тоже: пайщик его не
+ * ставит, оно обслуживает другие расширения. Таблицы у него при этом свои,
+ * поэтому оно перечислено отдельно.
+ */
+registerExtensionEntities([
+  ...new Set([...Object.values(AppRegistry).flatMap((extension) => extension.entities ?? []), ...expensesEntities]),
+]);
