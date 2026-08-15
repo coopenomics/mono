@@ -35,7 +35,6 @@ import { AuthDomainModule } from './domain/auth/auth.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
-import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
 import { VaultDomainModule } from './domain/vault/vault-domain.module';
 import { LedgerDomainModule } from './domain/ledger/ledger-domain.module';
 import { ProcessRegistryDomainModule } from './domain/process-registry/process-registry-domain.module';
@@ -133,7 +132,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     FreeDecisionDomainModule,
     ParticipantDomainModule,
     MeetDomainModule,
-    GatewayDomainModule,
     VaultDomainModule,
     LedgerDomainModule,
     ProcessRegistryDomainModule,

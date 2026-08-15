@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ProviderAdapter } from './provider.adapter';
 import { ProviderDomainService } from '~/domain/gateway/provider-domain.service';
 import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 
@@ -15,11 +14,7 @@ import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 @Module({
   providers: [
     ProviderDomainService,
-    ProviderAdapter,
-    {
-      provide: PROVIDER_PORT,
-      useClass: ProviderAdapter,
-    },
+    { provide: PROVIDER_PORT, useExisting: ProviderDomainService },
   ],
   // `ProviderDomainService` экспортирован для `PaymentProviderRegistryInnercoopAdapter`:
   // реестр способов оплаты раздаётся расширениям через порт, а привязка порта

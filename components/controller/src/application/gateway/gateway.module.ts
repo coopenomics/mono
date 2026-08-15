@@ -9,7 +9,6 @@ import { PaymentController } from './controllers/payment.controller';
 import { GatewayInteractor } from './interactors/gateway.interactor';
 import { GatewayNotificationHandler } from './handlers/gateway-notification.handler';
 import { GatewayExpiryCronService } from './services/gateway-expiry-cron.service';
-import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { SystemModule } from '~/application/system/system.module';
@@ -22,13 +21,11 @@ import { GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interacto
 
 @Module({
   imports: [
-    GatewayDomainModule,
     // Реестр платёжных провайдеров (PROVIDER_PORT). Обратного ребра нет:
     // инфраструктура шлюза про приложение не знает.
     GatewayInfrastructureModule,
     UserInfrastructureModule,
     UserDomainModule,
-    AccountInfrastructureModule,
     AccountInfrastructureModule,
     SystemModule,
     RedisModule,

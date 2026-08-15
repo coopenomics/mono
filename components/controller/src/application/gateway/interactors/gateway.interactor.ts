@@ -13,7 +13,6 @@ import { PaymentDirectionEnum, PaymentTypeEnum, VAT_EXEMPT_NOTE } from '~/domain
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
-import type { CreateWithdrawPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-withdraw-payment-input-domain.interface';
 import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 import config from '~/config/config';
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
@@ -24,6 +23,10 @@ import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.por
 // ними стоял адаптер, пробрасывавший десять методов один в один, и ради него
 // инфраструктура импортировала приложение — отсюда цикл модулей шлюза.
 import type { GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
+// Заявление на вывод описано в домене кошелька — там же, где порт, через
+// который его подают. В домене шлюза лежал второй такой интерфейс, поле в поле
+// совпадавший с этим.
+import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
 import { SystemDomainPort, SYSTEM_DOMAIN_PORT } from '~/domain/system/interfaces/system-domain.port';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -601,7 +604,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
    * отклонении транзакции блокчейном (например, недостаточно L3-средств) в
    * разделе «Платежи» оставался бы фантомный исходящий платёж со статусом FAILED.
    */
-  async prepareWithdraw(data: CreateWithdrawPaymentInputDomainInterface): Promise<PaymentDomainInterface> {
+  async prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface> {
     // Обновляем истекшие платежи перед созданием нового
     await this.paymentRepository.expireOutdatedPayments();
 
@@ -775,7 +778,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
    * в БД должна существовать безусловно. Для возврата паевого взноса используется
    * связка prepareWithdraw → on-chain транзакция → persistWithdraw.
    */
-  async createWithdraw(data: CreateWithdrawPaymentInputDomainInterface): Promise<PaymentDomainEntity> {
+  async createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainEntity> {
     const paymentData = await this.prepareWithdraw(data);
     return await this.persistWithdraw(paymentData);
   }
