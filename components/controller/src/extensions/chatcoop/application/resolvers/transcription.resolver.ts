@@ -137,7 +137,8 @@ export class TranscriptionResolver {
       return [];
     }
     const rows = await this.transcriptionService.getAllTranscriptions({ limit, offset });
-    const visible = rows.filter((t) => readableRoomIds.has(t.roomId));
+    // Сверяем комнату Matrix: roomId у записи — имя комнаты LiveKit, реестру комнат оно неизвестно.
+    const visible = rows.filter((t) => readableRoomIds.has(t.matrixRoomId));
     return Promise.all(visible.map((t) => this.toCallTranscriptionResponse(t)));
   }
 
@@ -161,7 +162,7 @@ export class TranscriptionResolver {
     if (!result) {
       return null;
     }
-    await this.access.assertCanReadRoom(currentUser, result.transcription.roomId);
+    await this.access.assertCanReadRoom(currentUser, result.transcription.matrixRoomId);
 
     return {
       transcription: await this.toCallTranscriptionResponse(result.transcription),
@@ -188,7 +189,7 @@ export class TranscriptionResolver {
     );
     const existing = await this.transcriptionService.getTranscriptionWithSegments(data.id);
     if (existing) {
-      await this.access.assertCanReadRoom(currentUser, existing.transcription.roomId);
+      await this.access.assertCanReadRoom(currentUser, existing.transcription.matrixRoomId);
     }
     const updated = await this.transcriptionService.updateTranscriptionMemo(data.id, data.memo);
     return this.toCallTranscriptionResponse(updated);
