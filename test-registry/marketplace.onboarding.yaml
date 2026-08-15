@@ -198,8 +198,8 @@ cases:
     kind: side
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    status: passing
 
   - id: mkt.onb.break.01
     level: backend
@@ -226,15 +226,23 @@ cases:
     status: passing
 
   - id: mkt.onb.break.03
-    level: ui
+    level: backend
     kind: break
     scenario: >
-      Пайщик открывает подключение к Столу заказов, когда кооператив не завершил подключение ЦПП
+      Пайщик подписывает оферту Стола заказов, когда кооператив не завершил
+      подключение ЦПП
     expect: >
-      экран сообщает, что подключение ЦПП кооперативом не завершено и подписать
-      оферту нельзя; «Продолжить» недоступно. Оферта НЕ объявляется подписанной
-    test: ~
-    status: missing
+      отказ с указанием, чего не хватает; подпись на цепь не отправляется и
+      оферта не объявляется подписанной
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
+    # Переведён с ui на backend по той же причине, что и mkt.onb.happy.02:
+    # фазы подготовки принимают ЦПП один раз до всех сценариев, поэтому
+    # состояния «кооператив не завершил подключение» на стенде не бывает —
+    # экран с недоступным «Продолжить» в одном прогоне с рабочей цепочкой
+    # непредставим. Правило живёт на сервере и проверено там: нет соглашения,
+    # нет программного кошелька, нет самой программы — три отдельных отказа,
+    # и ни один не доходит до wallet::signagree.
 
   - id: mkt.onb.side.11
     level: backend

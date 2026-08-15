@@ -15,6 +15,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+// Цена приёмки — оттуда, где её задаёт акт: две копии числа разъехались бы
+// молча, и проверка цены выдачи перестала бы что-либо значить.
+import { FACT_UNIT_PRICE as RECEPTION_UNIT_PRICE } from './apl-reception-create.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -99,6 +102,16 @@ export default async ({ page, shot, expect }) => {
   // с прежним количеством и акт уйдёт на полном объёме.
   const factQty = issueDialog.locator('.correction-table__fact input').first();
   const acceptedQty = Number.parseFloat(await factQty.inputValue());
+
+  // Цена, с которой открылась выдача. Имущество приняли дешевле объявленного
+  // (недоприём с уценкой), поэтому здесь обязана стоять цена ПРИЁМКИ, а не
+  // цена заказа: по ней имущество лежит на складе, по ней же пайщик за него
+  // платит. Если сюда попадёт цена заказа, выбытие со склада уйдёт дороже
+  // прихода, и счёт материалов уйдёт в минус на всю разницу (так и было до
+  // 14 августа: приход 1800 ₽, выбытие 2000 ₽).
+  // В блоке правки два поля подряд: количество и цена за единицу отпуска.
+  const factPriceInput = issueDialog.locator('.correction-table__fact input').nth(1);
+  const openedPrice = Number.parseFloat(await factPriceInput.inputValue());
   await factQty.click();
   await factQty.fill(String(ISSUE_QUANTITY));
   await factQty.blur();
@@ -116,6 +129,9 @@ export default async ({ page, shot, expect }) => {
         // оплате, и возврат, и то, что осядет на складе.
         expect(Number.parseFloat(await factQty.inputValue())).toBe(ISSUE_QUANTITY);
         expect(acceptedQty).toBeGreaterThan(ISSUE_QUANTITY);
+        // Выдача открылась по цене приёмки (её задал акт приёмки), а не по
+        // цене заказа — иначе выбытие со склада пойдёт дороже прихода.
+        expect(openedPrice).toBe(RECEPTION_UNIT_PRICE);
         // Недовыдача обязана быть названа деньгами, а не просто уменьшить итог.
         const refund = issueDialog.locator('.issue-act__sum').filter({ hasText: 'Вернётся в кошелёк' });
         await expect(refund.first()).toBeVisible({ timeout: 15000 });
