@@ -23,9 +23,10 @@ import { IMonoAccount } from '@coopenomics/innercoop';
 import { AGREEMENT_QUERY_PORT, AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
+import type { CandidateDataPort } from '~/domain/registration/ports/candidate-data.port';
 
 @Injectable()
-export class RegistrationService {
+export class RegistrationService implements CandidateDataPort {
   constructor(
     @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepository: CandidateRepository,

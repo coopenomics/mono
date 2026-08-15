@@ -1,4 +1,4 @@
-import { Global, Module, forwardRef } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { AgreementConfigurationService, AGREEMENT_CONFIGURATION_SERVICE } from './services/agreement-configuration.service';
 import { AgreementRegistryService, AGREEMENT_REGISTRY_SERVICE } from './services/agreement-registry.service';
 import { RegistrationDocumentsService, REGISTRATION_DOCUMENTS_SERVICE } from './services/registration-documents.service';
@@ -6,26 +6,23 @@ import { CooperativeConfigService } from './services/cooperative-config.service'
 import { AGREEMENT_REGISTRATION_PORT } from './ports/agreement-registration.port';
 import { AGREEMENT_QUERY_PORT } from './ports/agreement-query.port';
 import { DocumentModule } from '~/application/document/document.module';
-import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
 
 /**
  * Глобальный модуль для сервисов регистрации
  * Сделан глобальным чтобы быть доступным в BlockchainModule (который тоже глобальный)
  *
- * ВАЖНО: Импортирует ExtensionDomainModule для обеспечения доступности реализаций портов из расширений.
- * Расширения регистрируются через ExtensionsModule и предоставляют свои реализации портов.
+ * Модуль расширений здесь не импортируется. Условия участия поток вступления
+ * узнаёт не от модулей расширений, а из `AgreementRegistryService`: расширение
+ * само кладёт туда свою оферту при старте и снимает при остановке. Реестр —
+ * тот же приём, что и у грантов рабочего стола (`ExtensionGrantsRegistry`), и
+ * он же причина, по которой ядру не нужно знать состав расширений. Хуки,
+ * которые всё-таки инжектятся по токену (параметры оферт), раздаёт глобальный
+ * `InnercoopBridgeModule` — импорт `ExtensionDomainModule` для них не нужен.
  */
 @Global()
 @Module({
   imports: [
-    // Цикл проходит через composition root расширений:
-    // registration-domain → extension-domain → extensions.module →
-    // innercoop-bridge → registration-infrastructure → registration.module →
-    // registration-domain. Законен: мост по своей роли знает обе стороны —
-    // и порты ядра, и расширения, которые их реализуют, — а поток вступления
-    // спрашивает у расширений условия участия (хуки онбординга).
     DocumentModule,
-    forwardRef(() => ExtensionDomainModule),
   ],
   providers: [
     CooperativeConfigService,

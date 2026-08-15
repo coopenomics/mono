@@ -92,7 +92,7 @@ import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agr
 import { ExtensionConfigInnercoopAdapter } from '~/infrastructure/innercoop/extension-config-innercoop.adapter';
 import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain-resources-innercoop.adapter';
 import { UserModule } from '~/application/user/user.module';
-import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
+import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
@@ -154,7 +154,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     // раньше его тянул к себе marketplace, теперь — composition root.
     PubSubModule,
     // Отсюда берётся доступ к заявкам на вступление для порта кандидатов.
-    RegistrationInfrastructureModule,
+    RegistrationModule,
     // Отсюда берётся сборка сертификата подписанта для порта.
     UserModule,
   ],
