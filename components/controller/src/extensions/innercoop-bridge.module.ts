@@ -38,6 +38,7 @@ import {
   PROJECT_CAPITAL_CLEARANCE_PORT,
   REALTIME_CHANNEL_PORT,
   REGISTRATION_REGISTRY_PORT,
+  REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_CERTIFICATE_PORT,
@@ -96,6 +97,7 @@ import { RegistrationModule } from '~/application/registration/registration.modu
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
+import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
 import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
@@ -374,6 +376,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: AgreementRegistryService,
     },
     {
+      // Реестр параметров оферт — там же и по той же причине: расширение
+      // кладёт свой хук само, ядро вызывает его в потоке вступления.
+      provide: REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+      useExisting: RegistrationDocumentParametersRegistry,
+    },
+    {
       // Без промежуточного адаптера: реестр шагов ядра и порт совпадают по
       // форме, а `OnboardingDomainModule` глобальный — сервис виден отсюда.
       provide: ONBOARDING_STEP_REGISTRY_PORT,
@@ -431,6 +439,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
+    REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,

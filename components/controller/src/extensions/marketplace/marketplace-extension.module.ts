@@ -7,7 +7,6 @@ import { LOGGER_PORT, type ILoggerPort,
   type ICouncilPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
-  MARKETPLACE_DOCUMENT_PARAMETERS_HOOK,
 } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
@@ -219,12 +218,10 @@ export class MarketplaceExtension extends BaseExtensionModule {
   ],
   providers: [
     MarketplaceExtension,
-    {
-      provide: MARKETPLACE_DOCUMENT_PARAMETERS_HOOK,
-      useClass: MarketplaceUdataParametersAdapter,
-    },
+    // Кладёт себя в реестр ядра сам (onModuleInit).
+    MarketplaceUdataParametersAdapter,
   ],
-  exports: [MarketplaceExtension, MARKETPLACE_DOCUMENT_PARAMETERS_HOOK],
+  exports: [MarketplaceExtension],
 })
 export class MarketplaceExtensionModule {
   constructor(private readonly marketplaceExtension: MarketplaceExtension) {}

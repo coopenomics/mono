@@ -1,8 +1,8 @@
-import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { AgreementConfigurationService, AGREEMENT_CONFIGURATION_SERVICE } from './agreement-configuration.service';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
-import { UdataDocumentParametersPort, UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
-import { MarketplaceUdataParametersPort, MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
+import type { IProgramDocumentParametersHook } from '@coopenomics/innercoop';
+import { RegistrationDocumentParametersRegistry } from './registration-document-parameters.registry';
 import type { IAgreementConfigItem } from '../config/agreement-config.interface';
 import type {
   IGenerateRegistrationDocumentsInput,
@@ -16,11 +16,11 @@ export const REGISTRATION_DOCUMENTS_SERVICE = Symbol('RegistrationDocumentsServi
 
 /**
  * Сервис для генерации пакета документов при регистрации пайщика
- * 
- * ВАЖНО: Использует опциональную инъекцию UdataDocumentParametersPort.
- * Если расширение, предоставляющее реализацию порта (например, Capital), установлено,
- * то параметры документов будут генерироваться автоматически.
- * Если расширение не установлено, генерация документов продолжит работать без параметров.
+ *
+ * ВАЖНО: параметры оферт берутся из `RegistrationDocumentParametersRegistry` —
+ * туда их кладёт само расширение при запуске. Слот может быть пуст: расширения
+ * (Благорост, Стол заказов) может не быть в кооперативе, и это нормальный
+ * случай — генерация продолжается без параметров.
  */
 @Injectable()
 export class RegistrationDocumentsService {
@@ -31,12 +31,7 @@ export class RegistrationDocumentsService {
     private readonly agreementConfigService: AgreementConfigurationService,
     @Inject(DocumentInteractor)
     private readonly documentInteractor: DocumentInteractor,
-    @Optional()
-    @Inject(UDATA_DOCUMENT_PARAMETERS_PORT)
-    private readonly udataDocumentParametersPort?: UdataDocumentParametersPort,
-    @Optional()
-    @Inject(MARKETPLACE_UDATA_PARAMETERS_PORT)
-    private readonly marketplaceUdataParametersPort?: MarketplaceUdataParametersPort
+    private readonly parametersRegistry: RegistrationDocumentParametersRegistry
   ) {}
 
   /**
@@ -87,9 +82,9 @@ export class RegistrationDocumentsService {
   /**
    * Генерирует параметры документов в Udata на основе выбранной программы
    * 
-   * ВАЖНО: Использует опциональный порт UdataDocumentParametersPort.
-   * Если расширение, предоставляющее реализацию (например, Capital), не установлено,
-   * метод просто пропустит генерацию параметров.
+   * ВАЖНО: реализацию берём из реестра — её кладёт туда само расширение при
+   * запуске. Если расширения (например, Capital) в кооперативе нет, слот пуст
+   * и метод просто пропускает генерацию параметров.
    */
   private async generateDocumentParameters(
     coopname: string,
@@ -122,14 +117,15 @@ export class RegistrationDocumentsService {
         // Путь ЦПП «Стол заказов»: персональный номер+дата оферты пайщика в Udata,
         // которые читает фабрика инстанса оферты (registry 1102). Отдельный порт,
         // т.к. marketplace независим от capital.
-        if (!this.marketplaceUdataParametersPort) {
+        const marketplaceParameters = this.parametersRegistry.marketplaceParameters();
+        if (!marketplaceParameters) {
           this.logger.warn(
-            `MarketplaceUdataParametersPort не доступен. Пропуск генерации параметров оферты «Стол заказов» для ${username}. ` +
+            `Хук параметров оферты «Стол заказов» не зарегистрирован. Пропуск генерации для ${username}. ` +
             `Убедитесь, что установлено расширение marketplace.`
           );
           return;
         }
-        await this.marketplaceUdataParametersPort.generateMarketplaceOfferParameters(coopname, username);
+        await marketplaceParameters.generateMarketplaceOfferParameters(coopname, username);
         break;
 
       default:
@@ -142,15 +138,16 @@ export class RegistrationDocumentsService {
    * установлено — параметры не сгенерировать; логируем и возвращаем undefined
    * (вызывающий пропускает генерацию, как раньше).
    */
-  private requireCapitalPort(username: string): UdataDocumentParametersPort | undefined {
-    if (!this.udataDocumentParametersPort) {
+  private requireCapitalPort(username: string): IProgramDocumentParametersHook | undefined {
+    const programParameters = this.parametersRegistry.programParameters();
+    if (!programParameters) {
       this.logger.warn(
-        `UdataDocumentParametersPort не доступен. Пропуск генерации параметров документов для ${username}. ` +
+        `Хук параметров программных оферт не зарегистрирован. Пропуск генерации параметров документов для ${username}. ` +
         `Убедитесь, что установлено соответствующее расширение (например, Capital).`
       );
       return undefined;
     }
-    return this.udataDocumentParametersPort;
+    return programParameters;
   }
 
   /**

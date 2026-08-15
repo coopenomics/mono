@@ -1,10 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import { randomBytes } from 'crypto';
 
 import { USER_DATA_PORT, type IUserDataPort,
   type IMarketplaceDocumentParametersHook,
+  REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+  type IRegistrationDocumentParametersRegistryPort,
 } from '@coopenomics/innercoop';
 
 /**
@@ -17,12 +19,25 @@ import { USER_DATA_PORT, type IUserDataPort,
  *
  * Идемпотентность: если номер уже выдан — повторно не генерируем, иначе хэш
  * повторного рендера разойдётся с тем, что подписал пайщик.
+ *
+ * Сам себя кладёт в реестр ядра при запуске, поэтому поток вступления не
+ * импортирует модуль расширений (нет цикла зависимостей).
  */
 @Injectable()
-export class MarketplaceUdataParametersAdapter implements IMarketplaceDocumentParametersHook {
+export class MarketplaceUdataParametersAdapter
+  implements IMarketplaceDocumentParametersHook, OnModuleInit
+{
   private readonly logger = new Logger(MarketplaceUdataParametersAdapter.name);
 
-  constructor(@Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort) {}
+  constructor(
+    @Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort,
+    @Inject(REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT)
+    private readonly parametersRegistry: IRegistrationDocumentParametersRegistryPort
+  ) {}
+
+  onModuleInit(): void {
+    this.parametersRegistry.registerMarketplaceHook(this);
+  }
 
   private generateDocumentNumber(): string {
     return randomBytes(32).toString('hex').substring(0, 16).toUpperCase();

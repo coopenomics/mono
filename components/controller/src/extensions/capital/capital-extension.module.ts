@@ -8,7 +8,6 @@ import { LOGGER_PORT, type ILoggerPort,
   type ICouncilPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
-  PROGRAM_DOCUMENT_PARAMETERS_HOOK,
   SECRET_CIPHER_PORT,
   type ISecretCipherPort,
   INTEGRATION_SETTINGS_PORT,
@@ -994,13 +993,12 @@ IssueIdGenerationService,
     LogInteractor,
 
     // Infrastructure Adapters (после всех сервисов)
-    {
-      provide: PROGRAM_DOCUMENT_PARAMETERS_HOOK,
-      useClass: UdataDocumentParametersAdapter,
-    },
+    // Кладёт себя в реестр ядра сам (onModuleInit) — токен-хук для доставки
+    // больше не нужен, ядро берёт реализацию из реестра.
+    UdataDocumentParametersAdapter,
     CapitalInnercoopProjectCapitalClearanceAdapter,
   ],
-  exports: [CapitalExtension, PROGRAM_DOCUMENT_PARAMETERS_HOOK, CapitalInnercoopProjectCapitalClearanceAdapter],
+  exports: [CapitalExtension, CapitalInnercoopProjectCapitalClearanceAdapter],
 })
 export class CapitalExtensionModule {
   constructor(private readonly capitalExtension: CapitalExtension) {}

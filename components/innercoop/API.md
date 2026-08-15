@@ -1888,6 +1888,13 @@
 - `publish(trigger: string, payload: Record<string, any>): Promise<void>`
 - `asyncIterator<T = any>(trigger: string | string[]): AsyncIterator<T>`
 
+## IRegistrationDocumentParametersRegistryPort
+
+`interface` · hooks
+
+- `registerProgramHook(hook: IProgramDocumentParametersHook): void`
+- `registerMarketplaceHook(hook: IMarketplaceDocumentParametersHook): void`
+
 ## IRegistrationRegistryPort
 
 `interface` · core-ports
@@ -1976,12 +1983,6 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Logger')`
-
-## MARKETPLACE_DOCUMENT_PARAMETERS_HOOK
-
-`const` · hooks
-
-- `Symbol.for('Innercoop.Hook.MarketplaceDocumentParameters')`
 
 ## MATRIX_ROOM_MESSAGING_PORT
 
@@ -2127,12 +2128,6 @@
 
 - `Symbol.for('Innercoop.CorePort.ProgramAgreement')`
 
-## PROGRAM_DOCUMENT_PARAMETERS_HOOK
-
-`const` · hooks
-
-- `Symbol.for('Innercoop.Hook.ProgramDocumentParameters')`
-
 ## PROGRAM_ID_BY_TYPE
 
 `const` · core-ports
@@ -2184,6 +2179,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.RealtimeChannel')`
+
+## REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.RegistrationDocumentParametersRegistry')`
 
 ## REGISTRATION_REGISTRY_PORT
 

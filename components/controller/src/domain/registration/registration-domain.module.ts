@@ -6,18 +6,19 @@ import { CooperativeConfigService } from './services/cooperative-config.service'
 import { AGREEMENT_REGISTRATION_PORT } from './ports/agreement-registration.port';
 import { AGREEMENT_QUERY_PORT } from './ports/agreement-query.port';
 import { DocumentModule } from '~/application/document/document.module';
+import { RegistrationDocumentParametersRegistry } from './services/registration-document-parameters.registry';
 
 /**
  * Глобальный модуль для сервисов регистрации
  * Сделан глобальным чтобы быть доступным в BlockchainModule (который тоже глобальный)
  *
- * Модуль расширений здесь не импортируется. Условия участия поток вступления
- * узнаёт не от модулей расширений, а из `AgreementRegistryService`: расширение
- * само кладёт туда свою оферту при старте и снимает при остановке. Реестр —
- * тот же приём, что и у грантов рабочего стола (`ExtensionGrantsRegistry`), и
- * он же причина, по которой ядру не нужно знать состав расширений. Хуки,
- * которые всё-таки инжектятся по токену (параметры оферт), раздаёт глобальный
- * `InnercoopBridgeModule` — импорт `ExtensionDomainModule` для них не нужен.
+ * Модуль расширений здесь не импортируется, и это принципиально: и состав
+ * оферт, и параметры к ним расширение кладёт в реестры само при запуске —
+ * `AgreementRegistryService` и `RegistrationDocumentParametersRegistry`. Оба
+ * реестра — тот же приём, что у прав рабочего стола (`ExtensionGrantsRegistry`).
+ * Инъекция по токену хука здесь не подошла бы: видимость провайдера в Nest
+ * даёт только импорт модуля, то есть ядро тянуло бы к себе модуль расширений
+ * и получало цикл.
  */
 @Global()
 @Module({
@@ -44,6 +45,7 @@ import { DocumentModule } from '~/application/document/document.module';
       provide: AGREEMENT_QUERY_PORT,
       useExisting: AgreementConfigurationService,
     },
+    RegistrationDocumentParametersRegistry,
     RegistrationDocumentsService,
     {
       provide: REGISTRATION_DOCUMENTS_SERVICE,
@@ -51,6 +53,7 @@ import { DocumentModule } from '~/application/document/document.module';
     },
   ],
   exports: [
+    RegistrationDocumentParametersRegistry,
     AgreementConfigurationService,
     AGREEMENT_CONFIGURATION_SERVICE,
     AgreementRegistryService,

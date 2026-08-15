@@ -1,16 +1,30 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
-import { type IProgramDocumentParametersHook } from '@coopenomics/innercoop';
+import {
+  type IProgramDocumentParametersHook,
+  REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+  type IRegistrationDocumentParametersRegistryPort,
+} from '@coopenomics/innercoop';
 
 /**
  * Адаптер для реализации порта IProgramDocumentParametersHook в Capital расширении
+ *
+ * Сам себя кладёт в реестр ядра при запуске, поэтому поток вступления не
+ * импортирует модуль расширений (нет цикла зависимостей) — тот же приём, что у
+ * прав рабочего стола.
  */
 @Injectable()
-export class UdataDocumentParametersAdapter implements IProgramDocumentParametersHook {
+export class UdataDocumentParametersAdapter implements IProgramDocumentParametersHook, OnModuleInit {
   constructor(
     @Inject(UDATA_DOCUMENT_PARAMETERS_SERVICE)
-    private readonly udataDocumentParametersService: UdataDocumentParametersService
+    private readonly udataDocumentParametersService: UdataDocumentParametersService,
+    @Inject(REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT)
+    private readonly parametersRegistry: IRegistrationDocumentParametersRegistryPort
   ) {}
+
+  onModuleInit(): void {
+    this.parametersRegistry.registerProgramHook(this);
+  }
 
   /**
    * Генерирует и сохраняет параметры для оферты Благорост
