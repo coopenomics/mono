@@ -21,9 +21,36 @@ export class TypeOrmDeltaRepository implements DeltaRepositoryPort {
   ) {}
 
   /**
-   * Сохранение дельты
+   * Сохранение дельты.
+   *
+   * Идемпотентно по естественному признаку записи: цепь, блок, контракт, скоуп,
+   * таблица, первичный ключ, признак присутствия и само значение. У дельт нет
+   * сквозного номера, каким у действий служит global_sequence с уникальным
+   * индексом, поэтому повторная доставка того же изменения — а она случается при
+   * переигровке стрима с начала, при `repeat` и при пересоздании группы
+   * потребителя — иначе кладёт в журнал второй экземпляр той же строки.
+   *
+   * Значение входит в признак намеренно: одна и та же строка таблицы может
+   * меняться дважды в одном блоке (две транзакции), и это разные изменения,
+   * которые обязаны сохраниться оба.
    */
   async save(deltaData: Omit<DeltaDomainInterface, 'id' | 'created_at'>): Promise<DeltaDomainInterface> {
+    const existing = await this.deltaRepository
+      .createQueryBuilder('d')
+      .where('d.chain_id = :chain_id', { chain_id: deltaData.chain_id })
+      .andWhere('d.block_num = :block_num', { block_num: deltaData.block_num })
+      .andWhere('d.code = :code', { code: deltaData.code })
+      .andWhere('d.scope = :scope', { scope: deltaData.scope })
+      .andWhere('d.table = :table', { table: deltaData.table })
+      .andWhere('d.primary_key = :primary_key', { primary_key: deltaData.primary_key })
+      .andWhere('d.present = :present', { present: deltaData.present })
+      .andWhere('d.value IS NOT DISTINCT FROM CAST(:value AS jsonb)', {
+        value: deltaData.value === undefined ? null : JSON.stringify(deltaData.value),
+      })
+      .getOne();
+
+    if (existing) return existing;
+
     const entity = this.deltaRepository.create(deltaData);
     return await this.deltaRepository.save(entity);
   }

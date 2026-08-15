@@ -19,7 +19,6 @@ export class BaseTypeormEntity {
   @UpdateDateColumn({ type: 'timestamp' })
   _updated_at!: Date;
 
-
   /**
    * Получить имя таблицы для сущности
    * ДОЛЖЕН БЫТЬ ПЕРЕОПРЕДЕЛЕН в каждом наследнике!

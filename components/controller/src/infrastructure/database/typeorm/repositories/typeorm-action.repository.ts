@@ -8,6 +8,7 @@ import type {
   PaginatedResultDomainInterface,
 } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import { ActionEntity } from '../entities/action.entity';
+import { isHexHash } from '~/shared/sql/hex-value.util';
 
 /**
  * TypeORM реализация репозитория действий блокчейна
@@ -55,30 +56,56 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
     page: number,
     limit: number
   ): Promise<PaginatedResultDomainInterface<ActionDomainInterface>> {
-    const whereClause: any = {};
+    const qb = this.actionRepository.createQueryBuilder('a');
 
     if (filter.account) {
-      whereClause.account = filter.account;
+      qb.andWhere('a.account = :account', { account: filter.account });
     }
     if (filter.name) {
-      whereClause.name = filter.name;
+      qb.andWhere('a.name = :name', { name: filter.name });
+    }
+    if (filter.receiver) {
+      qb.andWhere('a.receiver = :receiver', { receiver: filter.receiver });
     }
     if (filter.block_num) {
-      whereClause.block_num = filter.block_num;
+      qb.andWhere('a.block_num = :block_num', { block_num: filter.block_num });
     }
     if (filter.global_sequence) {
-      whereClause.global_sequence = filter.global_sequence;
+      qb.andWhere('a.global_sequence = :global_sequence', { global_sequence: filter.global_sequence });
     }
     if (filter.repeat !== undefined) {
-      whereClause.repeat = filter.repeat;
+      qb.andWhere('a.repeat = :repeat', { repeat: filter.repeat });
     }
+    // Поля полезной нагрузки лежат в jsonb и сравниваются как текст (->> / #>>):
+    // число из цепи и его строковая запись совпадают одинаково. Ключ с точками —
+    // путь вглубь (`document.hash`), поэтому берём #>> с массивом пути. Имена
+    // параметров нумеруем: двух одинаковых плейсхолдеров TypeORM не разведёт.
+    //
+    // Хэш сравнивается без учёта регистра — см. isHexHash.
+    Object.entries(filter.data ?? {}).forEach(([field, value], i) => {
+      const path = field.split('.');
+      const text = String(value);
+      const wrap = (expression: string) => (isHexHash(text) ? `lower(${expression})` : expression);
+      const param = isHexHash(text) ? text.toLowerCase() : text;
 
-    const [results, total] = await this.actionRepository.findAndCount({
-      where: whereClause,
-      order: { block_num: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
+      if (path.length === 1) {
+        qb.andWhere(`${wrap(`a.data ->> :dataField${i}`)} = :dataValue${i}`, {
+          [`dataField${i}`]: field,
+          [`dataValue${i}`]: param,
+        });
+      } else {
+        qb.andWhere(`${wrap(`a.data #>> :dataPath${i}::text[]`)} = :dataValue${i}`, {
+          [`dataPath${i}`]: `{${path.join(',')}}`,
+          [`dataValue${i}`]: param,
+        });
+      }
     });
+
+    const [results, total] = await qb
+      .orderBy('a.block_num', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       results,

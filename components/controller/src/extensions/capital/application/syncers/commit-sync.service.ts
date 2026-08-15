@@ -105,13 +105,4 @@ export class CommitSyncService
       this.logger.error(`Ошибка при обработке отклонения коммита: ${error?.message}`, error?.stack);
     }
   }
-
-  /**
-   * Обработка форков для коммитов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleCommitFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
 }

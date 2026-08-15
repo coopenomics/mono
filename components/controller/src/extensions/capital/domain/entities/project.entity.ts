@@ -7,7 +7,13 @@ import type {
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
 import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
 import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { auditUnknownStatus } from '~/shared/sync/errors/audit-unknown-status';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+
+const PROJECT_STATUS_AUDIT_LOGGER = new WinstonLoggerService();
+PROJECT_STATUS_AUDIT_LOGGER.setContext('ProjectDomainEntity');
+
 /**
  * Доменная сущность проекта
  *
@@ -220,7 +226,15 @@ export class ProjectDomainEntity
       case 'finalized':
         return ProjectStatus.FINALIZED;
       default:
-        // По умолчанию считаем статус неопределенным
+        // Story 6.5: silent fallback на UNDEFINED заменён audit-trail'ом.
+        // Если контракт ввёл новый статус — drift всплывёт в логе как error.
+        auditUnknownStatus('ProjectDomainEntity', blockchainStatus, PROJECT_STATUS_AUDIT_LOGGER, [
+          'pending',
+          'active',
+          'voting',
+          'result',
+          'finalized',
+        ]);
         return ProjectStatus.UNDEFINED;
     }
   }

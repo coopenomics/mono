@@ -39,12 +39,19 @@ import { AgreementTypeormRepository } from './repositories/agreement.typeorm-rep
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { ActionEntity } from './entities/action.entity';
+import { DraftTemplateEntity } from './entities/draft-template.entity';
+import { DraftTranslationEntity } from './entities/draft-translation.entity';
+import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-registry.repository';
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
 import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
 import { EntityVersionRepository } from '~/shared/sync/repositories/entity-version.repository';
 import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { InvalidatedEntityTypeormEntity } from '~/shared/sync/entities/invalidated-entity.typeorm-entity';
+import { InvalidatedEntityVersionTypeormEntity } from '~/shared/sync/entities/invalidated-entity-version.typeorm-entity';
+import { InvalidatedEntityRepository } from '~/shared/sync/repositories/invalidated-entity.repository';
+import { InvalidatedEntityVersionRepository } from '~/shared/sync/repositories/invalidated-entity-version.repository';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -53,6 +60,9 @@ import { TypeOrmActionRepository } from './repositories/typeorm-action.repositor
 import { TypeOrmDeltaRepository } from './repositories/typeorm-delta.repository';
 import { TypeOrmForkRepository } from './repositories/typeorm-fork.repository';
 import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.repository';
+import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
+import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
+import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
 import { SettingsEntity } from './entities/settings.entity';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsTypeormRepository } from './repositories/settings.typeorm-repository';
@@ -129,10 +139,15 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
+      DraftTemplateEntity,
+      DraftTranslationEntity,
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
+      ConsumerDedupEntity,
       EntityVersionTypeormEntity,
+      InvalidatedEntityTypeormEntity,
+      InvalidatedEntityVersionTypeormEntity,
       SettingsEntity,
       TokenEntity,
       UserEntity,
@@ -199,6 +214,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     AgreementTypeormRepository,
     AgreementDeltaMapper,
     AgreementSyncService,
+    TypeOrmDraftRegistryRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
       useClass: TypeOrmActionRepository,
@@ -214,6 +230,10 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     {
       provide: SYNC_STATE_REPOSITORY_PORT,
       useClass: TypeOrmSyncStateRepository,
+    },
+    {
+      provide: CONSUMER_DEDUP_REPOSITORY_PORT,
+      useClass: TypeOrmConsumerDedupRepository,
     },
     {
       provide: SETTINGS_REPOSITORY,
@@ -274,9 +294,12 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     },
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
   exports: [
     NestTypeOrmModule,
+    TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
@@ -293,6 +316,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     DELTA_REPOSITORY_PORT,
     FORK_REPOSITORY_PORT,
     SYNC_STATE_REPOSITORY_PORT,
+    CONSUMER_DEDUP_REPOSITORY_PORT,
     SETTINGS_REPOSITORY,
     TOKEN_REPOSITORY,
     USER_REPOSITORY,
@@ -311,6 +335,8 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     SIGNED_DOCUMENT_REPOSITORY,
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
 })
 export class TypeOrmModule {}

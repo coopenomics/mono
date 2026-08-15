@@ -120,7 +120,41 @@ const envVarsSchema = z.object({
     .string()
     .default('1000')
     .transform((val) => parseInt(val, 10)),
-
+  /**
+   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
+   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
+   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   */
+  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Story 4.4: глобальный выключатель ежечасного retention-крона архива
+   * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
+   * кооператив) данные могут копиться годами — отключить кроном.
+   */
+  BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
+  /**
+   * Story 4.4: cron-расписание retention. Default — ежечасно. RETENTION_HORIZON_BLOCKS
+   * (=1000) хардкод в BlockchainArchiveRetentionService — не вынесен в env намеренно
+   * (свойство сети, не оператора).
+   */
+  BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
+  /**
+   * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
+   * быть silent loss и поднимается `UnsupportedContractVersionError` из
+   * `AbstractEntitySyncService.processDelta`. Парсер не ACK'ает delta — DLQ
+   * сработает. Default `false` для не-ломать-прод-немедленно; включается после
+   * подтверждения, что schema drift отсутствует (например на стенде).
+   */
+  BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
 
   // Параметры VAPID для web push
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
@@ -253,6 +287,10 @@ export default {
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
+    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
+    archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
+    unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
