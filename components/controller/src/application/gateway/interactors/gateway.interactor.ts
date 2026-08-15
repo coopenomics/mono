@@ -20,6 +20,10 @@ import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
+// Интерактор сам реализует порт, объявленный доменом кошелька: раньше между
+// ними стоял адаптер, пробрасывавший десять методов один в один, и ради него
+// инфраструктура импортировала приложение — отсюда цикл модулей шлюза.
+import type { GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
 import { SystemDomainPort, SYSTEM_DOMAIN_PORT } from '~/domain/system/interfaces/system-domain.port';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -39,7 +43,7 @@ import { QuantityUtils } from '@coopenomics/extension-kit';
  * - Доступен отдельный метод expireOutdatedPayments() для периодической очистки
  */
 @Injectable()
-export class GatewayInteractor {
+export class GatewayInteractor implements GatewayInteractorPort {
   private readonly logger = new Logger(GatewayInteractor.name);
 
   constructor(

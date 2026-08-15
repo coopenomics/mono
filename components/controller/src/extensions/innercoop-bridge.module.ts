@@ -101,6 +101,7 @@ import {
   IndividualInnercoopAdapter,
 } from '~/infrastructure/innercoop/party-card-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
+import { GatewayModule } from '~/application/gateway/gateway.module';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
@@ -145,6 +146,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DecisionTrackingInfrastructureModule,
     FreeDecisionInfrastructureModule,
     GatewayInfrastructureModule,
+    // Кассирский стол расширений опирается на сценарии платежей.
+    GatewayModule,
     WalletModule,
     VaultDomainModule,
     // Шина подписок объявлена глобальной, но глобальность не загружает модуль:

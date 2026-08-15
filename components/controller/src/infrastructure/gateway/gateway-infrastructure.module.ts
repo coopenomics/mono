@@ -1,26 +1,21 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { GatewayInteractorAdapter } from './gateway-interactor.adapter';
+import { Module } from '@nestjs/common';
 import { ProviderAdapter } from './provider.adapter';
-import { GatewayModule } from '~/application/gateway/gateway.module';
-import { GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 import { ProviderDomainService } from '~/domain/gateway/provider-domain.service';
 import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 
+/**
+ * Инфраструктура шлюза: реестр платёжных провайдеров.
+ *
+ * Модуль намеренно не знает про `application/gateway`. Раньше знал — здесь
+ * лежал адаптер, пробрасывавший десять методов в `GatewayInteractor`, и ради
+ * него инфраструктура импортировала приложение, а приложение импортировало
+ * инфраструктуру. Теперь порт сценариев платежей раздаёт сам `GatewayModule`,
+ * которому эти сценарии и принадлежат.
+ */
 @Module({
-  imports: [
-    // Обратная сторона цикла gateway.module ↔ gateway-infrastructure.module:
-    // провайдер платежей вызывает сценарий приложения, сценарий обращается к
-    // провайдеру. Причина та же, см. комментарий в application/gateway.
-    forwardRef(() => GatewayModule),
-  ],
   providers: [
-    GatewayInteractorAdapter,
     ProviderDomainService,
     ProviderAdapter,
-    {
-      provide: GATEWAY_INTERACTOR_PORT,
-      useClass: GatewayInteractorAdapter,
-    },
     {
       provide: PROVIDER_PORT,
       useClass: ProviderAdapter,
@@ -29,6 +24,6 @@ import { PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
   // `ProviderDomainService` экспортирован для `PaymentProviderRegistryInnercoopAdapter`:
   // реестр способов оплаты раздаётся расширениям через порт, а привязка порта
   // живёт в `InnercoopBridgeModule`, за пределами этого модуля.
-  exports: [GATEWAY_INTERACTOR_PORT, PROVIDER_PORT, ProviderDomainService],
+  exports: [PROVIDER_PORT, ProviderDomainService],
 })
 export class GatewayInfrastructureModule {}

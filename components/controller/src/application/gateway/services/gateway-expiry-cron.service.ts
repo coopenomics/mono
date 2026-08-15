@@ -2,6 +2,13 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject } from '@nest
 import cron from 'node-cron';
 import { GatewayInteractorPort, GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 
+/**
+ * Перевод истёкших платежей в статус EXPIRED по расписанию.
+ *
+ * Сервис прикладной, а не доменный: он ничего не решает про платежи, а по
+ * часам зовёт сценарий шлюза. Пока он лежал в домене, домен зависел от
+ * прикладного порта — и это ребро замыкало цикл модулей шлюза.
+ */
 @Injectable()
 export class GatewayExpiryCronService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GatewayExpiryCronService.name);

@@ -8,7 +8,7 @@ import { ProgramWalletInitService } from './services/program-wallet-init.service
 import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
+import { GatewayModule } from '~/application/gateway/gateway.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { WalletDomainAdapter } from '~/infrastructure/wallet/adapters/wallet-domain.adapter';
 import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
@@ -19,7 +19,8 @@ import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
 @Module({
   imports: [
     GatewayDomainModule,
-    GatewayInfrastructureModule,
+    // Сценарии платежей (GATEWAY_INTERACTOR_PORT) раздаёт приложение шлюза.
+    GatewayModule,
     UserInfrastructureModule,
     UserDomainModule,
     AccountInfrastructureModule,
