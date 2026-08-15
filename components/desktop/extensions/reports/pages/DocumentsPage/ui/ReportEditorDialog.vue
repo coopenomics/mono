@@ -74,13 +74,22 @@ q-dialog(
           @dirty='onDirty'
         )
 
-        ZeroReportEditor(
-          v-else-if='reportType && reportType !== "BUHOTCH" && edits'
-          :report-type='reportType'
-          v-model:edits='zeroEdits'
-          :field-errors='fieldErrors'
-          @dirty='onDirty'
-        )
+        template(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+          ZeroReportEditor(
+            :report-type='reportType'
+            v-model:edits='zeroEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
+          //- Разделы с суммами и справки о доходах есть только у 6-НДФЛ:
+          //- это единственный отчёт, где кооператив выступает налоговым агентом.
+          Ndfl6TaxSection(
+            v-if='reportType === "NDFL6" && ndfl6Edits?.tax'
+            v-model:edits='ndfl6Edits'
+            :field-errors='fieldErrors'
+            :is-annual='ndfl6Edits.header.period === 4'
+            @dirty='onDirty'
+          )
 
         .stub-other(v-else-if='!isLoading && !reportType')
           q-icon(name='fa-solid fa-triangle-exclamation' size='48px' color='warning')
@@ -304,6 +313,8 @@ import {
 } from 'src/entities/Report'
 import BuhotchEditor from 'extensions/reports/widgets/report-forms/BuhotchEditor.vue'
 import ZeroReportEditor from 'extensions/reports/widgets/report-forms/ZeroReportEditor.vue'
+import Ndfl6TaxSection from 'extensions/reports/widgets/report-forms/Ndfl6TaxSection.vue'
+import type { Ndfl6Edits } from 'extensions/reports/widgets/report-forms/ndfl6-edits'
 import BuhotchForm from 'extensions/reports/widgets/report-forms/BuhotchForm.vue'
 import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
 import RsvForm from 'extensions/reports/widgets/report-forms/RsvForm.vue'
@@ -499,6 +510,13 @@ interface ZeroReportEdits {
 
 const zeroEdits = computed<ZeroReportEdits | null>({
   get: () => edits.value as ZeroReportEdits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
+// 6-НДФЛ — та же шапка плюс собственные разделы с суммами: редактируется
+// двумя компонентами поверх одного состояния.
+const ndfl6Edits = computed<Ndfl6Edits | null>({
+  get: () => edits.value as unknown as Ndfl6Edits | null,
   set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
 })
 
