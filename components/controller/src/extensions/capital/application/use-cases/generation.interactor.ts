@@ -1,4 +1,5 @@
-import { Injectable, Inject, forwardRef, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateCommitDomainInput } from '../../domain/actions/create-commit-domain-input.interface';
 import type { CommitApproveDomainInput } from '../../domain/actions/commit-approve-domain-input.interface';
@@ -8,7 +9,7 @@ import { GitService } from '../services/git.service';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
 import { CommitDomainEntity, type CommitContentData, type CommitData } from '../../domain/entities/commit.entity';
-import type { CapitalContract } from 'cooptypes';
+import { CapitalContract } from 'cooptypes';
 import { PermissionsService } from '../services/permissions.service';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
 import { LOGGER_PORT, type ILoggerPort,
@@ -46,8 +47,6 @@ export class GenerationInteractor {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
-    // Обратная сторона того же цикла, см. commit-sync.service.ts.
-    @Inject(forwardRef(() => CommitSyncService))
     private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)
     private readonly issueLinkedGitCommitRepository: IssueLinkedGitCommitRepository,
@@ -401,8 +400,13 @@ export class GenerationInteractor {
   }
 
   /**
-   * Обработать одобрение коммита из блокчейна
+   * Обработать одобрение коммита из блокчейна.
+   *
+   * Подписка живёт здесь же, у обработчика: раньше событие ловил синхронизатор
+   * коммитов и пересылал сюда, из-за чего инжектил этот сценарий, а сценарий —
+   * его. Обработчику от синхронизатора ничего не нужно, только данные действия.
    */
+  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitApprove.actionName}`)
   async handleApproveCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
@@ -432,8 +436,10 @@ export class GenerationInteractor {
   }
 
   /**
-   * Обработать отклонение коммита из блокчейна
+   * Обработать отклонение коммита из блокчейна. Подписка — по той же причине,
+   * что и у одобрения.
    */
+  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitDecline.actionName}`)
   async handleDeclineCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;

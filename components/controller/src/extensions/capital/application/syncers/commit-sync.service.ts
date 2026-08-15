@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
@@ -9,7 +9,6 @@ import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
 import { CommitDeltaMapper } from '../../infrastructure/blockchain/mappers/commit-delta.mapper';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { GenerationInteractor } from '../use-cases/generation.interactor';
 import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { getAppliedBlockNum } from '@coopenomics/extension-kit';
@@ -33,12 +32,6 @@ export class CommitSyncService
     commitDeltaMapper: CommitDeltaMapper,
     @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
-    // Цикл внутри расширения: синхронизатор коммитов сообщает сценарию
-    // генерации о подтверждённой работе, а сценарий поручает синхронизатору
-    // пересчёт долей. Законен: это две половины одной операции, разносить их
-    // третьим модулем значило бы разорвать её на ровном месте.
-    @Inject(forwardRef(() => GenerationInteractor))
-    private readonly generationInteractor: GenerationInteractor,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort
   ) {
@@ -87,29 +80,10 @@ export class CommitSyncService
     return commitEntity;
   }
 
-  /**
-   * Обработчик одобрения коммита
-   */
-  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitApprove.actionName}`)
-  async handleApproveCommit(actionData: InnerChainActionRecord): Promise<void> {
-    try {
-      await this.generationInteractor.handleApproveCommit(actionData);
-    } catch (error: any) {
-      this.logger.error(`Ошибка при обработке одобрения коммита: ${error?.message}`, error?.stack);
-    }
-  }
-
-  /**
-   * Обработчик отклонения коммита
-   */
-  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitDecline.actionName}`)
-  async handleDeclineCommit(actionData: InnerChainActionRecord): Promise<void> {
-    try {
-      await this.generationInteractor.handleDeclineCommit(actionData);
-    } catch (error: any) {
-      this.logger.error(`Ошибка при обработке отклонения коммита: ${error?.message}`, error?.stack);
-    }
-  }
+  // Одобрение и отклонение коммита слушает сам `GenerationInteractor`: там
+  // лежит обработка, а здесь стояли два переходника, ради которых синхронизатор
+  // инжектил сценарий — и получался цикл. Подписка на событие цепи ничего не
+  // требует от синхронизатора, обработчику нужен только `actionData`.
 
   /**
    * Обработка форков для коммитов
