@@ -68,7 +68,7 @@ function buildMocks(
   const assetConfig: MarketplaceAssetConfig = { symbol: 'RUB', decimals: 4 };
 
   const documentDomainService = {
-    generateDocument: jest.fn().mockImplementation(async ({ data }: any) => ({
+    generate: jest.fn().mockImplementation(async ({ data }: any) => ({
       full_title: 'АПП выдачи',
       html: '<html/>',
       hash: 'doc-hash',
@@ -233,7 +233,7 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       const mocks = buildMocks({ 'order-1': 5 });
       const service = buildService(mocks);
       await service.getOpenIssuanceSignablePayload('voskhod', 'order-1', 'chairman');
-      const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
+      const action = mocks.documentDomainService.generate.mock.calls[0][0].data;
       expect(action.fact_quantity).toBe(5);
       expect(action.total_amount).toBe('500.0000');
     });
@@ -258,7 +258,7 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       } as unknown as Awaited<ReturnType<MarketplaceOfferDomainRepository['findById']>>);
       const service = buildService(mocks);
       await service.getOpenIssuanceSignablePayload('voskhod', 'order-1', 'chairman');
-      const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
+      const action = mocks.documentDomainService.generate.mock.calls[0][0].data;
       expect(action.fact_quantity).toBe(5);
       expect(action.unit_cost).toBe('100.0000');
       expect(action.total_amount).toBe('500.0000');
