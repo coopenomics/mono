@@ -997,7 +997,9 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
 
       await expect(
         service.update('offer-1', 'alice', {
-          packages: [{ size, price: '100.00', package_type: 'пакет', is_default: true }],
+          packages: [
+            { size, price: '100.00', package_type: 'пластиковая бутылка', is_default: true },
+          ],
         })
       ).rejects.toThrow('Размер упаковки должен быть больше нуля');
       expect(repo.applyUpdate).not.toHaveBeenCalled();

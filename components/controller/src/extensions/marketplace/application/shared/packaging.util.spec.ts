@@ -105,7 +105,7 @@ describe('packaging.util — findOfferPackageOrFail', () => {
     size: 0.5,
     price: '500.0000',
     label: 'полкилошка',
-    package_type: 'пакет',
+    package_type: 'пластиковая бутылка',
     sort_order: 0,
     is_default: true,
   };
