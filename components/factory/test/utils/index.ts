@@ -3,13 +3,14 @@ import type { RegistratorContract, SovietContract } from 'cooptypes'
 import { Generator, Registry } from '../../src'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, IVars, PaymentData } from '../../src/Models'
 import { MongoDBConnector } from '../../src/Services/Databazor'
+import { TestChainDataSource } from './chain-data-source'
 // eslint-disable-next-line ts/no-require-imports
 const fs = require('node:fs').promises
 
 export const mongoUri = process.env.MONGO_URI || `mongodb://${process.env.MONGO_HOST || '127.0.0.1'}:27017/cooperative-x`
 export const coopname = 'voskhod'
 
-export const generator = new Generator()
+export const generator = new Generator(new TestChainDataSource())
 
 export async function deleteAllFiles(folderPath: string) {
   try {

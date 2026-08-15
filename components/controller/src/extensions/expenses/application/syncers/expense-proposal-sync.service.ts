@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
 import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
@@ -50,11 +50,6 @@ export class ExpenseProposalSyncService
     });
 
     this.logger.debug('ExpenseProposalSyncService готов принимать дельты parser2');
-  }
-
-  @OnEvent('fork::*')
-  async handleExpenseProposalFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 
   /**

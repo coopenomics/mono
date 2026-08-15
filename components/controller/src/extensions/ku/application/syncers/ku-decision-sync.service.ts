@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
 import { KuDecisionDomainEntity } from '../../domain/entities/ku-decision.entity';
@@ -32,10 +32,5 @@ export class KuDecisionSyncService extends AbstractEntitySyncService<KuDecisionD
     allPatterns.forEach((pattern) => {
       this.eventEmitter.on(pattern, this.processDelta.bind(this));
     });
-  }
-
-  @OnEvent('fork::*')
-  async handleEntityFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

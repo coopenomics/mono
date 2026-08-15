@@ -27,6 +27,15 @@ const OFF_CHAIN_BASE_ENTITIES = new Set([
   'issue',
   'story',
   'time-entry',
+  // Метрики и меры результата (кооператив ведёт их у себя): создаются с
+  // `block_num: 0`, действия контракта под них нет, delta-маппера и синкера
+  // тоже — из цепи они не приезжают, откатывать форком нечего. `block_num`
+  // унаследован от базы вместе с остальными служебными полями.
+  'component-metric',
+  'metric-contribution',
+  'issue-metric-binding',
+  'measure',
+  'timer-session',
 ]);
 
 function extractEntityClassName(filePath: string): string | null {

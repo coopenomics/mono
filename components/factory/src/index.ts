@@ -73,10 +73,36 @@ export class Generator implements IGenerator {
    * своей базы нет. Узел передаёт сюда собственную реализацию — с историей
    * версий шаблонов и историей действий, которых у цепи не спросить.
    */
-  private dataSource: IChainDataSource
+  private givenDataSource?: IChainDataSource
+  private chainDataSource?: IChainDataSource
 
   constructor(dataSource?: IChainDataSource) {
-    this.dataSource = dataSource ?? new ChainRpcDataSource(getEnvVar('CHAIN_URL'))
+    this.givenDataSource = dataSource
+  }
+
+  /**
+   * Адрес цепи спрашиваем только тогда, когда за данными действительно идут.
+   * Генератор создают и там, где до цепи дело не доходит: сборка шаблонов из
+   * локальных исходников, поиск по хранилищу, набор тестов документов. Пока
+   * источник не передали, фабрики получают вот этот переходник — он поднимет
+   * чтение из цепи при первом же запросе, а до тех пор переменная окружения не
+   * нужна.
+   */
+  private get dataSource(): IChainDataSource {
+    if (this.givenDataSource) return this.givenDataSource
+
+    return {
+      getTableRows: (query) => this.chainSource().getTableRows(query),
+      getActions: (query) => this.chainSource().getActions(query),
+      getCurrentBlock: () => this.chainSource().getCurrentBlock(),
+    }
+  }
+
+  private chainSource(): IChainDataSource {
+    if (!this.chainDataSource)
+      this.chainDataSource = new ChainRpcDataSource(getEnvVar('CHAIN_URL'))
+
+    return this.chainDataSource
   }
 
   // Определение фабрик
