@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 /**
- * Порт обязан пережить вынос расширения за границу процесса (ADR-18).
+ * Порт переживёт вынос расширения за границу процесса — но только тот порт,
+ * который эту границу пересечёт (ADR-18).
  *
- * Это значит, что вызов порта — сетевой вызов, о котором расширение просто
- * ещё не знает. Синхронная сигнатура делает переход невозможным: адаптер,
- * уходящий по сети, не может вернуть значение синхронно, и заменить его
- * «на месте» не выйдет — придётся переписывать каждого потребителя.
+ * Требовать асинхронности от всех портов подряд смысла нет: расширение,
+ * которое остаётся в монолите, зовёт ядро внутри процесса, и синхронный метод
+ * там будет работать всегда. Проверяются порты, заявленные расширениями из
+ * `PORTABLE` — теми, что планируются к выносу.
  *
- * Скрипт находит методы портов, не возвращающие `Promise`. Известные —
- * перечислены в `KNOWN_SYNC` с причиной; это долг, заведённый задачей FC1-22.
- * Новый синхронный метод в списке отсутствует, и гейт падает: решение о том,
- * что порт остаётся синхронным, принимается осознанно и записывается сюда,
- * а не проскакивает в ревью.
+ * Проверок две, и вторая важнее:
+ *
+ *  1. **Синхронная сигнатура.** Сетевой адаптер не вернёт значение синхронно.
+ *     Чинится сменой типа на `Promise<…>` — механическая работа, её можно
+ *     делать в момент выноса, ничего не теряя.
+ *
+ *  2. **Объект с методами в сигнатуре.** По сети его не передать: ядро не
+ *     может держать у себя обработчик, живущий в чужом процессе. Сменой
+ *     сигнатуры это не лечится — меняется сам приём, поэтому такие места
+ *     разбираются заранее (FC1-22), а не на переезде.
  *
  * Запуск: node scripts/check-ports-async.mjs
  */
@@ -24,100 +30,150 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SECTIONS = ['core-ports', 'cross-plugin-ports', 'hooks'];
 
 /**
- * Синхронные методы, известные на момент принятия ADR-18 (2026-08-15).
+ * Расширения, которые планируются к выносу из монолита.
  *
- * Ключ — `<Интерфейс>.<метод>`. Значение — причина, по которой метод синхронен
- * сегодня, и что с ним будет при выносе. Ни одна строка отсюда не является
- * разрешением: список разбирается в FC1-22, и пустой список — цель.
+ * Пока это Стол заказов — под него и заведён каталог приложений. Список
+ * ведётся руками: признака «выносимое» в реестре расширений нет, и появится он
+ * не раньше, чем каталог приложений определится с транспортом (487-17).
+ * Добавили расширение сюда — гейт сразу покажет, что у него не переживёт вынос.
  */
-const KNOWN_SYNC = {
-  // Саморегистрация расширения в реестрах ядра. После выноса это вызов через
-  // границу процесса — станет асинхронным. У грантов, провайдеров платежей и
-  // хуков оферт вдобавок передаётся объект с методами: по сети так не отдать,
-  // ядру придётся звать расширение обратно. Это уже не сигнатура, а приём.
-  'IOnboardingStepRegistryPort.registerStep': 'реестр шагов онбординга',
-  'IOnboardingStepRegistryPort.unregisterStepsByExtension': 'реестр шагов онбординга',
-  'IPaymentProviderRegistryPort.registerProvider': 'реестр провайдеров, передаётся объект с методами',
-  'IRegistrationRegistryPort.registerAgreement': 'реестр оферт вступления',
-  'IRegistrationRegistryPort.unregisterAgreement': 'реестр оферт вступления',
-  'IRegistrationRegistryPort.registerProgram': 'реестр программ вступления',
-  'IRegistrationRegistryPort.unregisterProgram': 'реестр программ вступления',
-  'IDesktopGrantsRegistryPort.register': 'реестр прав стола, передаётся объект с методами',
-  'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'реестр хуков оферт, передаётся объект с методами',
-  'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'реестр хуков оферт, передаётся объект с методами',
+const PORTABLE = ['marketplace'];
 
-  // Синхронные чтения. Два последних отдают объект с методами — та же беда.
-  'IAgreementCatalogPort.getAgreementById': 'чтение из локального справочника',
-  'IExtensionDatabasePort.getConnection': 'соединение с БД расширения',
-  'IPaymentProviderRegistryPort.getProvider': 'отдаёт объект с методами',
-  'IFileStoragePort.getBucket': 'отдаёт объект с методами',
-
-  // Логирование: после выноса у расширения свой логгер, по сети он не ходит.
-  // Единственная группа, у которой синхронность может остаться навсегда.
-  'ILoggerPort.setContext': 'логгер расширения локален и после выноса',
-  'ILoggerPort.log': 'логгер расширения локален и после выноса',
-  'ILoggerPort.info': 'логгер расширения локален и после выноса',
-  'ILoggerPort.warn': 'логгер расширения локален и после выноса',
-  'ILoggerPort.debug': 'логгер расширения локален и после выноса',
-  'ILoggerPort.error': 'логгер расширения локален и после выноса',
-
-  // Секреты и ключ кооператива. Отправлять их по сети — отдельное решение,
-  // которое ADR-18 не принимает; разбирается вместе с транспортом.
-  'ISecretCipherPort.encrypt': 'шифрование секрета расширения',
-  'ISecretCipherPort.decrypt': 'расшифровка секрета расширения',
-  'IChainPort.initialize': 'передача ключа подписи',
+/**
+ * Порты, которые пересекать границу не будут даже у выносимого расширения.
+ * Не «долг», а решение: у вынесенного приложения эта служба своя.
+ */
+const STAYS_LOCAL = {
+  LOGGER_PORT: 'у вынесенного расширения свой логгер, по сети он не ходит',
 };
 
-function collectSyncMethods() {
-  const found = [];
+/** Синхронные методы портов, которые границу пересекут. Долг FC1-22. */
+const KNOWN_SYNC = {
+  'IAgreementCatalogPort.getAgreementById': 'чтение справочника соглашений',
+  'IExtensionDatabasePort.getConnection': 'соединение с БД; после выноса БД у расширения своя, порт скорее исчезнет',
+  'IOnboardingStepRegistryPort.registerStep': 'реестр шагов онбординга, передаются данные',
+  'IOnboardingStepRegistryPort.unregisterStepsByExtension': 'реестр шагов онбординга',
+  'IRegistrationRegistryPort.registerAgreement': 'реестр оферт вступления, передаются данные',
+  'IRegistrationRegistryPort.unregisterAgreement': 'реестр оферт вступления',
+  'IRegistrationRegistryPort.registerProgram': 'реестр программ вступления, передаются данные',
+  'IRegistrationRegistryPort.unregisterProgram': 'реестр программ вступления',
+  'IChainPort.initialize': 'передача ключа подписи; по сети ключ не отдаём — приём меняется целиком',
+  'IDesktopGrantsRegistryPort.register': 'см. долг по объектам с методами',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'см. долг по объектам с методами',
+  'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'см. долг по объектам с методами',
+  'IFileStoragePort.getBucket': 'см. долг по объектам с методами',
+};
+
+/** Сигнатуры, передающие объект с методами. Настоящий предмет FC1-22. */
+const KNOWN_HANDLE_OBJECTS = {
+  'IDesktopGrantsRegistryPort.register': 'кладёт в реестр ядра объект прав расширения',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'кладёт в реестр ядра хук параметров оферт',
+  'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'кладёт в реестр ядра хук параметров оферт',
+  'IFileStoragePort.getBucket': 'отдаёт расширению объект бакета с методами',
+};
+
+function readSources() {
+  const files = [];
   for (const section of SECTIONS) {
     const dir = join(REPO_ROOT, 'components/innercoop/src', section);
     for (const file of readdirSync(dir)) {
       if (!file.endsWith('.ts') || file === 'index.ts') continue;
-      const src = readFileSync(join(dir, file), 'utf8');
-      const ifaceRe = /export interface (I\w+)\s*\{([\s\S]*?)\n\}/g;
-      let iface;
-      while ((iface = ifaceRe.exec(src))) {
-        const [, name, body] = iface;
-        const methodRe = /^ {2}(\w+)\s*\(([^)]*)\)\s*:\s*([^;]+);/gm;
-        let method;
-        while ((method = methodRe.exec(body))) {
-          const [, methodName, , returns] = method;
-          if (/Promise<|Observable</.test(returns)) continue;
-          found.push({
-            key: `${name}.${methodName}`,
-            file: `${section}/${file}`,
-            returns: returns.trim(),
-          });
-        }
+      files.push({ path: join(dir, file), rel: `${section}/${file}`, src: readFileSync(join(dir, file), 'utf8') });
+    }
+  }
+  return files;
+}
+
+/** Порты, заявленные выносимыми расширениями. */
+function portsOfPortableExtensions() {
+  const ports = new Set();
+  const extRoot = join(REPO_ROOT, 'components/controller/src/extensions');
+  for (const name of PORTABLE) {
+    const file = join(extRoot, name, `${name}.ports.ts`);
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/^ {4}([A-Z][A-Z0-9_]+),$/gm)) ports.add(m[1]);
+  }
+  return ports;
+}
+
+/** Интерфейсы пакета, у которых есть методы — такой тип по сети не передать. */
+function interfacesWithMethods(files) {
+  const withMethods = new Set();
+  for (const { src } of files) {
+    for (const m of src.matchAll(/export interface (\w+)\s*\{([\s\S]*?)\n\}/g)) {
+      const [, name, body] = m;
+      if (/^ {2}\w+\s*\([^)]*\)\s*:/m.test(body)) withMethods.add(name);
+    }
+  }
+  return withMethods;
+}
+
+const files = readSources();
+const portable = portsOfPortableExtensions();
+const handleTypes = interfacesWithMethods(files);
+
+const syncFound = [];
+const handleFound = [];
+
+for (const { rel, src } of files) {
+  // токены порта, объявленные в этом файле
+  const tokens = [...src.matchAll(/export const ([A-Z][A-Z0-9_]+) = Symbol\.for\(/g)].map((m) => m[1]);
+  const crossesBoundary = tokens.some((t) => portable.has(t) && !(t in STAYS_LOCAL));
+  if (!crossesBoundary) continue;
+
+  for (const iface of src.matchAll(/export interface (I\w+)\s*\{([\s\S]*?)\n\}/g)) {
+    const [, name, body] = iface;
+    for (const method of body.matchAll(/^ {2}(\w+)\s*\(([^)]*)\)\s*:\s*([^;]+);/gm)) {
+      const [, methodName, params, returns] = method;
+      const key = `${name}.${methodName}`;
+
+      if (!/Promise<|Observable</.test(returns)) syncFound.push({ key, rel, returns: returns.trim() });
+
+      const mentioned = [...`${params} ${returns}`.matchAll(/\b(I[A-Z]\w+|Inner[A-Z]\w+)\b/g)].map((m) => m[1]);
+      if (mentioned.some((t) => handleTypes.has(t))) {
+        handleFound.push({ key, rel, types: mentioned.filter((t) => handleTypes.has(t)).join(', ') });
       }
     }
   }
-  return found;
 }
 
-const found = collectSyncMethods();
-const foundKeys = new Set(found.map((m) => m.key));
+let failed = false;
 
-const unexpected = found.filter((m) => !(m.key in KNOWN_SYNC));
-const resolved = Object.keys(KNOWN_SYNC).filter((key) => !foundKeys.has(key));
+function report(found, known, title, hint) {
+  const foundKeys = new Set(found.map((f) => f.key));
+  const unexpected = found.filter((f) => !(f.key in known));
+  const resolved = Object.keys(known).filter((k) => !foundKeys.has(k));
 
-if (unexpected.length) {
-  console.error('  Синхронный метод порта — вынос расширения его не переживёт (ADR-18):');
-  for (const m of unexpected) {
-    console.error(`    ${m.key} -> ${m.returns}   (${m.file})`);
+  if (unexpected.length) {
+    failed = true;
+    console.error(`  ${title}`);
+    for (const f of unexpected) console.error(`    ${f.key}   (${f.rel})${f.returns ? ` -> ${f.returns}` : ''}${f.types ? ` — ${f.types}` : ''}`);
+    console.error(`\n  ${hint}\n`);
   }
-  console.error(
-    '\n  Верните `Promise<…>` либо, если метод обязан остаться синхронным,\n' +
-      '  впишите его в KNOWN_SYNC в scripts/check-ports-async.mjs с причиной.'
-  );
-  process.exit(1);
+  if (resolved.length) {
+    failed = true;
+    console.error(`  Разобрано — уберите из списка в scripts/check-ports-async.mjs:`);
+    for (const k of resolved) console.error(`    ${k}`);
+  }
 }
 
-if (resolved.length) {
-  console.error('  Эти методы стали асинхронными — уберите их из KNOWN_SYNC:');
-  for (const key of resolved) console.error(`    ${key}`);
-  process.exit(1);
-}
+report(
+  syncFound,
+  KNOWN_SYNC,
+  'Синхронный метод порта, который пересечёт границу процесса (ADR-18):',
+  'Верните `Promise<…>` либо впишите метод в KNOWN_SYNC с причиной.'
+);
 
-console.log(`  порты асинхронны, кроме ${found.length} известных (долг FC1-22)`);
+report(
+  handleFound,
+  KNOWN_HANDLE_OBJECTS,
+  'Порт передаёт объект с методами — по сети его не отдать (ADR-18):',
+  'Приём меняется целиком: ядро должно звать расширение, а не хранить его объект. Осознанное исключение — в KNOWN_HANDLE_OBJECTS.'
+);
+
+if (failed) process.exit(1);
+
+console.log(
+  `  порты выносимых расширений (${PORTABLE.join(', ')}): ` +
+    `${syncFound.length} синхронных, ${handleFound.length} с объектом-обработчиком — известные, долг FC1-22`
+);
