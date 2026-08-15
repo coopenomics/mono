@@ -106,9 +106,12 @@ export class MarketplaceOfferPackageDTO {
   public readonly label!: string | null;
 
   @Field(() => String, {
-    description: 'Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)».',
+    nullable: true,
+    description:
+      'Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». ' +
+      'Пусто у предложений, заведённых до появления поля — тара не названа.',
   })
-  public readonly package_type!: string;
+  public readonly package_type!: string | null;
 
   @Field(() => Int, { description: 'Порядок показа упаковки в карточке.' })
   public readonly sort_order!: number;
@@ -233,7 +236,11 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     price_per_unit: o.price_per_unit,
     unit_of_measure: o.unit_of_measure as MarketplaceUnitOfMeasureEnum,
     sale_form: o.sale_form as MarketplaceSaleFormEnum,
-    packages: (o.packages ?? []).map((p) => new MarketplaceOfferPackageDTO(p)),
+    // У предложений, заведённых до появления вида упаковки, ключа в jsonb нет —
+    // приводим к null явно, иначе поле уходит в ответ как undefined.
+    packages: (o.packages ?? []).map(
+      (p) => new MarketplaceOfferPackageDTO({ ...p, package_type: p.package_type ?? null })
+    ),
     quantity_available: o.quantity_available,
     quantity_blocked: o.quantity_blocked,
     quantity_consumed: o.quantity_consumed,
