@@ -107,6 +107,10 @@ gate_innercoop_api() {
   node "$REPO_ROOT/scripts/check-innercoop-api.mjs" --check
 }
 
+gate_ports_async() {
+  node "$REPO_ROOT/scripts/check-ports-async.mjs"
+}
+
 gate_changed() {
   bash "$REPO_ROOT/scripts/lint-changed.sh"
 }
@@ -130,6 +134,7 @@ case "$MODE" in
     run_gate "границы: desktop" gate_boundaries_desktop
     run_gate "каталог портов" gate_ports_catalog
     run_gate "публичный API контракта" gate_innercoop_api
+    run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
   ledger2)
@@ -148,6 +153,7 @@ case "$MODE" in
     run_gate "границы: desktop" gate_boundaries_desktop
     run_gate "каталог портов" gate_ports_catalog
     run_gate "публичный API контракта" gate_innercoop_api
+    run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
