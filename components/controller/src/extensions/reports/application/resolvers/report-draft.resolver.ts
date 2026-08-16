@@ -26,6 +26,7 @@ import { BuhotchEditsInputDTO } from '../dto/buhotch-edits.dto';
 import { FieldErrorDTO } from '../dto/field-error.dto';
 import { ZeroReportEditsInputDTO } from '../dto/zero-report-edits.dto';
 import { Ndfl6EditsInputDTO } from '../dto/ndfl6-edits.dto';
+import { UvNdflEditsInputDTO } from '../dto/uv-ndfl-edits.dto';
 
 @Resolver()
 export class ReportDraftResolver {
@@ -194,7 +195,10 @@ export class ReportDraftResolver {
     if (reportType === ReportType.NDFL6) {
       return plainToInstance(Ndfl6EditsInputDTO, parsed ?? {});
     }
-    // Остальные 5 форм — общий ZeroReportEditsInputDTO. Per-type отличия
+    if (reportType === ReportType.UV_NDFL) {
+      return plainToInstance(UvNdflEditsInputDTO, parsed ?? {});
+    }
+    // Остальные 4 формы — общий ZeroReportEditsInputDTO. Per-type отличия
     // (обязательность СНИЛС для ПСВ, sfrRegNumber для ЕФС-1) проверяет
     // сам генератор в runtime — DTO-валидация для них помечает
     // соответствующие поля как @IsOptional(), и если поле пустое,

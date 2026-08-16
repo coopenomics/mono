@@ -12,8 +12,9 @@ import { formatDate } from '../../infrastructure/generators/xml-utils';
 import type { BuhotchEditsShape } from '../edits-shapes/buhotch-edits.shape';
 import type { ZeroReportEditsShape } from '../edits-shapes/zero-report-edits.shape';
 import type { Ndfl6EditsShape } from '../edits-shapes/ndfl6-edits.shape';
+import type { UvNdflEditsShape } from '../edits-shapes/uv-ndfl-edits.shape';
 import { Ndfl6DataService } from './ndfl6-data.service';
-import { REPORT_CONFIG } from '../enums/report-type.enum';
+import { REPORT_CONFIG, splitUvNdflPeriod } from '../enums/report-type.enum';
 
 /**
  * Строит «дефолтное» редактируемое состояние формы отчёта из:
@@ -68,6 +69,9 @@ export class ReportEditsBuilderService {
     }
     if (reportType === ReportType.NDFL6) {
       return this.buildNdfl6(coopname, year, period ?? 1);
+    }
+    if (reportType === ReportType.UV_NDFL) {
+      return this.buildUvNdfl(coopname, year, period ?? 1);
     }
     // Остальные 5 форм — нулёвки через общий ZeroReportEditsShape.
     // Per-type отличается только генерируемый XML (хардкод КНД/ВерсФорм/
@@ -266,6 +270,27 @@ export class ReportEditsBuilderService {
       isAnnual ? this.ndfl6DataService.buildCertificates(coopname, year) : Promise.resolve([]),
     ]);
     return { ...base, tax, certificates };
+  }
+
+  /**
+   * Уведомление об исчисленных суммах НДФЛ. Сумма — налог, удержанный за один
+   * расчётный период месяца; она же попадёт одной из шести строк в раздел 1
+   * формы 6-НДФЛ за соответствующий квартал.
+   */
+  private async buildUvNdfl(
+    coopname: string,
+    year: number,
+    period: number,
+  ): Promise<UvNdflEditsShape> {
+    const base = await this.buildZeroReport(ReportType.UV_NDFL, coopname, year, period);
+    const { month, secondHalf } = splitUvNdflPeriod(period);
+    const amount = await this.ndfl6DataService.buildNotificationAmount(
+      coopname,
+      year,
+      month,
+      secondHalf,
+    );
+    return { ...base, payment: { amount } };
   }
 
   private defaultPeriodFor(reportType: ReportType, requested: number | null): number | null {

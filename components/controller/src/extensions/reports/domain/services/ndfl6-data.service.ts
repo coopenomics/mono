@@ -6,6 +6,7 @@ import {
   type IndividualRepository,
 } from '~/domain/common/repositories/individual.repository';
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
+import { uvNdflPeriodOf } from '../enums/report-type.enum';
 import {
   NDFL6_INCOME_CODE,
   type Ndfl6CertificateShape,
@@ -88,6 +89,48 @@ export class Ndfl6DataService {
   async buildTaxSection(coopname: string, year: number, quarter: number): Promise<Ndfl6TaxShape> {
     const payouts = await this.collectPayouts(coopname, year, quarter);
     return this.aggregate(payouts, quarter);
+  }
+
+  /**
+   * Налог, удержанный за один расчётный период месяца, — сумма для
+   * уведомления об исчисленных суммах.
+   *
+   * Уведомление по НДФЛ подаётся дважды в месяц, и границей служит 22-е число:
+   * удержанное с 1 по 22 перечисляется до 28 числа того же месяца, удержанное
+   * с 23 по последнее — до 5 числа следующего. Ровно та же граница делит
+   * шесть сроков в разделе 1 формы 6-НДФЛ, поэтому суммы двух документов
+   * сходятся по построению.
+   *
+   * @param secondHalf false — период с 1 по 22 число, true — с 23 по последнее.
+   */
+  async buildNotificationAmount(
+    coopname: string,
+    year: number,
+    month: number,
+    secondHalf: boolean,
+  ): Promise<number> {
+    const amounts = await this.buildNotificationAmounts(coopname, year);
+    return amounts.get(uvNdflPeriodOf(month, secondHalf)) ?? 0;
+  }
+
+  /**
+   * Удержанный налог по всем расчётным периодам года: ключ — сквозной номер
+   * периода 1..24, значение — сумма в рублях. Периодов без удержаний в карте
+   * нет: за них уведомление не подаётся.
+   *
+   * Календарю отчётности нужны сразу все периоды, поэтому считаем их одним
+   * проходом — двадцать четыре отдельных запроса к истории ledger2 ради
+   * одной строки каждый были бы расточительством.
+   */
+  async buildNotificationAmounts(coopname: string, year: number): Promise<Map<number, number>> {
+    const payouts = await this.collectPayouts(coopname, year, 4);
+    const byPeriod = new Map<number, number>();
+    for (const p of payouts) {
+      if (p.taxRub === 0) continue;
+      const period = uvNdflPeriodOf(p.month, p.day > 22);
+      byPeriod.set(period, (byPeriod.get(period) ?? 0) + p.taxRub);
+    }
+    return byPeriod;
   }
 
   /**

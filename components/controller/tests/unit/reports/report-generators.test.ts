@@ -10,6 +10,7 @@ import { DusnGenerator } from '../../../src/extensions/reports/infrastructure/ge
 import { Fss4Generator } from '../../../src/extensions/reports/infrastructure/generators/fss4.generator';
 import { UvVznosyGenerator } from '../../../src/extensions/reports/infrastructure/generators/uv-vznosy.generator';
 import { UusnGenerator } from '../../../src/extensions/reports/infrastructure/generators/uusn.generator';
+import { UvNdflGenerator } from '../../../src/extensions/reports/infrastructure/generators/uv-ndfl.generator';
 import { ReportType, REPORT_CONFIG } from '../../../src/extensions/reports/domain/enums/report-type.enum';
 import type { BuhotchEditsShape } from '../../../src/extensions/reports/domain/edits-shapes/buhotch-edits.shape';
 import type { ZeroReportEditsShape } from '../../../src/extensions/reports/domain/edits-shapes/zero-report-edits.shape';
@@ -915,6 +916,70 @@ describe('Уведомление по УСН (UusnGenerator)', () => {
   );
 });
 
+describe('Уведомление по НДФЛ (UvNdflGenerator)', () => {
+  const gen = new UvNdflGenerator();
+
+  /** Уведомление за расчётный период `period` с суммой удержанного налога. */
+  function uvNdflEdits(period: number, amount = 1300) {
+    return { ...withPeriod(period), payment: { amount } } as never;
+  }
+
+  it('reportType = UV_NDFL', () => {
+    expect(gen.reportType).toBe(ReportType.UV_NDFL);
+  });
+
+  it('та же форма, что у уведомлений по УСН и взносам (КНД 1110355)', () => {
+    const result = gen.generate(uvNdflEdits(1));
+    expect(result.isValid).toBe(true);
+    assertFnsWellFormed(result.xml);
+    expect(result.xml).toContain('КНД="1110355"');
+    expect(result.xml).toContain('ВерсФорм="5.03"');
+  });
+
+  it('КБК НДФЛ и удержанная сумма', () => {
+    const xml = gen.generate(uvNdflEdits(1, 3250)).xml;
+    expect(xml).toContain('КБК="18210102010011000110"');
+    expect(xml).toContain('СумНалогАванс="3250"');
+    expect(xml).toContain('ОКТМО="45000000"');
+  });
+
+  it.each([
+    [1, '21', '01'],
+    [2, '21', '11'],
+    [3, '21', '02'],
+    [4, '21', '12'],
+    [6, '21', '13'],
+    [7, '31', '01'],
+    [23, '34', '03'],
+    [24, '34', '13'],
+  ])('период %d — квартал %s, номер %s', (period, quarter, code) => {
+    // Первый расчётный период месяца (1–22 число) кодируется 01/02/03,
+    // второй (23 — последнее число) — 11/12/13. Вторая нумерация есть только
+    // у НДФЛ: у него два срока уплаты внутри месяца.
+    const xml = gen.generate(uvNdflEdits(period as number)).xml;
+    expect(xml).toContain(`Период="${quarter}"`);
+    expect(xml).toContain(`НомерМесКварт="${code}"`);
+  });
+
+  it.each([1, 2, 12, 13, 24])('проходит XSD-валидацию для периода %d', (period) => {
+    const result = gen.generate(uvNdflEdits(period));
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.UV_NDFL].xsdFile);
+    if (!v.isValid) console.error(`UV_NDFL период ${period} XSD errors:`, v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
+  });
+
+  it.each([0, 25, 1.5])('период %s вне 1..24 — генерация не проходит', (period) => {
+    const result = gen.generate(uvNdflEdits(period as number));
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('период');
+  });
+
+  it('эхом возвращает header.idFile в result.fileName', () => {
+    const result = gen.generate(uvNdflEdits(1));
+    expect(result.fileName).toBe('TEST_REPORT_ID');
+  });
+});
+
 describe('Сверка с эталонами (ПК "Ромашка", санитизированные фикстуры)', () => {
   async function readReference(fileName: string): Promise<string> {
     return (await readFile(join(REFERENCES_DIR, fileName))).toString('utf-8');
@@ -1016,10 +1081,11 @@ describe('ReportRegistryService', () => {
     registry.register(new Fss4Generator());
     registry.register(new UvVznosyGenerator());
     registry.register(new UusnGenerator());
+    registry.register(new UvNdflGenerator());
   });
 
-  it('регистрирует все 8 генераторов (через getAvailableReports)', () => {
-    expect(registry.getAvailableReports()).toHaveLength(8);
+  it('регистрирует все 9 генераторов (через getAvailableReports)', () => {
+    expect(registry.getAvailableReports()).toHaveLength(9);
   });
 
   it('бросает исключение для незарегистрированного типа', () => {

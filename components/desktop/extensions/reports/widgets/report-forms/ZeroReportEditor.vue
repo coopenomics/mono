@@ -15,10 +15,10 @@
       )
       q-input(
         v-if='periodKind !== "none"'
-        :label='periodKind === "quarter" ? "Квартал (1-4)" : "Месяц (1-12)"'
+        :label='periodLabel'
         type='number'
         :model-value='editsValue.header.period'
-        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodKind === "quarter" ? 4 : 12))'
+        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodMax))'
         :error='errFor("header.period")'
         :error-message='msgFor("header.period")'
         dense filled
@@ -223,8 +223,10 @@ const headerTitle = computed(() => {
   return titles[props.reportType] ?? props.reportType
 })
 
-// Тип периода: квартал (1..4), месяц (1..12) или нет.
-const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
+// Тип периода: квартал (1..4), месяц (1..12), расчётный период НДФЛ (1..24)
+// или нет. У уведомления по НДФЛ на месяц приходится два периода — с 1 по 22
+// число и с 23 по последнее, — поэтому нумерация сквозная по году.
+const periodKind = computed<'quarter' | 'month' | 'semi-month' | 'none'>(() => {
   switch (props.reportType) {
     case 'NDFL6':
     case 'RSV':
@@ -234,14 +236,28 @@ const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
     case 'PSV':
     case 'UV_VZNOSY':
       return 'month'
+    case 'UV_NDFL':
+      return 'semi-month'
     default:
       return 'none'
   }
 })
 
+const periodLabel = computed(() => {
+  if (periodKind.value === 'quarter') return 'Квартал (1-4)'
+  if (periodKind.value === 'semi-month') return 'Расчётный период (1-24)'
+  return 'Месяц (1-12)'
+})
+
+const periodMax = computed(() => {
+  if (periodKind.value === 'quarter') return 4
+  if (periodKind.value === 'semi-month') return 24
+  return 12
+})
+
 // Флаги опциональных полей per-форме.
 const needs = computed(() => ({
-  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY'].includes(props.reportType),
+  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY', 'UV_NDFL'].includes(props.reportType),
   snils: props.reportType === 'PSV',
   sfrExtras: props.reportType === 'FSS4',
 }))

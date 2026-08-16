@@ -2895,7 +2895,7 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -17129,7 +17129,7 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -45530,7 +45530,7 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]: CalendarEntryStatus;
 	["CallTranscription"]: {
 	__typename: "CallTranscription",
@@ -59150,12 +59150,13 @@ export enum BuhotchSignerType {
 	CHAIRMAN = "CHAIRMAN",
 	REPRESENTATIVE = "REPRESENTATIVE"
 }
-/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 export enum CalendarEntryStatus {
 	BEFORE_REGISTRATION = "BEFORE_REGISTRATION",
 	DRAFT = "DRAFT",
 	EMPTY = "EMPTY",
 	NOT_REQUIRED = "NOT_REQUIRED",
+	NO_DATA = "NO_DATA",
 	OVERDUE = "OVERDUE",
 	SUBMITTED = "SUBMITTED",
 	SUBMITTED_EXTERNALLY = "SUBMITTED_EXTERNALLY"
@@ -59773,6 +59774,7 @@ export enum ReportType {
 	PSV = "PSV",
 	RSV = "RSV",
 	UUSN = "UUSN",
+	UV_NDFL = "UV_NDFL",
 	UV_VZNOSY = "UV_VZNOSY"
 }
 /** Тип изображения заявки */

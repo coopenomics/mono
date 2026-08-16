@@ -108,6 +108,7 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
   ],
   [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
   [ReportType.UUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.UV_NDFL]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
 };
 
 @Injectable()

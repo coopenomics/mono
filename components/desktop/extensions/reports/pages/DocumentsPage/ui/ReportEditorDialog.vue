@@ -91,6 +91,14 @@ q-dialog(
             @dirty='onDirty'
           )
 
+          //- Уведомление по НДФЛ — та же шапка плюс одна сумма к перечислению.
+          UvNdflAmountSection(
+            v-if='reportType === "UV_NDFL" && uvNdflEdits?.payment'
+            v-model:edits='uvNdflEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
+
         .stub-other(v-else-if='!isLoading && !reportType')
           q-icon(name='fa-solid fa-triangle-exclamation' size='48px' color='warning')
           .text-subtitle1.q-mt-md Тип отчёта не задан
@@ -315,6 +323,8 @@ import BuhotchEditor from 'extensions/reports/widgets/report-forms/BuhotchEditor
 import ZeroReportEditor from 'extensions/reports/widgets/report-forms/ZeroReportEditor.vue'
 import Ndfl6TaxSection from 'extensions/reports/widgets/report-forms/Ndfl6TaxSection.vue'
 import type { Ndfl6Edits } from 'extensions/reports/widgets/report-forms/ndfl6-edits'
+import UvNdflAmountSection from 'extensions/reports/widgets/report-forms/UvNdflAmountSection.vue'
+import type { UvNdflEdits } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
 import BuhotchForm from 'extensions/reports/widgets/report-forms/BuhotchForm.vue'
 import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
 import RsvForm from 'extensions/reports/widgets/report-forms/RsvForm.vue'
@@ -517,6 +527,11 @@ const zeroEdits = computed<ZeroReportEdits | null>({
 // двумя компонентами поверх одного состояния.
 const ndfl6Edits = computed<Ndfl6Edits | null>({
   get: () => edits.value as unknown as Ndfl6Edits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
+const uvNdflEdits = computed<UvNdflEdits | null>({
+  get: () => edits.value as unknown as UvNdflEdits | null,
   set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
 })
 

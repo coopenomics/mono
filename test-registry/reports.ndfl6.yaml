@@ -1,5 +1,5 @@
 feature: reports.ndfl6
-title: 6-НДФЛ — расчёт удержанного налога и справки о доходах
+title: 6-НДФЛ и уведомление об исчисленных суммах — расчёт удержанного налога
 
 # Кооператив удерживает НДФЛ из материальной помощи доверенным лицам участков,
 # поэтому 6-НДФЛ перестал быть нулёвкой. Данные целиком берутся из ledger2:
@@ -24,10 +24,14 @@ sources:
   backend:
     - components/controller/src/extensions/reports/domain/services/ndfl6-data.service.ts
     - components/controller/src/extensions/reports/domain/edits-shapes/ndfl6-edits.shape.ts
+    - components/controller/src/extensions/reports/domain/edits-shapes/uv-ndfl-edits.shape.ts
     - components/controller/src/extensions/reports/infrastructure/generators/ndfl6.generator.ts
+    - components/controller/src/extensions/reports/infrastructure/generators/uv-ndfl.generator.ts
     - components/controller/src/extensions/reports/application/dto/ndfl6-edits.dto.ts
+    - components/controller/src/extensions/reports/application/dto/uv-ndfl-edits.dto.ts
   ui:
     - components/desktop/extensions/reports/widgets/report-forms/Ndfl6*
+    - components/desktop/extensions/reports/widgets/report-forms/UvNdfl*
 
 cases:
   - id: rep.ndfl6.happy.01
@@ -180,3 +184,74 @@ cases:
     status: missing
     # Сценарий требует выплаченной матпомощи в прогоне — ставится после
     # сценария заявления доверенного и подтверждения кассиром.
+
+  # --- Уведомление об исчисленных суммах НДФЛ (КНД 1110355) ---
+  # Отдельный документ, а не часть 6-НДФЛ: расчёт сдаётся раз в квартал, а
+  # уведомление говорит налоговой, сколько списать с единого счёта до сдачи
+  # расчёта. Форма общая с уведомлениями по УСН и взносам, различаются КБК и
+  # коды периода. Подаётся только за периоды, где реально было удержание.
+
+  - id: rep.ndfl6.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Уведомление за расчётный период содержит удержанный за него налог
+    expect: >
+      КБК НДФЛ, сумма равна удержанному за период; форма та же, что у
+      уведомлений по УСН и взносам
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.happy.05
+    level: backend
+    kind: happy
+    scenario: Удержания раскладываются по расчётным периодам месяца
+    expect: >
+      удержанное с 1 по 22 число попадает в первый период месяца, с 23 по
+      последнее — во второй; суммы внутри периода складываются
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Период относится ко второй половине месяца — кодирование отличается от
+      прочих налогов
+    expect: >
+      первый расчётный период месяца кодируется 01/02/03, второй — 11/12/13;
+      квартал определяется месяцем
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+    # Коды 11/12/13 есть только у НДФЛ: у него два срока уплаты внутри месяца.
+
+  - id: rep.ndfl6.side.10
+    level: backend
+    kind: side
+    scenario: В расчётном периоде не было выплат материальной помощи
+    expect: >
+      период не попадает в список к подаче — уведомление с нулевой суммой не
+      подаётся
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.break.04
+    level: backend
+    kind: break
+    scenario: Номер расчётного периода вне диапазона 1..24 или дробный
+    expect: генерация не проходит с понятной ошибкой, а не отдаёт битый XML
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      В календаре отчётности периоды уведомления без выплат погашены, а период
+      с выплатой требует сдачи
+    expect: >
+      период без удержаний показан как «нечего подавать» и не краснеет по
+      сроку; после выплаты задним числом тот же период становится активным
+    test: ~
+    status: missing
+    # Требует прогона цепочки до выплаченной матпомощи, как и rep.ndfl6.ui.01.

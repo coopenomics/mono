@@ -6,7 +6,7 @@
       q-btn-group(flat dense)
         q-btn(
           flat dense
-          icon='fa-solid fa-angle-left'
+          icon='chevron_left'
           @click='changeYear(-1)'
           aria-label='Предыдущий год'
         )
@@ -19,12 +19,12 @@
           q-tooltip Текущий год
         q-btn(
           flat dense
-          icon='fa-solid fa-angle-right'
+          icon='chevron_right'
           @click='changeYear(1)'
           aria-label='Следующий год'
         )
           q-tooltip Следующий год
-      q-btn(flat dense icon='fa-solid fa-rotate' @click='reload' :loading='loading')
+      q-btn(flat dense icon='refresh' @click='reload' :loading='loading')
         q-tooltip Обновить
 
   q-inner-loading(:showing='loading')
@@ -40,16 +40,22 @@
           .rt-short {{ row.shortName }}
           .rt-kind {{ kindLabel(row.periodKind) }}
 
+        //- В одном месяце может приходиться несколько сроков: уведомление по
+        //- НДФЛ подаётся дважды в месяц, поэтому в феврале-декабре у него по
+        //- две ячейки, а в декабре три. Для остальных форм в стеке одна.
         template(v-for='month in 12' :key='month')
-          CalendarCell(
-            :row='row'
-            :month='month'
-            :entry='periodAtMonth(row, month)'
-            @click='onCellClick(row, month)'
-          )
+          .cell-stack
+            CalendarCell(
+              v-for='(entry, index) in cellsAtMonth(row, month)'
+              :key='index'
+              :row='row'
+              :month='month'
+              :entry='entry'
+              @click='onEntryClick(row, entry)'
+            )
 
   .empty-state(v-else-if='!loading')
-    q-icon(name='fa-solid fa-calendar-xmark' size='32px' color='grey-5')
+    q-icon(name='event_busy' size='32px' color='grey-5')
     .text-caption.q-mt-sm Нет данных по формам
 </template>
 
@@ -101,16 +107,33 @@ function resetYear(): void {
 watch(year, () => void reload())
 onMounted(() => void reload())
 
-function periodAtMonth(row: IReportCalendarRow, month: number): IReportCalendarPeriodEntry | undefined {
-  return row.periods.find((p) => p.dueMonth === month)
+/**
+ * Сроки, приходящиеся на месяц. Пустой месяц отдаёт одну ячейку-заглушку,
+ * иначе колонка схлопнется и строки разъедутся по высоте.
+ */
+function cellsAtMonth(
+  row: IReportCalendarRow,
+  month: number,
+): (IReportCalendarPeriodEntry | undefined)[] {
+  const found = row.periods.filter((p) => p.dueMonth === month)
+  return found.length ? found : [undefined]
 }
 
 function kindLabel(kind: string): string {
-  return ({ yearly: 'годовая', quarterly: 'квартальная', monthly: 'ежемесячная' }[kind] ?? kind)
+  return (
+    {
+      yearly: 'годовая',
+      quarterly: 'квартальная',
+      monthly: 'ежемесячная',
+      'semi-monthly': 'дважды в месяц',
+    }[kind] ?? kind
+  )
 }
 
-function onCellClick(row: IReportCalendarRow, month: number): void {
-  const entry = periodAtMonth(row, month)
+function onEntryClick(
+  row: IReportCalendarRow,
+  entry: IReportCalendarPeriodEntry | undefined,
+): void {
   if (!entry) return
   // year виджета — это календарный год СДАЧИ. entry.reportYear — год,
   // ЗА который отчитываемся (для Q4/годовых он = year-1).
@@ -158,6 +181,19 @@ defineExpose({ reload })
   padding: 1px;
   min-width: 900px;
   overflow: hidden;
+}
+
+// Колонка месяца: несколько сроков ставятся друг под друга, разделяясь
+// той же линией, что и вся сетка. При одном сроке выглядит как обычная ячейка.
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--p-line);
+
+  > * {
+    flex: 1;
+  }
 }
 
 .ch-corner {

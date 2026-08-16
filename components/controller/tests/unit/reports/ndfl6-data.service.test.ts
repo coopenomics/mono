@@ -328,6 +328,101 @@ describe('Ndfl6DataService — шесть сроков перечисления'
   });
 });
 
+describe('Ndfl6DataService — периоды уведомления об исчисленных суммах', () => {
+  it('удержания раскладываются по расчётным периодам месяца', async () => {
+    const service = makeService([
+      ...payout({
+        username: 'ivanovivan11',
+        net: '8700.0000 RUB',
+        tax: '1300.0000 RUB',
+        moscow: { year: 2026, month: 3, day: 15 },
+        hash: 'aid-first-half',
+      }),
+      ...payout({
+        username: 'petrovpetr11',
+        net: '8700.0000 RUB',
+        tax: '1950.0000 RUB',
+        moscow: { year: 2026, month: 3, day: 25 },
+        hash: 'aid-second-half',
+      }),
+    ]);
+
+    const amounts = await service.buildNotificationAmounts(COOPNAME, 2026);
+
+    // Март — третий месяц: периоды 5 (1–22) и 6 (23–конец).
+    expect(amounts.get(5)).toBe(1300);
+    expect(amounts.get(6)).toBe(1950);
+  });
+
+  it('периоды без удержаний в карту не попадают — подавать за них нечего', async () => {
+    const service = makeService(
+      payout({
+        username: 'ivanovivan11',
+        net: '8700.0000 RUB',
+        tax: '1300.0000 RUB',
+        moscow: { year: 2026, month: 3, day: 15 },
+        hash: 'aid-1',
+      }),
+    );
+
+    const amounts = await service.buildNotificationAmounts(COOPNAME, 2026);
+
+    expect(amounts.size).toBe(1);
+    expect(amounts.has(1)).toBe(false);
+    expect(amounts.has(6)).toBe(false);
+  });
+
+  it('выплата без удержания не создаёт периода', async () => {
+    const service = makeService(
+      payout({
+        username: 'ivanovivan11',
+        net: '3.0000 RUB',
+        moscow: { year: 2026, month: 3, day: 15 },
+        hash: 'aid-small',
+      }),
+    );
+
+    expect((await service.buildNotificationAmounts(COOPNAME, 2026)).size).toBe(0);
+  });
+
+  it('несколько выплат в одном периоде складываются', async () => {
+    const service = makeService([
+      ...payout({
+        username: 'ivanovivan11',
+        net: '8700.0000 RUB',
+        tax: '1300.0000 RUB',
+        moscow: { year: 2026, month: 7, day: 5 },
+        hash: 'aid-a',
+      }),
+      ...payout({
+        username: 'petrovpetr11',
+        net: '8700.0000 RUB',
+        tax: '1950.0000 RUB',
+        moscow: { year: 2026, month: 7, day: 20 },
+        hash: 'aid-b',
+      }),
+    ]);
+
+    // Июль — седьмой месяц: первый расчётный период имеет номер 13.
+    expect((await service.buildNotificationAmounts(COOPNAME, 2026)).get(13)).toBe(3250);
+  });
+
+  it('сумма за конкретный период совпадает с картой', async () => {
+    const service = makeService(
+      payout({
+        username: 'ivanovivan11',
+        net: '8700.0000 RUB',
+        tax: '1300.0000 RUB',
+        moscow: { year: 2026, month: 12, day: 28 },
+        hash: 'aid-dec',
+      }),
+    );
+
+    expect(await service.buildNotificationAmount(COOPNAME, 2026, 12, true)).toBe(1300);
+    expect(await service.buildNotificationAmount(COOPNAME, 2026, 12, false)).toBe(0);
+  });
+});
+
 describe('Ndfl6DataService — справки о доходах', () => {
   it('справка собирает годовой доход и помесячную разбивку', async () => {
     const service = makeService(

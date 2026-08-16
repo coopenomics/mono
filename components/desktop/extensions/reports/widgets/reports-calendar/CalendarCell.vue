@@ -46,6 +46,7 @@ const STATUS_RU: Record<string, string> = {
   [Zeus.CalendarEntryStatus.NOT_REQUIRED]: 'Не надо сдавать',
   [Zeus.CalendarEntryStatus.EMPTY]: 'Не сдан',
   [Zeus.CalendarEntryStatus.BEFORE_REGISTRATION]: 'Не требуется (до регистрации)',
+  [Zeus.CalendarEntryStatus.NO_DATA]: 'Нечего подавать — выплат не было',
 }
 
 const tooltip = computed(() => {
@@ -63,11 +64,12 @@ function isSubmittedLike(status: string): boolean {
 
 function statusIcon(status: string): string {
   switch (status) {
-    case Zeus.CalendarEntryStatus.DRAFT: return 'fa-solid fa-pen'
-    case Zeus.CalendarEntryStatus.OVERDUE: return 'fa-solid fa-triangle-exclamation'
-    case Zeus.CalendarEntryStatus.NOT_REQUIRED: return 'fa-solid fa-circle-xmark'
-    case Zeus.CalendarEntryStatus.BEFORE_REGISTRATION: return 'fa-solid fa-minus'
-    default: return 'fa-regular fa-circle'
+    case Zeus.CalendarEntryStatus.DRAFT: return 'edit'
+    case Zeus.CalendarEntryStatus.OVERDUE: return 'warning'
+    case Zeus.CalendarEntryStatus.NOT_REQUIRED: return 'cancel'
+    case Zeus.CalendarEntryStatus.BEFORE_REGISTRATION: return 'remove'
+    case Zeus.CalendarEntryStatus.NO_DATA: return 'do_not_disturb_alt'
+    default: return 'radio_button_unchecked'
   }
 }
 
@@ -162,6 +164,14 @@ function onClick() {
     color: var(--p-ink-2);
     background: var(--p-surface-2);
     opacity: 0.85;
+  }
+
+  // No data: за период не было выплат, подавать нечего. Гаснет и загорается
+  // само по данным, поэтому выглядит спокойнее ручной отметки «не надо сдавать».
+  &.status-NO_DATA .cell-inner {
+    color: var(--p-ink-3);
+    background: var(--p-surface-2);
+    opacity: 0.7;
   }
 
   // Empty (период будущий/активный, отчёт ещё не нужен) — нейтрально.
