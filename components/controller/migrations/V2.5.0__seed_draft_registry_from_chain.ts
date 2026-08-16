@@ -64,6 +64,8 @@ export default {
 
   async up({ dataSource, logger }: { dataSource: DataSource; logger: MigrationLogger }): Promise<boolean> {
     try {
+      await ensureRegistryTables(dataSource);
+
       const existing = await dataSource.query('SELECT count(*)::int AS c FROM draft_templates');
       if (Number(existing?.[0]?.c ?? 0) > 0) {
         logger.info('Реестр шаблонов уже наполнен — миграция пропущена');
@@ -83,6 +85,56 @@ export default {
     }
   },
 };
+
+/**
+ * Создаёт таблицы реестра, если их ещё нет.
+ *
+ * Обычно схему заводит TypeORM при старте приложения, но миграции запускаются
+ * сразу после подъёма контейнера — и на узле, где эти таблицы появляются
+ * впервые, приложение может не успеть их создать. Тогда миграция падала на
+ * `relation "draft_templates" does not exist`, а вместе с ней останавливался
+ * весь деплой (так лёг прод-прогон 2026-08-16 на pgrzosdeyuwg). Полагаться на
+ * порядок здесь нельзя: миграция обязана уметь работать на пустой базе.
+ *
+ * Имена ограничений и индексов взяты те же, что генерирует TypeORM, — иначе
+ * при следующем старте он посчитал бы их недостающими и создал бы вторые.
+ */
+async function ensureRegistryTables(dataSource: DataSource): Promise<void> {
+  // uuid_generate_v4() приходит из расширения uuid-ossp: TypeORM подключает его
+  // сам при создании схемы, но здесь схему создаём мы.
+  await dataSource.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS draft_templates (
+      id uuid NOT NULL DEFAULT uuid_generate_v4(),
+      registry_id bigint NOT NULL,
+      block_num bigint NOT NULL,
+      value jsonb NOT NULL,
+      present boolean NOT NULL DEFAULT true,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT "PK_702989e2137730dad7bce950de8" PRIMARY KEY (id),
+      CONSTRAINT "UQ_f0293727847fc362617ccd48920" UNIQUE (registry_id, block_num)
+    )`);
+  await dataSource.query(
+    'CREATE INDEX IF NOT EXISTS "IDX_f0293727847fc362617ccd4892" ON draft_templates (registry_id, block_num)'
+  );
+
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS draft_translations (
+      id uuid NOT NULL DEFAULT uuid_generate_v4(),
+      draft_id bigint NOT NULL,
+      lang varchar(16) NOT NULL,
+      block_num bigint NOT NULL,
+      value jsonb NOT NULL,
+      present boolean NOT NULL DEFAULT true,
+      created_at timestamp NOT NULL DEFAULT now(),
+      CONSTRAINT "PK_7d5d15c0f49d269b63a9a275cfe" PRIMARY KEY (id),
+      CONSTRAINT "UQ_b2c91a60be5f9567b9559fcda99" UNIQUE (draft_id, lang, block_num)
+    )`);
+  await dataSource.query(
+    'CREATE INDEX IF NOT EXISTS "IDX_b2c91a60be5f9567b9559fcda9" ON draft_translations (draft_id, lang, block_num)'
+  );
+}
 
 /**
  * Переносит историю реестра из mongo прежнего парсера — с её номерами блоков.
