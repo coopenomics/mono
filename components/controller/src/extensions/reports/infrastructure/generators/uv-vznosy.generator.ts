@@ -10,7 +10,11 @@ import { createXmlDoc, formatDate, getTaxOfficeCode } from './xml-utils';
  * УВ_Взносы — Уведомление об исчисленных страховых взносах (нулевое).
  * XSD: UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd (общий с UUSN), КНД: 1110355.
  * Ежемесячная форма. period = 1..12 → month.
- * НомерМесКварт ∈ {11,12,13} — порядковый месяц квартала (11 = 1-й, 13 = 3-й).
+ *
+ * НомерМесКварт ∈ {01,02,03} — порядковый месяц квартала. Коды 11/12/13 к
+ * взносам не относятся: ими помечают второй расчётный период месяца, а он
+ * бывает только у НДФЛ, который платят дважды в месяц. Взносы платятся раз в
+ * месяц, поэтому за январь код всегда «21/01».
  */
 export class UvVznosyGenerator implements IReportGenerator {
   readonly reportType = ReportType.UV_VZNOSY;
@@ -79,7 +83,7 @@ export class UvVznosyGenerator implements IReportGenerator {
       .att('КБК', '18210202000011000160')
       .att('СумНалогАванс', '0')
       .att('Период', periodCode)
-      .att('НомерМесКварт', String(10 + monthInQuarter))
+      .att('НомерМесКварт', String(monthInQuarter).padStart(2, '0'))
       .att('Год', String(header.reportYear))
     .up();
 
