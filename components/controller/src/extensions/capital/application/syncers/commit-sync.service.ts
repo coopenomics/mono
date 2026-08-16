@@ -1,9 +1,6 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort,
-  type InnerTransactResult,
-  type InnerChainActionRecord,
-} from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, type InnerTransactResult } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';

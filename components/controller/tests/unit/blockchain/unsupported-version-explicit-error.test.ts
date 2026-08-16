@@ -4,20 +4,14 @@
  * - `auditUnknownStatus` — пишет error в logger с ожидаемыми статусами.
  * - `AbstractEntitySyncService.processDelta` — strict-mode → throw, default → log.error + null.
  *
- * Конфиг strict-mode мокается через `jest.mock('~/config/config', ...)`.
+ * Строгий режим задаётся настройкой каркаса: конфиг контроллера каркасу
+ * недоступен (он собирается отдельным пакетом), и режим ему передаёт
+ * composition root — `platform-bootstrap` берёт значение из
+ * `config.blockchain.unsupported_version_strict`. Тест выставляет ту же
+ * настройку напрямую.
  */
 
-let strictMode = false;
-
-jest.mock('~/config/config', () => ({
-  __esModule: true,
-  default: {
-    get blockchain() {
-      return { unsupported_version_strict: strictMode };
-    },
-  },
-}));
-
+import { configureSyncPolicy } from '@coopenomics/extension-kit/sync';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { UnsupportedContractVersionError } from '@coopenomics/extension-kit/sync';
 import { auditUnknownStatus } from '@coopenomics/extension-kit/sync';
@@ -94,7 +88,7 @@ describe('Story 6.5: processDelta — silent loss заменён audit + опц�
   } as any;
 
   beforeEach(() => {
-    strictMode = false;
+    configureSyncPolicy({ unsupportedVersionStrict: false });
   });
 
   it('non-strict: mapper вернул null → logger.error("UNSUPPORTED_CONTRACT_VERSION", ...) + return null', async () => {
@@ -110,7 +104,7 @@ describe('Story 6.5: processDelta — silent loss заменён audit + опц�
   });
 
   it('strict: mapper вернул null → throw UnsupportedContractVersionError (парсер не ACK\'нет)', async () => {
-    strictMode = true;
+    configureSyncPolicy({ unsupportedVersionStrict: true });
     const logger = makeLoggerStub();
     const repo: any = {};
     const service = new TestSyncService(repo, makeMapperStub(false), logger);

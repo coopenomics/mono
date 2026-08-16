@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
@@ -85,7 +85,11 @@ export class HttpJwtAuthGuard extends AuthGuard('jwt') {
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  // Токен указан явно: пакет собирается esbuild'ом, а он не умеет
+  // `emitDecoratorMetadata`. Без `@Inject` Nest не увидел бы `design:paramtypes`,
+  // построил бы гард без аргументов, и `reflector` оказался бы `undefined` —
+  // отказ приходил бы не отказом, а 500 на первом же запросе с ролями.
+  constructor(@Inject(Reflector) private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const ctx = GqlExecutionContext.create(context);

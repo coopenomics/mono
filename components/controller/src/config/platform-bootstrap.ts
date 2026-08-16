@@ -15,7 +15,8 @@
  * висит на самом графе, а не на конкретном запуске.
  */
 import { configureExtensionAuth, configurePlatformSettings } from '@coopenomics/extension-kit';
-import { configureSyncPolicy } from '@coopenomics/extension-kit/sync';
+import { configureAuditLogger, configureSyncPolicy } from '@coopenomics/extension-kit/sync';
+import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import config from './config';
 
 /**
@@ -48,6 +49,14 @@ export function applyPlatformBootstrap(): void {
   configureSyncPolicy({
     unsupportedVersionStrict: config.blockchain.unsupported_version_strict,
   });
+
+  // Аудит расхождений со схемой контракта пишется в общий журнал узла. Логгер
+  // передаёт ядро: доменная сущность создаётся `new`, инъекции у неё нет, а
+  // тянуть логгер ядра импортом расширение не вправе — за пределами монолита
+  // такого пути не существует.
+  const auditJournal = new WinstonLoggerService();
+  auditJournal.setContext('SyncAudit');
+  configureAuditLogger(auditJournal);
 }
 
 applyPlatformBootstrap();

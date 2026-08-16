@@ -40,3 +40,4 @@ export * from './invalidated-entity-version.repository';
 export * from './errors/unsupported-contract-version.error';
 export * from './errors/audit-unknown-status';
 export * from './sync-policy';
+export * from './audit-logger';
