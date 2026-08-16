@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
   type InnerChainActionRecord,
@@ -9,7 +9,6 @@ import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
 import { CommitDeltaMapper } from '../../infrastructure/blockchain/mappers/commit-delta.mapper';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
@@ -82,15 +81,6 @@ export class CommitSyncService
 
   // Одобрение и отклонение коммита слушает сам `GenerationInteractor`: там
   // лежит обработка, а здесь стояли два переходника, ради которых синхронизатор
-  // инжектил сценарий — и получался цикл. Подписка на событие цепи ничего не
-  // требует от синхронизатора, обработчику нужен только `actionData`.
-
-  /**
-   * Обработка форков для коммитов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleCommitFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
+  // инжектил сценарий — и получался цикл (FC1-21). Подписка на событие цепи
+  // ничего не требует от синхронизатора, обработчику нужен только `actionData`.
 }

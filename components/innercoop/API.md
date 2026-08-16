@@ -642,6 +642,7 @@
 - `account: string`
 - `block_num: number`
 - `block_id: string`
+- `block_time?: string`
 - `chain_id: string`
 - `name: string`
 - `receiver: string`

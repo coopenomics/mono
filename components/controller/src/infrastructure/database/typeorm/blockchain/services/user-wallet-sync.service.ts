@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { UserWalletDomainEntity } from '~/domain/wallet/entities/user-wallet-domain.entity';
@@ -51,8 +51,4 @@ export class UserWalletSyncService
     });
   }
 
-  @OnEvent('fork::*')
-  async handleUserWalletFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
 }

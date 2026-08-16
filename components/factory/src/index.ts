@@ -1,4 +1,5 @@
 export * from './Interfaces'
+export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
 
@@ -11,6 +12,9 @@ import * as Actions from './Actions'
 import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
 import type { ExternalIndividualData } from './Models/Individual'
 import { Individual } from './Models/Individual'
+import type { IChainDataSource } from './DataSource'
+import { ChainRpcDataSource } from './DataSource'
+import { getEnvVar } from './config'
 import type { ExternalEntrepreneurData, ExternalOrganizationData, IVars } from './Models'
 import { Entrepreneur, Organization, Vars } from './Models'
 import { Cooperative, type CooperativeData } from './Models/Cooperative'
@@ -63,6 +67,44 @@ export interface IGenerator {
 }
 
 export class Generator implements IGenerator {
+  /**
+   * Откуда брать данные цепи. Не задан — читаем прямо из цепи по адресу из
+   * окружения: так генерация работает у инструментов развёртывания, у которых
+   * своей базы нет. Узел передаёт сюда собственную реализацию — с историей
+   * версий шаблонов и историей действий, которых у цепи не спросить.
+   */
+  private givenDataSource?: IChainDataSource
+  private chainDataSource?: IChainDataSource
+
+  constructor(dataSource?: IChainDataSource) {
+    this.givenDataSource = dataSource
+  }
+
+  /**
+   * Адрес цепи спрашиваем только тогда, когда за данными действительно идут.
+   * Генератор создают и там, где до цепи дело не доходит: сборка шаблонов из
+   * локальных исходников, поиск по хранилищу, набор тестов документов. Пока
+   * источник не передали, фабрики получают вот этот переходник — он поднимет
+   * чтение из цепи при первом же запросе, а до тех пор переменная окружения не
+   * нужна.
+   */
+  private get dataSource(): IChainDataSource {
+    if (this.givenDataSource) return this.givenDataSource
+
+    return {
+      getTableRows: (query) => this.chainSource().getTableRows(query),
+      getActions: (query) => this.chainSource().getActions(query),
+      getCurrentBlock: () => this.chainSource().getCurrentBlock(),
+    }
+  }
+
+  private chainSource(): IChainDataSource {
+    if (!this.chainDataSource)
+      this.chainDataSource = new ChainRpcDataSource(getEnvVar('CHAIN_URL'))
+
+    return this.chainDataSource
+  }
+
   // Определение фабрик
   factories!: {
     [K in Numbers]: DocFactory<IGenerate>
@@ -205,6 +247,12 @@ export class Generator implements IGenerator {
       [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
       [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
     }
+
+    // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
+    // тянуть через конструктор каждой из десятков фабрик выше.
+    for (const factory of Object.values(this.factories))
+      factory.setDataSource(this.dataSource)
+
     await this.storage.connect()
   }
 
@@ -301,7 +349,7 @@ export class Generator implements IGenerator {
   }
 
   async constructCooperative(username: string, block_num?: number): Promise<CooperativeData | null> {
-    return new Cooperative(this.storage).getOne(username, block_num)
+    return new Cooperative(this.storage, this.dataSource).getOne(username, block_num)
   }
 
   // Новый метод поиска

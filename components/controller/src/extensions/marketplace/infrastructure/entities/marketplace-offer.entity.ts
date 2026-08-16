@@ -59,9 +59,9 @@ export class MarketplaceOfferEntity {
 
   /**
    * Каталог упаковок при `sale_form = packaged` (Эпик 18). jsonb-массив
-   * `{ id, size, price, label, sort_order, is_default }` — у каждой упаковки
-   * своя цена (управляемая упаковка). Пустой при отпуске по мере. Паттерн
-   * jsonb value-object как `delivery_points`/`images`.
+   * `{ id, size, price, label, package_type, sort_order, is_default }` — у
+   * каждой упаковки своя цена (управляемая упаковка) и своя тара. Пустой при
+   * отпуске по мере. Паттерн jsonb value-object как `delivery_points`/`images`.
    */
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   public packages!: Array<{
@@ -69,6 +69,11 @@ export class MarketplaceOfferEntity {
     size: number;
     price: string;
     label: string | null;
+    /**
+     * Вид упаковки словами поставщика («стекло», «корзинка»). `null` — у
+     * предложений, заведённых до появления поля (в jsonb ключа просто нет).
+     */
+    package_type: string | null;
     sort_order: number;
     is_default: boolean;
   }>;

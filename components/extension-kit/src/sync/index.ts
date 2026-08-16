@@ -29,3 +29,14 @@ export * from './entity-version.typeorm-entity';
 export * from './entity-version.repository';
 export * from './entity-versioning.service';
 export * from './base-blockchain.repository';
+// Форк цепи: маркер, по которому реестр ядра находит синхронизаторы, и архив
+// снесённых форком записей. Сам реестр живёт в ядре — он обходит граф
+// приложения, а не принадлежит каркасу расширения.
+export * from './fork/fork-aware-syncer.interface';
+export * from './invalidated-entity.typeorm-entity';
+export * from './invalidated-entity-version.typeorm-entity';
+export * from './invalidated-entity.repository';
+export * from './invalidated-entity-version.repository';
+export * from './errors/unsupported-contract-version.error';
+export * from './errors/audit-unknown-status';
+export * from './sync-policy';

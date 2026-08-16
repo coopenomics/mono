@@ -96,6 +96,9 @@ function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number
     return { qty, ordered, total: costWithFee(o, factCost) };
   }
   const qty = Math.min(ordered, o.warehouse_quantity ?? ordered);
+  // Цена выводится делением суммы заказа на его базовое количество, поэтому
+  // она за базовую единицу — и умножается на базовое же количество. Фасовка
+  // здесь не участвует (канон единицы отпуска — README расширения).
   const unitPriceWithFee = ordered ? orderedTotalWithFee / ordered : 0;
   return { qty, ordered, total: qty * unitPriceWithFee };
 }
@@ -361,7 +364,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Выдача заказов доступна председателю участка и его доверенным лицам.'
+    body='Выдача заказов доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')

@@ -81,6 +81,7 @@
 import { computed, ref } from 'vue';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import type { DocumentSignaturesProps } from './DocumentSignatures.types';
+import { sameHash } from 'src/shared/lib/utils/sameHash';
 
 const props = withDefaults(defineProps<DocumentSignaturesProps>(), {
   signatures: () => [],
@@ -96,7 +97,7 @@ defineEmits<{
 }>();
 
 const hashMatches = computed((): boolean =>
-  props.regeneratedHash === undefined ? true : props.regeneratedHash === props.docHash,
+  props.regeneratedHash === undefined ? true : sameHash(props.regeneratedHash, props.docHash),
 );
 
 const hashState = computed((): 'pos' | 'neutral' | 'neg' => {

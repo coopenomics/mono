@@ -14,6 +14,7 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
+import { WalletHeaderButton } from 'src/widgets/Marketplace/WalletHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -342,6 +343,11 @@ useMarketplaceRealtime(
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
+  //- Кошелёк стола заказов в шапке: баланс виден там, где заказчик работает,
+  //- и оттуда же пополняется (правка 2026-08-13 — раньше за деньгами
+  //- приходилось уходить на стол пайщика).
+  WalletHeaderButton(:coopname="coopname")
+
   //- Индикатор корзины в шапке стола (Story 16.1) — общий header-виджет,
   //- переиспользуется и на странице предложения.
   CartHeaderButton(:coopname="coopname")

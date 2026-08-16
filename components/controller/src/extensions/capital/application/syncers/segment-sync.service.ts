@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
@@ -55,16 +55,6 @@ export class SegmentSyncService
 
     this.logger.debug('Сервис синхронизации сегментов полностью инициализирован с подписками на паттерны');
   }
-
-  /**
-   * Обработка форков для сегментов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleSegmentFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
-
   /**
    * Синхронизация сегмента между блокчейном и базой данных
    */

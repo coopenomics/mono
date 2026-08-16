@@ -38,10 +38,21 @@ import { AgreementTypeormRepository } from './repositories/agreement.typeorm-rep
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { ActionEntity } from './entities/action.entity';
+import { DraftTemplateEntity } from './entities/draft-template.entity';
+import { DraftTranslationEntity } from './entities/draft-translation.entity';
+import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-registry.repository';
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
-import { EntityVersionTypeormEntity, EntityVersionRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import {
+  EntityVersionTypeormEntity,
+  EntityVersionRepository,
+  EntityVersioningService,
+  InvalidatedEntityTypeormEntity,
+  InvalidatedEntityVersionTypeormEntity,
+  InvalidatedEntityRepository,
+  InvalidatedEntityVersionRepository,
+} from '@coopenomics/extension-kit/sync';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -50,6 +61,9 @@ import { TypeOrmActionRepository } from './repositories/typeorm-action.repositor
 import { TypeOrmDeltaRepository } from './repositories/typeorm-delta.repository';
 import { TypeOrmForkRepository } from './repositories/typeorm-fork.repository';
 import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.repository';
+import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
+import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
+import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
 import { SettingsEntity } from './entities/settings.entity';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsTypeormRepository } from './repositories/settings.typeorm-repository';
@@ -119,6 +133,10 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
           // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
           // глобального хранилища метаданных по цепочке прототипов наследника.
           EntityVersionTypeormEntity,
+          // Архив снесённых форком записей — из того же пакета и по той же
+          // причине: глоб по `src/` его не находит.
+          InvalidatedEntityTypeormEntity,
+          InvalidatedEntityVersionTypeormEntity,
           // Таблицы расширений — по декларации самого расширения, а не по его
           // положению на диске: установленное пакетом расширение ни под какой
           // глоб по `src/` не попадёт и своих таблиц не получит.
@@ -142,10 +160,15 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
+      DraftTemplateEntity,
+      DraftTranslationEntity,
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
+      ConsumerDedupEntity,
       EntityVersionTypeormEntity,
+      InvalidatedEntityTypeormEntity,
+      InvalidatedEntityVersionTypeormEntity,
       SettingsEntity,
       TokenEntity,
       UserEntity,
@@ -212,6 +235,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     AgreementTypeormRepository,
     AgreementDeltaMapper,
     AgreementSyncService,
+    TypeOrmDraftRegistryRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
       useClass: TypeOrmActionRepository,
@@ -227,6 +251,10 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     {
       provide: SYNC_STATE_REPOSITORY_PORT,
       useClass: TypeOrmSyncStateRepository,
+    },
+    {
+      provide: CONSUMER_DEDUP_REPOSITORY_PORT,
+      useClass: TypeOrmConsumerDedupRepository,
     },
     {
       provide: SETTINGS_REPOSITORY,
@@ -287,9 +315,12 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     },
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
   exports: [
     NestTypeOrmModule,
+    TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
@@ -306,6 +337,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     DELTA_REPOSITORY_PORT,
     FORK_REPOSITORY_PORT,
     SYNC_STATE_REPOSITORY_PORT,
+    CONSUMER_DEDUP_REPOSITORY_PORT,
     SETTINGS_REPOSITORY,
     TOKEN_REPOSITORY,
     USER_REPOSITORY,
@@ -324,6 +356,8 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     SIGNED_DOCUMENT_REPOSITORY,
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
 })
 export class TypeOrmModule {}

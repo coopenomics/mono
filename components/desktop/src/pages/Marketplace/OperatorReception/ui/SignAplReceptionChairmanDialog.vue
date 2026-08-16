@@ -293,8 +293,16 @@ watch(
 /**
  * Дискретность количества у этой единицы: упаковки и штуки неделимы, вес и
  * объём считаются до грамма и миллилитра. Шаг общий с корзиной и складом.
+ *
+ * У упаковочной позиции количество ещё и кратно фасовке: в бокс кладут целые
+ * упаковки, а не «семь яиц из десятка» — вскрывать упаковку на складе нельзя
+ * (решение 2026-08-13), и контракт такого количества всё равно не примет.
  */
 function roundQuantity(u: PostingUnit, value: number): number {
+  if (u.packageSize && u.packageSize > 0) {
+    const packages = Math.floor(value / u.packageSize + 1e-9);
+    return Math.max(0, packages) * u.packageSize;
+  }
   return quantizeSaleQuantity(
     {
       sale_form: u.packageSize ? MarketplaceSaleForm.PACKAGED : null,
@@ -604,7 +612,7 @@ async function confirm(): Promise<void> {
 
   const wif = globalStore.wif?.toString();
   if (!wif) {
-    FailAlert(new Error('Приватный ключ председателя не найден. Войдите в кооператив.'));
+    FailAlert(new Error('Приватный ключ оператора не найден. Войдите в кооператив.'));
     return;
   }
 
@@ -643,7 +651,7 @@ async function confirm(): Promise<void> {
     SuccessAlert(
       done.value > 1
         ? `Поставка принята в кооператив: подписано актов — ${done.value}.`
-        : 'Акт приёмки закрыт подписью председателя. Партия принята в кооператив.',
+        : 'Акт приёмки закрыт подписью оператора. Партия принята в кооператив.',
     );
     emit('signed');
     emit('update:modelValue', false);

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProgramPropertyDomainEntity } from '../../domain/entities/program-property.entity';
@@ -49,13 +49,5 @@ export class ProgramPropertySyncService
     allPatterns.forEach((pattern) => {
       this.eventEmitter.on(pattern, this.processDelta.bind(this));
     });
-  }
-
-  /**
-   * Обработчик форков для программных имущественных взносов
-   */
-  @OnEvent('fork::*')
-  async handleProgramPropertyFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

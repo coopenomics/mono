@@ -17,6 +17,7 @@ const rawOfferSelector = {
     size: true,
     price: true,
     label: true,
+    package_type: true,
     sort_order: true,
     is_default: true,
   },

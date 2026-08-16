@@ -1,11 +1,4 @@
-import { getActions } from '~/utils/getFetch';
 import { DocumentPackageV1Aggregator } from './document-package-v1.aggregator';
-
-jest.mock('~/utils/getFetch', () => ({
-  getActions: jest.fn(),
-}));
-
-const mockedGetActions = getActions as unknown as jest.Mock;
 
 /**
  * Регрессия: программная оферта ЦПП (program_id > 0) уходит на цепь через
@@ -17,6 +10,10 @@ const mockedGetActions = getActions as unknown as jest.Mock;
  * его централизованно шлёт make_complete_document на каждый вызов — и из
  * sndagreement, и из signagree. Поэтому у программных оферт newagreement нет,
  * а newresolved есть всегда.
+ *
+ * История действий читается из собственной базы узла (BlockchainActionHistoryService),
+ * а не из обозревателя парсера по HTTP — фильтр приходит объектом, а поле внутри
+ * полезной нагрузки адресуется путём `document.doc_hash`.
  */
 describe('DocumentPackageV1Aggregator — приложения к заявлению (links)', () => {
   const STATEMENT_HASH = 'AAAA';
@@ -50,56 +47,51 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
     createCertificateFromUserData: jest.fn(() => ({})),
   };
 
+  const findLast = jest.fn();
+  const actionHistory = { findLast, find: jest.fn(async () => ({ results: [], page: 1, limit: 10, total: 0 })) };
+
   const aggregator = new DocumentPackageV1Aggregator(
     documentAggregator as any,
     documentPackageUtils as any,
     accountDomainService as any,
-    userCertificateService as any
+    userCertificateService as any,
+    actionHistory as any
   );
 
   beforeEach(() => {
-    mockedGetActions.mockReset();
-    // Маршрутизация по содержимому фильтра: имитируем explorer get-actions.
-    mockedGetActions.mockImplementation(async (_path: string, params: any) => {
-      const filter = JSON.parse(params.filter);
-      const docHash = filter['data.document.doc_hash'];
+    findLast.mockReset();
+    // Маршрутизация по содержимому фильтра: имитируем историю действий узла.
+    findLast.mockImplementation(async (filter: any) => {
+      const docHash = filter?.data?.['document.doc_hash'];
 
       // Платформенное соглашение зарегистрировано в реестре совета.
       if (filter.name === 'newagreement' && docHash === PLATFORM_HASH) {
         return {
-          results: [
-            {
-              data: {
-                document: {
-                  meta_hash: 'META_PLATFORM',
-                  meta: JSON.stringify({ title: 'Политика' }),
-                  signatures: [{ id: 'platform-sig' }],
-                },
-              },
+          data: {
+            document: {
+              meta_hash: 'META_PLATFORM',
+              meta: JSON.stringify({ title: 'Политика' }),
+              signatures: [{ id: 'platform-sig' }],
             },
-          ],
+          },
         };
       }
 
       // Программная оферта: soviet::newagreement по ней НЕТ, есть только newresolved.
       if (filter.name === 'newresolved' && docHash === OFFER_HASH) {
         return {
-          results: [
-            {
-              data: {
-                document: {
-                  meta_hash: 'META_OFFER',
-                  meta: JSON.stringify({ title: 'Оферта Генератор' }),
-                  signatures: [{ id: 'offer-sig' }],
-                },
-              },
+          data: {
+            document: {
+              meta_hash: 'META_OFFER',
+              meta: JSON.stringify({ title: 'Оферта Генератор' }),
+              signatures: [{ id: 'offer-sig' }],
             },
-          ],
+          },
         };
       }
 
-      // Всё прочее (newagreement по оферте, newdecision, newact, newlink) — пусто.
-      return { results: [] };
+      // Всё прочее (newagreement по оферте, newdecision) — пусто.
+      return null;
     });
   });
 
@@ -145,18 +137,12 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
 
     await aggregator.buildDocumentPackageAggregateV1(rawAction);
 
-    const callNames = mockedGetActions.mock.calls.map(([, params]) => JSON.parse(params.filter).name);
-    const offerNewagreementIdx = mockedGetActions.mock.calls.findIndex(
-      ([, params]) => {
-        const f = JSON.parse(params.filter);
-        return f.name === 'newagreement' && f['data.document.doc_hash'] === OFFER_HASH;
-      }
+    const callNames = findLast.mock.calls.map(([filter]) => filter.name);
+    const offerNewagreementIdx = findLast.mock.calls.findIndex(
+      ([filter]) => filter.name === 'newagreement' && filter?.data?.['document.doc_hash'] === OFFER_HASH
     );
-    const offerResolvedIdx = mockedGetActions.mock.calls.findIndex(
-      ([, params]) => {
-        const f = JSON.parse(params.filter);
-        return f.name === 'newresolved' && f['data.document.doc_hash'] === OFFER_HASH;
-      }
+    const offerResolvedIdx = findLast.mock.calls.findIndex(
+      ([filter]) => filter.name === 'newresolved' && filter?.data?.['document.doc_hash'] === OFFER_HASH
     );
 
     expect(callNames).toContain('newagreement');

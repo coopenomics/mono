@@ -10,7 +10,10 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import {
+  marketplaceOrderSaleUnit,
+  marketplaceSaleUnitLabel,
+} from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -90,7 +93,12 @@ const SHIPMENT_VARIANT_LABEL: Record<string, string> = {
 
 const RECEPTION_STATUS_LABEL: Record<string, string> = {
   PENDING_SUPPLIER_SIGN: 'Ждёт подписи поставщика',
-  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи председателя',
+  // Ключ статуса пришёл из контракта (`signchair`) и говорит «председатель»,
+  // но закрывающую подпись на участке накладывает ОПЕРАТОР — председатель
+  // совета в Столе заказов не участвует вовсе (решение владельца 2026-08-13).
+  // Меняем только то, что читает человек; имена статусов и действий на цепи
+  // остаются прежними.
+  PENDING_CHAIRMAN_RECEPTION_SIGN: 'Ждёт подписи оператора',
   ACCEPTED_TO_COOP: 'Принят кооперативом',
   CANCELLED: 'Отменён',
 };
@@ -340,11 +348,39 @@ const pickupShipmentId = ref<string | null>(null);
 // Наименование поставщика (ФИО/организация) для заголовка приёмки — из заказов.
 const pickupSupplierName = ref('');
 const pickupOrders = ref<MarketplaceSupplierPickupOrderView[]>([]);
-// Факт по позиции, вводится на приёмке (R5): по умолчанию = заказано; потолок = заказано.
+// Факт по позиции, вводится на приёмке (R5): по умолчанию = заказано; потолок
+// = заказано. Ведётся в ЕДИНИЦАХ ОТПУСКА — упаковками при упаковочном отпуске,
+// базовыми единицами по мере: упаковку не вскрывают, недостачу внутри неё
+// оператор отражает ценой, а не «недокладыванием штук» (решение 2026-08-13).
+// В базовую единицу факт переводится один раз, при отправке акта.
 const pickupFact = ref<Record<string, number>>({});
-// Фактическая цена за единицу, корректируется оператором на приёмке (B2):
-// по умолчанию = цена заказа (привезли хуже → принимаем со скидкой).
+// Фактическая цена за единицу отпуска (за упаковку при упаковочном отпуске),
+// корректируется оператором на приёмке (B2): по умолчанию = цена заказа
+// (привезли хуже → принимаем со скидкой).
 const pickupPrice = ref<Record<string, string>>({});
+
+/** Размер фасовки позиции; 0 — отпуск по мере. */
+function packageSizeOf(o: MarketplaceSupplierPickupOrderView): number {
+  return o.package_size ?? 0;
+}
+
+/** Заказанное количество в единицах отпуска — потолок приёмки. */
+function orderedSaleUnits(o: MarketplaceSupplierPickupOrderView): number {
+  const size = packageSizeOf(o);
+  return size > 0 ? Math.round(o.quantity / size) : o.quantity;
+}
+
+/** Факт в базовой единице — в ней заказ живёт в БД и на цепи. */
+function factBaseQuantity(o: MarketplaceSupplierPickupOrderView): number {
+  const units = pickupFact.value[o.id] ?? orderedSaleUnits(o);
+  const size = packageSizeOf(o);
+  return size > 0 ? units * size : units;
+}
+
+/** Подпись единицы отпуска для полей ввода: «упак. 10 шт» либо «кг». */
+function saleUnitSuffix(o: MarketplaceSupplierPickupOrderView): string {
+  return marketplaceSaleUnitLabel(o.unit_of_measure, packageSizeOf(o) || null);
+}
 // Выбранные к приёмке единицы. Снятая галка = не принимаем эту единицу
 // (fact=0 → отказ в приёмке при подписи поставщика). Если сняты ВСЕ галки
 // по задекларированным партиям и добор не берём — кнопка становится
@@ -393,10 +429,12 @@ function toggleOrder(id: string, value: boolean): void {
 }
 
 // Потолок факта = заказано (акцепт): сверх акцепта не принимаем (R5).
-function clampFact(orderId: string, ordered: number): void {
+// Значение — целое число единиц отпуска: половины упаковки не бывает, а
+// контракт требует кратности количества размеру упаковки.
+function clampFact(orderId: string, orderedUnits: number): void {
   const v = Number(pickupFact.value[orderId]);
   if (!Number.isFinite(v) || v < 0) pickupFact.value[orderId] = 0;
-  else if (v > ordered) pickupFact.value[orderId] = ordered;
+  else if (v > orderedUnits) pickupFact.value[orderId] = orderedUnits;
   else pickupFact.value[orderId] = Math.trunc(v);
 }
 
@@ -451,7 +489,7 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupAccount.value = account;
     pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
-    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
+    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, orderedSaleUnits(o)]));
     pickupPrice.value = Object.fromEntries(
       orders.map((o) => [o.id, String(Number(o.price_per_unit) || 0)]),
     );
@@ -500,7 +538,7 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     pickupAccount.value = shipment.offerer_account;
     pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
-    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
+    pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, orderedSaleUnits(o)]));
     pickupPrice.value = Object.fromEntries(
       orders.map((o) => [o.id, String(Number(o.price_per_unit) || 0)]),
     );
@@ -585,9 +623,7 @@ async function acceptPickup(): Promise<void> {
         fact_quantity_per_order: orders.map((o) => ({
           order_id: o.id,
           fact_quantity:
-            !rejectAll && selectedOrderIds.value.has(o.id)
-              ? pickupFact.value[o.id] ?? o.quantity
-              : 0,
+            !rejectAll && selectedOrderIds.value.has(o.id) ? factBaseQuantity(o) : 0,
           fact_unit_price: pickupPrice.value[o.id] ?? o.price_per_unit,
         })),
       });
@@ -600,7 +636,7 @@ async function acceptPickup(): Promise<void> {
         braname: braname.value.trim(),
         fact_quantity_per_order: addonOrders.value.map((o) => ({
           order_id: o.id,
-          fact_quantity: pickupFact.value[o.id] ?? o.quantity,
+          fact_quantity: factBaseQuantity(o),
           fact_unit_price: pickupPrice.value[o.id] ?? o.price_per_unit,
         })),
       });
@@ -699,7 +735,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Приёмка партий доступна председателю участка и его доверенным лицам.'
+    body='Приёмка партий доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -771,7 +807,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           BaseButton(variant='primary', @click='signChairman(g)')
             template(#icon-left)
               q-icon(name='draw', size='18px')
-            | Подписать председателем
+            | Подписать оператором
 
         //- Поставщик ещё не подписал — оператор может отменить акт и пересобрать
         //- (поставщик не согласен со снятыми позициями, повезёт замену позже).
@@ -852,27 +888,28 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               | ТТН {{ shipmentForOrder(o)?.ttn_number }}
           .reception__unit-fact
             BaseInput(
-              :model-value='o.quantity',
+              :model-value='orderedSaleUnits(o)',
               type='number',
               label='Заказано',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
+              :suffix='saleUnitSuffix(o)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
               type='number',
               label='Принять',
               :min='0',
-              :max='o.quantity',
+              :max='orderedSaleUnits(o)',
+              :step='1',
               :disabled='!isSelected(o.id)',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
-              @update:model-value='() => clampFact(o.id, o.quantity)',
-              @blur='clampFact(o.id, o.quantity)'
+              :suffix='saleUnitSuffix(o)',
+              @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
+              @blur='clampFact(o.id, orderedSaleUnits(o))'
             )
             BaseInput(
               v-model='pickupPrice[o.id]',
               type='number',
-              label='Цена/ед.',
+              :label='packageSizeOf(o) > 0 ? "Цена/упак." : "Цена/ед."',
               :disabled='!isSelected(o.id)'
             )
 
@@ -893,27 +930,28 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
           .reception__unit-fact
             BaseInput(
-              :model-value='o.quantity',
+              :model-value='orderedSaleUnits(o)',
               type='number',
               label='Акцепт',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
+              :suffix='saleUnitSuffix(o)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
               type='number',
               label='Принять',
               :min='0',
-              :max='o.quantity',
+              :max='orderedSaleUnits(o)',
+              :step='1',
               :disabled='!takeAddon',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
-              @update:model-value='() => clampFact(o.id, o.quantity)',
-              @blur='clampFact(o.id, o.quantity)'
+              :suffix='saleUnitSuffix(o)',
+              @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
+              @blur='clampFact(o.id, orderedSaleUnits(o))'
             )
             BaseInput(
               v-model='pickupPrice[o.id]',
               type='number',
-              label='Цена/ед.',
+              :label='packageSizeOf(o) > 0 ? "Цена/упак." : "Цена/ед."',
               :disabled='!takeAddon'
             )
 

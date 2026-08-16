@@ -9,6 +9,7 @@
 #include "../lib/index.hpp"
 #include "../lib/core/gateway/gateway.hpp"
 #include "../lib/core/ledger2/ledger2.hpp"
+#include "../lib/core/branch/ndfl.hpp"   // BranchNdfl::calc_tax / calc_net — удержание НДФЛ из материальной помощи
 #include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси расходов
 
 /**
@@ -209,7 +210,8 @@ public:
 
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил банковский
-   * перевод материальной помощи. Здесь применяется o.brn.aid (Дт 86 / Кт 51).
+   * перевод материальной помощи. Здесь применяются o.brn.aidtax (удержание
+   * налога, Дт 86 / Кт 68) и o.brn.aid (выплата, Дт 86 / Кт 51).
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void aidconfirm(eosio::name coopname,
@@ -221,6 +223,34 @@ public:
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void aiddecline(eosio::name coopname,
+                                     eosio::checksum256 outcome_hash,
+                                     std::string reason);
+
+  /**
+   * @brief Отправить удержанный НДФЛ на оплату в бюджет (единый налоговый
+   * платёж). Инициирует бухгалтер; заявка попадает к кассиру в реестр
+   * исходящих платежей. Сумма не может превышать остаток w.brn.ndfl.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void createtax(eosio::name coopname,
+                                    eosio::checksum256 tax_hash,
+                                    eosio::asset amount,
+                                    std::string meta);
+
+  /**
+   * @brief Callback от gateway::outcomplete — кассир подтвердил перечисление
+   * налога. Здесь применяется o.brn.taxpay (Дт 68 / Кт 51).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void taxconfirm(eosio::name coopname,
+                                     eosio::checksum256 outcome_hash);
+
+  /**
+   * @brief Callback от gateway::outdecline — платёж в бюджет не состоялся;
+   * обязательство остаётся на счёте 68, заявка закрывается.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void taxdecline(eosio::name coopname,
                                      eosio::checksum256 outcome_hash,
                                      std::string reason);
 

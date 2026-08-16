@@ -3712,7 +3712,7 @@ export type ValueTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null | Variable<any, string>
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: AliasType<{
 	/** Дата создания записи */
 	_created_at?:boolean | `@${string}`,
@@ -3734,14 +3734,10 @@ export type ValueTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMeasure']?: Omit<ValueTypes["CapitalMeasure"], "...on CapitalMeasure">
 }>;
@@ -3793,8 +3789,6 @@ export type ValueTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Точки ряда */
 	points?:ValueTypes["CapitalMetricSeriesPoint"],
 	/** Режим ряда */
@@ -3843,8 +3837,6 @@ export type ValueTypes = {
 	growth?:boolean | `@${string}`,
 	/** Метрики в резонансе */
 	items?:ValueTypes["CapitalMetricSuperpositionItem"],
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Угол суммы фазоров в радианах */
@@ -3901,8 +3893,6 @@ export type ValueTypes = {
 	frames?:ValueTypes["CapitalMetricSuperpositionFrame"],
 	/** Начало окна истории */
 	from?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Конец окна истории */
@@ -3957,8 +3947,6 @@ export type ValueTypes = {
 	fib_levels?:ValueTypes["CapitalFibLevel"],
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Метка волны на каждой точке ряда */
 	point_labels?:boolean | `@${string}`,
 	/** Режим ряда, на котором построена волна */
@@ -4941,7 +4929,7 @@ export type ValueTypes = {
 	eta_pessimistic_periods?:boolean | `@${string}`,
 	/** Оптимистичный прогноз ряда */
 	optimistic?:boolean | `@${string}`,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead?:boolean | `@${string}`,
 	/** Пессимистичный прогноз ряда */
 	pessimistic?:boolean | `@${string}`,
@@ -5524,17 +5512,17 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Срок достижения цели */
 	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string | Variable<any, string>,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null | Variable<any, string>,
 	/** Хеш компонента */
 	project_hash: string | Variable<any, string>,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Целевое значение на компоненте */
 	target_value: number | Variable<any, string>,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null | Variable<any, string>
 };
 	["CreateCustomCategoryInput"]: {
@@ -5747,14 +5735,10 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
 	/** Название меры */
 	title: string | Variable<any, string>,
 	/** Единица измерения */
-	unit: string | Variable<any, string>,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
+	unit: string | Variable<any, string>
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -7601,34 +7585,24 @@ export type ValueTypes = {
 	metric_hash: string | Variable<any, string>
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>,
-	/** Период агрегации ряда */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string | Variable<any, string>
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string | Variable<any, string>
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string | Variable<any, string>,
-	/** Период агрегации ряда для разметки */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null | Variable<any, string>
+	metric_hash: string | Variable<any, string>
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -9854,6 +9828,8 @@ export type ValueTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -9870,6 +9846,8 @@ export type ValueTypes = {
 	is_default?: boolean | undefined | null | Variable<any, string>,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null | Variable<any, string>,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string | Variable<any, string>,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string | Variable<any, string>,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -11268,8 +11246,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MatrixAccountStatusResponseDTO']?: Omit<ValueTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 }>;
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -11563,8 +11539,6 @@ export type ValueTypes = {
 ["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -14972,18 +14946,14 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
+	/** Единица измерения */
+	unit?: string | undefined | null | Variable<any, string>
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -17977,7 +17947,7 @@ export type ResolverInputTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: AliasType<{
 	/** Дата создания записи */
 	_created_at?:boolean | `@${string}`,
@@ -17999,14 +17969,10 @@ export type ResolverInputTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalMetricComponentRollup"]: AliasType<{
@@ -18055,8 +18021,6 @@ export type ResolverInputTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Точки ряда */
 	points?:ResolverInputTypes["CapitalMetricSeriesPoint"],
 	/** Режим ряда */
@@ -18103,8 +18067,6 @@ export type ResolverInputTypes = {
 	growth?:boolean | `@${string}`,
 	/** Метрики в резонансе */
 	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Угол суммы фазоров в радианах */
@@ -18159,8 +18121,6 @@ export type ResolverInputTypes = {
 	frames?:ResolverInputTypes["CapitalMetricSuperpositionFrame"],
 	/** Начало окна истории */
 	from?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Конец окна истории */
@@ -18213,8 +18173,6 @@ export type ResolverInputTypes = {
 	fib_levels?:ResolverInputTypes["CapitalFibLevel"],
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Метка волны на каждой точке ряда */
 	point_labels?:boolean | `@${string}`,
 	/** Режим ряда, на котором построена волна */
@@ -19172,7 +19130,7 @@ export type ResolverInputTypes = {
 	eta_pessimistic_periods?:boolean | `@${string}`,
 	/** Оптимистичный прогноз ряда */
 	optimistic?:boolean | `@${string}`,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead?:boolean | `@${string}`,
 	/** Пессимистичный прогноз ряда */
 	pessimistic?:boolean | `@${string}`,
@@ -19738,17 +19696,17 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -19961,14 +19919,10 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -21779,34 +21733,24 @@ export type ResolverInputTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ResolverInputTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ResolverInputTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -23967,6 +23911,8 @@ export type ResolverInputTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -23982,6 +23928,8 @@ export type ResolverInputTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -25326,8 +25274,6 @@ export type ResolverInputTypes = {
 	matrixUsername?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -25612,8 +25558,6 @@ export type ResolverInputTypes = {
 ["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -28914,18 +28858,14 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ResolverInputTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -31854,7 +31794,7 @@ export type ModelTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: {
 		/** Дата создания записи */
 	_created_at: ModelTypes["DateTime"],
@@ -31876,14 +31816,10 @@ export type ModelTypes = {
 	series_mode: ModelTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: ModelTypes["MetricStatus"],
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag: ModelTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period: ModelTypes["MetricSeriesPeriod"]
+	unit: string
 };
 	["CapitalMetricComponentRollup"]: {
 		/** Сумма фактов метрик */
@@ -31929,8 +31865,6 @@ export type ModelTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Точки ряда */
 	points: Array<ModelTypes["CapitalMetricSeriesPoint"]>,
 	/** Режим ряда */
@@ -31975,8 +31909,6 @@ export type ModelTypes = {
 	growth: number,
 	/** Метрики в резонансе */
 	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Угол суммы фазоров в радианах */
@@ -32029,8 +31961,6 @@ export type ModelTypes = {
 	frames: Array<ModelTypes["CapitalMetricSuperpositionFrame"]>,
 	/** Начало окна истории */
 	from: ModelTypes["DateTime"],
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Конец окна истории */
@@ -32081,8 +32011,6 @@ export type ModelTypes = {
 	fib_levels: Array<ModelTypes["CapitalFibLevel"]>,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Метка волны на каждой точке ряда */
 	point_labels: Array<ModelTypes["WaveLabel"]>,
 	/** Режим ряда, на котором построена волна */
@@ -33014,7 +32942,7 @@ export type ModelTypes = {
 	eta_pessimistic_periods?: number | undefined | null,
 	/** Оптимистичный прогноз ряда */
 	optimistic: Array<number>,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead: number,
 	/** Пессимистичный прогноз ряда */
 	pessimistic: Array<number>
@@ -33560,17 +33488,17 @@ export type ModelTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ModelTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -33783,14 +33711,10 @@ export type ModelTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -35553,34 +35477,24 @@ export type ModelTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ModelTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ModelTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: ModelTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -37640,6 +37554,8 @@ export type ModelTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -37654,6 +37570,8 @@ export type ModelTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -38927,7 +38845,6 @@ export type ModelTypes = {
 	iframeUrl?: string | undefined | null,
 	matrixUsername?: string | undefined | null
 };
-	["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 		/** Документ с решением совета о проведении собрания */
@@ -39199,7 +39116,6 @@ export type ModelTypes = {
 	["MetricContributionSource"]:MetricContributionSource;
 	["MetricDriveDirection"]:MetricDriveDirection;
 	["MetricSeriesMode"]:MetricSeriesMode;
-	["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: {
 		key: string,
@@ -43465,18 +43381,14 @@ export type ModelTypes = {
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ModelTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -46500,7 +46412,7 @@ export type GraphQLTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: {
 	__typename: "CapitalMeasure",
 	/** Дата создания записи */
@@ -46523,14 +46435,10 @@ export type GraphQLTypes = {
 	series_mode: GraphQLTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: GraphQLTypes["MetricStatus"],
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag: GraphQLTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
 	unit: string,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period: GraphQLTypes["MetricSeriesPeriod"],
 	['...on CapitalMeasure']: Omit<GraphQLTypes["CapitalMeasure"], "...on CapitalMeasure">
 };
 	["CapitalMetricComponentRollup"]: {
@@ -46582,8 +46490,6 @@ export type GraphQLTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Точки ряда */
 	points: Array<GraphQLTypes["CapitalMetricSeriesPoint"]>,
 	/** Режим ряда */
@@ -46632,8 +46538,6 @@ export type GraphQLTypes = {
 	growth: number,
 	/** Метрики в резонансе */
 	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Угол суммы фазоров в радианах */
@@ -46690,8 +46594,6 @@ export type GraphQLTypes = {
 	frames: Array<GraphQLTypes["CapitalMetricSuperpositionFrame"]>,
 	/** Начало окна истории */
 	from: GraphQLTypes["DateTime"],
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Конец окна истории */
@@ -46746,8 +46648,6 @@ export type GraphQLTypes = {
 	fib_levels: Array<GraphQLTypes["CapitalFibLevel"]>,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Метка волны на каждой точке ряда */
 	point_labels: Array<GraphQLTypes["WaveLabel"]>,
 	/** Режим ряда, на котором построена волна */
@@ -47730,7 +47630,7 @@ export type GraphQLTypes = {
 	eta_pessimistic_periods?: number | undefined | null,
 	/** Оптимистичный прогноз ряда */
 	optimistic: Array<number>,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead: number,
 	/** Пессимистичный прогноз ряда */
 	pessimistic: Array<number>,
@@ -48312,17 +48212,17 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -48535,14 +48435,10 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
@@ -50389,34 +50285,24 @@ export type GraphQLTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-		/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+		/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: GraphQLTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-		/** Период агрегации кадров истории */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Хеш проекта или компонента для истории резонанса */
+		/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-		/** Период агрегации для волновой фазы */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+		/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 		/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 		/** Количество элементов на странице */
@@ -52644,6 +52530,8 @@ export type GraphQLTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -52659,6 +52547,8 @@ export type GraphQLTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -54057,8 +53947,6 @@ export type GraphQLTypes = {
 	matrixUsername?: string | undefined | null,
 	['...on MatrixAccountStatusResponseDTO']: Omit<GraphQLTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 };
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]: MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 	__typename: "Meet",
@@ -54352,8 +54240,6 @@ export type GraphQLTypes = {
 ["MetricDriveDirection"]: MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]: MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]: MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]: MetricStatus;
 	["MissingRequisiteField"]: {
@@ -58871,18 +58757,14 @@ export type GraphQLTypes = {
 	["UpdateMeasureInput"]: {
 		/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: GraphQLTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 		/** Город */
@@ -59816,14 +59698,6 @@ export enum MarketplaceWriteoffProposalTrigger {
 	CRON = "CRON",
 	MANUAL = "MANUAL"
 }
-/** Категория меры в справочнике */
-export enum MeasureCatalogTag {
-	CONTENT = "CONTENT",
-	COOPERATIVE = "COOPERATIVE",
-	PERSONAL = "PERSONAL",
-	PRODUCT = "PRODUCT",
-	QUALITY = "QUALITY"
-}
 /** Статус процесса выхода пайщика из кооператива */
 export enum MembershipExitStatus {
 	AUTHORIZED = "AUTHORIZED",
@@ -59847,16 +59721,6 @@ export enum MetricDriveDirection {
 export enum MetricSeriesMode {
 	LEVEL = "LEVEL",
 	RATE = "RATE"
-}
-/** Период агрегации ряда метрики */
-export enum MetricSeriesPeriod {
-	DAY = "DAY",
-	HOUR = "HOUR",
-	MINUTE = "MINUTE",
-	MINUTE_5 = "MINUTE_5",
-	MINUTE_15 = "MINUTE_15",
-	MONTH = "MONTH",
-	WEEK = "WEEK"
 }
 /** Статус метрики компонента */
 export enum MetricStatus {
@@ -60586,7 +60450,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffProtocolDocumentInput"]: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"];
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
-	["MeasureCatalogTag"]: ValueTypes["MeasureCatalogTag"];
 	["MembershipExitApplicationGenerateDocumentInput"]: ValueTypes["MembershipExitApplicationGenerateDocumentInput"];
 	["MembershipExitApplicationSignedDocumentInput"]: ValueTypes["MembershipExitApplicationSignedDocumentInput"];
 	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
@@ -60595,7 +60458,6 @@ type ZEUS_VARIABLES = {
 	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
 	["MetricDriveDirection"]: ValueTypes["MetricDriveDirection"];
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
-	["MetricSeriesPeriod"]: ValueTypes["MetricSeriesPeriod"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];

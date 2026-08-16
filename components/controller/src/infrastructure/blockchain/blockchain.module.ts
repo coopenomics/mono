@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
 import { EventsInfrastructureModule } from '../events/events.module';
@@ -29,6 +30,7 @@ import { SovietContractInfoService } from './services/soviet-contract-info.servi
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockchain-archive-retention.service';
 
 @Global()
 @Module({
@@ -36,6 +38,7 @@ import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
   providers: [
     BlockchainService,
     BlockchainConsumerService,
+    DraftRegistrySyncService,
     BlockchainRepeatService,
     {
       provide: BLOCKCHAIN_PORT,
@@ -86,6 +89,7 @@ import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
   exports: [
     BlockchainService,
@@ -105,6 +109,7 @@ import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
 })
 export class BlockchainModule {}

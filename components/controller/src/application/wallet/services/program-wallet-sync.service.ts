@@ -49,12 +49,4 @@ export class ProgramWalletSyncService
 
     this.logger.debug('Сервис синхронизации программных кошельков полностью инициализирован с подписками на паттерны');
   }
-
-  /**
-   * Обработка форков для программных кошельков
-   * Подписывается на все форки независимо от контракта
-   */
-  async handleProgramWalletFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
 }

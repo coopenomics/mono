@@ -28,10 +28,9 @@ export class AppendixDeltaMapper extends AbstractBlockchainDeltaMapper<IAppendix
         return null;
       }
 
-      // 🔥 ВАЖНО: Парсим документы ПЕРЕД возвратом
+      // Парсим документы ПЕРЕД возвратом
       const appendix = DomainToBlockchainUtils.convertChainDocumentToDomainFormat(value.appendix);
 
-      // Парсим документы
       return { ...value, appendix };
     } catch (error: any) {
       this.logger.error(`Error mapping delta to blockchain data: ${error.message}`, error.stack);

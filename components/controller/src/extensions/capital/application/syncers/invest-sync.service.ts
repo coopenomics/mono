@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
@@ -48,14 +48,5 @@ export class InvestSyncService
     });
 
     this.logger.debug('Сервис синхронизации инвестиций полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для инвестиций
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleInvestFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

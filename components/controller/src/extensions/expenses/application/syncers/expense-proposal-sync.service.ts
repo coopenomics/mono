@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
@@ -50,11 +50,6 @@ export class ExpenseProposalSyncService
     });
 
     this.logger.debug('ExpenseProposalSyncService готов принимать дельты parser2');
-  }
-
-  @OnEvent('fork::*')
-  async handleExpenseProposalFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 
   /**

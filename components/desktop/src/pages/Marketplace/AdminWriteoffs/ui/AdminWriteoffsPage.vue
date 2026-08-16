@@ -6,6 +6,7 @@ import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { useRoute, useRouter } from 'vue-router';
 import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -168,6 +169,9 @@ function openDetails(proposal: MarketplaceWriteoffProposalView): void {
   detailsOpen.value = true;
 }
 
+const router = useRouter();
+const route = useRoute();
+
 function statusVariant(status: MarketplaceWriteoffProposalView['status']): BaseBadgeVariant {
   switch (status) {
     case 'DRAFT':
@@ -206,6 +210,19 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
     default:
       return String(status);
   }
+}
+
+/**
+ * Проект, утверждённый советом, ждёт последнего шага — подтверждения выбытия
+ * на складе участка. Шаг лежит отдельным разделом стола склада, и найти его с
+ * повестки было нечем: статус говорил «ожидает подтверждения склада», а куда
+ * идти — нет (жалоба 2026-08-13). Отсюда прямая ссылка в этот раздел.
+ */
+function goToWarehouseWriteoffs(): void {
+  void router.push({
+    name: 'marketplace-pvz-warehouse',
+    params: { coopname: route.params.coopname, section: 'writeoffs' },
+  });
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -261,7 +278,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.writeoffs(role="region", aria-label="Списания скоропорта")
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
-    | Выделите имущество на складах к списанию, укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего председатель кооперативного участка подтверждает выбытие со склада.
+    | Выделите имущество на складах к списанию, укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего оператор участка подтверждает выбытие со склада.
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре). Только на
   //- вкладке «Кандидаты»: собрать проект из выбора и открыть подпись.
@@ -341,6 +358,15 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
               td.col-num {{ formatAsset2Digits(p.total_amount) }}
               td
                 BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
+                BaseButton.writeoffs__go-warehouse(
+                  v-if="p.status === 'PENDING_CONFIRMATION'",
+                  variant="ghost",
+                  size="sm",
+                  @click.stop="goToWarehouseWriteoffs"
+                )
+                  template(#icon-left)
+                    q-icon(name="inventory_2", size="16px")
+                  | Подтвердить на складе
               td {{ formatDate(proposalDate(p)) }}
 
   SubmitToCouncilDialog(
@@ -370,6 +396,10 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   &__title {
     font-weight: 600;
     color: var(--p-ink);
+  }
+
+  &__go-warehouse {
+    margin-top: var(--p-1, 4px);
   }
 }
 

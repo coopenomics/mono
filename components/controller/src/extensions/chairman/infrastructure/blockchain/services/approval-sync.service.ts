@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { AbstractEntitySyncService, type IDelta } from '@coopenomics/extension-kit/sync';
 import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
@@ -55,15 +55,6 @@ export class ApprovalSyncService
   async handleApprovalDelta(delta: IDelta): Promise<void> {
     await this.processDelta(delta);
   }
-
-  /**
-   * Обработчик форков для одобрений
-   */
-  @OnEvent('fork::*')
-  async handleApprovalFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
-
   /**
    * Получение поддерживаемых версий контрактов и таблиц
    */

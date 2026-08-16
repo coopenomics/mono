@@ -7,7 +7,7 @@ import {
   USER_CERTIFICATE_DOMAIN_SERVICE,
 } from '~/domain/user/services/user-certificate-domain.service';
 import { Cooperative, SovietContract } from 'cooptypes';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import type { DocumentPackageAggregateDomainInterface } from '../interfaces/document-package-aggregate-domain.interface';
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
 import type { DecisionDetailAggregateDomainInterface } from '../interfaces/decision-detail-aggregate-domain.interface';
@@ -18,11 +18,13 @@ import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/in
 @Injectable()
 export class DocumentPackageV0Aggregator {
   constructor(
+    // `forwardRef` снят: циклов между агрегаторами документов нет (FC1-18).
     @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
     @Inject(DocumentPackageUtils) private readonly documentPackageUtils: DocumentPackageUtils,
     @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
     @Inject(USER_CERTIFICATE_DOMAIN_SERVICE)
-    private readonly userCertificateService: UserCertificateDomainService
+    private readonly userCertificateService: UserCertificateDomainService,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   /**
@@ -148,18 +150,11 @@ export class DocumentPackageV0Aggregator {
     rawData: any,
     links: DocumentDomainAggregate[]
   ): Promise<DecisionDetailAggregateDomainInterface | null> {
-    const decisionActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewDecision.actionName,
-        receiver: process.env.COOPNAME,
-        'data.decision_id': String(rawData.decision_id),
-      }),
-      page: 1,
-      limit: 1,
+    const decisionAction = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewDecision.actionName,
+      data: { decision_id: String(rawData.decision_id) },
     });
-
-    const decisionAction = decisionActionResponse?.results?.[0];
     if (!decisionAction) return null;
 
     const account = await this.accountDomainService.getPrivateAccount(decisionAction.data?.username);

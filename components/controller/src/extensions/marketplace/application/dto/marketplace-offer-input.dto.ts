@@ -59,6 +59,16 @@ export class MarketplaceOfferPackageInputDTO {
   @MaxLength(100)
   public readonly label?: string | null;
 
+  @Field(() => String, {
+    description:
+      'Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», ' +
+      '«картонная коробка», «корзинка (возвратная)». Заполняется своими словами.',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  public readonly package_type!: string;
+
   @Field(() => Boolean, { nullable: true, description: 'Упаковка по умолчанию (для витрины).' })
   @IsOptional()
   @IsBoolean()

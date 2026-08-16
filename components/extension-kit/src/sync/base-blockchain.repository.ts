@@ -91,6 +91,15 @@ export abstract class BaseBlockchainRepository<
     // Проверяем, существует ли уже по кастомному ключу
     const existing = await this.findBySyncKey(syncKey, syncValue);
     if (existing) {
+      // Guard монотонности block_num (DEC-008, Story 1.1): на create-пути не
+      // даём устаревшей дельте (из более раннего блока) затереть более свежую
+      // запись — иначе состояние в БД откатывается назад при гонке дельт.
+      // block_num из PG может прийти строкой (bigint), поэтому сравниваем
+      // через Number (см. controller/CLAUDE.md, bigint-as-string).
+      const existingBlockNum = existing.getBlockNum();
+      if (existingBlockNum != null && Number(blockNum) < Number(existingBlockNum)) {
+        return existing; // stale overwrite предотвращён
+      }
       // Обновляем существующую сущность
       existing.updateFromBlockchain(blockchainData, blockNum, present);
       return await this.save(existing);
@@ -127,6 +136,33 @@ export abstract class BaseBlockchainRepository<
    */
   async restoreFromVersions(forkBlockNum: number): Promise<void> {
     await this.entityVersioningService.restoreVersionsAfterFork(this.repository, this.getEntityTableName(), forkBlockNum);
+  }
+
+  /**
+   * Story 4.4: архивировать live-ряды WHERE block_num > forkBlockNum в invalidated_entities
+   * и удалить из исходной таблицы (атомарно). Возвращает count. Заменяет в hot-path
+   * handleFork прежнюю пару findByBlockNumGreaterThan + deleteByBlockNumGreaterThan.
+   */
+  async archiveInvalidatedSince(forkBlockNum: number, forkEventId?: string | null): Promise<number> {
+    return this.entityVersioningService.archiveAndDeleteLiveAfterFork(
+      this.repository,
+      this.getEntityTableName(),
+      forkBlockNum,
+      forkEventId
+    );
+  }
+
+  /**
+   * Story 4.4: архивировать entity_versions WHERE entity_table=... AND block_num > forkBlockNum
+   * в invalidated_entity_versions и удалить из entity_versions (атомарно). Возвращает count.
+   * Должен вызываться ПОСЛЕ restoreFromVersions — иначе restore не сможет прочитать ещё-живые версии.
+   */
+  async archiveInvalidatedVersionsSince(forkBlockNum: number, forkEventId?: string | null): Promise<number> {
+    return this.entityVersioningService.archiveAndDeleteVersionsAfterFork(
+      this.getEntityTableName(),
+      forkBlockNum,
+      forkEventId
+    );
   }
 
   /**

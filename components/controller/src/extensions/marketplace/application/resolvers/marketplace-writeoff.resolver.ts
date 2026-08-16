@@ -204,8 +204,9 @@ export class MarketplaceWriteoffResolver {
       draft_id: draft.id,
       items: draft.items,
     });
-    // Единицы измерения — снапшот с офферов товаров (шт./кг/л/упак.).
-    const units = await this.service.resolveUnitLabels(draft.items);
+    // Количество и единица — в единицах отпуска (списываем целыми упаковками),
+    // размерность берётся со склада.
+    const presentations = await this.service.resolveItemPresentations(draft.items);
     const action: Cooperative.Registry.MarketplaceWriteoffStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
       coopname: draft.coopname,
@@ -217,8 +218,8 @@ export class MarketplaceWriteoffResolver {
       items: draft.items.map((it, i) => ({
         braname: it.braname,
         asset_title: it.asset_title,
-        quantity: it.quantity,
-        unit: units[i],
+        quantity: presentations[i].quantity,
+        unit: presentations[i].unit,
         // Человекочитаемая сумма «1 020,00 RUB» (2 знака), не машинные 4 знака.
         amount: this.service.formatAssetHuman(Number(it.amount)),
         reason: it.reason,

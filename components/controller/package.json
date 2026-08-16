@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.8.12",
+  "version": "2026.8.15-3",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "bin": "bin/createNodejsApp.js",
@@ -77,6 +77,7 @@
     "@coopenomics/extension-kit": "workspace:*",
     "@coopenomics/innercoop": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
+    "@coopenomics/parser2": "^1.8.2",
     "@coopenomics/provider-client": "2025.11.12-alpha-1",
     "@coopenomics/sdk": "workspace:*",
     "@graphql-codegen/typescript-graphql-request": "^6.2.0",

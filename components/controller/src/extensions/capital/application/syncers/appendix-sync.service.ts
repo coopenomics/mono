@@ -76,12 +76,4 @@ export class AppendixSyncService
       this.logger.error(`Ошибка при обработке отклонения приложения: ${error?.message}`, error?.stack);
     }
   }
-
-  /**
-   * Обработчик форков для приложений
-   */
-  @OnEvent('fork::*')
-  async handleAppendixFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
 }

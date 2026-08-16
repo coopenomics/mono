@@ -15,6 +15,7 @@
  * висит на самом графе, а не на конкретном запуске.
  */
 import { configureExtensionAuth, configurePlatformSettings } from '@coopenomics/extension-kit';
+import { configureSyncPolicy } from '@coopenomics/extension-kit/sync';
 import config from './config';
 
 /**
@@ -40,6 +41,12 @@ export function applyPlatformBootstrap(): void {
       postTransactChainReadDelayMs: config.blockchain.post_transact_chain_read_delay_ms,
       chainId: config.blockchain.id,
     },
+  });
+
+  // Режим обработки дельты неизвестной версии контракта — свойство стенда, а не
+  // кооператива, поэтому он отдельной настройкой каркаса синхронизации.
+  configureSyncPolicy({
+    unsupportedVersionStrict: config.blockchain.unsupported_version_strict,
   });
 }
 

@@ -94,27 +94,4 @@ export class BlockchainEventHandlerService implements OnModuleInit {
       throw error; // Перебрасываем ошибку для корректной обработки
     }
   }
-
-  /**
-   * Обработка события форка блокчейна
-   * Сохраняет форк в базу данных
-   */
-  @OnEvent('fork::*')
-  async handleForkEvent(data: { block_num: number }): Promise<void> {
-    try {
-      this.logger.debug(`Handling fork event at block: ${data.block_num}`);
-
-      // Преобразование данных форка для сохранения
-      const forkData = {
-        chain_id: config.blockchain.id, // Используем chain_id из конфигурации
-        block_num: data.block_num,
-      };
-
-      await this.parserInteractor.saveFork(forkData);
-      this.logger.debug(`Fork saved at block: ${data.block_num} for chain: ${config.blockchain.id}`);
-    } catch (error: any) {
-      this.logger.error(`Ошибка обработки события форка: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку для корректной обработки
-    }
-  }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { OperatorBranchBar } from 'src/entities/OperatorBranch'
 import { useDesktopStore } from 'src/entities/Desktop'
@@ -8,6 +8,7 @@ import { OperatorInventoryLabelingSection } from 'src/pages/Marketplace/Operator
 import { OperatorOwnWarehouseSection } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { OperatorContainersSection } from 'src/pages/Marketplace/OperatorContainers'
 import { PvzWriteoffsSection } from 'src/pages/Marketplace/PvzWriteoffs'
+import { listWriteoffPendingConfirmations } from 'src/pages/Marketplace/PvzWriteoffs/api'
 
 /**
  * Стол «Склад» — всё складское хозяйство участка одной страницей.
@@ -102,6 +103,32 @@ function onContainerCounts(value: { containers: number; types: number }): void {
 function onWriteoffCount(value: number): void {
   counts.value = { ...counts.value, writeoffs: value }
 }
+
+/**
+ * Счётчик списаний считается при открытии стола, а не при заходе в раздел.
+ * Разделы монтируются по одному, поэтому бейдж «Списание» стоял нулём, пока
+ * председатель туда не заглянет, — и подтверждения выглядели как «делать
+ * нечего» (жалоба 2026-08-13: на повестке ждёт подтверждения склада, а на
+ * складе ноль). Раздел, когда его откроют, пришлёт своё число событием и
+ * заменит это.
+ */
+async function loadWriteoffCount(): Promise<void> {
+  if (!writeoffsAllowed.value) return
+  try {
+    const groups = await listWriteoffPendingConfirmations()
+    counts.value = { ...counts.value, writeoffs: groups.length }
+  } catch {
+    // Счётчик — подсказка, а не содержимое: молча оставляем прежнее значение.
+  }
+}
+
+onMounted(() => void loadWriteoffCount())
+
+// Право может прийти позже загрузки стола (grants подтягиваются асинхронно) —
+// тогда считаем в момент появления права.
+watch(writeoffsAllowed, (allowed) => {
+  if (allowed) void loadWriteoffCount()
+})
 </script>
 
 <template lang="pug">

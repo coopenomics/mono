@@ -40,6 +40,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useWindowSize } from 'src/shared/hooks';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
+import { sameHash } from 'src/shared/lib/utils/sameHash';
 import { ShadowHtml } from '../ShadowHtml';
 import { DocumentSignatures, type DocumentSignatureEntry } from 'src/shared/ui/domain/DocumentSignatures';
 
@@ -75,7 +76,7 @@ const regenerate = async () => {
       { skip_save: true },
     );
 
-    if (regenerated.value.hash == regeneratedHash.value)
+    if (sameHash(regenerated.value.hash, regeneratedHash.value))
       SuccessAlert(
         'Сверка прошла успешно: аналогичный документ восстановлен из исходных данных',
       );

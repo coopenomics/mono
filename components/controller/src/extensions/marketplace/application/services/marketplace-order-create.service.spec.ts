@@ -394,7 +394,15 @@ describe('MarketplaceOrderCreateService', () => {
         sale_form: MarketplaceSaleForms.PACKAGED,
         unit_of_measure: MarketplaceUnitsOfMeasure.LITER,
         packages: [
-          { id: 'pkg-0.1l', size: 0.1, price: '100.0000', label: null, sort_order: 0, is_default: true },
+          {
+            id: 'pkg-0.1l',
+            size: 0.1,
+            price: '100.0000',
+            label: null,
+            package_type: 'пластиковая бутылка',
+            sort_order: 0,
+            is_default: true,
+          },
         ],
         quantity_available: 10,
       })

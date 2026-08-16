@@ -32,7 +32,7 @@ const SUPPLIER_CODE = `blago:pickup:${process.env.COOPNAME || 'voskhod'}:ivanpet
  * 2500 ₽, и разница вместе с частью членского взноса возвращается пайщице.
  */
 const FACT_QUANTITY = 9;
-const FACT_UNIT_PRICE = 200;
+export const FACT_UNIT_PRICE = 200;
 
 export const meta = {
   title: 'Стол ПВЗ — приёмка партии поставщика',

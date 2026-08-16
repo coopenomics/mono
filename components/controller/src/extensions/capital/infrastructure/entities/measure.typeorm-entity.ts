@@ -1,7 +1,5 @@
 import { Entity, Column, Index } from 'typeorm';
-import { MeasureCatalogTag } from '../../domain/enums/measure-catalog-tag.enum';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
@@ -11,7 +9,6 @@ export const MeasureEntityName = 'capital_measures';
 @Index(`idx_${MeasureEntityName}_measure_hash`, ['measure_hash'], { unique: true })
 @Index(`idx_${MeasureEntityName}_coopname`, ['coopname'])
 @Index(`idx_${MeasureEntityName}_status`, ['status'])
-@Index(`idx_${MeasureEntityName}_tag`, ['tag'])
 @Index(`idx_${MeasureEntityName}_coop_title_unit`, ['coopname', 'title', 'unit'])
 @Index(`idx_${MeasureEntityName}_created_at`, ['_created_at'])
 export class MeasureTypeormEntity extends BaseTypeormEntity {
@@ -33,22 +30,6 @@ export class MeasureTypeormEntity extends BaseTypeormEntity {
     default: MetricSeriesMode.RATE,
   })
   series_mode!: MetricSeriesMode;
-
-  /** Шаг локальной волны (лейбл в админке — «Волна») */
-  @Column({
-    type: 'enum',
-    enum: MetricSeriesPeriod,
-    default: MetricSeriesPeriod.DAY,
-  })
-  wave_period!: MetricSeriesPeriod;
-
-  /** Категория справочника: личное / продукт / контент / кооп / качество */
-  @Column({
-    type: 'enum',
-    enum: MeasureCatalogTag,
-    default: MeasureCatalogTag.PRODUCT,
-  })
-  tag!: MeasureCatalogTag;
 
   @Column({ type: 'varchar', length: 255 })
   created_by!: string;

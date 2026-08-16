@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import type { DataSource, Repository } from 'typeorm';
 import { EntityVersionTypeormEntity } from './entity-version.typeorm-entity';
 
 /**
@@ -13,6 +13,20 @@ export class EntityVersionRepository {
     @InjectRepository(EntityVersionTypeormEntity)
     private readonly repository: Repository<EntityVersionTypeormEntity>
   ) {}
+
+  /**
+   * Соединение, на котором работает репозиторий.
+   *
+   * Нужно тем, кому требуется транзакция на несколько таблиц. Инжектить
+   * `DataSource` через `@InjectDataSource()` в пакете нельзя: pnpm вшивает в
+   * путь хэш peer-зависимостей, у пакета и контроллера оказываются разные
+   * экземпляры `@nestjs/typeorm`, и токен не совпадает — Nest не находит
+   * провайдера. Токен `@InjectRepository` такой беды не знает: он считается от
+   * класса сущности, а она в пакете одна.
+   */
+  get dataSource(): DataSource {
+    return this.repository.manager.connection;
+  }
 
   /**
    * Сохранить предыдущую версию сущности

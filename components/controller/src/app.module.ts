@@ -13,6 +13,7 @@ import { GraphqlModule } from './infrastructure/graphql/graphql.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
+import { ForkRegistryModule } from './shared/sync/fork';
 import { GeneratorInfrastructureModule } from './infrastructure/generator/generator.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { EventsInfrastructureModule } from './infrastructure/events/events.module';
@@ -90,6 +91,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     ConfigModule.forRoot({
       isGlobal: true, // Чтобы .env был доступен глобально
     }),
+    ScheduleModule.forRoot(), // @Cron / @Interval / @Timeout (Story 4.4 retention)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -101,6 +103,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
     GraphqlModule,
+    ForkRegistryModule,
     BlockchainModule,
     GeneratorInfrastructureModule,
     RedisModule,

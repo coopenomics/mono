@@ -91,7 +91,7 @@ q-page.operator-orders
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Реестр заказов участка доступен председателю участка и его доверенным.'
+    body='Реестр заказов участка доступен оператору участка и его доверенным.'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
