@@ -152,7 +152,8 @@ export interface MarketplaceOfferEditPrefill {
     size: number;
     price: string;
     label: string | null;
-    package_type: string;
+    /** Пусто у предложений, заведённых до появления поля — тара не названа. */
+    package_type: string | null;
     is_default: boolean;
   }>;
   quantity_available: number;

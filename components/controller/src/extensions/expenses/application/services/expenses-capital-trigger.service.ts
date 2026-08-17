@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import {
@@ -43,7 +43,7 @@ export class ExpensesCapitalTriggerService {
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ExpensesCapitalTriggerService.name);
   }

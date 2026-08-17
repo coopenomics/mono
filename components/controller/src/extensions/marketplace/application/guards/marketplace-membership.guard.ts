@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { platformSettings, hasServerSecret } from '@coopenomics/extension-kit';
+import { MonoAccountStatus } from '@coopenomics/innercoop';
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
@@ -46,7 +46,11 @@ export class MarketplaceMembershipGuard implements CanActivate {
     const gqlContext = ctx.getContext();
     const request = gqlContext.req;
 
-    if (request?.headers?.['server-secret'] === config.server_secret) {
+    // Секрет межсервисного обхода сверяет сам каркас: значение ему передал
+    // composition root, и сюда оно не попадает вовсе. Читать его из конфига
+    // ядра расширению нельзя — это ровно тот секрет, который не должен
+    // разъезжаться по коду.
+    if (hasServerSecret(request?.headers)) {
       return true;
     }
 
@@ -56,7 +60,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
       throw new UnauthorizedException('Требуется авторизованный пользователь');
     }
 
-    if (user.status !== MonoAccountStatusDomainInterface.Active) {
+    if (user.status !== MonoAccountStatus.Active) {
       throw new ForbiddenException('Доступ только для пайщиков кооператива');
     }
 
@@ -65,8 +69,8 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // (MarketplaceSupplierRegistryService / MarketplaceKuChairmanService),
     // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.
     const [isOfferer, isKuChairman] = await Promise.all([
-      this.supplierRegistry.isOfferer(config.coopname, user.username),
-      this.kuChairmanService.isKuChairman(config.coopname, user.username),
+      this.supplierRegistry.isOfferer(platformSettings().coopname, user.username),
+      this.kuChairmanService.isKuChairman(platformSettings().coopname, user.username),
     ]);
     const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {
       isOfferer,

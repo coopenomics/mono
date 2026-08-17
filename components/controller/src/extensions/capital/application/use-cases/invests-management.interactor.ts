@@ -3,22 +3,17 @@ import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/int
 import type { CreateProjectInvestDomainInput } from '../../domain/actions/create-project-invest-domain-input.interface';
 import type { CreateProgramInvestDomainInput } from '../../domain/actions/create-program-invest-domain-input.interface';
 import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
-import type { TransactResult } from '@wharfkit/session';
 import { INVEST_REPOSITORY, InvestRepository } from '../../domain/repositories/invest.repository';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import type { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
-import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
 import { Cooperative } from 'cooptypes';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
@@ -26,6 +21,10 @@ import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-pr
 import type { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
 import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallocation-limit.dto';
 import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils,
+  CurrencyValidationUtil,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -48,7 +47,7 @@ export class InvestsManagementInteractor {
     private readonly segmentRepository: SegmentRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(InvestsManagementInteractor.name);
   }
@@ -59,7 +58,7 @@ export class InvestsManagementInteractor {
    */
   async prepareGenerationMoneyInvestStatementData(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
@@ -124,8 +123,8 @@ export class InvestsManagementInteractor {
    */
   async createProjectInvest(
     data: CreateProjectInvestDomainInput,
-    _currentUser: MonoAccountDomainInterface
-  ): Promise<TransactResult> {
+    _currentUser: IMonoAccount
+  ): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     assertBlockchainProject(project, 'инвестирование');
 
@@ -146,8 +145,8 @@ export class InvestsManagementInteractor {
    */
   async createProgramInvest(
     data: CreateProgramInvestDomainInput,
-    _currentUser: MonoAccountDomainInterface
-  ): Promise<TransactResult> {
+    _currentUser: IMonoAccount
+  ): Promise<InnerTransactResult> {
     const blockchainData = {
       coopname: data.coopname,
       username: data.username,
@@ -162,7 +161,7 @@ export class InvestsManagementInteractor {
   /**
    * Направление средств программы в проект или компонент (allocate)
    */
-  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
     assertBlockchainProject(project, 'направление средств');
@@ -177,7 +176,7 @@ export class InvestsManagementInteractor {
   /**
    * Возврат ранее направленных средств из компонента в программу
    */
-  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
     assertBlockchainProject(project, 'возврат средств');
@@ -223,8 +222,8 @@ export class InvestsManagementInteractor {
    */
   async getInvests(
     filter?: InvestFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<InvestDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<InvestDomainEntity>> {
     return await this.investRepository.findAllPaginated(filter, options);
   }
 

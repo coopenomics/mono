@@ -3,7 +3,7 @@ import { GetCurrentTableStatesInteractor } from '../interactors/get-current-tabl
 import type { CurrentTableStateDTO } from '../dto/current-table-state.dto';
 import type { CurrentTableStatesFiltersInputDTO } from '../dto/current-table-states-filters-input.dto';
 import type { TableStateDomainInterface } from '~/domain/parser/interfaces/table-state-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Сервис приложения для работы с текущими состояниями таблиц

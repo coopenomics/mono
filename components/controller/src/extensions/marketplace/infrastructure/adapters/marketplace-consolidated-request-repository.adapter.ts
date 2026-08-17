@@ -8,12 +8,9 @@ import type {
   MarketplaceConsolidatedRequestListFilter,
 } from '../../domain/repositories/marketplace-consolidated-request.repository';
 import type { MarketplaceConsolidatedRequestStatus } from '../../domain/entities/marketplace-consolidated-request.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceConsolidatedRequestEntity } from '../entities/marketplace-consolidated-request.entity';
 import { MarketplaceConsolidatedRequestMapper } from '../mappers/marketplace-consolidated-request.mapper';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceConsolidatedRequestRepositoryAdapter
@@ -65,8 +62,8 @@ export class MarketplaceConsolidatedRequestRepositoryAdapter
 
   async list(
     filter: MarketplaceConsolidatedRequestListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceConsolidatedRequestDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceConsolidatedRequestDomainEntity>> {
     const qb = this.repo.createQueryBuilder('r').where('r.coopname = :coop', { coop: filter.coopname });
     if (filter.offer_id) qb.andWhere('r.offer_id = :off', { off: filter.offer_id });
     if (filter.supplier_account) qb.andWhere('r.supplier_account = :sup', { sup: filter.supplier_account });

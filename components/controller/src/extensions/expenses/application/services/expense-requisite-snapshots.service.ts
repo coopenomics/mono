@@ -1,11 +1,11 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import type { InterExpenseRequisiteItemInput } from '@coopenomics/inter'
-import { PAYMENT_METHOD_REPOSITORY, PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository'
+import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 
 /**
  * Снимки реквизитов получателей по строкам СЗ. Канон gateway prepareWithdraw →
@@ -18,17 +18,17 @@ export class ExpenseRequisiteSnapshotsService {
   private readonly logger = new Logger(ExpenseRequisiteSnapshotsService.name)
 
   constructor(
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethods: PaymentMethodRepository,
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethods: IPaymentMethodPort,
     @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
     private readonly repository: Repository<ExpenseRequisiteSnapshotTypeormEntity>
   ) {}
 
-  async validate(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     await this.resolve(coopname, items)
   }
 
-  async snapshot(coopname: string, items: InterExpenseRequisiteItemInput[]): Promise<void> {
+  async snapshot(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
     const snapshots = await this.resolve(coopname, items)
     if (snapshots.length === 0) return
     try {
@@ -82,7 +82,7 @@ export class ExpenseRequisiteSnapshotsService {
   async getCooperativeRequisiteData(
     coopname: string
   ): Promise<{ data: Record<string, unknown> | null; requisites: string } | null> {
-    const list = await this.paymentMethods.list({ username: coopname, page: 1, limit: 50, sortOrder: 'ASC' })
+    const list = await this.paymentMethods.list(coopname, { page: 1, limit: 50, sortOrder: 'ASC' })
     const methods = list.items ?? []
     const method = methods.find((m) => m.is_default) ?? methods[0]
     if (!method) return null
@@ -94,7 +94,7 @@ export class ExpenseRequisiteSnapshotsService {
 
   private async resolve(
     coopname: string,
-    items: InterExpenseRequisiteItemInput[]
+    items: InnerExpenseRequisiteItemInput[]
   ): Promise<ExpenseRequisiteSnapshotTypeormEntity[]> {
     return Promise.all(
       items.map(async (it) => {

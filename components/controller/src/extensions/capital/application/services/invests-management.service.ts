@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import type { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
@@ -8,21 +8,18 @@ import type {
   DeallocationLimitInputDTO,
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
-import { AssetUtils } from '~/shared/utils/asset.utils';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import type { TransactResult } from '@wharfkit/session';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils, GenerateDocumentInputDTO,
+  CurrencyValidationUtil,
+} from '@coopenomics/extension-kit';
 import { Cooperative } from 'cooptypes';
-import { generateRandomHash } from '~/utils/generate-hash.util';
-import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
-import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-draft-verification.util';
+import { verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
+import { DOCUMENT_PORT, type IDocumentPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
+import { generateRandomHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для управления инвестициями CAPITAL
@@ -32,7 +29,7 @@ import { verifySignedDocumentAgainstStoredDraft } from '~/utils/signed-document-
 export class InvestsManagementService {
   constructor(
     private readonly investsManagementInteractor: InvestsManagementInteractor,
-    private readonly documentInteractor: DocumentInteractor
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   /**
@@ -40,11 +37,11 @@ export class InvestsManagementService {
    */
   async createProjectInvest(
     data: CreateProjectInvestInputDTO,
-    currentUser: MonoAccountDomainInterface
-  ): Promise<TransactResult> {
+    currentUser: IMonoAccount
+  ): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
-      (docHash) => this.documentInteractor.getDocumentByHash(docHash),
+      (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
       [
         { field: 'amount', expected: data.amount, mode: 'currency_amount' },
@@ -69,11 +66,11 @@ export class InvestsManagementService {
    */
   async createProgramInvest(
     data: CreateProgramInvestInputDTO,
-    currentUser: MonoAccountDomainInterface
-  ): Promise<TransactResult> {
+    currentUser: IMonoAccount
+  ): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме программной инвестиции');
     await verifySignedDocumentAgainstStoredDraft(
-      (docHash) => this.documentInteractor.getDocumentByHash(docHash),
+      (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
       [{ field: 'amount', expected: data.amount, mode: 'currency_amount' }],
     );
@@ -92,7 +89,7 @@ export class InvestsManagementService {
   /**
    * Направление средств программы в проект или компонент (allocate)
    */
-  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме направляемых средств');
 
     return await this.investsManagementInteractor.allocateFunds(data);
@@ -101,7 +98,7 @@ export class InvestsManagementService {
   /**
    * Возврат ранее направленных средств из компонента в программу
    */
-  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме возвращаемых средств');
 
     return await this.investsManagementInteractor.deallocateFunds(data);
@@ -130,7 +127,7 @@ export class InvestsManagementService {
    */
   async getInvests(filter?: InvestFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<InvestOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.investsManagementInteractor.getInvests(filter, domainOptions);
@@ -161,7 +158,7 @@ export class InvestsManagementService {
     data: GenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,

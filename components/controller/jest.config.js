@@ -29,5 +29,10 @@ module.exports = {
     // (тесты реестра расширений тянут capital → github.service/git.service).
     // К GitHub в юнит-тестах никто не ходит. См. tests/mocks/octokit-rest.ts.
     '^@octokit/rest$': '<rootDir>/tests/mocks/octokit-rest.ts',
+    // p-queue — тоже pure ESM, приходит транзитивно из @coopenomics/parser2
+    // (сериализует обработку блоков). Рантайм на Node 22 её грузит, загрузчик
+    // jest — нет, и без подмены не стартует всякий сьют, дотягивающийся до
+    // потребителя цепи. См. tests/mocks/p-queue.ts — там честная очередь.
+    '^p-queue$': '<rootDir>/tests/mocks/p-queue.ts',
   },
 };

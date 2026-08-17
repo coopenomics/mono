@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
-import type { IDelta } from '~/types/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import { Interfaces } from 'cooptypes';
 type IOrderRow = Interfaces.Marketplace.IOrder;
 import type { MarketplaceOrderBlockchainData } from '../../domain/entities/marketplace-order.entity';
@@ -63,7 +62,7 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
    */
   private static readonly KNOWN_UNMAPPED_STATUSES: ReadonlySet<string> = new Set(['cancelled']);
 
-  constructor(private readonly logger: WinstonLoggerService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort) {
     super();
     this.logger.setContext(MarketplaceOrderDeltaMapper.name);
   }

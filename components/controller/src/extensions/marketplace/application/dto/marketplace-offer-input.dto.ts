@@ -16,7 +16,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_MAX_IMAGES,
   MARKETPLACE_OFFER_MAX_PACKAGES,

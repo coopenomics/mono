@@ -1,13 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { config } from '~/config';
-import {
-  BRANCH_BLOCKCHAIN_PORT,
-  type BranchBlockchainPort,
-} from '~/domain/branch/interfaces/branch-blockchain.port';
-import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
+import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 import {
   GeocodeStatuses,
   KuDetailsDomainEntity,
@@ -23,6 +15,8 @@ import { DetailKUInputDTO } from '../dto/detail-ku-input.dto';
 import { KuDetailsDTO } from '../dto/ku-details.dto';
 import type { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import type { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
+import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Application-сервис marketplace-детализации существующих в core КУ
@@ -61,10 +55,10 @@ export class KuDetailsService {
     private readonly repo: KuDetailsDomainRepository,
     @Inject(GEOCODER_PORT)
     private readonly geocoder: GeocoderPort,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository,
-    @Inject(BRANCH_BLOCKCHAIN_PORT)
-    private readonly branchPort: BranchBlockchainPort
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort,
+    @Inject(BRANCH_PORT)
+    private readonly branchPort: IBranchPort
   ) {}
 
   async detailKU(input: DetailKUInputDTO): Promise<KuDetailsDTO> {
@@ -231,9 +225,9 @@ export class KuDetailsService {
   }
 
   private assertCurrentCoop(coopname: string): void {
-    if (coopname !== config.coopname) {
+    if (coopname !== platformSettings().coopname) {
       throw new NotFoundException(
-        `Controller обслуживает кооператив "${config.coopname}", запрос для "${coopname}" отклонён`
+        `Controller обслуживает кооператив "${platformSettings().coopname}", запрос для "${coopname}" отклонён`
       );
     }
   }

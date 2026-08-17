@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Колбэк, который контракт `expense` опубликует в `dispatcher` при закрытии СЗ.
@@ -40,8 +40,8 @@ export interface IExpenseProposalBlockchainData {
   total_planned: string;
   total_actual: string;
   callback?: IExpenseProposalCallbackHandler;
-  statement_doc?: ISignedDocumentDomainInterface;
-  decision_doc?: ISignedDocumentDomainInterface;
+  statement_doc?: ISignedDocument;
+  decision_doc?: ISignedDocument;
   created_at: string;
   updated_at: string;
 }

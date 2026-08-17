@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MembershipExitResolver } from './resolvers/membership-exit.resolver';
 import { MembershipExitService } from './services/membership-exit.service';
@@ -23,8 +23,8 @@ import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/e
   imports: [
     ParticipantModule,
     TypeOrmModule.forFeature([MembershipExitRequestEntity]),
-    forwardRef(() => TokenApplicationModule),
-    forwardRef(() => NotificationModule),
+    TokenApplicationModule,
+    NotificationModule,
     SystemModule,
     UserDomainModule,
     EventsInfrastructureModule,

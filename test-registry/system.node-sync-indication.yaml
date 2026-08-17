@@ -1,0 +1,207 @@
+feature: system.node-sync-indication
+title: Индикация синхронизации узла с блокчейном
+
+# Пока узел не догнал цепь, рабочий стол выглядел рабочим и показывал неправду:
+# свежих заказов, подписей и решений в базе ещё нет, а списки и балансы
+# рисовались как обычно. Запись в этот момент выглядела как сбой — операция
+# уходит в цепь, а подтверждение приходит лишь когда узел дочитает цепь.
+#
+# Отставание считается по позиции чтения парсера (`parser2:sync:<chain_id>`,
+# обновляется на каждом блоке) против головы цепи из `get_info`. По журналу
+# дельт считать нельзя: события контрактов кооператива редки, и «последняя
+# запись» отстаёт от реальной позиции на всю пустую часть цепи.
+#
+# Гистерезис обязателен: порог входа выше порога выхода плюс несколько тиков
+# подряд у головы — иначе заглушка мигает от обычного дрожания на живой сети.
+sources:
+  backend:
+    - components/controller/src/application/system/services/node-sync-health.service.ts
+    - components/controller/src/application/system/resolvers/node-sync.resolver.ts
+    - components/controller/src/application/system/dto/node-sync-state.dto.ts
+    - components/controller/src/application/system/enum/node-sync-status.enum.ts
+    - components/controller/src/domain/common/ports/redis.port.ts
+    - components/controller/src/infrastructure/redis/redis.service.ts
+  ui:
+    - components/desktop/src/entities/System/ui/NodeSyncOverlay/NodeSyncOverlay.vue
+    - components/desktop/src/entities/System/model/store.ts
+    - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
+    - components/desktop/src/entities/System/ui/NodeSyncIndicator/NodeSyncIndicator.vue
+
+cases:
+  - id: sync.ind.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Позиция чтения узла совпала с головой цепи.
+    expect: >
+      узел считается рабочим, отставание нулевое, состояние уходит подписчикам
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Отставание достигло порога, с которого работать нельзя.
+    expect: >
+      узел объявляется догоняющим — рабочий стол закрывается заглушкой
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Отставание колеблется между порогом выхода и порогом входа.
+    expect: >
+      состояние остаётся рабочим — заглушка от дрожания не появляется
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Догоняющий узел вышел к голове цепи, но продержался меньше требуемого
+      числа тиков подряд.
+    expect: >
+      заглушка держится, пока узел не продержится у головы положенные тики
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Посреди выхода из догона отставание снова подскочило.
+    expect: >
+      отсчёт здоровых тиков начинается заново
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Узел догоняет: отставание сокращается, при этом голова цепи тоже уходит
+      вперёд.
+    expect: >
+      оценка времени считается по сокращению отставания, а не по темпу чтения —
+      иначе она вдвое оптимистичнее правды
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Отставание не сокращается или растёт.
+    expect: >
+      оценка времени не выдаётся вовсе — обещать нечего
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Цепь не отвечает на запрос текущего состояния.
+    expect: >
+      состояние — «связи нет» с причиной «не отвечает цепь», а не мнимый догон
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Позиции чтения нет в хранилище вовсе.
+    expect: >
+      состояние — «связи нет» с причиной «чтение цепи остановлено»
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Позиция чтения не двигалась дольше отведённого окна.
+    expect: >
+      состояние — «связи нет»: неподвижная позиция это остановка, а не медленный
+      догон
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.break.04
+    level: backend
+    kind: break
+    scenario: >
+      После обрыва связи узел вернулся и снова догоняет.
+    expect: >
+      отсчёт здоровых тиков и скорость догона начинаются заново — счётчики до
+      паузы к состоянию после неё отношения не имеют
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Состояние не изменилось либо остаток сдвинулся незначительно.
+    expect: >
+      в канал подписчикам ничего не уходит — поток не превращается в шум
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Остаток заметно сократился либо сменилось само состояние.
+    expect: >
+      подписчики получают обновление
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.break.05
+    level: backend
+    kind: break
+    scenario: >
+      Хранилище позиции чтения недоступно в момент пересчёта.
+    expect: >
+      пересчёт не роняет планировщик, прошлое состояние сохраняется, сбой
+      попадает в журнал
+    test: components/controller/tests/unit/system/node-sync-health.test.ts
+    status: written
+
+  - id: sync.ind.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Узел ушёл в догон, пока пайщик работает на рабочем столе.
+    expect: >
+      рабочий стол закрывается экраном догона: доля прочитанного растёт от нуля
+      к ста процентам, видны остаток блоков и оценка времени; экран уходит сам
+      после догона, без перезагрузки страницы
+    status: missing
+
+  - id: sync.ind.ui.02
+    level: ui
+    kind: side
+    scenario: >
+      Узел вне синхронизации, пайщик открывает мастер установки.
+    expect: >
+      экран догона страницу установки не перекрывает — чинить узел он не мешает
+    status: missing
+
+  - id: sync.ind.ui.03
+    level: ui
+    kind: side
+    scenario: >
+      Узел кооператива перестал отвечать: остановлен блокчейн-узел либо сам
+      бэкенд.
+    expect: >
+      рабочий стол показывает техническое обслуживание, а не потерю связи —
+      пайщик не должен искать причину у себя; вид совпадает с плановым
+      обслуживанием
+    status: missing

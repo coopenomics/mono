@@ -1,9 +1,9 @@
 // src/auth/auth.module.ts
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthStrategy } from './strategies/jwt.strategy';
-import { HttpJwtAuthGuard } from './guards/http-jwt-auth.guard';
+import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
 import { AuthResolver } from './resolvers/auth.resolver';
 import { AuthService } from './services/auth.service';
 import { AuthInteractor } from './interactors/auth.interactor';
@@ -22,11 +22,11 @@ import config from '~/config/config';
       secret: config.jwt.secret,
       signOptions: { expiresIn: config.jwt.accessExpirationMinutes },
     }),
-    forwardRef(() => AuthDomainModule),
+    AuthDomainModule,
     AccountDomainModule,
     UserDomainModule,
-    forwardRef(() => NotificationModule),
-    forwardRef(() => TokenApplicationModule),
+    NotificationModule,
+    TokenApplicationModule,
     BlockchainModule,
   ],
   providers: [JwtAuthStrategy, HttpJwtAuthGuard, AuthInteractor, AuthResolver, AuthService],

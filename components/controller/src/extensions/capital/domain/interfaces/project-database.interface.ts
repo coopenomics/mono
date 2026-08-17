@@ -1,4 +1,4 @@
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 
 /** Публикация анонса компонента в Matrix (комната родительского проекта), как у требований. */
 export interface IProjectMatrixComponentAnnouncementEvent {

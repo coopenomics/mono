@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LogService, ICapitalLogFilterInput } from '../services/log.service';
 import { LogOutputDTO } from '../dto/logs/log.dto';
 import { GetLogsInputDTO } from '../dto/logs/get-logs.input';
-import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор для работы с логами
@@ -31,7 +30,7 @@ export class LogInteractor {
       viewer_username: viewerUsername,
     };
 
-    const domainOptions: PaginationInputDomainInterface | undefined = pagination;
+    const domainOptions: PaginationInputDTO | undefined = pagination;
     const result = await this.logService.getLogs(serviceFilter, domainOptions);
     const items = result.items.map((log) => this.mapToDTO(log));
 
@@ -51,7 +50,7 @@ export class LogInteractor {
     pagination?: PaginationInputDTO,
     viewerUsername?: string
   ): Promise<PaginationResult<LogOutputDTO>> {
-    const domainOptions: PaginationInputDomainInterface | undefined = pagination;
+    const domainOptions: PaginationInputDTO | undefined = pagination;
     const result = await this.logService.getLogsByProjectHash(project_hash, domainOptions, viewerUsername);
     const items = result.items.map((log) => this.mapToDTO(log));
 
@@ -71,7 +70,7 @@ export class LogInteractor {
     pagination?: PaginationInputDTO,
     viewerUsername?: string
   ): Promise<PaginationResult<LogOutputDTO>> {
-    const domainOptions: PaginationInputDomainInterface | undefined = pagination;
+    const domainOptions: PaginationInputDTO | undefined = pagination;
     const result = await this.logService.getLogsByIssueHash(issue_hash, domainOptions, viewerUsername);
     const items = result.items.map((log) => this.mapToDTO(log));
 

@@ -16,7 +16,7 @@ import {
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import { numericQuantityTransformer } from './numeric-quantity.transformer';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало
@@ -190,7 +190,7 @@ export class MarketplaceOrderEntity {
   public signiss1_tx_hash!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  public issue_act_signiss1_document!: ISignedDocumentDomainInterface | null;
+  public issue_act_signiss1_document!: ISignedDocument | null;
 
   // ── Story 6.3 / FR24 — финальная подпись заказчика (signiss2) ──────────
 

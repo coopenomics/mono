@@ -2,7 +2,7 @@
 
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { CandidateDomainInterface } from '../interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DocumentType } from '~/domain/registration/enum';
 
 export interface CandidateRepository {
@@ -13,12 +13,12 @@ export interface CandidateRepository {
   saveDocument(
     username: string,
     documentType: DocumentType,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void>;
   saveProgramAgreement(
     username: string,
     agreementId: string,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void>;
   findAllPaginated(
     options: PaginationInputDomainInterface & {

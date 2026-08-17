@@ -13,12 +13,9 @@ import {
   MarketplaceOfferStatuses,
   type MarketplaceOfferStatus,
 } from '../../domain/entities/marketplace-offer.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomainRepository {
@@ -41,8 +38,8 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
 
   async list(
     filter: OfferListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     const qb = this.repo
       .createQueryBuilder('o')
       .where('o.coopname = :coop', { coop: filter.coopname });

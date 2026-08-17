@@ -1,6 +1,6 @@
 // modules/appstore/dto/extension-graphql-input.dto.ts
 import { InputType, Field } from '@nestjs/graphql';
-import type { ExtensionDomainInterface } from '~/domain/extension/interfaces/extension-domain.interface';
+import type { ExtensionDomainInterface } from '@coopenomics/extension-kit';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType('ExtensionInput')

@@ -1,4 +1,5 @@
-import { Injectable, Inject, forwardRef, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateCommitDomainInput } from '../../domain/actions/create-commit-domain-input.interface';
 import type { CommitApproveDomainInput } from '../../domain/actions/commit-approve-domain-input.interface';
@@ -8,23 +9,25 @@ import { GitService } from '../services/git.service';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
 import { CommitDomainEntity, type CommitContentData, type CommitData } from '../../domain/entities/commit.entity';
-import type { CapitalContract } from 'cooptypes';
+import { CapitalContract } from 'cooptypes';
 import { PermissionsService } from '../services/permissions.service';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
-import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
   type IssueLinkedGitCommitRepository,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import { AssetUtils,
+  generateHashFromString,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -44,11 +47,10 @@ export class GenerationInteractor {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
-    @Inject(forwardRef(() => CommitSyncService))
     private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)
     private readonly issueLinkedGitCommitRepository: IssueLinkedGitCommitRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(GenerationInteractor.name);
   }
@@ -58,7 +60,7 @@ export class GenerationInteractor {
    * Проверяет доступность указанного количества часов и фиксирует время
    * commit_hash: из Git diff, из привязанных GitHub-коммитов или из off-chain взноса без Git (nonce в meta)
    */
-  async createCommit(data: CreateCommitDomainInput, _currentUser: MonoAccountDomainInterface): Promise<CommitDomainEntity> {
+  async createCommit(data: CreateCommitDomainInput, _currentUser: IMonoAccount): Promise<CommitDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     assertBlockchainProject(project, 'фиксацию коммита');
 
@@ -149,7 +151,7 @@ export class GenerationInteractor {
 
             // Генерируем commit_hash на основе diff (только для первого Git элемента)
             if (!commitHash) {
-              commitHash = sha256(gitDiffData.diff);
+              commitHash = generateHashFromString(gitDiffData.diff);
               // Добавляем URL в мета-данные для блокчейна
               metaData.git_url = gitDiffData.url;
               this.logger.debug(`Сгенерирован commit_hash: ${commitHash} на основе diff`);
@@ -204,7 +206,7 @@ export class GenerationInteractor {
           },
         });
       }
-      commitHash = sha256(combined);
+      commitHash = generateHashFromString(combined);
       metaData.git_linked_commits = linkedRows.map((r) => r.github_sha);
       linkedRowIdsToConsume = linkedRows.map((r) => r.id);
       this.logger.debug(`Сгенерирован commit_hash из ${linkedRows.length} привязанных GitHub-коммитов`);
@@ -214,7 +216,7 @@ export class GenerationInteractor {
       this.appendContributionFeedbackItems(enrichedData, feedbackItems);
       const nonce = randomUUID();
       metaData.artifact_contribution_nonce = nonce;
-      commitHash = sha256(
+      commitHash = generateHashFromString(
         JSON.stringify({
           kind: 'capital_contribution_artifact_v1',
           coopname: data.coopname,
@@ -398,9 +400,14 @@ export class GenerationInteractor {
   }
 
   /**
-   * Обработать одобрение коммита из блокчейна
+   * Обработать одобрение коммита из блокчейна.
+   *
+   * Подписка живёт здесь же, у обработчика: раньше событие ловил синхронизатор
+   * коммитов и пересылал сюда, из-за чего инжектил этот сценарий, а сценарий —
+   * его. Обработчику от синхронизатора ничего не нужно, только данные действия.
    */
-  async handleApproveCommit(actionData: ActionDomainInterface): Promise<void> {
+  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitApprove.actionName}`)
+  async handleApproveCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.CommitApprove.ICommitApprove;
@@ -429,9 +436,11 @@ export class GenerationInteractor {
   }
 
   /**
-   * Обработать отклонение коммита из блокчейна
+   * Обработать отклонение коммита из блокчейна. Подписка — по той же причине,
+   * что и у одобрения.
    */
-  async handleDeclineCommit(actionData: ActionDomainInterface): Promise<void> {
+  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitDecline.actionName}`)
+  async handleDeclineCommit(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const { data, block_num } = actionData;
       const actionPayload = data as CapitalContract.Actions.CommitDecline.ICommitDecline;

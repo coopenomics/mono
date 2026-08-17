@@ -1,16 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CANDIDATE_DATA_PORT, CandidateDataPort } from '~/domain/registration/ports/candidate-data.port';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { PaginationInputDTO, PaginationResult,
+  CandidateFilterInputDTO,
+  CandidateStatus,
+} from '@coopenomics/extension-kit';
+import { IMonoAccount,
+  CANDIDATE_PORT,
+  type ICandidatePort,
+} from '@coopenomics/innercoop';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
-import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '~/extensions/capital/domain/repositories/contributor.repository';
+import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../../domain/repositories/contributor.repository';
 
 @Injectable()
 export class CapitalRegistrationService {
   constructor(
-    @Inject(CANDIDATE_DATA_PORT)
-    private readonly candidateDataPort: CandidateDataPort,
+    @Inject(CANDIDATE_PORT)
+    private readonly candidateDataPort: ICandidatePort,
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository
   ) {}
@@ -19,7 +23,7 @@ export class CapitalRegistrationService {
    * Получение кандидатов ядра, обогащенных данными благороста
    */
   async getCapitalCandidates(
-    currentUser: MonoAccountDomainInterface,
+    currentUser: IMonoAccount,
     filter?: CandidateFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<CapitalCandidateOutputDTO>> {
@@ -33,6 +37,9 @@ export class CapitalRegistrationService {
 
         return {
           ...item,
+          // Состояние заявки контракт описывает строкой, форма ответа —
+          // перечнем с теми же значениями: приведение на границе.
+          status: item.status as CandidateStatus,
           capital_status: contributor?.status,
           rate_per_hour: contributor?.rate_per_hour,
           hours_per_day: contributor?.hours_per_day,

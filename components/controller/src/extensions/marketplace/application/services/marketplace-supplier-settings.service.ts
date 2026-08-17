@@ -1,14 +1,10 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
-import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
-import {
   MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
   type MarketplaceSupplierSettingsDomainRepository,
 } from '../../domain/repositories/marketplace-supplier-settings.repository';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort, type InnerPaymentMethod } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_SUPPLIER_SETTINGS_SERVICE = Symbol(
   'MARKETPLACE_SUPPLIER_SETTINGS_SERVICE'
@@ -39,8 +35,8 @@ export class MarketplaceSupplierSettingsService {
   constructor(
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY)
     private readonly settingsRepo: MarketplaceSupplierSettingsDomainRepository,
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepo: PaymentMethodRepository
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethodRepo: IPaymentMethodPort
   ) {}
 
   async getSettings(coopname: string, username: string): Promise<SupplierPaymentSettingsView> {
@@ -79,7 +75,7 @@ export class MarketplaceSupplierSettingsService {
   async resolvePayoutMethod(
     coopname: string,
     username: string
-  ): Promise<PaymentMethodDomainEntity | null> {
+  ): Promise<InnerPaymentMethod | null> {
     const selectedId = await this.settingsRepo.getPayoutMethodId(coopname, username);
     if (selectedId) {
       try {
@@ -92,12 +88,7 @@ export class MarketplaceSupplierSettingsService {
     }
     // Пагинация в generator-репозитории методов не работает (известный TODO),
     // поля обязательны по интерфейсу — передаём широкое окно.
-    const methods = await this.paymentMethodRepo.list({
-      username,
-      page: 1,
-      limit: 100,
-      sortOrder: 'ASC',
-    });
+    const methods = await this.paymentMethodRepo.list(username, { page: 1, limit: 100, sortOrder: 'ASC' });
     const items = methods.items ?? [];
     return items.find((m) => m.is_default) ?? (items.length === 1 ? items[0] : null);
   }

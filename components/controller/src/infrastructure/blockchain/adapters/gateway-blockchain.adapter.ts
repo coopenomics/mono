@@ -5,12 +5,12 @@ import { TransactResult } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type { GatewayBlockchainPort } from '~/domain/gateway/ports/gateway-blockchain.port';
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
 import type { DeclineOutcomeDomainInterface } from '~/domain/gateway/interfaces/decline-outcome-domain.interface';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для gateway

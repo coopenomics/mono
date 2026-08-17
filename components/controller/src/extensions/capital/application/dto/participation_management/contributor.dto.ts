@@ -1,9 +1,9 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ContributorStatus } from '../../../domain/enums/contributor-status.enum';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
-import { ProgramWalletDTO } from '~/application/wallet/dto/program-wallet.dto';
+import { CapitalProgramWalletDTO } from './capital-program-wallet.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Contributor
@@ -206,21 +206,21 @@ export class ContributorOutputDTO extends BaseOutputDTO {
   })
   document_parameters?: ContributorDocumentParametersDTO;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Main',
   })
-  main_wallet?: ProgramWalletDTO | null;
+  main_wallet?: CapitalProgramWalletDTO | null;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Generation',
   })
-  generation_wallet?: ProgramWalletDTO | null;
+  generation_wallet?: CapitalProgramWalletDTO | null;
 
-  @Field(() => ProgramWalletDTO, {
+  @Field(() => CapitalProgramWalletDTO, {
     nullable: true,
     description: 'Программный кошелек в программе Blagorost',
   })
-  blagorost_wallet?: ProgramWalletDTO | null;
+  blagorost_wallet?: CapitalProgramWalletDTO | null;
 }

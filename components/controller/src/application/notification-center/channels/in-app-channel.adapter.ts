@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type {
   ChannelDeliveryResult,
   ChannelMessage,
   InAppChannelPort,
 } from '~/domain/notification/interfaces/channel.ports';
 import { renderTemplate, resolveTemplate } from '../template.util';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /**
  * Канал «In-app» — реализация {@link InAppChannelPort}.

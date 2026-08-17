@@ -5,11 +5,9 @@ import { ProjectPropertyDomainEntity } from '../../domain/entities/project-prope
 import { ProjectPropertyTypeormEntity } from '../entities/project-property.typeorm-entity';
 import { ProjectPropertyMapper } from '../mappers/project-property.mapper';
 import type { ProjectPropertyRepository } from '../../domain/repositories/project-property.repository';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProjectPropertyBlockchainData } from '../../domain/interfaces/project-property-blockchain.interface';
 import type { IProjectPropertyDatabaseData } from '../../domain/interfaces/project-property-database.interface';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
-
 /**
  * TypeORM реализация репозитория проектных имущественных взносов
  */

@@ -1,8 +1,7 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, type InnerAccount } from '@coopenomics/innercoop';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
 import { ParticipationManagementInteractor } from '../../application/use-cases/participation-management.interactor';
 
 /**
@@ -17,7 +16,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
     private readonly participationManagementInteractor: ParticipationManagementInteractor,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ContributorAccountSyncService.name);
   }
@@ -30,7 +29,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
    * Обработка события обновления аккаунта
    */
   @OnEvent('account::updated')
-  async handleAccountUpdate(eventData: { username: string; account: AccountDomainEntity }): Promise<void> {
+  async handleAccountUpdate(eventData: { username: string; account: InnerAccount }): Promise<void> {
     try {
       this.logger.log(`Получено событие обновления аккаунта: ${eventData.username}`);
 
@@ -65,7 +64,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
   /**
    * Извлечение display_name из аккаунта
    */
-  private extractDisplayNameFromAccount(account: AccountDomainEntity): string {
+  private extractDisplayNameFromAccount(account: InnerAccount): string {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {

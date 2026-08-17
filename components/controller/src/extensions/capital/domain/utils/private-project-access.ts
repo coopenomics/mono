@@ -1,7 +1,7 @@
 import { ProjectOrigin } from '../enums/project-origin.enum';
 import type { ProjectDomainEntity } from '../entities/project.entity';
 import type { IssueDomainEntity } from '../entities/issue.entity';
-import { EMPTY_HASH } from '~/shared/utils/constants';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 /** Владелец персонального проекта (мастер или local_owner). */
 export function isLocalProjectOwner(

@@ -1,4 +1,5 @@
 import { Cooperative } from 'cooptypes';
+import { ProgramKey } from '@coopenomics/innercoop';
 
 /**
  * Идентификаторы оферт расширения marketplace (Стол заказов).
@@ -23,7 +24,7 @@ export const MARKETPLACE_EXTENSION_NAME = 'market';
 export const MARKETPLACE_OFFER_AGREEMENT_ID = 'marketplace_offer';
 
 // Ключ выбираемой программы регистрации ЦПП «Стол заказов». Совпадает со
-// значением `ProgramKey.MARKETPLACE` ядра (domain/registration/enum) — по нему
+// значением `ProgramKey.MARKETPLACE` из контракта — по нему
 // registration-flow генерит персональные номер+дату оферты пайщика в Udata.
 export const MARKETPLACE_PROGRAM_KEY = 'MARKETPLACE';
 

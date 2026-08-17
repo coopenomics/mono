@@ -1,8 +1,8 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { ArrayMinSize, IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ExpenseItemInputDTO } from '~/extensions/expenses/application/dto/expense-item.input';
-import { ExpenseProposalStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
+import { CapitalExpenseItemInputDTO } from './capital-expense-item.input';
+import { ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Создание программного расхода капитала через шасси `expense`.
@@ -27,12 +27,12 @@ export class CreateProgramExpenseInputDTO {
   @IsString()
   creator!: string;
 
-  @Field(() => [ExpenseItemInputDTO], { description: 'Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно.' })
+  @Field(() => [CapitalExpenseItemInputDTO], { description: 'Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно.' })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => ExpenseItemInputDTO)
-  items!: ExpenseItemInputDTO[];
+  @Type(() => CapitalExpenseItemInputDTO)
+  items!: CapitalExpenseItemInputDTO[];
 
   @Field(() => String, { description: 'Описание программного расхода.' })
   @IsString()

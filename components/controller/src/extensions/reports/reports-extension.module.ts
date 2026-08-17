@@ -11,7 +11,6 @@ import { ReportResolver } from './application/resolvers/report.resolver';
 import { ReportRequisitesResolver } from './application/resolvers/report-requisites.resolver';
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
-import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
 import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
 import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
@@ -32,7 +31,6 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
 // GeneratorRepositoriesModule, поэтому их явно импортировать в imports не надо.
 @Module({
   imports: [
-    Ledger2Module,
     NestTypeOrmModule.forFeature([
       GeneratedReportEntity,
       BalanceCorrectionEntity,
@@ -87,7 +85,7 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
 })
 export class ReportsExtensionModule {
   // Lifecycle-сервис вызывает moduleInstance.initialize(config) после миграций схемы.
-  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinPluginModule.
+  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinExtensionModule.
   async initialize(): Promise<void> {
     // no-op: reports-extension не имеет собственного crontab/state'а.
   }

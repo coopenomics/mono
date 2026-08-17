@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/contracts",
-  "version": "2026.8.13-2",
+  "version": "2026.8.16",
   "private": true,
   "type": "module",
   "scripts": {

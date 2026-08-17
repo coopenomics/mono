@@ -1,51 +1,50 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
-  InterCoopCalendarEventNotificationInput,
-  InterCoopCalendarEventNotificationPort,
-  InterProjectCapitalClearancePort,
-} from '@coopenomics/inter';
-import { INTER_PROJECT_CAPITAL_CLEARANCE } from '@coopenomics/inter';
+  InnerCoopCalendarEventNotificationInput,
+  ICoopCalendarEventNotificationPort,
+  IProjectCapitalClearancePort,
+} from '@coopenomics/innercoop';
+import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort,
+  isEligibleForActiveCoopCalendarBroadcast,
+} from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import config from '~/config/config';
-import { DateUtils } from '~/shared/utils/date-utils';
-import { isEligibleForActiveCoopCalendarBroadcast } from '~/domain/account/utils/participant-mass-notification.util';
+import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 type CalendarRecipient = { username: string; email: string; subscriberId: string };
 
 /**
- * Реализация {@link InterCoopCalendarEventNotificationPort}: по выбранным получателям.
+ * Реализация {@link ICoopCalendarEventNotificationPort}: по выбранным получателям.
  * Комнаты capital_project + projectHash — только с подтверждённым допуском к проекту (Capital / inter).
  * Остальные комнаты — все подходящие пайщики со статусом active в Mono (не registered без активации).
  */
 @Injectable()
-export class ChatcoopCalendarEventNotificationService implements InterCoopCalendarEventNotificationPort {
+export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEventNotificationPort {
   private coopShortName: string | null = null;
 
   constructor(
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    @Inject(INTER_PROJECT_CAPITAL_CLEARANCE)
-    private readonly projectCapitalClearance: InterProjectCapitalClearancePort,
-    private readonly logger: WinstonLoggerService
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
+    @Inject(PROJECT_CAPITAL_CLEARANCE_PORT)
+    private readonly projectCapitalClearance: IProjectCapitalClearancePort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ChatcoopCalendarEventNotificationService.name);
   }
 
   private getTimezoneLabel(): string {
-    return config.timezone === 'Europe/Moscow' ? 'Мск' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'Мск' : platformSettings().timezone;
   }
 
   private async getCoopShortName(): Promise<string> {
     if (this.coopShortName) {
       return this.coopShortName;
     }
-    const account = await this.accountPort.getAccount(config.coopname);
-    const shortName = account.private_account?.organization_data?.short_name;
-    this.coopShortName = shortName ?? config.coopname;
-    return this.coopShortName;
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
+    const shortName: string | undefined = account.private_account?.organization_data?.short_name;
+    const resolved = shortName ?? platformSettings().coopname;
+    this.coopShortName = resolved;
+    return resolved;
   }
 
   private formatEndParts(endsAt: Date | null): { endDate: string; endTime: string } {
@@ -129,7 +128,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
   }
 
   private async resolveCalendarRecipients(
-    input: InterCoopCalendarEventNotificationInput
+    input: InnerCoopCalendarEventNotificationInput
   ): Promise<CalendarRecipient[]> {
     const ph = input.projectHash?.trim();
     if (input.roomKind === 'capital_project' && ph) {
@@ -138,7 +137,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
     return this.listRecipientsCoopWideActiveOnly();
   }
 
-  private buildPayload(input: InterCoopCalendarEventNotificationInput, coopShortName: string) {
+  private buildPayload(input: InnerCoopCalendarEventNotificationInput, coopShortName: string) {
     const { endDate, endTime } = this.formatEndParts(input.endsAt);
     const trimmed = input.description?.trim();
     const base = {
@@ -158,7 +157,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
 
   private async dispatchWorkflow(
     workflowId: string,
-    input: InterCoopCalendarEventNotificationInput
+    input: InnerCoopCalendarEventNotificationInput
   ): Promise<void> {
     const users = await this.resolveCalendarRecipients(input);
     if (users.length === 0) {
@@ -175,7 +174,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
     for (const user of users) {
       try {
         await this.notificationPort.notify({
-          coopname: config.coopname,
+          coopname: platformSettings().coopname,
           workflowId,
           to: { subscriberId: user.subscriberId, email: user.email, username: user.username },
           payload,
@@ -190,7 +189,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
     this.logger.log(`Календарь (${workflowId}): отправлено ${sent}/${users.length}`);
   }
 
-  async notifyEventCreated(input: InterCoopCalendarEventNotificationInput): Promise<void> {
+  async notifyEventCreated(input: InnerCoopCalendarEventNotificationInput): Promise<void> {
     try {
       await this.dispatchWorkflow(Workflows.ChatCoopCalendarEventCreated.id, input);
     } catch (error: unknown) {
@@ -199,7 +198,7 @@ export class ChatcoopCalendarEventNotificationService implements InterCoopCalend
     }
   }
 
-  async notifyEventUpdated(input: InterCoopCalendarEventNotificationInput): Promise<void> {
+  async notifyEventUpdated(input: InnerCoopCalendarEventNotificationInput): Promise<void> {
     try {
       await this.dispatchWorkflow(Workflows.ChatCoopCalendarEventUpdated.id, input);
     } catch (error: unknown) {

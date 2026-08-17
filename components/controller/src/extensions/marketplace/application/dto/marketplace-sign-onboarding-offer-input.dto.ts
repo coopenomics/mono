@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Эпик 1 / Story 1.4 (фоллоуап) — input mutation `marketplaceSignOnboardingOffer`.

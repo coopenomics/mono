@@ -4,7 +4,7 @@ import type { TypeDomainEntity } from '../entities/type-domain.entity';
 import { CategoryDomainRepository, CATEGORY_DOMAIN_REPOSITORY } from '../repositories/category-domain.repository';
 import { TypeDomainRepository, TYPE_DOMAIN_REPOSITORY } from '../repositories/type-domain.repository';
 import { AvailableCategoryDomainService, AVAILABLE_CATEGORY_DOMAIN_SERVICE } from './available-category-domain.service';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Доменный сервис для работы с деревом категорий и типов товаров
@@ -516,7 +516,7 @@ export class CategoryTreeDomainService {
     categories: CategoryDomainEntity[],
     coopname?: string
   ): Promise<CategoryDomainEntity[]> {
-    const currentCoopname = coopname || config.coopname;
+    const currentCoopname = coopname || platformSettings().coopname;
 
     // Проверяем, есть ли ограничения в кооперативе
     const hasRestrictions = await this.availableCategoryService.hasAvailabilityRestrictions(currentCoopname);
@@ -600,7 +600,7 @@ export class CategoryTreeDomainService {
    * Найти листовые категории с учетом доступности в кооперативе
    */
   async findAvailableLeafCategories(coopname?: string): Promise<CategoryDomainEntity[]> {
-    const currentCoopname = coopname || config.coopname;
+    const currentCoopname = coopname || platformSettings().coopname;
     const allLeafCategories = await this.findLeafCategories();
 
     // Проверяем, есть ли ограничения в кооперативе

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import { DebtRepository, DEBT_REPOSITORY } from '../../domain/repositories/debt.repository';
 import { DebtDeltaMapper } from '../../infrastructure/blockchain/mappers/debt-delta.mapper';
@@ -24,7 +24,7 @@ export class DebtSyncService
     @Inject(DEBT_REPOSITORY)
     debtRepository: DebtRepository,
     debtDeltaMapper: DebtDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(debtRepository, debtDeltaMapper, logger);
@@ -48,14 +48,5 @@ export class DebtSyncService
     });
 
     this.logger.debug('Сервис синхронизации долгов полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для долгов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleDebtFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

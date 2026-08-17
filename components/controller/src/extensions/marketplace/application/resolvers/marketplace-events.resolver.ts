@@ -1,17 +1,6 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import { PubSub } from 'graphql-subscriptions';
-import config from '~/config/config';
-import logger from '~/config/logger';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
-import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
-import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
-import {
-  BRANCH_BLOCKCHAIN_PORT,
-  type BranchBlockchainPort,
-} from '~/domain/branch/interfaces/branch-blockchain.port';
+import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
 import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
@@ -24,6 +13,14 @@ import {
   marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from '../realtime/marketplace-realtime.topics';
+import { BRANCH_PORT, type IBranchPort,
+  REALTIME_CHANNEL_PORT,
+  type IRealtimeChannelPort,
+  USER_DIRECTORY_PORT,
+  type IUserDirectoryPort,
+  LOGGER_PORT,
+  type ILoggerPort,
+} from '@coopenomics/innercoop';
 
 /**
  * Единственная подписка приложения marketplace: поток событий для пайщика.
@@ -42,10 +39,10 @@ import {
 @Injectable()
 export class MarketplaceEventsResolver {
   constructor(
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchPort: BranchBlockchainPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(REALTIME_CHANNEL_PORT) private readonly pubSub: IRealtimeChannelPort,
+    @Inject(USER_DIRECTORY_PORT) private readonly userRepository: IUserDirectoryPort,
+    @Inject(BRANCH_PORT) private readonly branchPort: IBranchPort
   ) {}
 
   @Subscription(() => MarketplaceEventUnion, {
@@ -57,29 +54,29 @@ export class MarketplaceEventsResolver {
     @CurrentUser() user: { sub?: string; username?: string },
     @Args('input') input: MarketplaceEventsInputDTO
   ): Promise<AsyncIterator<MarketplaceEventPayload>> {
-    if (input.coopname !== config.coopname) {
+    if (input.coopname !== platformSettings().coopname) {
       throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
     }
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
-    const memberTopic = marketplaceMemberTopic(config.coopname, username);
-    const catalogTopic = marketplaceCatalogTopic(config.coopname);
+    const memberTopic = marketplaceMemberTopic(platformSettings().coopname, username);
+    const catalogTopic = marketplaceCatalogTopic(platformSettings().coopname);
     const topics = [memberTopic, catalogTopic];
     const role = await this.resolveRole(username);
     // Служебный канал КУ: персонал участка ИЛИ председатель — у него
     // marketplace-роль admin (read:all), надзорные столы (сводка склада,
     // списания) живут теми же операционными сигналами.
     if (role === 'chairman' || (await this.isBranchStaff(username))) {
-      topics.push(marketplaceStaffTopic(config.coopname));
+      topics.push(marketplaceStaffTopic(platformSettings().coopname));
     }
     if (role === 'chairman') {
-      topics.push(marketplaceModerationTopic(config.coopname));
+      topics.push(marketplaceModerationTopic(platformSettings().coopname));
     }
     // Канал совета: члены совета и председатель (повестка списаний).
     if (role === 'chairman' || role === 'member') {
-      topics.push(marketplaceBoardTopic(config.coopname));
+      topics.push(marketplaceBoardTopic(platformSettings().coopname));
     }
-    logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
+    this.logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topics);
   }
 
@@ -96,7 +93,7 @@ export class MarketplaceEventsResolver {
       const record = await this.userRepository.findByUsername(username);
       return record?.role ?? null;
     } catch (err: any) {
-      logger.warn(
+      this.logger.warn(
         `[mp-ws] не удалось проверить роль ${username}: ${err.message} — служебные каналы не подключены`
       );
       return null;
@@ -112,12 +109,12 @@ export class MarketplaceEventsResolver {
    */
   private async isBranchStaff(username: string): Promise<boolean> {
     try {
-      const branches = await this.branchPort.getBranches(config.coopname);
+      const branches = await this.branchPort.getBranches(platformSettings().coopname);
       return branches.some(
         (b) => b.trustee === username || (b.trusted?.includes(username) ?? false)
       );
     } catch (err: any) {
-      logger.warn(
+      this.logger.warn(
         `[mp-ws] не удалось проверить персонал КУ для ${username}: ${err.message} — служебный канал не подключён`
       );
       return false;
@@ -128,7 +125,7 @@ export class MarketplaceEventsResolver {
     if (!sub) {
       throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
     }
-    const account = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
+    const account = await this.userRepository.findBySubject(sub);
     return account.username;
   }
 }

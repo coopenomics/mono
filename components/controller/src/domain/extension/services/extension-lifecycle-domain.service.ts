@@ -1,6 +1,7 @@
 // domain/appstore/appstore-lifecycle-domain.service.ts
 
-import { Injectable, type INestApplication } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
 import { ExtensionSchemaMigrationService } from './extension-schema-migration.service';
@@ -9,7 +10,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
-} from '~/domain/extension/extension-app-lifecycle.events';
+} from '@coopenomics/extension-kit';
 import {
   ONBOARDING_COMPLETED_EVENT,
   type OnboardingCompletedPayload,
@@ -18,19 +19,87 @@ import {
 @Injectable()
 export class ExtensionLifecycleDomainService<TConfig = any> {
   private activeAppMap: { [key: string]: { appInstance: any } } = {};
-  private appContext!: INestApplication;
 
   constructor(
     private readonly extensionDomainService: ExtensionDomainService<TConfig>,
     private readonly migrationService: ExtensionSchemaMigrationService,
     private readonly logger: WinstonLoggerService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    // Провайдеры расширений резолвятся через ModuleRef, а не через ссылку на
+    // само приложение из `~/index`: та ссылка делала домен зависимым от точки
+    // входа — модуль ядра импортировал файл, который его же и запускает.
+    private readonly moduleRef: ModuleRef
   ) {
     this.logger.setContext(ExtensionLifecycleDomainService.name);
   }
 
-  setAppContext(appContext: INestApplication) {
-    this.appContext = appContext;
+  /** Резолвер провайдеров для миграций расширения: тот же DI, вид попроще. */
+  private get dependencyResolver() {
+    return {
+      get: <T,>(token: string | symbol | (new (...args: any[]) => any)): T =>
+        this.moduleRef.get(token as never, { strict: false }),
+    };
+  }
+
+  /**
+   * Сверить capability-заявку расширения с тем, что контур действительно даёт.
+   *
+   * Заявка отвечает на вопрос «что этому расширению позволено просить», а не
+   * «что позволено пайщику» — права пайщика проверяет само расширение на
+   * границе своего API. Проверка делается один раз, при запуске: без
+   * обязательного порта расширение всё равно упадёт, но упадёт позже, в
+   * середине пользовательского сценария и с невнятной ошибкой DI.
+   */
+  private async assertRequestedPortsAvailable(
+    appName: string,
+    ports?: { required: ReadonlyArray<symbol>; optional: ReadonlyArray<symbol> }
+  ): Promise<void> {
+    if (!ports) return;
+
+    const missing: string[] = [];
+    for (const token of ports.required) {
+      if (!(await this.isPortProvided(token))) {
+        missing.push(token.description ?? String(token));
+      }
+    }
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Расширение ${appName} не запускается: контур не предоставляет заявленные порты — ${missing.join(', ')}. ` +
+          'Либо порт не привязан в InnercoopBridgeModule, либо расширение просит то, чего в этом кооперативе нет.'
+      );
+    }
+
+    for (const token of ports.optional) {
+      if (!(await this.isPortProvided(token))) {
+        this.logger.warn(
+          `[RUN_APP] Расширение ${appName}: необязательный порт ${token.description ?? String(token)} ` +
+            'не предоставлен — связанные с ним возможности выключены'
+        );
+      }
+    }
+  }
+
+  /**
+   * Есть ли у порта реализация в этом контуре.
+   *
+   * Двумя способами намеренно: `get` не умеет провайдеров с областью видимости
+   * (логгер объявлен транзиентным, потому что `setContext` мутирует инстанс),
+   * а `resolve` создаёт экземпляр и потому дороже. Порт, доступный любым из
+   * двух, — предоставлен.
+   */
+  private async isPortProvided(token: symbol): Promise<boolean> {
+    try {
+      this.moduleRef.get(token as never, { strict: false });
+      return true;
+    } catch {
+      try {
+        await this.moduleRef.resolve(token as never, undefined, { strict: false });
+        return true;
+      } catch {
+        return false;
+      }
+    }
   }
 
   async runApps() {
@@ -67,15 +136,17 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     // Применяем миграции схемы перед инициализацией
     const AppClass = AppRegistry[appName];
     if (AppClass) {
+      await this.assertRequestedPortsAvailable(appName, AppClass.ports);
+
       this.logger.debug(`[RUN_APP] Запуск миграции схемы для расширения ${appName}`);
 
-      if (AppClass.pluginClass) {
-        const pluginInstance = this.appContext.get(AppClass.pluginClass);
-        if (pluginInstance?.defaultConfig) {
+      if (AppClass.extensionClass) {
+        const extensionInstance = this.moduleRef.get(AppClass.extensionClass, { strict: false });
+        if (extensionInstance?.defaultConfig) {
           const migratedExtension = await this.migrationService.migrateAndUpdateExtension(
             appName,
-            pluginInstance.defaultConfig,
-            this.appContext
+            extensionInstance.defaultConfig,
+            this.dependencyResolver
           );
           if (migratedExtension) {
             appData = migratedExtension;
@@ -83,7 +154,7 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
         }
       }
 
-      const moduleInstance = this.appContext.get(AppClass.class); // Получаем инстанс модуля для инициализации
+      const moduleInstance = this.moduleRef.get(AppClass.class, { strict: false }); // Получаем инстанс модуля для инициализации
 
       await moduleInstance.initialize(appData.config); // Вызываем инициализацию модуля
       this.activeAppMap[appName] = { appInstance: moduleInstance }; // Сохраняем модуль как appInstance

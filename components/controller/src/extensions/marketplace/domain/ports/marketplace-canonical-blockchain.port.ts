@@ -1,5 +1,5 @@
 import type { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
-import type { TransactResult } from '@wharfkit/session';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: canonical blockchain port для marketplace процессов
@@ -22,7 +22,7 @@ import type { TransactResult } from '@wharfkit/session';
  * Stories Эпика 8 → propWroff / execWroff / declWroff.
  */
 export interface MarketplaceCanonicalBlockchainPort {
-  createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult>;
+  createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult>;
 
   /**
    * requirement 76: заказ из обезличенного остатка склада кооператива.
@@ -35,7 +35,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<TransactResult>;
+  stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult>;
 
   /**
    * requirement 76: конвертация паевого взноса пайщика в членский кошелёк
@@ -47,7 +47,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  convert(data: MarketContract.Actions.Convert.IConvert): Promise<TransactResult>;
+  convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult>;
 
   /**
    * requirement 76 (вопрос 4): списание уценки по заказу из остатка после
@@ -59,7 +59,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<TransactResult>;
+  markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<InnerTransactResult>;
 
   /**
    * Story 4.3: backend cron закрывает один Order по таймауту цикла (или
@@ -69,7 +69,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<TransactResult>;
+  expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<InnerTransactResult>;
 
   /**
    * Закрытие выданного заказа после выхода гарантийного срока (cron-driven):
@@ -79,7 +79,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<TransactResult>;
+  closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<InnerTransactResult>;
 
   /**
    * Story 4.4: заказчик отменяет Order до акцепта поставщиком. Триггерит
@@ -91,7 +91,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ дополнительно
    * проверяет `actor == order.orderer` через параметр (passed-in name).
    */
-  cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<TransactResult>;
+  cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<InnerTransactResult>;
 
   /**
    * Story 4.5: поставщик акцептует один Order. Без ledger2-операций —
@@ -102,7 +102,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * `offerer == order.offerer` (пайщик-поставщик владеет Offer'ом).
    */
-  acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<TransactResult>;
+  acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<InnerTransactResult>;
 
   /**
    * Story 4.5: поставщик отказывается от одного Order'а до акцепта. C++:
@@ -115,7 +115,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * `offerer == order.offerer`.
    */
-  declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult>;
+  declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<InnerTransactResult>;
 
   /**
    * Story 5.3 / 5.4: первая подпись поставщика на АПП приёмки одного
@@ -126,7 +126,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * `signature in act.signatures` соответствие `offerer`.
    */
-  signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<TransactResult>;
+  signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<InnerTransactResult>;
 
   /**
    * Story 5.6: закрывающая подпись председателя КУ на АПП приёмки одного
@@ -144,7 +144,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * `signer == председатель КУ`.
    */
-  signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<TransactResult>;
+  signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<InnerTransactResult>;
 
   /**
    * E11 техдолг 598-16 / Locked Decision L12: инициация исходящей выплаты
@@ -162,7 +162,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult>;
+  payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult>;
 
   /**
    * Story 6.1 / FR21: председатель КУ выдачи открывает выдачу первой
@@ -175,7 +175,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * что `signer` уполномочен для `delivery_braname` (председатель /
    * trustee / trusted).
    */
-  signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<TransactResult>;
+  signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<InnerTransactResult>;
 
   /**
    * Story 6.3 / FR24: заказчик закрывает выдачу финальной подписью.
@@ -196,7 +196,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `orderer == order.orderer` и авторизацию `delivery_signer` для
    * `delivery_braname`. Подписи в `act.signatures` — `{delivery_signer, orderer}`.
    */
-  signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<TransactResult>;
+  signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<InnerTransactResult>;
 
   /**
    * Story 7.1 / FR29: пайщик подаёт заявление на гарантийный возврат.
@@ -207,7 +207,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * actor=order.orderer, order.status=received, warranty_until>now(),
    * photos.size()>0, actual_quantity ∈ (0, order.actual_quantity].
    */
-  submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<TransactResult>;
+  submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<InnerTransactResult>;
 
   /**
    * Story 7.2 / FR31: председатель КУ удалённо одобряет очный визит.
@@ -217,7 +217,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `Branch::is_user_authorized(coopname, braname, signer)` (председатель /
    * trustee / trusted указанного КУ).
    */
-  aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<TransactResult>;
+  aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<InnerTransactResult>;
 
   /**
    * Story 7.2 / FR31: председатель КУ удалённо отказывает в возврате.
@@ -227,7 +227,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * авторизацию `signer` для `braname` + `reason.size() ∈ (0, 500]`.
    */
-  rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<TransactResult>;
+  rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<InnerTransactResult>;
 
   /**
    * Story 7.3 / 7.4 — FR32, FR33: председатель по результатам очного
@@ -243,7 +243,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * авторизацию `signer` для `braname` + статус заявления.
    */
-  accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<TransactResult>;
+  accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<InnerTransactResult>;
 
   /**
    * Story 7.3 / FR32: председатель отказывает в возврате на очном
@@ -253,7 +253,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
    * авторизацию `signer` для `braname` + `reason.size() ∈ (0, 500]`.
    */
-  rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<TransactResult>;
+  rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<InnerTransactResult>;
 
   /**
    * Story 8.1 / FR37: backend вносит проект решения совета о списании
@@ -267,7 +267,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
-  propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<TransactResult>;
+  propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<InnerTransactResult>;
 
   /**
    * Story 8.4: backend исполняет одну позицию авторизованного проекта
@@ -279,7 +279,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * статус проекта (AUTHORIZED) и авторизацию `signer` для
    * `items[item_index].braname`.
    */
-  execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult>;
+  execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<InnerTransactResult>;
 
   /**
    * Председатель кооперативного участка подтверждает фактическое списание
@@ -289,33 +289,33 @@ export interface MarketplaceCanonicalBlockchainPort {
    * документов. Авторизация — кооператив (`require_auth(coopname)`); C++
    * проверяет, что `signer` уполномочен для `braname`.
    */
-  confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<TransactResult>;
+  confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<InnerTransactResult>;
 
   // ── Экономика КУ (requirement b6): членский взнос и распределение ────
 
   /** Единая ставка членского взноса кооператива (администратор). */
-  setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<TransactResult>;
+  setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult>;
 
   /** Ручное распределение средств общего кошелька КУ по весам (branch::distribute; председатель). */
-  distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<TransactResult>;
+  distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<InnerTransactResult>;
 
   /** Вес участника распределения членских взносов КУ (branch::setweight). */
-  setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<TransactResult>;
+  setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<InnerTransactResult>;
 
   /** Исключение участника из распределения (branch::delweight). */
-  delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<TransactResult>;
+  delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<InnerTransactResult>;
 
   /** Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (branch::convert). */
-  convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<TransactResult>;
+  convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<InnerTransactResult>;
 
   /** Заявка на материальную помощь доверенного (branch::createaid → gateway). */
-  createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<TransactResult>;
+  createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult>;
 
   /** Отправка удержанного НДФЛ на оплату в бюджет (branch::createtax → gateway). */
-  createTaxPayment(data: BranchContract.Actions.CreateTax.ICreatetax): Promise<TransactResult>;
+  createTaxPayment(data: BranchContract.Actions.CreateTax.ICreatetax): Promise<InnerTransactResult>;
 
   /** Подача расхода участка в шасси расходов (branch::createexp). */
-  createBranchExpense(data: BranchContract.Actions.CreateExp.ICreateexp): Promise<TransactResult>;
+  createBranchExpense(data: BranchContract.Actions.CreateExp.ICreateexp): Promise<InnerTransactResult>;
 
   // ── Чтение on-chain состояния экономики КУ ───────────────────────────
 

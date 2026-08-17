@@ -5,14 +5,13 @@ import { TransactResult, UInt64 } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
+import { HttpApiError, waitAfterTransactBeforeChainTableRead } from '@coopenomics/extension-kit';
 import type {
   EnsureProgramParams,
   EnsureProgramResult,
   SovietBlockchainPort,
 } from '~/domain/common/ports/soviet-blockchain.port';
 import { config } from '~/config';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
 
 @Injectable()
 export class SovietBlockchainAdapter implements SovietBlockchainPort {

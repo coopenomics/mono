@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, Optional } from '@nestjs/common';
-import { INTER_PROJECT_CAPITAL_CLEARANCE, type InterProjectCapitalClearancePort } from '@coopenomics/inter';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { PROJECT_CAPITAL_CLEARANCE_PORT, type IProjectCapitalClearancePort } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
   type ChatcoopManagedMatrixRoomRepository,
@@ -23,17 +23,17 @@ export class ChatcoopCommunicationAccessService {
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedRooms: ChatcoopManagedMatrixRoomRepository,
     @Optional()
-    @Inject(INTER_PROJECT_CAPITAL_CLEARANCE)
-    private readonly capitalClearance: InterProjectCapitalClearancePort | undefined
+    @Inject(PROJECT_CAPITAL_CLEARANCE_PORT)
+    private readonly capitalClearance: IProjectCapitalClearancePort | undefined
   ) {}
 
-  isBoardMember(user: Pick<MonoAccountDomainInterface, 'role'> | undefined): boolean {
+  isBoardMember(user: Pick<IMonoAccount, 'role'> | undefined): boolean {
     return user?.role === 'chairman' || user?.role === 'member';
   }
 
   /** Вправе ли пользователь читать переписку проекта Capital. */
   async canReadProjectRooms(
-    user: Pick<MonoAccountDomainInterface, 'username' | 'role'> | undefined,
+    user: Pick<IMonoAccount, 'username' | 'role'> | undefined,
     projectHash: string
   ): Promise<boolean> {
     if (this.isBoardMember(user)) {
@@ -56,7 +56,7 @@ export class ChatcoopCommunicationAccessService {
 
   /** Вправе ли пользователь читать конкретную комнату Matrix. */
   async canReadRoom(
-    user: Pick<MonoAccountDomainInterface, 'username' | 'role'> | undefined,
+    user: Pick<IMonoAccount, 'username' | 'role'> | undefined,
     matrixRoomId: string
   ): Promise<boolean> {
     const room = await this.managedRooms.findByMatrixRoomId(matrixRoomId);
@@ -68,7 +68,7 @@ export class ChatcoopCommunicationAccessService {
 
   /** То же для уже загруженной записи реестра — чтобы не перечитывать её на каждый вопрос. */
   async canReadKnownRoom(
-    user: Pick<MonoAccountDomainInterface, 'username' | 'role'> | undefined,
+    user: Pick<IMonoAccount, 'username' | 'role'> | undefined,
     room: ManagedMatrixRoomDomainEntity
   ): Promise<boolean> {
     if (room.kind === 'capital_project') {
@@ -79,7 +79,7 @@ export class ChatcoopCommunicationAccessService {
 
   /** Отказ вместо пустого ответа: запрос к чужой комнате — это ошибка доступа, а не пустая история. */
   async assertCanReadRoom(
-    user: Pick<MonoAccountDomainInterface, 'username' | 'role'> | undefined,
+    user: Pick<IMonoAccount, 'username' | 'role'> | undefined,
     matrixRoomId: string
   ): Promise<void> {
     if (!(await this.canReadRoom(user, matrixRoomId))) {
@@ -91,7 +91,7 @@ export class ChatcoopCommunicationAccessService {
 
   /** Комнаты, доступные пользователю на чтение, — для запросов без указания комнаты. */
   async listReadableRoomIds(
-    user: Pick<MonoAccountDomainInterface, 'username' | 'role'> | undefined
+    user: Pick<IMonoAccount, 'username' | 'role'> | undefined
   ): Promise<string[]> {
     const rooms = await this.managedRooms.findAll();
     const checks = await Promise.all(

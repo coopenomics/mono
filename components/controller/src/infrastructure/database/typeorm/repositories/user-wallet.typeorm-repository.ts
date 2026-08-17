@@ -5,9 +5,8 @@ import { UserWalletDomainEntity } from '~/domain/wallet/entities/user-wallet-dom
 import { UserWalletTypeormEntity } from '../entities/user-wallet.typeorm-entity';
 import { UserWalletMapper } from '../mappers/user-wallet.mapper';
 import type { UserWalletRepository } from '~/domain/wallet/repositories/user-wallet.repository';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IUserWalletBlockchainData } from '~/domain/wallet/interfaces/user-wallet-blockchain.interface';
 import type { IUserWalletDatabaseData } from '~/domain/wallet/interfaces/user-wallet-database.interface';
 

@@ -1,10 +1,7 @@
 import { StoryDomainEntity } from '../entities/story.entity';
 import type { StoryStatus } from '../enums/story-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from './artifact-access-scope';
 
 export interface StoryRepository {
@@ -21,9 +18,9 @@ export interface StoryRepository {
   findByStatus(status: StoryStatus): Promise<StoryDomainEntity[]>;
   findAllPaginated(
     filter?: StoryFilterInputDTO,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     scope?: ArtifactAccessScope
-  ): Promise<PaginationResultDomainInterface<StoryDomainEntity>>;
+  ): Promise<PaginationResult<StoryDomainEntity>>;
   update(entity: StoryDomainEntity): Promise<StoryDomainEntity>;
   delete(_id: string): Promise<void>;
 

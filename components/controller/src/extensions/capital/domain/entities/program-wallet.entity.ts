@@ -1,8 +1,8 @@
 import type { IProgramWalletDatabaseData } from '../interfaces/program-wallet-database.interface';
 import type { IProgramWalletBlockchainData } from '../interfaces/program-wallet-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { randomUUID } from 'crypto';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность программного кошелька

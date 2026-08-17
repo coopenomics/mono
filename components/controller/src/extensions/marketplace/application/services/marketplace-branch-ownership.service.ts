@@ -1,8 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  BRANCH_BLOCKCHAIN_PORT,
-  type BranchBlockchainPort,
-} from '~/domain/branch/interfaces/branch-blockchain.port';
+import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_BRANCH_OWNERSHIP_SERVICE = Symbol(
   'MarketplaceBranchOwnershipService'
@@ -21,8 +18,8 @@ export const MARKETPLACE_BRANCH_OWNERSHIP_SERVICE = Symbol(
 @Injectable()
 export class MarketplaceBranchOwnershipService {
   constructor(
-    @Inject(BRANCH_BLOCKCHAIN_PORT)
-    private readonly branchPort: BranchBlockchainPort
+    @Inject(BRANCH_PORT)
+    private readonly branchPort: IBranchPort
   ) {}
 
   async canActAsBraname(coopname: string, account: string, braname: string): Promise<boolean> {

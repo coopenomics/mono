@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExpenseProposalDomainEntity } from '../../../domain/entities/expense-proposal.entity';
 import type { IExpenseProposalBlockchainData } from '../../../domain/interfaces/expense-proposal-blockchain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ExpenseContractInfoService } from '../../services/expense-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер дельт таблицы `expense::proposals` в блокчейн-данные расхода.
@@ -20,7 +19,7 @@ export class ExpenseProposalDeltaMapper extends AbstractBlockchainDeltaMapper<
   ExpenseProposalDomainEntity
 > {
   constructor(
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly contractInfo: ExpenseContractInfoService
   ) {
     super();

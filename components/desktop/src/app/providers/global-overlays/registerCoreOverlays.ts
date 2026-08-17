@@ -3,6 +3,7 @@ import { RequireAgreements } from 'src/widgets/RequireAgreements';
 import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
 import { NotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { ExitOverlay } from 'src/features/Membership/ExitFromCoop';
+import { NodeSyncOverlay } from 'src/entities/System/ui/NodeSyncOverlay';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ глобальных оверлеев в универсальный реестр.
@@ -20,4 +21,5 @@ export function registerCoreOverlays(): void {
   registerGlobalOverlay('core:select-branch', SelectBranchOverlay);
   registerGlobalOverlay('core:notification-permission', NotificationPermissionDialog);
   registerGlobalOverlay('core:exit-overlay', ExitOverlay);
+  registerGlobalOverlay('core:node-sync-overlay', NodeSyncOverlay);
 }

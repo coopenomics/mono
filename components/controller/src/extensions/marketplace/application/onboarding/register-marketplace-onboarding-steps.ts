@@ -1,11 +1,11 @@
-import type { OnboardingStepRegistrationPort } from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
+import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Шаги L1-онбординга кооператива на ЦПП «Стол заказов».
  *
  * Marketplace подключается к ПЛАТФОРМЕННОМУ механизму онбординга (как capital
- * и chairman): декларирует шаги через ONBOARDING_STEP_REGISTRATION_PORT в
+ * и chairman): декларирует шаги через ONBOARDING_STEP_REGISTRY_PORT в
  * `initialize()`. Дальше всё делает generic-слой:
  *  - `completeExtensionOnboardingStep` создаёт проект решения совета
  *    (free_decision), публикует его и регистрирует tracking-rule;
@@ -25,7 +25,7 @@ import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreemen
  * полностью обслуживает generic-слушатель — собственный events-сервис не нужен.
  */
 export function registerMarketplaceOnboardingSteps(
-  port: OnboardingStepRegistrationPort
+  port: IOnboardingStepRegistryPort
 ): void {
   port.unregisterStepsByExtension(MARKETPLACE_EXTENSION_NAME);
 

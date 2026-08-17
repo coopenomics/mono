@@ -12,6 +12,11 @@ title: >-
 # частью capital.fund-allocation. Здесь заводится только то, как это подаётся
 # пайщику: какая доля на какой вкладке, что показывается как «требуется от
 # меня» и кто какие вкладки видит.
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/dto/segments/segment.dto.ts

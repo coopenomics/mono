@@ -3,7 +3,7 @@ import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import type { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { IssuePermissionsOutputDTO } from '../dto/generation/issue-permissions.dto';
 import { ProjectPermissionsOutputDTO } from '../dto/project_management/project-permissions.dto';
 import { IssuePermissionsService, IssueAction, ProjectAction } from './issue-permissions.service';
@@ -26,7 +26,7 @@ const AUTHOR_SEGMENTS_SCAN_LIMIT = 500;
  * Отдельный тип, чтобы проверку можно было звать из смежного расширения, не собирая
  * весь профиль аккаунта.
  */
-export type AccessActor = Pick<MonoAccountDomainInterface, 'username' | 'role'>;
+export type AccessActor = Pick<IMonoAccount, 'username' | 'role'>;
 
 /**
  * Сервис для расчета прав доступа пользователя к объектам CAPITAL системы
@@ -60,7 +60,7 @@ export class PermissionsService {
    * @param currentUser - текущий пользователь (может быть undefined для гостей)
    * @returns true если пользователь имеет роль chairman
    */
-  private isChairman(currentUser?: MonoAccountDomainInterface): boolean {
+  private isChairman(currentUser?: IMonoAccount): boolean {
     return currentUser?.role === 'chairman';
   }
 
@@ -398,7 +398,7 @@ export class PermissionsService {
    */
   async calculateIssuePermissions(
     issue: IssueDomainEntity,
-    currentUser?: MonoAccountDomainInterface,
+    currentUser?: IMonoAccount,
     cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<IssuePermissionsOutputDTO> {
     // Для гостей (неавторизованных пользователей) все права false
@@ -559,7 +559,7 @@ export class PermissionsService {
    */
   async calculateProjectPermissions(
     project: ProjectDomainEntity,
-    currentUser?: MonoAccountDomainInterface,
+    currentUser?: IMonoAccount,
     cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<ProjectPermissionsOutputDTO> {
     // Для гостей (неавторизованных пользователей) все права false
@@ -704,7 +704,7 @@ export class PermissionsService {
    */
   async calculateBatchIssuePermissions(
     issues: IssueDomainEntity[],
-    currentUser?: MonoAccountDomainInterface,
+    currentUser?: IMonoAccount,
     cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<Map<string, IssuePermissionsOutputDTO>> {
     const permissionsMap = new Map<string, IssuePermissionsOutputDTO>();
@@ -728,7 +728,7 @@ export class PermissionsService {
    */
   async calculateBatchProjectPermissions(
     projects: ProjectDomainEntity[],
-    currentUser?: MonoAccountDomainInterface,
+    currentUser?: IMonoAccount,
     cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<Map<string, ProjectPermissionsOutputDTO>> {
     const permissionsMap = new Map<string, ProjectPermissionsOutputDTO>();

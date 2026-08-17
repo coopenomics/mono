@@ -121,8 +121,13 @@ export class BlockchainRepeatService implements OnModuleInit, OnModuleDestroy {
 
         this.logger.debug(`Повторно отправлено действие: ${eventName} с sequence ${action.global_sequence}`);
 
-        // Сбрасываем флаг repeat после успешной отправки
-        await this.resetActionRepeatFlag(action.id);
+        // Сбрасываем флаг repeat после успешной отправки. Идентификатор есть
+        // всегда: сюда попадают действия, прочитанные из журнала, — но в общей
+        // форме он необязателен (у события из шины его ещё нет), поэтому
+        // проверяем явно, а не приводим тип.
+        if (action.id) {
+          await this.resetActionRepeatFlag(action.id);
+        }
       } catch (error: any) {
         this.logger.error(
           `Ошибка при повторной отправке действия ${action.account}::${action.name}: ${error.message}`,

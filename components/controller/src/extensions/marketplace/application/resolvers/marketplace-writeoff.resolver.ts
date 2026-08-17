@@ -1,13 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -36,8 +30,9 @@ import {
 } from '../dto/marketplace-writeoff.dto';
 import { MarketplaceWriteoffService } from '../services/marketplace-writeoff.service';
 import { toMarketplaceWriteoffProposalDTO } from './marketplace-writeoff.mapper';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;
@@ -70,7 +65,7 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 export class MarketplaceWriteoffResolver {
   constructor(
     private readonly service: MarketplaceWriteoffService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
@@ -85,7 +80,7 @@ export class MarketplaceWriteoffResolver {
   async marketplaceOpenWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffProposalDTO | null> {
-    const draft = await this.service.getOpenDraft(config.coopname);
+    const draft = await this.service.getOpenDraft(platformSettings().coopname);
     if (!draft) return null;
     const dto = toMarketplaceWriteoffProposalDTO(draft);
     await this.enrichItemBranchNames([dto]);
@@ -104,7 +99,7 @@ export class MarketplaceWriteoffResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginatedMarketplaceWriteoffProposalsDTO> {
     const result = await this.service.listProposals({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       statuses: data.statuses as unknown as MarketplaceWriteoffProposalStatusEnum[] | undefined,
       pagination: options,
     });
@@ -148,7 +143,7 @@ export class MarketplaceWriteoffResolver {
     @Args('data') data: MarketplaceCreateWriteoffDraftInputDTO
   ): Promise<MarketplaceWriteoffProposalDTO> {
     const draft = await this.service.createDraft({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       trigger: 'manual',
       proposed_by_account: member.username,
       cycle_started_at: data.cycle_started_at ? new Date(data.cycle_started_at) : undefined,
@@ -231,7 +226,7 @@ export class MarketplaceWriteoffResolver {
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(draft.total_amount)),
     };
-    const document = await this.documentDomainService.generateDocument({
+    const document = await this.documentPort.generate({
       data: action,
     });
     return toGeneratedDocumentDTO(document);
@@ -268,7 +263,7 @@ export class MarketplaceWriteoffResolver {
   async marketplaceListWriteoffCandidates(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffCandidateDTO[]> {
-    return (await this.service.listCandidates(config.coopname)) as MarketplaceWriteoffCandidateDTO[];
+    return (await this.service.listCandidates(platformSettings().coopname)) as MarketplaceWriteoffCandidateDTO[];
   }
 
   // ── Стол ПВЗ: подтверждение списания председателем КУ ───────────────
@@ -283,7 +278,7 @@ export class MarketplaceWriteoffResolver {
   async marketplaceWriteoffPendingConfirmations(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffConfirmationGroupDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
     // Совет/админ (read:all) видят все участки; председатель КУ — только свои.
     let branames: string[] | null = null;
@@ -312,7 +307,7 @@ export class MarketplaceWriteoffResolver {
     const memo = await this.service.getServiceMemoData(data.proposal_id, data.braname);
     const action: Cooperative.Registry.MarketplaceWriteoffServiceMemo.Action = {
       registry_id: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: member.username,
       lang: 'ru',
       proposal_hash: memo.proposal_hash,
@@ -325,7 +320,7 @@ export class MarketplaceWriteoffResolver {
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(memo.total_amount)),
     };
-    const document = await this.documentDomainService.generateDocument({ data: action });
+    const document = await this.documentPort.generate({ data: action });
     return toGeneratedDocumentDTO(document);
   }
 
@@ -420,7 +415,7 @@ export class MarketplaceWriteoffResolver {
   ): Promise<void> {
     const roles = member.marketplace_roles as MarketplaceRole[];
     if (canAccess(roles, 'Writeoff', 'read:all')) return;
-    const own = await this.kuChairmanService.listBranamesForMember(config.coopname, member.username);
+    const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
     if (!own.includes(braname)) {
       throw new BadRequestException(
         'Подтвердить списание можно только по участку, на котором вы являетесь председателем или доверенным лицом.'

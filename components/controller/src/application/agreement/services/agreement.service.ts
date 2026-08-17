@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { AgreementInteractor } from '../use-cases/agreement.interactor';
 import {
   AgreementRepository,
@@ -23,12 +21,10 @@ import { CoopAgreementDTO } from '../dto/coop-agreement.dto';
 import { AgreementTemplateDTO } from '../dto/agreement-template.dto';
 import { CooperativeProgramDTO } from '../dto/cooperative-program.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationResult } from '~/application/common/dto/pagination.dto';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { config } from '~/config';
 
 @Injectable()

@@ -5,8 +5,8 @@ import type {
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 
 /**
  * Story 4.1: домен Order'а Стола заказов. Backend-only представление
@@ -77,7 +77,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public chairman_signed_at: Date | null;
   public chairman_account: string | null;
   public signiss1_tx_hash: string | null;
-  public issue_act_signiss1_document: ISignedDocumentDomainInterface | null;
+  public issue_act_signiss1_document: ISignedDocument | null;
   /** Story 6.3 / FR24: момент финальной подписи заказчика (`signiss2`). */
   public orderer_signed_at: Date | null;
   public delivery_signer_account: string | null;

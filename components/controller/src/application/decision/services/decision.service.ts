@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DecisionInteractor } from '../use-cases/decision.interactor';
 import { AuthorizeDecisionInputDTO } from '../dto/authorize-decision-input.dto';
 import { DeclineDecisionInputDTO } from '../dto/decline-decision-input.dto';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
+import { TransactionDTO } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class DecisionService {

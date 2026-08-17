@@ -1,5 +1,5 @@
 import { Entity, Column, Index } from 'typeorm';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Открытая/закрытая сессия таймера участника (максимум одна открытая на contributor).

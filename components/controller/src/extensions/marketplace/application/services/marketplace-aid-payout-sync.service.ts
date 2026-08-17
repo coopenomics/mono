@@ -1,19 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * requirement b6 (2026-08-03): слушатель подтверждения выплаты материальной
@@ -35,12 +29,12 @@ import type { IAction } from '~/types';
 @Injectable()
 export class MarketplaceAidPayoutSyncService {
   constructor(
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepo: PaymentMethodRepository,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethodRepo: IPaymentMethodPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceAidPayoutSyncService.name);
   }
@@ -48,7 +42,7 @@ export class MarketplaceAidPayoutSyncService {
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.AidConfirm.actionName}`
   )
-  async handleAidConfirm(action: IAction): Promise<void> {
+  async handleAidConfirm(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as { coopname?: string; outcome_hash?: string };
       if (!data?.coopname || !data?.outcome_hash) {
@@ -72,7 +66,7 @@ export class MarketplaceAidPayoutSyncService {
       }
       await this.coreGateway.setPaymentStatus({
         id: payment.id,
-        status: PaymentStatusEnum.COMPLETED,
+        status: PaymentStatus.COMPLETED,
       });
 
       // Уведомление — после commit'а статуса (INV-12), не блокирует основной flow.

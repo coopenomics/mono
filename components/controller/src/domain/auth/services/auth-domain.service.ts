@@ -1,11 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import { tokenTypes } from '~/types/token.types';
 import { Bytes, Checksum256, Signature } from '@wharfkit/antelope';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AuthDomainService {

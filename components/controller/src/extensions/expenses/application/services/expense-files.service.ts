@@ -6,9 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
-import type { InterFileStorageBucket } from '@coopenomics/inter';
-import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
-import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
+import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { ExpenseFileKind } from '../../domain/enums/expense-file-kind.enum';
 import {
   EXPENSE_FILE_REPOSITORY,
@@ -17,6 +15,8 @@ import {
 import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-file-database.interface';
 import { EXPENSES_BUCKET } from '../../constants/expenses-bucket';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
+import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
+import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -37,9 +37,9 @@ const EXTENSION_BY_MIME: Record<string, string> = {
 @Injectable()
 export class ExpenseFilesService {
   constructor(
-    @InjectBucket() private readonly bucket: InterFileStorageBucket,
+    @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(EXPENSE_FILE_REPOSITORY) private readonly files: ExpenseFileRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort
   ) {}
 
   async uploadFile(

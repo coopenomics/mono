@@ -10,7 +10,7 @@
  *
  * В юнит-тестах к GitHub никто не ходит, поэтому вместо возни с трансформацией
  * всего ESM-куста octokit (core, request, endpoint, graphql, auth-token,
- * plugin-*, universal-user-agent, before-after-hook) подменяем сам пакет.
+ * extension-*, universal-user-agent, before-after-hook) подменяем сам пакет.
  * Тесту, которому нужен настоящий клиент, место в интеграционном прогоне.
  */
 export class Octokit {

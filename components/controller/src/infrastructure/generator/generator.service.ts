@@ -3,14 +3,23 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
 import { Generator, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { ControllerChainDataSource } from './controller-chain-data.source';
 @Injectable()
 export class GeneratorInfrastructureService implements GeneratorPort, OnModuleInit {
-  private generator = new Generator();
+  /**
+   * Фабрика получает данные цепи из базы узла, а не по HTTP из обозревателя
+   * парсера: те же таблицы, действия и шаблоны узел уже хранит у себя.
+   */
+  private readonly generator: Generator;
+
+  constructor(private readonly chainDataSource: ControllerChainDataSource) {
+    this.generator = new Generator(this.chainDataSource);
+  }
 
   async onModuleInit() {
     await this.connect(config.mongoose.url);

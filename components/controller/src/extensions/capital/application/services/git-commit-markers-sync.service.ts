@@ -9,8 +9,8 @@ import {
   GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,
   type GithubBranchCommitSyncStateRepository,
 } from '../../domain/repositories/github-branch-commit-sync-state.repository';
-import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
-import { config } from '~/config';
+import { platformSettings } from '@coopenomics/extension-kit';
+import { USER_DIRECTORY_PORT, type IUserDirectoryPort } from '@coopenomics/innercoop';
 
 type CommitRow = {
   sha: string;
@@ -36,8 +36,8 @@ export class GitCommitMarkersSyncService {
     private readonly linkedCommitRepository: IssueLinkedGitCommitRepository,
     @Inject(GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY)
     private readonly syncStateRepository: GithubBranchCommitSyncStateRepository,
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: UserRepository
+    @Inject(USER_DIRECTORY_PORT)
+    private readonly userRepository: IUserDirectoryPort
   ) {}
 
   /**
@@ -73,7 +73,7 @@ export class GitCommitMarkersSyncService {
     signal?: AbortSignal;
   }): Promise<void> {
     const { owner, repo, branch, githubRepositoryKey, signal } = args;
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
 
     if (!this.githubService.isAvailable()) {
       return;

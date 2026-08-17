@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
 import { NotificationDeliveryTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-delivery.typeorm-entity';
 import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
-import { NOTIFICATION_PORT } from '~/domain/notification/interfaces/notify.port';
 import {
   EMAIL_CHANNEL_PORT,
   IN_APP_CHANNEL_PORT,
@@ -23,13 +22,12 @@ import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
 /**
  * Центр уведомлений (DC v3) — единый вход уведомлений кооператива.
  *
- * Экспортирует {@link NOTIFICATION_PORT} → {@link NotificationService}: consumer-сервисы
- * инжектят порт и шлют уведомления через `notify()`, не зная про каналы и провайдеров.
+ * Экспортирует `NotificationService` — реализацию `INotificationPort` из
+ * `@coopenomics/innercoop`. Сам токен порта привязан в `InnercoopBridgeModule`
+ * вместе с остальными: одно место, где известны обе стороны.
  *
- * `@Global` — порт cross-cutting: ~12 consumer-модулей (agenda/wallet/gateway/meet/
- * participant/chairman/chatcoop/…) инжектят `NOTIFICATION_PORT` без импорта этого
- * модуля у себя (эпик 4, drop-in миграция со старого порта уведомлений). Ср. глобальный
- * `NOTIFICATION_SUBSCRIPTION_PORT` из typeorm.module.
+ * `@Global` — центр уведомлений cross-cutting: около двенадцати модулей ядра
+ * пользуются им, не импортируя этот модуль у себя.
  */
 @Global()
 @Module({
@@ -52,10 +50,6 @@ import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
     InAppChannelAdapter,
     WebPushChannelAdapter,
     {
-      provide: NOTIFICATION_PORT,
-      useExisting: NotificationService,
-    },
-    {
       provide: EMAIL_CHANNEL_PORT,
       useExisting: EmailChannelAdapter,
     },
@@ -69,7 +63,6 @@ import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
     },
   ],
   exports: [
-    NOTIFICATION_PORT,
     EMAIL_CHANNEL_PORT,
     IN_APP_CHANNEL_PORT,
     WEB_PUSH_CHANNEL_PORT,

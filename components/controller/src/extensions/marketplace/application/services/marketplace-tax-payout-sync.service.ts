@@ -1,13 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import type { IAction } from '~/types';
+  LOGGER_PORT,
+  PAYMENT_DESK_PORT,
+  PaymentStatus,
+  type ILoggerPort,
+  type IPaymentDeskPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 
 /**
  * Слушатель перечисления удержанного НДФЛ в бюджет (requirement b6, решение
@@ -29,9 +30,10 @@ import type { IAction } from '~/types';
 @Injectable()
 export class MarketplaceTaxPayoutSyncService {
   constructor(
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
+    @Inject(LOGGER_PORT)
+    private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceTaxPayoutSyncService.name);
   }
@@ -39,20 +41,20 @@ export class MarketplaceTaxPayoutSyncService {
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.TaxConfirm.actionName}`
   )
-  async handleTaxConfirm(action: IAction): Promise<void> {
-    await this.applyOutcome(action, PaymentStatusEnum.COMPLETED, 'taxconfirm');
+  async handleTaxConfirm(action: InnerChainActionRecord): Promise<void> {
+    await this.applyOutcome(action, PaymentStatus.COMPLETED, 'taxconfirm');
   }
 
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.TaxDecline.actionName}`
   )
-  async handleTaxDecline(action: IAction): Promise<void> {
-    await this.applyOutcome(action, PaymentStatusEnum.FAILED, 'taxdecline');
+  async handleTaxDecline(action: InnerChainActionRecord): Promise<void> {
+    await this.applyOutcome(action, PaymentStatus.FAILED, 'taxdecline');
   }
 
   private async applyOutcome(
-    action: IAction,
-    status: PaymentStatusEnum,
+    action: InnerChainActionRecord,
+    status: PaymentStatus,
     actionLabel: string
   ): Promise<void> {
     try {

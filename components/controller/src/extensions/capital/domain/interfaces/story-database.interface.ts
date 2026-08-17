@@ -1,6 +1,6 @@
 import type { StoryStatus } from '../enums/story-status.enum';
 import type { StoryContentFormat } from '../enums/story-content-format.enum';
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 
 /** Событие Matrix: анонс требования в комнате проекта (для правки заголовка через m.replace). */
 export interface IStoryMatrixRequirementAnnouncementEvent {

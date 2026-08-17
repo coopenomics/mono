@@ -1,13 +1,12 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
-import config from '~/config/config';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import type { ISyncResult } from '@coopenomics/extension-kit/sync';
+import { platformSettings, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import {
-  INTER_MATRIX_ROOM_MESSAGING,
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterMatrixRoomMessagingPort,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
+  MATRIX_ROOM_MESSAGING_PORT,
+  PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+  type IMatrixRoomMessagingPort,
+  type IProjectCommunicationArtifactsPort,
+} from '@coopenomics/innercoop';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { IProjectMatrixComponentAnnouncementEvent } from '../../domain/interfaces/project-database.interface';
@@ -22,11 +21,11 @@ export class ComponentMatrixAnnouncementService {
 
   constructor(
     @Optional()
-    @Inject(INTER_MATRIX_ROOM_MESSAGING)
-    private readonly matrixRoomMessaging: InterMatrixRoomMessagingPort | undefined,
+    @Inject(MATRIX_ROOM_MESSAGING_PORT)
+    private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly projectCommArtifacts: InterProjectCommunicationArtifactsPort | undefined,
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository
   ) {}
@@ -154,7 +153,7 @@ export class ComponentMatrixAnnouncementService {
     const rawTitle =
       component.title && component.title.trim().length > 0 ? component.title.trim() : component.project_hash;
     const nameInQuotes = rawTitle.replace(/\r?\n/g, ' ').replace(/"/g, "'");
-    const baseUrl = config.frontend_url.replace(/\/$/, '');
+    const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/components/${encodeURIComponent(component.project_hash)}/description`;
     const desktopUrl = `${baseUrl}/#${path}`;
     return `${ComponentMatrixAnnouncementService.COMPONENT_ANNOUNCE_ICON} Создан новый компонент "${nameInQuotes}": ${desktopUrl}`;

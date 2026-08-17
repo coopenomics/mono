@@ -21,7 +21,7 @@ import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import type { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { getProgramId, getProgramType } from '~/domain/wallet/enums/program-type.enum';
 import { config } from '~/config';
 

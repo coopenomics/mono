@@ -1,9 +1,9 @@
 import { ApprovalStatus } from '../enums/approval-status.enum';
 import type { IApprovalDatabaseData } from '../interfaces/approval-database.interface';
 import type { IApprovalBlockchainData } from '../interfaces/approval-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность одобрения
@@ -26,14 +26,14 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
   // Поля из блокчейна (approvals.hpp)
   public coopname!: IApprovalBlockchainData['coopname'];
   public username!: IApprovalBlockchainData['username'];
-  public document!: ISignedDocumentDomainInterface;
+  public document!: ISignedDocument;
   public approval_hash!: IApprovalBlockchainData['approval_hash'];
   public callback_contract!: IApprovalBlockchainData['callback_contract'];
   public callback_action_approve!: IApprovalBlockchainData['callback_action_approve'];
   public callback_action_decline!: IApprovalBlockchainData['callback_action_decline'];
   public meta!: IApprovalBlockchainData['meta'];
   public created_at!: Date;
-  public approved_document?: ISignedDocumentDomainInterface;
+  public approved_document?: ISignedDocument;
 
   constructor(databaseData: IApprovalDatabaseData, blockchainData?: IApprovalBlockchainData) {
     // Вызываем конструктор базового класса
@@ -118,7 +118,7 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
   }
 
   // Методы для изменения статуса через мутации
-  approve(approved_document?: ISignedDocumentDomainInterface): void {
+  approve(approved_document?: ISignedDocument): void {
     this.status = ApprovalStatus.APPROVED;
     if (approved_document) {
       this.approved_document = approved_document;

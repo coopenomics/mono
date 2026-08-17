@@ -16,6 +16,11 @@ title: Кто читает документы проекта и его пере�
 #
 # Выдача самого допуска — соседний слайс (capital.project-contributors), здесь только
 # последствия для чтения.
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -195,8 +200,8 @@ cases:
     kind: break
     scenario: пайщик запрашивает список записей звонков без указания комнаты
     expect: возвращаются только записи комнат, которые ему доступны
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
 
   - id: cap.access.side.09
     level: backend
@@ -205,8 +210,39 @@ cases:
     expect: >
       разрешено — заметку правит тот же круг, что и читает запись; раньше это
       мог только совет
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      совет и ведущий проекта открывают запись звонка проекта целиком — с
+      расшифровкой по репликам
+    expect: доступно обоим
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.break.09
+    level: backend
+    kind: break
+    scenario: >
+      у записи звонка два разных идентификатора — комната переписки и комната
+      самого звонка; доступ считается по комнате переписки
+    expect: >
+      запись открывается тем, кто вправе читать переписку этой комнаты; по
+      идентификатору комнаты звонка комната не ищется — иначе отказ получает
+      даже председатель
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.break.10
+    level: backend
+    kind: break
+    scenario: запись звонка комнаты, которой нет в реестре комнат кооператива
+    expect: отказ всем, включая совет — читать нечего и права считать не от чего
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
 
   # ── Кэш справочных чтений ─────────────────────────────────────────────────
 

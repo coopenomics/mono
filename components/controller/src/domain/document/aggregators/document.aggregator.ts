@@ -1,14 +1,14 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
 import { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
 import { DocumentDomainEntity } from '../entity/document-domain.entity';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 
 import {
-  ExtendedSignedDocumentDomainInterface,
-  SignatureInfoDomainInterface,
+  IExtendedSignedDocument,
+  IExtendedSignatureInfo,
 } from '../interfaces/extended-signed-document-domain.interface';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { Classes } from '@coopenomics/sdk';
 import {
   UserCertificateDomainService,
@@ -19,8 +19,8 @@ import {
 export class DocumentAggregator {
   constructor(
     @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: DocumentRepository,
-    @Inject(forwardRef(() => ACCOUNT_DOMAIN_SERVICE)) private readonly accountDomainService: AccountDomainService,
-    @Inject(forwardRef(() => USER_CERTIFICATE_DOMAIN_SERVICE))
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
+    @Inject(USER_CERTIFICATE_DOMAIN_SERVICE)
     private readonly userCertificateService: UserCertificateDomainService
   ) {}
   private readonly EMPTY_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -31,7 +31,7 @@ export class DocumentAggregator {
    * @param signedDoc Подписанный документ (метаинформация) в новом формате
    * @returns Агрегатор документов
    */
-  public async buildDocumentAggregate(signedDoc: ISignedDocumentDomainInterface): Promise<DocumentDomainAggregate | null> {
+  public async buildDocumentAggregate(signedDoc: ISignedDocument): Promise<DocumentDomainAggregate | null> {
     // Получаем полный документ по хешу
     if (signedDoc.doc_hash === this.EMPTY_HASH) return null;
 
@@ -45,7 +45,7 @@ export class DocumentAggregator {
     );
 
     // Массив для хранения информации о подписантах
-    const signatureInfos: SignatureInfoDomainInterface[] = [];
+    const signatureInfos: IExtendedSignatureInfo[] = [];
 
     // Если есть хотя бы одна подпись
     if (signedDoc.signatures && signedDoc.signatures.length > 0) {
@@ -57,7 +57,7 @@ export class DocumentAggregator {
         const signerCertificate = this.userCertificateService.createCertificateFromUserData(signer);
 
         // Формируем объект информации о подписи
-        const signatureInfo: SignatureInfoDomainInterface = {
+        const signatureInfo: IExtendedSignatureInfo = {
           id: signature.id,
           signed_hash: signature.signed_hash,
           signer: signature.signer,
@@ -73,8 +73,8 @@ export class DocumentAggregator {
       }
     }
 
-    // Формируем документ в соответствии с интерфейсом ExtendedSignedDocumentDomainInterface
-    const extendedDoc: ExtendedSignedDocumentDomainInterface = {
+    // Формируем документ в соответствии с интерфейсом IExtendedSignedDocument
+    const extendedDoc: IExtendedSignedDocument = {
       version: signedDoc.version,
       hash: signedDoc.hash,
       doc_hash: signedDoc.doc_hash,

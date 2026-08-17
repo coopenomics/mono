@@ -239,7 +239,7 @@ export const AllTypesProps: Record<string,any> = {
 		status:"ContributorStatus"
 	},
 	CapitalCreateProgramExpenseInput:{
-		items:"ExpenseItemInput",
+		items:"CapitalExpenseItemInput",
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	CapitalCycleFilter:{
@@ -250,6 +250,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalDeallocationLimitInput:{
 
+	},
+	CapitalExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
 	},
 	CapitalGetOpenTimerInput:{
 
@@ -2355,6 +2359,8 @@ export const AllTypesProps: Record<string,any> = {
 			input:"WalmoveInput"
 		}
 	},
+	NodeSyncOutage: "enum" as const,
+	NodeSyncStatus: "enum" as const,
 	NonProjectRoomKind: "enum" as const,
 	NotificationChannel: "enum" as const,
 	NotificationDeliveryStatus: "enum" as const,
@@ -3921,7 +3927,7 @@ export const ReturnTypes: Record<string,any> = {
 		appendixes:"String",
 		blagorost_agreement_hash:"String",
 		blagorost_offer_hash:"String",
-		blagorost_wallet:"ProgramWallet",
+		blagorost_wallet:"CapitalProgramWallet",
 		block_num:"Float",
 		blockchain_status:"String",
 		contract:"DocumentAggregate",
@@ -3939,7 +3945,7 @@ export const ReturnTypes: Record<string,any> = {
 		document_parameters:"ContributorDocumentParameters",
 		energy:"Float",
 		generation_contract_hash:"String",
-		generation_wallet:"ProgramWallet",
+		generation_wallet:"CapitalProgramWallet",
 		generator_offer_hash:"String",
 		hours_per_day:"Float",
 		id:"Int",
@@ -3947,7 +3953,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_external_contract:"Boolean",
 		last_energy_update:"String",
 		level:"Int",
-		main_wallet:"ProgramWallet",
+		main_wallet:"CapitalProgramWallet",
 		memo:"String",
 		present:"Boolean",
 		program_key:"String",
@@ -4290,6 +4296,16 @@ export const ReturnTypes: Record<string,any> = {
 		recipient_name:"String",
 		recipient_type:"ExpenseRecipientType",
 		status:"ExpenseItemStatus"
+	},
+	CapitalProgramWallet:{
+		agreement_id:"ID",
+		available:"String",
+		coopname:"String",
+		id:"ID",
+		membership_contribution:"String",
+		program_id:"ID",
+		program_type:"ProgramType",
+		username:"String"
 	},
 	CapitalProject:{
 		_created_at:"DateTime",
@@ -6735,6 +6751,16 @@ export const ReturnTypes: Record<string,any> = {
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
 	},
+	NodeSyncState:{
+		catch_up_blocks_per_second:"Float",
+		current_block_num:"Int",
+		cursor_updated_at:"String",
+		estimated_seconds_remaining:"Int",
+		head_block_num:"Int",
+		lag_blocks:"Int",
+		outage:"NodeSyncOutage",
+		status:"NodeSyncStatus"
+	},
 	Notification:{
 		attempts:"Int",
 		channel:"NotificationChannel",
@@ -7361,6 +7387,7 @@ export const ReturnTypes: Record<string,any> = {
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
 		getMyProductCards:"ProductCard",
+		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
 		getPaymentMethods:"PaymentMethodPaginationResult",
@@ -7715,7 +7742,8 @@ export const ReturnTypes: Record<string,any> = {
 		documentAggregate:"DocumentAggregate"
 	},
 	Subscription:{
-		marketplaceEvents:"MarketplaceEvent"
+		marketplaceEvents:"MarketplaceEvent",
+		nodeSyncState:"NodeSyncState"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",

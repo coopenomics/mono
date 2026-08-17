@@ -1,5 +1,5 @@
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings } from '@coopenomics/extension-kit';
 import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
@@ -7,7 +7,6 @@ import { MatrixUserManagementService } from './domain/services/matrix-user-manag
 import { UnionChatService } from './domain/services/union-chat.service';
 import { UnionChatTypeormRepository } from './infrastructure/repositories/union-chat.typeorm-repository';
 import { UNION_CHAT_REPOSITORY } from './domain/repositories/union-chat.repository';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
 import { ChatCoopResolver } from './application/resolvers/chatcoop.resolver';
 import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calendar.resolver';
 import { ChatCoopCalendarFeedController } from './application/controllers/chatcoop-calendar-feed.controller';
@@ -15,21 +14,17 @@ import { TranscriptionResolver } from './application/resolvers/transcription.res
 import { ProjectCommunicationResolver } from './application/resolvers/project-communication.resolver';
 import { SecretaryRoomsResolver } from './application/resolvers/secretary-rooms.resolver';
 import { SecretaryRoomManagementService } from './application/services/secretary-room-management.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort,
+  SECRET_CIPHER_PORT,
+  type ISecretCipherPort,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
+} from '@coopenomics/innercoop';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import { ChatcoopCommunicationAccessService } from './application/services/chatcoop-communication-access.service';
-import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { VarsRepository, VARS_REPOSITORY } from '~/domain/common/repositories/vars.repository';
-import { VarsRepositoryImplementation } from '~/infrastructure/database/generator-repositories/repositories/vars-generator.repository';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
-import { encrypt } from '~/utils/aes';
 import * as crypto from 'crypto';
-import config from '~/config/config';
 
 // Новые сервисы и репозитории для секретаря и транскрипции
 import { TranscriptionManagementService } from './domain/services/transcription-management.service';
@@ -51,9 +46,9 @@ import { RoomMessageHistoryTypeormRepository } from './infrastructure/repositori
 import { MatrixRoomMessageHistoryIngestService } from './application/services/matrix-room-message-history-ingest.service';
 import { ChatCoopSecretaryMatrixTokenService } from './application/services/chatcoop-secretary-matrix-token.service';
 import { MatrixRoomMessageHistoryCronService } from './application/services/matrix-room-message-history-cron.service';
-import { ChatcoopInterProjectCommunicationArtifactsAdapter } from './infrastructure/inter/chatcoop-inter-project-communication-artifacts.adapter';
-import { ChatcoopInterMatrixRoomMessagingAdapter } from './infrastructure/inter/chatcoop-inter-matrix-room-messaging.adapter';
-import { ChatcoopInterChatCoopCalendarAdapter } from './infrastructure/inter/chatcoop-inter-chatcoop-calendar.adapter';
+import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
+import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
+import { ChatcoopInnercoopChatCoopCalendarAdapter } from './infrastructure/innercoop/chatcoop-innercoop-chatcoop-calendar.adapter';
 import { ChatCoopCalendarApplicationService } from './application/services/chatcoop-calendar-application.service';
 import { CalendarEventTypeormRepository } from './infrastructure/repositories/calendar-event.typeorm-repository';
 import { CalendarIcsSubscriptionTypeormRepository } from './infrastructure/repositories/calendar-ics-subscription.typeorm-repository';
@@ -95,44 +90,44 @@ export type IConfig = z.infer<typeof Schema>;
 
 // Репозитории
 import { MatrixUserTypeormRepository } from './infrastructure/repositories/matrix-user.typeorm-repository';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
-import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
-
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 @Injectable()
-export class ChatCoopPlugin extends BaseExtModule {
+export class ChatCoopExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
+    @Inject(COOPERATIVE_VARS_PORT) private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly matrixApiService: MatrixApiService,
-    private readonly chatCoopApplicationService: ChatCoopApplicationService
+    private readonly chatCoopApplicationService: ChatCoopApplicationService,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort
   ) {
     super();
-    this.logger.setContext(ChatCoopPlugin.name);
+    this.logger.setContext(ChatCoopExtension.name);
   }
 
   name = 'chatcoop';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
   configSchemas = Schema;
   defaultConfig = defaultConfig;
 
   /** В JSON расширения храним только публичные настройки (интервал cron и т.д.). */
   private async persistExtensionPublicConfig(): Promise<void> {
     const interval =
-      this.plugin?.config?.messageHistorySyncIntervalMinutes ?? defaultConfig.messageHistorySyncIntervalMinutes;
+      this.extension?.config?.messageHistorySyncIntervalMinutes ?? defaultConfig.messageHistorySyncIntervalMinutes;
     await this.extensionRepository.update({
       name: this.name,
       config: { messageHistorySyncIntervalMinutes: interval },
     });
     const refreshed = await this.extensionRepository.findByName(this.name);
     if (refreshed) {
-      this.plugin = refreshed;
+      this.extension = refreshed;
     }
   }
 
@@ -140,11 +135,11 @@ export class ChatCoopPlugin extends BaseExtModule {
     try {
       this.logger.log('Инициализация модуля чаткооп...');
 
-      // Получаем конфигурацию плагина
-      const pluginData = await this.extensionRepository.findByName(this.name);
-      if (!pluginData) throw new Error('Конфиг чаткооп не найден');
+      // Получаем конфигурацию расширения
+      const extensionData = await this.extensionRepository.findByName(this.name);
+      if (!extensionData) throw new Error('Конфиг чаткооп не найден');
 
-      this.plugin = pluginData;
+      this.extension = extensionData;
 
       // Выполняем логин администратора при инициализации
       await this.matrixApiService.loginAdmin();
@@ -164,12 +159,12 @@ export class ChatCoopPlugin extends BaseExtModule {
             st2.secretaryMatrixUserId.trim().length > 0 &&
             typeof st2.secretaryPasswordEncrypted === 'string' &&
             st2.secretaryPasswordEncrypted.length > 0;
-          if (!hasSecretaryCreds && config.livekit?.url) {
+          if (!hasSecretaryCreds && this.integrations.get<{ url?: string }>('chatcoop', 'livekit')?.url) {
             await this.initializeSecretary();
           }
           const refreshed = await this.extensionRepository.findByName(this.name);
           if (refreshed) {
-            this.plugin = refreshed;
+            this.extension = refreshed;
           }
           await this.ensureSecretaryInEligibleMatrixRoomsIfConfigured();
           this.logger.log('Модуль чаткооп успешно инициализирован');
@@ -191,13 +186,13 @@ export class ChatCoopPlugin extends BaseExtModule {
 
   /**
    * Отложенная инициализация секретаря после того, как генератор будет готов.
-   * Выполняется только если расширение установлено (this.plugin задаётся в initialize()).
+   * Выполняется только если расширение установлено (this.extension задаётся в initialize()).
    */
   async onModuleInit(): Promise<void> {
     setTimeout(async () => {
       try {
         // Расширение не установлено — initialize() не вызывался, пропускаем
-        if (!this.plugin?.config) {
+        if (!this.extension?.config) {
           return;
         }
         const st = await this.chatcoopState.getSingleton();
@@ -210,12 +205,12 @@ export class ChatCoopPlugin extends BaseExtModule {
           st2.secretaryMatrixUserId.trim().length > 0 &&
           typeof st2.secretaryPasswordEncrypted === 'string' &&
           st2.secretaryPasswordEncrypted.length > 0;
-        if (!hasSecretaryCreds && config.livekit?.url) {
+        if (!hasSecretaryCreds && this.integrations.get<{ url?: string }>('chatcoop', 'livekit')?.url) {
           await this.initializeSecretary();
         }
         const refreshed = await this.extensionRepository.findByName(this.name);
         if (refreshed) {
-          this.plugin = refreshed;
+          this.extension = refreshed;
         }
         await this.ensureSecretaryInEligibleMatrixRoomsIfConfigured();
       } catch (error) {
@@ -233,7 +228,7 @@ export class ChatCoopPlugin extends BaseExtModule {
       if (!latest) {
         return;
       }
-      this.plugin = latest;
+      this.extension = latest;
       const st = await this.chatcoopState.getSingleton();
       if (!st.isInitialized) {
         return;
@@ -254,12 +249,12 @@ export class ChatCoopPlugin extends BaseExtModule {
       this.logger.log('ChatCoop: в реестре нет комнаты пайщиков — создаём и синхронизируем пользователей');
       await this.matrixApiService.loginAdmin();
 
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива для комнаты пайщиков');
       }
 
-      const membersRoomName = `Комната пайщиков ${vars.short_abbr} ${vars.name}`;
+      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
       const membersMatrix = COOPERATIVE_MEMBERS_ROOM_MATRIX;
       const adminUserId = this.matrixApiService.getAdminUserId();
       const membersRoomPowerLevels = membersMatrix.buildPowerLevels(adminUserId);
@@ -299,14 +294,14 @@ export class ChatCoopPlugin extends BaseExtModule {
       this.logger.log('Инициализация пространства и комнат кооператива...');
 
       // Получаем переменные кооператива
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива');
       }
 
-      const spaceName = `${vars.short_abbr} ${vars.name.toUpperCase()}`;
-      const membersRoomName = `Комната пайщиков ${vars.short_abbr} ${vars.name}`;
-      const councilRoomName = `Комната совета ${vars.short_abbr} ${vars.name}`;
+      const spaceName = `${vars.shortAbbr} ${vars.name.toUpperCase()}`;
+      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
+      const councilRoomName = `Комната совета ${vars.shortAbbr} ${vars.name}`;
 
       // Получаем user_id администратора Matrix
       const adminUserId = this.matrixApiService.getAdminUserId();
@@ -389,19 +384,19 @@ export class ChatCoopPlugin extends BaseExtModule {
    * Создает Matrix-аккаунт, шифрует credentials и сохраняет в Vault
    */
   private async initializeSecretary(): Promise<void> {
-    if (!this.plugin?.config) {
+    if (!this.extension?.config) {
       return;
     }
     try {
       this.logger.log('Инициализация сервисного аккаунта секретаря...');
 
       // Получаем имя кооператива для формирования username
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         throw new Error('Не удалось получить переменные кооператива');
       }
 
-      const coopname = vars.coopname || config.coopname;
+      const coopname = vars.coopname || platformSettings().coopname;
 
       const existingState = await this.chatcoopState.getSingleton();
       if (existingState.secretaryUsername && existingState.secretaryPasswordEncrypted) {
@@ -417,7 +412,7 @@ export class ChatCoopPlugin extends BaseExtModule {
       const randomSuffix = Math.random().toString(36).substring(2, 5);
       const secretaryUsername = `secretary-${coopname}-${randomSuffix}`;
       const secretaryPassword = crypto.randomBytes(32).toString('hex');
-      const displayName = `Секретарь | ${vars.short_abbr} ${vars.name}`;
+      const displayName = `Секретарь | ${vars.shortAbbr} ${vars.name}`;
 
       this.logger.log(`Создание Matrix аккаунта секретаря: ${secretaryUsername}`);
 
@@ -438,7 +433,7 @@ export class ChatCoopPlugin extends BaseExtModule {
       // Комната пайщиков — plaintext в реестре; секретарь вступит при ensureSecretaryInEligibleMatrixRooms.
 
       // Шифруем пароль для хранения в конфигурации
-      const encryptedPassword = encrypt(secretaryPassword);
+      const encryptedPassword = this.secretCipher.encrypt(secretaryPassword);
 
       await this.chatcoopState.merge({
         secretaryMatrixUserId: registerResponse.user_id,
@@ -515,15 +510,14 @@ export class ChatCoopPlugin extends BaseExtModule {
   imports: [
     ChatCoopDatabaseModule,
     ConfigModule,
-    AccountInfrastructureModule,
   ],
   controllers: [
     LiveKitWebhookController,
     ChatCoopCalendarFeedController,
   ],
   providers: [
-    // Plugin
-    ChatCoopPlugin,
+    // Extension
+    ChatCoopExtension,
 
     // Application Services
     ChatCoopApplicationService,
@@ -535,26 +529,18 @@ export class ChatCoopPlugin extends BaseExtModule {
     WhisperSttService,
     MatrixRoomMessageHistoryIngestService,
     MatrixRoomMessageHistoryCronService,
-    ChatcoopInterProjectCommunicationArtifactsAdapter,
-    ChatcoopInterMatrixRoomMessagingAdapter,
-    ChatcoopInterChatCoopCalendarAdapter,
+    ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
+    ChatcoopInnercoopMatrixRoomMessagingAdapter,
+    ChatcoopInnercoopChatCoopCalendarAdapter,
     ChatCoopCalendarApplicationService,
     ChatcoopCalendarEventNotificationService,
     ChatcoopCommunicationAccessService,
     {
-      provide: INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
+      provide: COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
       useExisting: ChatcoopCalendarEventNotificationService,
     },
 
     // Repositories
-    {
-      provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
-    },
-    {
-      provide: VARS_REPOSITORY,
-      useClass: VarsRepositoryImplementation,
-    },
 
     // Domain Services
     MatrixUserManagementService,
@@ -610,19 +596,19 @@ export class ChatCoopPlugin extends BaseExtModule {
     SecretaryRoomsResolver,
   ],
   exports: [
-    ChatCoopPlugin,
+    ChatCoopExtension,
     ChatCoopApplicationService,
-    ChatcoopInterProjectCommunicationArtifactsAdapter,
-    ChatcoopInterMatrixRoomMessagingAdapter,
-    ChatcoopInterChatCoopCalendarAdapter,
+    ChatcoopInnercoopProjectCommunicationArtifactsAdapter,
+    ChatcoopInnercoopMatrixRoomMessagingAdapter,
+    ChatcoopInnercoopChatCoopCalendarAdapter,
     ChatcoopCalendarEventNotificationService,
-    INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
+    COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
   ],
 })
-export class ChatCoopPluginModule {
-  constructor(private readonly chatcoopPlugin: ChatCoopPlugin) {}
+export class ChatCoopExtensionModule {
+  constructor(private readonly chatcoopExtension: ChatCoopExtension) {}
 
   async initialize() {
-    await this.chatcoopPlugin.initialize();
+    await this.chatcoopExtension.initialize();
   }
 }

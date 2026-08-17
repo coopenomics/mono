@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -44,7 +43,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListStorageCellsInputDTO
   ): Promise<MarketplaceStorageCellDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     let branameFilter: string | string[] | undefined = data?.braname;
@@ -70,7 +69,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStorageCellInputDTO
   ): Promise<MarketplaceStorageCellDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.assertManagesBranch(coopname, member.username, data.braname);
 
     const cell = await this.storageCellService.createCell({
@@ -94,7 +93,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStorageGridInputDTO
   ): Promise<MarketplaceStorageCellDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.assertManagesBranch(coopname, member.username, data.braname);
 
     const cells = await this.storageCellService.createGrid({
@@ -118,7 +117,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateStorageCellInputDTO
   ): Promise<MarketplaceStorageCellDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const existing = await this.storageCellService.getById(coopname, data.cell_id);
     await this.assertManagesBranch(coopname, member.username, existing.braname);
 
@@ -142,7 +141,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRenameStorageSectionInputDTO
   ): Promise<MarketplaceStorageCellDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.assertManagesBranch(coopname, member.username, data.braname);
 
     const cells = await this.storageCellService.renameSection({
@@ -165,7 +164,7 @@ export class MarketplaceStorageCellResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRetireStorageCellsInputDTO
   ): Promise<MarketplaceStorageCellDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     await this.assertManagesBranch(coopname, member.username, data.braname);
 
     const cells = await this.storageCellService.retireCells({

@@ -1,4 +1,4 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { ProgramWithdrawDomainEntity } from '../entities/program-withdraw.entity';
 
 export type ProgramWithdrawRepository = IBlockchainSyncRepository<ProgramWithdrawDomainEntity>;

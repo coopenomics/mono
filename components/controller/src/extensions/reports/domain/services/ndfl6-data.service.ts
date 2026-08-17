@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
-import type { Ledger2OperationDTO } from '~/application/ledger2/dto/ledger2-operation.dto';
 import {
-  INDIVIDUAL_REPOSITORY,
-  type IndividualRepository,
-} from '~/domain/common/repositories/individual.repository';
-import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
+  INDIVIDUAL_PORT,
+  LEDGER2_HISTORY_PORT,
+  type IIndividualPort,
+  type ILedger2HistoryPort,
+  type InnerIndividual,
+  type InnerLedger2Operation,
+} from '@coopenomics/innercoop';
 import { uvNdflPeriodOf } from '../enums/report-type.enum';
 import { getNdflParams, getTaxTimezoneOffsetMinutes } from './ndfl-reference';
 import {
@@ -67,9 +68,9 @@ export class Ndfl6DataService {
   private readonly logger = new Logger(Ndfl6DataService.name);
 
   constructor(
-    private readonly ledger2Service: Ledger2Service,
-    @Inject(INDIVIDUAL_REPOSITORY)
-    private readonly individualRepo: IndividualRepository,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2Service: ILedger2HistoryPort,
+    @Inject(INDIVIDUAL_PORT)
+    private readonly individualRepo: IIndividualPort,
   ) {}
 
   /**
@@ -186,7 +187,7 @@ export class Ndfl6DataService {
    * при сумме меньше рубля налог округляется в ноль, и контракт проводку не
    * делает.
    */
-  private indexTaxByHash(operations: Ledger2OperationDTO[]): Map<string, number> {
+  private indexTaxByHash(operations: InnerLedger2Operation[]): Map<string, number> {
     const taxByHash = new Map<string, number>();
     for (const op of operations) {
       if (op.operationCode !== AID_TAX_OPERATION || !op.processHash) continue;
@@ -198,7 +199,7 @@ export class Ndfl6DataService {
 
   /** Выплата в отчётном периоде, или null — если она вне периода. */
   private toPayout(
-    op: Ledger2OperationDTO,
+    op: InnerLedger2Operation,
     taxByHash: Map<string, number>,
     year: number,
     lastMonth: number,
@@ -224,14 +225,14 @@ export class Ndfl6DataService {
   }
 
   /** Все операции матпомощи за год — постранично, лимит выдачи 500. */
-  private async fetchOperations(coopname: string, year: number): Promise<Ledger2OperationDTO[]> {
+  private async fetchOperations(coopname: string, year: number): Promise<InnerLedger2Operation[]> {
     // Границы берём с запасом в сутки с обеих сторон: запрос идёт по UTC, а
     // отбор — по московским датам, и выплата 1 января 00:30 MSK лежит в UTC
     // ещё в прошлом году. Лишнее отсекает фильтр по `toMoscowParts`.
     const dateFrom = new Date(Date.UTC(year - 1, 11, 31, 0, 0, 0));
     const dateTo = new Date(Date.UTC(year + 1, 0, 2, 0, 0, 0));
 
-    const items: Ledger2OperationDTO[] = [];
+    const items: InnerLedger2Operation[] = [];
     const limit = 500;
     let page = 1;
     for (;;) {
@@ -294,7 +295,7 @@ export class Ndfl6DataService {
     username: string,
     number: number,
     payouts: AidPayout[],
-    individual: IndividualDomainInterface | null,
+    individual: InnerIndividual | null,
     year: number,
   ): Ndfl6CertificateShape {
     const monthlyMinor = new Map<number, number>();
@@ -339,7 +340,7 @@ export class Ndfl6DataService {
     };
   }
 
-  private async findIndividual(username: string): Promise<IndividualDomainInterface | null> {
+  private async findIndividual(username: string): Promise<InnerIndividual | null> {
     try {
       return await this.individualRepo.findByUsername(username);
     } catch (e) {
@@ -361,7 +362,7 @@ export class Ndfl6DataService {
    * серия «0405» лежит в базе как 405 и без дополнения превратилась бы в
    * несуществующий документ.
    */
-  private formatPassport(individual: IndividualDomainInterface | null): string {
+  private formatPassport(individual: InnerIndividual | null): string {
     const passport = individual?.passport;
     if (!passport) return '';
     const series = String(passport.series ?? '').padStart(4, '0');

@@ -2,10 +2,7 @@ import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graph
 import { Cooperative } from 'cooptypes';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
-import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import type { ExcludeCommonProps } from '~/application/document/types';
+import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Общие вложенные DTO

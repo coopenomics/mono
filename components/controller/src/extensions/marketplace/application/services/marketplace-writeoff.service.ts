@@ -10,14 +10,10 @@ import { createHash } from 'crypto';
 import { Cooperative, MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -59,6 +55,8 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;
@@ -168,10 +166,10 @@ export class MarketplaceWriteoffService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly orderDisplay: MarketplaceOrderDisplayService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffService.name);
   }
@@ -490,11 +488,11 @@ export class MarketplaceWriteoffService {
    * `protocol_doc` = signed-документ из callback'а onmktwoauth. Канон —
    * issuance/return-claim. null, если протокола ещё нет (проект не одобрен).
    */
-  async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
+  async getProtocolDocumentAggregate(id: string): Promise<InnerDocumentAggregate | null> {
     const proposal = await this.getProposal(id);
-    const signed = proposal.protocol_doc as ISignedDocumentDomainInterface | null;
+    const signed = proposal.protocol_doc as ISignedDocument | null;
     if (!signed) return null;
-    return this.documentDomainService.buildDocumentAggregate(signed);
+    return this.documentPort.buildAggregate(signed);
   }
 
   // ── DRAFT pipeline ─────────────────────────────────────────────────
@@ -1077,7 +1075,7 @@ export class MarketplaceWriteoffService {
     );
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) throw new HttpApiError(http.BAD_REQUEST, 'Заявление не подписано');
     const publicKey = PublicKey.from(sig.public_key);

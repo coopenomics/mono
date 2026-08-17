@@ -1,8 +1,8 @@
-import { type ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { type ISignedDocument } from '@coopenomics/innercoop';
 
 export interface NotifyOnAnnualGeneralMeetInputDomainInterface {
   coopname: string;
   meet_hash: string;
   username: string;
-  notification: ISignedDocumentDomainInterface;
+  notification: ISignedDocument;
 }

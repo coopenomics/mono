@@ -1,7 +1,7 @@
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
 import { rawDocumentAggregateSelector } from '../documents/documentAggregateSelector'
-import { rawProgramWalletSelector } from '../wallet'
+import { rawCapitalProgramWalletSelector } from './capitalProgramWalletSelector'
 import { baseCapitalSelector } from './baseCapitalSelector'
 
 const rawContributorSelector = {
@@ -48,9 +48,9 @@ const rawContributorSelector = {
     blagorost_storage_agreement_number: true,
     blagorost_storage_agreement_created_at: true,
   },
-  blagorost_wallet: rawProgramWalletSelector,
-  generation_wallet: rawProgramWalletSelector,
-  main_wallet: rawProgramWalletSelector,
+  blagorost_wallet: rawCapitalProgramWalletSelector,
+  generation_wallet: rawCapitalProgramWalletSelector,
+  main_wallet: rawCapitalProgramWalletSelector,
   is_external_blagorost_agreement: true,
 }
 

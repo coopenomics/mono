@@ -1,8 +1,6 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { DeltaService } from '../services/delta.service';
 import { ActionService } from '../services/action.service';
 import { CurrentTableStatesService } from '../services/current-table-states.service';
@@ -12,8 +10,6 @@ import { DeltaFiltersInputDTO } from '../dto/delta-filters-input.dto';
 import { ActionFiltersInputDTO } from '../dto/action-filters-input.dto';
 import { CurrentTableStatesFiltersInputDTO } from '../dto/current-table-states-filters-input.dto';
 import { BlockchainActionDTO } from '~/application/common/dto/blockchain-action.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-
 const paginatedDeltasResult = createPaginationResult(DeltaDTO, 'PaginatedDeltas');
 const paginatedActionsResult = createPaginationResult(BlockchainActionDTO, 'PaginatedActions');
 const paginatedCurrentTableStatesResult = createPaginationResult(CurrentTableStateDTO, 'PaginatedCurrentTableStates');

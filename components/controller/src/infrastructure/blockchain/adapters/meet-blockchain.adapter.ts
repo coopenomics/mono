@@ -6,12 +6,10 @@ import { Checksum256, TransactResult } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import { VoteOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/vote-on-annual-general-meet-input.interface';
 import { RestartAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/restart-annual-general-meet-input-domain.interface';
 import { CreateAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/create-annual-meet-input-domain.interface';
-import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
 import { GetMeetInputDomainInterface } from '~/domain/meet/interfaces/get-meet-input-domain.interface';
 import { GetMeetsInputDomainInterface } from '~/domain/meet/interfaces/get-meets-input-domain.interface';
 import { MeetProcessingDomainEntity } from '~/domain/meet/entities/meet-processing-domain.entity';
@@ -21,6 +19,7 @@ import { SignBySecretaryOnAnnualGeneralMeetInputDomainInterface } from '~/domain
 import { SignByPresiderOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/sign-by-presider-on-annual-general-meet-input-domain.interface';
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeetBlockchainAdapter implements MeetBlockchainPort {

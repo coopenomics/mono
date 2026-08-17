@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { FreeDecisionAdapter, FREE_DECISION_ADAPTER } from './free-decision.adapter';
+import { FreeDecisionAdapter } from './free-decision.adapter';
 import { DecisionModule } from '~/application/free-decision/decision.module';
 
 @Module({
   imports: [DecisionModule],
-  providers: [FreeDecisionAdapter, FREE_DECISION_ADAPTER],
-  exports: [FREE_DECISION_ADAPTER],
+  providers: [FreeDecisionAdapter],
+  // Токен `FREE_DECISION_PORT` привязан в `InnercoopBridgeModule` вместе с
+  // остальными портами: одно место, где известны обе стороны.
+  exports: [FreeDecisionAdapter],
 })
 export class FreeDecisionInfrastructureModule {}

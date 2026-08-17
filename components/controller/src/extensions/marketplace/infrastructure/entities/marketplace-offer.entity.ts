@@ -69,8 +69,11 @@ export class MarketplaceOfferEntity {
     size: number;
     price: string;
     label: string | null;
-    /** Вид упаковки словами поставщика («стекло», «корзинка»). */
-    package_type: string;
+    /**
+     * Вид упаковки словами поставщика («стекло», «корзинка»). `null` — у
+     * предложений, заведённых до появления поля (в jsonb ключа просто нет).
+     */
+    package_type: string | null;
     sort_order: number;
     is_default: boolean;
   }>;

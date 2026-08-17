@@ -2,11 +2,11 @@ import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
 import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
-  MonoAccountStatusDomainInterface,
-  type MonoAccountDomainInterface,
-} from '~/domain/account/interfaces/mono-account-domain.interface';
+  MonoAccountStatus,
+  type IMonoAccount,
+} from '@coopenomics/innercoop';
 
-registerEnumType(MonoAccountStatusDomainInterface, {
+registerEnumType(MonoAccountStatus, {
   name: 'UserStatus',
   description: 'Статус пользователя',
 });
@@ -17,9 +17,9 @@ export class MonoAccountDTO {
   @IsString()
   public readonly username: string;
 
-  @Field(() => MonoAccountStatusDomainInterface, { description: 'Статус пользователя' })
-  @IsEnum(MonoAccountStatusDomainInterface)
-  public readonly status: MonoAccountStatusDomainInterface;
+  @Field(() => MonoAccountStatus, { description: 'Статус пользователя' })
+  @IsEnum(MonoAccountStatus)
+  public readonly status: MonoAccountStatus;
 
   @Field(() => String, { description: 'Сообщение', nullable: true })
   @IsString()
@@ -71,7 +71,7 @@ export class MonoAccountDTO {
   @IsString()
   public readonly subscriber_hash: string;
 
-  constructor(user: MonoAccountDomainInterface) {
+  constructor(user: IMonoAccount) {
     this.username = user.username;
     this.status = user.status;
     this.message = user.message;

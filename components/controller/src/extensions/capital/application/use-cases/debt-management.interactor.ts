@@ -1,15 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import type { CreateDebtDomainInput } from '../../domain/actions/create-debt-domain-input.interface';
 import { DEBT_REPOSITORY, DebtRepository } from '../../domain/repositories/debt.repository';
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import type { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена для управления долгами CAPITAL контракта
@@ -28,7 +25,7 @@ export class DebtManagementInteractor {
   /**
    * Создание долга в CAPITAL контракте
    */
-  async createDebt(data: CreateDebtDomainInput): Promise<TransactResult> {
+  async createDebt(data: CreateDebtDomainInput): Promise<InnerTransactResult> {
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -46,8 +43,8 @@ export class DebtManagementInteractor {
    */
   async getDebts(
     filter?: DebtFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<DebtDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<DebtDomainEntity>> {
     // Поскольку DebtRepository может не иметь findAllPaginated, используем findAll
     const debts = await this.debtRepository.findAll();
     return {

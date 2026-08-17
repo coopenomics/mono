@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
 import {
@@ -17,17 +17,16 @@ import { CreateInitialPaymentInputDTO } from '~/application/gateway/dto/create-i
 import { GatewayPaymentDTO } from '~/application/gateway/dto/gateway-payment.dto';
 import { USER_CERTIFICATE_DOMAIN_PORT, UserCertificateDomainPort } from '~/domain/user/ports/user-certificate-domain.port';
 import { ParticipantApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { AGREEMENT_QUERY_PORT, AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
+import type { CandidateDataPort } from '~/domain/registration/ports/candidate-data.port';
 
 @Injectable()
-export class RegistrationService {
+export class RegistrationService implements CandidateDataPort {
   constructor(
     @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepository: CandidateRepository,
@@ -72,7 +71,7 @@ export class RegistrationService {
    * Получение списка кандидатов с пагинацией
    */
   async getCandidates(
-    currentUser: MonoAccountDomainInterface,
+    currentUser: IMonoAccount,
     filter?: CandidateFilterInputDTO,
     options: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }
   ): Promise<PaginationResult<CandidateOutputDTO>> {

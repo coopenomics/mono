@@ -7,24 +7,19 @@ import { ChatCoopApplicationService } from './chatcoop-application.service';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../chatcoop-extension.module';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
+import { ACCOUNT_PORT, type IAccountPort,
+  USER_DIRECTORY_PORT,
+  type IUserDirectoryPort,
+} from '@coopenomics/innercoop';
 import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
-import {
-  CAPITAL_PROJECT_CREATED_EVENT,
-  CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT,
-  CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT,
-  type ICapitalProjectCreatedPayload,
-  type ICapitalProjectMatrixRoomAssignedPayload,
-  type IChatCoopCapitalProjectRoomEnsureMemberPayload,
-} from '~/shared/constants/capital-project-matrix.events';
+import { CAPITAL_PROJECT_CREATED_EVENT, CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT, CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type ICapitalProjectCreatedPayload, type ICapitalProjectMatrixRoomAssignedPayload, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
 
 /**
  * Заведение и наполнение Matrix-комнат для проектов Благороста: создание комнаты при появлении проекта,
@@ -43,8 +38,8 @@ export class CapitalProjectMatrixSyncService {
     @Inject(CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY)
     private readonly managedMatrixRooms: ChatcoopManagedMatrixRoomRepository,
     @Inject(CHATCOOP_STATE_REPOSITORY) private readonly chatcoopState: ChatcoopStateRepository,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort
+    @Inject(USER_DIRECTORY_PORT) private readonly userRepository: IUserDirectoryPort,
+    @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort
   ) {}
 
   /** У проекта появилась запись в цепочке — заводим для него комнату переписки в Matrix и уведомляем Capital об адресе комнаты */

@@ -4,7 +4,6 @@ import { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entit
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { CreateBranchDomainInput } from '~/domain/branch/interfaces/create-branch-domain-input.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import type { EditBranchDomainInput } from '~/domain/branch/interfaces/edit-branch-domain-input.interface';
 import type { DeleteBranchDomainInput } from '~/domain/branch/interfaces/delete-branch-domain-input';
@@ -26,6 +25,7 @@ import { Cooperative } from 'cooptypes';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class BranchInteractor {

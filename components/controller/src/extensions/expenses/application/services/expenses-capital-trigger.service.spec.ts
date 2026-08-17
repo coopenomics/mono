@@ -6,7 +6,7 @@ import {
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository';
-import type { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import type { ILoggerPort } from '@coopenomics/innercoop';
 
 function makeProposal(
   status: ExpenseProposalStatus,
@@ -29,7 +29,7 @@ function makeProposalWithoutTotal(status: ExpenseProposalStatus): ExpenseProposa
   } as unknown as ExpenseProposalDomainEntity;
 }
 
-function makeLogger(): WinstonLoggerService & {
+function makeLogger(): ILoggerPort & {
   log: jest.Mock;
   warn: jest.Mock;
   setContext: jest.Mock;
@@ -38,7 +38,7 @@ function makeLogger(): WinstonLoggerService & {
     log: jest.fn(),
     warn: jest.fn(),
     setContext: jest.fn(),
-  } as unknown as WinstonLoggerService & {
+  } as unknown as ILoggerPort & {
     log: jest.Mock;
     warn: jest.Mock;
     setContext: jest.Mock;

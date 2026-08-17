@@ -6,12 +6,9 @@ import { TimeEntryRepository, IssueFactAggregate } from '../../domain/repositori
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
 import type { ITimeEntryDatabaseData } from '../../domain/interfaces/time-entry-database.interface';
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../../domain/interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория записей времени
@@ -201,8 +198,8 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
   async findByProjectWithPagination(
     filter: TimeEntriesFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<TimeEntryDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<TimeEntryDomainEntity>> {
     const query = this.repository.createQueryBuilder('te');
 
     // Добавляем условие по project_hash только если он указан

@@ -1,13 +1,13 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -31,10 +31,8 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;
@@ -76,7 +74,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssueActPayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера (matrix даёт только
@@ -124,7 +122,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAnnounceOrderReadyInputDTO
   ): Promise<MarketplaceOrderDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     const order = await this.orderRepo.findById(data.order_id);
@@ -169,7 +167,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListIssuancesByBranameInputDTO
   ): Promise<MarketplaceOrderDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация — ответственность резолвера (matrix даёт только

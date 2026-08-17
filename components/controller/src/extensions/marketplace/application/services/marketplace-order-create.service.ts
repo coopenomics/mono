@@ -2,7 +2,9 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount } from '../shared/cost.util';
@@ -145,7 +147,7 @@ export class MarketplaceOrderCreateService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
   }

@@ -1,6 +1,6 @@
 // modules/appstore/dto/extension-graphql-input.dto.ts
 import { InputType, Field } from '@nestjs/graphql';
-import type { IResolvedRegistryExtension } from '~/extensions/extensions.registry';
+import type { IResolvedRegistryExtension } from '@coopenomics/extension-kit';
 
 @InputType('GetExtensionsInput')
 export class GetExtensionsGraphQLInput implements Partial<IResolvedRegistryExtension> {

@@ -1,4 +1,4 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '../interfaces/generate-document-domain-with-options.interface';
@@ -7,9 +7,9 @@ import { Cooperative, SovietContract } from 'cooptypes';
 import { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
 import { DocumentAggregator } from '../aggregators/document.aggregator';
 import { DocumentPackageAggregator } from '../aggregators/document-package.aggregator';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { toDotNotation } from '~/utils/toDotNotation';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { GenerateDocumentWithPrivateDataDomainInterface } from '../interfaces/generate-document-with-private-data.interface';
 
 @Injectable()
@@ -17,9 +17,11 @@ export class DocumentDomainService {
   constructor(
     @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: DocumentRepository,
     private readonly generatorInfrastructureService: GeneratorInfrastructureService,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => DocumentPackageAggregator))
-    private readonly documentPackageAggregator: DocumentPackageAggregator
+    // `forwardRef` снят: циклов в узле документов нет (FC1-18).
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentPackageAggregator)
+    private readonly documentPackageAggregator: DocumentPackageAggregator,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   public async generateDocument(data: GenerateDocumentDomainInterfaceWithOptions): Promise<DocumentDomainEntity> {
@@ -62,7 +64,7 @@ export class DocumentDomainService {
    * @param signedDoc Подписанный документ (метаинформация)
    * @returns Агрегатор документов
    */
-  public async buildDocumentAggregate(signedDoc: ISignedDocumentDomainInterface): Promise<DocumentDomainAggregate | null> {
+  public async buildDocumentAggregate(signedDoc: ISignedDocument): Promise<DocumentDomainAggregate | null> {
     return this.documentAggregator.buildDocumentAggregate(signedDoc);
   }
 
@@ -77,16 +79,11 @@ export class DocumentDomainService {
   }): Promise<Cooperative.Blockchain.IGetActions> {
     const { type = 'newsubmitted', page = 1, limit = 100, query } = data;
 
-    const response = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: type,
-        ...toDotNotation(query),
-      }),
+    return this.actionHistory.findByQuery(
+      { account: SovietContract.contractName.production, name: type },
+      toDotNotation(query),
       page,
-      limit,
-    });
-
-    return response;
+      limit
+    );
   }
 }

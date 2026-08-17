@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
-import type { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
+import { EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
+import type { ExtensionDomainRepository } from '@coopenomics/extension-kit';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
 import { ChatCoopSecretaryMatrixTokenService } from './chatcoop-secretary-matrix-token.service';

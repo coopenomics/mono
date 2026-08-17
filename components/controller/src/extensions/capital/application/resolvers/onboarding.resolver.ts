@@ -1,16 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import {
   CapitalOnboardingStepInputDTO,
   CapitalOnboardingStateDTO,
   SaveCapitalProgramDocDataInputDTO,
 } from '../dto/onboarding.dto';
 import { CapitalOnboardingService } from '../services/onboarding.service';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 @Resolver()
 export class CapitalOnboardingResolver {
@@ -34,7 +31,7 @@ export class CapitalOnboardingResolver {
   @AuthRoles(['chairman'])
   async completeStep(
     @Args('data', { type: () => CapitalOnboardingStepInputDTO }) data: CapitalOnboardingStepInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalOnboardingStateDTO> {
     return this.onboardingService.completeStep(data, currentUser?.username);
   }

@@ -1,5 +1,5 @@
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ExpenseProposalDomainEntity } from '../entities/expense-proposal.entity';
 
 /**

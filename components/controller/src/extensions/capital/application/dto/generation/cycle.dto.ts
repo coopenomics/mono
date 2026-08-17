@@ -1,6 +1,6 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import { CycleStatus } from '../../../domain/enums/cycle-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 /**
  * GraphQL Output DTO для сущности Cycle

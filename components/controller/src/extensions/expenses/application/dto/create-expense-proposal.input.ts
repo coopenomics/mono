@@ -3,7 +3,7 @@ import { ArrayMinSize, IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested
 import { Type } from 'class-transformer';
 import { ExpenseItemInputDTO } from './expense-item.input';
 import { ExpenseCallbackInputDTO } from './expense-callback.input';
-import { ExpenseProposalStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
+import { ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * Input создания и подачи СЗ-расхода (создатель сметы — пайщик / председатель).

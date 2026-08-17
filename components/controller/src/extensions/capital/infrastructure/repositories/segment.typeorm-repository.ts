@@ -5,22 +5,16 @@ import { SegmentRepository } from '../../domain/repositories/segment.repository'
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { SegmentMapper } from '../mappers/segment.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils } from '@coopenomics/extension-kit';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -361,10 +355,10 @@ export class SegmentTypeormRepository
    */
   async findAllPaginated(
     filter?: SegmentFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SegmentDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

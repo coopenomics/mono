@@ -5,9 +5,10 @@ import type {
   IProjectMatrixComponentAnnouncementEvent,
 } from '../interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity, auditUnknownStatus, auditLogger } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
+
 /**
  * Доменная сущность проекта
  *
@@ -220,7 +221,17 @@ export class ProjectDomainEntity
       case 'finalized':
         return ProjectStatus.FINALIZED;
       default:
-        // По умолчанию считаем статус неопределенным
+        // Story 6.5: silent fallback на UNDEFINED заменён audit-trail'ом.
+        // Если контракт ввёл новый статус — drift всплывёт в логе как error.
+        // Журнал берём у каркаса: сущность создаётся `new`, инъекции у неё нет,
+        // а путь к логгеру ядра за пределами монолита не существует.
+        auditUnknownStatus('ProjectDomainEntity', blockchainStatus, auditLogger(), [
+          'pending',
+          'active',
+          'voting',
+          'result',
+          'finalized',
+        ]);
         return ProjectStatus.UNDEFINED;
     }
   }

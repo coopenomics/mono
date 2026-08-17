@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 
@@ -19,7 +19,7 @@ export class CapitalSyncInteractor {
   constructor(
     private readonly projectSyncService: ProjectSyncService,
     private readonly segmentSyncService: SegmentSyncService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(CapitalSyncInteractor.name);
   }

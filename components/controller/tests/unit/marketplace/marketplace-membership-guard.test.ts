@@ -19,6 +19,12 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { MarketplaceMembershipGuard } from '~/extensions/marketplace/application/guards/marketplace-membership.guard';
 import type { MarketplaceKuChairmanService } from '~/extensions/marketplace/application/services/marketplace-ku-chairman.service';
 import type { MarketplaceSupplierRegistryService } from '~/extensions/marketplace/application/services/marketplace-supplier-registry.service';
+import { configureExtensionAuth } from '@coopenomics/extension-kit';
+
+// Секрет межсервисного обхода живёт в каркасе: guard'ы спрашивают его там,
+// а не в конфиге ядра. Хост обязан задать его на старте — тест тоже хост.
+configureExtensionAuth({ serverSecret: 'test-secret' });
+
 
 jest.mock('~/config/config', () => ({
   __esModule: true,

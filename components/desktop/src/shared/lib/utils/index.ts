@@ -15,6 +15,7 @@ export * from './dates';
 export * from './markdown';
 export * from './sanitizeEditorMarkdown';
 export * from './generateInitials';
+export * from './sameHash';
 export * from './formatContributorName';
 export * from './pluralizeHours';
 export * from './schema';

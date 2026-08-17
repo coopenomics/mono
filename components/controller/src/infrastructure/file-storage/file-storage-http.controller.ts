@@ -11,9 +11,9 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import {
-  InterFileStorageBackendUnavailableError,
-  InterFileStorageObjectNotFoundError,
-} from '@coopenomics/inter';
+  InnerFileStorageBackendUnavailableError,
+  InnerFileStorageObjectNotFoundError,
+} from '@coopenomics/innercoop';
 import {
   FILE_STORAGE_OPTIONS,
   type FileStorageInfrastructureOptions,
@@ -85,11 +85,11 @@ export class FileStorageHttpController {
     try {
       obj = await this.adapter.fetchObjectForReadProxy(physicalKey);
     } catch (e) {
-      if (e instanceof InterFileStorageObjectNotFoundError) {
+      if (e instanceof InnerFileStorageObjectNotFoundError) {
         res.status(HttpStatus.NOT_FOUND).end();
         return;
       }
-      if (e instanceof InterFileStorageBackendUnavailableError) {
+      if (e instanceof InnerFileStorageBackendUnavailableError) {
         this.logger.warn(`backend недоступен на ${physicalKey}: ${(e as Error).message}`);
         res.status(HttpStatus.BAD_GATEWAY).end();
         return;

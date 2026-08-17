@@ -1,11 +1,8 @@
 import { TimeEntryDomainEntity } from '../entities/time-entry.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { TimeEntriesFilterDomainInterface } from '../interfaces/time-entries-filter-domain.interface';
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../interfaces/time-entries-by-issues-domain.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Репозиторий для работы с записями времени
@@ -105,8 +102,8 @@ export interface TimeEntryRepository {
    */
   findByProjectWithPagination(
     filter: TimeEntriesFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<TimeEntryDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<TimeEntryDomainEntity>>;
 
   /**
    * Получить агрегированные записи времени по задачам с пагинацией

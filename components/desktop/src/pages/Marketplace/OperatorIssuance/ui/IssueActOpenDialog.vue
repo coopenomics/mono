@@ -132,6 +132,23 @@ function availableOf(o: MarketplaceOrderIssuanceView): number {
   return o.warehouse_quantity ?? o.quantity;
 }
 
+/**
+ * Цена, с которой открывается выдача, — цена прибытия: по ней имущество
+ * лежит на складе после приёмки. Если на приёмке взяли дешевле объявленного
+ * (уценка за качество), пайщик платит по цене приёмки, а разница
+ * возвращается ему как недостача. Иначе выбытие со склада ушло бы по цене
+ * заказа, а приход — по цене приёмки, и счёт материалов ушёл бы в минус на
+ * всю разницу.
+ *
+ * Цены прибытия нет — заказ из остатка кооператива либо склад не
+ * запрашивали: остаётся цена заказа.
+ */
+function defaultPriceOf(o: MarketplaceOrderIssuanceView): number {
+  return o.warehouse_arrival_price != null
+    ? Number.parseFloat(o.warehouse_arrival_price)
+    : Number.parseFloat(o.price_per_unit);
+}
+
 function initFacts(): void {
   const next: Record<string, FactState> = {};
   for (const o of props.orders) {
@@ -140,7 +157,7 @@ function initFacts(): void {
     // выключены из выдачи (выдавать нечего) — оператор включит вручную нельзя.
     next[o.id] = {
       qty: Math.min(o.quantity, availableOf(o)),
-      price: Number.parseFloat(o.price_per_unit),
+      price: defaultPriceOf(o),
       included: availableOf(o) > 0,
     };
   }
@@ -178,15 +195,9 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       location: (o.warehouse_locations ?? []).join(', ') || undefined,
       fact: saleUnitsOf(o, f?.qty ?? Math.min(o.quantity, availableOf(o))),
       expectedPrice: Number.parseFloat(o.price_per_unit),
-      // Факт считается от цены прибытия: если на приёмке имущество взяли
-      // дешевле объявленного, пайщик платит по цене приёмки, а разница
-      // возвращается ему как недостача. Цены прибытия нет (заказ из остатка
-      // либо склад не запрашивали) — остаётся цена заказа.
-      factPrice:
-        f?.price ??
-        (o.warehouse_arrival_price != null
-          ? Number.parseFloat(o.warehouse_arrival_price)
-          : Number.parseFloat(o.price_per_unit)),
+      // Правку оператора показываем как есть, до неё — цену прибытия
+      // (см. defaultPriceOf).
+      factPrice: f?.price ?? defaultPriceOf(o),
       included: f?.included ?? availableOf(o) > 0,
     };
   }),

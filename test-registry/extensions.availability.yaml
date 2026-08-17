@@ -8,6 +8,11 @@ title: Доступность расширений в зависимости о�
 # Переключатель — поле `availability` записи реестра: EVERYWHERE /
 # NON_MAINNET_ONLY / NOWHERE. Наружу (GraphQL, рабочие столы) уходит уже
 # вычисленный под текущую сеть `is_available`.
+#
+# Переименование 2026-08-09 (FC1-3): в записи реестра поле `pluginClass`
+# стало `extensionClass`, классы расширений `<X>Plugin`/`<X>PluginModule` —
+# `<X>Extension`/`<X>ExtensionModule`. Только имена; поведение, набор полей
+# и набор случаев не менялись. Поле внутреннее, в GraphQL не экспонируется.
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

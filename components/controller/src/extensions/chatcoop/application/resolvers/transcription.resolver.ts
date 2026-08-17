@@ -1,10 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TranscriptionManagementService } from '../../domain/services/transcription-management.service';
 import { MatrixApiService } from '../services/matrix-api.service';
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
@@ -114,7 +111,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscriptions(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionsInputDTO, nullable: true })
     data?: GetTranscriptionsInputDTO
   ): Promise<CallTranscriptionResponseDTO[]> {
@@ -137,7 +134,8 @@ export class TranscriptionResolver {
       return [];
     }
     const rows = await this.transcriptionService.getAllTranscriptions({ limit, offset });
-    const visible = rows.filter((t) => readableRoomIds.has(t.roomId));
+    // Сверяем комнату Matrix: roomId у записи — имя комнаты LiveKit, реестру комнат оно неизвестно.
+    const visible = rows.filter((t) => readableRoomIds.has(t.matrixRoomId));
     return Promise.all(visible.map((t) => this.toCallTranscriptionResponse(t)));
   }
 
@@ -152,7 +150,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscription(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionInputDTO }) data: GetTranscriptionInputDTO
   ): Promise<CallTranscriptionWithSegmentsDTO | null> {
     this.logger.log(`Запрос транскрипции ${data.id}: user=${currentUser.username}, role=${currentUser.role}`);
@@ -161,7 +159,7 @@ export class TranscriptionResolver {
     if (!result) {
       return null;
     }
-    await this.access.assertCanReadRoom(currentUser, result.transcription.roomId);
+    await this.access.assertCanReadRoom(currentUser, result.transcription.matrixRoomId);
 
     return {
       transcription: await this.toCallTranscriptionResponse(result.transcription),
@@ -180,7 +178,7 @@ export class TranscriptionResolver {
   // Заметку правит тот же круг, что и читает запись: доступ к самой комнате проверяется ниже.
   @AuthRoles(['chairman', 'member', 'user'])
   async updateTranscriptionMemo(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => UpdateCallTranscriptionMemoInputDTO }) data: UpdateCallTranscriptionMemoInputDTO
   ): Promise<CallTranscriptionResponseDTO> {
     this.logger.log(
@@ -188,7 +186,7 @@ export class TranscriptionResolver {
     );
     const existing = await this.transcriptionService.getTranscriptionWithSegments(data.id);
     if (existing) {
-      await this.access.assertCanReadRoom(currentUser, existing.transcription.roomId);
+      await this.access.assertCanReadRoom(currentUser, existing.transcription.matrixRoomId);
     }
     const updated = await this.transcriptionService.updateTranscriptionMemo(data.id, data.memo);
     return this.toCallTranscriptionResponse(updated);

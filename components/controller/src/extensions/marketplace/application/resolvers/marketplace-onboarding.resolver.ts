@@ -1,8 +1,9 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { config } from '~/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -63,7 +64,7 @@ export class MarketplaceOnboardingResolver {
     input: MarketplaceSignOnboardingOfferInputDTO
   ): Promise<MarketplaceOnboardingStateDTO> {
     await this.onboardingService.signOnboardingOffer({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: currentMember.username,
       document: input.document,
     });

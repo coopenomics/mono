@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ReportType } from '../enums/report-type.enum';
 import { ReportRequisitesService } from './report-requisites.service';
-import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
   BALANCE_CORRECTION_REPOSITORY,
   type BalanceCorrectionRepository,
@@ -15,11 +14,12 @@ import type { Ndfl6EditsShape } from '../edits-shapes/ndfl6-edits.shape';
 import type { UvNdflEditsShape } from '../edits-shapes/uv-ndfl-edits.shape';
 import { Ndfl6DataService } from './ndfl6-data.service';
 import { REPORT_CONFIG, splitUvNdflPeriod } from '../enums/report-type.enum';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort } from '@coopenomics/innercoop';
 
 /**
  * Строит «дефолтное» редактируемое состояние формы отчёта из:
  *   - реквизитов организации (`ReportRequisitesService.getMerged`),
- *   - остатков по счетам ledger2 (`Ledger2Service.getAccounts`),
+ *   - остатков по счетам ledger2 (`ILedger2HistoryPort.getAccounts`),
  *   - ручных корректировок прошлых периодов (`BalanceCorrectionRepository`).
  *
  * Результат — POJO той же формы, что `Buhotch/Ndfl6/…EditsDTO`. Сервис
@@ -51,7 +51,7 @@ type BalanceRowEdits = BuhotchEditsShape['balance']['assetsTotal'];
 export class ReportEditsBuilderService {
   constructor(
     private readonly requisitesService: ReportRequisitesService,
-    private readonly ledger2Service: Ledger2Service,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2Service: ILedger2HistoryPort,
     private readonly ndfl6DataService: Ndfl6DataService,
     @Inject(BALANCE_CORRECTION_REPOSITORY)
     private readonly correctionRepo: BalanceCorrectionRepository,

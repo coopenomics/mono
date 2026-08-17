@@ -1,5 +1,5 @@
 import type { AccountType } from '~/application/account/enum/account-type.enum';
-import type { GeneratedDocumentDomainInterface } from '~/domain/document/interfaces/generated-document-domain.interface';
+import type { GeneratedDocumentDomainInterface } from '@coopenomics/extension-kit';
 
 /**
  * Входные данные для генерации пакета документов при регистрации

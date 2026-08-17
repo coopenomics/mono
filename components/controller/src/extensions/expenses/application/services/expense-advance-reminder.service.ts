@@ -1,9 +1,8 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
 import { Interval } from '@nestjs/schedule';
 import { Workflows } from '@coopenomics/notifications';
-import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import config from '~/config/config';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,
@@ -59,7 +58,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
   constructor(
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
-    private readonly notificationSender: NotificationSenderService
+    @Inject(NOTIFICATION_PORT) private readonly notificationSender: INotificationPort
   ) {}
 
   onModuleInit(): void {
@@ -73,7 +72,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
     if (this.isRunning) return;
     this.isRunning = true;
     try {
-      await this.processCoop(config.coopname);
+      await this.processCoop(platformSettings().coopname);
     } catch (error: any) {
       this.logger.error(`Ошибка тика напоминателя авансов: ${error.message}`, error.stack);
     } finally {
@@ -117,13 +116,13 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
   }
 
   private async sendDigest(coopname: string, username: string, advances: OutstandingAdvance[]): Promise<void> {
-    const base = `${config.frontend_url}/${coopname}/expenses`;
+    const base = `${platformSettings().frontendUrl}/${coopname}/expenses`;
     // Один аванс — ведём прямо на сам расход; несколько — на личную страницу
     // «Платежи» пайщика (там строки авансов с панелью «приложить чек/отчитаться»).
     const link =
       advances.length === 1
         ? `${base}/${advances[0].proposal_hash}`
-        : `${config.frontend_url}/${coopname}/user/payments`;
+        : `${platformSettings().frontendUrl}/${coopname}/user/payments`;
 
     const payload: Workflows.ExpenseAdvanceReportReminder.IPayload = {
       coopName: coopname,
@@ -138,7 +137,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
     };
 
     try {
-      await this.notificationSender.sendNotificationToUser(
+      await this.notificationSender.notifyUser(
         username,
         Workflows.ExpenseAdvanceReportReminder.id,
         payload

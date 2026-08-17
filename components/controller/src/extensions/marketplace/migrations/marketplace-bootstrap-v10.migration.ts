@@ -1,4 +1,4 @@
-import type { IExtensionSchemaMigration } from '~/domain/extension/services/extension-schema-migration.service';
+import type { IExtensionSchemaMigration } from '@coopenomics/extension-kit';
 import { IConfig } from '../types';
 
 /**

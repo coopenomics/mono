@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { MUTATION_LOG_REPOSITORY, MutationLogRepository } from '~/domain/mutation-log/repositories/mutation-log.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
@@ -9,12 +8,12 @@ import {
   isFreeIssueParticipant,
   isLocalProjectOwner,
 } from '../../domain/utils/private-project-access';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort,
+  MUTATION_LOG_PORT,
+  type IMutationLogPort,
+} from '@coopenomics/innercoop';
 import { MutationLogMapperService, IMappedCapitalLog, LogEntityType } from './mutation-log-mapper.service';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерфейс фильтрации логов capital
@@ -56,14 +55,14 @@ export interface ICapitalLogFilterInput {
 @Injectable()
 export class LogService {
   constructor(
-    @Inject(MUTATION_LOG_REPOSITORY)
-    private readonly mutationLogRepository: MutationLogRepository,
+    @Inject(MUTATION_LOG_PORT)
+    private readonly mutationLogRepository: IMutationLogPort,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
     private readonly mutationLogMapper: MutationLogMapperService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(LogService.name);
   }
@@ -73,8 +72,8 @@ export class LogService {
    */
   async getLogs(
     filter?: ICapitalLogFilterInput,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     // Получаем только мутации, относящиеся к capital расширению
     const mutationNames = this.mutationLogMapper.getCapitalMutationNames();
 
@@ -232,9 +231,9 @@ export class LogService {
    */
   async getLogsByProjectHash(
     projectHash: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ project_hash: projectHash, viewer_username: viewerUsername }, options);
   }
 
@@ -243,9 +242,9 @@ export class LogService {
    */
   async getLogsByIssueHash(
     issueHash: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ issue_hash: issueHash, viewer_username: viewerUsername }, options);
   }
 
@@ -254,9 +253,9 @@ export class LogService {
    */
   async getLogsByInitiator(
     initiator: string,
-    options?: PaginationInputDomainInterface,
+    options?: PaginationInputDTO,
     viewerUsername?: string
-  ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
+  ): Promise<PaginationResult<IMappedCapitalLog>> {
     return this.getLogs({ initiator, viewer_username: viewerUsername }, options);
   }
 

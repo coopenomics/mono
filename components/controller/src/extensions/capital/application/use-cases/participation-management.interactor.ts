@@ -8,7 +8,6 @@ import type { RegisterContributorDomainInput } from '../../domain/actions/regist
 import type { EditContributorDomainInput } from '../../domain/actions/edit-contributor-domain-input.interface';
 import type { MakeClearanceDomainInput } from '../../domain/actions/make-clearance-domain-input.interface';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
-import type { TransactResult } from '@wharfkit/session';
 import {
   CONTRIBUTOR_REPOSITORY,
   ContributorRepository,
@@ -22,41 +21,31 @@ import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
 import type { ContributorFilterInputDTO } from '../dto/participation_management/contributor-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import type { ProjectGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-generation-agreement-document.dto';
-import type { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
-import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import {
-  AccountDataPort,
-  ACCOUNT_DATA_PORT,
-} from '~/domain/account/ports/account-data.port';
-import { config } from '~/config';
-import { HttpApiError } from '~/utils/httpApiError';
+import type { ProjectGenerationContractGenerateDocumentInputDTO } from '../documents-dto/project-generation-agreement-document.dto';
+import type { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
+import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import httpStatus from 'http-status';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
-import { EMPTY_HASH } from '~/shared/utils/constants';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
-import { generateRandomHash, generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
-import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } from '../../domain/services/udata-document-parameters.service';
-import { ProgramKey } from '~/domain/registration/enum';
 import type { GenerateCapitalRegistrationDocumentsDomainInput } from '../../domain/actions/generate-capital-registration-documents-domain-input.interface';
 import type { GenerateCapitalRegistrationDocumentsDomainOutput } from '../../domain/actions/generate-capital-registration-documents-domain-output.interface';
+import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort,
+  ProgramKey,
+  type InnerTransactResult,
+  CANDIDATE_PORT,
+  type ICandidatePort,
+} from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { generateRandomHash, generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте
@@ -73,15 +62,15 @@ export class ParticipationManagementInteractor {
     private readonly contributorRepository: ContributorRepository,
     @Inject(APPENDIX_REPOSITORY)
     private readonly appendixRepository: AppendixRepository,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort,
-    @Inject(CANDIDATE_REPOSITORY)
-    private readonly candidateRepository: CandidateRepository,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort,
+    @Inject(CANDIDATE_PORT)
+    private readonly candidateRepository: ICandidatePort,
     @Inject(UDATA_DOCUMENT_PARAMETERS_SERVICE)
     private readonly udataDocumentParametersService: UdataDocumentParametersService,
     private readonly projectManagementInteractor: ProjectManagementInteractor,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
   ) { }
@@ -112,7 +101,7 @@ export class ParticipationManagementInteractor {
    */
   async importContributor(
     data: ImportContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Проверяем, не существует ли уже участник с указанным username
     const existingContributor = await this.contributorRepository.findByUsername(data.username);
 
@@ -134,7 +123,7 @@ export class ParticipationManagementInteractor {
       _id: '', // будет сгенерирован автоматически
       block_num: 0,
       present: true,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: data.username,
       contributor_hash: contributor_hash,
       status: ContributorStatus.PENDING,
@@ -189,9 +178,9 @@ export class ParticipationManagementInteractor {
    */
   async registerContributor(
     data: RegisterContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Извлекаем документ из базы данных для верификации
-    const document = await this.documentInteractor.getDocumentByHash(
+    const document = await this.documentPort.getByHash(
       data.contract.doc_hash
     );
 
@@ -273,7 +262,7 @@ export class ParticipationManagementInteractor {
       ...data,
       contributor_hash: data.contributor_hash,
       rate_per_hour:
-        data.rate_per_hour ?? '0.0000 ' + config.blockchain.root_govern_symbol,
+        data.rate_per_hour ?? '0.0000 ' + platformSettings().blockchain.rootGovernSymbol,
       hours_per_day: data.hours_per_day ?? 0,
       is_external_contract: false,
       contract:
@@ -320,10 +309,10 @@ export class ParticipationManagementInteractor {
    * Подписание приложения в CAPITAL контракте
    * Теперь принимает минимальный набор данных и подписанный документ
    */
-  async makeClearance(data: MakeClearanceInputDTO): Promise<TransactResult> {
+  async makeClearance(data: MakeClearanceInputDTO): Promise<InnerTransactResult> {
 
     // Извлекаем документ из базы данных для верификации
-    const document = await this.documentInteractor.getDocumentByHash(
+    const document = await this.documentPort.getByHash(
       data.document.doc_hash
     );
 
@@ -399,7 +388,7 @@ export class ParticipationManagementInteractor {
    */
   private async makeClearanceDomain(
     data: MakeClearanceDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Создаем базовые данные appendix для базы данных
     const databaseData: IAppendixDatabaseData = {
       _id: '',
@@ -458,7 +447,7 @@ export class ParticipationManagementInteractor {
    */
   async editContributor(
     data: EditContributorDomainInput
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     // Находим участника в базе данных для обновления поля about
     const contributor = await this.getContributorByCriteria({
       username: data.username,
@@ -482,7 +471,7 @@ export class ParticipationManagementInteractor {
       coopname: data.coopname,
       username: data.username,
       rate_per_hour:
-        data.rate_per_hour ?? '0.0000 ' + config.blockchain.root_govern_symbol,
+        data.rate_per_hour ?? '0.0000 ' + platformSettings().blockchain.rootGovernSymbol,
       hours_per_day: data.hours_per_day ?? 0,
     };
 
@@ -555,7 +544,7 @@ export class ParticipationManagementInteractor {
     };
 
     // 6. Генерируем документ
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options: options || {},
     });
@@ -665,7 +654,7 @@ export class ParticipationManagementInteractor {
     };
 
     // 9. Генерируем документ
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options: options || {},
     });
@@ -680,8 +669,8 @@ export class ParticipationManagementInteractor {
    */
   async getContributors(
     filter?: ContributorFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ContributorDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ContributorDomainEntity>> {
     return await this.contributorRepository.findAllPaginated(filter, options);
   }
 
@@ -768,7 +757,7 @@ export class ParticipationManagementInteractor {
       // Генерируем параметры для договора УХД
       await this.udataDocumentParametersService.generateGenerationContractParametersIfNotExist(data.coopname, data.username);
 
-      generationContract = await this.documentInteractor.generateDocument({
+      generationContract = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -793,7 +782,7 @@ export class ParticipationManagementInteractor {
       // Для StorageAgreement также нужны параметры GeneratorOffer
       await this.udataDocumentParametersService.generateGeneratorOfferParametersIfNotExist(data.coopname, data.username);
 
-      storageAgreement = await this.documentInteractor.generateDocument({
+      storageAgreement = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -822,7 +811,7 @@ export class ParticipationManagementInteractor {
       await this.udataDocumentParametersService.generateBlagorostAgreementParametersIfNotExist(data.coopname, data.username);
       const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
-      blagorostAgreement = await this.documentInteractor.generateDocument({
+      blagorostAgreement = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -855,7 +844,7 @@ export class ParticipationManagementInteractor {
       await this.udataDocumentParametersService.generateGeneratorOfferParametersIfNotExist(data.coopname, data.username);
       const capitalProgramDocDataHash = await this.getCapitalProgramDocDataHash();
 
-      generatorOffer = await this.documentInteractor.generateDocument({
+      generatorOffer = await this.documentPort.generate({
         data: {
           coopname: data.coopname,
           username: data.username,
@@ -881,7 +870,7 @@ export class ParticipationManagementInteractor {
    * Завершение регистрации в Capital через отправку документов в блокчейн
    * Отправляет документы через regcontrib с учетом выбранной программы
    */
-  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<TransactResult> {
+  async completeCapitalRegistration(data: CompleteCapitalRegistrationDomainInput): Promise<InnerTransactResult> {
     // Получаем или создаем Contributor для участника
     let contributor = await this.contributorRepository.findByUsername(data.username);
 
@@ -893,7 +882,7 @@ export class ParticipationManagementInteractor {
         _id: '',
         present: false,
         username: data.username,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         display_name: displayName,
         program_key: ProgramKey.UNDEFINED, // Для пользователей, регистрирующихся только в Capital, program_key не указан
         status: ContributorStatus.PENDING,
@@ -940,7 +929,7 @@ export class ParticipationManagementInteractor {
     }
 
     for (const doc of documentsToValidate) {
-      const document = await this.documentInteractor.getDocumentByHash(doc.hash);
+      const document = await this.documentPort.getByHash(doc.hash);
       if (!document) {
         throw new HttpApiError(
           httpStatus.BAD_REQUEST,
@@ -974,11 +963,11 @@ export class ParticipationManagementInteractor {
     if (data.rate_per_hour) {
       formattedRatePerHour = this.domainToBlockchainUtils.formatNumericStringToAssetString(
         data.rate_per_hour,
-        config.blockchain.root_govern_precision,
-        config.blockchain.root_govern_symbol
+        platformSettings().blockchain.rootGovernPrecision,
+        platformSettings().blockchain.rootGovernSymbol
       );
     } else {
-      formattedRatePerHour = '0.0000 ' + config.blockchain.root_govern_symbol;
+      formattedRatePerHour = '0.0000 ' + platformSettings().blockchain.rootGovernSymbol;
     }
 
     // Отправляем в блокчейн через regcontrib

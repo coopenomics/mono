@@ -1,9 +1,9 @@
 import { ObjectType, Field } from '@nestjs/graphql';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { StatementDetailAggregateDTO } from './statement-detail-aggregate.dto';
 import { DecisionDetailAggregateDTO } from './decision-detail-aggregate.dto';
 import { ActDetailAggregateDTO } from './act-detail-aggregate.dto';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('DocumentPackageAggregate', {
   description:

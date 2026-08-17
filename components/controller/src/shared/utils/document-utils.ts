@@ -1,4 +1,4 @@
-import { EMPTY_HASH, DEFAULT_DOCUMENT_VERSION } from './constants';
+import { EMPTY_HASH, DEFAULT_DOCUMENT_VERSION } from '@coopenomics/extension-kit';
 
 /**
  * Создает пустой документ с нулевым хэшем

@@ -33,7 +33,24 @@ function routerPrefix(baseUrl) {
   return `${baseUrl}/#`;
 }
 
-const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:2999';
+// Порт фронта у каждого чекаута свой (DESKTOP_HOST_PORT в корневом .env):
+// 2999 у mono-ai-1, 3039 у mono-ai-5 и так далее. Зашитый дефолт уводил
+// сценарии на СОСЕДНИЙ стенд — там открывается чужое приложение с чужой
+// цепью, и падение выглядит как поломка интерфейса. Раннер сюиты порты уже
+// читает из .env (`envPorts`), сценарии должны читать оттуда же.
+function desktopBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  try {
+    const raw = fsSync.readFileSync(path.resolve(__dirname, '../../../.env'), 'utf8');
+    const port = (raw.match(/^\s*DESKTOP_HOST_PORT\s*=\s*(\S+)/m) ?? [])[1];
+    if (port) return `http://127.0.0.1:${port.replace(/["']/g, '')}`;
+  } catch {
+    /* нет .env — остаёмся на дефолте */
+  }
+  return 'http://127.0.0.1:2999';
+}
+
+const BASE_URL = desktopBaseUrl();
 
 export const env = {
   BASE_URL,

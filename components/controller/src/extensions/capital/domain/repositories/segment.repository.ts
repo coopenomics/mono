@@ -1,10 +1,7 @@
 import type { SegmentDomainEntity } from '../entities/segment.entity';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const SEGMENT_REPOSITORY = Symbol('SEGMENT_REPOSITORY');
 
@@ -17,8 +14,8 @@ export interface SegmentRepository extends IBlockchainSyncRepository<SegmentDoma
    */
   findAllPaginated(
     filter?: SegmentFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SegmentDomainEntity>>;
 
   /**
    * Найти все сегменты одного компонента без постраничного вывода.

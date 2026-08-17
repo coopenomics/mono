@@ -1,4 +1,4 @@
-import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import type { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 
 /**
  * Доменный интерфейс выходных данных для генерации документов регистрации в Capital

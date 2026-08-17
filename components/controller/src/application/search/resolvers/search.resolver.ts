@@ -6,9 +6,8 @@ import {
   SIGNED_DOCUMENT_REPOSITORY,
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import config from '~/config/config';
 
 // Роли членов совета — им доступен поиск по всему документообороту кооператива.
@@ -26,7 +25,7 @@ export class SearchResolver {
   @UseGuards(GqlJwtAuthGuard)
   async searchDocuments(
     @Args('data') input: SearchDocumentsInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<SearchResultDTO[]> {
     const isCouncil = COUNCIL_ROLES.includes(user?.role);
     const hits = await this.signedDocuments.search({

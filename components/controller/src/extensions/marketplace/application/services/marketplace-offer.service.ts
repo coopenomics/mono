@@ -41,12 +41,8 @@ import {
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
   type AvailableCategoryDomainService,
 } from '../../domain/services/available-category-domain.service';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import config from '~/config/config';
+import { platformSettings, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
@@ -454,8 +450,8 @@ export class MarketplaceOfferService {
   async listMine(
     coopname: string,
     supplier_account: string,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list({ coopname, supplier_account }, pagination);
   }
 
@@ -464,8 +460,8 @@ export class MarketplaceOfferService {
   async listAll(
     coopname: string,
     filter: { statuses?: MarketplaceOfferStatus[]; supplier_account?: string },
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list(
       {
         coopname,
@@ -740,7 +736,7 @@ export class MarketplaceOfferService {
   private async ensureCategoryExists(category_id: number): Promise<void> {
     // Категория должна принадлежать списку кооператива (общая baseline ИЛИ
     // собственная категория этого кооператива) — кастомные имеют id > 9.
-    const coopCategories = await this.categoryRepo.listForCoop(config.coopname);
+    const coopCategories = await this.categoryRepo.listForCoop(platformSettings().coopname);
     const category = coopCategories.find((c) => c.id === category_id);
     if (!category) {
       throw new BadRequestException(
@@ -750,7 +746,7 @@ export class MarketplaceOfferService {
     // Категория должна быть доступна для публикации (включена в whitelist).
     // Пустой whitelist = открытый каталог: доступны все категории.
     const isAvailable = await this.availableCategoryService.isCategoryAvailable(
-      config.coopname,
+      platformSettings().coopname,
       category_id
     );
     if (!isAvailable) {

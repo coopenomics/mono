@@ -1,21 +1,31 @@
 import { defineStore } from 'pinia';
 import { ref, Ref, triggerRef, computed, ComputedRef } from 'vue';
 import { api } from '../api';
-import type { ISystemInfo } from '../types';
+import type { INodeSyncState, ISystemInfo } from '../types';
 import { Zeus } from '@coopenomics/sdk';
 
 const namespace = 'systemStore';
 
 // Константы для экспоненциального backoff
 const BASE_INTERVAL_MS = 30000; // Базовый интервал 30 секунд (было 10)
-const MAX_INTERVAL_MS = 300000; // Максимальный интервал 5 минут
+// Потолок backoff. Дальше растить нечего: сводка нужна сразу, как узел
+// вернётся, а один запрос раз в полминуты узел не нагружает.
+const MAX_INTERVAL_MS = 30000;
 const BACKOFF_MULTIPLIER = 2; // Множитель для backoff
+/**
+ * Пока рабочий стол закрыт (узел молчит или догоняет цепь), состояние
+ * проверяется часто и без backoff: пайщик сидит перед заглушкой и ждёт, а
+ * восстановление иначе замечалось бы через полминуты и позже. Запрос дешёвый —
+ * узел отдаёт уже посчитанное состояние, без обращения к базе и цепи.
+ */
+const BLOCKED_INTERVAL_MS = 3000;
 
 interface ISystemStore {
   info: Ref<ISystemInfo>;
   backendAvailable: Ref<boolean>;
-  maintenanceCounter: Ref<number>;
+  syncState: Ref<INodeSyncState | null>;
   loadSystemInfo: () => Promise<void>;
+  loadNodeSyncState: () => Promise<void>;
   startSystemMonitoring: () => void;
   stopSystemMonitoring: () => void;
   cooperativeDisplayName: ComputedRef<string>;
@@ -30,9 +40,12 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     system_status: 'active', // Начальное значение
   } as ISystemInfo);
   const backendAvailable = ref<boolean>(true);
-  const maintenanceCounter = ref<number>(0); // Счетчик для принудительного обновления
+  // null — состояние узла ещё не известно. Заглушку по нему не показываем:
+  // иначе рабочий стол моргал бы ей на каждой холодной загрузке.
+  const syncState = ref<INodeSyncState | null>(null);
 
   let monitoringTimeout: ReturnType<typeof setTimeout> | null = null;
+  let syncTimeout: ReturnType<typeof setTimeout> | null = null;
   let isLoading = false; // Защита от конкурентных запросов
   let currentInterval = BASE_INTERVAL_MS; // Текущий интервал (для backoff)
   let consecutiveErrors = 0; // Счетчик последовательных ошибок
@@ -56,8 +69,11 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     } catch (error) {
       console.warn('Failed to load system info, backend might be unavailable:', error);
       backendAvailable.value = false;
-      // При недоступности бэкенда устанавливаем статус обслуживания
-      info.value.system_status = Zeus.SystemStatus.maintenance;
+      // Статус системы приходит с сервера и подменять его недоступностью
+      // нельзя: молчащий узел — это не объявленные работы. Раньше подмена
+      // поднимала вторую заглушку поверх экрана состояния узла, а гвард
+      // навигации принимал её за прерванную установку. Недоступность
+      // показывает единый экран по состоянию узла.
 
       // Увеличиваем интервал при ошибках (экспоненциальный backoff)
       consecutiveErrors++;
@@ -73,6 +89,25 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     }
   };
 
+  /**
+   * Дочитка состояния узла. Основной канал — подписка; запрос нужен на первую
+   * отрисовку и как страховка, когда сокет оборван. Недоступный узел — это и
+   * есть «связи нет», поэтому ошибка запроса не глотается, а становится
+   * состоянием.
+   */
+  const loadNodeSyncState = async () => {
+    try {
+      syncState.value = await api.loadNodeSyncState();
+    } catch (error) {
+      console.warn('Не удалось получить состояние синхронизации узла:', error);
+      syncState.value = {
+        ...(syncState.value ?? {}),
+        status: Zeus.NodeSyncStatus.DISCONNECTED,
+        outage: Zeus.NodeSyncOutage.NODE,
+      } as INodeSyncState;
+    }
+  };
+
   const scheduleNextCheck = () => {
     // КРИТИЧНО: Не запускаем мониторинг на сервере (SSR)
     // В SSR setInterval/setTimeout создают утечки памяти и накапливают запросы
@@ -80,22 +115,53 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
       return;
     }
 
-    stopSystemMonitoring();
+    // Гасим только свой таймер: цикл состояния узла идёт своим темпом.
+    stopInfoMonitoring();
 
     monitoringTimeout = setTimeout(async () => {
       try {
         await loadSystemInfo();
       } catch (error) {
         console.warn('Failed to update system info during monitoring:', error);
-        // При недоступности бэкенда устанавливаем статус обслуживания
+        // Статус не подменяем — см. loadSystemInfo.
         backendAvailable.value = false;
-        info.value.system_status = Zeus.SystemStatus.maintenance;
-        maintenanceCounter.value++; // Увеличиваем счетчик для триггера watch
       }
 
       // Планируем следующую проверку с учетом возможного backoff
       scheduleNextCheck();
     }, currentInterval);
+  };
+
+  /**
+   * Отдельный цикл для состояния узла — он идёт своим темпом, а не темпом
+   * тяжёлой сводки о системе. Пока рабочий стол закрыт, узел опрашивается
+   * часто: это единственный способ заметить, что он вернулся, когда сокет
+   * оборван (подписка живёт только при живом бэкенде).
+   */
+  const scheduleNextSyncCheck = () => {
+    if (typeof window === 'undefined') return;
+
+    stopSyncMonitoring();
+
+    const blocked = syncState.value !== null && syncState.value.status !== Zeus.NodeSyncStatus.SYNCED;
+    syncTimeout = setTimeout(async () => {
+      await loadNodeSyncState();
+      scheduleNextSyncCheck();
+    }, blocked ? BLOCKED_INTERVAL_MS : BASE_INTERVAL_MS);
+  };
+
+  const stopSyncMonitoring = () => {
+    if (syncTimeout) {
+      clearTimeout(syncTimeout);
+      syncTimeout = null;
+    }
+  };
+
+  const stopInfoMonitoring = () => {
+    if (monitoringTimeout) {
+      clearTimeout(monitoringTimeout);
+      monitoringTimeout = null;
+    }
   };
 
   const startSystemMonitoring = () => {
@@ -115,13 +181,12 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
 
     // Используем setTimeout вместо setInterval для гибкого управления интервалом
     scheduleNextCheck();
+    scheduleNextSyncCheck();
   };
 
   const stopSystemMonitoring = () => {
-    if (monitoringTimeout) {
-      clearTimeout(monitoringTimeout);
-      monitoringTimeout = null;
-    }
+    stopInfoMonitoring();
+    stopSyncMonitoring();
   };
 
   // Человеко-читаемое название кооператива
@@ -148,8 +213,9 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
   return {
     info,
     backendAvailable,
-    maintenanceCounter,
+    syncState,
     loadSystemInfo,
+    loadNodeSyncState,
     startSystemMonitoring,
     stopSystemMonitoring,
     cooperativeDisplayName,

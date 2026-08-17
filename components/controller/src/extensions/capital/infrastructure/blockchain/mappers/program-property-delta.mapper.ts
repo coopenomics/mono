@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProgramPropertyDomainEntity } from '../../../domain/entities/program-property.entity';
 import type { IProgramPropertyBlockchainData } from '../../../domain/interfaces/program-property-blockchain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import type { CapitalContract } from 'cooptypes';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные программного имущественного взноса
@@ -16,7 +15,7 @@ export class ProgramPropertyDeltaMapper extends AbstractBlockchainDeltaMapper<
   IProgramPropertyBlockchainData,
   ProgramPropertyDomainEntity
 > {
-  constructor(private readonly logger: WinstonLoggerService, private readonly contractInfo: CapitalContractInfoService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort, private readonly contractInfo: CapitalContractInfoService) {
     super();
     this.logger.setContext(ProgramPropertyDeltaMapper.name);
   }

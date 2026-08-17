@@ -3163,7 +3163,7 @@ export type ValueTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ValueTypes["ProgramWallet"],
+	blagorost_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -3199,7 +3199,7 @@ export type ValueTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ValueTypes["ProgramWallet"],
+	generation_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -3215,7 +3215,7 @@ export type ValueTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ValueTypes["ProgramWallet"],
+	main_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -3260,7 +3260,7 @@ export type ValueTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string | Variable<any, string>,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ValueTypes["ExpenseItemInput"]> | Variable<any, string>,
+	items: Array<ValueTypes["CapitalExpenseItemInput"]> | Variable<any, string>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ValueTypes["ExpenseProposalStatementSignedDocumentInput"] | Variable<any, string>
 };
@@ -3413,6 +3413,26 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string | Variable<any, string>,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string | Variable<any, string>,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ValueTypes["ExpenseMechanics"] | Variable<any, string>,
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string | Variable<any, string>,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string | Variable<any, string>,
+	/** Тип получателя. */
+	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null | Variable<any, string>
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -4012,6 +4032,26 @@ export type ValueTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalProgramExpenseItem']?: Omit<ValueTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalProgramWallet']?: Omit<ValueTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 }>;
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: AliasType<{
@@ -6726,7 +6766,7 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -9788,7 +9828,7 @@ export type ValueTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
-	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». */
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
 	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
@@ -11888,6 +11928,31 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on Mutation']?: Omit<ValueTypes["Mutation"], "...on Mutation">
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on NodeSyncState']?: Omit<ValueTypes["NodeSyncState"], "...on NodeSyncState">
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -13385,6 +13450,8 @@ getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueType
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ValueTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
@@ -14654,6 +14721,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ValueTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`,
 	['...on Subscription']?: Omit<ValueTypes["Subscription"], "...on Subscription">
 }>;
@@ -14748,7 +14817,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -17389,7 +17458,7 @@ export type ResolverInputTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ResolverInputTypes["ProgramWallet"],
+	blagorost_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -17425,7 +17494,7 @@ export type ResolverInputTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ResolverInputTypes["ProgramWallet"],
+	generation_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -17441,7 +17510,7 @@ export type ResolverInputTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ResolverInputTypes["ProgramWallet"],
+	main_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -17485,7 +17554,7 @@ export type ResolverInputTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ResolverInputTypes["ExpenseItemInput"]>,
+	items: Array<ResolverInputTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ResolverInputTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -17634,6 +17703,26 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ResolverInputTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -18210,6 +18299,25 @@ export type ResolverInputTypes = {
 	recipient_name?:boolean | `@${string}`,
 	recipient_type?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Проект в системе CAPITAL с компонентами */
@@ -20869,7 +20977,7 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -23850,7 +23958,7 @@ export type ResolverInputTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
-	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». */
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
 	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
@@ -25882,6 +25990,30 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -27315,6 +27447,8 @@ getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetA
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ResolverInputTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
@@ -28554,6 +28688,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ResolverInputTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`
 }>;
 	["SubscriptionStatsDto"]: AliasType<{
@@ -28641,7 +28777,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -31227,7 +31363,7 @@ export type ModelTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -31263,7 +31399,7 @@ export type ModelTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -31279,7 +31415,7 @@ export type ModelTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -31322,7 +31458,7 @@ export type ModelTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ModelTypes["ExpenseItemInput"]>,
+	items: Array<ModelTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ModelTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -31466,6 +31602,26 @@ export type ModelTypes = {
 	status: ModelTypes["ExpenseStatus"],
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ModelTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ModelTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 		/** Фибо-коэффициент */
@@ -32022,6 +32178,24 @@ export type ModelTypes = {
 	recipient_name: string,
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	status: ModelTypes["ExpenseItemStatus"]
+};
+	["CapitalProgramWallet"]: {
+		/** Идентификатор соглашения */
+	agreement_id: ModelTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: ModelTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: ModelTypes["ID"],
+	/** Тип программы */
+	program_type?: ModelTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -37472,8 +37646,8 @@ export type ModelTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
-	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». */
-	package_type: string,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -40156,6 +40330,27 @@ export type ModelTypes = {
 Требуемые роли: chairman.  */
 	walmoveWallets: ModelTypes["Ledger2AdjustmentResult"]
 };
+	["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+		/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: ModelTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: ModelTypes["NodeSyncStatus"]
+};
+	["NodeSyncStatus"]:NodeSyncStatus;
 	["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: {
 		/** Сделано попыток */
@@ -41708,6 +41903,8 @@ export type ModelTypes = {
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<ModelTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -43067,7 +43264,9 @@ export type ModelTypes = {
 };
 	["Subscription"]: {
 		/** Поток событий пайщика в Столе заказов: личные и каталог. */
-	marketplaceEvents: ModelTypes["MarketplaceEvent"]
+	marketplaceEvents: ModelTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: ModelTypes["NodeSyncState"]
 };
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
@@ -43147,7 +43346,7 @@ export type ModelTypes = {
 	response?: ModelTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: ModelTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: ModelTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: ModelTypes["JSON"] | undefined | null,
@@ -45799,7 +45998,7 @@ export type GraphQLTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -45835,7 +46034,7 @@ export type GraphQLTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -45851,7 +46050,7 @@ export type GraphQLTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -45895,7 +46094,7 @@ export type GraphQLTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<GraphQLTypes["ExpenseItemInput"]>,
+	items: Array<GraphQLTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: GraphQLTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -46047,6 +46246,26 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
+};
+	["CapitalExpenseItemInput"]: {
+		/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: GraphQLTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: GraphQLTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 	__typename: "CapitalFibLevel",
@@ -46647,6 +46866,26 @@ export type GraphQLTypes = {
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	status: GraphQLTypes["ExpenseItemStatus"],
 	['...on CapitalProgramExpenseItem']: Omit<GraphQLTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+};
+	["CapitalProgramWallet"]: {
+	__typename: "CapitalProgramWallet",
+	/** Идентификатор соглашения */
+	agreement_id: GraphQLTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: GraphQLTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: GraphQLTypes["ID"],
+	/** Тип программы */
+	program_type?: GraphQLTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string,
+	['...on CapitalProgramWallet']: Omit<GraphQLTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -49361,7 +49600,7 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]: ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]: ExpenseRecipientType;
@@ -52425,8 +52664,8 @@ export type GraphQLTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
-	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». */
-	package_type: string,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -55266,6 +55505,31 @@ export type GraphQLTypes = {
 	walmoveWallets: GraphQLTypes["Ledger2AdjustmentResult"],
 	['...on Mutation']: Omit<GraphQLTypes["Mutation"], "...on Mutation">
 };
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]: NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+	__typename: "NodeSyncState",
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: GraphQLTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: GraphQLTypes["NodeSyncStatus"],
+	['...on NodeSyncState']: Omit<GraphQLTypes["NodeSyncState"], "...on NodeSyncState">
+};
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]: NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]: NonProjectRoomKind;
 	["Notification"]: {
@@ -56972,6 +57236,8 @@ export type GraphQLTypes = {
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -58402,6 +58668,8 @@ export type GraphQLTypes = {
 	__typename: "Subscription",
 	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: GraphQLTypes["NodeSyncState"],
 	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
 };
 	["SubscriptionStatsDto"]: {
@@ -58496,7 +58764,7 @@ export type GraphQLTypes = {
 	response?: GraphQLTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: GraphQLTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: GraphQLTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: GraphQLTypes["JSON"] | undefined | null,
@@ -59266,7 +59534,7 @@ export enum ExpensePlanRecurrence {
 	QUARTERLY = "QUARTERLY",
 	YEARLY = "YEARLY"
 }
-/** Статус сметы расхода. */
+/** Состояние служебной записки-сметы */
 export enum ExpenseProposalStatus {
 	AUTHORIZED = "AUTHORIZED",
 	CLOSED = "CLOSED",
@@ -59642,6 +59910,18 @@ export enum MetricStatus {
 	ACTIVE = "ACTIVE",
 	ARCHIVED = "ARCHIVED"
 }
+/** Причина отсутствия связи с цепью */
+export enum NodeSyncOutage {
+	CHAIN = "CHAIN",
+	NODE = "NODE",
+	READER = "READER"
+}
+/** Состояние синхронизации узла кооператива с цепью */
+export enum NodeSyncStatus {
+	DISCONNECTED = "DISCONNECTED",
+	LAGGING = "LAGGING",
+	SYNCED = "SYNCED"
+}
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
 	COUNCIL = "COUNCIL",
@@ -59986,6 +60266,7 @@ type ZEUS_VARIABLES = {
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
+	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
@@ -60377,6 +60658,8 @@ type ZEUS_VARIABLES = {
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
+	["NodeSyncOutage"]: ValueTypes["NodeSyncOutage"];
+	["NodeSyncStatus"]: ValueTypes["NodeSyncStatus"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationChannel"]: ValueTypes["NotificationChannel"];
 	["NotificationDeliveryStatus"]: ValueTypes["NotificationDeliveryStatus"];

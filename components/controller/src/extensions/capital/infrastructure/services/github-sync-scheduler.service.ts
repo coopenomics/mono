@@ -5,9 +5,9 @@ import {
   parseGitHubDevelopmentRepository,
 } from '../../application/utils/parse-github-development-repository-url'
 import * as cron from 'node-cron'
-import { config } from '~/config'
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository'
 import { GitHubService } from './github.service'
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Планировщик опроса GitHub по URL репозиториев проектов/компонентов (PRD §6.2.1, эпик 6).
@@ -51,7 +51,7 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
     this.logger.log(`Инициализация планировщика маркеров Git-коммитов (cron: ${cronExpression}, ветка ${branch})`)
 
     const runTick = async (): Promise<void> => {
-      const coopname = config.coopname
+      const coopname = platformSettings().coopname
       const rawUrls = await this.projectRepository.findDistinctDevelopmentRepositoryUrls(coopname)
       const normalizedKeys = new Map<string, { owner: string; repo: string; key: string }>()
       for (const raw of rawUrls) {

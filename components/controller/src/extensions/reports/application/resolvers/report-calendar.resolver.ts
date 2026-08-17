@@ -1,12 +1,9 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { AccountDomainService } from '~/domain/account/services/account-domain.service';
-import { config } from '~/config';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import { ReportSubmissionMark } from '../../domain/enums/report-submission-mark.enum';
 import {
@@ -33,6 +30,7 @@ import {
   ReportCalendarPeriodEntryDTO,
   ReportCalendarRowDTO,
 } from '../dto/report-calendar.dto';
+import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 
 /**
  * Календарь отчётности — матрица 5 форм × 12 месяцев для UI.
@@ -64,7 +62,7 @@ export class ReportCalendarResolver {
     private readonly draftRepo: ReportDraftRepository,
     @Inject(REPORT_SUBMISSION_MARK_REPOSITORY)
     private readonly markRepo: ReportSubmissionMarkRepository,
-    private readonly accountDomainService: AccountDomainService,
+    @Inject(ACCOUNT_PORT) private readonly accountDomainService: IAccountPort,
     private readonly ndfl6DataService: Ndfl6DataService,
   ) {}
 
@@ -80,9 +78,9 @@ export class ReportCalendarResolver {
   @AuthRoles(['chairman'])
   async getReportCalendar(
     @Args('year', { type: () => Int }) year: number,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportCalendarRowDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const todayIso = toIsoDate(new Date());
     const state = await this.loadCalendarState(coopname, currentUser.username, year);
 
@@ -138,11 +136,11 @@ export class ReportCalendarResolver {
       // у cooperatives есть только created_at. Берём userAccount для coopname.
       // Он нужен, чтобы периоды до регистрации показывать как «не требуется»,
       // а не красным «просрочен» — обычное дело при подключении в середине года.
-      this.accountDomainService.getUserAccount(coopname).catch((e) => {
+      this.accountDomainService.getChainAccount(coopname).catch((e) => {
         // Чейн временно недоступен или конфиг кривой — фолбэк к старому
         // поведению (без фильтра по дате регистрации). Лучше показать всё
         // как раньше, чем ронять весь календарь.
-        this.logger.warn(`getUserAccount(${coopname}) failed: ${(e as Error).message}`);
+        this.logger.warn(`getChainAccount(${coopname}) failed: ${(e as Error).message}`);
         return null;
       }),
       // Периоды, за которые есть что подавать по НДФЛ. Все ячейки уведомления
@@ -193,9 +191,9 @@ export class ReportCalendarResolver {
   @AuthRoles(['chairman'])
   async markReportPeriod(
     @Args('data', { type: () => MarkReportPeriodInputDTO }) data: MarkReportPeriodInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const period = data.period ?? null;
     if (data.mark == null) {
       await this.markRepo.remove(coopname, data.reportType, data.year, period);

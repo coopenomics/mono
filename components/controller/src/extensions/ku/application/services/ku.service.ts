@@ -1,19 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
-import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import type { PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
+import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
@@ -43,7 +32,14 @@ import type {
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT_PORT, type IAccountPort,
+  BRANCH_PORT,
+  type IBranchPort,
+  InnerAccountType,
+} from '@coopenomics/innercoop';
+import { TransactionDTO } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * Сервис собраний и решений кооперативных участков.
@@ -54,20 +50,19 @@ import { DocumentAggregateDTO } from '~/application/document/dto/document-aggreg
 export class KuService {
   constructor(
     @Inject(KU_BLOCKCHAIN_PORT) private readonly kuBlockchainPort: KuBlockchainPort,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
+    @Inject(BRANCH_PORT) private readonly branchBlockchainPort: IBranchPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    private readonly documentDomainService: DocumentDomainService,
-    private readonly documentAggregator: DocumentAggregator
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
   // Проверки прав
   // ───────────────────────────────────────────────────────────────────────────
 
-  private assertSameUser(currentUser: MonoAccountDomainInterface, username: string): void {
+  private assertSameUser(currentUser: IMonoAccount, username: string): void {
     if (currentUser.username !== username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
     }
@@ -81,21 +76,21 @@ export class KuService {
     return decision;
   }
 
-  private async assertIsDecisionChairman(currentUser: MonoAccountDomainInterface, hash: string): Promise<void> {
+  private async assertIsDecisionChairman(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.chairman !== currentUser.username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только председателю собрания');
     }
   }
 
-  private async assertIsDecisionInitiator(currentUser: MonoAccountDomainInterface, hash: string): Promise<void> {
+  private async assertIsDecisionInitiator(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.initiator !== currentUser.username) {
       throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только инициатору собрания');
     }
   }
 
-  private async assertIsBranchTrustee(currentUser: MonoAccountDomainInterface, requestHash: string): Promise<void> {
+  private async assertIsBranchTrustee(currentUser: IMonoAccount, requestHash: string): Promise<void> {
     const request = await this.trustRequestRepository.findByHash(requestHash);
     if (!request?.braname) {
       throw new HttpApiError(httpStatus.NOT_FOUND, 'Заявка доверенного не найдена');
@@ -117,7 +112,7 @@ export class KuService {
 
   async createDecision(
     data: CreateKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.initiator);
     const result = await this.kuBlockchainPort.createDecision(data);
@@ -138,7 +133,7 @@ export class KuService {
 
   async joinDecision(
     data: JoinKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.joinDecision(data);
@@ -147,7 +142,7 @@ export class KuService {
 
   async startDecision(
     data: StartKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // Голосование открывает организатор собрания, назначая председателя
     // из числа присоединившихся участников
@@ -166,7 +161,7 @@ export class KuService {
     }
     if (decision.type === 'createbranch') {
       const chairmanAccount = await this.accountPort.getAccount(data.chairman);
-      if (chairmanAccount.private_account?.type !== AccountType.individual) {
+      if (chairmanAccount.private_account?.type !== InnerAccountType.individual) {
         throw new HttpApiError(
           httpStatus.BAD_REQUEST,
           'Председателем кооперативного участка может быть только физическое лицо'
@@ -188,7 +183,7 @@ export class KuService {
 
   async voteOnDecision(
     data: VoteOnKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.voteOnDecision(data);
@@ -197,7 +192,7 @@ export class KuService {
 
   async closeDecision(
     data: CloseKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // протокол утверждает председатель собрания — им автоматически является организатор
     await this.assertIsDecisionInitiator(currentUser, data.hash);
@@ -207,7 +202,7 @@ export class KuService {
 
   async execDecision(
     data: ExecKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     // Заявление в совет и договор о материальной ответственности подписывает
     // избранный собранием председатель участка (он же сторона договора)
@@ -218,7 +213,7 @@ export class KuService {
 
   async cancelDecision(
     data: CancelKuDecisionInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsDecisionInitiator(currentUser, data.hash);
     const result = await this.kuBlockchainPort.cancelDecision(data);
@@ -239,7 +234,7 @@ export class KuService {
 
   async requestTrusted(
     data: RequestKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.username);
     const result = await this.kuBlockchainPort.requestTrusted(data);
@@ -248,7 +243,7 @@ export class KuService {
 
   async approveTrusted(
     data: ApproveKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsBranchTrustee(currentUser, data.hash);
     const result = await this.kuBlockchainPort.approveTrusted(data);
@@ -257,7 +252,7 @@ export class KuService {
 
   async declineTrusted(
     data: DeclineKuTrustedInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     await this.assertIsBranchTrustee(currentUser, data.hash);
     const result = await this.kuBlockchainPort.declineTrusted(data);
@@ -272,78 +267,78 @@ export class KuService {
     data: Cooperative.Document.IGenerate,
     registry_id: number,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     data.registry_id = registry_id;
-    return await this.documentDomainService.generateDocument({ data, options: options || {} });
+    return await this.documentPort.generate({ data, options: options || {} });
   }
 
   async generateBranchMeetingProposal(
     data: Cooperative.Registry.BranchMeetingProposal.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingProposal.registry_id, options);
   }
 
   async generateBranchMeetingBallot(
     data: Cooperative.Registry.BranchMeetingBallot.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingBallot.registry_id, options);
   }
 
   async generateBranchMeetingDecision(
     data: Cooperative.Registry.BranchMeetingDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchMeetingDecision.registry_id, options);
   }
 
   async generateBranchEstablishmentPetition(
     data: Cooperative.Registry.BranchEstablishmentPetition.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchEstablishmentPetition.registry_id, options);
   }
 
   async generateBranchEstablishmentDecision(
     data: Cooperative.Registry.BranchEstablishmentSovietDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchEstablishmentSovietDecision.registry_id, options);
   }
 
   async generateBranchTrustedStatement(
     data: Cooperative.Registry.BranchTrustedStatement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedStatement.registry_id, options);
   }
 
   async generateBranchTrustedLiabilityAgreement(
     data: Cooperative.Registry.BranchTrustedLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteeLiabilityAgreement(
     data: Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteePowerOfAttorney(
     data: Cooperative.Registry.BranchTrusteePowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id, options);
   }
 
   async generateBranchTrustedPowerOfAttorney(
     data: Cooperative.Registry.BranchTrustedPowerOfAttorney.Action,
     options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     return this.generate(data, Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id, options);
   }
 
@@ -385,16 +380,16 @@ export class KuService {
   /** Отображаемые имена и типы аккаунтов участников собрания (для выбора председателя по ФИО) */
   private async resolveParticipantsInfo(
     participants: string[]
-  ): Promise<{ username: string; display_name: string; account_type: AccountType }[]> {
+  ): Promise<{ username: string; display_name: string; account_type: InnerAccountType }[]> {
     return Promise.all(
       participants.map(async (username) => {
         try {
           const account = await this.accountPort.getAccount(username);
           const display_name = await this.accountPort.getDisplayName(username);
-          const account_type = (account.private_account?.type as AccountType) ?? AccountType.individual;
+          const account_type = (account.private_account?.type as InnerAccountType) ?? InnerAccountType.individual;
           return { username, display_name: display_name || username, account_type };
         } catch {
-          return { username, display_name: username, account_type: AccountType.individual };
+          return { username, display_name: username, account_type: InnerAccountType.individual };
         }
       })
     );
@@ -433,7 +428,7 @@ export class KuService {
 
   async getDecisions(
     filter?: KuDecisionFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<KuDecisionDTO>> {
     const result = await this.decisionRepository.findAllPaginated(filter, options);
 
@@ -461,14 +456,14 @@ export class KuService {
     // для страницы собрания. Договор матответственности (328) и доверенность (329)
     // содержат паспортные данные и сюда НЕ выносятся.
     if (decision.protocol) {
-      const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.protocol as unknown as ISignedDocumentDomainInterface)
+      const aggregate = await this.documentPort
+        .buildAggregate(decision.protocol as unknown as ISignedDocument)
         .catch(() => null);
       dto.protocol_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
     if (decision.authorization) {
-      const aggregate = await this.documentAggregator
-        .buildDocumentAggregate(decision.authorization as unknown as ISignedDocumentDomainInterface)
+      const aggregate = await this.documentPort
+        .buildAggregate(decision.authorization as unknown as ISignedDocument)
         .catch(() => null);
       dto.authorization_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
     }
@@ -478,7 +473,7 @@ export class KuService {
 
   async getTrustRequests(
     filter?: KuTrustRequestFilterInputDTO,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<KuTrustRequestDTO>> {
     const result = await this.trustRequestRepository.findAllPaginated(filter, options);
 
@@ -491,15 +486,15 @@ export class KuService {
         // договор заявителя с сертификатами подписантов — председатель смотрит документ
         // и накладывает встречную подпись на него же, без регенерации
         if (item.application) {
-          const aggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.application as unknown as ISignedDocumentDomainInterface)
+          const aggregate = await this.documentPort
+            .buildAggregate(item.application as unknown as ISignedDocument)
             .catch(() => null);
           dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
         }
         // доверенность доверенному лицу — председатель так же накладывает встречную подпись
         if (item.authority) {
-          const authorityAggregate = await this.documentAggregator
-            .buildDocumentAggregate(item.authority as unknown as ISignedDocumentDomainInterface)
+          const authorityAggregate = await this.documentPort
+            .buildAggregate(item.authority as unknown as ISignedDocument)
             .catch(() => null);
           dto.authority_document = authorityAggregate ? new DocumentAggregateDTO(authorityAggregate) : undefined;
         }

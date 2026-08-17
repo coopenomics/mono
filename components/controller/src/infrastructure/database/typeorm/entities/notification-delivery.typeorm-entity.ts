@@ -1,9 +1,9 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import {
   NotificationDeliveryStatus,
   type NotificationDeliveryDomainInterface,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /**
  * Журнал доставок Центра уведомлений.

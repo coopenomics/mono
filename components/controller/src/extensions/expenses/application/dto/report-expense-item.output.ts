@@ -1,5 +1,5 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
+import { TransactionDTO } from '@coopenomics/extension-kit';
 
 /**
  * Исход отчёта пайщика по строке-авансу: совпал ли факт с выданным авансом или

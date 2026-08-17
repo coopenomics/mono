@@ -6,22 +6,20 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { rethrowChainError } from '../shared/chain-tx.util';
 import {
   getTaxTransferRequisites,
   type TaxTransferRequisites,
 } from '@coopenomics/jurisdictions';
-import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
+  ORGANIZATION_PORT,
+  PAYMENT_DESK_PORT,
+  PaymentStatus,
+  PaymentType,
+  type IOrganizationPort,
+  type IPaymentDeskPort,
+  type InnerSystemOutgoingPaymentInput,
+} from '@coopenomics/innercoop';
 
 /** Кошелёк удержанного НДФЛ — его остаток и есть долг кооператива перед бюджетом. */
 const NDFL_WALLET = 'w.brn.ndfl';
@@ -60,10 +58,10 @@ export class MarketplaceTaxService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort
   ) {}
 
   /**
@@ -158,8 +156,8 @@ export class MarketplaceTaxService {
         quantity: amount,
         symbol: this.assetConfig.symbol,
         memo: requisites?.memo ?? 'Перечисление удержанного НДФЛ',
-        type: PaymentTypeEnum.TAX,
-        status: PaymentStatusEnum.PENDING,
+        type: PaymentType.TAX,
+        status: PaymentStatus.PENDING,
         related_extension: 'marketplace',
         related_entity_id: taxHash,
         payment_hash: taxHash,
@@ -199,7 +197,7 @@ export class MarketplaceTaxService {
   private budgetPaymentDetails(
     asset: string,
     requisites: TaxTransferRequisites | null
-  ): Pick<CreateSystemOutgoingPaymentInputDomainInterface, 'payment_details'> | Record<string, never> {
+  ): Pick<InnerSystemOutgoingPaymentInput, 'payment_details'> | Record<string, never> {
     if (!requisites) return {};
     return {
       payment_details: {
@@ -228,7 +226,7 @@ export class MarketplaceTaxService {
       if (payment?.id) {
         await this.coreGateway.setPaymentStatus({
           id: payment.id,
-          status: PaymentStatusEnum.CANCELLED,
+          status: PaymentStatus.CANCELLED,
           message: 'Заявку на перечисление налога не удалось зарегистрировать',
         });
       }

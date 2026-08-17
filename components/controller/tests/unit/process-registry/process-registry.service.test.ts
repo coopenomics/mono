@@ -27,7 +27,7 @@
 import { ProcessRegistryService } from '../../../src/domain/process-registry/services/process-registry.service';
 import type { DeltaEntity } from '../../../src/infrastructure/database/typeorm/entities/delta.entity';
 import type { ActionEntity } from '../../../src/infrastructure/database/typeorm/entities/action.entity';
-import type { PaginationInputDTO } from '../../../src/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 type AnyQB = any;
 

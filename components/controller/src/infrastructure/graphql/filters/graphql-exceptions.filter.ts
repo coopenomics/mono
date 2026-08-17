@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 import { RpcError } from 'eosjs';
 import * as Sentry from '@sentry/nestjs';
 import logger from '../../../config/logger';
-import { HttpApiError } from '../../../utils/httpApiError';
 import { config } from '~/config';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Catch()
 export class GraphQLExceptionFilter implements GqlExceptionFilter {

@@ -12,7 +12,7 @@ import type {
   MarketplaceAplReceptionStatus,
   MarketplaceAplReceptionVariant,
 } from '../../domain/entities/marketplace-apl-reception.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Story 5.3 / 5.4: TypeORM-сущность АПП приёмки. Один Shipment имеет ровно
@@ -82,7 +82,7 @@ export class MarketplaceAplReceptionEntity {
   public supplier_signsupp_tx_hash!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  public supplier_signed_documents!: ISignedDocumentDomainInterface[] | null;
+  public supplier_signed_documents!: ISignedDocument[] | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   public chairman_signed_at!: Date | null;

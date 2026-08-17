@@ -1,23 +1,21 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import type { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
 import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
 import type { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import { ResultContributionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-statement-document.dto';
-import { ResultContributionDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-decision-document.dto';
-import { ResultContributionActGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-act-document.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { ResultContributionStatementGenerateDocumentInputDTO } from '../documents-dto/result-contribution-statement-document.dto';
+import { ResultContributionDecisionGenerateDocumentInputDTO } from '../documents-dto/result-contribution-decision-document.dto';
+import { ResultContributionActGenerateDocumentInputDTO } from '../documents-dto/result-contribution-act-document.dto';
 import { Cooperative } from 'cooptypes';
 import { Classes } from '@coopenomics/sdk';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
@@ -44,13 +42,11 @@ import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/iss
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import { createHash } from 'crypto';
-import { config } from '~/config';
 import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
  * Обрабатывает запросы от ResultSubmissionResolver
@@ -59,7 +55,7 @@ import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repos
 export class ResultSubmissionService {
   constructor(
     private readonly resultSubmissionInteractor: ResultSubmissionInteractor,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly segmentMapper: SegmentMapper,
     private readonly resultMapper: ResultMapper,
     @Inject(PROJECT_REPOSITORY)
@@ -76,9 +72,7 @@ export class ResultSubmissionService {
     private readonly storyRepository: StoryRepository,
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
-    @Inject(DOCUMENT_REPOSITORY)
-    private readonly documentRepository: DocumentRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionService.name);
   }
@@ -86,7 +80,7 @@ export class ResultSubmissionService {
   /**
    * Внесение результата в CAPITAL контракте
    */
-  async pushResult(data: PushResultInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async pushResult(data: PushResultInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     // Проверяем, что пользователь может вносить результаты только для себя
     if (data.username !== currentUser.username) {
       throw new Error('Вы можете вносить результаты только для себя');
@@ -99,7 +93,7 @@ export class ResultSubmissionService {
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
-    const generatedDocument = await this.documentRepository.findByHash(data.statement.doc_hash);
+    const generatedDocument = await this.documentPort.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
       throw new Error(
         `Сгенерированный документ с хешем ${data.statement.doc_hash} не найден. Необходимо сначала сгенерировать заявление.`
@@ -146,7 +140,7 @@ export class ResultSubmissionService {
     // Формируем данные для domain layer
     // Используем присланный подписанный документ (он прошел глубокую проверку)
     const domainInput = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: data.username,
       project_hash: data.project_hash,
       result_hash: result.result_hash,
@@ -169,7 +163,7 @@ export class ResultSubmissionService {
   /**
    * Конвертация сегмента в CAPITAL контракте
    */
-  async convertSegment(data: ConvertSegmentInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async convertSegment(data: ConvertSegmentInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     const segmentEntity = await this.resultSubmissionInteractor.convertSegment(data, currentUser);
     return await this.segmentMapper.toDTO(segmentEntity);
   }
@@ -181,7 +175,7 @@ export class ResultSubmissionService {
    */
   async getResults(filter?: ResultFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<ResultOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.resultSubmissionInteractor.getResults(filter, domainOptions);
@@ -357,7 +351,7 @@ export class ResultSubmissionService {
         _id: '', // будет сгенерировано
         result_hash,
         project_hash: projectHash,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: username,
         status: ResultStatus.PENDING,
         block_num: undefined,
@@ -536,7 +530,7 @@ export class ResultSubmissionService {
   async generateResultContributionStatement(
     data: ResultContributionStatementGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь может генерировать документы только для себя
     if (data.username !== currentUser.username) {
@@ -577,7 +571,7 @@ export class ResultSubmissionService {
     }
 
     // Извлекаем данные
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const username = currentUser.username;
 
     if (!project.title) {
@@ -629,7 +623,7 @@ export class ResultSubmissionService {
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -646,7 +640,7 @@ export class ResultSubmissionService {
   async generateResultContributionDecision(
     data: ResultContributionDecisionGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
 
     // Находим результат по result_hash
@@ -743,13 +737,13 @@ export class ResultSubmissionService {
       result_hash: data.result_hash,
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       registry_id: Cooperative.Registry.ResultContributionDecision.registry_id,
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -763,7 +757,7 @@ export class ResultSubmissionService {
   async generateResultContributionAct(
     data: ResultContributionActGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
@@ -841,14 +835,14 @@ export class ResultSubmissionService {
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
       decision_id,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       result_hash: data.result_hash,
       registry_id: Cooperative.Registry.ResultContributionAct.registry_id,
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -862,7 +856,7 @@ export class ResultSubmissionService {
    */
   async signActAsContributor(
     data: SignActAsContributorInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,
@@ -879,7 +873,7 @@ export class ResultSubmissionService {
    */
   async signActAsChairman(
     data: SignActAsChairmanInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,
