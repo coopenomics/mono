@@ -1,15 +1,15 @@
 <template lang="pug">
 div
-  //- Canon header-кнопка: на мобильном — иконка-only + tooltip.
+  //- Header-кнопка иконкой: подпись съедала место, а значок фильтра узнаваем сам
   q-btn(
     :size='isMobile ? "sm" : "md"',
     flat,
     :dense='isMobile',
     icon='filter_list',
-    :label='isMobile ? undefined : "Фильтры"',
     :stretch='stretch',
     :style='style',
     no-wrap,
+    aria-label='Фильтры',
     @click='handleClick'
   )
     q-badge(
@@ -18,7 +18,7 @@ div
       floating
       rounded
     )
-    q-tooltip(v-if='isMobile') Фильтры
+    q-tooltip Фильтры
 
   //- Диалог фильтров
   FilterDialog(

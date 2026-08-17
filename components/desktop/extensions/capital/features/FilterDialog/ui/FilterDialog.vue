@@ -5,7 +5,7 @@ BaseDialog(
   size='md'
 )
   .filter-dialog
-    //- Статусы самого проекта / компонента
+    //- Статусы самого проекта / компонента — только в дереве
     .filter-dialog__field(v-if='isEntityScope')
       q-select(
         v-model='entityStatuses',
@@ -22,26 +22,28 @@ BaseDialog(
         dense
       )
 
-    //- Мастер — ведущий проекта / компонента
-    .filter-dialog__field
-      ContributorSelector(
-        v-model='selectedMaster',
-        :project-hash='projectHash',
-        :coopname='coopname',
-        label='Мастер',
-        placeholder='',
-        outlined,
-        dense,
-        :multiSelect='false'
-      )
-    .filter-dialog__field
-      BaseCheckbox(
-        v-model='onlyMyMaster'
-        label='Где я мастер'
-      )
+    //- Мастер проекта / компонента: в дереве это главный фильтр и стоит первым,
+    //- на списке задач — вспомогательный и уезжает вниз (там фильтруют по исполнителю)
+    template(v-if='isEntityScope')
+      .filter-dialog__field
+        ContributorSelector(
+          v-model='selectedMaster',
+          :project-hash='projectHash',
+          :coopname='coopname',
+          label='Мастер',
+          placeholder='',
+          outlined,
+          dense,
+          :multiSelect='false'
+        )
+      .filter-dialog__field
+        BaseCheckbox(
+          v-model='onlyMyMaster'
+          label='Где я мастер'
+        )
 
-    q-separator.filter-dialog__separator(v-if='isEntityScope')
-    .filter-dialog__section-title(v-if='isEntityScope') Задачи внутри
+      q-separator.filter-dialog__separator
+      .filter-dialog__section-title Задачи внутри
 
     //- Статусы задач
     .filter-dialog__field
@@ -94,6 +96,26 @@ BaseDialog(
         v-model='onlyMyIssues'
         :label='isEntityScope ? "Где я исполнитель" : "Только мои задачи"'
       )
+
+    //- На списке задач мастер компонента — уточняющий фильтр, после исполнителя
+    template(v-if='!isEntityScope')
+      q-separator.filter-dialog__separator
+      .filter-dialog__field
+        ContributorSelector(
+          v-model='selectedMaster',
+          :project-hash='projectHash',
+          :coopname='coopname',
+          label='Мастер компонента',
+          placeholder='',
+          outlined,
+          dense,
+          :multiSelect='false'
+        )
+      .filter-dialog__field
+        BaseCheckbox(
+          v-model='onlyMyMaster'
+          label='Где я мастер'
+        )
 
   template(#footer)
     BaseButton(variant='ghost', @click='handleReset') Сбросить

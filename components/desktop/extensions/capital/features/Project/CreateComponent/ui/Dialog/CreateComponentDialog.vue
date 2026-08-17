@@ -9,6 +9,19 @@ CreateDialog(
   @dialog-closed="clear"
 )
   template(#form-fields)
+    //- Родитель известен, когда компонент создают внутри проекта. Из раздела
+    //- «Компоненты» проекта нет — выбираем его здесь, из тех, где есть право
+    BaseSelect(
+      v-if='!props.project'
+      v-model='selectedProjectHash'
+      :options='projectOptions'
+      label='Проект'
+      placeholder='Выберите проект'
+      searchable
+      required
+      :error='projectError'
+    )
+
     q-input(
       standout="bg-teal text-white"
       v-model='formData.title',
@@ -28,17 +41,19 @@ CreateDialog(
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { Editor } from 'src/shared/ui';
+import { BaseSelect } from 'src/shared/ui/base';
 import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entities/Project/model';
-import { useCreateComponent } from '../../model';
+import { useCreateComponent, useEditableProjects } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
 const props = defineProps<{
-  project: IProject;
+  /** Родительский проект. Не задан — выбирается в диалоге */
+  project?: IProject;
 }>();
 
 const emit = defineEmits<{
@@ -56,6 +71,15 @@ const formData = ref({
   description: '',
 });
 
+// Выбор проекта нужен только когда родитель не передан снаружи
+const {
+  options: projectOptions,
+  getProject,
+  loadEditableProjects,
+} = useEditableProjects();
+const selectedProjectHash = ref<string | null>(null);
+const projectError = ref('');
+
 const notEmpty = (val: any) => {
   return !!val || 'Это поле обязательно для заполнения';
 };
@@ -65,9 +89,32 @@ const clear = () => {
     title: '',
     description: '',
   };
+  selectedProjectHash.value = null;
+  projectError.value = '';
+};
+
+onMounted(() => {
+  if (!props.project) void loadEditableProjects();
+});
+
+watch(selectedProjectHash, (value) => {
+  if (value) projectError.value = '';
+});
+
+/** Родитель: переданный проект либо выбранный в диалоге. */
+const resolveParentProject = (): IProject | undefined => {
+  if (props.project) return props.project;
+  if (!selectedProjectHash.value) return undefined;
+  return getProject(selectedProjectHash.value);
 };
 
 const handleSubmit = async () => {
+  const parentProject = resolveParentProject();
+  if (!parentProject) {
+    projectError.value = 'Выберите проект';
+    return;
+  }
+
   isSubmitting.value = true;
   try {
     const projectHash = await generateUniqueHash();
@@ -75,7 +122,7 @@ const handleSubmit = async () => {
     const inputData: ICreateProjectInput = {
       coopname: system.info.coopname,
       project_hash: projectHash,
-      parent_hash: props.project.project_hash,
+      parent_hash: parentProject.project_hash,
       title: formData.value.title,
       description: formData.value.description,
       meta: JSON.stringify({}),
@@ -84,7 +131,7 @@ const handleSubmit = async () => {
     };
 
     await createComponent(inputData, {
-      local: props.project.origin === 'local',
+      local: parentProject.origin === 'local',
     });
     SuccessAlert('Компонент успешно создан');
 

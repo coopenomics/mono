@@ -107,13 +107,15 @@ const parentLabel = computed(() =>
   align-items: center;
 }
 
-// Заголовок + приписка проекта — та же вертикальная стопка, что у задач
+// Заголовок + приписка проекта — вертикальная стопка. Зазора между строками
+// нет: интервал даёт сам line-height, иначе приписка «отлипает» от названия
+// и читается как отдельная строка списка
 .title-stack {
   display: flex;
   flex-direction: column;
   min-width: 0;
   max-width: 100%;
-  gap: var(--p-1);
+  gap: 0;
 }
 
 .context-label {
@@ -177,6 +179,7 @@ const parentLabel = computed(() =>
   word-wrap: break-word;
   white-space: normal;
   font-size: var(--p-fs-body);
+  line-height: var(--p-lh-h3);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;

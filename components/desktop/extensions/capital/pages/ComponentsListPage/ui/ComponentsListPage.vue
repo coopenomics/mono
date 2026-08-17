@@ -4,6 +4,7 @@
 router-view(v-if='!isListRoot')
 .components-list-page(v-else)
   ComponentsTreeWidget(
+    :key='reloadKey',
     :expanded='expanded',
     :statuses='statuses',
     :master='master',
@@ -28,12 +29,13 @@ router-view(v-if='!isListRoot')
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { ComponentsTreeWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
+import { CreateComponentHeaderButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { useListPreferences } from 'app/extensions/capital/shared/lib';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 
@@ -45,6 +47,9 @@ const isListRoot = computed(() => route.name === 'components-list');
 
 // Свои фильтры и сортировка раздела — переживают перезагрузку
 const { filters, sort } = useListPreferences('components');
+
+// Созданный компонент перечитывает список: строка приходит с бэкенда
+const reloadKey = ref(0);
 
 const statuses = computed(() => filters.value.entityStatuses);
 const master = computed(() => filters.value.master);
@@ -100,6 +105,17 @@ const handleIssueClick = (issue: IIssue) => {
 const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
 
 function registerListHeaderActions(): void {
+  // Компонент создаётся из шапки — проект выбирается в самом диалоге
+  registerHeaderAction({
+    id: 'capital-components-create',
+    component: CreateComponentHeaderButton,
+    props: {
+      onActionCompleted: () => {
+        reloadKey.value += 1;
+      },
+    },
+    order: 1,
+  });
   registerHeaderAction({
     id: 'capital-components-filter',
     component: FilterDialogWithButton,

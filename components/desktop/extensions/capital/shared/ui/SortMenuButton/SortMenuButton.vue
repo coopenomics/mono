@@ -1,17 +1,16 @@
 <template lang="pug">
 div
-  //- Canon header-кнопка: на мобильном — иконка-only + tooltip.
+  //- Header-кнопка иконкой: подпись съедала место, а значок сортировки узнаваем сам
   BaseButton(
     variant='ghost',
     :size='isMobile ? "sm" : "md"',
-    :icon-only='isMobile',
+    icon-only,
     aria-label='Сортировка',
     :style='style'
   )
     template(#icon-left)
       q-icon(name='sort', size='20px')
-    | Сортировка
-    q-tooltip(v-if='isMobile') Сортировка
+    q-tooltip Сортировка
 
     q-menu(anchor='bottom right', self='top right')
       q-list(dense, style='min-width: 220px')
@@ -37,7 +36,7 @@ div
           :active='sort.sortOrder === "DESC"',
           @click='selectOrder("DESC")'
         )
-          q-item-section Сначала новые
+          q-item-section По убыванию
           q-item-section(side, v-if='sort.sortOrder === "DESC"')
             q-icon(name='check', size='18px', color='primary')
         q-item(
@@ -46,7 +45,7 @@ div
           :active='sort.sortOrder === "ASC"',
           @click='selectOrder("ASC")'
         )
-          q-item-section Сначала старые
+          q-item-section По возрастанию
           q-item-section(side, v-if='sort.sortOrder === "ASC"')
             q-icon(name='check', size='18px', color='primary')
 </template>

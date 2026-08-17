@@ -55,6 +55,7 @@ import { useSessionStore } from 'src/entities/Session/model/store';
 import { FailAlert } from 'src/shared/api';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue';
+import { CreateIssueHeaderButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IIssue, IGetIssuesInput } from 'app/extensions/capital/entities/Issue/model';
@@ -245,6 +246,18 @@ function onAssigned() {
 const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
 
 function registerListHeaderActions(): void {
+  // Задача создаётся без компонента — привязать её можно потом, кликом по
+  // подписи «Без компонента» в строке списка
+  registerHeaderAction({
+    id: 'capital-issues-create',
+    component: CreateIssueHeaderButton,
+    props: {
+      onActionCompleted: () => {
+        void reload();
+      },
+    },
+    order: 1,
+  });
   registerHeaderAction({
     id: 'capital-issues-filter',
     component: FilterDialogWithButton,
