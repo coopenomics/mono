@@ -1,58 +1,43 @@
 <template lang="pug">
-BaseDialog(
-  :model-value='isBlocking',
-  :maximized='true',
-  :hide-close-button='true',
-  :close-on-backdrop='false',
-  :close-on-escape='false'
-)
-  div.node-sync-overlay
-    AuthCard(:max-width='460')
-      //- Шапка: иконка состояния в soft-плитке, заголовок и пояснение — почему
-      //- рабочий стол закрыт и чего именно ждёт пайщик.
-      template(#head)
-        div.node-sync__icon(:class='`node-sync__icon--${view.tone}`')
-          q-icon(:name='view.icon', size='28px')
-        h2.node-sync__title {{ view.title }}
-        p.node-sync__text {{ view.body }}
+//- Тот же приём, что у заглушки технического обслуживания: сплошной тёмный
+//- слой поверх всего. Рабочий стол под ним не виден и не кликается.
+transition(name='node-sync-fade')
+  div.node-sync(v-if='isBlocking')
+    div.node-sync__box
+      q-icon.node-sync__icon.text-white(:name='view.icon', size='40px')
+      h2.node-sync__title.text-white {{ view.title }}
+      p.node-sync__text.text-grey-5 {{ view.body }}
 
-      //- Ход догона: доля прочитанного, остаток блоков и оценка времени.
-      //- Пока связи нет, доля неизвестна — полоса идёт бегущей.
-      div.node-sync__progress
-        q-linear-progress(
-          :value='progressValue',
-          :indeterminate='isIndeterminate',
-          :color='view.progressColor',
-          track-color='grey-3',
-          size='10px',
-          rounded
-        )
-        div.node-sync__meta(v-if='!isIndeterminate')
-          span.node-sync__percent {{ progressPercent }}%
-          span.node-sync__remaining.t-sm.t-muted {{ remainingLabel }}
-        div.node-sync__meta(v-else)
-          span.node-sync__remaining.t-sm.t-muted {{ remainingLabel }}
-
-      div.node-sync__blocks(v-if='blocksLabel')
-        span.node-sync__blocks-label.t-eyebrow.t-faint Позиция чтения
-        span.node-sync__blocks-value {{ blocksLabel }}
+      //- Ход синхронизации. Пока связь потеряна, доля неизвестна — полоса идёт
+      //- бегущей, чтобы не обещать процент, которого нет.
+      q-linear-progress.node-sync__bar(
+        :value='progressValue',
+        :indeterminate='isIndeterminate',
+        color='white',
+        track-color='grey-9',
+        size='8px',
+        rounded
+      )
+      div.node-sync__meta
+        span.node-sync__percent.text-white(v-if='!isIndeterminate') {{ progressPercent }}%
+        span.node-sync__remaining.text-grey-5 {{ remainingLabel }}
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 import { useSystemStore } from '../../model/store';
 
 /**
- * Экран догона: пока узел не дочитал цепь, рабочий стол закрыт.
+ * Экран синхронизации: пока узел не получил свежие данные, рабочий стол закрыт.
  *
- * Показывает не «ждите», а ход: долю прочитанного, остаток блоков и оценку
- * времени. Доля считается от отставания в момент, когда узел ушёл в догон —
- * абсолютного «сколько всего» у цепи нет, а от начальной точки прогресс
- * честно растёт до конца догона.
+ * Показывает ход, а не просто «ждите»: доля считается от отставания в момент,
+ * когда синхронизация началась — абсолютного «сколько всего» у цепи нет, а от
+ * точки старта прогресс честно доходит до конца.
+ *
+ * Номера блоков наружу не выводятся: пайщику они ничего не говорят, а на живой
+ * сети это восьмизначные числа.
  */
 const systemStore = useSystemStore();
 const route = useRoute();
@@ -72,7 +57,7 @@ const isBlocking = computed(
   () => Boolean(state.value) && !isOnServicePage.value && (isLagging.value || isDisconnected.value),
 );
 
-/** Отставание, с которого начался этот догон — точка отсчёта прогресса. */
+/** Отставание, с которого началась эта синхронизация — точка отсчёта прогресса. */
 const initialLag = ref<number | null>(null);
 
 watch(
@@ -98,10 +83,10 @@ const progressValue = computed(() => {
 
 const progressPercent = computed(() => Math.floor(progressValue.value * 100));
 
-/** Пока связи нет, доля прочитанного смысла не имеет — полоса бежит. */
+/** Пока связь потеряна, доля прочитанного смысла не имеет — полоса бежит. */
 const isIndeterminate = computed(() => isDisconnected.value || !initialLag.value);
 
-/** «через 2 ч 15 мин» читается, «через 8100 с» — нет. */
+/** «около 2 ч 15 мин» читается, «через 8100 с» — нет. */
 function formatRemaining(seconds: number): string {
   if (seconds < 60) return 'меньше минуты';
   const minutes = Math.round(seconds / 60);
@@ -113,17 +98,8 @@ function formatRemaining(seconds: number): string {
 
 const remainingLabel = computed(() => {
   if (isDisconnected.value) return 'Ждём восстановления связи';
-  const lag = state.value?.lag_blocks ?? 0;
   const eta = state.value?.estimated_seconds_remaining;
-  const blocks = `осталось ${lag.toLocaleString('ru-RU')} блоков`;
-  return eta ? `${blocks} · ${formatRemaining(eta)}` : blocks;
-});
-
-const blocksLabel = computed(() => {
-  const current = state.value?.current_block_num;
-  const head = state.value?.head_block_num;
-  if (typeof current !== 'number' || typeof head !== 'number') return '';
-  return `${current.toLocaleString('ru-RU')} / ${head.toLocaleString('ru-RU')}`;
+  return eta ? `Осталось ${formatRemaining(eta)}` : 'Идёт обновление данных';
 });
 
 const view = computed(() => {
@@ -131,120 +107,92 @@ const view = computed(() => {
     const outage = state.value?.outage;
     if (outage === Zeus.NodeSyncOutage.NODE) {
       return {
-        icon: 'cloud_off',
-        tone: 'neg',
-        progressColor: 'negative',
-        title: 'Нет связи с узлом кооператива',
-        body: 'Рабочий стол не может получить данные. Как только связь восстановится, работа продолжится сама.',
-      };
-    }
-    if (outage === Zeus.NodeSyncOutage.READER) {
-      return {
-        icon: 'sync_problem',
-        tone: 'neg',
-        progressColor: 'negative',
-        title: 'Чтение блокчейна остановлено',
-        body: 'Узел перестал продвигаться по цепи. Данные неполные, поэтому работа приостановлена до возобновления чтения.',
+        icon: 'cloud_sync',
+        title: 'Восстанавливаем связь',
+        body: 'Рабочий стол временно не получает данные. Как только связь появится, работа продолжится сама.',
       };
     }
     return {
-      icon: 'link_off',
-      tone: 'neg',
-      progressColor: 'negative',
-      title: 'Блокчейн не отвечает',
-      body: 'Узел кооператива не получает состояние цепи. Работа продолжится, как только связь восстановится.',
+      icon: 'sync_problem',
+      title: 'Синхронизация приостановлена',
+      body: 'Узел пока не получает свежие данные из блокчейна. Синхронизация продолжится сама, как только связь восстановится.',
     };
   }
 
   return {
     icon: 'sync',
-    tone: 'primary',
-    progressColor: 'primary',
     title: 'Синхронизация с блокчейном',
-    body: 'Узел дочитывает цепь. Пока данные неполные, работать с ними нельзя — рабочий стол откроется сам, как только догон закончится.',
+    body: 'Обновляем данные кооператива. Рабочий стол откроется, как только синхронизация завершится.',
   };
 });
 </script>
 
 <style scoped lang="scss">
-.node-sync-overlay {
-  min-height: 70vh;
+.node-sync {
+  position: fixed;
+  inset: 0;
+  /* Выше диалогов Quasar (6000) — экран обязан перекрывать всё, включая
+     открытые окна, иначе под ним останется рабочий интерфейс. */
+  z-index: 7000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--p-4);
+  background: var(--q-dark);
+}
+
+.node-sync__box {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
 }
 
 .node-sync__icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--p-r-lg);
-  display: grid;
-  place-items: center;
-  margin: 0 auto var(--p-3);
-}
-.node-sync__icon--primary {
-  background: var(--p-primary-soft);
-  color: var(--p-primary);
-}
-.node-sync__icon--neg {
-  background: var(--p-neg-soft);
-  color: var(--p-neg);
+  opacity: 0.9;
 }
 
 .node-sync__title {
-  margin: 0;
-  font-size: var(--p-fs-h2);
-  line-height: var(--p-lh-h2);
-  letter-spacing: var(--p-ls-h2);
+  margin: var(--p-3) 0 0;
+  font-size: var(--p-fs-h3);
+  line-height: var(--p-lh-h3);
   font-weight: 600;
-  color: var(--p-ink);
-}
-.node-sync__text {
-  margin: var(--p-2) 0 0;
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-2);
 }
 
-.node-sync__progress {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
+.node-sync__text {
+  margin: var(--p-2) 0 var(--p-5);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
+
 .node-sync__meta {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--p-2);
-  /* Проценты и остаток меняются каждый тик — фиксируем строку, чтобы карточка
-     не дёргалась по высоте. */
+  margin-top: var(--p-2);
+  /* Проценты и подпись меняются каждый тик — фиксируем строку, чтобы блок
+     не дёргался по высоте. */
   min-height: 20px;
 }
+
 .node-sync__percent {
   font-family: var(--p-mono);
-  font-size: var(--p-fs-h3);
-  line-height: var(--p-lh-h3);
+  font-size: var(--p-fs-body);
   font-weight: 600;
-  color: var(--p-ink);
   font-feature-settings: 'ss01', 'ss02';
 }
 
-.node-sync__blocks {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--p-1);
-  margin-top: var(--p-4);
-  padding: var(--p-3) var(--p-4);
-  background: var(--p-surface-2);
-  border-radius: var(--p-r-md);
-  text-align: center;
+.node-sync__remaining {
+  margin-left: auto;
+  font-size: var(--p-fs-body-sm);
 }
-.node-sync__blocks-value {
-  font-family: var(--p-mono);
-  font-size: var(--p-fs-body);
-  color: var(--p-ink);
-  font-feature-settings: 'ss01', 'ss02';
+
+.node-sync-fade-enter-active,
+.node-sync-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.node-sync-fade-enter-from,
+.node-sync-fade-leave-to {
+  opacity: 0;
 }
 </style>
