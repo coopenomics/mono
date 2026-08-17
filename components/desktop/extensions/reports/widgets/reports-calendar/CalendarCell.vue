@@ -15,7 +15,7 @@
     //- по клику — иначе строка раздувается втрое и календарь не читается.
     q-menu(v-if='entries.length > 1' anchor='bottom left' self='top left')
       q-list(dense style='min-width: 220px')
-        q-item-label(header) Сроки месяца
+        q-item-label(header) Отчёты за месяц
         q-item(
           v-for='entry in entries'
           :key='entry.periodCode ?? entry.label'
@@ -66,11 +66,22 @@ const primary = computed<IReportCalendarPeriodEntry | undefined>(() => {
   )[0]
 })
 
-// При одном сроке — его собственная подпись; при нескольких она не влезает и
-// не нужна: месяц ясен из колонки, а разбивка видна в меню.
-const label = computed(() =>
-  props.entries.length > 1 ? `${props.entries.length} срока` : (primary.value?.label ?? ''),
-)
+/**
+ * Подпись ячейки. У форм с одним отчётом в месяце — его собственная (как было:
+ * «Январь», «I кв.»). Там, где отчётов может быть несколько, показываем их
+ * число единообразно во всех месяцах: иначе январь с одним отчётом выпадал бы
+ * из ряда длинной подписью «Январь · 1–22», а соседи стояли бы с «2 отчёта».
+ */
+const label = computed(() => {
+  if (!props.entries.length) return ''
+  if (!hasMultiplePerMonth.value) return primary.value?.label ?? ''
+  const count = props.entries.length
+  return `${count} ${count === 1 ? 'отчёт' : 'отчёта'}`
+})
+
+// Форма сдаётся несколько раз в месяц — значит и в остальных месяцах подпись
+// должна быть в том же формате, даже если сейчас там один отчёт.
+const hasMultiplePerMonth = computed(() => props.row.periodKind === 'semi-monthly')
 
 // before_registration — период приходился до даты регистрации кооператива:
 // сдавать не нужно, ячейка некликабельна, выглядит нейтрально-серой.

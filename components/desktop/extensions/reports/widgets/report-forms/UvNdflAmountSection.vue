@@ -28,6 +28,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { BaseInput, BaseBanner } from 'src/shared/ui/base'
+import { uvNdflPeriodTitle } from './uv-ndfl-edits'
 import type { UvNdflEdits } from './uv-ndfl-edits'
 
 /**
@@ -40,7 +41,8 @@ import type { UvNdflEdits } from './uv-ndfl-edits'
 
 const props = defineProps<{
   edits: UvNdflEdits | null
-  fieldErrors: { path: string; message: string }[]
+  /** Ошибки полей: путь → сообщения, как их отдаёт валидация формы. */
+  fieldErrors?: Record<string, string[]>
 }>()
 
 const emit = defineEmits<{
@@ -48,23 +50,12 @@ const emit = defineEmits<{
   (e: 'dirty', path: string): void
 }>()
 
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-]
-
 const editsValue = computed(() => props.edits)
 
-const periodTitle = computed(() => {
-  const period = props.edits?.header.period
-  if (!period || period < 1 || period > 24) return '—'
-  const month = MONTHS[Math.floor((period - 1) / 2)] ?? ''
-  const half = period % 2 === 0 ? 'с 23 по последнее число' : 'с 1 по 22 число'
-  return `${month}, ${half}`
-})
+const periodTitle = computed(() => uvNdflPeriodTitle(props.edits?.header.period))
 
 function msgFor(path: string): string {
-  return props.fieldErrors.find((e) => e.path === path)?.message ?? ''
+  return props.fieldErrors?.[path]?.[0] ?? ''
 }
 
 function toInt(value: unknown): number {

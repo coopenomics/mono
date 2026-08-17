@@ -10,7 +10,7 @@ q-dialog(
   q-card.column.no-wrap
     q-bar.bg-primary.text-white
       .text-subtitle1.ellipsis
-        | {{ reportTitle }} за {{ year }}{{ period ? ` · период ${period}` : '' }}
+        | {{ reportTitle }} за {{ year }}{{ periodSuffix }}
       q-space
       q-chip(
         :color='saveStatusColor'
@@ -338,6 +338,7 @@ import ZeroReportEditor from 'extensions/reports/widgets/report-forms/ZeroReport
 import Ndfl6TaxSection from 'extensions/reports/widgets/report-forms/Ndfl6TaxSection.vue'
 import type { Ndfl6Edits } from 'extensions/reports/widgets/report-forms/ndfl6-edits'
 import UvNdflAmountSection from 'extensions/reports/widgets/report-forms/UvNdflAmountSection.vue'
+import { uvNdflPeriodTitle } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
 import type { UvNdflEdits } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
 import BuhotchForm from 'extensions/reports/widgets/report-forms/BuhotchForm.vue'
 import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
@@ -409,6 +410,7 @@ const REPORT_TITLES: Record<string, string> = {
   PSV: 'Персонифицированные сведения',
   UUSN: 'Уведомление УСН',
   UV_VZNOSY: 'Уведомление о взносах',
+  UV_NDFL: 'Уведомление об исчисленном НДФЛ',
 }
 
 const props = defineProps<{
@@ -553,6 +555,15 @@ const uvNdflEdits = computed<UvNdflEdits | null>({
 const reportTitle = computed(() =>
   props.reportType ? (REPORT_TITLES[props.reportType] ?? props.reportType) : '',
 )
+
+// У уведомления по НДФЛ период — сквозной номер 1..24, который человеку ничего
+// не говорит; в шапке показываем месяц и половину месяца. Остальным формам
+// хватает номера квартала или месяца.
+const periodSuffix = computed(() => {
+  if (!props.period) return ''
+  if (props.reportType === 'UV_NDFL') return ` · ${uvNdflPeriodTitle(props.period)}`
+  return ` · период ${props.period}`
+})
 
 const notReady = computed(() => readiness.value !== null && readiness.value.ready === false)
 

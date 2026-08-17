@@ -43,3 +43,20 @@ export interface UvNdflEdits {
     amount: number
   }
 }
+
+const MONTHS = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+]
+
+/**
+ * Человеческая расшифровка расчётного периода: сквозной номер 1..24 сам по
+ * себе бухгалтеру ничего не говорит. Показывается и в шапке отчёта, и рядом
+ * с суммой.
+ */
+export function uvNdflPeriodTitle(period: number | null | undefined): string {
+  if (!period || period < 1 || period > 24) return '—'
+  const month = MONTHS[Math.floor((period - 1) / 2)] ?? ''
+  const half = period % 2 === 0 ? 'с 23 по последнее число' : 'с 1 по 22 число'
+  return `${month}, ${half}`
+}

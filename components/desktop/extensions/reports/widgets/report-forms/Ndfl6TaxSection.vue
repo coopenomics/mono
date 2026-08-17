@@ -158,7 +158,8 @@ import type { Ndfl6Edits, Ndfl6Certificate } from './ndfl6-edits'
 
 const props = defineProps<{
   edits: Ndfl6Edits | null
-  fieldErrors: { path: string; message: string }[]
+  /** Ошибки полей: путь → сообщения, как их отдаёт валидация формы. */
+  fieldErrors?: Record<string, string[]>
   /** Годовой отчёт: только в нём схема допускает справки о доходах. */
   isAnnual: boolean
 }>()
@@ -190,7 +191,7 @@ const termsSum = computed(() =>
 const termsMismatch = computed(() => termsSum.value > (props.edits?.tax.withheldTotal ?? 0))
 
 function msgFor(path: string): string {
-  return props.fieldErrors.find((e) => e.path === path)?.message ?? ''
+  return props.fieldErrors?.[path]?.[0] ?? ''
 }
 
 function fullName(certificate: Ndfl6Certificate): string {
