@@ -89,9 +89,13 @@ Teleport(to="#header-actions-host", defer)
     | {{ marketAmount }} {{ symbol }}
 
 BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов", size="sm")
+  //- Сумма — отдельной строкой под названием (`stacked`): в узком окне длинные
+  //- заголовки кошельков иначе жмутся к сумме, и соседние карточки ломаются
+  //- по-разному — одна в две строки с суммой сбоку, другая с суммой внизу.
   .mp-wallet
     WalletCard(
       compact,
+      stacked,
       icon="card_membership",
       title="Кошелёк Стола заказов",
       subtitle="Оплата заказов и возвраты",
@@ -102,6 +106,7 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
     )
     WalletCard(
       compact,
+      stacked,
       neutral,
       icon="account_balance_wallet",
       title="Главный паевой кошелёк",

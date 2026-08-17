@@ -1,6 +1,9 @@
 <template>
   <div
-    :class="['wallet', { 'wallet--row': compact, 'wallet--empty': empty }]"
+    :class="[
+      'wallet',
+      { 'wallet--row': compact, 'wallet--stacked': stacked, 'wallet--empty': empty },
+    ]"
     :style="progStyle"
   >
     <span class="wallet__icon">
@@ -41,6 +44,7 @@ import type { WalletCardProps, WalletProgram } from './WalletCard.types';
 const props = withDefaults(defineProps<WalletCardProps>(), {
   loading: false,
   compact: false,
+  stacked: false,
   empty: false,
 });
 
