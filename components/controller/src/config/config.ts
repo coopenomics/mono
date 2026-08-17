@@ -155,6 +155,51 @@ const envVarsSchema = z.object({
     .string()
     .default('false')
     .transform((v) => v === 'true'),
+  /**
+   * Как часто пересчитывается отставание узла от головы цепи. Тик стоит один
+   * RPC `get_info` и одно чтение Redis, поэтому дёшев; от него же зависит,
+   * насколько быстро рабочий стол узнает, что узел вернулся в строй.
+   */
+  BLOCKCHAIN_SYNC_TICK_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание (в блоках), с которого рабочий стол считается неработоспособным
+   * и закрывается заглушкой. Порог входа выше порога выхода намеренно —
+   * см. `BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS`.
+   */
+  BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS: z
+    .string()
+    .default('40')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание, ниже которого узел снова считается догнавшим. Обязано быть
+   * меньше порога входа: на живой сети отставание колеблется вокруг границы, и
+   * при одном пороге заглушка замигает посреди работы.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько тиков подряд узел обязан продержаться у головы, чтобы заглушка
+   * снялась. Вторая половина гистерезиса: порог по блокам гасит дрожание
+   * амплитуды, счётчик тиков — дрожание по времени.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_TICKS: z
+    .string()
+    .default('3')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Окно, после которого неподвижный курсор парсера считается обрывом чтения
+   * цепи, а не медленным догоном. Курсор обновляется на каждом обработанном
+   * блоке, поэтому тишина дольше нескольких десятков секунд — это остановка.
+   */
+  BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS: z
+    .string()
+    .default('60')
+    .transform((val) => parseInt(val, 10)),
 
   // Параметры VAPID для web push
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
@@ -291,6 +336,11 @@ export default {
     archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
     archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
     unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
+    sync_tick_ms: envVars.data.BLOCKCHAIN_SYNC_TICK_MS,
+    sync_lagging_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS,
+    sync_healthy_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS,
+    sync_healthy_ticks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_TICKS,
+    sync_stale_cursor_seconds: envVars.data.BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),

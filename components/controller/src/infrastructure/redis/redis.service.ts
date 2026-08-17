@@ -31,6 +31,15 @@ export class RedisService implements OnModuleDestroy, RedisPort {
     await this.redisClient.publisher.publish(channel, JSON.stringify(message));
   }
 
+  async hgetall(key: string): Promise<Record<string, string> | null> {
+    if (this.redisClient.streamManager.status !== 'ready') {
+      this.logger.error('Клиент StreamManager Redis не готов');
+      return null;
+    }
+    const value = await this.redisClient.streamManager.hgetall(key);
+    return value && Object.keys(value).length > 0 ? value : null;
+  }
+
   subscribe(channel: string, handler: (message: any) => void) {
     if (this.redisClient.subscriber.status !== 'ready') {
       this.logger.error('Клиент Subscriber Redis не готов');
