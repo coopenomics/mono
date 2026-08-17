@@ -2895,7 +2895,7 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -10107,6 +10107,10 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	["MarketplacePayTaxInput"]: {
+	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
+	amount: number | Variable<any, string>
+};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: AliasType<{
 	/** Идентификатор платёжной заявки. */
@@ -10972,6 +10976,17 @@ export type ValueTypes = {
 	/** Новая модель работы */
 	model: ValueTypes["MarketplaceSupplierModel"] | Variable<any, string>
 };
+	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
+["MarketplaceTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром. */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceTaxState']?: Omit<ValueTypes["MarketplaceTaxState"], "...on MarketplaceTaxState">
+}>;
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -11834,6 +11849,7 @@ marketplaceDistributeBranchFunds?: [{	data: ValueTypes["MarketplaceDistributeBra
 marketplaceFinalizeStockIssuance?: [{	data: ValueTypes["MarketplaceFinalizeStockIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ValueTypes["MarketplaceGenerateInventoryLabelInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceMoveContainer?: [{	data: ValueTypes["MarketplaceMoveContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
+marketplacePayTax?: [{	data: ValueTypes["MarketplacePayTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
@@ -13530,6 +13546,8 @@ marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | 
 marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ValueTypes["MarketplaceSupplierPaymentSettings"],
+	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
+	marketplaceGetTaxState?:ValueTypes["MarketplaceTaxState"],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceListAids?: [{	data?: ValueTypes["MarketplaceListAidsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceAid"]],
@@ -17180,7 +17198,7 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -24207,6 +24225,10 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	["MarketplacePayTaxInput"]: {
+	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
+	amount: number
+};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: AliasType<{
 	/** Идентификатор платёжной заявки. */
@@ -25041,6 +25063,16 @@ export type ResolverInputTypes = {
 	/** Новая модель работы */
 	model: ResolverInputTypes["MarketplaceSupplierModel"]
 };
+	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
+["MarketplaceTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром. */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -25880,6 +25912,7 @@ marketplaceDistributeBranchFunds?: [{	data: ResolverInputTypes["MarketplaceDistr
 marketplaceFinalizeStockIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeStockIssuanceInput"]},ResolverInputTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ResolverInputTypes["MarketplaceGenerateInventoryLabelInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceMoveContainer?: [{	data: ResolverInputTypes["MarketplaceMoveContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
+marketplacePayTax?: [{	data: ResolverInputTypes["MarketplacePayTaxInput"]},boolean | `@${string}`],
 marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
@@ -27510,6 +27543,8 @@ marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesIn
 marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ResolverInputTypes["MarketplaceSupplierPaymentSettings"],
+	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
+	marketplaceGetTaxState?:ResolverInputTypes["MarketplaceTaxState"],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceListAids?: [{	data?: ResolverInputTypes["MarketplaceListAidsInput"] | undefined | null},ResolverInputTypes["MarketplaceAid"]],
@@ -37861,6 +37896,10 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	["MarketplacePayTaxInput"]: {
+	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
+	amount: number
+};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: {
 		/** Идентификатор платёжной заявки. */
@@ -38654,6 +38693,15 @@ export type ModelTypes = {
 	contract_number?: string | undefined | null,
 	/** Новая модель работы */
 	model: ModelTypes["MarketplaceSupplierModel"]
+};
+	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
+["MarketplaceTaxState"]: {
+		/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром. */
+	in_payment: string,
+	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
+	withheld: string
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -40061,6 +40109,8 @@ export type ModelTypes = {
 	marketplaceGenerateInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: ModelTypes["MarketplaceContainer"],
+	/** Отправить удержанный налог на оплату в бюджет одним платежом: заявка появляется у кассира в реестре исходящих, он платит по реквизитам налоговой и подтверждает перевод. Возвращает сумму, отправленную на оплату. */
+	marketplacePayTax: string,
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -42039,6 +42089,8 @@ export type ModelTypes = {
 	marketplaceGetShipment: ModelTypes["MarketplaceShipment"],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings: ModelTypes["MarketplaceSupplierPaymentSettings"],
+	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
+	marketplaceGetTaxState: ModelTypes["MarketplaceTaxState"],
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
@@ -45677,7 +45729,7 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]: CalendarEntryStatus;
 	["CallTranscription"]: {
 	__typename: "CallTranscription",
@@ -52890,6 +52942,10 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
+	["MarketplacePayTaxInput"]: {
+		/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
+	amount: number
+};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: {
 	__typename: "MarketplacePaymentStatusChangedEvent",
@@ -53754,6 +53810,17 @@ export type GraphQLTypes = {
 	contract_number?: string | undefined | null,
 	/** Новая модель работы */
 	model: GraphQLTypes["MarketplaceSupplierModel"]
+};
+	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
+["MarketplaceTaxState"]: {
+	__typename: "MarketplaceTaxState",
+	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром. */
+	in_payment: string,
+	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
+	withheld: string,
+	['...on MarketplaceTaxState']: Omit<GraphQLTypes["MarketplaceTaxState"], "...on MarketplaceTaxState">
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -55216,6 +55283,8 @@ export type GraphQLTypes = {
 	marketplaceGenerateInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: GraphQLTypes["MarketplaceContainer"],
+	/** Отправить удержанный налог на оплату в бюджет одним платежом: заявка появляется у кассира в реестре исходящих, он платит по реквизитам налоговой и подтверждает перевод. Возвращает сумму, отправленную на оплату. */
+	marketplacePayTax: string,
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -57353,6 +57422,8 @@ export type GraphQLTypes = {
 	marketplaceGetShipment: GraphQLTypes["MarketplaceShipment"],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
+	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
+	marketplaceGetTaxState: GraphQLTypes["MarketplaceTaxState"],
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
@@ -59347,12 +59418,13 @@ export enum BuhotchSignerType {
 	CHAIRMAN = "CHAIRMAN",
 	REPRESENTATIVE = "REPRESENTATIVE"
 }
-/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 export enum CalendarEntryStatus {
 	BEFORE_REGISTRATION = "BEFORE_REGISTRATION",
 	DRAFT = "DRAFT",
 	EMPTY = "EMPTY",
 	NOT_REQUIRED = "NOT_REQUIRED",
+	NO_DATA = "NO_DATA",
 	OVERDUE = "OVERDUE",
 	SUBMITTED = "SUBMITTED",
 	SUBMITTED_EXTERNALLY = "SUBMITTED_EXTERNALLY"
@@ -59917,6 +59989,7 @@ export enum PaymentType {
 	PAYMENT = "PAYMENT",
 	REGISTRATION = "REGISTRATION",
 	REGISTRATION_REFUND = "REGISTRATION_REFUND",
+	TAX = "TAX",
 	WITHDRAWAL = "WITHDRAWAL"
 }
 export enum ProcessInstanceStatus {
@@ -59981,6 +60054,7 @@ export enum ReportType {
 	PSV = "PSV",
 	RSV = "RSV",
 	UUSN = "UUSN",
+	UV_NDFL = "UV_NDFL",
 	UV_VZNOSY = "UV_VZNOSY"
 }
 /** Тип изображения заявки */
@@ -60517,6 +60591,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
+	["MarketplacePayTaxInput"]: ValueTypes["MarketplacePayTaxInput"];
 	["MarketplacePublishStockInput"]: ValueTypes["MarketplacePublishStockInput"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];

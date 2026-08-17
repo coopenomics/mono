@@ -210,6 +210,101 @@
       .sig-col.date
         .sig-label Дата
         .sig-blank {{ formatDate(header.docDate) }}
+
+  //- Приложение № 1. Справка о доходах и суммах налога физического лица —
+  //- по одному листу на получателя, только в годовом отчёте.
+  section.page(v-for='certificate in certificates' :key='certificate.number')
+    .page__corner
+      .barcode {{ '||| | ||  ||| | ||' }}
+      .kpp(v-if='header.kpp') КПП {{ header.kpp }}
+      .inn-row
+        .inn-label ИНН
+        .inn-digits
+          .inn-cell(v-for='ch in padInn(header.inn)' :key='ch.idx') {{ ch.val }}
+    .page__form-code
+      | Приложение № 1
+      br
+      b к форме 6-НДФЛ
+
+    h2.section-heading Справка о доходах и суммах налога физического лица
+
+    .kv-row
+      .kv-cell
+        .kv-label Номер справки
+        .kv-value {{ certificate.number }}
+      .kv-cell
+        .kv-label Номер корректировки
+        .kv-value {{ certificate.correction }}
+      .kv-cell
+        .kv-label Отчётный год
+        .kv-value {{ header.year }}
+
+    h3.section-heading Раздел 1. Сведения о физическом лице — получателе дохода
+
+    .kv-row
+      .kv-cell.grow
+        .kv-label Фамилия, имя, отчество
+        .kv-value {{ certificate.fullName }}
+    .kv-row
+      .kv-cell
+        .kv-label Дата рождения
+        .kv-value {{ certificate.birthDate || '—' }}
+      .kv-cell
+        .kv-label Гражданство (код страны)
+        .kv-value {{ certificate.citizenship || '—' }}
+      .kv-cell
+        .kv-label Статус налогоплательщика
+        .kv-value {{ certificate.status || '—' }}
+    .kv-row
+      .kv-cell
+        .kv-label Код вида документа
+        .kv-value {{ certificate.documentType || '—' }}
+      .kv-cell.grow
+        .kv-label Серия и номер документа
+        .kv-value {{ certificate.documentNumber || '—' }}
+
+    h3.section-heading Раздел 2. Общая сумма дохода и сумма налога по итогам налогового периода
+
+    table.data-table
+      tbody
+        tr
+          td Ставка налога
+          td.code 100
+          td.num {{ certificate.rate }}
+        tr
+          td Код бюджетной классификации
+          td.code 105
+          td.num {{ certificate.kbk }}
+        tr
+          td Общая сумма дохода
+          td.code 110
+          td.num {{ fmtZero(certificate.income) }}
+        tr
+          td Налоговая база
+          td.code 120
+          td.num {{ fmtZero(certificate.taxBase) }}
+        tr
+          td Сумма налога исчисленная
+          td.code 130
+          td.num {{ fmtZero(certificate.taxCalculated) }}
+        tr.total
+          td Сумма налога удержанная
+          td.code 160
+          td.num {{ fmtZero(certificate.taxWithheld) }}
+
+    h3.section-heading Приложение. Сведения о доходах по месяцам налогового периода
+
+    table.data-table
+      thead
+        tr
+          th Месяц
+          th Код дохода
+          th Сумма дохода
+      tbody
+        tr(v-for='(row, index) in certificate.months' :key='index')
+          td {{ row.month }}
+          td {{ row.code }}
+          td.num {{ fmtZero(row.amount) }}
 </template>
 
 <script setup lang="ts">
@@ -223,13 +318,65 @@ const props = defineProps<{
   year?: number
 }>()
 
-const { header, getAttr, getNum, padInn, formatDate, fmtZero } = useReportXml(
+const { header, getAttr, getNum, getAllByLocal, padInn, formatDate, fmtZero } = useReportXml(
   () => props.xml,
   () => props.requisites ?? null,
   () => props.year,
 )
 
 const poMestu = computed(() => getAttr('Документ', 'ПоМесту'))
+
+const MONTH_NAMES = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+]
+
+/**
+ * Справки о доходах из приложения № 1. В квартальных отчётах их нет —
+ * схема допускает справки только в годовом, поэтому список пуст и листы
+ * не печатаются.
+ */
+const certificates = computed(() =>
+  getAllByLocal('СправДох').map((node) => {
+    const receiver = node.getElementsByTagNameNS('*', 'ПолучДох')[0] ?? null
+    const fio = node.getElementsByTagNameNS('*', 'ФИО')[0] ?? null
+    const document = node.getElementsByTagNameNS('*', 'УдЛичнФЛ')[0] ?? null
+    const income = node.getElementsByTagNameNS('*', 'СведДох')[0] ?? null
+    const totals = node.getElementsByTagNameNS('*', 'СумИтНалПер')[0] ?? null
+
+    const attr = (el: Element | null, name: string): string => el?.getAttribute(name) ?? ''
+    const num = (el: Element | null, name: string): number => {
+      const parsed = Number(attr(el, name))
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+
+    const fullName = [attr(fio, 'Фамилия'), attr(fio, 'Имя'), attr(fio, 'Отчество')]
+      .filter(Boolean)
+      .join(' ')
+
+    return {
+      number: attr(node, 'НомСпр'),
+      correction: attr(node, 'НомКорр'),
+      fullName: fullName || '—',
+      birthDate: attr(receiver, 'ДатаРожд'),
+      citizenship: attr(receiver, 'Гражд'),
+      status: attr(receiver, 'Статус'),
+      documentType: attr(document, 'КодУдЛичн'),
+      documentNumber: attr(document, 'СерНомДок'),
+      rate: attr(income, 'Ставка'),
+      kbk: attr(income, 'КБК'),
+      income: num(totals, 'СумДохОбщ'),
+      taxBase: num(totals, 'НалБаза'),
+      taxCalculated: num(totals, 'НалИсчисл'),
+      taxWithheld: num(totals, 'НалУдерж'),
+      months: Array.from(node.getElementsByTagNameNS('*', 'СвСумДох')).map((row) => ({
+        month: MONTH_NAMES[Number(row.getAttribute('Месяц')) - 1] ?? row.getAttribute('Месяц'),
+        code: row.getAttribute('КодДоход') ?? '',
+        amount: Number(row.getAttribute('СумДоход')) || 0,
+      })),
+    }
+  }),
+)
 
 const obyaz = computed(() => ({
   kbk: getAttr('ОбязНА', 'КБК'),

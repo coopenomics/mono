@@ -23,8 +23,11 @@ title: Экономика кооперативного участка — чле
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-economy.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-economy.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-tax.dto.ts
+    - components/controller/src/extensions/marketplace/application/shared/ndfl.util.ts
   ui:
     - components/desktop/src/pages/Marketplace/**Economy**/**
 
@@ -165,3 +168,73 @@ cases:
     status: passing
     # Пункт плана заказчика «экономика распределяет членские взносы по
     # доверенным согласно сетке».
+
+  # --- Удержание НДФЛ с материальной помощи (решение владельца 13.08.2026) ---
+  # Кооператив стал налоговым агентом: заявление подаётся на сумму до налога,
+  # получатель получает её за вычетом 13 %, разница копится долгом перед
+  # бюджетом на счёте 68 и уходит одним платежом по решению бухгалтера.
+
+  - id: mkt.eco.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Заявление на материальную помощь подано на сумму до удержания налога
+    expect: >
+      кассиру выставляется платёж за вычетом 13 %, с персонального кошелька
+      списывается вся сумма заявления
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing
+
+  - id: mkt.eco.happy.05
+    level: backend
+    kind: happy
+    scenario: Бухгалтер отправляет удержанный налог в бюджет
+    expect: >
+      создаётся исходящий платёж на кооператив с назначением «единый налоговый
+      платёж»; после подтверждения кассиром долг перед бюджетом уменьшается
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing
+
+  - id: mkt.eco.side.10
+    level: backend
+    kind: side
+    scenario: Налог считается от суммы, не кратной рублю
+    expect: >
+      налог округляется до целого рубля по правилам налогового кодекса, и
+      контракт с бэкендом округляют одинаково
+    test: components/controller/src/extensions/marketplace/application/shared/ndfl.util.spec.ts
+    status: passing
+    # Расхождение округления развело бы платёжку кассира и проводку контракта.
+
+  - id: mkt.eco.side.11
+    level: backend
+    kind: side
+    scenario: Бухгалтер отправляет в бюджет больше, чем удержано
+    expect: отказ — платить больше удержанного налоговый агент не вправе
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing
+
+  - id: mkt.eco.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Часть удержанного уже отправлена в бюджет и ждёт подтверждения кассиром
+    expect: доступная к отправке сумма уменьшается на то, что уже у кассира
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing
+
+  - id: mkt.eco.side.13
+    level: backend
+    kind: side
+    scenario: Кошелька удержанного налога ещё нет — удержаний не было
+    expect: остаток нулевой, отправить в бюджет нечего
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing
+
+  - id: mkt.eco.break.01
+    level: backend
+    kind: break
+    scenario: Цепь отклонила отправку налогового платежа
+    expect: платёж отменяется, долг перед бюджетом остаётся целиком
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    status: passing

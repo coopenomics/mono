@@ -8,13 +8,23 @@
 | ReportType | Компонент | Источник данных |
 |---|---|---|
 | BUHOTCH | `BuhotchEditor.vue` + `BalanceRowEditor.vue` | per-type `BuhotchEditsShape` |
-| NDFL6 / RSV / PSV / FSS4 (ЕФС-1) | `ZeroReportEditor.vue` (универсальный) | общий `ZeroReportEditsShape` |
+| NDFL6 | `ZeroReportEditor.vue` + `Ndfl6TaxSection.vue` | per-type `Ndfl6EditsShape` |
+| RSV / PSV / FSS4 (ЕФС-1) | `ZeroReportEditor.vue` (универсальный) | общий `ZeroReportEditsShape` |
 | DUSN / UUSN / UV_VZNOSY | — (скрыты `HIDDEN_IN_MVP`, УСН вне MVP) | — |
 
 - **`BuhotchEditor`** — полный editable-редактор бухбаланса:
   редактируется баланс построчно (1170/1250/1260 актив, 1350 пассив,
   итоги 1600/1700), подписант, реквизиты, шапка. `BalanceRowEditor`
   — компонент одной строки с тремя числами (СумОтч/СумПрдщ/СумПрдшв).
+- **`Ndfl6TaxSection`** — разделы 6-НДФЛ с суммами и справки о доходах.
+  Ставится под `ZeroReportEditor` поверх того же состояния: шапка,
+  реквизиты и подписант общие с прочими формами, а удержанный налог есть
+  только здесь — 6-НДФЛ единственный отчёт, где кооператив выступает
+  налоговым агентом (удерживает НДФЛ с материальной помощи).
+  Итоги идут нарастающим итогом с начала года, шесть сроков — за последний
+  квартал. Справки (приложение № 1) показываются только в годовом отчёте:
+  схема запрещает их при периодах 21/31/33.
+
 - **`ZeroReportEditor`** — универсальная форма для 4 нулёвок.
   Через `props.reportType` и computed'ы `periodKind`/`needs` выставляется:
   * `periodKind = 'quarter'` для NDFL6/RSV/FSS4, `'month'` для PSV;

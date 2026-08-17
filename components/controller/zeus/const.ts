@@ -1198,6 +1198,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
+	MarketplacePayTaxInput:{
+
+	},
 	MarketplacePublishStockInput:{
 
 	},
@@ -2132,6 +2135,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceMoveContainer:{
 			data:"MarketplaceMoveContainerInput"
+		},
+		marketplacePayTax:{
+			data:"MarketplacePayTaxInput"
 		},
 		marketplacePublishStock:{
 			data:"MarketplacePublishStockInput"
@@ -6203,6 +6209,11 @@ export const ReturnTypes: Record<string,any> = {
 		payout_destination:"String",
 		payout_method_id:"String"
 	},
+	MarketplaceTaxState:{
+		available:"String",
+		in_payment:"String",
+		withheld:"String"
+	},
 	MarketplaceTrusteeWeight:{
 		personal_balance:"String",
 		share_percent:"Float",
@@ -6664,6 +6675,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceMoveContainer:"MarketplaceContainer",
+		marketplacePayTax:"String",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
@@ -7440,6 +7452,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
+		marketplaceGetTaxState:"MarketplaceTaxState",
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceListAids:"MarketplaceAid",

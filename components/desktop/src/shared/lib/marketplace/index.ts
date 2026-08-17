@@ -42,6 +42,7 @@ export {
   marketplaceLineCostAmount,
   marketplaceSaleUnits,
 } from './line-cost';
+export { ndflTax, ndflNet, NDFL_RATE_PERCENT } from './ndfl';
 export {
   printLabelSheet,
   escapeHtml,

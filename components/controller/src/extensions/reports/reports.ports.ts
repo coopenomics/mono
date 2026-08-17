@@ -12,6 +12,7 @@
  */
 import {
   ACCOUNT_PORT,
+  INDIVIDUAL_PORT,
   LEDGER2_HISTORY_PORT,
   ORGANIZATION_PORT,
 } from '@coopenomics/innercoop';
@@ -19,6 +20,9 @@ import {
 export const reportsPorts = {
   required: [
     ACCOUNT_PORT,
+    // Справка о доходах (приложение № 1 к 6-НДФЛ) заполняется паспортом и
+    // датой рождения получателя выплаты — без карточки физлица её не собрать.
+    INDIVIDUAL_PORT,
     LEDGER2_HISTORY_PORT,
     ORGANIZATION_PORT,
   ],

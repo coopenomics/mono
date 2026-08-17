@@ -32,6 +32,7 @@ import {
 } from './marketplace-ku-chairman.service';
 import { rethrowChainError } from '../shared/chain-tx.util';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
+import { ndflBreakdown } from '../shared/ndfl.util';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 // Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
 // контракта. Регистрацию перечня в схеме держит само шасси, потребителю нужны
@@ -41,7 +42,7 @@ import {
   InnerExpenseRecipientType as ExpenseRecipientType,
 } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
-import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -636,15 +637,23 @@ export class MarketplaceEconomyService {
     // PENDING делает MarketplaceAidCouncilSyncService по callback'у onaidauth.
     // payment_hash обязан совпадать с on-chain outcome_hash — им становится сам
     // aid_hash, по нему же платёж находят слушатели решения совета и кассира.
+    // Кооператив — налоговый агент: кассиру уходит сумма за вычетом НДФЛ,
+    // а с персонального кошелька спишется всё заявление. Расчёт зеркалит
+    // `BranchNdfl` контракта, иначе платёж и проводка разойдутся.
+    const { tax: taxAmount, net: netAmount } = ndflBreakdown(amount, this.assetConfig.decimals);
+    const netAsset = this.formatAsset(netAmount);
+
     try {
       await this.coreGateway.createSystemOutgoingPayment({
         coopname,
         username,
-        quantity: amount,
+        quantity: netAmount,
         symbol: this.assetConfig.symbol,
-        // Назначение платежа кассир копирует в банк как есть — там нужна только
-        // суть выплаты, без служебных идентификаторов участка.
-        memo: 'Материальная помощь',
+        // Назначение платежа кассир копирует в банк как есть: суть выплаты,
+        // её номер и налоговая оговорка. Номер — начало хэша заявки, как и
+        // везде в реестрах: по нему выписка сходится с заявлением, если выплат
+        // в день несколько.
+        memo: `Материальная помощь № ${aidHash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
         type: PaymentType.AID,
         status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
@@ -653,8 +662,8 @@ export class MarketplaceEconomyService {
         payment_method_id: payoutMethod.method_id,
         payment_details: {
           data: payoutMethod.data,
-          amount_plus_fee: asset,
-          amount_without_fee: asset,
+          amount_plus_fee: netAsset,
+          amount_without_fee: netAsset,
           fee_amount: '0',
           fee_percent: 0,
           fact_fee_percent: 0,
@@ -697,6 +706,13 @@ export class MarketplaceEconomyService {
       );
       rethrowChainError(e);
     }
+
+    // Разбивка нужна в логе: кассир видит одну сумму, кошелёк уменьшится на
+    // другую, и без этой строки расхождение выглядит как ошибка расчёта.
+    this.logger.log(
+      `Матпомощь ${aidHash.slice(0, 8)}: начислено ${asset}, ` +
+        `удержан налог ${this.formatAsset(taxAmount)}, к перечислению ${netAsset}`
+    );
 
     return asset;
   }

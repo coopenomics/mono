@@ -80,33 +80,38 @@ export class BlockchainActionHistoryService {
 
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null) continue;
-
-      if (key.startsWith('data.')) {
-        data[key.slice('data.'.length)] = String(value);
-        continue;
-      }
-
-      switch (key) {
-        case 'account':
-        case 'name':
-        case 'receiver':
-        case 'global_sequence':
-          filter[key] = String(value);
-          break;
-        case 'block_num':
-          filter.block_num = Number(value);
-          break;
-        default:
-          // Всё прочее считаем полем полезной нагрузки: так этот запрос и
-          // строился у обозревателя, где поля действия и поля data лежали
-          // в одном плоском объекте.
-          data[key] = String(value);
-      }
+      this.assignQueryKey(filter, data, key, value);
     }
 
     if (Object.keys(data).length > 0) filter.data = data;
 
     return this.find(filter, page, limit);
+  }
+
+  /**
+   * Разложить пару из плоского запроса: часть ключей — поля самого действия,
+   * остальные относятся к полезной нагрузке. Так этот запрос и строился у
+   * обозревателя, где поля действия и поля data лежали в одном объекте.
+   */
+  private assignQueryKey(
+    filter: ActionFilterDomainInterface,
+    data: Record<string, string>,
+    key: string,
+    value: unknown
+  ): void {
+    if (key.startsWith('data.')) {
+      data[key.slice('data.'.length)] = String(value);
+      return;
+    }
+    if (key === 'block_num') {
+      filter.block_num = Number(value);
+      return;
+    }
+    if (key === 'account' || key === 'name' || key === 'receiver' || key === 'global_sequence') {
+      filter[key] = String(value);
+      return;
+    }
+    data[key] = String(value);
   }
 }
 

@@ -553,6 +553,16 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
+  async createTaxPayment(data: BranchContract.Actions.CreateTax.ICreatetax): Promise<InnerTransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.CreateTax.actionName,
+      data,
+      'createtax'
+    );
+  }
+
   async createBranchExpense(
     data: BranchContract.Actions.CreateExp.ICreateexp
   ): Promise<InnerTransactResult> {
@@ -612,6 +622,26 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       );
     return rows.filter(
       (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common'
+    );
+  }
+
+  async getCooperativeWalletBalance(coopname: string, walletName: string): Promise<string | null> {
+    // L2-кошельки лежат в ledger2::wallets, ключ — имя кошелька. Записи нет,
+    // пока по кошельку не прошло ни одной операции: для удержанного налога это
+    // штатная ситуация (ни одной выплаты матпомощи ещё не было).
+    const rows: Ledger2Contract.Tables.Wallets.IWallet[] = await this.blockchainService.getAllRows(
+      Ledger2Contract.contractName.production,
+      coopname,
+      Ledger2Contract.Tables.Wallets.tableName
+    );
+    return rows.find((r) => r.id === walletName)?.available ?? null;
+  }
+
+  async listTaxPayments(coopname: string): Promise<BranchContract.Tables.Taxes.IBranchTax[]> {
+    return this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.Taxes.tableName
     );
   }
 

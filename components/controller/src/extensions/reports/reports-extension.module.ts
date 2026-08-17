@@ -4,6 +4,7 @@ import { ReportRegistryService } from './domain/services/report-registry.service
 import { ReportPreviewService } from './domain/services/report-preview.service';
 import { ReportRequisitesService } from './domain/services/report-requisites.service';
 import { ReportEditsBuilderService } from './domain/services/report-edits-builder.service';
+import { Ndfl6DataService } from './domain/services/ndfl6-data.service';
 import { ReportInitService } from './infrastructure/services/report-init.service';
 import { XsdValidatorService } from './infrastructure/services/xsd-validator.service';
 import { ReportResolver } from './application/resolvers/report.resolver';
@@ -26,8 +27,8 @@ import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requi
 import { REPORT_DRAFT_REPOSITORY } from './domain/repositories/report-draft.repository';
 import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-submission-mark.repository';
 
-// ORGANIZATION_REPOSITORY приходит из @Global() GeneratorRepositoriesModule,
-// поэтому его явно импортировать в imports не надо.
+// ORGANIZATION_REPOSITORY и INDIVIDUAL_REPOSITORY приходят из @Global()
+// GeneratorRepositoriesModule, поэтому их явно импортировать в imports не надо.
 @Module({
   imports: [
     NestTypeOrmModule.forFeature([
@@ -43,6 +44,7 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
     ReportPreviewService,
     ReportRequisitesService,
     ReportEditsBuilderService,
+    Ndfl6DataService,
     ReportInitService,
     XsdValidatorService,
     ReportResolver,

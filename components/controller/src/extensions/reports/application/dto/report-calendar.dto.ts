@@ -11,6 +11,7 @@ export enum CalendarEntryStatus {
   OVERDUE = 'overdue',
   NOT_REQUIRED = 'not_required',
   BEFORE_REGISTRATION = 'before_registration',
+  NO_DATA = 'no_data',
 }
 
 registerEnumType(CalendarEntryStatus, {
@@ -18,8 +19,11 @@ registerEnumType(CalendarEntryStatus, {
   description:
     'Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), ' +
     'submitted_externally (отметка «сдано сторонне»), overdue, not_required, ' +
-    'before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). ' +
-    'Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty.',
+    'before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), ' +
+    'no_data (за период нечего подавать — выплат не было; статус снимается сам, ' +
+    'как только выплата появляется). ' +
+    'Приоритет: submitted > submitted_externally > draft > not_required > no_data > ' +
+    'before_registration > overdue > empty.',
 });
 
 registerEnumType(ReportSubmissionMark, {

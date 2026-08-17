@@ -10,9 +10,15 @@ import { DusnGenerator } from '../../../src/extensions/reports/infrastructure/ge
 import { Fss4Generator } from '../../../src/extensions/reports/infrastructure/generators/fss4.generator';
 import { UvVznosyGenerator } from '../../../src/extensions/reports/infrastructure/generators/uv-vznosy.generator';
 import { UusnGenerator } from '../../../src/extensions/reports/infrastructure/generators/uusn.generator';
+import { UvNdflGenerator } from '../../../src/extensions/reports/infrastructure/generators/uv-ndfl.generator';
 import { ReportType, REPORT_CONFIG } from '../../../src/extensions/reports/domain/enums/report-type.enum';
 import type { BuhotchEditsShape } from '../../../src/extensions/reports/domain/edits-shapes/buhotch-edits.shape';
 import type { ZeroReportEditsShape } from '../../../src/extensions/reports/domain/edits-shapes/zero-report-edits.shape';
+import type {
+  Ndfl6CertificateShape,
+  Ndfl6EditsShape,
+  Ndfl6TaxShape,
+} from '../../../src/extensions/reports/domain/edits-shapes/ndfl6-edits.shape';
 import { EFS1_XML_NS_MAP } from '../../../src/extensions/reports/infrastructure/services/xsd-validator.service';
 import { ReportRegistryService } from '../../../src/extensions/reports/domain/services/report-registry.service';
 
@@ -211,6 +217,51 @@ const zeroBaseEdits: ZeroReportEditsShape = {
 /** Перекрыть period в zeroBaseEdits (не мутируя исходник). */
 function withPeriod(period: number): ZeroReportEditsShape {
   return { ...zeroBaseEdits, header: { ...zeroBaseEdits.header, period } };
+}
+
+/**
+ * Расчёт 6-НДФЛ с ненулевыми суммами: две выплаты материальной помощи —
+ * 10 000 ₽ 15 марта (налог 1 300 ₽, первый срок первого месяца квартала) и
+ * 15 000 ₽ 25 марта (налог 1 950 ₽, второй срок). Оба удержания попадают в
+ * первый квартал, поэтому в отчёте за Q1 итог с начала года равен сумме
+ * сроков.
+ */
+const ndfl6TaxNonZero: Ndfl6TaxShape = {
+  peopleCount: 2,
+  incomeTotal: 25000,
+  deductionsTotal: 0,
+  taxBase: 25000,
+  taxCalculated: 3250,
+  withheldTotal: 3250,
+  byTerm: [1300, 1950, 0, 0, 0, 0],
+};
+
+const ndfl6CertificateSample: Ndfl6CertificateShape = {
+  username: 'ivanovivan11',
+  number: 1,
+  correctionNumber: '00',
+  lastName: 'Иванов',
+  firstName: 'Иван',
+  middleName: 'Иванович',
+  birthDate: '01.01.1980',
+  taxpayerStatus: '1',
+  citizenshipCode: '643',
+  documentTypeCode: '21',
+  documentSerialNumber: '0405 123456',
+  incomeTotal: 10000,
+  taxBase: 10000,
+  taxCalculated: 1300,
+  taxWithheld: 1300,
+  monthlyIncome: [{ month: 3, incomeCode: '2710', amount: 10000 }],
+};
+
+/** Полный edits 6-НДФЛ с суммами; справки — только если переданы. */
+function ndfl6Edits(
+  period: number,
+  tax: Ndfl6TaxShape = ndfl6TaxNonZero,
+  certificates: Ndfl6CertificateShape[] = [],
+): Ndfl6EditsShape {
+  return { ...withPeriod(period), tax, certificates };
 }
 
 /** Перекрыть reportYear в zeroBaseEdits. */
@@ -423,6 +474,94 @@ describe('6-НДФЛ (Ndfl6Generator)', () => {
 
   it('подписант — представитель по доверенности', () => {
     assertRepresentativeSigner(gen.generate(withPeriod(1)).xml);
+  });
+
+  describe('удержанный налог с материальной помощи', () => {
+    it('суммы из расчёта попадают в разделы 1 и 2', () => {
+      const xml = gen.generate(ndfl6Edits(1)).xml;
+      expect(xml).toContain('СумНалУд="3250"');
+      expect(xml).toContain('СумНал1Срок="1300"');
+      expect(xml).toContain('СумНал2Срок="1950"');
+      expect(xml).toContain('КолФЛ="2"');
+      expect(xml).toContain('СумНачислНач="25000.00"');
+      expect(xml).toContain('НалБаза="25000.00"');
+      expect(xml).toContain('СумНалИсч="3250"');
+      expect(xml).toContain('СумНалУдерж="3250"');
+    });
+
+    it('шесть сроков раздела 1 повторяются помесячной разбивкой раздела 2', () => {
+      const xml = gen.generate(ndfl6Edits(1)).xml;
+      expect(xml).toContain('СумНалУдерж1Мес="1300"');
+      expect(xml).toContain('СумНалУдерж23_1Мес="1950"');
+      expect(xml).toContain('СумНалУдерж3Мес="0"');
+    });
+
+    it('вычеты нулевые — получатель матпомощи не работник кооператива', () => {
+      expect(gen.generate(ndfl6Edits(1)).xml).toContain('СумВыч="0"');
+    });
+
+    it('неудержанного и возвращённого налога не бывает', () => {
+      const xml = gen.generate(ndfl6Edits(1)).xml;
+      expect(xml).toContain('СумНалНеУдерж="0"');
+      expect(xml).toContain('СумНалИзлУдерж="0"');
+      expect(xml).toContain('СумНалВозвр="0"');
+      expect(xml).toContain('СумНалВоз="0"');
+    });
+
+    it.each([1, 2, 3, 4])('проходит XSD-валидацию с суммами за Q%d', (quarter) => {
+      const result = gen.generate(ndfl6Edits(quarter));
+      const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.NDFL6].xsdFile);
+      if (!v.isValid) console.error(`NDFL6 Q${quarter} XSD errors:`, v.errors.slice(0, 10));
+      expect(v.isValid).toBe(true);
+    });
+
+    it('старый черновик без раздела сумм не роняет генерацию', () => {
+      // До удержания НДФЛ форма была нулёвкой и делила shape с остальными;
+      // сохранённые тогда черновики не содержат `tax`.
+      const result = gen.generate(withPeriod(1));
+      expect(result.isValid).toBe(true);
+      expect(result.xml).toContain('СумНалУд="0"');
+    });
+  });
+
+  describe('справка о доходах (приложение № 1)', () => {
+    it('в годовом отчёте выводится со всеми обязательными реквизитами', () => {
+      const xml = gen.generate(ndfl6Edits(4, ndfl6TaxNonZero, [ndfl6CertificateSample])).xml;
+      expect(xml).toContain('<СправДох');
+      expect(xml).toContain('НомСпр="1"');
+      expect(xml).toContain('НомКорр="00"');
+      expect(xml).toContain('Статус="1"');
+      expect(xml).toContain('ДатаРожд="01.01.1980"');
+      expect(xml).toContain('Гражд="643"');
+      expect(xml).toContain('Фамилия="Иванов"');
+      expect(xml).toContain('КодУдЛичн="21"');
+      expect(xml).toContain('СерНомДок="0405 123456"');
+    });
+
+    it('ИНН физлица не выводится — реквизит необязательный', () => {
+      const xml = gen.generate(ndfl6Edits(4, ndfl6TaxNonZero, [ndfl6CertificateSample])).xml;
+      expect(xml).not.toContain('ИННФЛ');
+    });
+
+    it('доход по месяцам идёт кодом 2710 — матпомощь не работнику', () => {
+      const xml = gen.generate(ndfl6Edits(4, ndfl6TaxNonZero, [ndfl6CertificateSample])).xml;
+      expect(xml).toContain('Месяц="03"');
+      expect(xml).toContain('КодДоход="2710"');
+      expect(xml).toContain('СумДоход="10000.00"');
+      expect(xml).toContain('НалУдерж="1300"');
+    });
+
+    it.each([1, 2, 3])('в квартальном отчёте за Q%d справок нет — схема их запрещает', (q) => {
+      const xml = gen.generate(ndfl6Edits(q, ndfl6TaxNonZero, [ndfl6CertificateSample])).xml;
+      expect(xml).not.toContain('<СправДох');
+    });
+
+    it('годовой отчёт со справкой проходит XSD-валидацию', () => {
+      const result = gen.generate(ndfl6Edits(4, ndfl6TaxNonZero, [ndfl6CertificateSample]));
+      const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.NDFL6].xsdFile);
+      if (!v.isValid) console.error('NDFL6 сертификат XSD errors:', v.errors.slice(0, 10));
+      expect(v.isValid).toBe(true);
+    });
   });
 });
 
@@ -694,6 +833,22 @@ describe('Уведомление о взносах (UvVznosyGenerator)', () => {
     expect(result.xml).toContain('Год="2026"');
   });
 
+  it.each([
+    [1, '21', '01'],
+    [2, '21', '02'],
+    [3, '21', '03'],
+    [4, '31', '01'],
+    [8, '33', '02'],
+    [12, '34', '03'],
+  ])('месяц %d — квартал %s, номер месяца в квартале %s', (month, quarter, monthCode) => {
+    // Взносы платятся раз в месяц, поэтому номер месяца в квартале — 01/02/03.
+    // Коды 11/12/13 помечают второй расчётный период месяца и бывают только у
+    // НДФЛ: у него два срока уплаты внутри месяца, у взносов — один.
+    const xml = gen.generate(withPeriod(month as number)).xml;
+    expect(xml).toContain(`Период="${quarter}"`);
+    expect(xml).toContain(`НомерМесКварт="${monthCode}"`);
+  });
+
   it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])(
     'проходит XSD-валидацию по UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd для месяца %d',
     (month) => {
@@ -759,6 +914,70 @@ describe('Уведомление по УСН (UusnGenerator)', () => {
       expect(v.isValid).toBe(true);
     },
   );
+});
+
+describe('Уведомление по НДФЛ (UvNdflGenerator)', () => {
+  const gen = new UvNdflGenerator();
+
+  /** Уведомление за расчётный период `period` с суммой удержанного налога. */
+  function uvNdflEdits(period: number, amount = 1300) {
+    return { ...withPeriod(period), payment: { amount } } as never;
+  }
+
+  it('reportType = UV_NDFL', () => {
+    expect(gen.reportType).toBe(ReportType.UV_NDFL);
+  });
+
+  it('та же форма, что у уведомлений по УСН и взносам (КНД 1110355)', () => {
+    const result = gen.generate(uvNdflEdits(1));
+    expect(result.isValid).toBe(true);
+    assertFnsWellFormed(result.xml);
+    expect(result.xml).toContain('КНД="1110355"');
+    expect(result.xml).toContain('ВерсФорм="5.03"');
+  });
+
+  it('КБК НДФЛ и удержанная сумма', () => {
+    const xml = gen.generate(uvNdflEdits(1, 3250)).xml;
+    expect(xml).toContain('КБК="18210102010011000110"');
+    expect(xml).toContain('СумНалогАванс="3250"');
+    expect(xml).toContain('ОКТМО="45000000"');
+  });
+
+  it.each([
+    [1, '21', '01'],
+    [2, '21', '11'],
+    [3, '21', '02'],
+    [4, '21', '12'],
+    [6, '21', '13'],
+    [7, '31', '01'],
+    [23, '34', '03'],
+    [24, '34', '13'],
+  ])('период %d — квартал %s, номер %s', (period, quarter, code) => {
+    // Первый расчётный период месяца (1–22 число) кодируется 01/02/03,
+    // второй (23 — последнее число) — 11/12/13. Вторая нумерация есть только
+    // у НДФЛ: у него два срока уплаты внутри месяца.
+    const xml = gen.generate(uvNdflEdits(period as number)).xml;
+    expect(xml).toContain(`Период="${quarter}"`);
+    expect(xml).toContain(`НомерМесКварт="${code}"`);
+  });
+
+  it.each([1, 2, 12, 13, 24])('проходит XSD-валидацию для периода %d', (period) => {
+    const result = gen.generate(uvNdflEdits(period));
+    const v = validateAgainstXsd(result.xml, REPORT_CONFIG[ReportType.UV_NDFL].xsdFile);
+    if (!v.isValid) console.error(`UV_NDFL период ${period} XSD errors:`, v.errors.slice(0, 10));
+    expect(v.isValid).toBe(true);
+  });
+
+  it.each([0, 25, 1.5])('период %s вне 1..24 — генерация не проходит', (period) => {
+    const result = gen.generate(uvNdflEdits(period as number));
+    expect(result.isValid).toBe(false);
+    expect(result.errors[0]).toContain('период');
+  });
+
+  it('эхом возвращает header.idFile в result.fileName', () => {
+    const result = gen.generate(uvNdflEdits(1));
+    expect(result.fileName).toBe('TEST_REPORT_ID');
+  });
 });
 
 describe('Сверка с эталонами (ПК "Ромашка", санитизированные фикстуры)', () => {
@@ -862,10 +1081,11 @@ describe('ReportRegistryService', () => {
     registry.register(new Fss4Generator());
     registry.register(new UvVznosyGenerator());
     registry.register(new UusnGenerator());
+    registry.register(new UvNdflGenerator());
   });
 
-  it('регистрирует все 8 генераторов (через getAvailableReports)', () => {
-    expect(registry.getAvailableReports()).toHaveLength(8);
+  it('регистрирует все 9 генераторов (через getAvailableReports)', () => {
+    expect(registry.getAvailableReports()).toHaveLength(9);
   });
 
   it('бросает исключение для незарегистрированного типа', () => {

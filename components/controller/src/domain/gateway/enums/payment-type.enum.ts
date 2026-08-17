@@ -1,4 +1,4 @@
-import { PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { PaymentType, PaymentDirection, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 
 /**
  * Типы и направления платежей — перечни живут в контракте
@@ -23,15 +23,12 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   [PaymentType.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
   [PaymentType.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
   [PaymentType.AID]: 'Материальная помощь',
+  [PaymentType.TAX]: 'Перечисление удержанного НДФЛ',
 };
 
-/**
- * Налоговая оговорка для назначения платежа. Взносы пайщика (вступительный,
- * минимальный паевой, паевой) и их возврат НДС не облагаются. Оговорка обязана
- * присутствовать целиком в memo каждого платежа — это единый источник назначения:
- * провайдеры QR (qrpay/sberpoll) её больше НЕ дописывают, чтобы не задвоить.
- */
-export const VAT_EXEMPT_NOTE = 'НДС не облагается.';
+// Оговорка живёт в контракте `@coopenomics/innercoop`: назначение платежа
+// формируют и ядро, и расширения, а расширению путь `~/` недоступен.
+export { VAT_EXEMPT_NOTE };
 
 /**
  * Человекочитаемые названия направлений платежей
@@ -64,4 +61,5 @@ export const OUTGOING_PAYMENT_TYPES = [
   PaymentType.EXPENSE,
   PaymentType.EXPENSE_OVERSPEND,
   PaymentType.AID,
+  PaymentType.TAX,
 ];

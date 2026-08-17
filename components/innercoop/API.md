@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 253.
+Всего экспортов: 254.
 
 ## ACCOUNT_PORT
 
@@ -2122,6 +2122,7 @@
 - `EXPENSE_RETURN = 'expense_return',`
 - `EXPENSE_OVERSPEND = 'expense_overspend',`
 - `AID = 'aid',`
+- `TAX = 'tax',`
 
 ## PROGRAM_AGREEMENT_PORT
 
@@ -2234,6 +2235,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.UserWallet')`
+
+## VAT_EXEMPT_NOTE
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.Payment')`
 
 ## VAULT_PORT
 

@@ -311,6 +311,9 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Заявка на материальную помощь доверенного (branch::createaid → gateway). */
   createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult>;
 
+  /** Отправка удержанного НДФЛ на оплату в бюджет (branch::createtax → gateway). */
+  createTaxPayment(data: BranchContract.Actions.CreateTax.ICreatetax): Promise<InnerTransactResult>;
+
   /** Подача расхода участка в шасси расходов (branch::createexp). */
   createBranchExpense(data: BranchContract.Actions.CreateExp.ICreateexp): Promise<InnerTransactResult>;
 
@@ -330,6 +333,16 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /** L3-балансы кошельков экономики КУ (w.brn.person / w.brn.common) из ledger2. */
   listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]>;
+
+  /**
+   * Остаток кооперативного кошелька ledger2 (L2, без разреза по пайщику).
+   * Нужен для удержанного налога (`w.brn.ndfl`): он общий для кооператива,
+   * поэтому в userwallets его нет. Кошелька может не быть вовсе — тогда ноль.
+   */
+  getCooperativeWalletBalance(coopname: string, walletName: string): Promise<string | null>;
+
+  /** Заявки на перечисление удержанного налога в бюджет (branch::taxes). */
+  listTaxPayments(coopname: string): Promise<BranchContract.Tables.Taxes.IBranchTax[]>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');
