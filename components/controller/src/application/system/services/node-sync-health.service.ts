@@ -221,7 +221,12 @@ export class NodeSyncHealthService {
     const previous = this.publishedState;
     if (!previous) return true;
     if (previous.status !== next.status || previous.outage !== next.outage) return true;
-    if (next.status === NodeSyncStatus.SYNCED) return false;
+    // У головы цепи меняется только прочитанный блок — его и шлём: по нему
+    // видно, что узел живой и продолжает читать. Сообщение маленькое, а
+    // застывшее число выглядело бы как остановка.
+    if (next.status === NodeSyncStatus.SYNCED) {
+      return previous.current_block_num !== next.current_block_num;
+    }
 
     const previousLag = previous.lag_blocks ?? 0;
     const nextLag = next.lag_blocks ?? 0;

@@ -27,12 +27,22 @@ const tone = computed(() => {
   }
 });
 
+/**
+ * Прочитанный блок в подсказке: он растёт на глазах, и по нему видно, что узел
+ * жив и продолжает читать цепь. Без него подсказка утверждает «всё хорошо», но
+ * ничем это не подтверждает.
+ */
+const blockLabel = computed(() => {
+  const block = state.value?.current_block_num;
+  return typeof block === 'number' ? ` (блок ${block.toLocaleString('ru-RU')})` : '';
+});
+
 const hint = computed(() => {
   switch (state.value?.status) {
     case Zeus.NodeSyncStatus.SYNCED:
-      return 'Данные кооператива синхронизированы';
+      return `Данные кооператива синхронизированы${blockLabel.value}`;
     case Zeus.NodeSyncStatus.LAGGING:
-      return 'Идёт синхронизация с блокчейном';
+      return `Идёт синхронизация с блокчейном${blockLabel.value}`;
     // Узел молчит — для пайщика это технические работы, а не поломка связи
     // у него самого. Причину обрыва разбирает оператор по журналу узла.
     case Zeus.NodeSyncStatus.DISCONNECTED:

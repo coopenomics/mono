@@ -198,11 +198,22 @@ describe('Состояние синхронизации узла с цепью',
   });
 
   describe('поток подписчикам', () => {
-    it('неизменное состояние повторно не публикуется', async () => {
+    it('у головы цепи движение по блокам уходит подписчикам', async () => {
+      // По растущему номеру блока видно, что узел жив и продолжает читать;
+      // застывшее число в подсказке читалось бы как остановка.
       await tickWith(1000, cursorAt(1000));
       pubSub.publish.mockClear();
 
       await tickWith(1001, cursorAt(1001));
+
+      expect(pubSub.publish).toHaveBeenCalledTimes(1);
+    });
+
+    it('у головы цепи без движения по блокам ничего не шлётся', async () => {
+      await tickWith(1000, cursorAt(1000));
+      pubSub.publish.mockClear();
+
+      await tickWith(1000, cursorAt(1000));
 
       expect(pubSub.publish).not.toHaveBeenCalled();
     });
