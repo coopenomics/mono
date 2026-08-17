@@ -8,8 +8,9 @@ transition(name='node-sync-fade')
     //- планового обслуживания — шестерёнки и подпись.
     div.node-sync__box(v-if='isDisconnected')
       q-spinner-gears.text-white(size='50px')
-      h2.node-sync__title.text-white Техническое обслуживание
-      p.node-sync__text.text-grey-5 Идут работы на стороне кооператива. Рабочий стол откроется сам, как только они завершатся.
+      //- Подпись дословно та же, что у планового обслуживания: два экрана об
+      //- одном и том же не должны говорить разными словами.
+      p.node-sync__maintenance.text-white Техническое обслуживание..
 
     //- Узел догоняет цепь: показываем ход, чтобы ожидание было понятным.
     div.node-sync__box(v-else)
@@ -131,6 +132,13 @@ const remainingLabel = computed(() => {
 
 .node-sync__icon {
   opacity: 0.9;
+}
+
+/* Отступ и выравнивание — как у подписи штатного лоадера Quasar
+   (.q-loading__message), чтобы экраны обслуживания выглядели одинаково. */
+.node-sync__maintenance {
+  margin: 40px 20px 0;
+  text-align: center;
 }
 
 .node-sync__title {

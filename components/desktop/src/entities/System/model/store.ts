@@ -10,6 +10,13 @@ const namespace = 'systemStore';
 const BASE_INTERVAL_MS = 30000; // Базовый интервал 30 секунд (было 10)
 const MAX_INTERVAL_MS = 300000; // Максимальный интервал 5 минут
 const BACKOFF_MULTIPLIER = 2; // Множитель для backoff
+/**
+ * Пока рабочий стол закрыт (узел молчит или догоняет цепь), состояние
+ * проверяется часто и без backoff: пайщик сидит перед заглушкой и ждёт, а
+ * восстановление иначе замечалось бы через полминуты и позже. Запрос дешёвый —
+ * узел отдаёт уже посчитанное состояние, без обращения к базе и цепи.
+ */
+const BLOCKED_INTERVAL_MS = 3000;
 
 interface ISystemStore {
   info: Ref<ISystemInfo>;
@@ -38,6 +45,7 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
   const syncState = ref<INodeSyncState | null>(null);
 
   let monitoringTimeout: ReturnType<typeof setTimeout> | null = null;
+  let syncTimeout: ReturnType<typeof setTimeout> | null = null;
   let isLoading = false; // Защита от конкурентных запросов
   let currentInterval = BASE_INTERVAL_MS; // Текущий интервал (для backoff)
   let consecutiveErrors = 0; // Счетчик последовательных ошибок
@@ -104,7 +112,8 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
       return;
     }
 
-    stopSystemMonitoring();
+    // Гасим только свой таймер: цикл состояния узла идёт своим темпом.
+    stopInfoMonitoring();
 
     monitoringTimeout = setTimeout(async () => {
       try {
@@ -117,13 +126,41 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
         maintenanceCounter.value++; // Увеличиваем счетчик для триггера watch
       }
 
-      // Страховка на случай оборванной подписки: состояние узла обязано
-      // обновляться, даже когда ws молчит.
-      await loadNodeSyncState();
-
       // Планируем следующую проверку с учетом возможного backoff
       scheduleNextCheck();
     }, currentInterval);
+  };
+
+  /**
+   * Отдельный цикл для состояния узла — он идёт своим темпом, а не темпом
+   * тяжёлой сводки о системе. Пока рабочий стол закрыт, узел опрашивается
+   * часто: это единственный способ заметить, что он вернулся, когда сокет
+   * оборван (подписка живёт только при живом бэкенде).
+   */
+  const scheduleNextSyncCheck = () => {
+    if (typeof window === 'undefined') return;
+
+    stopSyncMonitoring();
+
+    const blocked = syncState.value !== null && syncState.value.status !== Zeus.NodeSyncStatus.SYNCED;
+    syncTimeout = setTimeout(async () => {
+      await loadNodeSyncState();
+      scheduleNextSyncCheck();
+    }, blocked ? BLOCKED_INTERVAL_MS : BASE_INTERVAL_MS);
+  };
+
+  const stopSyncMonitoring = () => {
+    if (syncTimeout) {
+      clearTimeout(syncTimeout);
+      syncTimeout = null;
+    }
+  };
+
+  const stopInfoMonitoring = () => {
+    if (monitoringTimeout) {
+      clearTimeout(monitoringTimeout);
+      monitoringTimeout = null;
+    }
   };
 
   const startSystemMonitoring = () => {
@@ -143,13 +180,12 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
 
     // Используем setTimeout вместо setInterval для гибкого управления интервалом
     scheduleNextCheck();
+    scheduleNextSyncCheck();
   };
 
   const stopSystemMonitoring = () => {
-    if (monitoringTimeout) {
-      clearTimeout(monitoringTimeout);
-      monitoringTimeout = null;
-    }
+    stopInfoMonitoring();
+    stopSyncMonitoring();
   };
 
   // Человеко-читаемое название кооператива
