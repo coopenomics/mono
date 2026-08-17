@@ -8,7 +8,9 @@ const namespace = 'systemStore';
 
 // Константы для экспоненциального backoff
 const BASE_INTERVAL_MS = 30000; // Базовый интервал 30 секунд (было 10)
-const MAX_INTERVAL_MS = 300000; // Максимальный интервал 5 минут
+// Потолок backoff. Дальше растить нечего: сводка нужна сразу, как узел
+// вернётся, а один запрос раз в полминуты узел не нагружает.
+const MAX_INTERVAL_MS = 30000;
 const BACKOFF_MULTIPLIER = 2; // Множитель для backoff
 /**
  * Пока рабочий стол закрыт (узел молчит или догоняет цепь), состояние
@@ -21,7 +23,6 @@ const BLOCKED_INTERVAL_MS = 3000;
 interface ISystemStore {
   info: Ref<ISystemInfo>;
   backendAvailable: Ref<boolean>;
-  maintenanceCounter: Ref<number>;
   syncState: Ref<INodeSyncState | null>;
   loadSystemInfo: () => Promise<void>;
   loadNodeSyncState: () => Promise<void>;
@@ -39,7 +40,6 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     system_status: 'active', // Начальное значение
   } as ISystemInfo);
   const backendAvailable = ref<boolean>(true);
-  const maintenanceCounter = ref<number>(0); // Счетчик для принудительного обновления
   // null — состояние узла ещё не известно. Заглушку по нему не показываем:
   // иначе рабочий стол моргал бы ей на каждой холодной загрузке.
   const syncState = ref<INodeSyncState | null>(null);
@@ -69,8 +69,11 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     } catch (error) {
       console.warn('Failed to load system info, backend might be unavailable:', error);
       backendAvailable.value = false;
-      // При недоступности бэкенда устанавливаем статус обслуживания
-      info.value.system_status = Zeus.SystemStatus.maintenance;
+      // Статус системы приходит с сервера и подменять его недоступностью
+      // нельзя: молчащий узел — это не объявленные работы. Раньше подмена
+      // поднимала вторую заглушку поверх экрана состояния узла, а гвард
+      // навигации принимал её за прерванную установку. Недоступность
+      // показывает единый экран по состоянию узла.
 
       // Увеличиваем интервал при ошибках (экспоненциальный backoff)
       consecutiveErrors++;
@@ -120,10 +123,8 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
         await loadSystemInfo();
       } catch (error) {
         console.warn('Failed to update system info during monitoring:', error);
-        // При недоступности бэкенда устанавливаем статус обслуживания
+        // Статус не подменяем — см. loadSystemInfo.
         backendAvailable.value = false;
-        info.value.system_status = Zeus.SystemStatus.maintenance;
-        maintenanceCounter.value++; // Увеличиваем счетчик для триггера watch
       }
 
       // Планируем следующую проверку с учетом возможного backoff
@@ -212,7 +213,6 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
   return {
     info,
     backendAvailable,
-    maintenanceCounter,
     syncState,
     loadSystemInfo,
     loadNodeSyncState,
