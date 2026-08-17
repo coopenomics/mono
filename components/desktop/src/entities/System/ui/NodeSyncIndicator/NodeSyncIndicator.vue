@@ -28,16 +28,18 @@ const tone = computed(() => {
 });
 
 const hint = computed(() => {
-  const value = state.value;
-  if (!value) return '';
-  if (value.status === Zeus.NodeSyncStatus.SYNCED) return 'Узел синхронизирован с блокчейном';
-  if (value.status === Zeus.NodeSyncStatus.LAGGING) {
-    const lag = (value.lag_blocks ?? 0).toLocaleString('ru-RU');
-    return `Узел догоняет блокчейн: осталось ${lag} блоков`;
+  switch (state.value?.status) {
+    case Zeus.NodeSyncStatus.SYNCED:
+      return 'Данные кооператива синхронизированы';
+    case Zeus.NodeSyncStatus.LAGGING:
+      return 'Идёт синхронизация с блокчейном';
+    // Узел молчит — для пайщика это технические работы, а не поломка связи
+    // у него самого. Причину обрыва разбирает оператор по журналу узла.
+    case Zeus.NodeSyncStatus.DISCONNECTED:
+      return 'Техническое обслуживание';
+    default:
+      return '';
   }
-  if (value.outage === Zeus.NodeSyncOutage.NODE) return 'Нет связи с узлом кооператива';
-  if (value.outage === Zeus.NodeSyncOutage.READER) return 'Чтение блокчейна остановлено';
-  return 'Блокчейн не отвечает';
 });
 </script>
 

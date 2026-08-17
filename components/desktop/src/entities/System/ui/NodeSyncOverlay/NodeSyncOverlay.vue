@@ -3,13 +3,20 @@
 //- слой поверх всего. Рабочий стол под ним не виден и не кликается.
 transition(name='node-sync-fade')
   div.node-sync(v-if='isBlocking')
-    div.node-sync__box
-      q-icon.node-sync__icon.text-white(:name='view.icon', size='40px')
-      h2.node-sync__title.text-white {{ view.title }}
-      p.node-sync__text.text-grey-5 {{ view.body }}
+    //- Узел не отвечает — для пайщика это технические работы, а не «проблемы
+    //- со связью»: причину он иначе будет искать у себя. Вид тот же, что у
+    //- планового обслуживания — шестерёнки и подпись.
+    div.node-sync__box(v-if='isDisconnected')
+      q-spinner-gears.text-white(size='50px')
+      h2.node-sync__title.text-white Техническое обслуживание
+      p.node-sync__text.text-grey-5 Идут работы на стороне кооператива. Рабочий стол откроется сам, как только они завершатся.
 
-      //- Ход синхронизации. Пока связь потеряна, доля неизвестна — полоса идёт
-      //- бегущей, чтобы не обещать процент, которого нет.
+    //- Узел догоняет цепь: показываем ход, чтобы ожидание было понятным.
+    div.node-sync__box(v-else)
+      q-icon.node-sync__icon.text-white(name='sync', size='40px')
+      h2.node-sync__title.text-white Синхронизация с блокчейном
+      p.node-sync__text.text-grey-5 Обновляем данные кооператива. Рабочий стол откроется, как только синхронизация завершится.
+
       q-linear-progress.node-sync__bar(
         :value='progressValue',
         :indeterminate='isIndeterminate',
@@ -97,33 +104,8 @@ function formatRemaining(seconds: number): string {
 }
 
 const remainingLabel = computed(() => {
-  if (isDisconnected.value) return 'Ждём восстановления связи';
   const eta = state.value?.estimated_seconds_remaining;
   return eta ? `Осталось ${formatRemaining(eta)}` : 'Идёт обновление данных';
-});
-
-const view = computed(() => {
-  if (isDisconnected.value) {
-    const outage = state.value?.outage;
-    if (outage === Zeus.NodeSyncOutage.NODE) {
-      return {
-        icon: 'cloud_sync',
-        title: 'Восстанавливаем связь',
-        body: 'Рабочий стол временно не получает данные. Как только связь появится, работа продолжится сама.',
-      };
-    }
-    return {
-      icon: 'sync_problem',
-      title: 'Синхронизация приостановлена',
-      body: 'Узел пока не получает свежие данные из блокчейна. Синхронизация продолжится сама, как только связь восстановится.',
-    };
-  }
-
-  return {
-    icon: 'sync',
-    title: 'Синхронизация с блокчейном',
-    body: 'Обновляем данные кооператива. Рабочий стол откроется, как только синхронизация завершится.',
-  };
 });
 </script>
 
