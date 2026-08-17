@@ -4,6 +4,7 @@ import { Zeus } from '@coopenomics/sdk';
 // Напрямую из store, а не через бочку модели: индикатору незачем тянуть за
 // собой ws-подписку со всем её транспортом.
 import { useSystemStore } from '../../model/store';
+import { useLiveBlockNumber } from '../../model/useLiveBlockNumber';
 
 /**
  * Кружок состояния узла рядом с версией: зелёный — узел у головы цепи,
@@ -30,12 +31,17 @@ const tone = computed(() => {
 /**
  * Прочитанный блок в подсказке: он растёт на глазах, и по нему видно, что узел
  * жив и продолжает читать цепь. Без него подсказка утверждает «всё хорошо», но
- * ничем это не подтверждает.
+ * ничем это не подтверждает. Между сообщениями от узла значение досчитывается
+ * по темпу цепи — см. `useLiveBlockNumber`.
  */
-const blockLabel = computed(() => {
-  const block = state.value?.current_block_num;
-  return typeof block === 'number' ? ` (блок ${block.toLocaleString('ru-RU')})` : '';
-});
+const liveBlock = useLiveBlockNumber(() =>
+  // Пока узел молчит, досчитывать нечего: позиция чтения стоит на месте.
+  state.value?.status === Zeus.NodeSyncStatus.DISCONNECTED ? undefined : state.value?.current_block_num,
+);
+
+const blockLabel = computed(() =>
+  liveBlock.value === null ? '' : ` (блок № ${liveBlock.value.toLocaleString('ru-RU')})`,
+);
 
 const hint = computed(() => {
   switch (state.value?.status) {
