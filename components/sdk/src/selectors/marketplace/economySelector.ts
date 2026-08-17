@@ -61,13 +61,3 @@ export type marketplaceBranchWalletHistoryPaginationModel = ModelTypes['Marketpl
 export const marketplaceBranchWalletHistoryPaginationSelector = Selector('MarketplaceBranchWalletHistoryPaginationResult')(
   rawMarketplaceBranchWalletHistoryPaginationSelector
 )
-
-/**
- * Удержанный с материальной помощи НДФЛ: долг перед бюджетом, сумма у кассира
- * и то, что можно отправить на оплату сейчас (requirement b6, 2026-08-13).
- */
-export const marketplaceTaxStateSelector = Selector('MarketplaceTaxState')({
-  withheld: true,
-  in_payment: true,
-  available: true,
-})

@@ -9,4 +9,5 @@ export {
   DocumentsFormsPage,
   DocumentsArchivePage,
 } from './DocumentsPage'
+export { NdflPage } from './NdflPage'
 export { SettingsPage } from './SettingsPage'

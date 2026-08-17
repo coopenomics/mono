@@ -11,6 +11,8 @@ import { ReportResolver } from './application/resolvers/report.resolver';
 import { ReportRequisitesResolver } from './application/resolvers/report-requisites.resolver';
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
+import { WithheldTaxResolver } from './application/resolvers/withheld-tax.resolver';
+import { WithheldTaxService } from './application/services/withheld-tax.service';
 import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
 import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
 import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
@@ -51,6 +53,8 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
     ReportRequisitesResolver,
     ReportDraftResolver,
     ReportCalendarResolver,
+    WithheldTaxResolver,
+    WithheldTaxService,
     {
       provide: GENERATED_REPORT_REPOSITORY,
       useClass: GeneratedReportTypeormRepository,

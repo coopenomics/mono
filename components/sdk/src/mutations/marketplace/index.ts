@@ -132,7 +132,6 @@ export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
 export * as ConvertBranchFunds from './convertBranchFunds'
 export * as CreateAid from './createAid'
-export * as PayTax from './payTax'
 /** Подать расход кооперативного участка на решение совета через шасси расходов */
 export * as CreateBranchExpense from './createBranchExpense'
 

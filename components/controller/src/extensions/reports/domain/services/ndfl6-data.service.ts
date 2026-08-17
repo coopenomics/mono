@@ -8,7 +8,7 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { uvNdflPeriodOf } from '../enums/report-type.enum';
-import { getNdflParams, getTaxTimezoneOffsetMinutes } from './ndfl-reference';
+import { getNdflParams, toTaxDateParts } from './ndfl-reference';
 import {
   type Ndfl6CertificateShape,
   type Ndfl6MonthlyIncomeShape,
@@ -54,12 +54,6 @@ interface AidPayout {
   /** Месяц выплаты по московскому времени, 1..12. */
   month: number;
   /** День месяца по московскому времени, 1..31. */
-  day: number;
-}
-
-interface MoscowDateParts {
-  year: number;
-  month: number;
   day: number;
 }
 
@@ -210,7 +204,7 @@ export class Ndfl6DataService {
       );
       return null;
     }
-    const parts = this.toMoscowParts(op.createdAt);
+    const parts = toTaxDateParts(op.createdAt);
     if (parts.year !== year || parts.month > lastMonth) return null;
 
     const netRub = this.parseAmount(op.quantity);
@@ -228,7 +222,7 @@ export class Ndfl6DataService {
   private async fetchOperations(coopname: string, year: number): Promise<InnerLedger2Operation[]> {
     // Границы берём с запасом в сутки с обеих сторон: запрос идёт по UTC, а
     // отбор — по московским датам, и выплата 1 января 00:30 MSK лежит в UTC
-    // ещё в прошлом году. Лишнее отсекает фильтр по `toMoscowParts`.
+    // ещё в прошлом году. Лишнее отсекает фильтр по `toTaxDateParts`.
     const dateFrom = new Date(Date.UTC(year - 1, 11, 31, 0, 0, 0));
     const dateTo = new Date(Date.UTC(year + 1, 0, 2, 0, 0, 0));
 
@@ -376,15 +370,6 @@ export class Ndfl6DataService {
     const match = birthdate.match(/^(\d{4})[/-](\d{2})[/-](\d{2})/);
     if (!match) return '';
     return `${match[3]}.${match[2]}.${match[1]}`;
-  }
-
-  private toMoscowParts(date: Date): MoscowDateParts {
-    const shifted = new Date(date.getTime() + getTaxTimezoneOffsetMinutes() * 60_000);
-    return {
-      year: shifted.getUTCFullYear(),
-      month: shifted.getUTCMonth() + 1,
-      day: shifted.getUTCDate(),
-    };
   }
 
   /** Asset вида «10000.0000 RUB» → 10000. */

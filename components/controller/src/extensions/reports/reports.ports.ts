@@ -15,6 +15,7 @@ import {
   INDIVIDUAL_PORT,
   LEDGER2_HISTORY_PORT,
   ORGANIZATION_PORT,
+  WITHHELD_TAX_PORT,
 } from '@coopenomics/innercoop';
 
 export const reportsPorts = {
@@ -27,5 +28,9 @@ export const reportsPorts = {
     ORGANIZATION_PORT,
   ],
   optional: [
+    // Удержанный налог ведёт то расширение, которое выплачивает доход
+    // физлицу. Его может не быть в кооперативе — тогда удерживать нечего, и
+    // раздел перечислений пуст.
+    WITHHELD_TAX_PORT,
   ],
 };

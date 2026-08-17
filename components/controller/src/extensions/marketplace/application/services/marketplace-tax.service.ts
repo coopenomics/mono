@@ -18,7 +18,11 @@ import {
   PaymentType,
   type IOrganizationPort,
   type IPaymentDeskPort,
+  type InnerPayment,
   type InnerSystemOutgoingPaymentInput,
+  type InnerWithheldTaxPage,
+  type InnerWithheldTaxPageRequest,
+  type InnerWithheldTaxPayment,
 } from '@coopenomics/innercoop';
 
 /** Кошелёк удержанного НДФЛ — его остаток и есть долг кооператива перед бюджетом. */
@@ -114,6 +118,52 @@ export class MarketplaceTaxService {
       withheld: this.formatAsset(withheld),
       in_payment: this.formatAsset(inPayment),
       available: this.formatAsset(Math.max(0, withheld - inPayment)),
+    };
+  }
+
+  /**
+   * История отправленных на оплату сумм — от новых к старым.
+   *
+   * Источник — реестр платежей кассирского стола, а не цепь: заявка на цепи
+   * живёт только до подтверждения кассиром и после этого стирается, а
+   * бухгалтеру нужна и оплаченная, и отклонённая. Реквизиты бюджета лежат в
+   * деталях платежа снимком на день отправки — показывать сегодняшние вместо
+   * тех, по которым платили, нельзя.
+   */
+  async listTaxPayments(
+    coopname: string,
+    page: InnerWithheldTaxPageRequest
+  ): Promise<InnerWithheldTaxPage> {
+    const found = await this.coreGateway.getPayments(
+      { coopname, type: PaymentType.TAX },
+      { page: page.page, limit: page.limit, sortBy: 'created_at', sortOrder: page.sortOrder }
+    );
+
+    return {
+      items: found.items.map((payment) => this.toTaxPaymentView(payment)),
+      totalCount: found.totalCount,
+      totalPages: found.totalPages,
+      currentPage: found.currentPage,
+    };
+  }
+
+  private toTaxPaymentView(payment: InnerPayment): InnerWithheldTaxPayment {
+    const data = (payment.payment_details?.data ?? {}) as {
+      recipient_name?: string;
+      requisite_rows?: { label: string; value: string }[];
+    };
+
+    return {
+      hash: payment.hash,
+      amount: this.formatAsset(payment.quantity),
+      symbol: payment.symbol,
+      memo: payment.memo ?? '',
+      status: payment.status,
+      ...(payment.message ? { message: payment.message } : {}),
+      ...(data.recipient_name ? { recipient_name: data.recipient_name } : {}),
+      ...(data.requisite_rows ? { requisite_rows: data.requisite_rows } : {}),
+      created_at: payment.created_at,
+      ...(payment.completed_at ? { completed_at: payment.completed_at } : {}),
     };
   }
 

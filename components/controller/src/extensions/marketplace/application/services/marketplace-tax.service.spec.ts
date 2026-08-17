@@ -188,4 +188,90 @@ describe('MarketplaceTaxService — перечисление удержанно�
       );
     });
   });
+
+  describe('listTaxPayments', () => {
+    function paymentRow(overrides: Record<string, any> = {}) {
+      return {
+        hash: 'abc123',
+        quantity: 1300,
+        symbol: 'RUB',
+        memo: 'ЕНП',
+        status: PaymentStatusEnum.COMPLETED,
+        created_at: new Date('2026-08-17T10:00:00Z'),
+        completed_at: new Date('2026-08-18T10:00:00Z'),
+        payment_details: {
+          data: {
+            recipient_name: 'Казначейство России (ФНС России)',
+            requisite_rows: [{ label: 'ИНН получателя', value: '7727406020' }],
+          },
+        },
+        ...overrides,
+      };
+    }
+
+    it('история берётся из реестра кассира, а не из цепи: подтверждённые заявки там уже стёрты', async () => {
+      const { service, coreGateway } = makeService();
+      coreGateway.getPayments.mockResolvedValue({
+        items: [paymentRow()],
+        totalCount: 1,
+        totalPages: 1,
+        currentPage: 1,
+      });
+
+      const page = await service.listTaxPayments(COOPNAME, {
+        page: 1,
+        limit: 20,
+        sortOrder: 'DESC',
+      });
+
+      expect(coreGateway.getPayments).toHaveBeenCalledWith(
+        { coopname: COOPNAME, type: PaymentTypeEnum.TAX },
+        expect.objectContaining({ page: 1, limit: 20, sortOrder: 'DESC' })
+      );
+      expect(page.totalCount).toBe(1);
+      expect(page.items[0].amount).toBe('1300.0000 RUB');
+      expect(page.items[0].status).toBe(PaymentStatusEnum.COMPLETED);
+    });
+
+    it('реквизиты отдаются снимком с платежа — те, по которым платили, а не сегодняшние', async () => {
+      const { service, coreGateway } = makeService();
+      coreGateway.getPayments.mockResolvedValue({
+        items: [paymentRow()],
+        totalCount: 1,
+        totalPages: 1,
+        currentPage: 1,
+      });
+
+      const page = await service.listTaxPayments(COOPNAME, {
+        page: 1,
+        limit: 20,
+        sortOrder: 'DESC',
+      });
+
+      expect(page.items[0].recipient_name).toBe('Казначейство России (ФНС России)');
+      expect(page.items[0].requisite_rows).toEqual([
+        { label: 'ИНН получателя', value: '7727406020' },
+      ]);
+    });
+
+    it('платёж без реквизитов (страна неизвестна) не ломает историю', async () => {
+      const { service, coreGateway } = makeService();
+      coreGateway.getPayments.mockResolvedValue({
+        items: [paymentRow({ payment_details: undefined, completed_at: undefined })],
+        totalCount: 1,
+        totalPages: 1,
+        currentPage: 1,
+      });
+
+      const page = await service.listTaxPayments(COOPNAME, {
+        page: 1,
+        limit: 20,
+        sortOrder: 'DESC',
+      });
+
+      expect(page.items[0].recipient_name).toBeUndefined();
+      expect(page.items[0].requisite_rows).toBeUndefined();
+      expect(page.items[0].completed_at).toBeUndefined();
+    });
+  });
 });

@@ -12,3 +12,6 @@ export * as DeleteReportDraft from './deleteReportDraft'
 
 /** Поставить/снять отметку на ячейку календаря (NOT_REQUIRED — «не надо сдавать»; null — снять) */
 export * as MarkReportPeriod from './markReportPeriod'
+
+/** Отправить удержанный налог на оплату кассиру */
+export * as PayWithheldTax from './payWithheldTax'

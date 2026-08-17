@@ -51,3 +51,26 @@ export function getNdflParams(reportYear: number): PersonalIncomeTax {
 export function getTaxTimezoneOffsetMinutes(): number {
   return russianProfile().taxTimezoneOffsetMinutes;
 }
+
+/** Год, месяц и день события в том поясе, по которому считаются налоговые сроки. */
+export interface TaxDateParts {
+  year: number;
+  month: number;
+  day: number;
+}
+
+/**
+ * Разложить момент времени на дату по налоговому поясу.
+ *
+ * Считать по UTC нельзя: и попадание выплаты в расчётный период, и срок
+ * перечисления определяются местной датой, а разница с UTC переносит событие
+ * через границу периода.
+ */
+export function toTaxDateParts(date: Date): TaxDateParts {
+  const shifted = new Date(date.getTime() + getTaxTimezoneOffsetMinutes() * 60_000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
+}

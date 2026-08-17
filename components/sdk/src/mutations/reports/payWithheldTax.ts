@@ -1,9 +1,9 @@
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'marketplacePayTax'
+export const name = 'payWithheldTax'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ data: $('data', 'MarketplacePayTaxInput!') }, true],
+  [name]: [{ data: $('data', 'PayWithheldTaxInput!') }, true],
 })
 
 export interface IInput {
@@ -12,7 +12,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['MarketplacePayTaxInput']
+  data: ModelTypes['PayWithheldTaxInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

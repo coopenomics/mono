@@ -27,3 +27,9 @@ export * as ValidateReportEdits from './validateReportEdits'
 
 /** Календарь отчётности — матрица форм × периодов со статусами */
 export * as GetReportCalendar from './getReportCalendar'
+
+/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
+export * as GetWithheldTaxState from './getWithheldTaxState'
+
+/** История перечислений удержанного налога — от новых к старым */
+export * as GetWithheldTaxPayments from './getWithheldTaxPayments'

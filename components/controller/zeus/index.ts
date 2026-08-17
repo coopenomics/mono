@@ -10107,10 +10107,6 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplacePayTaxInput"]: {
-	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
-	amount: number | Variable<any, string>
-};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: AliasType<{
 	/** Идентификатор платёжной заявки. */
@@ -10976,17 +10972,6 @@ export type ValueTypes = {
 	/** Новая модель работы */
 	model: ValueTypes["MarketplaceSupplierModel"] | Variable<any, string>
 };
-	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
-["MarketplaceTaxState"]: AliasType<{
-	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
-	available?:boolean | `@${string}`,
-	/** Отправлено на оплату и ждёт подтверждения кассиром. */
-	in_payment?:boolean | `@${string}`,
-	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
-	withheld?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceTaxState']?: Omit<ValueTypes["MarketplaceTaxState"], "...on MarketplaceTaxState">
-}>;
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -11849,7 +11834,6 @@ marketplaceDistributeBranchFunds?: [{	data: ValueTypes["MarketplaceDistributeBra
 marketplaceFinalizeStockIssuance?: [{	data: ValueTypes["MarketplaceFinalizeStockIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ValueTypes["MarketplaceGenerateInventoryLabelInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceMoveContainer?: [{	data: ValueTypes["MarketplaceMoveContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
-marketplacePayTax?: [{	data: ValueTypes["MarketplacePayTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
@@ -11886,6 +11870,7 @@ marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"]
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
@@ -12683,6 +12668,11 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	item_hash: string | Variable<any, string>,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string | Variable<any, string>
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number | Variable<any, string>
 };
 	["PaymentDetails"]: AliasType<{
 	/** Сумма платежа с учетом комиссии */
@@ -13485,6 +13475,11 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
+getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>},ValueTypes["WithheldTaxPaymentPage"]],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -13546,8 +13541,6 @@ marketplaceGetSearchCategories?: [{	data: ValueTypes["SearchCategoriesInput"] | 
 marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ValueTypes["MarketplaceSupplierPaymentSettings"],
-	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
-	marketplaceGetTaxState?:ValueTypes["MarketplaceTaxState"],
 marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceListAids?: [{	data?: ValueTypes["MarketplaceListAidsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceAid"]],
@@ -15352,6 +15345,70 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** P256DH ключ для шифрования */
 	p256dh: string | Variable<any, string>
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: AliasType<{
+	/** Сумма платежа */
+	amount?:boolean | `@${string}`,
+	/** Когда кассир подтвердил перевод */
+	completed_at?:boolean | `@${string}`,
+	/** Когда платёж отправлен кассиру */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash?:boolean | `@${string}`,
+	/** Назначение платежа */
+	memo?:boolean | `@${string}`,
+	/** Причина отказа, если кассир не заплатил */
+	message?:boolean | `@${string}`,
+	/** Получатель платежа */
+	recipient_name?:boolean | `@${string}`,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period?:boolean | `@${string}`,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label?:boolean | `@${string}`,
+	/** Год расчётного периода, в который входит платёж */
+	report_year?:boolean | `@${string}`,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?:ValueTypes["WithheldTaxRequisiteRow"],
+	/** Состояние платежа в реестре кассира */
+	status?:boolean | `@${string}`,
+	/** Символ валюты */
+	symbol?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxPayment']?: Omit<ValueTypes["WithheldTaxPayment"], "...on WithheldTaxPayment">
+}>;
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Платежи страницы */
+	items?:ValueTypes["WithheldTaxPayment"],
+	/** Всего платежей */
+	totalCount?:boolean | `@${string}`,
+	/** Всего страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxPaymentPage']?: Omit<ValueTypes["WithheldTaxPaymentPage"], "...on WithheldTaxPaymentPage">
+}>;
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: AliasType<{
+	/** Название реквизита */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxRequisiteRow']?: Omit<ValueTypes["WithheldTaxRequisiteRow"], "...on WithheldTaxRequisiteRow">
+}>;
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxState']?: Omit<ValueTypes["WithheldTaxState"], "...on WithheldTaxState">
+}>;
 	["WorkingHours"]: AliasType<{
 	fri?:ValueTypes["WorkingHoursDay"],
 	mon?:ValueTypes["WorkingHoursDay"],
@@ -24225,10 +24282,6 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplacePayTaxInput"]: {
-	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
-	amount: number
-};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: AliasType<{
 	/** Идентификатор платёжной заявки. */
@@ -25063,16 +25116,6 @@ export type ResolverInputTypes = {
 	/** Новая модель работы */
 	model: ResolverInputTypes["MarketplaceSupplierModel"]
 };
-	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
-["MarketplaceTaxState"]: AliasType<{
-	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
-	available?:boolean | `@${string}`,
-	/** Отправлено на оплату и ждёт подтверждения кассиром. */
-	in_payment?:boolean | `@${string}`,
-	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
-	withheld?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -25912,7 +25955,6 @@ marketplaceDistributeBranchFunds?: [{	data: ResolverInputTypes["MarketplaceDistr
 marketplaceFinalizeStockIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeStockIssuanceInput"]},ResolverInputTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ResolverInputTypes["MarketplaceGenerateInventoryLabelInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceMoveContainer?: [{	data: ResolverInputTypes["MarketplaceMoveContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
-marketplacePayTax?: [{	data: ResolverInputTypes["MarketplacePayTaxInput"]},boolean | `@${string}`],
 marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
@@ -25949,6 +25991,7 @@ marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOffe
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInputTypes["Transaction"]],
+payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
@@ -26705,6 +26748,11 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: AliasType<{
 	/** Сумма платежа с учетом комиссии */
@@ -27482,6 +27530,11 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
+getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | undefined | null},ResolverInputTypes["WithheldTaxPaymentPage"]],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -27543,8 +27596,6 @@ marketplaceGetSearchCategories?: [{	data: ResolverInputTypes["SearchCategoriesIn
 marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInput"]},ResolverInputTypes["MarketplaceShipment"]],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ResolverInputTypes["MarketplaceSupplierPaymentSettings"],
-	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
-	marketplaceGetTaxState?:ResolverInputTypes["MarketplaceTaxState"],
 marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"] | undefined | null},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceListAids?: [{	data?: ResolverInputTypes["MarketplaceListAidsInput"] | undefined | null},ResolverInputTypes["MarketplaceAid"]],
@@ -29304,6 +29355,66 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: AliasType<{
+	/** Сумма платежа */
+	amount?:boolean | `@${string}`,
+	/** Когда кассир подтвердил перевод */
+	completed_at?:boolean | `@${string}`,
+	/** Когда платёж отправлен кассиру */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash?:boolean | `@${string}`,
+	/** Назначение платежа */
+	memo?:boolean | `@${string}`,
+	/** Причина отказа, если кассир не заплатил */
+	message?:boolean | `@${string}`,
+	/** Получатель платежа */
+	recipient_name?:boolean | `@${string}`,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period?:boolean | `@${string}`,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label?:boolean | `@${string}`,
+	/** Год расчётного периода, в который входит платёж */
+	report_year?:boolean | `@${string}`,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?:ResolverInputTypes["WithheldTaxRequisiteRow"],
+	/** Состояние платежа в реестре кассира */
+	status?:boolean | `@${string}`,
+	/** Символ валюты */
+	symbol?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Платежи страницы */
+	items?:ResolverInputTypes["WithheldTaxPayment"],
+	/** Всего платежей */
+	totalCount?:boolean | `@${string}`,
+	/** Всего страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: AliasType<{
+	/** Название реквизита */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["WorkingHours"]: AliasType<{
 	fri?:ResolverInputTypes["WorkingHoursDay"],
 	mon?:ResolverInputTypes["WorkingHoursDay"],
@@ -37896,10 +38007,6 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplacePayTaxInput"]: {
-	/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
-	amount: number
-};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: {
 		/** Идентификатор платёжной заявки. */
@@ -38693,15 +38800,6 @@ export type ModelTypes = {
 	contract_number?: string | undefined | null,
 	/** Новая модель работы */
 	model: ModelTypes["MarketplaceSupplierModel"]
-};
-	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
-["MarketplaceTaxState"]: {
-		/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
-	available: string,
-	/** Отправлено на оплату и ждёт подтверждения кассиром. */
-	in_payment: string,
-	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
-	withheld: string
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -40109,8 +40207,6 @@ export type ModelTypes = {
 	marketplaceGenerateInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: ModelTypes["MarketplaceContainer"],
-	/** Отправить удержанный налог на оплату в бюджет одним платежом: заявка появляется у кассира в реестре исходящих, он платит по реквизитам налоговой и подтверждает перевод. Возвращает сумму, отправленную на оплату. */
-	marketplacePayTax: string,
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -40199,6 +40295,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	payExpenseItem: ModelTypes["Transaction"],
+	/** Отправить удержанный налог на оплату кассиру. Возвращает отправленную сумму
+
+Требуемые роли: chairman.  */
+	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
 
 Требуемые роли: member, chairman.  */
@@ -40998,6 +41098,11 @@ export type ModelTypes = {
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: {
 		/** Сумма платежа с учетом комиссии */
@@ -41987,6 +42092,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
+	/** История перечислений удержанного налога — от новых к старым
+
+Требуемые роли: chairman.  */
+	getWithheldTaxPayments: ModelTypes["WithheldTaxPaymentPage"],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState: ModelTypes["WithheldTaxState"],
 	/** Получить решение собрания участка по хэшу (с вопросами повестки)
 
 Требуемые роли: user, member, chairman.  */
@@ -42089,8 +42202,6 @@ export type ModelTypes = {
 	marketplaceGetShipment: ModelTypes["MarketplaceShipment"],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings: ModelTypes["MarketplaceSupplierPaymentSettings"],
-	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
-	marketplaceGetTaxState: ModelTypes["MarketplaceTaxState"],
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
@@ -43854,6 +43965,62 @@ export type ModelTypes = {
 	auth: string,
 	/** P256DH ключ для шифрования */
 	p256dh: string
+};
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: {
+		/** Сумма платежа */
+	amount: string,
+	/** Когда кассир подтвердил перевод */
+	completed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда платёж отправлен кассиру */
+	created_at: ModelTypes["DateTime"],
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Причина отказа, если кассир не заплатил */
+	message?: string | undefined | null,
+	/** Получатель платежа */
+	recipient_name?: string | undefined | null,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period: number,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label: string,
+	/** Год расчётного периода, в который входит платёж */
+	report_year: number,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?: Array<ModelTypes["WithheldTaxRequisiteRow"]> | undefined | null,
+	/** Состояние платежа в реестре кассира */
+	status: ModelTypes["PaymentStatus"],
+	/** Символ валюты */
+	symbol: string
+};
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Платежи страницы */
+	items: Array<ModelTypes["WithheldTaxPayment"]>,
+	/** Всего платежей */
+	totalCount: number,
+	/** Всего страниц */
+	totalPages: number
+};
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: {
+		/** Название реквизита */
+	label: string,
+	/** Значение реквизита */
+	value: string
+};
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: {
+		/** Доступно к отправке на оплату */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment: string,
+	/** Удержано и ещё не перечислено */
+	withheld: string
 };
 	["WorkingHours"]: {
 		fri?: ModelTypes["WorkingHoursDay"] | undefined | null,
@@ -52942,10 +53109,6 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
-	["MarketplacePayTaxInput"]: {
-		/** Сумма к перечислению в бюджет. Не больше доступной: перечислить можно только то, что удержано с выплат. */
-	amount: number
-};
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
 ["MarketplacePaymentStatusChangedEvent"]: {
 	__typename: "MarketplacePaymentStatusChangedEvent",
@@ -53810,17 +53973,6 @@ export type GraphQLTypes = {
 	contract_number?: string | undefined | null,
 	/** Новая модель работы */
 	model: GraphQLTypes["MarketplaceSupplierModel"]
-};
-	/** Удержанный налог на доходы физических лиц: сколько удержано с выплат материальной помощи, сколько уже отправлено кассиру на оплату и сколько можно отправить сейчас. */
-["MarketplaceTaxState"]: {
-	__typename: "MarketplaceTaxState",
-	/** Доступно к отправке на оплату: удержано за вычетом того, что уже у кассира. */
-	available: string,
-	/** Отправлено на оплату и ждёт подтверждения кассиром. */
-	in_payment: string,
-	/** Удержано и ещё не перечислено в бюджет — текущий долг кооператива. */
-	withheld: string,
-	['...on MarketplaceTaxState']: Omit<GraphQLTypes["MarketplaceTaxState"], "...on MarketplaceTaxState">
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -55283,8 +55435,6 @@ export type GraphQLTypes = {
 	marketplaceGenerateInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: GraphQLTypes["MarketplaceContainer"],
-	/** Отправить удержанный налог на оплату в бюджет одним платежом: заявка появляется у кассира в реестре исходящих, он платит по реквизитам налоговой и подтверждает перевод. Возвращает сумму, отправленную на оплату. */
-	marketplacePayTax: string,
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
@@ -55373,6 +55523,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	payExpenseItem: GraphQLTypes["Transaction"],
+	/** Отправить удержанный налог на оплату кассиру. Возвращает отправленную сумму
+
+Требуемые роли: chairman.  */
+	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
 
 Требуемые роли: member, chairman.  */
@@ -56260,6 +56414,11 @@ export type GraphQLTypes = {
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+		/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: {
 	__typename: "PaymentDetails",
@@ -57320,6 +57479,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
+	/** История перечислений удержанного налога — от новых к старым
+
+Требуемые роли: chairman.  */
+	getWithheldTaxPayments: GraphQLTypes["WithheldTaxPaymentPage"],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState: GraphQLTypes["WithheldTaxState"],
 	/** Получить решение собрания участка по хэшу (с вопросами повестки)
 
 Требуемые роли: user, member, chairman.  */
@@ -57422,8 +57589,6 @@ export type GraphQLTypes = {
 	marketplaceGetShipment: GraphQLTypes["MarketplaceShipment"],
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
-	/** Удержанный с материальной помощи налог на доходы физических лиц: сколько удержано и ещё не перечислено в бюджет, сколько уже отправлено кассиру и сколько можно отправить на оплату сейчас. */
-	marketplaceGetTaxState: GraphQLTypes["MarketplaceTaxState"],
 	/** Получить заявки текущего пользователя
 
 Требуемые роли: member, chairman.  */
@@ -59299,6 +59464,70 @@ export type GraphQLTypes = {
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: {
+	__typename: "WithheldTaxPayment",
+	/** Сумма платежа */
+	amount: string,
+	/** Когда кассир подтвердил перевод */
+	completed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда платёж отправлен кассиру */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Причина отказа, если кассир не заплатил */
+	message?: string | undefined | null,
+	/** Получатель платежа */
+	recipient_name?: string | undefined | null,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period: number,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label: string,
+	/** Год расчётного периода, в который входит платёж */
+	report_year: number,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?: Array<GraphQLTypes["WithheldTaxRequisiteRow"]> | undefined | null,
+	/** Состояние платежа в реестре кассира */
+	status: GraphQLTypes["PaymentStatus"],
+	/** Символ валюты */
+	symbol: string,
+	['...on WithheldTaxPayment']: Omit<GraphQLTypes["WithheldTaxPayment"], "...on WithheldTaxPayment">
+};
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: {
+	__typename: "WithheldTaxPaymentPage",
+	/** Текущая страница */
+	currentPage: number,
+	/** Платежи страницы */
+	items: Array<GraphQLTypes["WithheldTaxPayment"]>,
+	/** Всего платежей */
+	totalCount: number,
+	/** Всего страниц */
+	totalPages: number,
+	['...on WithheldTaxPaymentPage']: Omit<GraphQLTypes["WithheldTaxPaymentPage"], "...on WithheldTaxPaymentPage">
+};
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: {
+	__typename: "WithheldTaxRequisiteRow",
+	/** Название реквизита */
+	label: string,
+	/** Значение реквизита */
+	value: string,
+	['...on WithheldTaxRequisiteRow']: Omit<GraphQLTypes["WithheldTaxRequisiteRow"], "...on WithheldTaxRequisiteRow">
+};
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: {
+	__typename: "WithheldTaxState",
+	/** Доступно к отправке на оплату */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment: string,
+	/** Удержано и ещё не перечислено */
+	withheld: string,
+	['...on WithheldTaxState']: Omit<GraphQLTypes["WithheldTaxState"], "...on WithheldTaxState">
+};
 	["WorkingHours"]: {
 	__typename: "WorkingHours",
 	fri?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
@@ -60591,7 +60820,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
-	["MarketplacePayTaxInput"]: ValueTypes["MarketplacePayTaxInput"];
 	["MarketplacePublishStockInput"]: ValueTypes["MarketplacePublishStockInput"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
@@ -60678,6 +60906,7 @@ type ZEUS_VARIABLES = {
 	["ParticipantApplicationSignedMetaDocumentInput"]: ValueTypes["ParticipantApplicationSignedMetaDocumentInput"];
 	["PassportInput"]: ValueTypes["PassportInput"];
 	["PayExpenseItemInput"]: ValueTypes["PayExpenseItemInput"];
+	["PayWithheldTaxInput"]: ValueTypes["PayWithheldTaxInput"];
 	["PaymentDirection"]: ValueTypes["PaymentDirection"];
 	["PaymentFileKind"]: ValueTypes["PaymentFileKind"];
 	["PaymentFiltersInput"]: ValueTypes["PaymentFiltersInput"];

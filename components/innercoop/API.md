@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 254.
+Всего экспортов: 260.
 
 ## ACCOUNT_PORT
 
@@ -1743,6 +1743,47 @@
 - `available?: string`
 - `blocked?: string`
 
+## InnerWithheldTaxPage
+
+`interface` · cross-plugin-ports
+
+- `items: InnerWithheldTaxPayment[]`
+- `totalCount: number`
+- `totalPages: number`
+- `currentPage: number`
+
+## InnerWithheldTaxPageRequest
+
+`interface` · cross-plugin-ports
+
+- `page: number`
+- `limit: number`
+- `sortOrder: 'ASC' | 'DESC'`
+
+## InnerWithheldTaxPayment
+
+`interface` · cross-plugin-ports
+
+- `hash: string`
+- `amount: string`
+- `symbol: string`
+- `memo: string`
+- `status: string`
+- `message?: string`
+- `recipient_name?: string`
+- `requisite_rows?: { label: string`
+- `value: string }[]`
+- `created_at: Date`
+- `completed_at?: Date`
+
+## InnerWithheldTaxState
+
+`interface` · cross-plugin-ports
+
+- `withheld: string`
+- `in_payment: string`
+- `available: string`
+
 ## INotificationPort
 
 `interface` · core-ports
@@ -1972,6 +2013,14 @@
 `interface` · core-ports
 
 - `getWif(username: string, permission?: InnerKeyPermission): Promise<string | null>`
+
+## IWithheldTaxPort
+
+`interface` · cross-plugin-ports
+
+- `getState(coopname: string): Promise<InnerWithheldTaxState>`
+- `listPayments(coopname: string, page: InnerWithheldTaxPageRequest): Promise<InnerWithheldTaxPage>`
+- `createPayment(coopname: string, amount: number): Promise<string>`
 
 ## LEDGER2_HISTORY_PORT
 
@@ -2247,3 +2296,9 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Vault')`
+
+## WITHHELD_TAX_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.WithheldTax')`

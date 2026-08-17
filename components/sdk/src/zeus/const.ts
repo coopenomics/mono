@@ -1198,9 +1198,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
-	MarketplacePayTaxInput:{
-
-	},
 	MarketplacePublishStockInput:{
 
 	},
@@ -2136,9 +2133,6 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceMoveContainer:{
 			data:"MarketplaceMoveContainerInput"
 		},
-		marketplacePayTax:{
-			data:"MarketplacePayTaxInput"
-		},
 		marketplacePublishStock:{
 			data:"MarketplacePublishStockInput"
 		},
@@ -2246,6 +2240,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		payExpenseItem:{
 			data:"PayExpenseItemInput"
+		},
+		payWithheldTax:{
+			data:"PayWithheldTaxInput"
 		},
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
@@ -2405,6 +2402,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	PayExpenseItemInput:{
+
+	},
+	PayWithheldTaxInput:{
 
 	},
 	PaymentDirection: "enum" as const,
@@ -2828,6 +2828,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
+		},
+		getWithheldTaxPayments:{
+
 		},
 		kuDecision:{
 
@@ -6209,11 +6212,6 @@ export const ReturnTypes: Record<string,any> = {
 		payout_destination:"String",
 		payout_method_id:"String"
 	},
-	MarketplaceTaxState:{
-		available:"String",
-		in_payment:"String",
-		withheld:"String"
-	},
 	MarketplaceTrusteeWeight:{
 		personal_balance:"String",
 		share_percent:"Float",
@@ -6675,7 +6673,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceMoveContainer:"MarketplaceContainer",
-		marketplacePayTax:"String",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
@@ -6712,6 +6709,7 @@ export const ReturnTypes: Record<string,any> = {
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
 		overspendExpenseItem:"Transaction",
 		payExpenseItem:"Transaction",
+		payWithheldTax:"String",
 		processConvertToAxonStatement:"Boolean",
 		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
@@ -7411,6 +7409,8 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
+		getWithheldTaxPayments:"WithheldTaxPaymentPage",
+		getWithheldTaxState:"WithheldTaxState",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
@@ -7452,7 +7452,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
-		marketplaceGetTaxState:"MarketplaceTaxState",
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceListAids:"MarketplaceAid",
@@ -7875,6 +7874,36 @@ export const ReturnTypes: Record<string,any> = {
 		updatedAt:"DateTime",
 		userAgent:"String",
 		username:"String"
+	},
+	WithheldTaxPayment:{
+		amount:"String",
+		completed_at:"DateTime",
+		created_at:"DateTime",
+		hash:"String",
+		memo:"String",
+		message:"String",
+		recipient_name:"String",
+		report_period:"Int",
+		report_period_label:"String",
+		report_year:"Int",
+		requisite_rows:"WithheldTaxRequisiteRow",
+		status:"PaymentStatus",
+		symbol:"String"
+	},
+	WithheldTaxPaymentPage:{
+		currentPage:"Int",
+		items:"WithheldTaxPayment",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	WithheldTaxRequisiteRow:{
+		label:"String",
+		value:"String"
+	},
+	WithheldTaxState:{
+		available:"String",
+		in_payment:"String",
+		withheld:"String"
 	},
 	WorkingHours:{
 		fri:"WorkingHoursDay",

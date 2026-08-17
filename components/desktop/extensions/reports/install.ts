@@ -13,6 +13,7 @@ import {
   DocumentsCalendarPage,
   DocumentsFormsPage,
   DocumentsArchivePage,
+  NdflPage,
   SettingsPage,
 } from './pages';
 
@@ -186,6 +187,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
             ],
+          },
+          {
+            // Перечисление удержанного налога — не реестр и не форма, а
+            // обязанность налогового агента со своим жизненным циклом,
+            // поэтому у неё свой раздел рядом с отчётностью.
+            path: 'ndfl',
+            name: 'reports-ndfl',
+            component: markRaw(NdflPage),
+            meta: {
+              title: 'НДФЛ',
+              icon: 'account_balance',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
           },
           {
             path: 'settings',

@@ -3,8 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { AmountInput, PageHint } from 'src/shared/ui/domain'
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
-import { getEconomyConfig, getTaxState, payTax, setMembershipFee } from '../api'
+import { getEconomyConfig, setMembershipFee } from '../api'
 
 /**
  * Стол администратора → «Экономика» (requirement b6): единая ставка
@@ -23,18 +22,6 @@ const saving = ref(false)
 const dialogOpen = ref(false)
 const currentPercent = ref(0)
 const draftPercent = ref<number>(0)
-
-// Удержанный НДФЛ (решение 2026-08-13). Кооператив — налоговый агент по
-// материальной помощи: налог удержан при выплате, но с расчётного счёта не
-// ушёл — он висит долгом перед бюджетом. Платится не по каждой выплате, а
-// общей суммой за период: бухгалтер отправляет накопленное, кассир платит.
-const taxLoading = ref(false)
-const taxPaying = ref(false)
-const taxDialogOpen = ref(false)
-const taxWithheld = ref('')
-const taxInPayment = ref('')
-const taxAvailable = ref('')
-const draftTaxAmount = ref<number>(0)
 
 const displayValue = computed(() => currentPercent.value.toFixed(2).replace('.', ','))
 const changed = computed(() => Number(draftPercent.value) !== currentPercent.value)
@@ -70,58 +57,8 @@ async function onSave(): Promise<void> {
   }
 }
 
-function assetToNumber(asset: string): number {
-  const parsed = Number.parseFloat((asset || '').split(' ')[0] ?? '0')
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-const taxWithheldDisplay = computed(() => formatAsset2Digits(taxWithheld.value || '0.0000 RUB'))
-const taxInPaymentDisplay = computed(() => formatAsset2Digits(taxInPayment.value || '0.0000 RUB'))
-const taxAvailableDisplay = computed(() => formatAsset2Digits(taxAvailable.value || '0.0000 RUB'))
-const taxAvailableAmount = computed(() => assetToNumber(taxAvailable.value))
-const hasTaxInPayment = computed(() => assetToNumber(taxInPayment.value) > 0)
-const canPayTax = computed(
-  () => draftTaxAmount.value > 0 && draftTaxAmount.value <= taxAvailableAmount.value,
-)
-
-async function loadTax(): Promise<void> {
-  taxLoading.value = true
-  try {
-    const state = await getTaxState()
-    taxWithheld.value = state.withheld
-    taxInPayment.value = state.in_payment
-    taxAvailable.value = state.available
-  } catch (e) {
-    FailAlert(e, 'Не удалось загрузить удержанный налог')
-  } finally {
-    taxLoading.value = false
-  }
-}
-
-function openTaxDialog(): void {
-  // Платят обычно всё накопленное — предзаполняем, но оставляем правку:
-  // часть суммы может относиться к следующему сроку перечисления.
-  draftTaxAmount.value = taxAvailableAmount.value
-  taxDialogOpen.value = true
-}
-
-async function onPayTax(): Promise<void> {
-  taxPaying.value = true
-  try {
-    const paid = await payTax({ amount: Number(draftTaxAmount.value) })
-    taxDialogOpen.value = false
-    SuccessAlert(`Отправлено на оплату: ${formatAsset2Digits(paid)}. Заявка ушла кассиру.`)
-    await loadTax()
-  } catch (e) {
-    FailAlert(e, 'Не удалось отправить налог на оплату')
-  } finally {
-    taxPaying.value = false
-  }
-}
-
 onMounted(() => {
   void load()
-  void loadTax()
 })
 </script>
 
@@ -151,49 +88,6 @@ q-page.admin-economy
       template(#icon-left)
         q-icon(name='edit', size='16px')
       | Изменить
-
-  .admin-economy__card
-    .admin-economy__stat
-      .admin-economy__label Удержанный налог к перечислению
-      .admin-economy__value
-        span.admin-economy__amount {{ taxWithheldDisplay }}
-      .admin-economy__caption
-        template(v-if='hasTaxInPayment')
-          | из них {{ taxInPaymentDisplay }} уже у кассира на оплате
-        template(v-else)
-          | НДФЛ, удержанный с материальной помощи доверенным
-    BaseButton.admin-economy__edit(
-      variant='secondary',
-      size='sm',
-      :disabled='taxLoading || taxAvailableAmount <= 0',
-      @click='openTaxDialog'
-    )
-      template(#icon-left)
-        q-icon(name='account_balance', size='16px')
-      | Отправить на оплату
-
-  BaseDialog(v-model='taxDialogOpen', title='Перечисление налога в бюджет', size='sm')
-    p.admin-economy__dialog-hint
-      | Заявка уйдёт кассиру в реестр исходящих платежей — он перечислит сумму
-      | по реквизитам налоговой и подтвердит перевод. Доступно к перечислению
-      | {{ taxAvailableDisplay }}: больше удержанного отправить нельзя.
-    AmountInput(
-      v-model='draftTaxAmount',
-      label='Сумма платежа',
-      symbol='₽',
-      :precision='2',
-      :min='0',
-      :max='taxAvailableAmount',
-      :disabled='taxPaying'
-    )
-    template(#footer)
-      BaseButton(variant='ghost', :disabled='taxPaying', @click='taxDialogOpen = false') Отмена
-      BaseButton(
-        variant='primary',
-        :loading='taxPaying',
-        :disabled='!canPayTax',
-        @click='onPayTax'
-      ) Отправить
 
   BaseDialog(v-model='dialogOpen', title='Кооперативная наценка', size='sm')
     p.admin-economy__dialog-hint

@@ -1,10 +1,10 @@
-import { marketplaceTaxStateSelector } from '../../selectors/marketplace/economySelector'
+import { withheldTaxStateSelector } from '../../selectors/reports/withheldTaxSelector'
 import { type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceGetTaxState'
+export const name = 'getWithheldTaxState'
 
 export const query = Selector('Query')({
-  [name]: marketplaceTaxStateSelector,
+  [name]: withheldTaxStateSelector,
 })
 
 export interface IInput {
