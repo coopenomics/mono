@@ -22,7 +22,7 @@ sources:
     - components/controller/src/domain/common/ports/redis.port.ts
     - components/controller/src/infrastructure/redis/redis.service.ts
   ui:
-    - components/desktop/src/processes/watch-desktop-health/index.ts
+    - components/desktop/src/entities/System/ui/NodeSyncOverlay/NodeSyncOverlay.vue
     - components/desktop/src/entities/System/model/store.ts
     - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
     - components/desktop/src/entities/System/ui/NodeSyncIndicator/NodeSyncIndicator.vue
@@ -180,8 +180,9 @@ cases:
     scenario: >
       Узел ушёл в догон, пока пайщик работает на рабочем столе.
     expect: >
-      рабочий стол закрывается заглушкой с остатком блоков и оценкой времени и
-      открывается сам после догона, без перезагрузки страницы
+      рабочий стол закрывается экраном догона: доля прочитанного растёт от нуля
+      к ста процентам, видны остаток блоков и оценка времени; экран уходит сам
+      после догона, без перезагрузки страницы
     status: missing
 
   - id: sync.ind.ui.02
@@ -190,5 +191,5 @@ cases:
     scenario: >
       Узел вне синхронизации, пайщик открывает мастер установки.
     expect: >
-      заглушка страницу установки не перекрывает — чинить узел она не мешает
+      экран догона страницу установки не перекрывает — чинить узел он не мешает
     status: missing

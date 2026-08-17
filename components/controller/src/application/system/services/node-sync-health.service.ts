@@ -28,11 +28,12 @@ export const NODE_SYNC_STATE_TOPIC = 'system:node-sync-state';
 @Injectable()
 export class NodeSyncHealthService {
   /**
-   * Отставание, о котором стоит сообщить повторно при том же статусе. Меньшая
-   * разница на догоне в сотни тысяч блоков ничего не меняет для ожидающего.
+   * Отставание, о котором стоит сообщить повторно при том же статусе. Планка
+   * низкая намеренно: рабочий стол рисует полосу догона, и она обязана расти
+   * на глазах. Чаще тика публикации всё равно не будет.
    */
-  private static readonly NOTABLE_LAG_CHANGE_RATIO = 0.05;
-  private static readonly NOTABLE_LAG_CHANGE_BLOCKS = 50;
+  private static readonly NOTABLE_LAG_CHANGE_RATIO = 0.01;
+  private static readonly NOTABLE_LAG_CHANGE_BLOCKS = 10;
   /** Сглаживание скорости догона: одиночный медленный тик не должен ломать оценку. */
   private static readonly RATE_SMOOTHING = 0.3;
 
