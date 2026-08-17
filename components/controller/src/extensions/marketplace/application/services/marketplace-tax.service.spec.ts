@@ -10,6 +10,8 @@ function makeService(overrides?: {
   walletBalance?: string | null;
   taxRows?: Array<{ amount: string }>;
   chainThrows?: boolean;
+  /** Страна регистрации кооператива — от неё зависят реквизиты бюджета. */
+  country?: string | null;
 }) {
   // `??` здесь не годится: тест «кошелька ещё нет» передаёт null осознанно,
   // и подстановка дефолта его бы обесценила.
@@ -28,12 +30,17 @@ function makeService(overrides?: {
     setPaymentStatus: jest.fn().mockResolvedValue({}),
   };
 
+  const orgRepo = {
+    findByUsername: jest.fn().mockResolvedValue({ country: overrides?.country ?? 'Russia' }),
+  };
+
   const service = new MarketplaceTaxService(
     chainPort as any,
     ASSET_CONFIG as any,
-    coreGateway as any
+    coreGateway as any,
+    orgRepo as any
   );
-  return { service, chainPort, coreGateway };
+  return { service, chainPort, coreGateway, orgRepo };
 }
 
 describe('MarketplaceTaxService — перечисление удержанного НДФЛ', () => {
@@ -154,6 +161,19 @@ describe('MarketplaceTaxService — перечисление удержанно�
       // КПП получателя сменился 05.12.2025 — старое значение 770801001 платёж
       // уже не идентифицирует.
       expect(rows.find((r) => r.label === 'КПП получателя')?.value).toBe('770701001');
+    });
+
+    it('страна кооператива системе неизвестна — заявка всё равно создаётся, реквизиты кассир заполнит сам', async () => {
+      const { service, coreGateway } = makeService({
+        walletBalance: '1300.0000 RUB',
+        country: 'Georgia',
+      });
+
+      await service.createTaxPayment(COOPNAME, 1300);
+
+      const call = coreGateway.createSystemOutgoingPayment.mock.calls[0][0];
+      expect(call.payment_details).toBeUndefined();
+      expect(call.memo).toBe('Перечисление удержанного НДФЛ');
     });
 
     it('цепь отказала — платёж кассира гасится, иначе он заплатит по несуществующей заявке', async () => {

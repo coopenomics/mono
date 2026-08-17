@@ -8,7 +8,8 @@ import type {
   Ndfl6EditsShape,
   Ndfl6TaxShape,
 } from '../../domain/edits-shapes/ndfl6-edits.shape';
-import { NDFL6_KBK, NDFL6_RATE } from '../../domain/edits-shapes/ndfl6-edits.shape';
+import { getNdflParams } from '../../domain/services/ndfl-reference';
+import type { PersonalIncomeTax } from '@coopenomics/jurisdictions';
 import {
   addFlexibleSignerFromShape,
   addHeaderMeta,
@@ -103,13 +104,17 @@ export class Ndfl6Generator implements IReportGenerator {
 
     addFlexibleSignerFromShape(dokument, signer);
 
+    // Ставка и КБК — на отчётный год, а не на сегодня: пересобранный
+    // прошлогодний отчёт обязан совпасть с тем, что сдавали.
+    const params = getNdflParams(header.reportYear);
+
     const ndfl = dokument.ele('НДФЛ6.2');
-    this.addSection1(ndfl, tax);
-    this.addSection2(ndfl, tax);
+    this.addSection1(ndfl, tax, params);
+    this.addSection2(ndfl, tax, params);
 
     if (PERIODS_WITH_CERTIFICATES.has(periodCode)) {
       for (const certificate of edits.certificates ?? []) {
-        this.addCertificate(ndfl, certificate);
+        this.addCertificate(ndfl, certificate, params);
       }
     }
 
@@ -121,9 +126,13 @@ export class Ndfl6Generator implements IReportGenerator {
   }
 
   /** Раздел 1 — обязательства налогового агента. */
-  private addSection1(parent: ReturnType<typeof createXmlDoc>, tax: Ndfl6TaxShape): void {
+  private addSection1(
+    parent: ReturnType<typeof createXmlDoc>,
+    tax: Ndfl6TaxShape,
+    params: PersonalIncomeTax,
+  ): void {
     const obyaz = parent.ele('ОбязНА')
-      .att('КБК', NDFL6_KBK)
+      .att('КБК', params.kbk)
       .att('СумНалУд', this.formatTax(tax.withheldTotal))
       .att('СумНалВоз', '0');
 
@@ -143,10 +152,14 @@ export class Ndfl6Generator implements IReportGenerator {
   }
 
   /** Раздел 2 — расчёт исчисленных и удержанных сумм. */
-  private addSection2(parent: ReturnType<typeof createXmlDoc>, tax: Ndfl6TaxShape): void {
+  private addSection2(
+    parent: ReturnType<typeof createXmlDoc>,
+    tax: Ndfl6TaxShape,
+    params: PersonalIncomeTax,
+  ): void {
     const rasch = parent.ele('РасчСумНал')
-      .att('Ставка', String(NDFL6_RATE))
-      .att('КБК', NDFL6_KBK)
+      .att('Ставка', String(params.ratePercent))
+      .att('КБК', params.kbk)
       .att('КолФЛ', String(tax.peopleCount))
       // Высококвалифицированных специалистов у кооператива нет — это статус
       // иностранного работника по трудовому договору, а матпомощь платится
@@ -198,6 +211,7 @@ export class Ndfl6Generator implements IReportGenerator {
   private addCertificate(
     parent: ReturnType<typeof createXmlDoc>,
     certificate: Ndfl6CertificateShape,
+    params: PersonalIncomeTax,
   ): void {
     const sprav = parent.ele('СправДох')
       .att('НомСпр', String(certificate.number))
@@ -221,8 +235,8 @@ export class Ndfl6Generator implements IReportGenerator {
     poluch.up();
 
     const sved = sprav.ele('СведДох')
-      .att('Ставка', String(NDFL6_RATE))
-      .att('КБК', NDFL6_KBK);
+      .att('Ставка', String(params.ratePercent))
+      .att('КБК', params.kbk);
 
     sved.ele('СумИтНалПер')
       .att('СумДохОбщ', this.formatMoney(certificate.incomeTotal))

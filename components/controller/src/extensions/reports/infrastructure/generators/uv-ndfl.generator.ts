@@ -4,7 +4,7 @@ import type {
   ReportOutput,
 } from '../../domain/interfaces/report-generator.interface';
 import type { UvNdflEditsShape } from '../../domain/edits-shapes/uv-ndfl-edits.shape';
-import { UV_NDFL_KBK } from '../../domain/edits-shapes/uv-ndfl-edits.shape';
+import { getNdflParams } from '../../domain/services/ndfl-reference';
 import { createXmlDoc, formatDate, getTaxOfficeCode } from './xml-utils';
 
 /**
@@ -87,7 +87,7 @@ export class UvNdflGenerator implements IReportGenerator {
     dokument.ele('УвИсчСумНалог')
       .att('КППДекл', organization.kpp)
       .att('ОКТМО', organization.oktmo ?? '')
-      .att('КБК', UV_NDFL_KBK)
+      .att('КБК', getNdflParams(header.reportYear).kbk)
       .att('СумНалогАванс', String(Math.round(edits.payment?.amount ?? 0)))
       .att('Период', quarterCode[quarter])
       .att('НомерМесКварт', monthCode)

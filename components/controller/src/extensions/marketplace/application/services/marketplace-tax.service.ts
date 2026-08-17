@@ -16,8 +16,12 @@ import { rethrowChainError } from '../shared/chain-tx.util';
 import {
   getTaxTransferRequisites,
   type TaxTransferRequisites,
-} from '../../domain/services/tax-transfer-requisites';
+} from '@coopenomics/jurisdictions';
 import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
+import {
+  ORGANIZATION_REPOSITORY,
+  type OrganizationRepository,
+} from '~/domain/common/repositories/organization.repository';
 
 /** Кошелёк удержанного НДФЛ — его остаток и есть долг кооператива перед бюджетом. */
 const NDFL_WALLET = 'w.brn.ndfl';
@@ -57,8 +61,28 @@ export class MarketplaceTaxService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort
+    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(ORGANIZATION_REPOSITORY)
+    private readonly orgRepo: OrganizationRepository
   ) {}
+
+  /**
+   * Реквизиты бюджета на сегодня для страны кооператива. Страна берётся из
+   * профиля организации, а не подразумевается: платить налог одинаково во всех
+   * странах нельзя, а справочник для неизвестной страны честно молчит.
+   */
+  private async loadTaxRequisites(coopname: string): Promise<TaxTransferRequisites | null> {
+    let country: string | null = null;
+    try {
+      country = (await this.orgRepo.findByUsername(coopname))?.country ?? null;
+    } catch (e) {
+      this.logger.warn(
+        `Не удалось определить страну кооператива ${coopname}: ` +
+          `${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+    return getTaxTransferRequisites(country, new Date());
+  }
 
   private formatAsset(amount: number): string {
     return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
@@ -126,7 +150,7 @@ export class MarketplaceTaxService {
     // Core-платёж создаётся до отправки на цепь — кассиру нужна заявка, даже
     // если цепь ответит не сразу. Получателем платежа стоит сам кооператив:
     // деньги уходят в бюджет, пайщика-получателя здесь нет.
-    const requisites = getTaxTransferRequisites();
+    const requisites = await this.loadTaxRequisites(coopname);
     try {
       await this.coreGateway.createSystemOutgoingPayment({
         coopname,

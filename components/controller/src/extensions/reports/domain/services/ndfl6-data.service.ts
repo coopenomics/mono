@@ -7,8 +7,8 @@ import {
 } from '~/domain/common/repositories/individual.repository';
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
 import { uvNdflPeriodOf } from '../enums/report-type.enum';
+import { getNdflParams, getTaxTimezoneOffsetMinutes } from './ndfl-reference';
 import {
-  NDFL6_INCOME_CODE,
   type Ndfl6CertificateShape,
   type Ndfl6MonthlyIncomeShape,
   type Ndfl6TaxShape,
@@ -32,14 +32,6 @@ import {
  * не входит: 6-НДФЛ показывает исчисленное и удержанное, а не то, дошли ли
  * деньги до бюджета.
  */
-
-/**
- * Смещение московского времени. Блокчейн штампует блоки в UTC, а сроки
- * перечисления НДФЛ считаются по российскому календарю: выплата в 23:30 UTC
- * 22-го числа произошла уже 23-го по Москве и попадает в следующий срок.
- * Кооперативы работают в российской юрисдикции, поэтому пояс фиксированный.
- */
-const MOSCOW_UTC_OFFSET_MINUTES = 180;
 
 /** Код статуса: 1 — налогоплательщик является налоговым резидентом РФ. */
 const TAXPAYER_STATUS_RESIDENT = '1';
@@ -163,7 +155,7 @@ export class Ndfl6DataService {
     for (const username of [...byUsername.keys()].sort()) {
       const list = byUsername.get(username) ?? [];
       const individual = await this.findIndividual(username);
-      certificates.push(this.buildCertificate(username, number, list, individual));
+      certificates.push(this.buildCertificate(username, number, list, individual, year));
       number += 1;
     }
     return certificates;
@@ -303,6 +295,7 @@ export class Ndfl6DataService {
     number: number,
     payouts: AidPayout[],
     individual: IndividualDomainInterface | null,
+    year: number,
   ): Ndfl6CertificateShape {
     const monthlyMinor = new Map<number, number>();
     let incomeMinor = 0;
@@ -313,11 +306,14 @@ export class Ndfl6DataService {
       monthlyMinor.set(p.month, (monthlyMinor.get(p.month) ?? 0) + p.grossMinor);
     }
 
+    // Код вида дохода берётся на отчётный год: справка за прошлый год должна
+    // пересобраться такой же, какой её сдавали.
+    const incomeCode = getNdflParams(year).aidIncomeCode;
     const monthlyIncome: Ndfl6MonthlyIncomeShape[] = [...monthlyMinor.keys()]
       .sort((a, b) => a - b)
       .map((month) => ({
         month,
-        incomeCode: NDFL6_INCOME_CODE,
+        incomeCode,
         amount: this.fromMinor(monthlyMinor.get(month) ?? 0),
       }));
 
@@ -382,7 +378,7 @@ export class Ndfl6DataService {
   }
 
   private toMoscowParts(date: Date): MoscowDateParts {
-    const shifted = new Date(date.getTime() + MOSCOW_UTC_OFFSET_MINUTES * 60_000);
+    const shifted = new Date(date.getTime() + getTaxTimezoneOffsetMinutes() * 60_000);
     return {
       year: shifted.getUTCFullYear(),
       month: shifted.getUTCMonth() + 1,

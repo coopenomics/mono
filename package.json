@@ -79,7 +79,7 @@
     "mutate:changed": "bash scripts/mutate-changed.sh",
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",
     "test:ci": "pnpm run test:unit && pnpm run test:component",
-    "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
+    "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/jurisdictions run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
     "test:component": "SOURCE=local NODE_ENV=test SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory run test",
     "test:integration": "bash scripts/run-integration-tests.sh",
     "test:ui:marketplace": "node components/docs-harness/bin/run-marketplace-all.mjs",
