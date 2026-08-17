@@ -835,9 +835,14 @@ function goToRequisites(): void {
   position: relative;
 }
 
+// Отступы и зазор между карточками живут здесь, а не внутри форм: разделы
+// 6-НДФЛ и уведомления — соседи ZeroReportEditor, и без общего контейнера они
+// прижимались к краям диалога и слипались с формой над ними.
 .editor-stack {
   display: flex;
   flex-direction: column;
+  gap: var(--p-4, 16px);
+  padding: var(--p-3, 12px);
 }
 
 .action-panel {

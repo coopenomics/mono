@@ -13,6 +13,11 @@ import {
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { rethrowChainError } from '../shared/chain-tx.util';
+import {
+  getTaxTransferRequisites,
+  type TaxTransferRequisites,
+} from '../../domain/services/tax-transfer-requisites';
+import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 
 /** Кошелёк удержанного НДФЛ — его остаток и есть долг кооператива перед бюджетом. */
 const NDFL_WALLET = 'w.brn.ndfl';
@@ -120,20 +125,21 @@ export class MarketplaceTaxService {
 
     // Core-платёж создаётся до отправки на цепь — кассиру нужна заявка, даже
     // если цепь ответит не сразу. Получателем платежа стоит сам кооператив:
-    // деньги уходят в бюджет, пайщика-получателя здесь нет. Реквизиты
-    // налоговой кассир знает сам, поэтому payment_method_id не передаётся.
+    // деньги уходят в бюджет, пайщика-получателя здесь нет.
+    const requisites = getTaxTransferRequisites();
     try {
       await this.coreGateway.createSystemOutgoingPayment({
         coopname,
         username: coopname,
         quantity: amount,
         symbol: this.assetConfig.symbol,
-        memo: 'Единый налоговый платёж (НДФЛ)',
+        memo: requisites?.memo ?? 'Перечисление удержанного НДФЛ',
         type: PaymentTypeEnum.TAX,
         status: PaymentStatusEnum.PENDING,
         related_extension: 'marketplace',
         related_entity_id: taxHash,
         payment_hash: taxHash,
+        ...this.budgetPaymentDetails(asset, requisites),
       });
     } catch (e: any) {
       throw new BadRequestException(
@@ -157,6 +163,34 @@ export class MarketplaceTaxService {
 
     this.logger.log(`Налоговый платёж ${taxHash.slice(0, 8)}: отправлено на оплату ${asset}`);
     return asset;
+  }
+
+  /**
+   * Реквизиты бюджета снимком в деталях платежа. Платёжного метода у такой
+   * выплаты нет — реквизиты налоговой не принадлежат никому из пайщиков, а
+   * кассиру они нужны в карточке платежа, а не в его памяти. Для страны, чьи
+   * реквизиты системе неизвестны, деталей нет: заявка всё равно создаётся, и
+   * кассир заполняет платёжку сам, как делал раньше.
+   */
+  private budgetPaymentDetails(
+    asset: string,
+    requisites: TaxTransferRequisites | null
+  ): Pick<CreateSystemOutgoingPaymentInputDomainInterface, 'payment_details'> | Record<string, never> {
+    if (!requisites) return {};
+    return {
+      payment_details: {
+        data: {
+          recipient_name: requisites.recipientName,
+          requisite_rows: requisites.rows,
+        },
+        amount_plus_fee: asset,
+        amount_without_fee: asset,
+        fee_amount: '0',
+        fee_percent: 0,
+        fact_fee_percent: 0,
+        tolerance_percent: 0,
+      },
+    };
   }
 
   /** Отменить core-платёж, если заявка не дошла до цепи. */

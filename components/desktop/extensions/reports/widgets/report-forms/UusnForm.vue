@@ -54,7 +54,7 @@
           td.code {{ uv.period || '—' }} ({{ periodLabel(uv.period) }})
         tr
           td Номер месяца (квартала)
-          td.code {{ uv.nomerMesKvart || '—' }}
+          td.code {{ uv.nomerMesKvart || '—' }} ({{ monthCodeLabel }})
         tr
           td Отчётный год
           td.code {{ uv.god || header.year }}
@@ -124,6 +124,26 @@ function periodLabel(code: string): string {
   }
   return code
 }
+
+/** КБК НДФЛ по ставке 13 % — по нему отличаем уведомление налогового агента. */
+const NDFL_KBK = '18210102010011000110'
+
+/**
+ * Расшифровка номера месяца в квартале. У НДФЛ своя нумерация: 01/02/03 —
+ * налог, удержанный с 1 по 22 число месяца, 11/12/13 — с 23 по последнее
+ * число. У остальных налогов кодов 11/12/13 не бывает, и цифра означает
+ * просто порядковый месяц квартала — поэтому расшифровка зависит от КБК.
+ */
+const monthCodeLabel = computed(() => {
+  const code = uv.value.nomerMesKvart
+  if (!code) return '—'
+  const n = Number(code)
+  if (!Number.isFinite(n)) return code
+  if (uv.value.kbk !== NDFL_KBK) return `${n}-й месяц квартала`
+  if (n >= 11 && n <= 13) return `${n - 10}-й месяц квартала, с 23 по последнее число`
+  if (n >= 1 && n <= 3) return `${n}-й месяц квартала, с 1 по 22 число`
+  return code
+})
 
 const fullSignerName = computed(() => {
   const h = header.value

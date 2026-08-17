@@ -139,6 +139,23 @@ describe('MarketplaceTaxService — перечисление удержанно�
       expect(coreGateway.createSystemOutgoingPayment).not.toHaveBeenCalled();
     });
 
+    it('кассир получает назначение платежа и реквизиты бюджета — заполнять их вручную не надо', async () => {
+      const { service, coreGateway } = makeService({ walletBalance: '1300.0000 RUB' });
+
+      await service.createTaxPayment(COOPNAME, 1300);
+
+      const call = coreGateway.createSystemOutgoingPayment.mock.calls[0][0];
+      // С 01.04.2026 назначением платежа на единый налоговый счёт служит
+      // аббревиатура «ЕНП» — прежняя расшифровка больше не канон.
+      expect(call.memo).toBe('ЕНП');
+      expect(call.payment_details.data.recipient_name).toBe('Казначейство России (ФНС России)');
+      const rows: Array<{ label: string; value: string }> = call.payment_details.data.requisite_rows;
+      expect(rows.find((r) => r.label === 'КБК')?.value).toBe('18201061201010000510');
+      // КПП получателя сменился 05.12.2025 — старое значение 770801001 платёж
+      // уже не идентифицирует.
+      expect(rows.find((r) => r.label === 'КПП получателя')?.value).toBe('770701001');
+    });
+
     it('цепь отказала — платёж кассира гасится, иначе он заплатит по несуществующей заявке', async () => {
       const { service, coreGateway } = makeService({
         walletBalance: '1300.0000 RUB',

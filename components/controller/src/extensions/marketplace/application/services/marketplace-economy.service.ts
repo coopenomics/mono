@@ -57,7 +57,7 @@ import { INTER_EXPENSE_CHASSIS, type InterExpenseChassisPort } from '@coopenomic
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
-import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { PaymentTypeEnum, VAT_EXEMPT_NOTE } from '~/domain/gateway/enums/payment-type.enum';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
@@ -664,9 +664,11 @@ export class MarketplaceEconomyService {
         username,
         quantity: netAmount,
         symbol: this.assetConfig.symbol,
-        // Назначение платежа кассир копирует в банк как есть — там нужна только
-        // суть выплаты, без служебных идентификаторов участка.
-        memo: 'Материальная помощь',
+        // Назначение платежа кассир копирует в банк как есть: суть выплаты,
+        // её номер и налоговая оговорка. Номер — начало хэша заявки, как и
+        // везде в реестрах: по нему выписка сходится с заявлением, если выплат
+        // в день несколько.
+        memo: `Материальная помощь № ${aidHash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
         type: PaymentTypeEnum.AID,
         status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
