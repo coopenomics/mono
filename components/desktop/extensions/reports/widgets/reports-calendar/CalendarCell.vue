@@ -1,13 +1,31 @@
 <template lang="pug">
 .cell-month(:class='classes' @click='onClick')
-  .cell-inner(v-if='entry')
-    .ci-label {{ entry.label }}
+  .cell-inner(v-if='primary')
+    .ci-label {{ label }}
     //- Submitted (реальный XML) + submitted_externally (отметка о внешней сдаче) —
     //- оба рендерим как зелёную точку; различие только в тултипе.
     //- Для остальных статусов — семантическая иконка, фон красится через класс.
-    span.ci-dot(v-if='isSubmittedLike(entry.status)')
-    q-icon.ci-icon(v-else :name='statusIcon(entry.status)')
+    span.ci-dot(v-if='isSubmittedLike(primary.status)')
+    q-icon.ci-icon(v-else :name='statusIcon(primary.status)')
     q-tooltip {{ tooltip }}
+
+    //- Несколько сроков в одном месяце бывает только у уведомления по НДФЛ:
+    //- налог удерживают дважды в месяц, и каждый период сдаётся отдельно.
+    //- Ячейка остаётся одна, как у прочих форм, а выбор срока открывается
+    //- по клику — иначе строка раздувается втрое и календарь не читается.
+    q-menu(v-if='entries.length > 1' anchor='bottom left' self='top left')
+      q-list(dense style='min-width: 220px')
+        q-item-label(header) Сроки месяца
+        q-item(
+          v-for='entry in entries'
+          :key='entry.periodCode ?? entry.label'
+          clickable
+          v-close-popup
+          @click='emit("select", entry)'
+        )
+          q-item-section
+            q-item-label {{ entry.label }}
+            q-item-label(caption) до {{ entry.dueDate }} · {{ statusLabel(entry.status) }}
 </template>
 
 <script setup lang="ts">
@@ -18,12 +36,41 @@ import type { IReportCalendarPeriodEntry, IReportCalendarRow } from 'src/entitie
 const props = defineProps<{
   row: IReportCalendarRow
   month: number
-  entry: IReportCalendarPeriodEntry | undefined
+  /** Сроки, приходящиеся на этот месяц: пусто, один или несколько. */
+  entries: IReportCalendarPeriodEntry[]
 }>()
 
-const emit = defineEmits<(e: 'click') => void>()
+const emit = defineEmits<(e: 'select', entry: IReportCalendarPeriodEntry) => void>()
 
 // Wire-значения enum'а — на шине GraphQL KEYS uppercase (Zeus так типизирует).
+
+/**
+ * Что показывать, когда сроков несколько: берём самый «громкий» статус, чтобы
+ * ячейка не выглядела спокойной, пока один из периодов просрочен.
+ */
+const STATUS_PRIORITY: string[] = [
+  Zeus.CalendarEntryStatus.OVERDUE,
+  Zeus.CalendarEntryStatus.DRAFT,
+  Zeus.CalendarEntryStatus.EMPTY,
+  Zeus.CalendarEntryStatus.SUBMITTED,
+  Zeus.CalendarEntryStatus.SUBMITTED_EXTERNALLY,
+  Zeus.CalendarEntryStatus.NOT_REQUIRED,
+  Zeus.CalendarEntryStatus.NO_DATA,
+  Zeus.CalendarEntryStatus.BEFORE_REGISTRATION,
+]
+
+const primary = computed<IReportCalendarPeriodEntry | undefined>(() => {
+  if (!props.entries.length) return undefined
+  return [...props.entries].sort(
+    (a, b) => STATUS_PRIORITY.indexOf(a.status) - STATUS_PRIORITY.indexOf(b.status),
+  )[0]
+})
+
+// При одном сроке — его собственная подпись; при нескольких она не влезает и
+// не нужна: месяц ясен из колонки, а разбивка видна в меню.
+const label = computed(() =>
+  props.entries.length > 1 ? `${props.entries.length} срока` : (primary.value?.label ?? ''),
+)
 
 // before_registration — период приходился до даты регистрации кооператива:
 // сдавать не нужно, ячейка некликабельна, выглядит нейтрально-серой.
@@ -34,8 +81,8 @@ function isBeforeRegistration(status: string): boolean {
 // Для CSS-класса и словаря подписей используем строковое представление
 // status как есть (`DRAFT`/`OVERDUE`/`NOT_REQUIRED`/`EMPTY`/`SUBMITTED`/`SUBMITTED_EXTERNALLY`/`BEFORE_REGISTRATION`).
 const classes = computed<Record<string, boolean>>(() => ({
-  active: !!props.entry && !isBeforeRegistration(props.entry.status),
-  [`status-${props.entry?.status ?? 'EMPTY'}`]: !!props.entry,
+  active: !!primary.value && !isBeforeRegistration(primary.value.status),
+  [`status-${primary.value?.status ?? 'EMPTY'}`]: !!primary.value,
 }))
 
 const STATUS_RU: Record<string, string> = {
@@ -49,10 +96,22 @@ const STATUS_RU: Record<string, string> = {
   [Zeus.CalendarEntryStatus.NO_DATA]: 'Нечего подавать — выплат не было',
 }
 
+function statusLabel(status: string): string {
+  return STATUS_RU[status] ?? status
+}
+
 const tooltip = computed(() => {
-  if (!props.entry) return ''
-  const s = STATUS_RU[props.entry.status] ?? props.entry.status
-  return `${props.row.shortName}: ${props.entry.label}\nСрок: ${props.entry.dueDate}\nСтатус: ${s}`
+  if (!primary.value) return ''
+  if (props.entries.length > 1) {
+    const lines = props.entries.map(
+      (e) => `${e.label} — до ${e.dueDate}, ${statusLabel(e.status)}`,
+    )
+    return `${props.row.shortName}\n${lines.join('\n')}`
+  }
+  return (
+    `${props.row.shortName}: ${primary.value.label}\n` +
+    `Срок: ${primary.value.dueDate}\nСтатус: ${statusLabel(primary.value.status)}`
+  )
 })
 
 function isSubmittedLike(status: string): boolean {
@@ -76,9 +135,13 @@ function statusIcon(status: string): string {
 function onClick() {
   // before_registration — статичная ячейка, открывать диалог нечего
   // (ни редактора отчёта, ни ручной отметки на ней не существует).
-  if (!props.entry) return
-  if (isBeforeRegistration(props.entry.status)) return
-  emit('click')
+  const entry = primary.value
+  if (!entry) return
+  if (isBeforeRegistration(entry.status)) return
+  // При нескольких сроках клик открывает меню (q-menu ловит его сам) —
+  // выбирать за пользователя, какой из периодов он имел в виду, нельзя.
+  if (props.entries.length > 1) return
+  emit('select', entry)
 }
 </script>
 
@@ -107,6 +170,7 @@ function onClick() {
   .ci-label {
     font-size: 10px;
     line-height: 1;
+    text-align: center;
   }
   .ci-icon {
     font-size: 14px;

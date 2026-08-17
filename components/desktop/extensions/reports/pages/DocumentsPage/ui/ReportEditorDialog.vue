@@ -74,7 +74,11 @@ q-dialog(
           @dirty='onDirty'
         )
 
-        template(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+        //- Обычный контейнер, а не <template>: фрагмент с несколькими корнями,
+        //- часть которых условная, при закрытии диалога роняет Vue на
+        //- размонтировании пустого узла («Cannot destructure property type of
+        //- vnode as it is null»), и окно перестаёт закрываться.
+        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
           ZeroReportEditor(
             :report-type='reportType'
             v-model:edits='zeroEdits'
@@ -304,6 +308,16 @@ q-dialog(
         :requisites='requisites'
         :year='year'
       )
+      //- Уведомление об исчисленных суммах — одна форма КНД 1110355 на все
+      //- налоги: КБК, период и сумма читаются из XML, в бланке ничего от
+      //- конкретного налога нет. Поэтому НДФЛ печатается тем же бланком, что
+      //- УСН и взносы, а не своей копией.
+      UusnForm(
+        v-else-if='lastGeneratedXml && reportType === "UV_NDFL"'
+        :xml='lastGeneratedXml'
+        :requisites='requisites'
+        :year='year'
+      )
 </template>
 
 <script setup lang="ts">
@@ -330,6 +344,7 @@ import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
 import RsvForm from 'extensions/reports/widgets/report-forms/RsvForm.vue'
 import PsvForm from 'extensions/reports/widgets/report-forms/PsvForm.vue'
 import Efs1Form from 'extensions/reports/widgets/report-forms/Efs1Form.vue'
+import UusnForm from 'extensions/reports/widgets/report-forms/UusnForm.vue'
 import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/report-forms/pdf-export'
 
 // Набор типов отчётов, для которых у нас есть paper-view для PDF-экспорта.
@@ -337,7 +352,7 @@ import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/rep
 // Сравниваем через строковое представление IReportType (Zeus-enum тип
 // нестыкуется с литералами напрямую).
 const PDF_SUPPORTED_TYPES: ReadonlySet<string> = new Set<string>([
-  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4',
+  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4', 'UV_NDFL',
 ])
 
 interface BalanceRow {
@@ -807,6 +822,11 @@ function goToRequisites(): void {
   overflow: auto;
   background: var(--p-canvas);
   position: relative;
+}
+
+.editor-stack {
+  display: flex;
+  flex-direction: column;
 }
 
 .action-panel {
