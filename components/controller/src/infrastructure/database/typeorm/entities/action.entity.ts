@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
+import { chainBlockTimeTransformer } from '~/infrastructure/blockchain/block-time.util';
 
 /**
  * TypeORM сущность для хранения действий блокчейна
@@ -24,6 +25,14 @@ export class ActionEntity implements ActionDomainInterface {
 
   @Column({ type: 'varchar', length: 64 })
   block_id!: string;
+
+  /**
+   * Время блока из SHiP-трейса. В объекте — строка ISO (как приходит из
+   * потока), в базе — `timestamptz`; перевод делает трансформер. Необязательно:
+   * старый парсер времени не отдавал, и у записей тех времён колонка пуста.
+   */
+  @Column({ type: 'timestamptz', nullable: true, transformer: chainBlockTimeTransformer })
+  block_time?: string;
 
   @Column({ type: 'varchar', length: 64 })
   chain_id!: string;
