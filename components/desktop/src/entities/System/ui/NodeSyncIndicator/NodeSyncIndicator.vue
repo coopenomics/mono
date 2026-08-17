@@ -53,12 +53,17 @@ span.node-sync-indicator(v-if='tone', :class='`node-sync-indicator--${tone}`')
    поэтому не должен тянуть взгляд на себя — заливка читается как тревога. */
 .node-sync-indicator {
   display: inline-block;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex: 0 0 auto;
   background: transparent;
-  border: 1.5px solid var(--p-line);
+  /* Контур тоньше вслед за диаметром — иначе кольцо на таком размере
+     схлопывается обратно в точку. */
+  border: 1px solid var(--p-line);
+  /* Центрирование по вертикали не зависит от того, flex вокруг или строка. */
+  align-self: center;
+  vertical-align: middle;
 }
 
 .node-sync-indicator--ok {
