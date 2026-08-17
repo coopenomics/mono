@@ -22,9 +22,10 @@ export class NodeSyncResolver {
 
   @Query(() => NodeSyncStateDTO, {
     name: 'getNodeSyncState',
-    description: 'Насколько узел кооператива отстал от цепи',
+    nullable: true,
+    description: 'Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено',
   })
-  getNodeSyncState(): NodeSyncStateDTO {
+  getNodeSyncState(): NodeSyncStateDTO | undefined {
     return this.nodeSyncHealthService.getState();
   }
 

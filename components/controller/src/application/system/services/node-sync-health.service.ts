@@ -37,7 +37,12 @@ export class NodeSyncHealthService {
   /** Сглаживание скорости догона: одиночный медленный тик не должен ломать оценку. */
   private static readonly RATE_SMOOTHING = 0.3;
 
-  private state: NodeSyncStateDTO = { status: NodeSyncStatus.SYNCED };
+  /**
+   * До первого пересчёта состояние неизвестно, и выдавать его за рабочее
+   * нельзя: сразу после запуска узел вполне может отставать, а рабочий стол
+   * успел бы решить, что всё в порядке.
+   */
+  private state?: NodeSyncStateDTO;
   private publishedState?: NodeSyncStateDTO;
   /** Тики подряд у головы цепи — вторая половина гистерезиса. */
   private healthyTicks = 0;
@@ -54,8 +59,11 @@ export class NodeSyncHealthService {
     this.logger.setContext(NodeSyncHealthService.name);
   }
 
-  /** Текущее состояние без ожидания следующего тика — для первой отрисовки. */
-  getState(): NodeSyncStateDTO {
+  /**
+   * Текущее состояние без ожидания следующего тика — для первой отрисовки.
+   * `undefined`, пока первый пересчёт не прошёл.
+   */
+  getState(): NodeSyncStateDTO | undefined {
     return this.state;
   }
 
@@ -148,7 +156,9 @@ export class NodeSyncHealthService {
    * нескольких тиков подряд у головы.
    */
   private applyHysteresis(lag: number): NodeSyncStatus {
-    const wasLagging = this.state.status !== NodeSyncStatus.SYNCED;
+    // Неизвестное состояние считается рабочим только для целей гистерезиса:
+    // порог входа тот же, а «выходить» ещё неоткуда.
+    const wasLagging = this.state !== undefined && this.state.status !== NodeSyncStatus.SYNCED;
 
     if (!wasLagging) {
       if (lag >= config.blockchain.sync_lagging_lag_blocks) {

@@ -13434,7 +13434,7 @@ getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueType
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ValueTypes["ProductCard"],
-	/** Насколько узел кооператива отстал от цепи */
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
@@ -27414,7 +27414,7 @@ getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetA
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ResolverInputTypes["ProductCard"],
-	/** Насколько узел кооператива отстал от цепи */
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
@@ -41853,8 +41853,8 @@ export type ModelTypes = {
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<ModelTypes["ProductCard"]>,
-	/** Насколько узел кооператива отстал от цепи */
-	getNodeSyncState: ModelTypes["NodeSyncState"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -57167,8 +57167,8 @@ export type GraphQLTypes = {
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
-	/** Насколько узел кооператива отстал от цепи */
-	getNodeSyncState: GraphQLTypes["NodeSyncState"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */

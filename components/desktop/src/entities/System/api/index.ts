@@ -7,11 +7,12 @@ async function loadSystemInfo(): Promise<ISystemInfo> {
   return output;
 }
 
-async function loadNodeSyncState(): Promise<INodeSyncState> {
+/** Пусто, пока узел не измерил своё состояние ни разу — это не «всё хорошо». */
+async function loadNodeSyncState(): Promise<INodeSyncState | null> {
   const { [Queries.System.GetNodeSyncState.name]: output } = await client.Query(
     Queries.System.GetNodeSyncState.query,
   );
-  return output;
+  return output ?? null;
 }
 
 export const api ={

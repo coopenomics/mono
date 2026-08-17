@@ -44,8 +44,19 @@ describe('Состояние синхронизации узла с цепью',
     blockchain.getInfo.mockResolvedValue({ head_block_num: headBlockNum } as any);
     redis.hgetall.mockResolvedValue(cursor);
     await service.tick();
-    return service.getState();
+    const state = service.getState();
+    // После состоявшегося тика состояние обязано быть посчитано — иначе тест
+    // проверял бы не то, что думает.
+    if (!state) throw new Error('тик не оставил состояния');
+    return state;
   };
+
+  describe('состояние ещё не измерено', () => {
+    it('до первого пересчёта состояние неизвестно, а не рабочее', async () => {
+      // Иначе сразу после запуска отстающий узел считался бы готовым к работе.
+      expect(service.getState()).toBeUndefined();
+    });
+  });
 
   describe('узел у головы цепи', () => {
     it('отдаёт рабочее состояние и нулевое отставание', async () => {
@@ -102,10 +113,10 @@ describe('Состояние синхронизации узла с цепью',
       await tickWith(1004, cursorAt(1004));
 
       // Здоровых тиков подряд пока два из трёх.
-      expect(service.getState().status).toBe(NodeSyncStatus.LAGGING);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.LAGGING);
 
       await tickWith(1005, cursorAt(1005));
-      expect(service.getState().status).toBe(NodeSyncStatus.SYNCED);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.SYNCED);
     });
   });
 
@@ -153,8 +164,8 @@ describe('Состояние синхронизации узла с цепью',
 
       await service.tick();
 
-      expect(service.getState().status).toBe(NodeSyncStatus.DISCONNECTED);
-      expect(service.getState().outage).toBe(NodeSyncOutage.CHAIN);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.DISCONNECTED);
+      expect(service.getState()?.outage).toBe(NodeSyncOutage.CHAIN);
     });
 
     it('позиции чтения нет вовсе — узел не прочитал ни одного блока', async () => {
@@ -179,10 +190,10 @@ describe('Состояние синхронизации узла с цепью',
 
       await tickWith(1003, cursorAt(1003));
       await tickWith(1004, cursorAt(1004));
-      expect(service.getState().status).toBe(NodeSyncStatus.LAGGING);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.LAGGING);
 
       await tickWith(1005, cursorAt(1005));
-      expect(service.getState().status).toBe(NodeSyncStatus.SYNCED);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.SYNCED);
     });
   });
 
@@ -231,7 +242,7 @@ describe('Состояние синхронизации узла с цепью',
       redis.hgetall.mockRejectedValue(new Error('Redis недоступен'));
       await expect(service.tick()).resolves.toBeUndefined();
 
-      expect(service.getState().status).toBe(NodeSyncStatus.SYNCED);
+      expect(service.getState()?.status).toBe(NodeSyncStatus.SYNCED);
       expect(logger.error).toHaveBeenCalled();
     });
   });
