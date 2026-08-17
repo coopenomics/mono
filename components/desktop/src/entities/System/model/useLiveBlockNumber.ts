@@ -18,6 +18,12 @@ const BLOCK_INTERVAL_MS = 500;
 export function useLiveBlockNumber(source: () => number | null | undefined) {
   const displayed = ref<number | null>(null);
   let timer: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Узел откатился назад — форк цепи или переустановленная позиция чтения.
+   * Показанное число назад не отматываем: убывающий счётчик читается как авария,
+   * хотя для узла это штатная работа. Замираем, пока цепь не дорастёт обратно.
+   */
+  let frozen = false;
 
   const stop = () => {
     if (timer) {
@@ -33,6 +39,7 @@ export function useLiveBlockNumber(source: () => number | null | undefined) {
       // Вкладка в фоне — щёлкать некому, а сообщения от узла всё равно не
       // приходят: сокет там усыплён браузером.
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (frozen) return;
       if (displayed.value !== null) displayed.value += 1;
     }, BLOCK_INTERVAL_MS);
   };
@@ -42,11 +49,19 @@ export function useLiveBlockNumber(source: () => number | null | undefined) {
     (value) => {
       if (typeof value !== 'number') {
         displayed.value = null;
+        frozen = false;
         stop();
         return;
       }
-      // Пришло настоящее значение — оно и есть истина, досчёт начинается с него.
+      if (displayed.value !== null && value <= displayed.value) {
+        // Назад не идём: ждём на месте, пока цепь не дорастёт до показанного.
+        frozen = true;
+        start();
+        return;
+      }
+      // Пришло настоящее значение и оно впереди — оно и есть истина.
       displayed.value = value;
+      frozen = false;
       start();
     },
     { immediate: true },
