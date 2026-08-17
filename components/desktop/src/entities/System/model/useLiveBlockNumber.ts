@@ -1,29 +1,35 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 
-/** Блок в цепи выходит раз в полсекунды — с этим темпом и досчитываем. */
-const BLOCK_INTERVAL_MS = 500;
+/** Шаг отрисовки. Полсекунды — темп блока в цепи. */
+const TICK_MS = 500;
+/**
+ * За сколько шагов выбирается разрыв до последнего известного блока. Узел
+ * присылает состояние примерно раз в три секунды, то есть за шесть шагов —
+ * столько же и берём, тогда движение получается ровным, без рывков в конце.
+ */
+const CATCH_UP_TICKS = 6;
 
 /**
- * Номер блока, который «щёлкает» с темпом цепи между сообщениями от узла.
+ * Номер блока, который движется ровно, а не рывками по приходу сообщений.
  *
  * Узел присылает своё состояние раз в несколько секунд — чаще не нужно, это
- * был бы поток ради потока. Но замерший номер выглядит как остановка, поэтому
- * между сообщениями значение досчитывается локально по известному темпу
- * блоков, а каждое пришедшее сообщение возвращает его к правде.
+ * был бы поток ради потока. Но показывать значение только по приходу сообщения
+ * значит дёргать число скачком на несколько блоков, а между скачками держать
+ * его замершим.
  *
- * Значение показательное: между сверками оно может разойтись с цепью на
- * единицы блоков. Решения по нему не принимаются — оно отвечает на вопрос
- * «узел жив?», а не «на каком мы блоке».
+ * Поэтому пришедшее значение становится целью, а показанное подтягивается к
+ * ней шагами по полсекунды. Догнало — стоит и ждёт следующего сообщения.
+ * Цель никогда не уменьшается: форк цепи или переустановленная позиция чтения
+ * дают номер меньше показанного, и отмотка назад читалась бы как авария, хотя
+ * для узла это штатная работа.
+ *
+ * Значение показательное: между сообщениями оно может разойтись с цепью на
+ * единицы блоков. Оно отвечает на вопрос «узел жив?», а не «на каком мы блоке».
  */
 export function useLiveBlockNumber(source: () => number | null | undefined) {
   const displayed = ref<number | null>(null);
+  let target: number | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
-  /**
-   * Узел откатился назад — форк цепи или переустановленная позиция чтения.
-   * Показанное число назад не отматываем: убывающий счётчик читается как авария,
-   * хотя для узла это штатная работа. Замираем, пока цепь не дорастёт обратно.
-   */
-  let frozen = false;
 
   const stop = () => {
     if (timer) {
@@ -32,16 +38,22 @@ export function useLiveBlockNumber(source: () => number | null | undefined) {
     }
   };
 
+  const step = () => {
+    // Вкладка в фоне — рисовать некому, а сообщения от узла туда всё равно не
+    // приходят: сокет там усыплён браузером.
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (target === null) return;
+    if (displayed.value === null || displayed.value >= target) return;
+
+    const gap = target - displayed.value;
+    displayed.value += Math.max(1, Math.ceil(gap / CATCH_UP_TICKS));
+    if (displayed.value > target) displayed.value = target;
+  };
+
   const start = () => {
     // На сервере таймеров не заводим: рендер там одноразовый.
     if (typeof window === 'undefined' || timer) return;
-    timer = setInterval(() => {
-      // Вкладка в фоне — щёлкать некому, а сообщения от узла всё равно не
-      // приходят: сокет там усыплён браузером.
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      if (frozen) return;
-      if (displayed.value !== null) displayed.value += 1;
-    }, BLOCK_INTERVAL_MS);
+    timer = setInterval(step, TICK_MS);
   };
 
   watch(
@@ -49,19 +61,13 @@ export function useLiveBlockNumber(source: () => number | null | undefined) {
     (value) => {
       if (typeof value !== 'number') {
         displayed.value = null;
-        frozen = false;
+        target = null;
         stop();
         return;
       }
-      if (displayed.value !== null && value <= displayed.value) {
-        // Назад не идём: ждём на месте, пока цепь не дорастёт до показанного.
-        frozen = true;
-        start();
-        return;
-      }
-      // Пришло настоящее значение и оно впереди — оно и есть истина.
-      displayed.value = value;
-      frozen = false;
+      // Цель только растёт — назад показанное число не идёт никогда.
+      target = target === null ? value : Math.max(target, value);
+      if (displayed.value === null) displayed.value = target;
       start();
     },
     { immediate: true },
