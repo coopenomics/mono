@@ -1,5 +1,8 @@
 <template lang="pug">
-div
+//- Меню и подсказка висят на обёртке, а не внутри кнопки: BaseButton в режиме
+//- icon-only не рендерит слот по умолчанию, и вложенный туда q-menu не
+//- создавался — кнопка молча ничего не открывала
+.sort-menu-button
   //- Header-кнопка иконкой: подпись съедала место, а значок сортировки узнаваем сам
   BaseButton(
     variant='ghost',
@@ -10,44 +13,45 @@ div
   )
     template(#icon-left)
       q-icon(name='sort', size='20px')
-    q-tooltip Сортировка
 
-    q-menu(anchor='bottom right', self='top right')
-      q-list(dense, style='min-width: 220px')
-        q-item-label.sort-menu__caption(header) Поле
-        q-item(
-          v-for='field in fields',
-          :key='field.value',
-          clickable,
-          v-close-popup,
-          :active='sort.sortBy === field.value',
-          @click='selectField(field.value)'
-        )
-          q-item-section {{ field.label }}
-          q-item-section(side, v-if='sort.sortBy === field.value')
-            q-icon(name='check', size='18px', color='primary')
+  q-tooltip Сортировка
 
-        q-separator
+  q-menu(anchor='bottom right', self='top right')
+    q-list(dense, style='min-width: 220px')
+      q-item-label.sort-menu__caption(header) Поле
+      q-item(
+        v-for='field in fields',
+        :key='field.value',
+        clickable,
+        v-close-popup,
+        :active='sort.sortBy === field.value',
+        @click='selectField(field.value)'
+      )
+        q-item-section {{ field.label }}
+        q-item-section(side, v-if='sort.sortBy === field.value')
+          q-icon(name='check', size='18px', color='primary')
 
-        q-item-label.sort-menu__caption(header) Порядок
-        q-item(
-          clickable,
-          v-close-popup,
-          :active='sort.sortOrder === "DESC"',
-          @click='selectOrder("DESC")'
-        )
-          q-item-section По убыванию
-          q-item-section(side, v-if='sort.sortOrder === "DESC"')
-            q-icon(name='check', size='18px', color='primary')
-        q-item(
-          clickable,
-          v-close-popup,
-          :active='sort.sortOrder === "ASC"',
-          @click='selectOrder("ASC")'
-        )
-          q-item-section По возрастанию
-          q-item-section(side, v-if='sort.sortOrder === "ASC"')
-            q-icon(name='check', size='18px', color='primary')
+      q-separator
+
+      q-item-label.sort-menu__caption(header) Порядок
+      q-item(
+        clickable,
+        v-close-popup,
+        :active='sort.sortOrder === "DESC"',
+        @click='selectOrder("DESC")'
+      )
+        q-item-section По убыванию
+        q-item-section(side, v-if='sort.sortOrder === "DESC"')
+          q-icon(name='check', size='18px', color='primary')
+      q-item(
+        clickable,
+        v-close-popup,
+        :active='sort.sortOrder === "ASC"',
+        @click='selectOrder("ASC")'
+      )
+        q-item-section По возрастанию
+        q-item-section(side, v-if='sort.sortOrder === "ASC"')
+          q-icon(name='check', size='18px', color='primary')
 </template>
 
 <script setup lang="ts">
@@ -90,6 +94,11 @@ const selectOrder = (sortOrder: ICapitalListSort['sortOrder']) => {
 </script>
 
 <style lang="scss" scoped>
+// Обёртка — якорь меню и подсказки; в потоке шапки ведёт себя как кнопка
+.sort-menu-button {
+  display: inline-flex;
+}
+
 .sort-menu__caption {
   font-size: var(--p-fs-meta);
   line-height: var(--p-lh-meta);

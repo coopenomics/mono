@@ -9,73 +9,73 @@ CreateDialog(
   @dialog-closed="clear"
 )
   template(#form-fields)
-    q-input(
-      ref='titleInput'
-      autofocus
-      v-model='formData.title',
-      standout='bg-teal text-white',
-      label='Название задачи',
-      :rules='[(val) => notEmpty(val)]',
-      autocomplete='off'
-    )
+    .create-issue-form
+      //- Компонент известен, когда задачу создают внутри него. Из раздела
+      //- «Задачи» его выбирают здесь — из тех, где есть право вести задачи.
+      //- Поле необязательное: задачу можно завести свободной и привязать потом.
+      BaseSelect(
+        v-if='!currentProjectHash'
+        v-model='selectedComponentHash'
+        :options='componentOptions'
+        label='Компонент'
+        placeholder='Без компонента'
+        searchable
+        clearable
+      )
 
-    q-input(
-      standout='bg-teal text-white',
-      v-model='formData.description',
-      label='Описание задачи',
-      placeholder='Опишите задачу подробно...',
-      type="textarea"
-      autogrow
-    )
+      BaseInput(
+        ref='titleInput'
+        v-model='formData.title'
+        label='Название задачи'
+        autofocus
+        autocomplete='off'
+        required
+        :error='titleError'
+      )
 
-    q-select(
-      v-model='formData.priority',
-      standout='bg-teal text-white',
-      label='Приоритет',
-      :options='priorityOptions',
-      option-value='value',
-      option-label='label',
-      emit-value,
-      map-options
-    )
+      BaseInput(
+        v-model='formData.description'
+        label='Описание задачи'
+        placeholder='Опишите задачу подробно...'
+        type='textarea'
+        autogrow
+      )
 
-    q-select(
-      v-model='formData.status',
-      standout='bg-teal text-white',
-      label='Статус',
-      :options='statusOptions',
-      option-value='value',
-      option-label='label',
-      emit-value,
-      map-options
-    )
+      BaseSelect(
+        v-model='formData.priority'
+        :options='priorityOptions'
+        label='Приоритет'
+      )
 
-    q-input(
-      v-model.number='formData.estimate',
-      standout='bg-teal text-white',
-      label='Оценка (часы)',
-      type='number',
-      :min='0',
-      step='any',
-      :rules='[(val) => val >= 0 || "Оценка не может быть отрицательной"]',
-      autocomplete='off'
-    )
+      BaseSelect(
+        v-model='formData.status'
+        :options='statusOptions'
+        label='Статус'
+      )
 
-    q-checkbox(
-      v-model='createAnother',
-      label='Создать еще одну задачу',
+      BaseInput(
+        v-model='formData.estimate'
+        label='Оценка (часы)'
+        type='number'
+        autocomplete='off'
+        :error='estimateError'
+      )
 
-    )
+      BaseCheckbox(
+        v-model='createAnother'
+        label='Создать ещё одну задачу'
+      )
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
+import { BaseInput, BaseSelect, BaseCheckbox } from 'src/shared/ui/base';
 import { Zeus } from '@coopenomics/sdk';
 import { getIssueStatusLabel, capitalRouteName } from 'app/extensions/capital/shared/lib';
-import { useCreateIssue, type ICreateIssueInput } from '../../model';
+import { useCreateIssue, useIssueTargets, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
 const props = defineProps<{
@@ -126,8 +126,31 @@ const statusOptions = computed(() => [
   { value: Zeus.IssueStatus.CANCELED, label: getIssueStatusLabel(Zeus.IssueStatus.CANCELED) },
 ]);
 
-const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
+// Выбор компонента нужен, только когда он не задан снаружи и не следует из маршрута
+const { options: componentOptions, loadIssueTargets } = useIssueTargets();
+const selectedComponentHash = ref<string | null>(null);
+
+const titleError = ref('');
+const estimateError = ref('');
+
+/** Компонент задачи: переданный снаружи либо выбранный в диалоге. */
+const targetProjectHash = computed(
+  () => currentProjectHash.value || selectedComponentHash.value || '',
+);
+
+onMounted(() => {
+  if (!currentProjectHash.value) void loadIssueTargets();
+});
+
+watch(() => formData.value.title, (value) => {
+  if (value) titleError.value = '';
+});
+
+const validate = (): boolean => {
+  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  estimateError.value =
+    Number(formData.value.estimate) >= 0 ? '' : 'Оценка не может быть отрицательной';
+  return !titleError.value && !estimateError.value;
 };
 
 const clearForm = async () => {
@@ -140,18 +163,46 @@ const clearForm = async () => {
     labels: [],
     attachments: [],
   };
+  titleError.value = '';
+  estimateError.value = '';
 
-  // Устанавливаем фокус на первое поле после очистки
+  // Фокус на первое поле после очистки: у канон-обёртки своего focus() нет,
+  // поэтому зовём его только если он есть
   await nextTick();
-  titleInput.value?.focus();
+  titleInput.value?.focus?.();
 };
 
 const clear = async () => {
   await clearForm();
+  selectedComponentHash.value = null;
   createAnother.value = false;
 };
 
+/** Переход к созданной задаче из уведомления: у свободной задачи компонента нет. */
+const openCreatedIssue = (issueHash: string, projectHash: string) => {
+  if (projectHash) {
+    router.push({
+      name: capitalRouteName('component-issue-description', route),
+      params: {
+        coopname: system.info.coopname,
+        project_hash: projectHash,
+        issue_hash: issueHash,
+      },
+    });
+    return;
+  }
+  router.push({
+    name: 'my-task-issue-description',
+    params: {
+      coopname: system.info.coopname,
+      issue_hash: issueHash,
+    },
+  });
+};
+
 const handleSubmit = async () => {
+  if (!validate()) return;
+
   isSubmitting.value = true;
   try {
     const inputData: ICreateIssueInput = {
@@ -160,45 +211,26 @@ const handleSubmit = async () => {
       description: formData.value.description,
       priority: formData.value.priority,
       status: formData.value.status,
-      estimate: formData.value.estimate,
+      estimate: Number(formData.value.estimate) || 0,
       labels: formData.value.labels,
       attachments: formData.value.attachments,
     };
-    if (currentProjectHash.value) {
-      inputData.project_hash = currentProjectHash.value;
+    if (targetProjectHash.value) {
+      inputData.project_hash = targetProjectHash.value;
     }
 
     const result = await createIssue(inputData);
 
     const issueId = typeof result === 'string' ? result : result?.id;
     const issueHash = result?.issue_hash;
-    const resultProjectHash = result?.project_hash || currentProjectHash.value;
+    const resultProjectHash = result?.project_hash || targetProjectHash.value;
 
     SuccessAlert(
       `Задача ${issueId} успешно создана`,
       issueHash ? {
         text: '', // Пустой текст, только иконка
         icon: 'launch',
-        handler: () => {
-          if (resultProjectHash) {
-            router.push({
-              name: capitalRouteName('component-issue-description', route),
-              params: {
-                coopname: system.info.coopname,
-                project_hash: resultProjectHash,
-                issue_hash: issueHash,
-              },
-            });
-            return;
-          }
-          router.push({
-            name: 'my-task-issue-description',
-            params: {
-              coopname: system.info.coopname,
-              issue_hash: issueHash,
-            },
-          });
-        }
+        handler: () => openCreatedIssue(issueHash, resultProjectHash),
       } : undefined
     );
 
@@ -225,3 +257,12 @@ defineExpose({
   clear: () => dialogRef.value?.clear(),
 });
 </script>
+
+<style lang="scss" scoped>
+// Поля формы стоят в колонку с ровным шагом: без него канон-обёртки слипаются
+.create-issue-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+</style>

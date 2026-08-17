@@ -48,3 +48,5 @@ export function useCreateIssue() {
 
   return { createIssue, createIssueInput };
 }
+
+export * from './useIssueTargets';

@@ -9,35 +9,37 @@ CreateDialog(
   @dialog-closed="clear"
 )
   template(#form-fields)
-    //- Родитель известен, когда компонент создают внутри проекта. Из раздела
-    //- «Компоненты» проекта нет — выбираем его здесь, из тех, где есть право
-    BaseSelect(
-      v-if='!props.project'
-      v-model='selectedProjectHash'
-      :options='projectOptions'
-      label='Проект'
-      placeholder='Выберите проект'
-      searchable
-      required
-      :error='projectError'
-    )
+    .create-component-form
+      //- Родитель известен, когда компонент создают внутри проекта. Из раздела
+      //- «Компоненты» проекта нет — выбираем его здесь, из тех, где есть право
+      BaseSelect(
+        v-if='!props.project'
+        v-model='selectedProjectHash'
+        :options='projectOptions'
+        label='Проект'
+        placeholder='Выберите проект'
+        searchable
+        required
+        :error='projectError'
+      )
 
-    q-input(
-      standout="bg-teal text-white"
-      v-model='formData.title',
-      label='Название компонента',
-      :rules='[(val) => notEmpty(val)]',
-      autocomplete='off'
-    )
+      BaseInput(
+        v-model='formData.title'
+        label='Название компонента'
+        autocomplete='off'
+        required
+        :error='titleError'
+      )
 
-    Editor(
-      v-model='formData.description',
-      label='Описание компонента',
-      placeholder='Опишите компонент подробно...',
-      autocomplete='off',
-      :minHeight='200',
-      :padded='false'
-    )
+      .create-component-form__editor
+        .create-component-form__editor-label Описание компонента
+        Editor(
+          v-model='formData.description',
+          placeholder='Опишите компонент подробно...',
+          autocomplete='off',
+          :minHeight='200',
+          :padded='false'
+        )
 </template>
 
 <script setup lang="ts">
@@ -46,7 +48,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { Editor } from 'src/shared/ui';
-import { BaseSelect } from 'src/shared/ui/base';
+import { BaseInput, BaseSelect } from 'src/shared/ui/base';
 import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entities/Project/model';
 import { useCreateComponent, useEditableProjects } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
@@ -79,10 +81,7 @@ const {
 } = useEditableProjects();
 const selectedProjectHash = ref<string | null>(null);
 const projectError = ref('');
-
-const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
-};
+const titleError = ref('');
 
 const clear = () => {
   formData.value = {
@@ -91,6 +90,7 @@ const clear = () => {
   };
   selectedProjectHash.value = null;
   projectError.value = '';
+  titleError.value = '';
 };
 
 onMounted(() => {
@@ -99,6 +99,10 @@ onMounted(() => {
 
 watch(selectedProjectHash, (value) => {
   if (value) projectError.value = '';
+});
+
+watch(() => formData.value.title, (value) => {
+  if (value) titleError.value = '';
 });
 
 /** Родитель: переданный проект либо выбранный в диалоге. */
@@ -110,10 +114,11 @@ const resolveParentProject = (): IProject | undefined => {
 
 const handleSubmit = async () => {
   const parentProject = resolveParentProject();
+  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
   if (!parentProject) {
     projectError.value = 'Выберите проект';
-    return;
   }
+  if (!parentProject || titleError.value) return;
 
   isSubmitting.value = true;
   try {
@@ -152,3 +157,21 @@ defineExpose({
   clear: () => dialogRef.value?.clear(),
 });
 </script>
+
+<style lang="scss" scoped>
+// Поля формы стоят в колонку с ровным шагом: без него канон-обёртки слипаются
+.create-component-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+// У редактора нет своей метки — ставим её сами, чтобы поле читалось так же,
+// как соседние канон-поля
+.create-component-form__editor-label {
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  color: var(--p-ink-3);
+  margin-bottom: var(--p-1);
+}
+</style>

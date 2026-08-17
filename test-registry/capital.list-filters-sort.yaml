@@ -46,6 +46,8 @@ sources:
     - components/desktop/extensions/capital/features/Project/CreateComponent/model/useEditableProjects.ts
     - components/desktop/extensions/capital/features/Project/CreateComponent/ui/CreateComponentHeaderButton.vue
     - components/desktop/extensions/capital/features/Project/CreateComponent/ui/Dialog/CreateComponentDialog.vue
+    - components/desktop/extensions/capital/features/Issue/CreateIssue/model/useIssueTargets.ts
+    - components/desktop/extensions/capital/features/Issue/CreateIssue/ui/Dialog/CreateIssueDialog.vue
 
 cases:
   # ── Сортировка: закрытый набор колонок ────────────────────────────────────
@@ -138,6 +140,13 @@ cases:
     kind: side
     scenario: пайщик создаёт задачу из шапки раздела «Задачи»
     expect: задача создаётся без компонента и попадает в список, привязать компонент можно потом
+    status: missing
+
+  - id: cap.lists.side.08
+    level: ui
+    kind: side
+    scenario: задача создаётся из шапки раздела «Задачи» с выбором компонента
+    expect: в списке компонентов только те, где пайщик вправе вести задачи; без выбора задача остаётся свободной
     status: missing
 
   - id: cap.lists.side.05
