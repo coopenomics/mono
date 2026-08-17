@@ -109,6 +109,8 @@ const props = defineProps<{
   master?: string;
   /** blockchain | local | any — по умолчанию backend режет blockchain */
   origin?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }>();
 
 const { info } = useSystemStore();
@@ -195,8 +197,8 @@ const loadProjects = async (page = 1, append = false) => {
       options: {
         page,
         limit: 25, // Фиксированный размер страницы для бесконечного скролла
-        sortBy: pagination.value.sortBy,
-        sortOrder: pagination.value.descending ? 'DESC' : 'ASC',
+        sortBy: props.sortBy || pagination.value.sortBy,
+        sortOrder: props.sortOrder || (pagination.value.descending ? 'DESC' : 'ASC'),
       },
     }, append);
 
@@ -291,7 +293,7 @@ onMounted(async () => {
 });
 
 // Следим за изменениями фильтров и сбрасываем состояние
-watch([() => props.statuses, () => props.priorities, () => props.hasIssuesWithStatuses, () => props.hasIssuesWithPriorities, () => props.master], () => {
+watch([() => props.statuses, () => props.priorities, () => props.hasIssuesWithStatuses, () => props.hasIssuesWithPriorities, () => props.hasIssuesWithCreators, () => props.master, () => props.sortBy, () => props.sortOrder], () => {
   resetScrollState();
   loadProjects(1, false);
 }, { deep: true });

@@ -1,0 +1,125 @@
+feature: capital.list-filters-sort
+title: Списки Благороста — раздел «Компоненты», фильтры и сортировка
+
+# Три списка программы устроены одинаково: проекты (дерево проект → компонент →
+# задача), компоненты (то же дерево без первого уровня — все компоненты
+# кооператива подряд, у каждого свои задачи) и задачи (плоский список).
+#
+# Правило показа одно на все три: список отдаёт всё, что пайщику доступно, а
+# сужает выборку он сам — кнопками «Фильтры» и «Сортировка» в шапке. Что именно
+# доступно, решает бэкенд: совет видит всё, пайщик — свою работу (постановщик,
+# ответственный, исполнитель) и проекты, где он ведущий или получил допуск.
+# Раньше страница задач жёстко показывала только свои задачи — это ушло в фильтр
+# «только мои», выключенный по умолчанию.
+#
+# Выбранные фильтры и сортировка переживают перезагрузку: они хранятся у клиента
+# по каждому списку отдельно (свои у проектов, свои у компонентов, свои у задач).
+#
+# Поле сортировки уходит в ORDER BY подстановкой имени, поэтому набор колонок
+# закрытый — см. случаи cap.lists.break.*.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/commit.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/contributor.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/time-entry.typeorm-repository.ts
+    - components/controller/src/extensions/capital/application/dto/property_management/project-filter.input.ts
+    - components/controller/src/extensions/capital/application/dto/generation/issue-filter.input.ts
+  ui:
+    - components/desktop/extensions/capital/shared/lib/listPreferences.ts
+    - components/desktop/extensions/capital/shared/ui/FilterDialogWithButton/FilterDialogWithButton.vue
+    - components/desktop/extensions/capital/shared/ui/SortMenuButton/SortMenuButton.vue
+    - components/desktop/extensions/capital/features/FilterDialog/ui/FilterDialog.vue
+    - components/desktop/extensions/capital/pages/ComponentsListPage/ui/ComponentsListPage.vue
+    - components/desktop/extensions/capital/pages/ProjectsListPage/ui/ProjectsListPage.vue
+    - components/desktop/extensions/capital/pages/MyTasksPage/ui/MyTasksPage.vue
+    - components/desktop/extensions/capital/widgets/ComponentsTreeWidget/ui/ComponentsTreeWidget.vue
+    - components/desktop/extensions/capital/widgets/ComponentsListWidget/ui/ComponentsListWidget.vue
+    - components/desktop/extensions/capital/widgets/ComponentsListWidget/ui/ComponentListRow.vue
+    - components/desktop/extensions/capital/routes/projectTreeChildren.ts
+    - components/desktop/extensions/capital/shared/lib/capitalWorkspaceRoutes.ts
+
+cases:
+  # ── Сортировка: закрытый набор колонок ────────────────────────────────────
+
+  - id: cap.lists.happy.01
+    level: backend
+    kind: happy
+    scenario: список запрашивается с сортировкой по колонке сущности
+    expect: сортировка применяется по этой колонке
+    test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    status: written
+
+  - id: cap.lists.side.01
+    level: backend
+    kind: side
+    scenario: поле сортировки не передано
+    expect: список сортируется умолчанием, отказа нет
+    test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    status: written
+
+  - id: cap.lists.side.02
+    level: backend
+    kind: side
+    scenario: клиент прислал имя поля, которого у сущности нет (устаревшая ссылка, опечатка)
+    expect: список отдаётся, сортировка падает на умолчание
+    test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    status: written
+
+  - id: cap.lists.break.01
+    level: backend
+    kind: break
+    scenario: в поле сортировки дописан SQL
+    expect: имя отвергается, применяется умолчание
+    test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    status: written
+
+  # ── Что попадает в списки ─────────────────────────────────────────────────
+
+  - id: cap.lists.happy.02
+    level: ui
+    kind: happy
+    scenario: пайщик открывает раздел «Компоненты»
+    expect: показаны компоненты кооператива без уровня проектов, у каждого приписан его проект
+    status: missing
+
+  - id: cap.lists.happy.03
+    level: ui
+    kind: happy
+    scenario: пайщик разворачивает компонент в разделе «Компоненты»
+    expect: под ним тот же список задач, что и внутри проекта
+    status: missing
+
+  - id: cap.lists.happy.04
+    level: ui
+    kind: happy
+    scenario: пайщик открывает раздел «Задачи» без фильтров
+    expect: показаны все доступные ему задачи, а не только те, где он исполнитель
+    status: missing
+
+  - id: cap.lists.side.03
+    level: ui
+    kind: side
+    scenario: пайщик включает фильтр «только мои задачи», уходит со стола и возвращается
+    expect: фильтр остался включённым
+    status: missing
+
+  - id: cap.lists.side.04
+    level: ui
+    kind: side
+    scenario: фильтры выставлены на списке задач, пайщик открывает список компонентов
+    expect: у компонентов свои фильтры, чужие не применились
+    status: missing
+
+  - id: cap.lists.side.05
+    level: backend
+    kind: side
+    scenario: задачи запрашиваются без указания компонента пайщиком без допуска к чужому проекту
+    expect: чужие задачи не попадают в выборку и не считаются в totalCount
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written

@@ -38,10 +38,13 @@ import { ComponentHistoryPage } from './pages/ComponentHistoryPage';
 import { ActivityFeedPage } from './pages/ActivityFeedPage';
 import { registerCapitalDecisionHandlers } from './app/extensions';
 import { registerExpenseWallet } from 'src/shared/lib/expense-wallets';
+import { ComponentsListPage } from './pages/ComponentsListPage';
 import {
   buildProjectTreeChildren,
   COOP_PROJECT_TREE_NAMES,
   MY_PROJECT_TREE_NAMES,
+  COMPONENTS_TREE_NAMES,
+  COMPONENTS_TREE_OPTIONS,
 } from './routes/projectTreeChildren';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -90,6 +93,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   const myProjectTreeChildren = buildProjectTreeChildren(
     projectTreePages,
     MY_PROJECT_TREE_NAMES,
+  );
+
+  const componentsTreeChildren = buildProjectTreeChildren(
+    projectTreePages,
+    COMPONENTS_TREE_NAMES,
+    COMPONENTS_TREE_OPTIONS,
   );
 
   return [{
@@ -265,6 +274,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               hidden: false,
             },
             children: coopProjectTreeChildren,
+          },
+          {
+            // Тот же список, что и внутри проекта, но без первого уровня:
+            // все компоненты кооператива подряд, у каждого — свои задачи
+            path: 'components',
+            name: 'components-list',
+            component: markRaw(ComponentsListPage),
+            meta: {
+              title: 'Компоненты',
+              icon: 'account_tree',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: false,
+            },
+            children: componentsTreeChildren,
           },
           {
             path: 'invitations',

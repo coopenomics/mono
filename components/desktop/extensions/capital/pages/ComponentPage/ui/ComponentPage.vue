@@ -135,8 +135,14 @@
           div.col.min-h-0.overflow-auto.min-w-0
             router-view
 
-  // Остальные вкладки — контент на всю ширину, тоже surface
+  // Остальные вкладки — контент на всю ширину, тоже surface.
+  // Заголовка с названием здесь нет, поэтому строкой сверху говорим, какой
+  // это компонент и в каком он проекте — иначе, придя из общего списка
+  // компонентов, ориентироваться не по чему.
   .page-surface.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+    .component-page-context(v-if="project")
+      span.component-page-context__title {{ project.title }}
+      ComponentToProjectPathWidget(:project="project")
     div.col.min-h-0.overflow-auto.min-w-0
       router-view
 </template>
@@ -422,6 +428,21 @@ onMounted(async () => {
     border-radius: 0;
     box-shadow: none;
   }
+}
+
+// Строка «какой компонент / чей проект» на вкладках без заголовка
+.component-page-context {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-wrap: wrap;
+  padding: var(--p-2) var(--p-4) 0;
+}
+
+.component-page-context__title {
+  font-size: var(--p-fs-body);
+  font-weight: 500;
+  color: var(--p-ink);
 }
 
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»

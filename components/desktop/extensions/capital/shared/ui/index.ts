@@ -4,5 +4,6 @@ export * from './RoleBadges';
 export * from './ProjectComponentInfo';
 export * from './PendingClearanceButton';
 export * from './FilterDialogWithButton';
+export * from './SortMenuButton';
 export * from './CapitalSectionEmpty';
 export * from './PrivateShieldIcon';

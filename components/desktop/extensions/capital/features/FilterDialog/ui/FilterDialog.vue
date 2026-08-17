@@ -1,296 +1,259 @@
 <template lang="pug">
-CreateDialog(
-  ref='dialogRef'
-  :title='props.title'
-  submit-text='Применить'
-  dialog-style='max-width: 600px; width: 90vw;'
-  @submit='handleSubmit'
-  @dialog-closed='handleDialogClosed'
+BaseDialog(
+  v-model='isOpen'
+  :title='dialogTitle'
+  size='md'
 )
-  template(#form-fields)
-    .row.q-gutter-md
-      // Фильтр по статусам задач
-      .col-12
-        q-select(
-          ref='statusSelectRef',
-          v-model='computedSelectedStatuses',
-          :options='statusOptions',
-          option-value='value',
-          option-label='label',
-          emit-value,
-          map-options,
-          multiple,
-          use-chips,
-          stack-label,
-          label='Статусы задач',
-          placeholder='Выберите статусы',
-          filled,
-          dense
-        )
-          template(#selected-item='scope')
-            q-chip(
-              :label='scope.opt.label',
-              removable,
-              dense,
-              @remove='removeStatus(scope.opt.value)'
-            )
-          template(#after-options)
-            .row.justify-end.q-pa-sm
-              q-btn(
-                flat,
-                dense,
-                round,
-                icon='check',
-                color='primary',
-                @click='confirmStatusSelection'
-              )
+  .filter-dialog
+    //- Статусы самого проекта / компонента
+    .filter-dialog__field(v-if='isEntityScope')
+      q-select(
+        v-model='entityStatuses',
+        :options='entityStatusOptions',
+        option-value='value',
+        option-label='label',
+        emit-value,
+        map-options,
+        multiple,
+        use-chips,
+        stack-label,
+        :label='isComponentsScope ? "Статусы компонентов" : "Статусы проектов"',
+        outlined,
+        dense
+      )
 
-      // Фильтр по приоритетам задач
-      .col-12
-        q-select(
-          ref='prioritySelectRef',
-          v-model='computedSelectedPriorities',
-          :options='priorityOptions',
-          option-value='value',
-          option-label='label',
-          emit-value,
-          map-options,
-          multiple,
-          use-chips,
-          stack-label,
-          label='Приоритеты задач',
-          placeholder='Выберите приоритеты',
-          filled,
-          dense
-        )
-          template(#selected-item='scope')
-            q-chip(
-              :label='scope.opt.label',
-              removable,
-              dense,
-              @remove='removePriority(scope.opt.value)'
-            )
-          template(#after-options)
-            .row.justify-end.q-pa-sm
-              q-btn(
-                flat,
-                dense,
-                round,
-                icon='check',
-                color='primary',
-                @click='confirmPrioritySelection'
-              )
+    //- Мастер — ведущий проекта / компонента
+    .filter-dialog__field
+      ContributorSelector(
+        v-model='selectedMaster',
+        :project-hash='projectHash',
+        :coopname='coopname',
+        label='Мастер',
+        placeholder='',
+        outlined,
+        dense,
+        :multiSelect='false'
+      )
+    .filter-dialog__field
+      BaseCheckbox(
+        v-model='onlyMyMaster'
+        label='Где я мастер'
+      )
 
-      // Фильтр по исполнителю задач
-      .col-12
-        ContributorSelector(
-          v-model='selectedCreator',
-          :project-hash='projectHash',
-          :coopname='coopname',
-          label='Исполнитель',
-          placeholder='',
-          dense,
-          :multiSelect='false'
-        )
+    q-separator.filter-dialog__separator(v-if='isEntityScope')
+    .filter-dialog__section-title(v-if='isEntityScope') Задачи внутри
 
-      // Фильтр по мастеру
-      .col-12
-        ContributorSelector(
-          v-model='selectedMaster',
-          :project-hash='projectHash',
-          :coopname='coopname',
-          label='Мастер',
-          placeholder='',
-          dense,
-          :multiSelect='false'
-        )
+    //- Статусы задач
+    .filter-dialog__field
+      q-select(
+        v-model='issueStatuses',
+        :options='issueStatusOptions',
+        option-value='value',
+        option-label='label',
+        emit-value,
+        map-options,
+        multiple,
+        use-chips,
+        stack-label,
+        label='Статусы задач',
+        outlined,
+        dense
+      )
+
+    //- Приоритеты задач
+    .filter-dialog__field
+      q-select(
+        v-model='issuePriorities',
+        :options='issuePriorityOptions',
+        option-value='value',
+        option-label='label',
+        emit-value,
+        map-options,
+        multiple,
+        use-chips,
+        stack-label,
+        label='Приоритеты задач',
+        outlined,
+        dense
+      )
+
+    //- Исполнитель задач
+    .filter-dialog__field
+      ContributorSelector(
+        v-model='selectedCreator',
+        :project-hash='projectHash',
+        :coopname='coopname',
+        label='Исполнитель',
+        placeholder='',
+        outlined,
+        dense,
+        :multiSelect='false'
+      )
+    .filter-dialog__field
+      BaseCheckbox(
+        v-model='onlyMyIssues'
+        :label='isEntityScope ? "Где я исполнитель" : "Только мои задачи"'
+      )
+
+  template(#footer)
+    BaseButton(variant='ghost', @click='handleReset') Сбросить
+    BaseButton(variant='primary', @click='handleSubmit') Применить
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { ContributorSelector } from 'app/extensions/capital/entities/Contributor';
-import { CreateDialog } from 'src/shared/ui';
-import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
+import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
+import { BaseDialog, BaseButton, BaseCheckbox } from 'src/shared/ui/base';
 import type { IContributor } from 'app/extensions/capital/entities/Contributor/model/types';
-import type { QSelect } from 'quasar';
-import { getIssueStatusLabel } from '../../../shared/lib/issueStatus';
+import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib/issueStatus';
+import { getProjectStatusLabel } from 'app/extensions/capital/shared/lib/projectStatus';
+import {
+  useListPreferences,
+  type CapitalListScope,
+  type ICapitalListFilters,
+} from 'app/extensions/capital/shared/lib/listPreferences';
 
-// Пропы
-const props = withDefaults(defineProps<{
-  projectHash?: string;
-  coopname?: string;
-  title?: string;
-}>(), {
-  title: 'Фильтры проектов'
+const props = withDefaults(
+  defineProps<{
+    /** Какому списку принадлежат фильтры */
+    scope: CapitalListScope;
+    projectHash?: string;
+    coopname?: string;
+    title?: string;
+  }>(),
+  {
+    scope: 'projects',
+  },
+);
+
+const contributorStore = useContributorStore();
+const { filters, setFilters, resetFilters } = useListPreferences(props.scope);
+
+const isOpen = ref(false);
+
+const isEntityScope = computed(() => props.scope !== 'issues');
+const isComponentsScope = computed(() => props.scope === 'components');
+
+const dialogTitle = computed(() => {
+  if (props.title) return props.title;
+  if (props.scope === 'issues') return 'Фильтры задач';
+  if (props.scope === 'components') return 'Фильтры компонентов';
+  return 'Фильтры проектов';
 });
 
-// Используем store для фильтров
-const projectStore = useProjectStore();
-
-// Эмиты
-const emit = defineEmits<{
-  filtersApplied: [filters: {
-    statuses: string[];
-    priorities: string[];
-    creators: string[];
-    master?: string;
-  }];
-}>();
-
-// Refs для селектов
-const dialogRef = ref<InstanceType<typeof CreateDialog>>();
-const statusSelectRef = ref<QSelect>();
-const prioritySelectRef = ref<QSelect>();
-
-// Состояние фильтров (инициализируем из store)
-const selectedStatuses = ref<string[]>(projectStore.projectFilters.statuses);
-const selectedPriorities = ref<string[]>(projectStore.projectFilters.priorities);
-const selectedCreator = ref<IContributor | null>(null);
+// Локальное состояние формы — применяется в настройки только по «Применить»
+const entityStatuses = ref<string[]>([]);
+const issueStatuses = ref<string[]>([]);
+const issuePriorities = ref<string[]>([]);
 const selectedMaster = ref<IContributor | null>(null);
+const selectedCreator = ref<IContributor | null>(null);
+const onlyMyMaster = ref(false);
+const onlyMyIssues = ref(false);
 
-// Computed свойства для правильного управления выбором
-const computedSelectedStatuses = computed({
-  get: () => selectedStatuses.value,
-  set: (value: string[]) => {
-    const previousValue = selectedStatuses.value;
+const entityStatusOptions = computed(() =>
+  [
+    Zeus.ProjectStatus.PENDING,
+    Zeus.ProjectStatus.ACTIVE,
+    Zeus.ProjectStatus.VOTING,
+    Zeus.ProjectStatus.RESULT,
+    Zeus.ProjectStatus.FINALIZED,
+  ].map((status) => ({ value: status, label: getProjectStatusLabel(status) })),
+);
 
-    if (value.includes('') && !previousValue.includes('')) {
-      // Пользователь выбрал "все", когда его не было - оставляем только "все"
-      selectedStatuses.value = [''];
-    } else if (value.includes('') && previousValue.includes('') && value.length > 1) {
-      // Было "все", и добавили конкретный - убираем "все", оставляем конкретный
-      selectedStatuses.value = value.filter(v => v !== '');
-    } else if (!value.includes('') && value.length > 0) {
-      // Выбраны только конкретные статусы
-      selectedStatuses.value = value;
-    } else if (value.length === 0) {
-      // Ничего не выбрано в интерфейсе - добавляем "все"
-      selectedStatuses.value = [''];
-    } else {
-      // Оставляем как есть (только "все")
-      selectedStatuses.value = value;
-    }
-  }
-});
+const issueStatusOptions = computed(() =>
+  [
+    Zeus.IssueStatus.BACKLOG,
+    Zeus.IssueStatus.TODO,
+    Zeus.IssueStatus.IN_PROGRESS,
+    Zeus.IssueStatus.ON_REVIEW,
+    Zeus.IssueStatus.DONE,
+    Zeus.IssueStatus.CANCELED,
+  ].map((status) => ({ value: status, label: getIssueStatusLabel(status) })),
+);
 
-const computedSelectedPriorities = computed({
-  get: () => selectedPriorities.value,
-  set: (value: string[]) => {
-    const previousValue = selectedPriorities.value;
-
-    if (value.includes('') && !previousValue.includes('')) {
-      // Пользователь выбрал "все", когда его не было - оставляем только "все"
-      selectedPriorities.value = [''];
-    } else if (value.includes('') && previousValue.includes('') && value.length > 1) {
-      // Было "все", и добавили конкретный - убираем "все", оставляем конкретный
-      selectedPriorities.value = value.filter(v => v !== '');
-    } else if (!value.includes('') && value.length > 0) {
-      // Выбраны только конкретные приоритеты
-      selectedPriorities.value = value;
-    } else if (value.length === 0) {
-      // Ничего не выбрано в интерфейсе - добавляем "все"
-      selectedPriorities.value = [''];
-    } else {
-      // Оставляем как есть (только "все")
-      selectedPriorities.value = value;
-    }
-  }
-});
-
-// Опции статусов задач
-const statusOptions = computed(() => [
-  { label: 'Все статусы', value: '' },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.BACKLOG), value: Zeus.IssueStatus.BACKLOG },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.TODO), value: Zeus.IssueStatus.TODO },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.IN_PROGRESS), value: Zeus.IssueStatus.IN_PROGRESS },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.ON_REVIEW), value: Zeus.IssueStatus.ON_REVIEW },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.DONE), value: Zeus.IssueStatus.DONE },
-  { label: getIssueStatusLabel(Zeus.IssueStatus.CANCELED), value: Zeus.IssueStatus.CANCELED },
-]);
-
-// Опции приоритетов задач
-const priorityOptions = [
-  { label: 'Все приоритеты', value: '' },
+const issuePriorityOptions = [
   { label: 'Срочный', value: Zeus.IssuePriority.URGENT },
   { label: 'Высокий', value: Zeus.IssuePriority.HIGH },
   { label: 'Средний', value: Zeus.IssuePriority.MEDIUM },
   { label: 'Низкий', value: Zeus.IssuePriority.LOW },
 ];
 
-// Вычисляемое свойство для creator фильтра
-const creatorFilterValue = computed(() => {
-  return selectedCreator.value?.username ? [selectedCreator.value.username] : [];
+const selfUsername = computed(() => contributorStore.self?.username || '');
+
+/** Участник по имени аккаунта: сохранённый фильтр помнит только username. */
+const contributorByUsername = (username?: string): IContributor | null => {
+  if (!username) return null;
+  if (contributorStore.self?.username === username) return contributorStore.self;
+  return { username } as IContributor;
+};
+
+/** Перечитать форму из сохранённых настроек (при каждом открытии). */
+const syncFromPreferences = () => {
+  const saved = filters.value;
+  entityStatuses.value = [...saved.entityStatuses];
+  issueStatuses.value = [...saved.issueStatuses];
+  issuePriorities.value = [...saved.issuePriorities];
+  selectedMaster.value = contributorByUsername(saved.master);
+  selectedCreator.value = contributorByUsername(saved.creators[0]);
+  onlyMyMaster.value = !!saved.master && saved.master === selfUsername.value;
+  onlyMyIssues.value =
+    saved.creators.length === 1 && saved.creators[0] === selfUsername.value;
+};
+
+// Галочка «я» и выбор участника — две стороны одного значения
+watch(onlyMyMaster, (isSelf) => {
+  if (isSelf) {
+    selectedMaster.value = contributorByUsername(selfUsername.value);
+  } else if (selectedMaster.value?.username === selfUsername.value) {
+    selectedMaster.value = null;
+  }
 });
 
-// Вычисляемое свойство для master фильтра
-const masterFilterValue = computed(() => {
-  return selectedMaster.value?.username;
+watch(selectedMaster, (master) => {
+  onlyMyMaster.value = !!master && master.username === selfUsername.value;
 });
 
-// Методы управления диалогом
+watch(onlyMyIssues, (isSelf) => {
+  if (isSelf) {
+    selectedCreator.value = contributorByUsername(selfUsername.value);
+  } else if (selectedCreator.value?.username === selfUsername.value) {
+    selectedCreator.value = null;
+  }
+});
+
+watch(selectedCreator, (creator) => {
+  onlyMyIssues.value = !!creator && creator.username === selfUsername.value;
+});
+
 const openDialog = () => {
-  dialogRef.value?.openDialog();
+  syncFromPreferences();
+  isOpen.value = true;
 };
 
 const closeDialog = () => {
-  dialogRef.value?.clear();
+  isOpen.value = false;
 };
 
-// Обработчики
 const handleSubmit = () => {
-  const filters = {
-    statuses: selectedStatuses.value.filter(s => s !== ''),
-    priorities: selectedPriorities.value.filter(p => p !== ''),
-    creators: creatorFilterValue.value,
-    master: masterFilterValue.value,
+  const next: ICapitalListFilters = {
+    entityStatuses: isEntityScope.value ? [...entityStatuses.value] : [],
+    issueStatuses: [...issueStatuses.value],
+    issuePriorities: [...issuePriorities.value],
+    creators: selectedCreator.value?.username ? [selectedCreator.value.username] : [],
+    master: selectedMaster.value?.username || undefined,
   };
-
-  emit('filtersApplied', filters);
+  setFilters(next);
   closeDialog();
 };
 
-const handleDialogClosed = () => {
-  // Можно добавить логику сброса состояния при закрытии
+const handleReset = () => {
+  resetFilters();
+  syncFromPreferences();
+  closeDialog();
 };
 
-// Удаление отдельных чипсов
-const removeStatus = (statusValue: string) => {
-  selectedStatuses.value = selectedStatuses.value.filter(s => s !== statusValue);
-};
-
-const removePriority = (priorityValue: string) => {
-  selectedPriorities.value = selectedPriorities.value.filter(p => p !== priorityValue);
-};
-
-// Методы подтверждения выбора и закрытия меню
-const confirmStatusSelection = () => {
-  statusSelectRef.value?.hidePopup();
-};
-
-const confirmPrioritySelection = () => {
-  prioritySelectRef.value?.hidePopup();
-};
-
-// Инициализация
-onMounted(async () => {
-  // Восстанавливаем состояние фильтров из store
-  selectedStatuses.value = [...projectStore.projectFilters.statuses];
-  selectedPriorities.value = [...projectStore.projectFilters.priorities];
-
-  // Если нет значений - устанавливаем "все"
-  if (selectedStatuses.value.length === 0) {
-    selectedStatuses.value = [''];
-  }
-  if (selectedPriorities.value.length === 0) {
-    selectedPriorities.value = [''];
-  }
-
-  // TODO: Восстановить selectedCreator и selectedMaster из store
-  // Пока оставляем пустыми - пользователь сможет выбрать заново
-});
-
-// Экспортируем функции для внешнего использования
 defineExpose({
   openDialog,
   closeDialog,
@@ -298,13 +261,19 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.q-card-section {
-  padding: 16px;
+.filter-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
 }
 
-.q-option-group {
-  .q-checkbox {
-    margin-bottom: 8px;
-  }
+.filter-dialog__separator {
+  margin-top: var(--p-2);
+}
+
+.filter-dialog__section-title {
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  color: var(--p-ink-3);
 }
 </style>
