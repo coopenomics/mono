@@ -27,6 +27,11 @@ import {
   RESOLVER_TYPE_METADATA,
 } from '@nestjs/graphql';
 import dotenv from 'dotenv';
+// Предусловие графа: расширение читает настройки контура уже при построении
+// своей схемы конфига. Генератор грузит модули напрямую, минуя app.module,
+// поэтому предусловие подключается здесь тоже — иначе первый же модуль
+// расширения падает на незаданных настройках.
+import '~/config/platform-bootstrap';
 import { docDirectiveTransformer } from '~/infrastructure/graphql/directives/doc.directive';
 
 const SCHEMA_FILENAME = 'schema.gql';

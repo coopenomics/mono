@@ -1,23 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import {
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
@@ -44,10 +41,10 @@ export class MarketplacePayoutSyncService {
   constructor(
     @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplacePayoutSyncService.name);
   }
@@ -55,7 +52,7 @@ export class MarketplacePayoutSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.PayConfirm.actionName}`
   )
-  async handlePayConfirm(action: IAction): Promise<void> {
+  async handlePayConfirm(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.PayConfirm.IPayConfirm;
       if (!data?.coopname || !data?.outcome_hash) {
@@ -84,7 +81,7 @@ export class MarketplacePayoutSyncService {
         try {
           await this.coreGateway.setPaymentStatus({
             id: updated.core_payment_id,
-            status: PaymentStatusEnum.COMPLETED,
+            status: PaymentStatus.COMPLETED,
           });
         } catch (err: any) {
           this.logger.warn(
@@ -113,7 +110,7 @@ export class MarketplacePayoutSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.PayDecline.actionName}`
   )
-  async handlePayDecline(action: IAction): Promise<void> {
+  async handlePayDecline(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.PayDecline.IPayDecline;
       if (!data?.coopname || !data?.outcome_hash) {
@@ -137,7 +134,7 @@ export class MarketplacePayoutSyncService {
         try {
           await this.coreGateway.setPaymentStatus({
             id: updated.core_payment_id,
-            status: PaymentStatusEnum.CANCELLED,
+            status: PaymentStatus.CANCELLED,
           });
         } catch (err: any) {
           this.logger.warn(

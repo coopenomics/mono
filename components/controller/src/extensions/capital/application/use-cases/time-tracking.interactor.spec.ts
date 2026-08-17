@@ -12,7 +12,7 @@ import type { ContributorDomainEntity } from '../../domain/entities/contributor.
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
-import { EMPTY_HASH } from '~/shared/utils/constants';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 // Сценарии калиброваны по проду voskhod (issue CC7-1, estimate=15, 3 creators)
 // чтобы локально воспроизводить найденные баги и предотвращать регрессию.

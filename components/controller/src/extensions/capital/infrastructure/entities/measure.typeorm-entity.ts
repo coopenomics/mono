@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const MeasureEntityName = 'capital_measures';
 

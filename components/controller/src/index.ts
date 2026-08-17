@@ -12,6 +12,9 @@ import { migrateData } from './migrator/migrate';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
+// Настройки контура и секрет межсервисного обхода передаются каркасу в
+// './config/platform-bootstrap' — он импортирован первой строкой app.module.ts,
+// то есть раньше любого расширения. См. комментарий в самом файле.
 
 export let nestApp;
 

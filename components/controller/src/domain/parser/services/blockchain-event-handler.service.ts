@@ -34,6 +34,9 @@ export class BlockchainEventHandlerService implements OnModuleInit {
         account: action.account,
         block_num: Number(action.block_num),
         block_id: action.block_id || '',
+        // Время блока пишем как есть — строкой из потока; в `timestamptz`
+        // её переводит трансформер сущности. Отсутствие времени законно.
+        block_time: action.block_time,
         chain_id: action.chain_id || '',
         name: action.name,
         receiver: action.receiver,
@@ -79,6 +82,9 @@ export class BlockchainEventHandlerService implements OnModuleInit {
         chain_id: delta.chain_id || '',
         block_num: Number(delta.block_num),
         block_id: delta.block_id || '',
+        // Время блока пишем как есть — строкой из потока; в `timestamptz`
+        // её переводит трансформер сущности. Отсутствие времени законно.
+        block_time: delta.block_time,
         present: delta.present,
         code: delta.code,
         scope: delta.scope,

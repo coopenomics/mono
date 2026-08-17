@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { AgreementStatus } from '~/domain/agreement/enums/agreement-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'agreements';
 @Entity(EntityName)
@@ -40,7 +40,7 @@ export class AgreementTypeormEntity extends BaseTypeormEntity {
   version!: number;
 
   @Column({ type: 'json' })
-  document!: ISignedDocumentDomainInterface;
+  document!: ISignedDocument;
 
   @Column({ type: 'varchar', length: 20 })
   blockchain_status!: string;

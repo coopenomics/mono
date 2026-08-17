@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { Inject, Injectable } from '@nestjs/common';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import { KuDecisionDomainEntity } from '../../../domain/entities/ku-decision.entity';
 import type { IKuDecisionBlockchainData } from '../../../domain/interfaces/ku-blockchain-data.interface';
 import { KuContractInfoService } from '../../services/ku-contract-info.service';
@@ -11,7 +10,7 @@ import { KuContractInfoService } from '../../services/ku-contract-info.service';
  */
 @Injectable()
 export class KuDecisionDeltaMapper extends AbstractBlockchainDeltaMapper<IKuDecisionBlockchainData, KuDecisionDomainEntity> {
-  constructor(private readonly logger: WinstonLoggerService, private readonly contractInfo: KuContractInfoService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort, private readonly contractInfo: KuContractInfoService) {
     super();
     this.logger.setContext(KuDecisionDeltaMapper.name);
   }

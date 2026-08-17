@@ -1,13 +1,8 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { MembershipExitApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
 import { MembershipExitDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-decision-document.dto';
 import { MembershipExitService } from '../services/membership-exit.service';
@@ -62,7 +57,7 @@ export class MembershipExitResolver {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard)
   async createMembershipExit(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => CreateMembershipExitInputDTO }) data: CreateMembershipExitInputDTO
   ): Promise<MembershipExitResultDTO> {
     return this.membershipExitService.createMembershipExit(data, currentUser);
@@ -87,7 +82,7 @@ export class MembershipExitResolver {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard)
   async cancelMembershipExit(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string
   ): Promise<boolean> {
@@ -102,7 +97,7 @@ export class MembershipExitResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async membershipExit(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string
   ): Promise<MembershipExitDTO | null> {
@@ -120,7 +115,7 @@ export class MembershipExitResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async membershipExitReturnPreview(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string
   ): Promise<MembershipExitReturnPreviewDTO> {

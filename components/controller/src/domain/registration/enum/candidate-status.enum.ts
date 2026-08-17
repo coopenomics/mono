@@ -1,8 +1,5 @@
 /**
- * Статусы кандидата в пайщики
+ * Состояние заявки на вступление живёт в `@coopenomics/extension-kit` рядом с
+ * формой заявки: её показывают и ядро, и расширения.
  */
-export enum CandidateStatus {
-  PENDING = 'pending',
-  REGISTERED = 'registered',
-  FAILED = 'failed',
-}
+export { CandidateStatus } from '@coopenomics/extension-kit';

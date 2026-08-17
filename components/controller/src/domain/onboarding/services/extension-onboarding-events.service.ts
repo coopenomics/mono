@@ -3,8 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
+} from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   ONBOARDING_COMPLETED_EVENT,
@@ -14,6 +13,7 @@ import {
   ONBOARDING_STEP_QUERY_PORT,
   type OnboardingStepQueryPort,
 } from '../ports/onboarding-step-query.port';
+import { DecisionTrackedEvent } from '@coopenomics/innercoop';
 
 /**
  * Расширения с собственным per-extension events-сервисом
@@ -66,14 +66,14 @@ export class ExtensionOnboardingEventsService {
     }
 
     try {
-      const plugin = await this.extensionRepository.findByName(extension_name);
-      if (!plugin) {
+      const extension = await this.extensionRepository.findByName(extension_name);
+      if (!extension) {
         this.logger.warn(`Расширение ${extension_name} не найдено в репозитории`);
         return;
       }
 
       const flagKey = doneKey(step_key);
-      const wasAlreadyDone = Boolean(plugin.config[flagKey]);
+      const wasAlreadyDone = Boolean(extension.config[flagKey]);
       if (wasAlreadyDone) return;
 
       // Атомарный merge одного флага: два решения совета по РАЗНЫМ шагам,

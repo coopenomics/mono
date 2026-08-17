@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
-import type { InterFileStorageBucket } from '@coopenomics/inter';
+import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import {
@@ -44,7 +44,7 @@ const EXTENSION_BY_MIME: Record<string, string> = {
 @Injectable()
 export class PaymentFilesService {
   constructor(
-    @InjectBucket() private readonly bucket: InterFileStorageBucket,
+    @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(PAYMENT_FILE_REPOSITORY) private readonly files: PaymentFileRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository
   ) {}

@@ -1,14 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { APPENDIX_REPOSITORY, type AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
-import {
-  CHATCOOP_MATRIX_USER_LINKED_FOR_CAPITAL_PROJECT_ROOMS_EVENT,
-  CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT,
-  type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload,
-  type IChatCoopCapitalProjectRoomEnsureMemberPayload,
-} from '~/shared/constants/capital-project-matrix.events';
+import { CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, CHATCOOP_MATRIX_USER_LINKED_FOR_CAPITAL_PROJECT_ROOMS_EVENT, type IChatCoopCapitalProjectRoomEnsureMemberPayload, type IChatCoopMatrixUserLinkedForCapitalProjectRoomsPayload } from '@coopenomics/innercoop';
 
 /**
  * Когда у пайщика наконец есть Matrix в коопе, проходим по всем проектам с подтверждённой заявкой на участие
@@ -20,7 +15,7 @@ export class ChatCoopMatrixUserLinkedCapitalProjectRoomsListener {
     @Inject(APPENDIX_REPOSITORY) private readonly appendixRepository: AppendixRepository,
     @Inject(PROJECT_REPOSITORY) private readonly projectRepository: ProjectRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ChatCoopMatrixUserLinkedCapitalProjectRoomsListener.name);
   }

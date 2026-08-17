@@ -1,5 +1,5 @@
 import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { createPaginationResult } from '~/application/common/dto/pagination.dto';
+import { createPaginationResult } from '@coopenomics/extension-kit';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MarketplaceOfferStatuses,

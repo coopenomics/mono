@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import config from '~/config/config';
+import { EXTENSION_DATABASE_PORT, type IExtensionDatabasePort } from '@coopenomics/innercoop';
 
 // TypeORM entities
 import { CategoryEntity } from './entities/category.entity';
@@ -93,6 +93,7 @@ import {
 } from './mappers/marketplace-container.mapper';
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
@@ -134,56 +135,69 @@ import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/mark
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 
 @Module({
   imports: [
     // Создаем отдельное подключение для marketplace
-    TypeOrmModule.forRoot({
+    // Своё подключение под собственный набор сущностей. Реквизиты приходят от
+    // ядра через порт: где стоит база расширения — знание контура, а не
+    // расширения.
+    TypeOrmModule.forRootAsync({
       name: 'marketplace', // Имя подключения
-      type: 'postgres',
-      host: config.postgres.host,
-      port: Number(config.postgres.port),
-      username: config.postgres.username,
-      password: config.postgres.password,
-      database: config.postgres.database,
-      entities: [
-        CategoryEntity,
-        TypeEntity,
-        AttributeEntity,
-        DictionaryEntity,
-        DictionaryValueEntity,
-        CategoryTypeAttributeEntity,
-        AvailableCategoryEntity,
-        RequestEntity,
-        RequestAttributeValueEntity,
-        RequestImageEntity,
-        KuDetailsTypeormEntity,
-        MarketplaceVitrineEntity,
-        MarketplaceSupplierEntity,
-        MarketplaceCategoryEntity,
-        MarketplaceOfferEntity,
-        MarketplaceModerationLogEntity,
-        MarketplaceOrderEntity,
-        MarketplaceConsolidatedRequestEntity,
-        MarketplaceShipmentEntity,
-        MarketplaceSupplyValidationLogEntity,
-        MarketplaceInventoryEntity,
-        MarketplaceStorageCellEntity,
-        MarketplaceContainerTypeEntity,
-        MarketplaceContainerEntity,
-        MarketplaceStockProposalEntity,
-        MarketplaceAplReceptionEntity,
-        MarketplaceOutgoingPaymentRequestEntity,
-        MarketplaceTtnDocumentEntity,
-        MarketplaceReturnClaimEntity,
-        MarketplaceWriteoffProposalEntity,
-        MarketplaceCartEntity,
-        MarketplaceCartItemEntity,
-        MarketplaceSupplierSettingsEntity,
-      ],
-      synchronize: true,
-      logging: false,
+      inject: [EXTENSION_DATABASE_PORT],
+      useFactory: (databases: IExtensionDatabasePort) => {
+        const connection = databases.getConnection('marketplace');
+        if (!connection) {
+          throw new Error(
+            'Расширению marketplace не заведена отдельная база: без неё каталог, склад и заказы читать неоткуда'
+          );
+        }
+        return {
+          type: 'postgres',
+          host: connection.host,
+          port: connection.port,
+          username: connection.username,
+          password: connection.password,
+          database: connection.database,
+          entities: [
+            CategoryEntity,
+            TypeEntity,
+            AttributeEntity,
+            DictionaryEntity,
+            DictionaryValueEntity,
+            CategoryTypeAttributeEntity,
+            AvailableCategoryEntity,
+            RequestEntity,
+            RequestAttributeValueEntity,
+            RequestImageEntity,
+            KuDetailsTypeormEntity,
+            MarketplaceVitrineEntity,
+            MarketplaceSupplierEntity,
+            MarketplaceCategoryEntity,
+            MarketplaceOfferEntity,
+            MarketplaceModerationLogEntity,
+            MarketplaceOrderEntity,
+            MarketplaceConsolidatedRequestEntity,
+            MarketplaceShipmentEntity,
+            MarketplaceSupplyValidationLogEntity,
+            MarketplaceInventoryEntity,
+            MarketplaceStorageCellEntity,
+            MarketplaceContainerTypeEntity,
+            MarketplaceContainerEntity,
+            MarketplaceStockProposalEntity,
+            MarketplaceAplReceptionEntity,
+            MarketplaceOutgoingPaymentRequestEntity,
+            MarketplaceTtnDocumentEntity,
+            MarketplaceReturnClaimEntity,
+            MarketplaceWriteoffProposalEntity,
+            MarketplaceCartEntity,
+            MarketplaceCartItemEntity,
+            MarketplaceSupplierSettingsEntity,
+          ],
+          synchronize: true,
+          logging: false,
+        };
+      },
     }),
     // Регистрируем entities для этого подключения
     TypeOrmModule.forFeature(
@@ -224,9 +238,6 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
       ],
       'marketplace'
     ), // Указываем имя подключения
-    // Поставляет VAULT_DOMAIN_SERVICE для MarketplaceCanonicalBlockchainAdapter
-    // (WIF кооператива по data.coopname для подписи on-chain транзакций).
-    VaultDomainModule,
   ],
   providers: [
     {
@@ -263,7 +274,11 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     },
     {
       provide: GEOCODER_PORT,
-      useFactory: geocoderPortFactory,
+      // Ключ и адрес геокодера приходят из контура через порт настроек
+      // внешних служб: у расширения своих ключей нет.
+      useFactory: (integrations: IIntegrationSettingsPort) =>
+        geocoderPortFactory(integrations.get('marketplace', 'geocoder')),
+      inject: [INTEGRATION_SETTINGS_PORT],
     },
     // Витрина + реестр поставщиков
     MarketplaceVitrineMapper,

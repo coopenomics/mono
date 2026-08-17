@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 /**
  * Доменный интерфейс для действия подписания приложения CAPITAL контракта
  */
@@ -16,7 +16,7 @@ export interface MakeClearanceDomainInput {
   appendix_hash: string;
 
   /** Документ */
-  document: ISignedDocumentDomainInterface;
+  document: ISignedDocument;
 
   /** Вклад участника (текстовое описание) */
   contribution?: string;

@@ -6,7 +6,7 @@ import type {
   MarketplaceAplReceptionVariant,
 } from './marketplace-apl-reception.types';
 import { MarketplaceAplReceptionStatuses } from './marketplace-apl-reception.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Story 5.3 / 5.4: домен АПП приёмки. Backend-only state machine; on-chain
@@ -28,7 +28,7 @@ export class MarketplaceAplReceptionDomainEntity {
   public readonly created_by_operator_account: string;
   public supplier_signed_at: Date | null;
   public supplier_signsupp_tx_hash: string | null;
-  public supplier_signed_documents: ISignedDocumentDomainInterface[] | null;
+  public supplier_signed_documents: ISignedDocument[] | null;
   public chairman_signed_at: Date | null;
   public chairman_account: string | null;
   public chairman_signchair_tx_hash: string | null;

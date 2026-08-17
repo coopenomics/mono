@@ -1,4 +1,3 @@
-import type { TransactResult } from '@wharfkit/session';
 import type {
   ApproveKuTrustedInputDomainInterface,
   CancelKuDecisionInputDomainInterface,
@@ -11,6 +10,7 @@ import type {
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from './ku-action-inputs.interface';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Блокчейн-порт собраний и решений кооперативных участков (контракт branch).
@@ -18,36 +18,36 @@ import type {
  */
 export interface KuBlockchainPort {
   /** Объявление собрания пайщиков участка */
-  createDecision(data: CreateKuDecisionInputDomainInterface): Promise<TransactResult>;
+  createDecision(data: CreateKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Присоединение пайщика к собранию */
-  joinDecision(data: JoinKuDecisionInputDomainInterface): Promise<TransactResult>;
+  joinDecision(data: JoinKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Назначение председателя собрания */
 
   /** Открытие голосования */
-  startDecision(data: StartKuDecisionInputDomainInterface): Promise<TransactResult>;
+  startDecision(data: StartKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Подача бюллетеня участником */
-  voteOnDecision(data: VoteOnKuDecisionInputDomainInterface): Promise<TransactResult>;
+  voteOnDecision(data: VoteOnKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Закрытие голосования и утверждение протокола председателем */
-  closeDecision(data: CloseKuDecisionInputDomainInterface): Promise<TransactResult>;
+  closeDecision(data: CloseKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Направление заявления председателя в совет (учреждение участка) */
-  execDecision(data: ExecKuDecisionInputDomainInterface): Promise<TransactResult>;
+  execDecision(data: ExecKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Отмена собрания инициатором */
-  cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<TransactResult>;
+  cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Подача заявки доверенного лица участка */
-  requestTrusted(data: RequestKuTrustedInputDomainInterface): Promise<TransactResult>;
+  requestTrusted(data: RequestKuTrustedInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Одобрение заявки доверенного встречной подписью председателя участка */
-  approveTrusted(data: ApproveKuTrustedInputDomainInterface): Promise<TransactResult>;
+  approveTrusted(data: ApproveKuTrustedInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Отклонение заявки доверенного */
-  declineTrusted(data: DeclineKuTrustedInputDomainInterface): Promise<TransactResult>;
+  declineTrusted(data: DeclineKuTrustedInputDomainInterface): Promise<InnerTransactResult>;
 }
 
 export const KU_BLOCKCHAIN_PORT = Symbol('KuBlockchainPort');

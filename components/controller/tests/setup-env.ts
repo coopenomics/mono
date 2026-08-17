@@ -22,3 +22,16 @@ for (const [key, value] of Object.entries(PLACEHOLDER_ENV_DEFAULTS)) {
 
 // Тесты — всегда test-окружение, даже если заглушка выше подставила development.
 process.env.NODE_ENV = 'test';
+
+/**
+ * Настройки контура для каркаса расширений — то же предусловие, что и у
+ * приложения.
+ *
+ * Зачем здесь. Утилиты каркаса (`QuantityUtils`, `AssetUtils`, форматирование
+ * сумм) берут символ и точность токена из `platformSettings()`, а не из
+ * `~/config`: за пределами монолита конфига ядра нет. Без настройки первый же
+ * разбор суммы в спеке падает с «Настройки контура не заданы». Импорт лениво
+ * внутри — до заполнения `process.env` выше конфиг не поднять.
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require('../src/config/platform-bootstrap');

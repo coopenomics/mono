@@ -1,7 +1,7 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { isForkAware, type IForkAwareSyncer } from './fork-aware-syncer.interface';
+import { isForkAware, type IForkAwareSyncer } from '@coopenomics/extension-kit/sync';
 
 /**
  * Реестр syncer'ов, откатывающих свои сущности на форке (ADR-005, Story 4.1).

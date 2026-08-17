@@ -1,12 +1,10 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { InnerOrganizationType } from '@coopenomics/innercoop';
 
-export enum OrganizationType {
-  COOP = 'coop',
-  PRODCOOP = 'prodcoop',
-  OOO = 'ooo',
-  OAO = 'oao',
-  ZAO = 'zao',
-  PAO = 'pao',
-  AO = 'ao',
-}
-registerEnumType(OrganizationType, { name: 'OrganizationType', description: 'Тип юридического лица' });
+/**
+ * Перечень живёт в контракте `@coopenomics/innercoop`. Здесь он доступен под
+ * привычным ядру именем и регистрируется в схеме.
+ */
+export { InnerOrganizationType as OrganizationType };
+
+registerEnumType(InnerOrganizationType, { name: 'OrganizationType', description: 'Тип юридического лица' });

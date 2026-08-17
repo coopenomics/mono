@@ -14,8 +14,8 @@
  * Прямой import `ExtensionInteractor` тянет через
  * `ExtensionLifecycleDomainService → extensions.registry → capital-extension`
  * и упирается в ESM `@octokit/rest` (та же причина, что и в
- * `capital-plugin-register.test.ts` — комментарий «Тест чистой функции — не
- * тянет за собой импорт CapitalPlugin»). Mock'аем lifecycle-service на пустышку
+ * `capital-extension-register.test.ts` — комментарий «Тест чистой функции — не
+ * тянет за собой импорт CapitalExtension»). Mock'аем lifecycle-service на пустышку
  * — interactor использует его только как тип конструктора + два метода
  * (`runApp`, `terminateApp`), которые мы передаём явно.
  */

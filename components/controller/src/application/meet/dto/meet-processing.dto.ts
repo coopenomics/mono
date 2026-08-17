@@ -1,9 +1,9 @@
+import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { Field, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsEnum, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MeetDTO } from './meet.dto';
 import { QuestionDTO } from './question.dto';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 
 @ObjectType('MeetProcessing', { description: 'Данные о собрании в процессе обработки' })
 export class MeetProcessingDTO {

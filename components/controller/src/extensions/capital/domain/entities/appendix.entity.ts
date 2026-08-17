@@ -1,9 +1,9 @@
 import { AppendixStatus } from '../enums/appendix-status.enum';
 import type { IAppendixDatabaseData } from '../interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../interfaces/appendix-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность приложения
@@ -32,7 +32,7 @@ export class AppendixDomainEntity
   public project_hash?: IAppendixBlockchainData['project_hash'];
   public blockchain_status?: IAppendixBlockchainData['status']; // Статус из блокчейна
   public created_at?: IAppendixBlockchainData['created_at'];
-  public appendix?: ISignedDocumentDomainInterface;
+  public appendix?: ISignedDocument;
   public contribution?: string;
 
   /**

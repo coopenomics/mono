@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
-import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
+import { MarketplaceAplReceptionSignedDocumentInputDTO } from '../documents-dto/marketplace-apl-reception-document.dto';
 import { MarketplaceShipmentTTNDataDTO } from './marketplace-shipment.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 

@@ -2,12 +2,10 @@ import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Inject, NotFoundException, UseGuards } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate, type ValidationError } from 'class-validator';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { config } from '~/config';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {
   REPORT_DRAFT_REPOSITORY,
@@ -46,9 +44,9 @@ export class ReportDraftResolver {
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
     @Args('period', { type: () => Int, nullable: true }) period: number | null | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<BuildInitialReportEditsDTO> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const [defaults, draft] = await Promise.all([
       this.editsBuilder.build(reportType, year, period ?? null, coopname),
       this.draftRepo.findOne(
@@ -80,11 +78,11 @@ export class ReportDraftResolver {
   @AuthRoles(['chairman'])
   async saveReportDraft(
     @Args('input') input: SaveReportDraftInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO> {
     const parsedEdits = this.parseEditsJson(input.editsJson);
     const record = await this.draftRepo.save({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       owner_username: currentUser.username,
       report_type: input.reportType,
       year: input.year,
@@ -106,10 +104,10 @@ export class ReportDraftResolver {
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
     @Args('period', { type: () => Int, nullable: true }) period: number | null | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO | null> {
     const record = await this.draftRepo.findOne(
-      config.coopname,
+      platformSettings().coopname,
       currentUser.username,
       reportType,
       year,
@@ -127,10 +125,10 @@ export class ReportDraftResolver {
   async listReportDrafts(
     @Args('filter', { type: () => ListReportDraftsFilterInputDTO, nullable: true })
     filter: ListReportDraftsFilterInputDTO | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportDraftDTO[]> {
     const records = await this.draftRepo.list({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       owner_username: currentUser.username,
       report_type: filter?.reportType,
       year: filter?.year,
@@ -172,14 +170,14 @@ export class ReportDraftResolver {
   @AuthRoles(['chairman'])
   async deleteReportDraft(
     @Args('id') id: string,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
     const record = await this.draftRepo.findById(id);
     if (!record) throw new NotFoundException(`Draft ${id} not found`);
-    if (record.owner_username !== currentUser.username || record.coopname !== config.coopname) {
+    if (record.owner_username !== currentUser.username || record.coopname !== platformSettings().coopname) {
       throw new NotFoundException(`Draft ${id} not found`);
     }
-    return this.draftRepo.delete(id, config.coopname, currentUser.username);
+    return this.draftRepo.delete(id, platformSettings().coopname, currentUser.username);
   }
 
   /**

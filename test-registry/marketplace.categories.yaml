@@ -11,6 +11,13 @@ title: Доступные категории кооператива — огра
 # доступа — без него страница недостижима ни для кого (так и было до
 # 2026-08-07).
 
+
+# Переименование 2026-08-09 (FC1-4): guard'ы и декораторы авторизации
+# (`GqlJwtAuthGuard`, `RolesGuard`, `AuthRoles`, `CurrentUser`) переехали из
+# `~/application/auth/*` в `@coopenomics/extension-kit`. В резолверах фичи
+# изменилась только строка импорта — состав guard'ов на операциях, правила
+# доступа и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

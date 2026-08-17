@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Интерфейс элемента голосования
@@ -16,5 +16,5 @@ export interface VoteOnAnnualGeneralMeetInputDomainInterface {
   hash: string;
   username: string;
   votes: VoteItemInputDomainInterface[];
-  ballot: ISignedDocumentDomainInterface;
+  ballot: ISignedDocument;
 }

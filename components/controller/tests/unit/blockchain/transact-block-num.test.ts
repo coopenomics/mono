@@ -1,4 +1,4 @@
-import { getAppliedBlockNum } from '../../../src/shared/utils/transact-block-num';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 describe('getAppliedBlockNum — номер блока применения транзакции', () => {
   it('берёт block_num из ответа API после broadcast', () => {

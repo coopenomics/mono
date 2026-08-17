@@ -1,4 +1,5 @@
 export * from './capitalCandidateSelector'
+export * from './capitalProgramWalletSelector'
 export * from './commitSelector'
 export * from './configSelector'
 export * from './contributorSelector'

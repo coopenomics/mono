@@ -1,22 +1,19 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectRepository, PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
 import { ProjectDeltaMapper } from '../../infrastructure/blockchain/mappers/project-delta.mapper';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import { CapitalContract } from 'cooptypes';
-import {
-  CAPITAL_PROJECT_CREATED_EVENT,
-  type ICapitalProjectCreatedPayload,
-} from '~/shared/constants/capital-project-matrix.events';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
-import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
+import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
+import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
  * Сервис синхронизации проектов с блокчейном
@@ -35,7 +32,7 @@ export class ProjectSyncService
     @Inject(PROJECT_REPOSITORY)
     projectRepository: ProjectRepository,
     projectDeltaMapper: ProjectDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
@@ -100,7 +97,7 @@ export class ProjectSyncService
   async syncProject(
     coopname: string,
     project_hash: string,
-    transactResult: TransactResult
+    transactResult: InnerTransactResult
   ): Promise<ProjectDomainEntity | null> {
     await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные проекта из блокчейна

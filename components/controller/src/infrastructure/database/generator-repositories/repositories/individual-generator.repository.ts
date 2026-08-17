@@ -5,8 +5,8 @@ import httpStatus from 'http-status';
 import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
 import type { IndividualRepository } from '~/domain/common/repositories/individual.repository';
-import { HttpApiError } from '~/utils/httpApiError';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IndividualRepositoryImplementation implements IndividualRepository {

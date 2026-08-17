@@ -1,16 +1,15 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ResultDomainEntity } from '../../domain/entities/result.entity';
 import { ResultRepository, RESULT_REPOSITORY } from '../../domain/repositories/result.repository';
 import { ResultDeltaMapper } from '../../infrastructure/blockchain/mappers/result-delta.mapper';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
+import { DomainToBlockchainUtils, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации результатов с блокчейном
@@ -29,7 +28,7 @@ export class ResultSyncService
     @Inject(RESULT_REPOSITORY)
     resultRepository: ResultRepository,
     resultDeltaMapper: ResultDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
@@ -64,7 +63,7 @@ export class ResultSyncService
   /**
    * Синхронизация результата между блокчейном и базой данных
    */
-  async syncResult(resultHash: string, transactResult: TransactResult): Promise<ResultDomainEntity | null> {
+  async syncResult(resultHash: string, transactResult: InnerTransactResult): Promise<ResultDomainEntity | null> {
     // Извлекаем данные результата из блокчейна по result_hash
     // Для этого нам нужно получить результат из репозитория, чтобы узнать coopname
     const existingResult = await this.resultRepository.findByResultHash(resultHash);

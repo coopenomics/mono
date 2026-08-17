@@ -1,7 +1,7 @@
 import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
-import { createPaginationResult } from '~/application/common/dto/pagination.dto';
+import { createPaginationResult } from '@coopenomics/extension-kit';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import {
   MarketplaceOrderStatuses,

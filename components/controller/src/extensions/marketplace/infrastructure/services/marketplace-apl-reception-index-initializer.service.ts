@@ -1,7 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 
 /**
  * Partial unique-индексы АПП приёмки: одна АКТИВНАЯ приёмка на партию / ТТН.
@@ -18,7 +18,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 export class MarketplaceAplReceptionIndexInitializer implements OnModuleInit {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceAplReceptionIndexInitializer.name);
   }

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { CandidateEntity } from '../entities/candidate.entity';
 import type { CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DocumentType, ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 @Injectable()
@@ -86,7 +86,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   async saveDocument(
     username: string,
     documentType: DocumentType,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
@@ -123,7 +123,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   async saveProgramAgreement(
     username: string,
     agreementId: string,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {

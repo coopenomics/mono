@@ -1,7 +1,7 @@
 import { IssuePriority } from '../enums/issue-priority.enum';
 import { IssueStatus } from '../enums/issue-status.enum';
 import type { IIssueDatabaseData } from '../interfaces/issue-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность задачи

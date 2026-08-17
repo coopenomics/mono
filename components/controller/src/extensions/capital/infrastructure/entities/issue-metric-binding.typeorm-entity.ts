@@ -1,5 +1,5 @@
 import { Entity, Column, Index, Unique } from 'typeorm';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const IssueMetricBindingEntityName = 'capital_issue_metric_bindings';
 

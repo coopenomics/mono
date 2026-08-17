@@ -6,12 +6,8 @@ import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
 import { CycleMapper } from '../mappers/cycle.mapper';
 import { CycleStatus } from '../../domain/enums/cycle-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { CycleFilterInputDTO } from '../../application/dto/generation/cycle-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CycleTypeormRepository implements CycleRepository {
@@ -86,10 +82,10 @@ export class CycleTypeormRepository implements CycleRepository {
 
   async findAllPaginated(
     filter?: CycleFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<CycleDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<CycleDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

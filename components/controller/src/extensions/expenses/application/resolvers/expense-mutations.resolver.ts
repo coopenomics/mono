@@ -1,16 +1,11 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto';
-import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-decision-document.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO,
+  ExpenseProposalStatementGenerateDocumentInputDTO,
+} from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto';
 import { ExpensesMutationsService } from '../services/expenses-mutations.service';
 import { ExpensesManagementService } from '../services/expenses-management.service';
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input';
@@ -42,7 +37,7 @@ export class ExpenseMutationsResolver {
    * пайщик может отчитаться только по своей строке, совет — по любой.
    */
   private async assertCanReportItem(
-    user: MonoAccountDomainInterface,
+    user: IMonoAccount,
     proposalHash: string,
     itemHash: string
   ): Promise<void> {
@@ -100,7 +95,7 @@ export class ExpenseMutationsResolver {
   @AuthRoles(['chairman', 'member'])
   async createExpenseProposal(
     @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
     // RolesGuard пропускает запрос при data.username === user.username независимо
     // от роли — здесь это сломало бы ограничение «СЗ подаёт совет», поэтому роль
@@ -131,7 +126,7 @@ export class ExpenseMutationsResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async reportExpenseItem(
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
     await this.assertCanReportItem(user, data.proposal_hash, data.item_hash);
     return this.expensesMutations.reportExpenseItem(data);

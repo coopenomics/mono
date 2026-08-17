@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
@@ -8,9 +8,7 @@ import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { ChairmanBlockchainAdapter } from '../../infrastructure/blockchain/adapters/chairman-blockchain.adapter';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from '../../domain/interfaces/chairman-blockchain.port';
-import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
-import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { ConfirmApproveDomainInput } from '../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../domain/actions/decline-approve-domain-input.interface';
 
@@ -24,8 +22,8 @@ export class ApprovalService {
     private readonly approvalRepository: ApprovalRepository,
     @Inject(CHAIRMAN_BLOCKCHAIN_PORT)
     private readonly blockchainAdapter: ChairmanBlockchainAdapter,
-    private readonly logger: WinstonLoggerService,
-    private readonly documentAggregationService: DocumentAggregationService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {
     this.logger.setContext(ApprovalService.name);
   }
@@ -35,7 +33,7 @@ export class ApprovalService {
    */
   async getApprovals(
     filter?: ApprovalFilterInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<PaginationResult<ApprovalDTO>> {
     this.logger.debug('Получение списка одобрений', { filter, options });
 
@@ -130,9 +128,9 @@ export class ApprovalService {
    */
   private async toDTO(entity: ApprovalDomainEntity): Promise<ApprovalDTO> {
     // Преобразуем документы в агрегаты
-    const document = await this.documentAggregationService.buildDocumentAggregate(entity.document);
+    const document = await this.documentPort.buildAggregate(entity.document);
     const approved_document = entity.approved_document
-      ? await this.documentAggregationService.buildDocumentAggregate(entity.approved_document)
+      ? await this.documentPort.buildAggregate(entity.approved_document)
       : null;
 
     return {

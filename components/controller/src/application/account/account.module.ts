@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AccountResolver } from './resolvers/account.resolver';
 import { AccountService } from './services/account.service';
 import { AccountInteractor } from './interactors/account.interactor';
@@ -11,8 +11,8 @@ import { EventsInfrastructureModule } from '~/infrastructure/events/events.modul
 @Module({
   imports: [
     AccountDomainModule,
-    forwardRef(() => UserDomainModule),
-    forwardRef(() => TokenApplicationModule),
+    UserDomainModule,
+    TokenApplicationModule,
     EventsInfrastructureModule,
   ],
   controllers: [],

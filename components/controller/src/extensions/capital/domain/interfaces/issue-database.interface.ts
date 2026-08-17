@@ -1,6 +1,6 @@
 import type { IssuePriority } from '../enums/issue-priority.enum';
 import type { IssueStatus } from '../enums/issue-status.enum';
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 
 /**
  * Интерфейс данных задачи из базы данных

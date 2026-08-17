@@ -1,14 +1,11 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { LogInteractor } from '../use-cases/log.interactor';
 import { LogOutputDTO } from '../dto/logs/log.dto';
 import { GetLogsInputDTO } from '../dto/logs/get-logs.input';
 import { GetIssueLogsInputDTO } from '../dto/logs/get-issue-logs.input';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-
 // Пагинированные результаты
 const paginatedLogsResult = createPaginationResult(LogOutputDTO, 'PaginatedCapitalLogs');
 
@@ -29,7 +26,7 @@ export class LogResolver {
   })
   async getLogs(
     @Args('data') data: GetLogsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<PaginationResult<LogOutputDTO>> {
     return await this.logInteractor.getLogs(data, currentUser?.username);
   }
@@ -44,7 +41,7 @@ export class LogResolver {
   async getIssueLogs(
     @Args('data') data: GetIssueLogsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<LogOutputDTO>> {
     return await this.logInteractor.getLogsByIssueHash(data.issue_hash, options, currentUser?.username);
   }

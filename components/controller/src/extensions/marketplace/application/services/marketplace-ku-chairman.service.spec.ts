@@ -1,13 +1,13 @@
 import { MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
-import type { BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
+import { type IBranchPort } from '@coopenomics/innercoop';
 
 function buildPort(branches: Array<{ braname: string; trustee: string; trusted: string[] }>) {
-  const port: Partial<BranchBlockchainPort> & {
+  const port: Partial<IBranchPort> & {
     getBranches: jest.Mock;
   } = {
     getBranches: jest.fn().mockResolvedValue(branches),
   };
-  return port as BranchBlockchainPort & { getBranches: jest.Mock };
+  return port as IBranchPort & { getBranches: jest.Mock };
 }
 
 describe('MarketplaceKuChairmanService', () => {

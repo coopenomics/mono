@@ -1,24 +1,20 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import type { TransactResult } from '@wharfkit/session';
 
-import {
-  USER_AGREEMENT_REPOSITORY,
-  UserAgreementRepository,
-} from '~/domain/wallet/repositories/user-agreement.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
-import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { config } from '~/config';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerTransactResult,
+  COUNCIL_PORT,
+  type ICouncilPort,
+  PROGRAM_AGREEMENT_PORT,
+  type IProgramAgreementPort,
+} from '@coopenomics/innercoop';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 import {
   MARKETPLACE_AGREEMENT_TYPE,
   MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID,
 } from '../../constants/marketplace-agreement-ids';
-import {
-  MarketplaceOnboardingSource,
-  MarketplaceOnboardingStateDTO,
-} from '../dto/marketplace-onboarding-state.dto';
+import { MarketplaceOnboardingSource, MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Story 1.4: L3 fallback gate marketplace.
@@ -29,7 +25,7 @@ import {
  * ВАЖНО — правильный источник: ЦПП «Стол заказов» это ПРОГРАММА (program_id=2),
  * и подпись пайщика делается через `wallet::signagree` в `wallet::users.programs[]`,
  * а НЕ в `soviet::agreements3`. Поэтому состояние читаем из
- * `UserAgreementRepository` (синк `user-agreement-sync.service` из `wallet::users`),
+ * `IProgramAgreementPort` (синк `user-agreement-sync.service` из `wallet::users`),
  * а не из `AgreementRepository` (синк `agreement-sync.service` из `agreements3`).
  * Это тот же канон, что в `AgreementService.fetchProgrammatic`. Раньше здесь
  * читался `AgreementRepository`, куда программная подпись НИКОГДА не попадает —
@@ -43,10 +39,9 @@ import {
 @Injectable()
 export class MarketplaceOnboardingService {
   constructor(
-    @Inject(USER_AGREEMENT_REPOSITORY) private readonly userAgreementRepository: UserAgreementRepository,
-    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
-    @Inject(WALLET_BLOCKCHAIN_PORT) private readonly walletBlockchainPort: WalletBlockchainPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(PROGRAM_AGREEMENT_PORT) private readonly programAgreements: IProgramAgreementPort,
+    @Inject(COUNCIL_PORT) private readonly sovietBlockchainPort: ICouncilPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOnboardingService.name);
   }
@@ -69,7 +64,7 @@ export class MarketplaceOnboardingService {
     // физически невозможно (`wallet::signagree` упадёт «Программа не найдена»),
     // поэтому это НЕ «подписи не требуется», а «кооператив не завершил
     // подключение ЦПП» — инцидент 2026-08-10.
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const coagreement = await this.sovietBlockchainPort.getCoagreement(
       coopname,
       MARKETPLACE_AGREEMENT_TYPE
@@ -83,10 +78,8 @@ export class MarketplaceOnboardingService {
       });
     }
 
-    // Подпись программной оферты живёт в `wallet::users.programs[]`.
-    const owner = await this.userAgreementRepository.findByUsername(coopname, username);
-    const program =
-      owner && owner.present !== false ? owner.findProgram(programId) : undefined;
+    // Подпись программной оферты хранит ядро; порт отвечает, есть ли она.
+    const program = await this.programAgreements.findProgramSignature(coopname, username, programId);
 
     if (program) {
       return new MarketplaceOnboardingStateDTO({
@@ -131,8 +124,8 @@ export class MarketplaceOnboardingService {
   async signOnboardingOffer(input: {
     coopname: string;
     username: string;
-    document: ISignedDocumentDomainInterface;
-  }): Promise<TransactResult> {
+    document: ISignedDocument;
+  }): Promise<InnerTransactResult> {
     if (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID <= 0) {
       throw new BadRequestException(
         'ЦПП «Стол заказов» ещё не активирована (Story 1.7 не выполнена): подписание оферты невозможно'
@@ -174,7 +167,7 @@ export class MarketplaceOnboardingService {
       `[MARKETPLACE.L3] signOnboardingOffer → wallet::signagree (${input.coopname}/${input.username} program_id=${programId} draft_id=${draftId})`
     );
 
-    return await this.walletBlockchainPort.signProgramAgreement({
+    return await this.programAgreements.signProgramAgreement({
       coopname: input.coopname,
       username: input.username,
       program_id: programId,

@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MeetDataPort } from '~/domain/meet/ports/meet-data.port';
 import { MeetBlockchainPort, MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetPreProcessingRepository, MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
 import { MeetProcessedRepository, MEET_PROCESSED_REPOSITORY } from '~/domain/meet/repositories/meet-processed.repository';
 import { MeetAggregate } from '~/domain/meet/aggregates/meet-domain.aggregate';
 import { GetMeetInputDomainInterface } from '~/domain/meet/interfaces/get-meet-input-domain.interface';
 import { GetMeetsInputDomainInterface } from '~/domain/meet/interfaces/get-meets-input-domain.interface';
+import type { IMeetPort } from '@coopenomics/innercoop';
 
 @Injectable()
-export class MeetDataAdapter implements MeetDataPort {
+export class MeetDataAdapter implements IMeetPort {
   constructor(
     @Inject(MEET_REPOSITORY) private readonly meetPreRepository: MeetPreProcessingRepository,
     @Inject(MEET_PROCESSED_REPOSITORY) private readonly meetProcessedRepository: MeetProcessedRepository,
@@ -62,5 +62,10 @@ export class MeetDataAdapter implements MeetDataPort {
 
     // Вернем готовый агрегат
     return meetAggregate;
+  }
+
+  /** Черновик собрания по хэшу — реализация `IMeetPort.getMeetDraft`. */
+  async getMeetDraft(hash: string) {
+    return this.meetPreRepository.findByHash(hash);
   }
 }

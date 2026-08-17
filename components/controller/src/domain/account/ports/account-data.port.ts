@@ -1,5 +1,5 @@
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 import { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { GetAccountsInputDomainInterface } from '~/domain/account/interfaces/get-accounts-input.interface';
 

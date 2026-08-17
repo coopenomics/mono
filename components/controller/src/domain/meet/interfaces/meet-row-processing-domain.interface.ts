@@ -1,5 +1,5 @@
 import type { MeetContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { assertType, type AssertKeysMatch } from '~/shared/asserts/blockchain-type.assert';
 
 export interface MeetRowProcessingDomainInterface {
@@ -20,10 +20,10 @@ export interface MeetRowProcessingDomainInterface {
   current_quorum_percent: number;
   cycle: number;
   quorum_passed: boolean;
-  proposal: ISignedDocumentDomainInterface;
-  authorization?: ISignedDocumentDomainInterface;
-  decision1?: ISignedDocumentDomainInterface;
-  decision2?: ISignedDocumentDomainInterface;
+  proposal: ISignedDocument;
+  authorization?: ISignedDocument;
+  decision1?: ISignedDocument;
+  decision2?: ISignedDocument;
   notified_users: string[];
 }
 

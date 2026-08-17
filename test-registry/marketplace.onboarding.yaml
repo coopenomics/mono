@@ -12,6 +12,10 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # Чтение состояния идёт из UserAgreementRepository. Тест, читающий агримент из
 # AgreementRepository, зафиксировал бы ровно тот баг, из-за которого гейт
 # оставался поднятым навсегда после подписи.
+#
+# Переименование 2026-08-09 (FC1-3): `MarketplacePlugin`/`MarketplacePluginModule`
+# стали `MarketplaceExtension`/`MarketplaceExtensionModule`, локальные `plugin*`
+# — `extension*`. Только имена; поведение и набор случаев не менялись.
 
 sources:
   backend:

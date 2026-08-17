@@ -3,12 +3,11 @@ import { BadRequestException, Inject, Injectable, NotFoundException, Optional } 
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+} from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+} from '@coopenomics/innercoop';
 
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from '../registration/register-marketplace-in-agreement-registry';
@@ -36,7 +35,7 @@ export interface IAcceptCppInput {
  * Story 1.9: L1-онбординг marketplace.
  *
  * Хранит флаг `coopAcceptance.accepted` в `extensions.config` (JSONB на
- * `marketplace`-плагине). MVP-stub: председатель сам отмечает принятие
+ * `marketplace`-расширении). MVP-stub: председатель сам отмечает принятие
  * положения Советом, передавая `accepted_by_board_decision_id`. В Эпике 8
  * (FR40 «повестка совета») интеграция станет реальной — Mutation будет
  * валидировать существование решения и его статус CONFIRMED.
@@ -53,14 +52,14 @@ export class MarketplaceCoopAcceptanceService {
   constructor(
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     // Story 1.10: side-effect — re-register marketplace-оферту в core
     // AgreementRegistry после accept. Идемпотентно: AgreementRegistryService
     // не дублирует записи по (id, extension_name). @Optional для unit-тестов
     // Story 1.9, которые тестируют только accept без агрегата registration.
     @Optional()
-    @Inject(AGREEMENT_REGISTRATION_PORT)
-    private readonly agreementRegistrationPort?: AgreementRegistrationPort
+    @Inject(REGISTRATION_REGISTRY_PORT)
+    private readonly agreementRegistrationPort?: IRegistrationRegistryPort
   ) {
     this.logger.setContext(MarketplaceCoopAcceptanceService.name);
   }
@@ -131,7 +130,7 @@ export class MarketplaceCoopAcceptanceService {
 
     // Story 1.10 side-effect: re-register оферту в core AgreementRegistry
     // (идемпотентно). Покрывает кейс, когда Story 1.7 поставила template
-    // позже restart-а расширения и `MarketplacePlugin.initialize` пропустил
+    // позже restart-а расширения и `MarketplaceExtension.initialize` пропустил
     // регистрацию (placeholder=0).
     if (this.agreementRegistrationPort) {
       try {

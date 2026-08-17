@@ -5,7 +5,6 @@ import { TransactResult } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   WalletBlockchainPort,
@@ -13,9 +12,9 @@ import type {
   GenerateReturnStatementDomainInterface,
   SignProgramAgreementDomainInterface,
 } from '~/domain/wallet/ports/wallet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
-import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для wallet
@@ -98,7 +97,7 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
   /**
    * Генерация заявления на возврат паевого взноса
    */
-  async generateReturnStatement(_data: GenerateReturnStatementDomainInterface): Promise<ISignedDocumentDomainInterface> {
+  async generateReturnStatement(_data: GenerateReturnStatementDomainInterface): Promise<ISignedDocument> {
     // TODO: Реализовать генерацию заявления через документный сервис
     // Пока возвращаем заглушку
     throw new Error('Метод generateReturnStatement еще не реализован');

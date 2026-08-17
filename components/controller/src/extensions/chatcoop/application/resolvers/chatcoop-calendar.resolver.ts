@@ -1,10 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, CurrentUser, AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ChatCoopCalendarApplicationService } from '../services/chatcoop-calendar-application.service';
 import {
   ChatCoopCalendarEventDTO,
@@ -78,7 +75,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async create(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => CreateChatCoopCalendarEventInputDTO }) data: CreateChatCoopCalendarEventInputDTO
   ): Promise<ChatCoopCalendarEventDTO> {
     const ev = await this.calendar.createEvent(user.username, {
@@ -98,7 +95,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async update(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => UpdateChatCoopCalendarEventInputDTO }) data: UpdateChatCoopCalendarEventInputDTO
   ): Promise<ChatCoopCalendarEventDTO> {
     const ev = await this.calendar.updateEvent({
@@ -131,7 +128,7 @@ export class ChatCoopCalendarResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async createIcs(
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ChatCoopCalendarIcsUrlResponseDTO> {
     const url = await this.calendar.createOrRotatePersonalIcsUrl(user.username);
     const dto = new ChatCoopCalendarIcsUrlResponseDTO();

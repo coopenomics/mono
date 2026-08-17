@@ -10,7 +10,7 @@
  */
 
 import { ForkRegistryService } from '~/shared/sync/fork/fork-registry.service';
-import { FORK_AWARE_MARKER, type IForkAwareSyncer } from '~/shared/sync/fork/fork-aware-syncer.interface';
+import { FORK_AWARE_MARKER, type IForkAwareSyncer } from '@coopenomics/extension-kit/sync';
 
 function makeLoggerStub(): any {
   return {

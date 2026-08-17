@@ -2,9 +2,7 @@ import { Resolver, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { DesktopService } from '../services/desktop.service';
 import { DesktopDTO } from '../dto/desktop.dto';
-import { OptionalGqlJwtAuthGuard } from '~/application/auth/guards/optional-graphql-jwt-auth.guard';
-import { OptionalCurrentUser } from '~/application/auth/decorators/optional-current-user.decorator';
-
+import { OptionalGqlJwtAuthGuard, OptionalCurrentUser } from '@coopenomics/extension-kit';
 @Resolver(() => DesktopDTO)
 export class DesktopResolver {
   constructor(private readonly desktopService: DesktopService) {}

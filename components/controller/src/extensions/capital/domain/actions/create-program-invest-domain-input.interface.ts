@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /** Доменный ввод для действия createpinv (программная денежная инвестиция) */
 export interface CreateProgramInvestDomainInput {
@@ -6,5 +6,5 @@ export interface CreateProgramInvestDomainInput {
   username: string;
   invest_hash: string;
   amount: string;
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }

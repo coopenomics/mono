@@ -4,9 +4,9 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import {
-  InterFileStorageBackendUnavailableError,
-  InterFileStorageObjectNotFoundError,
-} from '@coopenomics/inter';
+  InnerFileStorageBackendUnavailableError,
+  InnerFileStorageObjectNotFoundError,
+} from '@coopenomics/innercoop';
 import {
   FILE_STORAGE_OPTIONS,
   type FileStorageInfrastructureOptions,
@@ -164,7 +164,7 @@ describe('FileStorageHttpController', () => {
   it('404 при ObjectNotFoundError от адаптера', async () => {
     app = await makeApp(stub);
     stub.fetchObjectForReadProxy.mockRejectedValueOnce(
-      new InterFileStorageObjectNotFoundError('missing'),
+      new InnerFileStorageObjectNotFoundError('missing'),
     );
     const u = urlFor('orders-images', 'missing.jpg', 60);
     const res = await request(app.getHttpServer()).get(u.path).query({ exp: u.exp, sig: u.sig });
@@ -174,7 +174,7 @@ describe('FileStorageHttpController', () => {
   it('502 при BackendUnavailableError от адаптера', async () => {
     app = await makeApp(stub);
     stub.fetchObjectForReadProxy.mockRejectedValueOnce(
-      new InterFileStorageBackendUnavailableError('backend down'),
+      new InnerFileStorageBackendUnavailableError('backend down'),
     );
     const u = urlFor('orders-images', 'x.jpg', 60);
     const res = await request(app.getHttpServer()).get(u.path).query({ exp: u.exp, sig: u.sig });

@@ -1,10 +1,7 @@
 import { CycleDomainEntity } from '../entities/cycle.entity';
 import type { CycleStatus } from '../enums/cycle-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { CycleFilterInputDTO } from '../../application/dto/generation/cycle-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface CycleRepository {
   create(cycle: CycleDomainEntity): Promise<CycleDomainEntity>;
@@ -16,8 +13,8 @@ export interface CycleRepository {
   findActiveCycleWithIssues(): Promise<CycleDomainEntity | null>;
   findAllPaginated(
     filter?: CycleFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<CycleDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<CycleDomainEntity>>;
   update(entity: CycleDomainEntity): Promise<CycleDomainEntity>;
   delete(_id: string): Promise<void>;
 }

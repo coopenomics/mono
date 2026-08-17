@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { InvalidatedEntityRepository } from '../repositories/invalidated-entity.repository';
-import { InvalidatedEntityVersionRepository } from '../repositories/invalidated-entity-version.repository';
+import { InvalidatedEntityRepository, InvalidatedEntityVersionRepository } from '@coopenomics/extension-kit/sync';
 import config from '~/config/config';
 
 /**

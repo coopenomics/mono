@@ -5,14 +5,9 @@ import type {
   IProjectMatrixComponentAnnouncementEvent,
 } from '../interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
-import { auditUnknownStatus } from '~/shared/sync/errors/audit-unknown-status';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity, auditUnknownStatus, auditLogger } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-
-const PROJECT_STATUS_AUDIT_LOGGER = new WinstonLoggerService();
-PROJECT_STATUS_AUDIT_LOGGER.setContext('ProjectDomainEntity');
 
 /**
  * Доменная сущность проекта
@@ -228,7 +223,9 @@ export class ProjectDomainEntity
       default:
         // Story 6.5: silent fallback на UNDEFINED заменён audit-trail'ом.
         // Если контракт ввёл новый статус — drift всплывёт в логе как error.
-        auditUnknownStatus('ProjectDomainEntity', blockchainStatus, PROJECT_STATUS_AUDIT_LOGGER, [
+        // Журнал берём у каркаса: сущность создаётся `new`, инъекции у неё нет,
+        // а путь к логгеру ядра за пределами монолита не существует.
+        auditUnknownStatus('ProjectDomainEntity', blockchainStatus, auditLogger(), [
           'pending',
           'active',
           'voting',

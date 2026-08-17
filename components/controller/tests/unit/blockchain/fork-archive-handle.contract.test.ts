@@ -8,7 +8,7 @@
  * - Ошибка в archiveInvalidatedSince re-throw'ится, restore не вызывается.
  */
 
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 
 function makeLoggerStub(): any {
   return {

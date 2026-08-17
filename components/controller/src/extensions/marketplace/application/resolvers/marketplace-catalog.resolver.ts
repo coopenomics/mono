@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
@@ -62,7 +61,7 @@ export class MarketplaceCatalogResolver {
     };
     const result = await this.offerRepo.list(
       {
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         status: MarketplaceOfferStatuses.ACTIVE,
         category_id: input?.category_id ?? undefined,
         available_only: true,
@@ -108,7 +107,7 @@ export class MarketplaceCatalogResolver {
     })
     delivery_braname?: string | null
   ): Promise<MarketplaceCategoryOfferCountDTO[]> {
-    const map = await this.offerRepo.countByCategory(config.coopname, delivery_braname);
+    const map = await this.offerRepo.countByCategory(platformSettings().coopname, delivery_braname);
     return MARKETPLACE_FOOD_CATEGORIES.map(
       (c) =>
         new MarketplaceCategoryOfferCountDTO({

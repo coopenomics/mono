@@ -20,25 +20,12 @@
 
 export const EXTENSION_GRANTS_REGISTRY = Symbol('EXTENSION_GRANTS_REGISTRY');
 
-/** Контекст для вычисления грантов текущего пользователя. */
-export interface IDesktopGrantsContext {
-  coopname: string;
-  /** username из JWT; undefined — неавторизованный гость. */
-  username?: string;
-  /** core-роль платформы из JWT (`user`/`member`/`chairman`/…). */
-  userRole?: string;
-  /** статус пайщика (`active` и т.п.) — для гейтов, требующих членства. */
-  userStatus?: string;
-  /** конфиг расширения (нужен для онбординг-гейтов: ЦПП принят и т.п.). */
-  config?: any;
-}
-
-export interface IExtensionDesktopGrantsProvider {
-  /** Имя расширения в AppRegistry (например, `market`). */
-  readonly extensionName: string;
-  /**
-   * Вернуть плоский, уже развёрнутый (`:all`→подмножества) набор capability
-   * текущего пользователя. Гость / нет членства → `[]`.
-   */
-  resolveGrants(ctx: IDesktopGrantsContext): Promise<string[]>;
-}
+/**
+ * Сам контракт провайдера живёт в секции хуков `@coopenomics/innercoop`:
+ * реализует его расширение, вызывает ядро. Здесь он доступен под привычными
+ * ядру именами.
+ */
+export type {
+  IDesktopGrantsHook as IExtensionDesktopGrantsProvider,
+  InnerDesktopGrantsContext as IDesktopGrantsContext,
+} from '@coopenomics/innercoop';

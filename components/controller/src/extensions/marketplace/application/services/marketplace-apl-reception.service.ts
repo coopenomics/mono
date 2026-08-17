@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -66,24 +66,17 @@ import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
+import type { InnerPaymentMethod } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { HttpApiError } from '~/utils/httpApiError';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '../documents-dto/marketplace-apl-reception-document.dto';
+import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,
@@ -95,6 +88,7 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { MARKETPLACE_QUANTITY_EPSILON, toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount, sumMoney } from '../shared/cost.util';
 import {
@@ -111,7 +105,6 @@ import {
   MarketplaceOrderSupplierActionService,
 } from './marketplace-order-supplier-action.service';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
-import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -283,17 +276,17 @@ export class MarketplaceAplReceptionService {
     private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
     private readonly supplierSettings: MarketplaceSupplierSettingsService,
     @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
     private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceAplReceptionService.name);
     // chainPort и offerCounters сохраняются для будущих recipients
@@ -310,14 +303,14 @@ export class MarketplaceAplReceptionService {
   async getSupplierSignablePayloads(
     coopname: string,
     apl_reception_id: string
-  ): Promise<DocumentDomainEntity[]> {
+  ): Promise<InnerGeneratedDocument[]> {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const groupOrders = await this.loadGroupOrders(reception);
     // Поставщик подписывает акт только по принятым позициям (факт > 0). Снятые
     // оператором позиции (факт = 0, некондиция) в акт не попадают — они уходят
     // отказом в приёмке (declineorder) на шаге подписи поставщика.
     const { accepted } = this.splitGroupByFact(reception, groupOrders);
-    const docs: DocumentDomainEntity[] = [];
+    const docs: InnerGeneratedDocument[] = [];
     for (const order of accepted) {
       docs.push(
         await this.generateReceptionDocument({
@@ -343,7 +336,7 @@ export class MarketplaceAplReceptionService {
     coopname: string,
     apl_reception_id: string,
     chairman_account: string
-  ): Promise<DocumentDomainAggregate[]> {
+  ): Promise<InnerDocumentAggregate[]> {
     void chairman_account;
     const reception = await this.loadReception(coopname, apl_reception_id);
     const signedDocs = reception.supplier_signed_documents;
@@ -352,9 +345,9 @@ export class MarketplaceAplReceptionService {
         `АПП ${reception.id}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.`
       );
     }
-    const aggregates: DocumentDomainAggregate[] = [];
+    const aggregates: InnerDocumentAggregate[] = [];
     for (const signed of signedDocs) {
-      const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
+      const aggregate = await this.documentPort.buildAggregate(signed);
       if (!aggregate) {
         throw new ConflictException(
           `АПП ${reception.id}: исходный документ по doc_hash ${signed.doc_hash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).`
@@ -370,7 +363,7 @@ export class MarketplaceAplReceptionService {
     order: MarketplaceOrderDomainEntity;
     username: string;
     chairman_account?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const fact = input.reception.fact_quantity_per_order.find(
       (f) => f.order_id === input.order.id
     );
@@ -425,7 +418,7 @@ export class MarketplaceAplReceptionService {
       // On-chain meta-строка переупорядочена и для re-sign непригодна.
       skip_save: false,
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   async create(
@@ -758,7 +751,7 @@ export class MarketplaceAplReceptionService {
       // Сохраняем supplier-подписанные документы, чтобы при закрывающей
       // подписи отдать председателю подпись поставщика (Capital-паттерн
       // приёма РИД); фронт цепь не читает.
-      supplier_signed_documents: input.signed_documents as ISignedDocumentDomainInterface[],
+      supplier_signed_documents: input.signed_documents as ISignedDocument[],
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
     });
 
@@ -1026,7 +1019,7 @@ export class MarketplaceAplReceptionService {
     // уже созданные выплаты не трогает. Отсутствие реквизитов выплату не
     // блокирует (деньги поставщику должны уйти) — кассир увидит платёж
     // без реквизитов и запросит их у поставщика.
-    let payoutMethod: PaymentMethodDomainEntity | null = null;
+    let payoutMethod: InnerPaymentMethod | null = null;
     try {
       payoutMethod = await this.supplierSettings.resolvePayoutMethod(
         reception.coopname,
@@ -1097,7 +1090,7 @@ export class MarketplaceAplReceptionService {
     payee_account: string;
     amount: string;
     purpose: string;
-    payout_method: PaymentMethodDomainEntity | null;
+    payout_method: InnerPaymentMethod | null;
   }): Promise<void> {
     const payoutDestination = input.payout_method
       ? formatPayoutDestination(input.payout_method)
@@ -1695,7 +1688,7 @@ export class MarketplaceAplReceptionService {
     return new SignedDigitalDocumentInputDTO(signed).toDocument();
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) {
       throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');

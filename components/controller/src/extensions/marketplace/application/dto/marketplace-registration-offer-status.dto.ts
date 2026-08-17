@@ -4,7 +4,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  * Story 1.10: статус видимости marketplace-оферты в registration-flow.
  *
  * Источник правды — core `AgreementQueryPort.getAgreementById(MARKETPLACE_OFFER_AGREEMENT_ID)`:
- * запись появляется когда `MarketplacePlugin.initialize()` (Story 1.2)
+ * запись появляется когда `MarketplaceExtension.initialize()` (Story 1.2)
  * вызвал `port.registerAgreement` — это происходит автоматически при
  * установке/restart-е расширения, если `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID > 0`
  * (Story 1.7 наполнила).

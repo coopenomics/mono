@@ -1,10 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
 import { computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
 import { resolveSaleUnit } from '../shared/packaging.util';
@@ -12,10 +10,6 @@ import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
 } from './marketplace-economy.service';
-import {
-  USER_WALLET_REPOSITORY,
-  type UserWalletRepository,
-} from '~/domain/wallet/repositories/user-wallet.repository';
 import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
@@ -47,6 +41,7 @@ import {
   MarketplaceCheckoutFailedLineDTO,
   MarketplaceCheckoutResultDTO,
 } from '../dto/marketplace-checkout.dto';
+import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_CHECKOUT_SERVICE = Symbol('MARKETPLACE_CHECKOUT_SERVICE');
 
@@ -70,7 +65,7 @@ export interface MarketplaceCheckoutSignableLine {
   package_id: string | null;
   order_hash: string;
   amount: string;
-  document: DocumentDomainEntity;
+  document: InnerGeneratedDocument;
 }
 
 /** Кошельки, из которых createorder тянет средства под резерв заказа. */
@@ -106,14 +101,14 @@ export class MarketplaceCheckoutService {
     private readonly stockService: MarketplaceStockService,
     @Inject(MARKETPLACE_CART_SERVICE)
     private readonly cartService: MarketplaceCartService,
-    @Inject(USER_WALLET_REPOSITORY)
-    private readonly walletRepo: UserWalletRepository,
+    @Inject(USER_WALLET_PORT)
+    private readonly walletRepo: IUserWalletPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    private readonly documentDomainService: DocumentDomainService,
-    private readonly logger: WinstonLoggerService
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceCheckoutService.name);
   }
@@ -155,7 +150,7 @@ export class MarketplaceCheckoutService {
         // по doc_hash (rawDocument), preview-режим оставил бы запись пустой.
         skip_save: false,
       };
-      const document = await this.documentDomainService.generateDocument({ data: action });
+      const document = await this.documentPort.generate({ data: action });
       result.push({ offer_id: line.offer_id, package_id: line.package_id || null, order_hash, amount, document });
     }
     return result;

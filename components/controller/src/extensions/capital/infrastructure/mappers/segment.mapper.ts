@@ -1,19 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { ResultMapper } from './result.mapper';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import { SegmentOutputDTO } from '../../application/dto/segments/segment.dto';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
-import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
-import { Inject } from '@nestjs/common';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentBlockchainData>;
@@ -26,7 +25,7 @@ type toDomainBlockchainPart = RequireFields<Partial<SegmentDomainEntity>, keyof 
 @Injectable()
 export class SegmentMapper {
   constructor(
-    private readonly documentAggregationService: DocumentAggregationService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
     @Inject(APPENDIX_REPOSITORY)
@@ -275,15 +274,15 @@ export class SegmentMapper {
     if (domain.result) {
       // Обогащаем документы в result
       const enrichedStatement = domain.result.statement
-        ? await this.documentAggregationService.buildDocumentAggregate(domain.result.statement)
+        ? await this.documentPort.buildAggregate(domain.result.statement)
         : null;
 
       const enrichedAuthorization = domain.result.authorization
-        ? await this.documentAggregationService.buildDocumentAggregate(domain.result.authorization)
+        ? await this.documentPort.buildAggregate(domain.result.authorization)
         : null;
 
       const enrichedAct = domain.result.act
-        ? await this.documentAggregationService.buildDocumentAggregate(domain.result.act)
+        ? await this.documentPort.buildAggregate(domain.result.act)
         : null;
 
       // Создаем ResultOutputDTO с обогащенными документами

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ApprovalSyncService } from '../../infrastructure/blockchain/services/approval-sync.service';
 
 /**
@@ -10,7 +10,7 @@ import { ApprovalSyncService } from '../../infrastructure/blockchain/services/ap
  */
 @Injectable()
 export class ChairmanSyncInteractor {
-  constructor(private readonly approvalSyncService: ApprovalSyncService, private readonly logger: WinstonLoggerService) {
+  constructor(private readonly approvalSyncService: ApprovalSyncService, @Inject(LOGGER_PORT) private readonly logger: ILoggerPort) {
     this.logger.setContext(ChairmanSyncInteractor.name);
   }
 

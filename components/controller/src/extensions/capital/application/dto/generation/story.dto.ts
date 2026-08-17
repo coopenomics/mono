@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { StoryStatus } from '../../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../../domain/enums/story-content-format.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 /**
  * GraphQL Output DTO для сущности Story

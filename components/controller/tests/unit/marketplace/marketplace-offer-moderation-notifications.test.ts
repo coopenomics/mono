@@ -31,8 +31,10 @@ const DISPLAY_NAMES: Record<string, string> = {
 };
 
 function makeService(admins: Array<{ username: string }> = [{ username: ADMIN }]) {
-  const sendNotificationToUser = jest.fn().mockResolvedValue(undefined);
-  const sender = { sendNotificationToUser } as never;
+  // Расширение шлёт уведомления через порт ядра: имя получателя, тип
+  // уведомления из каталога и данные для шаблона.
+  const notifyUser = jest.fn().mockResolvedValue(undefined);
+  const sender = { notifyUser } as never;
   const accountPort = {
     getAccounts: jest.fn().mockResolvedValue({ items: admins }),
     getDisplayName: jest.fn(async (username: string) => DISPLAY_NAMES[username] ?? username),
@@ -48,12 +50,12 @@ function makeService(admins: Array<{ username: string }> = [{ username: ADMIN }]
   } as never;
 
   const service = new MarketplaceNotificationService(sender, accountPort, kuChairmanService, logger);
-  return { service, sendNotificationToUser, logger: logger as unknown as { warn: jest.Mock } };
+  return { service, notifyUser, logger: logger as unknown as { warn: jest.Mock } };
 }
 
 describe('Уведомления модерации предложений', () => {
   it('предложение поступило на модерацию → администратору, с названием имущества и поставщиком', async () => {
-    const { service, sendNotificationToUser } = makeService();
+    const { service, notifyUser } = makeService();
 
     await service.handleOfferOnModeration({
       offer_id: 'offer-1',
@@ -62,8 +64,8 @@ describe('Уведомления модерации предложений', () 
       product_name: 'Картофель',
     });
 
-    expect(sendNotificationToUser).toHaveBeenCalledTimes(1);
-    const [recipient, workflowId, payload] = sendNotificationToUser.mock.calls[0];
+    expect(notifyUser).toHaveBeenCalledTimes(1);
+    const [recipient, workflowId, payload] = notifyUser.mock.calls[0];
     expect(recipient).toBe(ADMIN);
     expect(workflowId).toBe(Workflows.MarketplaceOfferOnModeration.id);
     expect(payload).toEqual(
@@ -77,7 +79,7 @@ describe('Уведомления модерации предложений', () 
   });
 
   it('одобрено → поставщику уходит уведомление о публикации в каталоге', async () => {
-    const { service, sendNotificationToUser } = makeService();
+    const { service, notifyUser } = makeService();
 
     await service.handleOfferApproved({
       offer_id: 'offer-1',
@@ -88,7 +90,7 @@ describe('Уведомления модерации предложений', () 
       product_name: 'Картофель',
     });
 
-    const [recipient, workflowId, payload] = sendNotificationToUser.mock.calls[0];
+    const [recipient, workflowId, payload] = notifyUser.mock.calls[0];
     expect(recipient).toBe(SUPPLIER);
     expect(workflowId).toBe(Workflows.MarketplaceOfferApproved.id);
     expect(payload).toEqual(
@@ -97,7 +99,7 @@ describe('Уведомления модерации предложений', () 
   });
 
   it('отклонено → поставщику уходит причина отказа, иначе исправлять нечего', async () => {
-    const { service, sendNotificationToUser } = makeService();
+    const { service, notifyUser } = makeService();
 
     await service.handleOfferRejected({
       offer_id: 'offer-1',
@@ -108,7 +110,7 @@ describe('Уведомления модерации предложений', () 
       product_name: 'Картофель',
     });
 
-    const [recipient, workflowId, payload] = sendNotificationToUser.mock.calls[0];
+    const [recipient, workflowId, payload] = notifyUser.mock.calls[0];
     expect(recipient).toBe(SUPPLIER);
     expect(workflowId).toBe(Workflows.MarketplaceOfferRejected.id);
     expect(payload).toEqual(
@@ -117,7 +119,7 @@ describe('Уведомления модерации предложений', () 
   });
 
   it('администратор не найден → уведомление пропускается, публикация не срывается', async () => {
-    const { service, sendNotificationToUser, logger } = makeService([]);
+    const { service, notifyUser, logger } = makeService([]);
 
     await expect(
       service.handleOfferOnModeration({
@@ -128,7 +130,7 @@ describe('Уведомления модерации предложений', () 
       })
     ).resolves.toBeUndefined();
 
-    expect(sendNotificationToUser).not.toHaveBeenCalled();
+    expect(notifyUser).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -137,7 +139,7 @@ describe('Уведомления модерации предложений', () 
     // Центр уведомлений может быть недоступен; для модерации это не повод
     // ронять транзакцию, которая уже применена в базе.
     const failing = makeService();
-    failing.sendNotificationToUser.mockRejectedValue(new Error('novu down'));
+    failing.notifyUser.mockRejectedValue(new Error('novu down'));
 
     await expect(
       failing.service.handleOfferApproved({

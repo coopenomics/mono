@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import { InvestRepository, INVEST_REPOSITORY } from '../../domain/repositories/invest.repository';
 import { InvestDeltaMapper } from '../../infrastructure/blockchain/mappers/invest-delta.mapper';
@@ -24,7 +24,7 @@ export class InvestSyncService
     @Inject(INVEST_REPOSITORY)
     investRepository: InvestRepository,
     investDeltaMapper: InvestDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(investRepository, investDeltaMapper, logger);

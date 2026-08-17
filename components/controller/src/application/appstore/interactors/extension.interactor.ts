@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { ExtensionLifecycleDomainService } from '~/domain/extension/services/extension-lifecycle-domain.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 

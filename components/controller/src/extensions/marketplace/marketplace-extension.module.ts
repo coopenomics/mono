@@ -1,38 +1,28 @@
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
+  platformSettings,
+} from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+} from '@coopenomics/innercoop';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
-import { config } from '~/config';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  type AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
-import {
-  SOVIET_BLOCKCHAIN_PORT,
-  type SovietBlockchainPort,
-} from '~/domain/common/ports/soviet-blockchain.port';
 import { Cooperative } from 'cooptypes';
 import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
-import { MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
+import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
- * подключается к bucket через `@coopenomics/inter` (см. AR31 в epics.md).
+ * подключается к bucket через `@coopenomics/innercoop` (см. AR31 в epics.md).
  * Адаптер file-storage подключается опционально через DI — поэтому через
  * `@Optional` и опциональный токен.
  */
@@ -43,40 +33,39 @@ export interface IMarketplaceFileStoragePort {
 }
 
 @Injectable()
-export class MarketplacePlugin extends BaseExtModule {
+export class MarketplaceExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService,
-    @Inject(AGREEMENT_REGISTRATION_PORT)
-    private readonly agreementRegistrationPort: AgreementRegistrationPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
-    @Inject(SOVIET_BLOCKCHAIN_PORT)
-    private readonly sovietBlockchainPort: SovietBlockchainPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(REGISTRATION_REGISTRY_PORT)
+    private readonly agreementRegistrationPort: IRegistrationRegistryPort,
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
   ) {
     super();
-    this.logger.setContext(MarketplacePlugin.name);
+    this.logger.setContext(MarketplaceExtension.name);
   }
 
   // Имя в реестре расширений совпадает с ключом AppRegistry['market']
   // (extensions.registry.ts). При установке из Каталога приложений именно это
   // имя приходит в `installExtension({name: "market", ...})`.
   name = 'market';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = {
-      ...pluginData,
-      config: merge({}, defaultConfig, pluginData.config),
+    this.extension = {
+      ...extensionData,
+      config: merge({}, defaultConfig, extensionData.config),
     };
 
     // Открыть программу ЦПП в цепи, если кооператив её ещё не открыл. Без неё
@@ -119,14 +108,14 @@ export class MarketplacePlugin extends BaseExtModule {
    */
   private async ensureCppProgram(): Promise<void> {
     try {
-      const { created, program_id } = await this.sovietBlockchainPort.ensureProgram({
-        coopname: config.coopname,
+      const { created, program_id } = await this.council.ensureProgram({
+        coopname: platformSettings().coopname,
         type: MARKETPLACE_AGREEMENT_TYPE,
         title: 'Целевая потребительская программа «Стол заказов»',
       });
       if (created) {
         this.logger.info(
-          `[MARKETPLACE.L1] программа ЦПП «Стол заказов» открыта в кооперативе ${config.coopname} (program_id=${program_id})`
+          `[MARKETPLACE.L1] программа ЦПП «Стол заказов» открыта в кооперативе ${platformSettings().coopname} (program_id=${program_id})`
         );
       }
     } catch (error) {
@@ -143,13 +132,13 @@ export class MarketplacePlugin extends BaseExtModule {
    * реально отреканному ончейн-решению совета, без stub-кнопки.
    */
   private async syncCoopAcceptanceFromOnboarding(): Promise<void> {
-    const cfg = this.plugin.config as unknown as Record<string, unknown>;
+    const cfg = this.extension.config as unknown as Record<string, unknown>;
     const allStepsDone =
       Boolean(cfg.onboarding_marketplace_provision_done) &&
       Boolean(cfg.onboarding_marketplace_offer_template_done);
 
     if (!allStepsDone) return;
-    if (this.plugin.config.coopAcceptance?.accepted) return;
+    if (this.extension.config.coopAcceptance?.accepted) return;
 
     const acceptedAt =
       (cfg.onboarding_marketplace_offer_template_at as string | undefined) ||
@@ -168,7 +157,7 @@ export class MarketplacePlugin extends BaseExtModule {
         accepted_by_board_decision_id: boardDecisionRef,
       },
     });
-    this.plugin = { ...this.plugin, config: merged.config };
+    this.extension = { ...this.extension, config: merged.config };
     this.logger.info(
       '[MARKETPLACE.L1] coopAcceptance.accepted выставлен по завершению онбординга совета'
     );
@@ -176,7 +165,7 @@ export class MarketplacePlugin extends BaseExtModule {
 
   /**
    * Регистрация оферты ЦПП «Стол заказов» в платформенном AgreementRegistry
-   * (Story 1.2). Использует общий core-механизм `AgreementRegistrationPort` —
+   * (Story 1.2). Использует общий core-механизм `IRegistrationRegistryPort` —
    * тот же, через который Capital регистрирует свои оферты. Записи реестра
    * автоматически зачищаются при `EXTENSION_APP_TERMINATE_EVENT`.
    *
@@ -215,7 +204,7 @@ export class MarketplacePlugin extends BaseExtModule {
       return;
     }
 
-    const bucketName = `coop-${config.coopname}`;
+    const bucketName = `coop-${platformSettings().coopname}`;
     await this.fileStorage.ensureBucket(bucketName);
     this.logger.info(`Создан физический бакет '${bucketName}'`);
     this.logger.info('File storage готов');
@@ -228,18 +217,16 @@ export class MarketplacePlugin extends BaseExtModule {
     MarketplaceExtensionApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],
   providers: [
-    MarketplacePlugin,
-    {
-      provide: MARKETPLACE_UDATA_PARAMETERS_PORT,
-      useClass: MarketplaceUdataParametersAdapter,
-    },
+    MarketplaceExtension,
+    // Кладёт себя в реестр ядра сам (onModuleInit).
+    MarketplaceUdataParametersAdapter,
   ],
-  exports: [MarketplacePlugin, MARKETPLACE_UDATA_PARAMETERS_PORT],
+  exports: [MarketplaceExtension],
 })
-export class MarketplacePluginModule {
-  constructor(private readonly marketplacePlugin: MarketplacePlugin) {}
+export class MarketplaceExtensionModule {
+  constructor(private readonly marketplaceExtension: MarketplaceExtension) {}
 
   async initialize() {
-    await this.marketplacePlugin.initialize();
+    await this.marketplaceExtension.initialize();
   }
 }

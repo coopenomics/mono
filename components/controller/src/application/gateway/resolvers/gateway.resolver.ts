@@ -1,14 +1,10 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { GatewayService } from '../services/gateway.service';
 import { GatewayPaymentDTO } from '../dto/gateway-payment.dto';
 import { SetPaymentStatusInputDTO } from '../dto/set-payment-status-input.dto';
 import { PaymentFiltersInputDTO } from '../dto/payment-filters-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-
 const paginatedPaymentsResult = createPaginationResult(GatewayPaymentDTO, 'PaginatedGatewayPayments');
 
 /**

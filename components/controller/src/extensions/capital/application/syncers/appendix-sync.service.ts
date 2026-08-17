@@ -1,14 +1,15 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { AppendixRepository, APPENDIX_REPOSITORY } from '../../domain/repositories/appendix.repository';
 import { AppendixDeltaMapper } from '../../infrastructure/blockchain/mappers/appendix-delta.mapper';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import { ClearanceManagementInteractor } from '../use-cases/clearance-management.interactor';
 import { CapitalContract } from 'cooptypes';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 
 /**
  * Сервис синхронизации приложений с блокчейном
@@ -27,7 +28,7 @@ export class AppendixSyncService
     @Inject(APPENDIX_REPOSITORY)
     appendixRepository: AppendixRepository,
     appendixDeltaMapper: AppendixDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     private readonly clearanceManagementInteractor: ClearanceManagementInteractor
   ) {
@@ -56,7 +57,7 @@ export class AppendixSyncService
    * Обработчик одобрения приложения
    */
   @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.ConfirmClearance.actionName}`)
-  async handleConfirmClearance(actionData: ActionDomainInterface): Promise<void> {
+  async handleConfirmClearance(actionData: InnerChainActionRecord): Promise<void> {
     try {
       await this.clearanceManagementInteractor.handleConfirmClearance(actionData);
     } catch (error: any) {
@@ -68,7 +69,7 @@ export class AppendixSyncService
    * Обработчик отклонения приложения
    */
   @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.DeclineClearance.actionName}`)
-  async handleDeclineClearance(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineClearance(actionData: InnerChainActionRecord): Promise<void> {
     try {
       await this.clearanceManagementInteractor.handleDeclineClearance(actionData);
     } catch (error: any) {

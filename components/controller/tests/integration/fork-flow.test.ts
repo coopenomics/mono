@@ -20,14 +20,14 @@ import { DiscoveryModule } from '@nestjs/core';
 import { Injectable } from '@nestjs/common';
 import { ForkRegistryModule } from '~/shared/sync/fork/fork-registry.module';
 import { ForkRegistryService } from '~/shared/sync/fork/fork-registry.service';
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { LoggerModule } from '~/application/logger/logger-app.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type {
   IBlockchainSynchronizable,
   IBlockchainSyncRepository,
   IBlockchainDeltaMapper,
-} from '~/shared/interfaces/blockchain-sync.interface';
+} from '@coopenomics/extension-kit/sync';
 
 // ───── In-memory entity ─────
 class FakeEntity implements IBlockchainSynchronizable {

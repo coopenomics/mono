@@ -1,7 +1,7 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import type { StatementDetailDomainInterface } from '~/domain/agenda/interfaces/statement-detail-domain.interface';
 import { ExtendedBlockchainActionDTO } from './extended-action.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('StatementDetail', {
   description:

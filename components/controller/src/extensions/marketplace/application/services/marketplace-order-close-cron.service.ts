@@ -2,8 +2,8 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThanOrEqual, Repository } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import config from '~/config/config';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
 import { MarketplaceOrderEntity } from '../../infrastructure/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -35,20 +35,20 @@ export class MarketplaceOrderCloseCronService implements OnModuleInit {
     private readonly orderRepo: Repository<MarketplaceOrderEntity>,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOrderCloseCronService.name);
   }
 
   onModuleInit(): void {
     this.logger.info(
-      `[ORDER_CLOSE_CRON] планировщик закрытия выданных заказов активирован для coopname=${config.coopname}`
+      `[ORDER_CLOSE_CRON] планировщик закрытия выданных заказов активирован для coopname=${platformSettings().coopname}`
     );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async triggerDailyClose(): Promise<void> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     if (!coopname) return;
 
     const now = new Date();

@@ -7,9 +7,9 @@ import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-propo
 import {
   PaginationInputDTO,
   PaginationResult,
-} from '~/application/common/dto/pagination.dto';
-import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
+} from '@coopenomics/extension-kit';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
 
 /**
  * Агрегаты подписанных документов сметы расхода: заявление + решение совета.
@@ -18,8 +18,8 @@ import type { DocumentDomainAggregate } from '~/domain/document/aggregates/docum
  * через batched Promise.all, на типичную страницу 10–20 смет это OK).
  */
 export interface ExpenseProposalDocumentAggregates {
-  statement_doc?: DocumentDomainAggregate | null;
-  decision_doc?: DocumentDomainAggregate | null;
+  statement_doc?: InnerDocumentAggregate | null;
+  decision_doc?: InnerDocumentAggregate | null;
 }
 
 /**
@@ -33,7 +33,7 @@ export class ExpensesManagementService {
   constructor(
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
-    private readonly documentAggregation: DocumentAggregationService
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   /**
@@ -49,10 +49,10 @@ export class ExpensesManagementService {
   ): Promise<ExpenseProposalDocumentAggregates> {
     const [statement_doc, decision_doc] = await Promise.all([
       entity.statement_doc
-        ? this.documentAggregation.buildDocumentAggregate(entity.statement_doc)
+        ? this.documentPort.buildAggregate(entity.statement_doc)
         : Promise.resolve(undefined),
       entity.decision_doc
-        ? this.documentAggregation.buildDocumentAggregate(entity.decision_doc)
+        ? this.documentPort.buildAggregate(entity.decision_doc)
         : Promise.resolve(undefined),
     ]);
     return { statement_doc, decision_doc };

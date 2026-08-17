@@ -1,5 +1,5 @@
 import type { AgreementDomainEntity } from '../entities/agreement.entity';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,

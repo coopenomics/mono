@@ -15,7 +15,7 @@ jest.mock('~/config/config', () => ({
 
 import { BadRequestException } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
+import { HttpApiError } from '@coopenomics/extension-kit';
 import { BranchInteractor } from '~/application/branch/use-cases/branch.interactor';
 
 const COOP = 'voskhod';

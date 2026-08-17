@@ -18,23 +18,16 @@ import { GetCommitByHashInputDTO } from '../dto/generation/get-commit-by-hash.in
 import { GetStoryByHashInputDTO } from '../dto/generation/get-story-by-hash.input';
 import { DeleteStoryByHashInputDTO } from '../dto/generation/delete-story-by-hash.input';
 import { DeleteIssueByHashInputDTO } from '../dto/generation/delete-issue-by-hash.input';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { StoryOutputDTO } from '../dto/generation/story.dto';
 import { IssueOutputDTO } from '../dto/generation/issue.dto';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
-import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
+import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/capitalization-program-money-invest-statement-document.dto';
 // Пагинированные результаты
 const paginatedStoriesResult = createPaginationResult(StoryOutputDTO, 'PaginatedCapitalStories');
 const paginatedIssuesResult = createPaginationResult(IssueOutputDTO, 'PaginatedCapitalIssues');
@@ -60,7 +53,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman'])
   async createCapitalCommit(
     @Args('data', { type: () => CreateCommitInputDTO }) data: CreateCommitInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CommitOutputDTO> {
     const result = await this.generationService.createCommit(data, currentUser);
     return result;
@@ -77,7 +70,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async approveCapitalCommit(
     @Args('data', { type: () => CommitApproveInputDTO }) data: CommitApproveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CommitOutputDTO> {
     const result = await this.generationService.approveCommit(data, currentUser);
     return result;
@@ -94,7 +87,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async declineCapitalCommit(
     @Args('data', { type: () => CommitDeclineInputDTO }) data: CommitDeclineInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<CommitOutputDTO> {
     const result = await this.generationService.declineCommit(data, currentUser);
     return result;
@@ -113,7 +106,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async createCapitalStory(
     @Args('data', { type: () => CreateStoryInputDTO }) data: CreateStoryInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<StoryOutputDTO> {
     const result = await this.generationService.createStory(data, currentUser);
     return result;
@@ -130,7 +123,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async updateCapitalStory(
     @Args('data', { type: () => UpdateStoryInputDTO }) data: UpdateStoryInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<StoryOutputDTO> {
     const result = await this.generationService.updateStory(data, currentUser.username, currentUser);
     return result;
@@ -149,7 +142,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async createCapitalIssue(
     @Args('data', { type: () => CreateIssueInputDTO }) data: CreateIssueInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const result = await this.generationService.createIssue(data, currentUser.username, currentUser);
     return result;
@@ -166,7 +159,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async updateCapitalIssue(
     @Args('data', { type: () => UpdateIssueInputDTO }) data: UpdateIssueInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const result = await this.generationService.updateIssue(data, currentUser.username, currentUser);
     return result;
@@ -184,7 +177,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async moveCapitalIssueToComponent(
     @Args('data', { type: () => MoveCapitalIssueToComponentInputDTO }) data: MoveCapitalIssueToComponentInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<IssueOutputDTO> {
     return await this.generationService.moveIssueToComponent(data, currentUser);
   }
@@ -221,7 +214,7 @@ export class GenerationResolver {
   async getCapitalStories(
     @Args('filter', { nullable: true }) filter?: StoryFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<StoryOutputDTO>> {
     return await this.generationService.getStories(filter, options, currentUser);
   }
@@ -240,7 +233,7 @@ export class GenerationResolver {
   async getCapitalIssues(
     @Args('filter', { nullable: true }) filter?: IssueFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<IssueOutputDTO>> {
     return await this.generationService.getIssues(filter, options, currentUser);
   }
@@ -259,7 +252,7 @@ export class GenerationResolver {
   async getCapitalCommits(
     @Args('filter', { nullable: true }) filter?: CommitFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<CommitOutputDTO>> {
     return await this.generationService.getCommits(filter, options, currentUser);
   }
@@ -296,7 +289,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalStory(
     @Args('data') data: GetStoryByHashInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<StoryOutputDTO | null> {
     return await this.generationService.getStoryByHash(data.story_hash, currentUser);
   }
@@ -313,7 +306,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalIssue(
     @Args('data') data: GetIssueByHashInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO | null> {
     return await this.generationService.getIssueByHash(data.issue_hash, currentUser);
   }
@@ -330,7 +323,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalCommit(
     @Args('data') data: GetCommitByHashInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO | null> {
     return await this.generationService.getCommitByHash(data.commit_hash, currentUser);
   }
@@ -348,7 +341,7 @@ export class GenerationResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async deleteCapitalStory(
     @Args('data', { type: () => DeleteStoryByHashInputDTO }) data: DeleteStoryByHashInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<boolean> {
     return await this.generationService.deleteStoryByHash(data.story_hash, currentUser);
   }
@@ -385,7 +378,7 @@ export class GenerationResolver {
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.generationService.generateGenerationMoneyInvestStatement(data, options, currentUser);
   }

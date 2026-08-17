@@ -10,8 +10,8 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { PaymentStatus } from '@coopenomics/innercoop';
 import { MarketplaceAidStage } from '../services/marketplace-economy.service';
 import type {
   MarketplaceAidView,
@@ -246,11 +246,11 @@ export class MarketplaceAidDTO {
   })
   stage!: MarketplaceAidStage;
 
-  @Field(() => PaymentStatusEnum, {
+  @Field(() => PaymentStatus, {
     nullable: true,
     description: 'Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору.',
   })
-  payment_status?: PaymentStatusEnum | null;
+  payment_status?: PaymentStatus | null;
 
   @Field(() => String, { nullable: true, description: 'Реквизиты получателя, на которые уходит выплата (маскированная подпись).' })
   payment_destination?: string | null;

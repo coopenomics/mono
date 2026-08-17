@@ -1,9 +1,6 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';
 import { CreateAnnualGeneralMeetInputDTO } from '../dto/create-meet-agenda-input.dto';
 import { MeetService } from '../services/meet.service';
@@ -15,13 +12,11 @@ import { GetMeetInputDTO } from '../dto/get-meet-input.dto';
 import { GetMeetsInputDTO } from '../dto/get-meets-input.dto';
 import { SignBySecretaryOnAnnualGeneralMeetInputDTO } from '../dto/sign-by-secretary-on-annual-general-meet-input.dto';
 import { SignByPresiderOnAnnualGeneralMeetInputDTO } from '../dto/sign-by-presider-on-annual-general-meet-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-voting-ballot-document.dto';
 import { AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-soviet-decision-document.dto';
 import { AnnualGeneralMeetingDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-decision-document.dto';
 import { AnnualGeneralMeetingNotificationGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-notification-document.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { NotifyOnAnnualGeneralMeetInputDTO } from '../dto/notify-on-annual-general-meet-input.dto';
 
 @Resolver()
@@ -37,7 +32,7 @@ export class MeetResolver {
   async getMeet(
     @Args('data', { type: () => GetMeetInputDTO })
     data: GetMeetInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeetAggregateDTO> {
     return this.meetService.getMeet(data, currentUser?.username ?? null);
   }
@@ -50,7 +45,7 @@ export class MeetResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getMeets(
     @Args('data', { type: () => GetMeetsInputDTO }) data: GetMeetsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<MeetAggregateDTO[]> {
     return this.meetService.getMeets(data, currentUser?.username ?? null);
   }

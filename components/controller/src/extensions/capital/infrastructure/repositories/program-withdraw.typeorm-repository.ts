@@ -5,8 +5,7 @@ import { ProgramWithdrawDomainEntity } from '../../domain/entities/program-withd
 import { ProgramWithdrawTypeormEntity } from '../entities/program-withdraw.typeorm-entity';
 import { ProgramWithdrawMapper } from '../mappers/program-withdraw.mapper';
 import type { ProgramWithdrawRepository } from '../../domain/repositories/program-withdraw.repository';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramWithdrawDatabaseData } from '../../domain/interfaces/program-withdraw-database.interface';
 import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/program-withdraw-blockchain.interface';
 

@@ -1,11 +1,8 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
-import config from '~/config/config';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -69,12 +66,12 @@ import {
 @Injectable()
 export class MarketplaceNotificationService implements OnModuleInit {
   constructor(
-    private readonly notificationSenderService: NotificationSenderService,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountPort: AccountDataPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationSenderService: INotificationPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }
@@ -96,9 +93,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         // Подпись поставки живёт на карточке партии во «Входящих заказах» —
         // отдельной страницы «Подпись передачи» у поставщика нет.
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceAplSupplierSignRequest.id,
         payload
@@ -132,9 +129,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         kuName,
         coopname: event.coopname,
         apl_reception_id: event.apl_reception_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/reception`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/reception`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.operator_account,
         Workflows.MarketplaceAplReceptionCancelledBySupplier.id,
         payload
@@ -179,9 +176,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         // председателя, см. комментарий выше). Реестр платежей фильтруется по
         // владельцу платежа (routeUsername в PaymentsPage.vue) — ведём сразу
         // на платежи конкретного поставщика, а не на общий список.
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/soviet/payments/${event.supplier_account}`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/soviet/payments/${event.supplier_account}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         cashier.username,
         Workflows.MarketplaceCashierNewPayment.id,
         payload
@@ -214,9 +211,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         contractNumber: event.contract_number,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-admin/suppliers`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-admin/suppliers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         chairman.username,
         Workflows.MarketplaceNewSupplierRequest.id,
         payload
@@ -239,9 +236,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         contractNumber: event.contract_number,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/my-offers`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceSupplierApproved.id,
         payload
@@ -267,9 +264,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/payments`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceSupplierPaymentConfirmed.id,
         payload
@@ -299,9 +296,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceOrderReady.id,
         payload
@@ -347,9 +344,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
             claim_id: event.claim_id,
             order_id: event.order_id,
             reasonExcerpt,
-            deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
+            deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
           };
-          await this.notificationSenderService.sendNotificationToUser(
+          await this.notificationSenderService.notifyUser(
             operatorAccount,
             Workflows.MarketplaceReturnClaimSubmitted.id,
             payload
@@ -396,9 +393,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         claim_id: event.claim_id,
         order_id: '',
         comment: event.comment,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceReturnClaimDecided.id,
         payload
@@ -445,9 +442,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         // Готовый суффикс для in-app/push — {% if %} в теле шага Центром
         // уведомлений не вычисляется (см. комментарий в схеме воркфлоу).
         returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceReturnClaimFinalized.id,
         payload
@@ -473,9 +470,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/payments`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceSupplierPaymentDeclined.id,
         payload
@@ -504,9 +501,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         // Готовый суффикс: ветвление в теле шага Центром уведомлений не вычисляется.
         reasonSuffix: !event.approved && event.reason ? ` Причина: ${event.reason}.` : '',
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceAidCouncilDecided.id,
         payload
@@ -530,9 +527,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentDestination: event.payment_destination ?? '',
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.member_account,
         Workflows.MarketplaceAidPayoutConfirmed.id,
         payload
@@ -559,9 +556,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         totalCost: AmountFormatterUtils.formatAmountSafe(event.total_cost),
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceNewOrderForSupplier.id,
         payload
@@ -597,9 +594,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         reasonExcerpt,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.orderer_account,
         Workflows.MarketplaceOrderDeclinedBySupplier.id,
         payload
@@ -631,9 +628,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceReturnAcceptedSupplier.id,
         payload
@@ -678,9 +675,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName: await this.accountPort.getDisplayName(event.supplier_account),
         productName: event.product_name,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-admin/moderation`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-admin/moderation`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         admin.username,
         Workflows.MarketplaceOfferOnModeration.id,
         payload
@@ -702,9 +699,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName: await this.accountPort.getDisplayName(event.supplier_account),
         productName: event.product_name,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/my-offers`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceOfferApproved.id,
         payload
@@ -727,9 +724,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         productName: event.product_name,
         reason: event.reason,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/my-offers`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/my-offers`,
       };
-      await this.notificationSenderService.sendNotificationToUser(
+      await this.notificationSenderService.notifyUser(
         event.supplier_account,
         Workflows.MarketplaceOfferRejected.id,
         payload

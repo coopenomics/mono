@@ -1,14 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, Not, Repository } from 'typeorm';
 import { BranchContract } from 'cooptypes';
-import config from '~/config/config';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
+import { CHAIN_PORT, type IChainPort } from '@coopenomics/innercoop';
 
 export const EXPENSE_PLANS_SERVICE = Symbol('EXPENSE_PLANS_SERVICE');
 
@@ -70,7 +70,7 @@ export class ExpensePlansService {
   constructor(
     @InjectRepository(ExpensePlanEntity)
     private readonly planRepo: Repository<ExpensePlanEntity>,
-    private readonly blockchainService: BlockchainService
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {
@@ -105,7 +105,7 @@ export class ExpensePlansService {
         coopname,
         braname: input.braname ?? null,
         title: input.title.trim(),
-        amount: input.amount.toFixed(config.blockchain.root_govern_precision),
+        amount: input.amount.toFixed(platformSettings().blockchain.rootGovernPrecision),
         dueDate: input.due_date,
         recurrence: input.recurrence ?? ExpensePlanRecurrence.NONE,
         nextSpawned: false,
@@ -301,8 +301,8 @@ export class ExpensePlansService {
       id: row.id,
       braname: row.braname ?? null,
       title: row.title,
-      amount: `${Number(row.amount).toFixed(config.blockchain.root_govern_precision)} ${
-        config.blockchain.root_govern_symbol
+      amount: `${Number(row.amount).toFixed(platformSettings().blockchain.rootGovernPrecision)} ${
+        platformSettings().blockchain.rootGovernSymbol
       }`,
       due_date: row.dueDate ?? null,
       recurrence: row.recurrence ?? ExpensePlanRecurrence.NONE,

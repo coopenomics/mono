@@ -5,7 +5,7 @@ import type { AccountType } from '~/application/account/enum/account-type.enum';
 import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
-} from '~/domain/extension/extension-app-lifecycle.events';
+} from '@coopenomics/extension-kit';
 import type { AgreementRegistrationSpec } from '../dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '../dto/program-registration-spec.dto';
 import type { AgreementRegistrationPort } from '../ports/agreement-registration.port';

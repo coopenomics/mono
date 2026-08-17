@@ -1,9 +1,9 @@
 import { ProgramWithdrawStatus } from '../enums/program-withdraw-status.enum';
 import type { IProgramWithdrawDatabaseData } from '../interfaces/program-withdraw-database.interface';
 import type { IProgramWithdrawBlockchainData } from '../interfaces/program-withdraw-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 /**
  * Доменная сущность возврата из программы
  *
@@ -30,7 +30,7 @@ export class ProgramWithdrawDomainEntity
   public username?: IProgramWithdrawBlockchainData['username'];
   public blockchain_status?: IProgramWithdrawBlockchainData['status']; // Статус из блокчейна
   public amount?: IProgramWithdrawBlockchainData['amount'];
-  public statement?: ISignedDocumentDomainInterface;
+  public statement?: ISignedDocument;
   public created_at?: IProgramWithdrawBlockchainData['created_at'];
 
   /**

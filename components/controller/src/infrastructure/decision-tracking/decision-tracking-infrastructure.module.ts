@@ -4,7 +4,6 @@ import { DecisionTrackingAdapter } from './adapters/decision-tracking.adapter';
 import { TrackingRuleRepository } from './repositories/tracking-rule.repository';
 import { TrackingRuleTypeormRepository } from './repositories/tracking-rule.typeorm-repository';
 import { TrackingRuleEntity } from './entities/tracking-rule.entity';
-import { DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
 
 /**
@@ -21,12 +20,10 @@ import { SystemInfrastructureModule } from '~/infrastructure/system/system-infra
       provide: TrackingRuleRepository,
       useClass: TrackingRuleTypeormRepository,
     },
-    DecisionTrackingAdapter, // Единственная регистрация адаптера
-    {
-      provide: DECISION_TRACKING_PORT,
-      useExisting: DecisionTrackingAdapter, // Используем useExisting вместо useClass
-    },
+    DecisionTrackingAdapter,
   ],
-  exports: [DECISION_TRACKING_PORT],
+  // Токен `DECISION_TRACKING_PORT` привязан в `InnercoopBridgeModule` вместе с
+  // остальными портами: одно место, где известны обе стороны.
+  exports: [DecisionTrackingAdapter],
 })
 export class DecisionTrackingInfrastructureModule {}

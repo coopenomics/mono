@@ -1,6 +1,6 @@
 import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from '../services/category-tree.service';
 import { CategoryTreeDomainService, CATEGORY_TREE_DOMAIN_SERVICE } from '../../domain/services/category-tree-domain.service';

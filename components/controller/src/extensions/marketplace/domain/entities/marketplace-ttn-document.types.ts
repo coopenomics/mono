@@ -2,7 +2,7 @@ import type { MarketplaceShipmentTTNData } from './marketplace-shipment.types';
 
 /**
  * Локальная запись ТТН marketplace (registry_id=1103). Документ
- * рендерится через `DocumentDomainService.generateDocument` при создании
+ * рендерится через порт документов (`IDocumentPort.generate`) при создании
  * партии поставки Варианта Б; on-chain не публикуется, в общий реестр
  * документов кооператива не попадает — экспедиторы пока не пайщики и
  * подписывают перевозку вне платформы. Ссылка на ТТН вшивается в АПП

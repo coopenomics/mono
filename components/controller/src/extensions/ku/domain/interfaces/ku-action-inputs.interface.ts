@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменные input-интерфейсы действий собрания пайщиков кооперативного участка
@@ -18,7 +18,7 @@ export interface CreateKuDecisionInputDomainInterface {
   initiator: string;
   braname: string;
   agenda: KuAgendaPointInputDomainInterface[];
-  proposal: ISignedDocumentDomainInterface;
+  proposal: ISignedDocument;
   /** Место проведения собрания — приватные данные пайщиков, хранятся только в БД */
   meet_place: string;
   /** Время проведения собрания — приватные данные пайщиков, хранятся только в БД */
@@ -57,22 +57,22 @@ export interface VoteOnKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
   username: string;
-  ballot: ISignedDocumentDomainInterface;
+  ballot: ISignedDocument;
   votes: KuVoteItemInputDomainInterface[];
 }
 
 export interface CloseKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
-  protocol: ISignedDocumentDomainInterface;
+  protocol: ISignedDocument;
 }
 
 export interface ExecKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
-  petition: ISignedDocumentDomainInterface;
-  liability: ISignedDocumentDomainInterface;
-  authority: ISignedDocumentDomainInterface;
+  petition: ISignedDocument;
+  liability: ISignedDocument;
+  authority: ISignedDocument;
 }
 
 export interface CancelKuDecisionInputDomainInterface {
@@ -86,15 +86,15 @@ export interface RequestKuTrustedInputDomainInterface {
   braname: string;
   username: string;
   hash: string;
-  application: ISignedDocumentDomainInterface;
-  authority: ISignedDocumentDomainInterface;
+  application: ISignedDocument;
+  authority: ISignedDocument;
 }
 
 export interface ApproveKuTrustedInputDomainInterface {
   coopname: string;
   hash: string;
-  countersigned: ISignedDocumentDomainInterface;
-  countersigned_authority: ISignedDocumentDomainInterface;
+  countersigned: ISignedDocument;
+  countersigned_authority: ISignedDocument;
 }
 
 export interface DeclineKuTrustedInputDomainInterface {

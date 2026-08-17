@@ -1,10 +1,7 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseFilesService } from '../services/expense-files.service';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
 import { ExpenseFileOutputDTO } from '../dto/expense-file.output';
@@ -28,7 +25,7 @@ export class ExpenseFilesResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async uploadExpenseFile(
     @Args('data', { type: () => UploadExpenseFileInputDTO }) data: UploadExpenseFileInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO> {
     const { data: saved, readUrl } = await this.expenseFiles.uploadFile(data, user.username);
     return ExpenseFileOutputDTO.fromDomain(saved, readUrl);

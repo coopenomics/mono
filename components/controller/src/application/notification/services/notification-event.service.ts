@@ -9,7 +9,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { Inject } from '@nestjs/common';
 import { TokenContract } from 'cooptypes';
 import type { IAction } from '~/types';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 
 /**
  * Сервис обработки событий для отправки уведомлений

@@ -1,5 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 
 /**
  * DTO для результата генерации пачки документов на странице регистрации в Capital

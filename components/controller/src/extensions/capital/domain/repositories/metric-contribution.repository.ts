@@ -1,8 +1,5 @@
 import { MetricContributionDomainEntity } from '../entities/metric-contribution.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface MetricContributionRepository {
   create(contribution: MetricContributionDomainEntity): Promise<MetricContributionDomainEntity>;
@@ -11,8 +8,8 @@ export interface MetricContributionRepository {
   sumDeltaByMetricHashes(metricHashes: string[]): Promise<Map<string, number>>;
   findByMetricHashPaginated(
     metricHash: string,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MetricContributionDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<MetricContributionDomainEntity>>;
   /** Все вклады метрики по возрастанию occurred_at (для ряда burn-up / скорости) */
   findChronologicalByMetricHash(metricHash: string): Promise<MetricContributionDomainEntity[]>;
   /** Сумма вкладов issue_done по задаче (для reverse при reopen) */

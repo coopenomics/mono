@@ -2,24 +2,18 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ResultSubmissionService } from '../services/result-submission.service';
 import { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
 import { GetResultInputDTO } from '../dto/result_submission/get-result-input.dto';
 import { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
 import { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
 // Пагинированные результаты
@@ -43,7 +37,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async pushCapitalResult(
     @Args('data', { type: () => PushResultInputDTO }) data: PushResultInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.pushResult(data, currentUser);
     return result;
@@ -60,7 +54,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member'])
   async convertCapitalSegment(
     @Args('data', { type: () => ConvertSegmentInputDTO }) data: ConvertSegmentInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.convertSegment(data, currentUser);
     return result;
@@ -115,7 +109,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionStatementGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionStatement(data, options, currentUser);
   }
@@ -135,7 +129,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionDecisionGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionDecision(data, options, currentUser);
   }
@@ -155,7 +149,7 @@ export class ResultSubmissionResolver {
     data: ResultContributionActGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     return this.resultSubmissionService.generateResultContributionAct(data, options, currentUser);
   }
@@ -173,7 +167,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async signActAsContributor(
     @Args('data', { type: () => SignActAsContributorInputDTO }) data: SignActAsContributorInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.signActAsContributor(data, currentUser);
     return result;
@@ -190,7 +184,7 @@ export class ResultSubmissionResolver {
   @AuthRoles(['chairman'])
   async signActAsChairman(
     @Args('data', { type: () => SignActAsChairmanInputDTO }) data: SignActAsChairmanInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const result = await this.resultSubmissionService.signActAsChairman(data, currentUser);
     return result;

@@ -1,50 +1,13 @@
 /**
- * Типы целевых потребительских программ кооператива
+ * Перечень целевых программ и соответствие их идентификаторам в цепи живут в
+ * контракте `@coopenomics/innercoop`: расширение работает со своей программой и
+ * подаёт её идентификатор в цепь, значит перечень общий. Здесь он доступен под
+ * привычными ядру именами.
  */
-export enum ProgramType {
-  /** Основная программа */
-  MAIN = 'main',
-
-  /** Программа маркетплейса */
-  MARKETPLACE = 'marketplace',
-
-  /** Программа генератора */
-  GENERATOR = 'generator',
-
-  /** Программа благорост */
-  BLAGOROST = 'blagorost',
-}
-
-/**
- * Маппинг program_id -> тип программы
- */
-export const PROGRAM_ID_TO_TYPE: Record<string, ProgramType> = {
-  '1': ProgramType.MAIN,
-  '2': ProgramType.MARKETPLACE,
-  '3': ProgramType.GENERATOR,
-  '4': ProgramType.BLAGOROST,
-};
-
-/**
- * Маппинг тип программы -> program_id
- */
-export const PROGRAM_TYPE_TO_ID: Record<ProgramType, string> = {
-  [ProgramType.MAIN]: '1',
-  [ProgramType.MARKETPLACE]: '2',
-  [ProgramType.GENERATOR]: '3',
-  [ProgramType.BLAGOROST]: '4',
-};
-
-/**
- * Получить тип программы по её ID
- */
-export function getProgramType(program_id: string): ProgramType {
-  return PROGRAM_ID_TO_TYPE[program_id] || ProgramType.MAIN;
-}
-
-/**
- * Получить ID программы по её типу
- */
-export function getProgramId(program_type: ProgramType): string {
-  return PROGRAM_TYPE_TO_ID[program_type] || '1';
-}
+export {
+  ProgramType,
+  getProgramType,
+  getProgramId,
+  PROGRAM_ID_BY_TYPE as PROGRAM_TYPE_TO_ID,
+  PROGRAM_TYPE_BY_ID as PROGRAM_ID_TO_TYPE,
+} from '@coopenomics/innercoop';

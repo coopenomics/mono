@@ -1,9 +1,20 @@
 import logger from '../../config/logger';
 import { Injectable, Scope } from '@nestjs/common';
 import { LoggerService as NestLoggerService } from '@nestjs/common';
+import type { ILoggerPort } from '@coopenomics/innercoop';
 
+/**
+ * Реализация `ILoggerPort` для расширений — без промежуточного адаптера.
+ *
+ * ADR-07 предполагал отдельный `WinstonLoggerAdapter implements ILoggerPort`,
+ * но обёртка вокруг транзиентного логгера обязана была бы ещё и пробрасывать
+ * `setContext` в обёрнутый инстанс. Это лишний слой с собственным режимом
+ * отказа (потерянный контекст) ради нуля поведения. Контракт совпадает с уже
+ * существующим API один в один, поэтому ядро реализует порт напрямую, а
+ * `implements` ловит расхождение на компиляции.
+ */
 @Injectable({ scope: Scope.TRANSIENT })
-export class WinstonLoggerService implements NestLoggerService {
+export class WinstonLoggerService implements NestLoggerService, ILoggerPort {
   private context?: string;
 
   setContext(context: string) {

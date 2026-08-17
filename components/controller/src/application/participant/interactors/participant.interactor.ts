@@ -1,7 +1,7 @@
 import { Cooperative } from 'cooptypes';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AddParticipantDomainInterface } from '~/domain/participant/interfaces/add-participant-domain.interface';
 import type { RegisterAccountDomainInterface } from '~/domain/account/interfaces/register-account-input.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
@@ -12,13 +12,12 @@ import { TokenApplicationService } from '~/application/token/services/token-appl
 import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { userStatus } from '~/types/user.types';
-import { HttpApiError } from '~/utils/httpApiError';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import http from 'http-status';
 import { PublicKey, Signature } from '@wharfkit/antelope';
-import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { ISignedDocument } from '@coopenomics/innercoop';
 import { GatewayInteractorPort, GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
@@ -41,6 +40,7 @@ import {
   mapPlatformAgreementIdToDocumentType,
 } from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ParticipantInteractor {
@@ -53,7 +53,7 @@ export class ParticipantInteractor {
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly gatewayInteractorPort: GatewayInteractorPort,
     private readonly notificationSenderService: NotificationSenderService,
-    @Inject(forwardRef(() => DOCUMENT_VALIDATION_SERVICE))
+    @Inject(DOCUMENT_VALIDATION_SERVICE)
     private readonly documentValidationService: DocumentValidationService,
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigurationService: AgreementConfigurationService,
@@ -98,7 +98,7 @@ export class ParticipantInteractor {
    * Проверяет подпись документа
    * @private
    */
-  private verifyDocumentSignature(public_key: string, document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(public_key: string, document: ISignedDocument): void {
     const { signatures } = document;
     const doc_public_key = signatures[0].public_key;
     const signature = signatures[0].signature;
@@ -201,7 +201,7 @@ export class ParticipantInteractor {
 
     for (const agreement of linkedAgreements) {
       const doc = data[agreement.id as keyof RegisterParticipantDomainInterface] as
-        | ISignedDocumentDomainInterface
+        | ISignedDocument
         | undefined;
       if (doc) {
         expectedLinks.push(doc.doc_hash);
@@ -230,7 +230,7 @@ export class ParticipantInteractor {
     // Сохраняем все требуемые соглашения динамически на основе конфигурации
     for (const agreementId of requiredAgreements) {
       const doc = data[agreementId as keyof RegisterParticipantDomainInterface] as
-        | ISignedDocumentDomainInterface
+        | ISignedDocument
         | undefined;
       if (!doc) continue;
 
@@ -299,7 +299,7 @@ export class ParticipantInteractor {
   private async saveRegistrationAgreement(
     username: string,
     agreementId: string,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void> {
     if (isGenericProgramAgreementId(agreementId)) {
       await this.candidateRepository.saveProgramAgreement(username, agreementId, document);

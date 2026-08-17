@@ -1,10 +1,7 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { CommitDomainEntity } from '../entities/commit.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface CommitRepository extends IBlockchainSyncRepository<CommitDomainEntity> {
   findById(_id: string): Promise<CommitDomainEntity | null>;
@@ -15,8 +12,8 @@ export interface CommitRepository extends IBlockchainSyncRepository<CommitDomain
   findByStatus(status: string): Promise<CommitDomainEntity[]>;
   findAllPaginated(
     filter?: CommitFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<CommitDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<CommitDomainEntity>>;
   update(entity: CommitDomainEntity): Promise<CommitDomainEntity>;
   delete(_id: string): Promise<void>;
 }

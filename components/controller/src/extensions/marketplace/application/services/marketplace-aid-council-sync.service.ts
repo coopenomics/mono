@@ -1,14 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { MARKETPLACE_AID_COUNCIL_DECIDED_EVENT } from '../events/marketplace-notification.events';
-import type { IAction } from '~/types';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /**
  * Слушатель решений совета по заявлению на материальную помощь (p.brn.aid).
@@ -28,10 +25,10 @@ import type { IAction } from '~/types';
 @Injectable()
 export class MarketplaceAidCouncilSyncService {
   constructor(
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceAidCouncilSyncService.name);
   }
@@ -39,19 +36,19 @@ export class MarketplaceAidCouncilSyncService {
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.OnAidAuth.actionName}`
   )
-  async handleCouncilAuthorized(action: IAction): Promise<void> {
+  async handleCouncilAuthorized(action: InnerChainActionRecord): Promise<void> {
     await this.applyDecision(action, true, 'onaidauth');
   }
 
   @OnEvent(
     `action::${BranchContract.contractName.production}::${BranchContract.Actions.OnAidDecl.actionName}`
   )
-  async handleCouncilDeclined(action: IAction): Promise<void> {
+  async handleCouncilDeclined(action: InnerChainActionRecord): Promise<void> {
     await this.applyDecision(action, false, 'onaiddecl');
   }
 
   private async applyDecision(
-    action: IAction,
+    action: InnerChainActionRecord,
     approved: boolean,
     actionLabel: string
   ): Promise<void> {
@@ -75,7 +72,7 @@ export class MarketplaceAidCouncilSyncService {
       }
       // Идемпотентность: решение применяем только к платежу, который ещё ждёт
       // совета. Повторный или поздний callback ничего не меняет.
-      if (payment.status !== PaymentStatusEnum.AWAITING_AUTHORIZATION) {
+      if (payment.status !== PaymentStatus.AWAITING_AUTHORIZATION) {
         this.logger.debug(
           `${actionLabel}: платёж ${payment.id} уже в статусе ${payment.status} — решение не применяю.`
         );
@@ -84,7 +81,7 @@ export class MarketplaceAidCouncilSyncService {
 
       await this.coreGateway.setPaymentStatus({
         id: payment.id,
-        status: approved ? PaymentStatusEnum.PENDING : PaymentStatusEnum.CANCELLED,
+        status: approved ? PaymentStatus.PENDING : PaymentStatus.CANCELLED,
         message: approved ? undefined : (data.reason ?? 'Совет отказал в выплате'),
       });
 

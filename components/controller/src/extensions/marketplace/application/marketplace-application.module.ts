@@ -2,11 +2,6 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
-import { ExpensesPluginModule } from '../../expenses/expenses-extension.module';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { DocumentDomainModule } from '~/domain/document/document.module';
-import { UserModule } from '~/application/user/user.module';
 import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
 import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
@@ -36,6 +31,7 @@ import { MarketplaceOnboardingService } from './onboarding/marketplace-onboardin
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
+import { ACCOUNT_PORT } from '@coopenomics/innercoop';
 import {
   MarketplaceSupplierRegistryService,
   MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
@@ -87,6 +83,7 @@ import {
 } from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
 import { MarketplaceDesktopGrantsProvider } from './desktop/marketplace-desktop-grants.provider';
+import { PAYMENT_DESK_PORT } from '@coopenomics/innercoop';
 import {
   MarketplaceShipmentCreateService,
   MARKETPLACE_SHIPMENT_CREATE_SERVICE,
@@ -153,7 +150,8 @@ import {
 } from './services/marketplace-return-claim.service';
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
-import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
@@ -175,7 +173,6 @@ import {
   MARKETPLACE_CHECKOUT_SERVICE,
 } from './services/marketplace-checkout.service';
 // Фаза 2: realtime-подписка marketplace (GraphQL subscription поверх graphql-ws).
-import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { MarketplaceEventsResolver } from './resolvers/marketplace-events.resolver';
 import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridge';
 
@@ -183,52 +180,44 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
  * Модуль приложения marketplace
  * Содержит GraphQL резолверы и сервисы приложения
  */
+
 @Module({
   imports: [
     MarketplaceExtensionDomainModule,
     // Резолверы (Story 3.x/4.x/5.x/...) инжектят MARKETPLACE_*_REPOSITORY и
     // MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT — прямой импорт инфраструктуры
     // (а не транзит через ExtensionsModule, который ломается forwardRef'ом
-    // на ExtensionDomainModule ниже).
+    // на ниже).
     MarketplaceInfrastructureModule,
-    // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
-    // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
-    ExpensesPluginModule,
-    // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
-    AccountInfrastructureModule,
+    // ACCOUNT_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
     // если AppModule тоже инициализирует его, NestJS использует singleton
     // SchedulerRegistry.
     ScheduleModule.forRoot(),
     // Story 598-17 / AR35: marketplace AplReception/OutgoingPayment сервисам
-    // нужен GATEWAY_INTERACTOR_PORT для синхронизации с core-реестром
+    // нужен PAYMENT_DESK_PORT для синхронизации с core-реестром
     // исходящих платежей. Модуль уже экспортирует токен — просто импорт.
-    GatewayInfrastructureModule,
     // DocumentDomainService для генерации preview-документов АПП приёмки
     // через GENERATOR_PORT (registry_id=1102).
-    DocumentDomainModule,
     // UserCertificateInteractor — резолв ФИО/наименования участников по аккаунту
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
-    UserModule,
-    // Эпик 7 / Story 7.1: bucket для фотографий гарантийного возврата
-    // (`stol-zakazov:images`). Имя bucket'а декларируется через @UseBucket
-    // на MarketplaceReturnClaimImagesService — модуль `forFeature` читает
-    // метадату и провайдит ему `InterFileStorageBucket`.
-    FileStorageInfrastructureModule.forFeature([
-      MarketplaceReturnClaimImagesService,
-      // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.
-      MarketplaceOfferImagesService,
-    ]),
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
     // крон-закрытие выданных заказов — marketplace_orders
     TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
-    PubSubModule,
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
-    // импортировать ExtensionDomainModule сюда нельзя (цикл AppModule → ExtensionDomainModule →
-    // ExtensionsModule → MarketplacePluginModule → MarketplaceExtensionApplicationModule).
+    // импортировать сюда нельзя (цикл AppModule → →
+    // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
   ],
   providers: [
+    // Хранилища изображений: `stol-zakazov:images` для фотографий гарантийного
+    // возврата (Эпик 7 / Story 7.1) и для изображений Offer'а (Story 3.2).
+    // Имя объявлено декоратором `@UseBucket` на самих сервисах, здесь
+    // объявление превращается в провайдер.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [
+      MarketplaceReturnClaimImagesService,
+      MarketplaceOfferImagesService,
+    ]),
     // GraphQL резолверы
     CategoryTreeResolver,
     AttributeResolver,

@@ -3,11 +3,10 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import path from 'path';
 import config from '~/config/config';
-import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
+import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY, extensionEntities } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
-import { LOG_EXTENSION_REPOSITORY } from '~/domain/extension/repositories/log-extension-domain.repository';
 import { TypeOrmLogExtensionDomainRepository } from './repositories/typeorm-log-extension.repository';
 import { MeetPreEntity } from './entities/meet-pre.entity';
 import { MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
@@ -45,13 +44,15 @@ import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-reg
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
-import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
-import { EntityVersionRepository } from '~/shared/sync/repositories/entity-version.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
-import { InvalidatedEntityTypeormEntity } from '~/shared/sync/entities/invalidated-entity.typeorm-entity';
-import { InvalidatedEntityVersionTypeormEntity } from '~/shared/sync/entities/invalidated-entity-version.typeorm-entity';
-import { InvalidatedEntityRepository } from '~/shared/sync/repositories/invalidated-entity.repository';
-import { InvalidatedEntityVersionRepository } from '~/shared/sync/repositories/invalidated-entity-version.repository';
+import {
+  EntityVersionTypeormEntity,
+  EntityVersionRepository,
+  EntityVersioningService,
+  InvalidatedEntityTypeormEntity,
+  InvalidatedEntityVersionTypeormEntity,
+  InvalidatedEntityRepository,
+  InvalidatedEntityVersionRepository,
+} from '@coopenomics/extension-kit/sync';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -110,21 +111,41 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
 @Global()
 @Module({
   imports: [
-    NestTypeOrmModule.forRoot({
-      type: 'postgres',
-      host: config.postgres.host,
-      port: Number(config.postgres.port),
-      username: config.postgres.username,
-      password: config.postgres.password,
-      database: config.postgres.database,
-      entities: [
-        'src/infrastructure/**/entities/*entity.{ts,js}',
-        'src/extensions/**/entities/*entity.{ts,js}',
-        'src/shared/**/entities/*entity.{ts,js}',
-      ],
-      //      synchronize: config.env === 'development', // Используем миграции для production
-      synchronize: true, // Временно всегда синхронизируем
-      logging: false,
+    // forRootAsync, а не forRoot: состав таблиц расширений известен только
+    // после того, как загрузился реестр, а он загружается позже подключения к
+    // базе. Фабрика вычисляется при инициализации модуля — к этому моменту
+    // граф уже собран и каждое расширение свой состав объявило.
+    NestTypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres' as const,
+        host: config.postgres.host,
+        port: Number(config.postgres.port),
+        username: config.postgres.username,
+        password: config.postgres.password,
+        database: config.postgres.database,
+        entities: [
+          'src/infrastructure/**/entities/*entity.{ts,js}',
+          'src/shared/**/entities/*entity.{ts,js}',
+          // Таблица версий приехала из `src/shared/sync/entities/` в
+          // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
+          // глоб по `src/` её больше не находит. Классом — находит; DataSource
+          // принимает и пути, и классы. Базовые классы каркаса (BaseTypeormEntity)
+          // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
+          // глобального хранилища метаданных по цепочке прототипов наследника.
+          EntityVersionTypeormEntity,
+          // Архив снесённых форком записей — из того же пакета и по той же
+          // причине: глоб по `src/` его не находит.
+          InvalidatedEntityTypeormEntity,
+          InvalidatedEntityVersionTypeormEntity,
+          // Таблицы расширений — по декларации самого расширения, а не по его
+          // положению на диске: установленное пакетом расширение ни под какой
+          // глоб по `src/` не попадёт и своих таблиц не получит.
+          ...extensionEntities(),
+        ],
+        //      synchronize: config.env === 'development', // Используем миграции для production
+        synchronize: true, // Временно всегда синхронизируем
+        logging: false,
+      }),
     }),
     NestTypeOrmModule.forFeature([
       ExtensionEntity,

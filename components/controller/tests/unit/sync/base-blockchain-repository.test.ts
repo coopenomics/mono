@@ -6,7 +6,7 @@
  * состояние в БД откатывается назад при гонке дельт.
  */
 
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
+import { BaseBlockchainRepository } from '@coopenomics/extension-kit/sync';
 
 function makeDomain(data: any) {
   return {

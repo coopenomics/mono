@@ -6,7 +6,7 @@ import config from '~/config/config';
 import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
 import { NotificationDeliveryTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-delivery.typeorm-entity';
 import { NotificationOutboxStatus } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { NotificationsFilterInput } from './graphql/notifications-filter.input';
 import type {
   NotificationDTO,

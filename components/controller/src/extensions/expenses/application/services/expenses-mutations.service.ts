@@ -1,17 +1,8 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import type { TransactResult } from '@wharfkit/session'
-import type { InterExpenseRequisiteItemInput } from '@coopenomics/inter'
+
+import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
-import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity'
-import { ExpenseProposalStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-statement-document.dto'
-import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/expense-proposal-decision-document.dto'
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository'
-import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface'
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum'
-import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum'
-import { QuantityUtils } from '~/shared/utils/quantity.utils'
-import { generateHashFromString, generateUniqueHash } from '~/utils/generate-hash.util'
+import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
 import { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
@@ -34,6 +25,17 @@ import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { QuantityUtils,
+  generateHashFromString,
+  generateUniqueHash,
+  ExpenseProposalStatementGenerateDocumentInputDTO,
+} from '@coopenomics/extension-kit';
+import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection,
+  type InnerTransactResult,
+  DOCUMENT_PORT,
+  type IDocumentPort,
+} from '@coopenomics/innercoop';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0
@@ -51,18 +53,18 @@ export class ExpensesMutationsService {
   constructor(
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
     private readonly chain: ExpensesBlockchainPort,
-    private readonly generator: GeneratorInfrastructureService,
+    @Inject(DOCUMENT_PORT) private readonly generator: IDocumentPort,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly payments: PaymentRepository
+    @Inject(PAYMENT_PORT)
+    private readonly payments: IPaymentPort
   ) {}
 
   async generateExpenseProposalStatementDocument(
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     const registry_id = Cooperative.Registry.ExpenseProposalStatement.registry_id
 
     // Фонд списания — параметр шасси, фронт его не передаёт
@@ -92,7 +94,7 @@ export class ExpensesMutationsService {
     )
 
     const privatePayload: Cooperative.Registry.ExpenseProposalStatement.PrivateData = { items: privateItems }
-    const { hash: doc_data_hash } = await this.generator.saveDocData(
+    const { hash: doc_data_hash } = await this.generator.saveData(
       privatePayload as unknown as Record<string, unknown>,
       registry_id
     )
@@ -114,18 +116,18 @@ export class ExpensesMutationsService {
       doc_data_hash,
     } as unknown as Cooperative.Registry.ExpenseProposalStatement.Action
 
-    return this.generator.generateDocument({ data: action, options: options || {} })
+    return this.generator.generate({ data: action, options: options || {} })
   }
 
   async generateExpenseProposalDecisionDocument(
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
     options: Cooperative.Document.IGenerationOptions
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     data.registry_id = Cooperative.Registry.ExpenseProposalDecision.registry_id
-    return this.generator.generateDocument({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
+    return this.generator.generate({ data: data as unknown as Cooperative.Registry.ExpenseProposalDecision.Action, options: options || {} })
   }
 
-  async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<TransactResult> {
+  async createExpenseProposal(input: CreateExpenseProposalInputDTO): Promise<InnerTransactResult> {
     // Валидация реквизитов ДО блокчейна, снимок — ПОСЛЕ (канон gateway
     // prepareWithdraw → persistWithdraw). Реквизиты в чейн не пишутся.
     const requisiteItems = toRequisiteItems(input.proposal_hash, input.items)
@@ -175,7 +177,7 @@ export class ExpensesMutationsService {
     return result
   }
 
-  async payExpenseItem(input: PayExpenseItemInputDTO): Promise<TransactResult> {
+  async payExpenseItem(input: PayExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.payExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -328,17 +330,16 @@ export class ExpensesMutationsService {
 
     const now = new Date()
     const amountStr = amount.toFixed(2)
-    const payment: PaymentDomainInterface = {
-      id: '',
+    const payment: InnerPaymentDraft = {
       coopname,
       // Позиция-аванс всегда оформлена на пайщика-получателя — расчёт разницы
       // относится лично к нему (виден в его личном реестре платежей).
       username: item.recipient,
       quantity: amount,
       symbol,
-      type: isUnderspend ? PaymentTypeEnum.EXPENSE_RETURN : PaymentTypeEnum.EXPENSE_OVERSPEND,
-      direction: isUnderspend ? PaymentDirectionEnum.INCOMING : PaymentDirectionEnum.OUTGOING,
-      status: PaymentStatusEnum.PENDING,
+      type: isUnderspend ? PaymentType.EXPENSE_RETURN : PaymentType.EXPENSE_OVERSPEND,
+      direction: isUnderspend ? PaymentDirection.INCOMING : PaymentDirection.OUTGOING,
+      status: PaymentStatus.PENDING,
       // Назначение фиксированное (суть расхода — в описании позиции, поле
       // blockchain_data.description показывается отдельно как «Что оплачиваем»).
       memo: isUnderspend
@@ -374,7 +375,7 @@ export class ExpensesMutationsService {
     return created.hash
   }
 
-  async returnExpenseItem(input: ReturnExpenseItemInputDTO): Promise<TransactResult> {
+  async returnExpenseItem(input: ReturnExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.returnExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -383,7 +384,7 @@ export class ExpensesMutationsService {
     })
   }
 
-  async overspendExpenseItem(input: OverspendExpenseItemInputDTO): Promise<TransactResult> {
+  async overspendExpenseItem(input: OverspendExpenseItemInputDTO): Promise<InnerTransactResult> {
     return this.chain.overspendExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -392,7 +393,7 @@ export class ExpensesMutationsService {
     })
   }
 
-  async submitExpenseReport(input: SubmitExpenseReportInputDTO): Promise<TransactResult> {
+  async submitExpenseReport(input: SubmitExpenseReportInputDTO): Promise<InnerTransactResult> {
     return this.chain.closeExp({
       coopname: input.coopname,
       proposal_hash: input.proposal_hash,
@@ -410,7 +411,7 @@ function parseAssetToMinor(asset: string): { minor: number; symbol: string; prec
   return { minor: Math.round(amount * 10 ** precision), symbol, precision }
 }
 
-function toRequisiteItems(proposalHash: string, items: ExpenseItemInputDTO[]): InterExpenseRequisiteItemInput[] {
+function toRequisiteItems(proposalHash: string, items: ExpenseItemInputDTO[]): InnerExpenseRequisiteItemInput[] {
   return items.map((it) => ({
     proposalHash,
     itemHash: it.item_hash,

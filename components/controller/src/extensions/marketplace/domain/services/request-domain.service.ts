@@ -8,7 +8,7 @@ import { TypeDomainRepository, TYPE_DOMAIN_REPOSITORY } from '../repositories/ty
 import { AttributeDomainRepository, ATTRIBUTE_DOMAIN_REPOSITORY } from '../repositories/attribute-domain.repository';
 import { AvailableCategoryDomainService, AVAILABLE_CATEGORY_DOMAIN_SERVICE } from './available-category-domain.service';
 import { randomBytes } from 'crypto';
-import { config } from '~/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Токен для внедрения зависимостей
@@ -127,7 +127,7 @@ export class RequestDomainService {
     // Создание заявки
     const request = new RequestDomainEntity({
       hash,
-      blockchainId: config.blockchain.id,
+      blockchainId: platformSettings().blockchain.chainId,
       programId: 0,
       unitCost: params.price,
       supplierAmount: params.price,

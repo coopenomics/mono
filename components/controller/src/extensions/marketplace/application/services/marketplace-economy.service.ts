@@ -11,16 +11,9 @@ import { createHash, randomBytes } from 'crypto';
 import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import {
-  INTER_LEDGER2_HISTORY,
-  type InterLedger2HistoryPort,
-  type InterLedger2HistoryResult,
-} from '@coopenomics/inter';
-import { HttpApiError } from '~/utils/httpApiError';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { PaginationInputDTO, type PaginationResult } from '~/application/common/dto/pagination.dto';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -39,25 +32,16 @@ import {
 } from './marketplace-ku-chairman.service';
 import { rethrowChainError } from '../shared/chain-tx.util';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
-import {
-  EXPENSE_PLANS_SERVICE,
-  EXPENSE_RESERVE_HORIZON_DAYS,
-  type ExpensePlansService,
-} from '../../../expenses/application/services/expense-plans.service';
-import {
-  GATEWAY_INTERACTOR_PORT,
-  type GatewayInteractorPort,
-} from '~/domain/wallet/ports/gateway-interactor.port';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
-import { INTER_EXPENSE_CHASSIS, type InterExpenseChassisPort } from '@coopenomics/inter';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
-import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
-import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+// Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
+// контракта. Регистрацию перечня в схеме держит само шасси, потребителю нужны
+// значения.
+import {
+  InnerExpenseMechanics as ExpenseMechanics,
+  InnerExpenseRecipientType as ExpenseRecipientType,
+} from '@coopenomics/innercoop';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -137,7 +121,7 @@ export interface MarketplaceAidView {
   /** Стадия заявления: на рассмотрении совета либо одобрено и ждёт выплаты. */
   stage: MarketplaceAidStage;
   /** Null — платёж не найден в реестре, статус выплаты неизвестен. */
-  payment_status: PaymentStatusEnum | null;
+  payment_status: PaymentStatus | null;
   /** Маскированная подпись реквизитов («Сбербанк •1234»), null — реквизиты недоступны. */
   payment_destination: string | null;
 }
@@ -167,19 +151,17 @@ export class MarketplaceEconomyService {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
-    @Inject(EXPENSE_PLANS_SERVICE)
-    private readonly expensePlansService: ExpensePlansService,
-    @Inject(INTER_LEDGER2_HISTORY)
-    private readonly ledger2History: InterLedger2HistoryPort,
-    @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly coreGateway: GatewayInteractorPort,
-    @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepo: PaymentMethodRepository,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(LEDGER2_HISTORY_PORT)
+    private readonly ledger2History: ILedger2HistoryPort,
+    @Inject(PAYMENT_DESK_PORT)
+    private readonly coreGateway: IPaymentDeskPort,
+    @Inject(PAYMENT_METHOD_PORT)
+    private readonly paymentMethodRepo: IPaymentMethodPort,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(INTER_EXPENSE_CHASSIS)
-    private readonly expenseChassis: InterExpenseChassisPort
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -293,7 +275,7 @@ export class MarketplaceEconomyService {
       this.chainPort.getBranchWeights(coopname),
       this.chainPort.getBranchWeightTotals(coopname),
       this.chainPort.listBranchWalletBalances(coopname),
-      this.expensePlansService.getReservedAmount(coopname, braname),
+      this.expenseChassis.getPlannedReserve(coopname, braname),
     ]);
 
     const branchWeights = weights.filter(
@@ -312,7 +294,7 @@ export class MarketplaceEconomyService {
       balances.find((b) => b.wallet_name === 'w.brn.common' && b.username === braname)
         ?.available ?? this.zeroAsset();
 
-    const available = Math.max(0, this.assetToNumber(commonBalance) - reserve);
+    const available = Math.max(0, this.assetToNumber(commonBalance) - reserve.amount);
 
     return {
       braname,
@@ -324,7 +306,7 @@ export class MarketplaceEconomyService {
         personal_balance: personalBalanceOf(w.username),
       })),
       common_balance: commonBalance,
-      reserve_amount: this.formatAsset(reserve),
+      reserve_amount: this.formatAsset(reserve.amount),
       available_to_distribute: this.formatAsset(available),
     };
   }
@@ -332,7 +314,7 @@ export class MarketplaceEconomyService {
   /**
    * Движения по общему кошельку КУ (`w.brn.common`) — членские взносы с
    * исполненных заказов, изъятия в распределение, оплата плановых расходов.
-   * Читается через `INTER_LEDGER2_HISTORY` (ядро ledger2, журнал
+   * Читается через `LEDGER2_HISTORY_PORT` (ядро ledger2, журнал
    * blockchain_actions) — только apply-записи: они несут operation_code +
    * memo (человекочитаемое назначение, например «по заказу № 123»),
    * walletop/debit/credit того же apply в UI-журнале избыточны.
@@ -394,7 +376,7 @@ export class MarketplaceEconomyService {
    */
   private async toWalletHistoryResult(
     coopname: string,
-    result: InterLedger2HistoryResult
+    result: InnerLedger2HistoryResult
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const hashes = result.items
       .map((op) => op.processHash)
@@ -445,8 +427,11 @@ export class MarketplaceEconomyService {
     const common = this.assetToNumber(economy.common_balance);
     const reserve = this.assetToNumber(economy.reserve_amount);
     if (common - amount < reserve) {
+      // Горизонт планирования принадлежит шасси расходов; спрашиваем его на
+      // пути отказа, чтобы объяснить человеку, за какой срок посчитан резерв.
+      const { horizonDays } = await this.expenseChassis.getPlannedReserve(coopname, braname);
       throw new BadRequestException(
-        `Распределение нарушает плановый резерв расходов на ${EXPENSE_RESERVE_HORIZON_DAYS} дней: ` +
+        `Распределение нарушает плановый резерв расходов на ${horizonDays} дней: ` +
           `в общем кошельке ${economy.common_balance}, резерв ${economy.reserve_amount}, ` +
           `доступно к распределению ${economy.available_to_distribute}`
       );
@@ -564,7 +549,7 @@ export class MarketplaceEconomyService {
     username: string,
     braname: string,
     amount: number
-  ): Promise<DocumentDomainEntity> {
+  ): Promise<InnerGeneratedDocument> {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
     }
@@ -586,7 +571,7 @@ export class MarketplaceEconomyService {
       braname,
       amount: this.formatAsset(amount),
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   async createAid(
@@ -660,8 +645,8 @@ export class MarketplaceEconomyService {
         // Назначение платежа кассир копирует в банк как есть — там нужна только
         // суть выплаты, без служебных идентификаторов участка.
         memo: 'Материальная помощь',
-        type: PaymentTypeEnum.AID,
-        status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
+        type: PaymentType.AID,
+        status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
         related_entity_id: aidHash,
         payment_hash: aidHash,
@@ -797,7 +782,7 @@ export class MarketplaceEconomyService {
     await this.expenseChassis.snapshotRequisites(coopname, requisiteItems);
 
     if (input.plan_id) {
-      await this.expensePlansService.attachProposal(coopname, input.plan_id, input.expense_hash);
+      await this.expenseChassis.attachPlanToProposal(coopname, input.plan_id, input.expense_hash);
     }
 
     return input.expense_hash;
@@ -814,7 +799,7 @@ export class MarketplaceEconomyService {
       if (payment?.id) {
         await this.coreGateway.setPaymentStatus({
           id: payment.id,
-          status: PaymentStatusEnum.CANCELLED,
+          status: PaymentStatus.CANCELLED,
           message: reason,
         });
       }
@@ -839,7 +824,7 @@ export class MarketplaceEconomyService {
     aid: BranchContract.Tables.Aids.IBranchAid
   ): Promise<MarketplaceAidView> {
     const hash = String(aid.hash);
-    let payment_status: PaymentStatusEnum | null = null;
+    let payment_status: PaymentStatus | null = null;
     let payment_destination: string | null = null;
     try {
       const found = await this.coreGateway.getPayments(

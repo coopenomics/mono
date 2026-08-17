@@ -1,5 +1,5 @@
-export * from './entities/base-domain.entity';
-export * from './entities/base-typeorm.entity';
-export * from './interfaces/base-database.interface';
-export * from './repositories/base-blockchain.repository';
+// Каркас синхронизации переехал в `@coopenomics/extension-kit/sync` — расширение
+// обязано собираться за пределами контроллера, а от классов ядра там
+// наследоваться не от чего. Здесь остаётся только то, что принадлежит ядру:
+// реестр форков (обходит граф приложения) и архивная уборка (ходит в RPC).
 export * from './fork';

@@ -20,13 +20,10 @@ import {
   type MarketplaceOrderIssuanceFactSnapshot,
   type MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOrderMapper } from '../mappers/marketplace-order.mapper';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomainRepository {
@@ -131,8 +128,8 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
   async list(
     filter: MarketplaceOrderListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOrderDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOrderDomainEntity>> {
     const qb = this.repo.createQueryBuilder('o').where('o.coopname = :coop', { coop: filter.coopname });
 
     if (filter.orderer_account) qb.andWhere('o.orderer_account = :ord', { ord: filter.orderer_account });
@@ -434,7 +431,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocumentDomainInterface;
+      issue_act_signiss1_document: ISignedDocument;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
     const before = await this.repo.findOneOrFail({ where: { id } });

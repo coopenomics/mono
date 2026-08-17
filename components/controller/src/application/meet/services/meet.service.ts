@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import { GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { type CreateAnnualGeneralMeetInputDTO } from '../dto/create-meet-agenda-input.dto';
 import type { AnnualGeneralMeetingAgendaGenerateDocumentInputDTO } from '../../document/documents-dto/annual-general-meeting-agenda-document.dto';
 import { MeetInteractor } from '../interactors/meet.interactor';
@@ -11,7 +11,7 @@ import { GetMeetInputDTO } from '../dto/get-meet-input.dto';
 import { GetMeetsInputDTO } from '../dto/get-meets-input.dto';
 import { SignBySecretaryOnAnnualGeneralMeetInputDTO } from '../dto/sign-by-secretary-on-annual-general-meet-input.dto';
 import { SignByPresiderOnAnnualGeneralMeetInputDTO } from '../dto/sign-by-presider-on-annual-general-meet-input.dto';
-import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import type { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-voting-ballot-document.dto';
 import { AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-soviet-decision-document.dto';
 import { AnnualGeneralMeetingDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-decision-document.dto';

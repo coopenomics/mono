@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProjectPropertyDomainEntity } from '../../domain/entities/project-property.entity';
 import {
   ProjectPropertyRepository,
@@ -27,7 +27,7 @@ export class ProjectPropertySyncService
     @Inject(PROJECT_PROPERTY_REPOSITORY)
     projectPropertyRepository: ProjectPropertyRepository,
     projectPropertyDeltaMapper: ProjectPropertyDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(projectPropertyRepository, projectPropertyDeltaMapper, logger);

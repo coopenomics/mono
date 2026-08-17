@@ -19,19 +19,19 @@ function makeLoggerStub() {
 }
 
 function makeRepoStub(cfg: Record<string, any>) {
-  const plugin = { name: 'chairman', config: { ...cfg } } as any;
+  const extension = { name: 'chairman', config: { ...cfg } } as any;
   return {
-    findByName: jest.fn(async () => plugin),
+    findByName: jest.fn(async () => extension),
     update: jest.fn(async (next: any) => {
-      Object.assign(plugin.config, next.config);
+      Object.assign(extension.config, next.config);
     }),
     // Сервис перешёл на атомарный частичный UPDATE (config || patch) вместо
     // read-modify-write всего config — иначе конкурентные DecisionTrackedEvent
     // теряют флаги друг друга. Заглушка повторяет контракт: частичное слияние
     // и возврат обновлённой сущности (её читает isL1Complete).
     patchConfig: jest.fn(async (_name: string, patch: any) => {
-      Object.assign(plugin.config, patch);
-      return plugin;
+      Object.assign(extension.config, patch);
+      return extension;
     }),
   };
 }

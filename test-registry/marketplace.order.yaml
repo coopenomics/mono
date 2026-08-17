@@ -6,6 +6,12 @@ title: Заказ пайщика — оформление, приём и отк�
 # (cycle) — соседний слайс marketplace.supply: там другая точка входа
 # (поставщик собирает партию) и другие инварианты.
 
+#
+# Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
+# из `@coopenomics/innercoop` вместо прямого `WinstonLoggerService` ядра —
+# расширение не должно знать, чем именно пишется лог. Сменились только тип
+# параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts

@@ -10,7 +10,6 @@ import { generateUsername } from '~/utils/generate-username';
 import { userStatus } from '~/types/user.types';
 import { UserDomainEntity } from '~/domain/user/entities/user-domain.entity';
 import type { CreateUserInputDomainInterface } from '~/domain/registration/interfaces/create-user-input-domain.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
@@ -20,10 +19,11 @@ import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/va
 import { MONO_STATUS_REPOSITORY, MonoStatusRepository } from '~/domain/common/repositories/mono-status.repository';
 import { SystemStatus } from '~/application/system/dto/system-status.dto';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { Workflows } from '@coopenomics/notifications';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 /** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
 const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;
@@ -34,7 +34,7 @@ export class InstallInteractor {
     @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
     @Inject(MONO_STATUS_REPOSITORY) private readonly monoStatusRepository: MonoStatusRepository,
     @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     private readonly tokenApplicationService: TokenApplicationService,

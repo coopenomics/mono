@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AccountDTO } from '../dto/account.dto';
 import { AccountInteractor } from '../interactors/account.interactor';
 import type { GetAccountsInputDTO } from '../dto/get-accounts-input.dto';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
 import { RegisteredAccountDTO } from '../dto/registered-account.dto';

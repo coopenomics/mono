@@ -2,10 +2,7 @@ import type { MarketplaceConsolidatedRequestDomainEntity } from '../entities/mar
 import type {
   MarketplaceConsolidatedRequestStatus,
 } from '../entities/marketplace-consolidated-request.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY = Symbol(
   'MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY'
@@ -47,8 +44,8 @@ export interface MarketplaceConsolidatedRequestDomainRepository {
 
   list(
     filter: MarketplaceConsolidatedRequestListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceConsolidatedRequestDomainEntity>>;
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceConsolidatedRequestDomainEntity>>;
 
   applyStatusTransition(
     id: string,

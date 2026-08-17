@@ -1,21 +1,21 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
+import { Module, Injectable, Inject } from '@nestjs/common';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
-import { RegistrationInfrastructureModule } from '~/infrastructure/registration/registration-infrastructure.module';
-import { Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DocumentDomainModule } from '~/domain/document/document.module';
-import { DocumentModule } from '~/application/document/document.module';
-import { DocumentInfrastructureModule } from '~/infrastructure/document/document-infrastructure.module';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { Inject } from '@nestjs/common';
+import { LOGGER_PORT, type ILoggerPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
+  REGISTRATION_REGISTRY_PORT,
+  type IRegistrationRegistryPort,
+  SECRET_CIPHER_PORT,
+  type ISecretCipherPort,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
+} from '@coopenomics/innercoop';
 import { z } from 'zod';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -270,25 +270,12 @@ import { UdataDocumentParametersService, UDATA_DOCUMENT_PARAMETERS_SERVICE } fro
 
 // Инфраструктурные адаптеры
 import { UdataDocumentParametersAdapter } from './infrastructure/adapters/udata-document-parameters.adapter';
-import { CapitalInterProjectCapitalClearanceAdapter } from './infrastructure/inter/capital-inter-project-capital-clearance.adapter';
-import { UDATA_DOCUMENT_PARAMETERS_PORT } from '~/domain/common/ports/udata-document-parameters.port';
-import {
-  AGREEMENT_REGISTRATION_PORT,
-  type AgreementRegistrationPort,
-} from '~/domain/registration/ports/agreement-registration.port';
+import { CapitalInnercoopProjectCapitalClearanceAdapter } from './infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { registerCapitalInAgreementRegistry } from './application/registration/register-capital-in-agreement-registry';
-import {
-  SOVIET_BLOCKCHAIN_PORT,
-  type SovietBlockchainPort,
-} from '~/domain/common/ports/soviet-blockchain.port';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   GENERATOR_AGREEMENT_TYPE,
 } from './constants/capital-agreement-ids';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
 
 // Репозитории
@@ -409,7 +396,6 @@ import { LogService } from './application/services/log.service';
 // CAPITAL Application Dependencies
 import { CapitalBlockchainAdapter } from './infrastructure/blockchain/adapters/capital-blockchain.adapter';
 import { CAPITAL_BLOCKCHAIN_PORT } from './domain/interfaces/capital-blockchain.port';
-import { RegistrationModule } from '~/application/registration/registration.module';
 import { CapitalRegistrationService } from './application/registration/services/capital-registration.service';
 import { CapitalRegistrationResolver } from './application/registration/resolvers/capital-registration.resolver';
 
@@ -476,35 +462,32 @@ import { ContractManagementInteractor } from './application/use-cases/contract-m
 import { ExpensesManagementInteractor } from './application/use-cases/expenses-management.interactor';
 import { SegmentsInteractor } from './application/use-cases/segments.interactor';
 import { LogInteractor } from './application/use-cases/log.interactor';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { config as configEnv } from '~/config';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
-import { FreeDecisionDomainModule } from '~/domain/free-decision/free-decision.module';
-import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
-import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
-import { WalletModule } from '~/application/wallet/wallet.module';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
 @Injectable()
-export class CapitalPlugin extends BaseExtModule {
+export class CapitalExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     private readonly contractManagementService: ContractManagementService,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly syncInteractor: CapitalSyncInteractor,
     private readonly githubSyncScheduler: GitHubSyncSchedulerService,
     private readonly programShareRegistrationScheduler: ProgramShareRegistrationSchedulerService,
     private readonly githubService: GitHubService,
     private readonly gitService: GitService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
-    @Inject(AGREEMENT_REGISTRATION_PORT) private readonly agreementRegistrationPort: AgreementRegistrationPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
-    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort
+    @Inject(REGISTRATION_REGISTRY_PORT) private readonly agreementRegistrationPort: IRegistrationRegistryPort,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
   ) {
     super();
-    this.logger.setContext(CapitalPlugin.name);
+    this.logger.setContext(CapitalExtension.name);
   }
 
   /**
@@ -527,13 +510,13 @@ export class CapitalPlugin extends BaseExtModule {
 
     for (const program of programs) {
       try {
-        const { created, program_id } = await this.sovietBlockchainPort.ensureProgram({
-          coopname: configEnv.coopname,
+        const { created, program_id } = await this.council.ensureProgram({
+          coopname: platformSettings().coopname,
           ...program,
         });
         if (created) {
           this.logger.log(
-            `Программа «${program.title}» открыта в кооперативе ${configEnv.coopname} (program_id=${program_id})`
+            `Программа «${program.title}» открыта в кооперативе ${platformSettings().coopname} (program_id=${program_id})`
           );
         }
       } catch (error) {
@@ -545,7 +528,7 @@ export class CapitalPlugin extends BaseExtModule {
 
 
   name = 'capital';
-  plugin!: ExtensionDomainEntity<IConfig>; // ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>; // ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
@@ -558,21 +541,21 @@ export class CapitalPlugin extends BaseExtModule {
     await this.ensureCppPrograms();
 
     // Загружаем конфигурацию расширения
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) {
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) {
       this.logger.error(`Конфигурация расширения ${this.name} не найдена`);
       return;
     }
 
     // Сливаем загруженную конфигурацию с дефолтными значениями
-    this.plugin = {
-      ...pluginData,
-      config: { ...defaultConfig, ...pluginData.config },
+    this.extension = {
+      ...extensionData,
+      config: { ...defaultConfig, ...extensionData.config },
     };
 
     // Если передана новая конфигурация через параметр (при restart), используем её
     // Сливаем с дефолтными значениями для обеспечения корректных типов
-    const extensionConfig = { ...defaultConfig, ...(config || this.plugin.config) };
+    const extensionConfig = { ...defaultConfig, ...(config || this.extension.config) };
 
     const { github_api_token_encrypted: _ghEnc, ...extensionConfigLogSafe } = extensionConfig;
     this.logger.log(`Инициализация ${this.name} с конфигурацией`, {
@@ -580,7 +563,10 @@ export class CapitalPlugin extends BaseExtModule {
       github_api_token_encrypted: _ghEnc ? '[задан]' : '[пусто]',
     });
 
-    const ghPlain = resolveCapitalGithubApiPlainToken(extensionConfig.github_api_token_encrypted);
+    const ghPlain = resolveCapitalGithubApiPlainToken(extensionConfig.github_api_token_encrypted, {
+      decrypt: (ciphertext: string) => this.secretCipher.decrypt(ciphertext),
+      fallbackToken: this.integrations.get<{ token?: string }>('capital', 'github')?.token,
+    });
     this.githubService.reconfigureWithCapitalExtensionEncrypted(extensionConfig.github_api_token_encrypted);
     this.gitService.reconfigureWithCapitalExtensionEncrypted(extensionConfig.github_api_token_encrypted);
     if (ghPlain) {
@@ -589,7 +575,7 @@ export class CapitalPlugin extends BaseExtModule {
 
     // Синхронизируем конфигурацию с контрактом
     try {
-      const coopname = configEnv.coopname;
+      const coopname = platformSettings().coopname;
       const currentState = await this.contractManagementService.getState({ coopname });
 
       // Проверяем, нужно ли устанавливать/обновлять конфигурацию контракта
@@ -749,23 +735,10 @@ export class CapitalPlugin extends BaseExtModule {
 }
 
 @Module({
-  imports: [
-    CapitalDatabaseModule,
-    AccountInfrastructureModule,
-    DocumentDomainModule,
-    DocumentModule,
-    DocumentInfrastructureModule,
-    VaultDomainModule,
-    FreeDecisionDomainModule,
-    FreeDecisionInfrastructureModule,
-    DecisionTrackingInfrastructureModule,
-    WalletModule,
-    forwardRef(() => RegistrationModule),
-    RegistrationInfrastructureModule,
-  ],
+  imports: [CapitalDatabaseModule],
   providers: [
-    // Plugin
-    CapitalPlugin,
+    // Extension
+    CapitalExtension,
     CapitalRegistrationService,
     CapitalRegistrationResolver,
 
@@ -1020,18 +993,17 @@ IssueIdGenerationService,
     LogInteractor,
 
     // Infrastructure Adapters (после всех сервисов)
-    {
-      provide: UDATA_DOCUMENT_PARAMETERS_PORT,
-      useClass: UdataDocumentParametersAdapter,
-    },
-    CapitalInterProjectCapitalClearanceAdapter,
+    // Кладёт себя в реестр ядра сам (onModuleInit) — токен-хук для доставки
+    // больше не нужен, ядро берёт реализацию из реестра.
+    UdataDocumentParametersAdapter,
+    CapitalInnercoopProjectCapitalClearanceAdapter,
   ],
-  exports: [CapitalPlugin, UDATA_DOCUMENT_PARAMETERS_PORT, CapitalInterProjectCapitalClearanceAdapter],
+  exports: [CapitalExtension, CapitalInnercoopProjectCapitalClearanceAdapter],
 })
-export class CapitalPluginModule {
-  constructor(private readonly capitalPlugin: CapitalPlugin) {}
+export class CapitalExtensionModule {
+  constructor(private readonly capitalExtension: CapitalExtension) {}
 
   async initialize(config?: IConfig) {
-    await this.capitalPlugin.initialize(config);
+    await this.capitalExtension.initialize(config);
   }
 }

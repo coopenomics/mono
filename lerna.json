@@ -2,8 +2,7 @@
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
   "version": "2026.8.16",
   "packages": [
-    "components/*",
-    "components/controller/src/plugins/*"
+    "components/*"
   ],
   "npmClient": "pnpm",
   "command": {

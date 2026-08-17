@@ -4,7 +4,7 @@ import { DraftContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
 import { ForkRegistryService } from '~/shared/sync/fork';
-import type { IForkAwareSyncer } from '~/shared/sync/fork/fork-aware-syncer.interface';
+import type { IForkAwareSyncer } from '@coopenomics/extension-kit/sync';
 import type { IDelta } from '~/types/common';
 
 /**

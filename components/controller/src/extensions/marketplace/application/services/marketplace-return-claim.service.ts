@@ -11,8 +11,7 @@ import { createHash, randomUUID } from 'crypto';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { HttpApiError } from '~/utils/httpApiError';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import { toQuantityAsset } from '../shared/quantity.util';
 import {
   calcCostAmount,
@@ -20,10 +19,7 @@ import {
   proRataByMoney,
   proRataByQuantity,
 } from '../shared/cost.util';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -66,8 +62,8 @@ import {
   type MarketplaceReturnClaimPhoto,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
+import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -191,10 +187,10 @@ export class MarketplaceReturnClaimService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceReturnClaimService.name);
   }
@@ -234,7 +230,7 @@ export class MarketplaceReturnClaimService {
     order_id: string;
     actual_quantity?: number;
     reason_text?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const quantity = this.resolveActualQuantity(order, input.actual_quantity);
     return this.generateStatementDocument({
@@ -255,7 +251,7 @@ export class MarketplaceReturnClaimService {
   async getChairmanReturnSignablePayload(
     coopname: string,
     claim_id: string
-  ): Promise<DocumentDomainAggregate> {
+  ): Promise<InnerDocumentAggregate> {
     const claim = await this.findById(coopname, claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
       throw new ConflictException(
@@ -267,7 +263,7 @@ export class MarketplaceReturnClaimService {
         `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
       );
     }
-    const aggregate = await this.documentDomainService.buildDocumentAggregate(claim.statement);
+    const aggregate = await this.documentPort.buildAggregate(claim.statement);
     if (!aggregate) {
       throw new ConflictException(
         `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
@@ -384,7 +380,7 @@ export class MarketplaceReturnClaimService {
       fact_cost,
       fee_refund,
       photos,
-      statement: input.signed_statement as ISignedDocumentDomainInterface,
+      statement: input.signed_statement as ISignedDocument,
       submretrn_tx_hash: txHash,
       status: MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW,
     });
@@ -913,7 +909,7 @@ export class MarketplaceReturnClaimService {
     orderer: string;
     actual_quantity: number;
     reason_text?: string;
-  }): Promise<DocumentDomainEntity> {
+  }): Promise<InnerGeneratedDocument> {
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
     // Артикул/наименование/единица/цена — из заказа и его оферты, не из
     // заглушки фабрики (см. review 2026-07-27: заглушка возвращала одни и те
@@ -948,7 +944,7 @@ export class MarketplaceReturnClaimService {
       // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
       skip_save: false,
     };
-    return this.documentDomainService.generateDocument({ data: action });
+    return this.documentPort.generate({ data: action });
   }
 
   private async uploadPhotos(input: {
@@ -997,7 +993,7 @@ export class MarketplaceReturnClaimService {
     });
   }
 
-  private verifySignatures(document: ISignedDocumentDomainInterface): void {
+  private verifySignatures(document: ISignedDocument): void {
     if (!document.signatures || document.signatures.length === 0) {
       throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
     }

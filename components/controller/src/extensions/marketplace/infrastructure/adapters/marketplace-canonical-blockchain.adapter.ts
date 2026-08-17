@@ -1,14 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
-import type { TransactResult } from '@wharfkit/session';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import {
-  VaultDomainService,
-  VAULT_DOMAIN_SERVICE,
-} from '~/domain/vault/services/vault-domain.service';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort,
+  CHAIN_PORT,
+  type IChainPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: canonical-adapter для marketplace процессов. Параллелен
@@ -16,17 +15,17 @@ import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/mark
  * отдельном refactor-PR после PR #385 — на Story 4.1 не трогаем).
  *
  * Подпись tx — ключ кооператива (`require_auth(coopname)` в C++); ключ
- * берётся из VaultDomainService по `data.coopname`.
+ * берётся из IVaultPort по `data.coopname`.
  */
 @Injectable()
 export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonicalBlockchainPort {
   constructor(
-    private readonly blockchainService: BlockchainService,
-    @Inject(VAULT_DOMAIN_SERVICE)
-    private readonly vaultDomainService: VaultDomainService
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort,
+    @Inject(VAULT_PORT)
+    private readonly vaultDomainService: IVaultPort
   ) {}
 
-  async createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult> {
+  async createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit createorder');
@@ -47,7 +46,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<TransactResult> {
+  async stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit stockorder');
@@ -68,7 +67,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<TransactResult> {
+  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit convert');
@@ -89,7 +88,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<TransactResult> {
+  async markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit markdown');
@@ -110,7 +109,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<TransactResult> {
+  async expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit expireorder');
@@ -131,7 +130,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<TransactResult> {
+  async closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit closeorder');
@@ -152,7 +151,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<TransactResult> {
+  async cancelOrder(data: MarketContract.Actions.CancelOrder.ICancelOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit cancelorder');
@@ -173,7 +172,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<TransactResult> {
+  async acceptOrder(data: MarketContract.Actions.AcceptOrder.IAcceptOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit acceptorder');
@@ -194,7 +193,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<TransactResult> {
+  async declineOrder(data: MarketContract.Actions.DeclineOrder.IDeclineOrder): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit declineorder');
@@ -215,7 +214,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<TransactResult> {
+  async signSupp(data: MarketContract.Actions.SignSupp.ISignSupp): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit signsupp');
@@ -236,7 +235,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<TransactResult> {
+  async signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit signchair');
@@ -257,7 +256,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<TransactResult> {
+  async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -281,7 +280,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<TransactResult> {
+  async signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -305,7 +304,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<TransactResult> {
+  async signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -329,7 +328,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<TransactResult> {
+  async submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -346,7 +345,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<TransactResult> {
+  async aprRetRem(data: MarketContract.Actions.AprRetRem.IAprRetRem): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -363,7 +362,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<TransactResult> {
+  async rejRetRem(data: MarketContract.Actions.RejRetRem.IRejRetRem): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -380,7 +379,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<TransactResult> {
+  async accRetrn(data: MarketContract.Actions.AccRetrn.IAccRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -397,7 +396,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<TransactResult> {
+  async rejRetrn(data: MarketContract.Actions.RejRetrn.IRejRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -416,7 +415,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   // ── Эпик 8 / p.mkt.wroff ───────────────────────────────────────────
 
-  async propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<TransactResult> {
+  async propWroff(data: MarketContract.Actions.PropWroff.IPropWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -433,7 +432,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult> {
+  async execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -450,7 +449,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<TransactResult> {
+  async confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -474,9 +473,10 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     coopname: string,
     account: string,
     name: string,
-    data: unknown,
+    // Поля действия: их состав задаёт ABI контракта, поэтому форма открытая.
+    data: Record<string, any>,
     actionLabel: string
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) {
       throw new HttpApiError(
@@ -493,7 +493,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<TransactResult> {
+  async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       MarketContract.contractName.production,
@@ -503,7 +503,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<TransactResult> {
+  async distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,
@@ -513,7 +513,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<TransactResult> {
+  async setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,
@@ -523,7 +523,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<TransactResult> {
+  async delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,
@@ -533,7 +533,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<TransactResult> {
+  async convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,
@@ -543,7 +543,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<TransactResult> {
+  async createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,
@@ -555,7 +555,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   async createBranchExpense(
     data: BranchContract.Actions.CreateExp.ICreateexp
-  ): Promise<TransactResult> {
+  ): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
       BranchContract.contractName.production,

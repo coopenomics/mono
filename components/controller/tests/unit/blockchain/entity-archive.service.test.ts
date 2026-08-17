@@ -11,26 +11,41 @@
  * - archive-методы НЕ задействуют entityVersionRepository.saveVersion (не путать с saveVersionBeforeUpdate).
  */
 
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
-import { InvalidatedEntityTypeormEntity } from '~/shared/sync/entities/invalidated-entity.typeorm-entity';
-import { InvalidatedEntityVersionTypeormEntity } from '~/shared/sync/entities/invalidated-entity-version.typeorm-entity';
-import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
+import { EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { InvalidatedEntityTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { InvalidatedEntityVersionTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { EntityVersionTypeormEntity } from '@coopenomics/extension-kit/sync';
 
+/**
+ * Репозиторий отвечает fluent-цепочкой query builder'а: условие «block_num > N»
+ * сервис собирает именно так, а не операторами `MoreThan` — из typeorm в пакете
+ * берутся только типы, иначе второй экземпляр модуля ломает `instanceof
+ * FindOperator`. Хвосты цепочки (`getMany`, `execute`) остаются настраиваемыми.
+ */
 interface MockRepo {
-  find: jest.Mock;
+  createQueryBuilder: jest.Mock;
+  where: jest.Mock;
+  andWhere: jest.Mock;
   delete: jest.Mock;
+  from: jest.Mock;
+  whereInIds: jest.Mock;
+  getMany: jest.Mock;
+  execute: jest.Mock;
   save: jest.Mock;
   create: jest.Mock;
-  createQueryBuilder?: jest.Mock;
 }
 
 function makeMockRepo(): MockRepo {
-  return {
-    find: jest.fn(),
-    delete: jest.fn(async () => ({ affected: 0 })),
+  const repo: Partial<MockRepo> = {
+    getMany: jest.fn(async () => []),
+    execute: jest.fn(async () => ({ affected: 0 })),
     save: jest.fn(async (x) => x),
     create: jest.fn((x) => x),
   };
+  for (const link of ['createQueryBuilder', 'where', 'andWhere', 'delete', 'from', 'whereInIds'] as const) {
+    repo[link] = jest.fn(() => repo as MockRepo);
+  }
+  return repo as MockRepo;
 }
 
 function makeMockDataSource(repoMap: Map<any, MockRepo>): any {
@@ -48,6 +63,15 @@ function makeMockDataSource(repoMap: Map<any, MockRepo>): any {
   };
 }
 
+/**
+ * Соединение сервис берёт у репозитория версий, а не инъекцией `@InjectDataSource()`:
+ * у пакета и контроллера разные экземпляры `@nestjs/typeorm`, и токен источника
+ * данных не совпал бы. Поэтому в тесте DataSource приезжает первым аргументом.
+ */
+function makeService(dataSource: any): any {
+  return new EntityVersioningService({ dataSource } as any, {} as any, {} as any);
+}
+
 describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', () => {
   it('SELECT block_num > N → INSERT в архив → DELETE из исходной таблицы; count = найденные ряды', async () => {
     const liveTarget = class FakeProject {};
@@ -58,7 +82,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
       { _id: 'p1', block_num: 200, name: 'A' },
       { _id: 'p2', block_num: 201, name: 'B' },
     ];
-    liveRepo.find.mockResolvedValueOnce(rows);
+    liveRepo.getMany.mockResolvedValueOnce(rows);
 
     const liveRepoOuter = { target: liveTarget } as any;
     const dataSource = makeMockDataSource(
@@ -68,12 +92,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
       ])
     );
 
-    const service = new EntityVersioningService(
-      {} as any,
-      {} as any,
-      {} as any,
-      dataSource
-    );
+    const service = makeService(dataSource);
 
     const count = await service.archiveAndDeleteLiveAfterFork(
       liveRepoOuter,
@@ -83,7 +102,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
     );
 
     expect(count).toBe(2);
-    expect(liveRepo.find).toHaveBeenCalledTimes(1);
+    expect(liveRepo.getMany).toHaveBeenCalledTimes(1);
     expect(archiveRepo.save).toHaveBeenCalledTimes(1);
     const archived = archiveRepo.save.mock.calls[0][0];
     expect(archived).toHaveLength(2);
@@ -95,6 +114,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
     });
     expect(archived[0].data).toMatchObject({ name: 'A', block_num: 200 });
     expect(liveRepo.delete).toHaveBeenCalledTimes(1);
+    expect(liveRepo.execute).toHaveBeenCalledTimes(1);
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -102,7 +122,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
     const liveTarget = class FakeProject {};
     const liveRepo: MockRepo = makeMockRepo();
     const archiveRepo: MockRepo = makeMockRepo();
-    liveRepo.find.mockResolvedValueOnce([]);
+    liveRepo.getMany.mockResolvedValueOnce([]);
 
     const dataSource = makeMockDataSource(
       new Map<any, MockRepo>([
@@ -111,7 +131,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
       ])
     );
 
-    const service = new EntityVersioningService({} as any, {} as any, {} as any, dataSource);
+    const service = makeService(dataSource);
 
     const count = await service.archiveAndDeleteLiveAfterFork(
       { target: liveTarget } as any,
@@ -129,7 +149,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
     const liveTarget = class FakeProject {};
     const liveRepo: MockRepo = makeMockRepo();
     const archiveRepo: MockRepo = makeMockRepo();
-    liveRepo.find.mockResolvedValueOnce([{ _id: 'p1', block_num: 200 }]);
+    liveRepo.getMany.mockResolvedValueOnce([{ _id: 'p1', block_num: 200 }]);
 
     const dataSource = makeMockDataSource(
       new Map<any, MockRepo>([
@@ -138,7 +158,7 @@ describe('EntityVersioningService.archiveAndDeleteLiveAfterFork (Story 4.4)', ()
       ])
     );
 
-    const service = new EntityVersioningService({} as any, {} as any, {} as any, dataSource);
+    const service = makeService(dataSource);
 
     await service.archiveAndDeleteLiveAfterFork({ target: liveTarget } as any, 'capital_projects', 100);
 
@@ -190,7 +210,7 @@ describe('EntityVersioningService.archiveAndDeleteVersionsAfterFork (Story 4.4)'
       ])
     );
 
-    const service = new EntityVersioningService({} as any, {} as any, {} as any, dataSource);
+    const service = makeService(dataSource);
 
     const count = await service.archiveAndDeleteVersionsAfterFork(
       'capital_projects',
@@ -233,7 +253,7 @@ describe('EntityVersioningService.archiveAndDeleteVersionsAfterFork (Story 4.4)'
       ])
     );
 
-    const service = new EntityVersioningService({} as any, {} as any, {} as any, dataSource);
+    const service = makeService(dataSource);
 
     const count = await service.archiveAndDeleteVersionsAfterFork('capital_projects', 100, null);
 

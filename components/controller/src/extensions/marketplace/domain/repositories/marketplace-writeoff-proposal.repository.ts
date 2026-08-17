@@ -1,4 +1,4 @@
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { MarketplaceWriteoffProposalDomainEntity } from '../entities/marketplace-writeoff-proposal.entity';
 import type {
   MarketplaceWriteoffProposalDecisionEntry,

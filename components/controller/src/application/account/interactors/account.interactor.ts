@@ -2,7 +2,6 @@ import { AccountDomainEntity } from '~/domain/account/entities/account-domain.en
 import config from '~/config/config';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { Inject, Injectable, Logger, HttpStatus } from '@nestjs/common';
-import { HttpApiError } from '~/utils/httpApiError';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
@@ -45,6 +44,7 @@ import type {
   SearchPrivateAccountsInputDomainInterface,
   PrivateAccountSearchResultDomainInterface,
 } from '~/domain/common/interfaces/search-private-accounts-domain.interface';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountInteractor {

@@ -1,5 +1,5 @@
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { AgreementId } from '../enum/agreement-id.enum';
 import { DocumentType } from '../enum/document-type.enum';
 import { isLegacyExtensionOfferAgreementId } from '../constants/legacy-extension-offer-ids';
@@ -23,7 +23,7 @@ export function isGenericProgramAgreementId(agreementId: string): boolean {
 export function getCandidateAgreementDocument(
   candidate: CandidateDomainInterface,
   agreementId: string
-): ISignedDocumentDomainInterface | undefined {
+): ISignedDocument | undefined {
   if (agreementId === DocumentType.STATEMENT) {
     return candidate.documents?.statement;
   }

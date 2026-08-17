@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import type { NotifyResult } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type { WorkflowActorDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { ACCOUNT_DOMAIN_SERVICE, AccountDomainService } from '~/domain/account/services/account-domain.service';
 import config from '~/config/config';
+import type { InnerNotifyResult } from '@coopenomics/innercoop';
+import { NotificationService as NotificationCenterService } from '~/application/notification-center/notification.service';
 
 /**
  * Сервис отправки уведомлений пользователям через Центр уведомлений (DC v3).
@@ -16,8 +16,11 @@ export class NotificationSenderService {
   private readonly logger = new Logger(NotificationSenderService.name);
 
   constructor(
-    @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    // Центр уведомлений зовётся напрямую, а не через `NOTIFICATION_PORT`.
+    // Порт для расширений реализует `NotificationInnercoopAdapter`, и он же
+    // зависит от этого сервиса: инъекция порта здесь замкнула бы граф
+    // провайдеров в кольцо, на котором Nest не падает, а молча висит.
+    private readonly notificationCenter: NotificationCenterService,
     @Inject(ACCOUNT_DOMAIN_SERVICE)
     private readonly accountDomainService: AccountDomainService
   ) {}
@@ -34,7 +37,7 @@ export class NotificationSenderService {
     workflowName: string,
     payload: T,
     actor?: WorkflowActorDomainInterface
-  ): Promise<NotifyResult> {
+  ): Promise<InnerNotifyResult> {
     this.logger.log(`Отправка уведомления пользователю: ${username}, тип: ${workflowName}`);
 
     const account = await this.accountDomainService.getAccount(username);
@@ -43,7 +46,7 @@ export class NotificationSenderService {
       throw new Error(`Не удалось сформировать получателя для ${username}: нет subscriber_id в профиле`);
     }
 
-    return this.notificationPort.notify({
+    return this.notificationCenter.notify({
       coopname: config.coopname,
       workflowId: workflowName,
       to: {
