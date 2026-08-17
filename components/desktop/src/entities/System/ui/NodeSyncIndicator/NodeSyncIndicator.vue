@@ -49,24 +49,27 @@ span.node-sync-indicator(v-if='tone', :class='`node-sync-indicator--${tone}`')
 </template>
 
 <style scoped>
+/* Кольцо, а не залитая точка: индикатор стоит у версии и виден с любого стола,
+   поэтому не должен тянуть взгляд на себя — заливка читается как тревога. */
 .node-sync-indicator {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex: 0 0 auto;
-  background: var(--p-line);
+  background: transparent;
+  border: 1.5px solid var(--p-line);
 }
 
 .node-sync-indicator--ok {
-  background: var(--p-pos);
+  border-color: var(--p-pos);
 }
 
 .node-sync-indicator--lagging {
-  background: var(--p-warn);
+  border-color: var(--p-warn);
 }
 
 .node-sync-indicator--offline {
-  background: var(--p-neg);
+  border-color: var(--p-neg);
 }
 </style>
