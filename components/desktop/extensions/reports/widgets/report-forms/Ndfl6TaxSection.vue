@@ -1,8 +1,7 @@
 <template lang="pug">
 .ndfl6-tax(v-if='editsValue')
-  .editor-section
-    h3.section-title Удержанный налог
-    .ndfl6-tax__hint
+  BaseCard(title='Удержанный налог')
+    p.ndfl6-tax__hint
       | Суммы посчитаны по удержаниям из материальной помощи. Итоги — нарастающим
       | итогом с начала года, разбивка по срокам — за последний квартал отчётного
       | периода. Правьте, только если выплата прошла мимо платформы.
@@ -57,9 +56,8 @@
         @update:model-value='v => update("tax.withheldTotal", toInt(v))'
       )
 
-  .editor-section
-    h3.section-title Сроки перечисления
-    .ndfl6-tax__hint
+  BaseCard(title='Сроки перечисления')
+    p.ndfl6-tax__hint
       | Шесть сроков последнего квартала: с 1-го по 22-е и с 23-го по последнее
       | число каждого месяца.
 
@@ -78,9 +76,8 @@
       span Сумма по срокам: {{ termsSum }} ₽
       span(v-if='termsMismatch') Больше удержанного за год — проверьте разбивку
 
-  .editor-section(v-if='isAnnual')
-    h3.section-title Справки о доходах
-    .ndfl6-tax__hint
+  BaseCard(v-if='isAnnual', title='Справки о доходах')
+    p.ndfl6-tax__hint
       | Приложение № 1 — по одной справке на получателя, сдаётся раз в год.
       | ИНН физического лица не требуется: при его отсутствии у налогового
       | агента поле не заполняется.
@@ -141,7 +138,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import { BaseInput, BaseBadge, EmptyState } from 'src/shared/ui/base'
+import { BaseCard, BaseInput, BaseBadge, EmptyState } from 'src/shared/ui/base'
 import { AmountInput } from 'src/shared/ui/domain'
 import type { Ndfl6Edits, Ndfl6Certificate } from './ndfl6-edits'
 
@@ -241,6 +238,7 @@ function update(path: string, value: number | string): void {
   gap: var(--p-5, 20px);
 
   &__hint {
+    margin: 0 0 var(--p-3, 12px);
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
     line-height: var(--p-lh-body-sm, 1.5);

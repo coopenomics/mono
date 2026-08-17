@@ -1,33 +1,27 @@
 <template lang="pug">
-.uv-ndfl(v-if='editsValue')
-  .editor-section
-    h3.section-title Налог к перечислению
+BaseCard.uv-ndfl(v-if='editsValue', title='Налог к перечислению')
+  .uv-ndfl__period
+    span.uv-ndfl__period-label Расчётный период
+    span.uv-ndfl__period-value {{ periodTitle }}
 
-    .uv-ndfl__period
-      span.uv-ndfl__period-label Расчётный период
-      span.uv-ndfl__period-value {{ periodTitle }}
+  p.uv-ndfl__hint
+    | Сумма посчитана по налогу, удержанному из материальной помощи за этот
+    | период. Уведомление подаётся только за периоды с удержаниями — если
+    | выплат не было, подавать нечего.
 
-    .uv-ndfl__hint
-      | Сумма посчитана по налогу, удержанному из материальной помощи за этот
-      | период. Уведомление подаётся только за периоды с удержаниями — если
-      | выплат не было, подавать нечего.
-
-    BaseInput(
-      label='Сумма налога, ₽'
-      type='number'
-      :model-value='editsValue.payment.amount'
-      :error='msgFor("payment.amount")'
-      @update:model-value='v => update(toInt(v))'
-    )
-
-    BaseBanner(v-if='editsValue.payment.amount === 0', variant='info')
-      | За этот период удержаний не было. Уведомление с нулевой суммой не
-      | подаётся — выберите период, в котором была выплата.
+  BaseInput(
+    label='Сумма налога, ₽'
+    type='number'
+    :model-value='editsValue.payment.amount'
+    :error='msgFor("payment.amount")'
+    :hint='editsValue.payment.amount === 0 ? "За этот период удержаний не было — выберите период, в котором была выплата" : ""'
+    @update:model-value='v => update(toInt(v))'
+  )
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import { BaseInput, BaseBanner } from 'src/shared/ui/base'
+import { BaseCard, BaseInput } from 'src/shared/ui/base'
 import { uvNdflPeriodTitle } from './uv-ndfl-edits'
 import type { UvNdflEdits } from './uv-ndfl-edits'
 
@@ -93,10 +87,10 @@ function update(amount: number): void {
   }
 
   &__hint {
+    margin: 0 0 var(--p-3, 12px);
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
     line-height: var(--p-lh-body-sm, 1.5);
-    margin-bottom: var(--p-3, 12px);
   }
 }
 </style>

@@ -38,7 +38,7 @@
     h3.section-title Организация
     .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
-    q-input(
+    q-input.org-name(
       label='Наименование организации'
       :model-value='editsValue.organization.orgName'
       readonly disable
@@ -219,6 +219,7 @@ const headerTitle = computed(() => {
     DUSN: 'Декларация УСН (КНД 1152017)',
     UUSN: 'Уведомление об исчисленных суммах УСН (КНД 1110355)',
     UV_VZNOSY: 'Уведомление об исчисленных взносах (КНД 1110355)',
+    UV_NDFL: 'Уведомление об исчисленном НДФЛ (КНД 1110355)',
   }
   return titles[props.reportType] ?? props.reportType
 })
@@ -311,17 +312,23 @@ function clampInt(v: unknown, min: number, max: number): number {
 }
 
 .editor-section {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 16px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-4, 16px);
 }
 
 .section-title {
-  margin: 0 0 12px;
-  font-size: 14px;
+  margin: 0 0 var(--p-3, 12px);
+  font-size: var(--p-fs-h3, 15px);
   font-weight: 600;
-  color: #222;
+  color: var(--p-ink);
+}
+
+// Наименование организации — отдельная строка над сеткой ИНН/КПП/ОКТМО:
+// без этого отступа поля слипаются в один блок и читаются как одна группа.
+.org-name {
+  margin-bottom: var(--p-3, 12px);
 }
 
 .fields-grid {
