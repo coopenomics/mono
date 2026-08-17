@@ -2353,6 +2353,8 @@ export const AllTypesProps: Record<string,any> = {
 			input:"WalmoveInput"
 		}
 	},
+	NodeSyncOutage: "enum" as const,
+	NodeSyncStatus: "enum" as const,
 	NonProjectRoomKind: "enum" as const,
 	NotificationChannel: "enum" as const,
 	NotificationDeliveryStatus: "enum" as const,
@@ -6737,6 +6739,16 @@ export const ReturnTypes: Record<string,any> = {
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
 	},
+	NodeSyncState:{
+		catch_up_blocks_per_second:"Float",
+		current_block_num:"Int",
+		cursor_updated_at:"String",
+		estimated_seconds_remaining:"Int",
+		head_block_num:"Int",
+		lag_blocks:"Int",
+		outage:"NodeSyncOutage",
+		status:"NodeSyncStatus"
+	},
 	Notification:{
 		attempts:"Int",
 		channel:"NotificationChannel",
@@ -7363,6 +7375,7 @@ export const ReturnTypes: Record<string,any> = {
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
 		getMyProductCards:"ProductCard",
+		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
 		getPaymentMethods:"PaymentMethodPaginationResult",
@@ -7716,7 +7729,8 @@ export const ReturnTypes: Record<string,any> = {
 		documentAggregate:"DocumentAggregate"
 	},
 	Subscription:{
-		marketplaceEvents:"MarketplaceEvent"
+		marketplaceEvents:"MarketplaceEvent",
+		nodeSyncState:"NodeSyncState"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",

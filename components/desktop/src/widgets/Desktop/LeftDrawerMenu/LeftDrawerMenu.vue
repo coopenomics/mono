@@ -33,7 +33,9 @@
         @primary-action='onDeposit',
         @signout='onLogout'
       )
-      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`') v{{ updateWatch.currentVersion }}
+      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`')
+        NodeSyncIndicator
+        span v{{ updateWatch.currentVersion }}
 
   //- Невидимые носители canon-диалогов: рендерятся в q-portal,
   //- открываются глобальными ref'ами через useDepositDialog().open() /
@@ -51,6 +53,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
+import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
@@ -300,8 +303,13 @@ async function onLogout(): Promise<void> {
 :deep(.rail__signout) {
   padding-bottom: var(--p-1, 4px);
 }
-/* Версия приложения — приглушённая подпись под карточкой пользователя. */
+/* Версия приложения — приглушённая подпись под карточкой пользователя.
+   Рядом с ней кружок состояния узла: место видно с любого стола. */
 .left-drawer-menu__version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-1, 4px);
   text-align: center;
   padding: 0 var(--p-2, 8px) var(--p-1, 4px);
   font-size: 10px;

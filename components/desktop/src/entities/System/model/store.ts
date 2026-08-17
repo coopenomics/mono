@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, Ref, triggerRef, computed, ComputedRef } from 'vue';
 import { api } from '../api';
-import type { ISystemInfo } from '../types';
+import type { INodeSyncState, ISystemInfo } from '../types';
 import { Zeus } from '@coopenomics/sdk';
 
 const namespace = 'systemStore';
@@ -15,7 +15,9 @@ interface ISystemStore {
   info: Ref<ISystemInfo>;
   backendAvailable: Ref<boolean>;
   maintenanceCounter: Ref<number>;
+  syncState: Ref<INodeSyncState | null>;
   loadSystemInfo: () => Promise<void>;
+  loadNodeSyncState: () => Promise<void>;
   startSystemMonitoring: () => void;
   stopSystemMonitoring: () => void;
   cooperativeDisplayName: ComputedRef<string>;
@@ -31,6 +33,9 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
   } as ISystemInfo);
   const backendAvailable = ref<boolean>(true);
   const maintenanceCounter = ref<number>(0); // Счетчик для принудительного обновления
+  // null — состояние узла ещё не известно. Заглушку по нему не показываем:
+  // иначе рабочий стол моргал бы ей на каждой холодной загрузке.
+  const syncState = ref<INodeSyncState | null>(null);
 
   let monitoringTimeout: ReturnType<typeof setTimeout> | null = null;
   let isLoading = false; // Защита от конкурентных запросов
@@ -73,6 +78,25 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     }
   };
 
+  /**
+   * Дочитка состояния узла. Основной канал — подписка; запрос нужен на первую
+   * отрисовку и как страховка, когда сокет оборван. Недоступный узел — это и
+   * есть «связи нет», поэтому ошибка запроса не глотается, а становится
+   * состоянием.
+   */
+  const loadNodeSyncState = async () => {
+    try {
+      syncState.value = await api.loadNodeSyncState();
+    } catch (error) {
+      console.warn('Не удалось получить состояние синхронизации узла:', error);
+      syncState.value = {
+        ...(syncState.value ?? {}),
+        status: Zeus.NodeSyncStatus.DISCONNECTED,
+        outage: Zeus.NodeSyncOutage.NODE,
+      } as INodeSyncState;
+    }
+  };
+
   const scheduleNextCheck = () => {
     // КРИТИЧНО: Не запускаем мониторинг на сервере (SSR)
     // В SSR setInterval/setTimeout создают утечки памяти и накапливают запросы
@@ -92,6 +116,10 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
         info.value.system_status = Zeus.SystemStatus.maintenance;
         maintenanceCounter.value++; // Увеличиваем счетчик для триггера watch
       }
+
+      // Страховка на случай оборванной подписки: состояние узла обязано
+      // обновляться, даже когда ws молчит.
+      await loadNodeSyncState();
 
       // Планируем следующую проверку с учетом возможного backoff
       scheduleNextCheck();
@@ -149,7 +177,9 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     info,
     backendAvailable,
     maintenanceCounter,
+    syncState,
     loadSystemInfo,
+    loadNodeSyncState,
     startSystemMonitoring,
     stopSystemMonitoring,
     cooperativeDisplayName,

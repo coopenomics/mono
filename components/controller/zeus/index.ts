@@ -11912,6 +11912,31 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on Mutation']?: Omit<ValueTypes["Mutation"], "...on Mutation">
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on NodeSyncState']?: Omit<ValueTypes["NodeSyncState"], "...on NodeSyncState">
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -13409,6 +13434,8 @@ getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueType
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ValueTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи */
+	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
@@ -14676,6 +14703,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ValueTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`,
 	['...on Subscription']?: Omit<ValueTypes["Subscription"], "...on Subscription">
 }>;
@@ -25928,6 +25957,30 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -27361,6 +27414,8 @@ getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetA
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
 	/** Мои карточки */
 	getMyProductCards?:ResolverInputTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи */
+	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
@@ -28598,6 +28653,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ResolverInputTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`
 }>;
 	["SubscriptionStatsDto"]: AliasType<{
@@ -40223,6 +40280,27 @@ export type ModelTypes = {
 Требуемые роли: chairman.  */
 	walmoveWallets: ModelTypes["Ledger2AdjustmentResult"]
 };
+	["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+		/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: ModelTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: ModelTypes["NodeSyncStatus"]
+};
+	["NodeSyncStatus"]:NodeSyncStatus;
 	["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: {
 		/** Сделано попыток */
@@ -41775,6 +41853,8 @@ export type ModelTypes = {
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<ModelTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи */
+	getNodeSyncState: ModelTypes["NodeSyncState"],
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -43132,7 +43212,9 @@ export type ModelTypes = {
 };
 	["Subscription"]: {
 		/** Поток событий пайщика в Столе заказов: личные и каталог. */
-	marketplaceEvents: ModelTypes["MarketplaceEvent"]
+	marketplaceEvents: ModelTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: ModelTypes["NodeSyncState"]
 };
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
@@ -55354,6 +55436,31 @@ export type GraphQLTypes = {
 	walmoveWallets: GraphQLTypes["Ledger2AdjustmentResult"],
 	['...on Mutation']: Omit<GraphQLTypes["Mutation"], "...on Mutation">
 };
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]: NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+	__typename: "NodeSyncState",
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: GraphQLTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: GraphQLTypes["NodeSyncStatus"],
+	['...on NodeSyncState']: Omit<GraphQLTypes["NodeSyncState"], "...on NodeSyncState">
+};
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]: NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]: NonProjectRoomKind;
 	["Notification"]: {
@@ -57060,6 +57167,8 @@ export type GraphQLTypes = {
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
 	/** Мои карточки */
 	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи */
+	getNodeSyncState: GraphQLTypes["NodeSyncState"],
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -58488,6 +58597,8 @@ export type GraphQLTypes = {
 	__typename: "Subscription",
 	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: GraphQLTypes["NodeSyncState"],
 	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
 };
 	["SubscriptionStatsDto"]: {
@@ -59727,6 +59838,18 @@ export enum MetricStatus {
 	ACTIVE = "ACTIVE",
 	ARCHIVED = "ARCHIVED"
 }
+/** Причина отсутствия связи с цепью */
+export enum NodeSyncOutage {
+	CHAIN = "CHAIN",
+	NODE = "NODE",
+	READER = "READER"
+}
+/** Состояние синхронизации узла кооператива с цепью */
+export enum NodeSyncStatus {
+	DISCONNECTED = "DISCONNECTED",
+	LAGGING = "LAGGING",
+	SYNCED = "SYNCED"
+}
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
 	COUNCIL = "COUNCIL",
@@ -60460,6 +60583,8 @@ type ZEUS_VARIABLES = {
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
+	["NodeSyncOutage"]: ValueTypes["NodeSyncOutage"];
+	["NodeSyncStatus"]: ValueTypes["NodeSyncStatus"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationChannel"]: ValueTypes["NotificationChannel"];
 	["NotificationDeliveryStatus"]: ValueTypes["NotificationDeliveryStatus"];

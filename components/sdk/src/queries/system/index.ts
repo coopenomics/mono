@@ -4,6 +4,9 @@ export * as GetCurrentInstance from './getCurrentInstance'
 /** Получить статус установки кооператива с приватными данными */
 export * as GetInstallationStatus from './getInstallationStatus'
 
+/** Насколько узел кооператива отстал от цепи */
+export * as GetNodeSyncState from './getNodeSyncState'
+
 /** Получить подписки пользователя у провайдера */
 export * as GetProviderSubscriptions from './getProviderSubscriptions'
 
