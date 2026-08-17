@@ -1,5 +1,5 @@
 import { registerRealtimeSubscription } from 'src/shared/lib/realtime';
-import { createNodeSyncSubscription } from 'src/entities/System/model';
+import { createNodeSyncSubscription } from 'src/entities/System/model/nodeSyncSubscription';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ realtime-подписок в универсальный канал ядра.

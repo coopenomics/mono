@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { useSystemStore } from '../../model';
+// Напрямую из store, а не через бочку модели: индикатору незачем тянуть за
+// собой ws-подписку со всем её транспортом.
+import { useSystemStore } from '../../model/store';
 
 /**
  * Кружок состояния узла рядом с версией: зелёный — узел у головы цепи,

@@ -3,6 +3,9 @@ import { client } from 'src/shared/api/client';
 import type { RealtimeSubscription } from 'src/shared/lib/realtime';
 import { useSystemStore } from './store';
 
+// Модуль намеренно не попадает в бочку `model`: её импортируют повсеместно, а
+// ws-транспорт нужен ровно одному месту — регистрации подписок ядра.
+
 /**
  * Подписка ядра на ход догона цепи узлом кооператива.
  *
