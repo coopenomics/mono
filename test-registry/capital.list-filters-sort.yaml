@@ -181,3 +181,7 @@ cases:
     expect: чужие задачи не попадают в выборку и не считаются в totalCount
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
     status: written
+
+# 2026-08-18: в ComponentListRow исправлено имя события перехода к родительскому
+# проекту (emit "openParent" вместо kebab-написания) — vue-tsc отвергал вызов.
+# Поведение строки прежнее, случаи не менялись.

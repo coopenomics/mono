@@ -38,8 +38,8 @@
         v-if='parentLabel',
         role='link',
         tabindex='0',
-        @click.stop='emit("open-parent")',
-        @keydown.enter.prevent='emit("open-parent")'
+        @click.stop='emit("openParent")',
+        @keydown.enter.prevent='emit("openParent")'
       ) {{ parentLabel }}
 
   // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —

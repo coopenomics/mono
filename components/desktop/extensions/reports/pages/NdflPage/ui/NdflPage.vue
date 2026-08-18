@@ -212,7 +212,8 @@ function formatAmount(asset?: string | null): string {
   return formatAsset2Digits(asset);
 }
 
-function formatDateTime(value?: string | Date | null): string {
+// Даты приходят скаляром DateTime — в типах SDK это unknown, нормализуем здесь
+function formatDateTime(value?: unknown): string {
   if (!value) return '—';
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
