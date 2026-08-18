@@ -11,6 +11,7 @@ router-view(v-if='!isWorkshopRoot')
     :key='projectsListKey',
     :expanded='expanded',
     :statuses='projectStatuses',
+    :priorities='projectPriorities',
     :master='master',
     :sort-by='sort.sortBy',
     :sort-order='sort.sortOrder',
@@ -20,8 +21,9 @@ router-view(v-if='!isWorkshopRoot')
     @pagination-changed='handlePaginationChanged'
   )
     template(#project-content='{ project }')
+      //- Компоненты приходят вложенными без ORDER BY — сортируем тем же полем локально
       ComponentsListWidget(
-        :components='project.components',
+        :components='sortCapitalList(project.components, sort.sortBy, sort.sortOrder)',
         :project='project',
         :expanded='expandedComponents',
         @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
@@ -32,6 +34,8 @@ router-view(v-if='!isWorkshopRoot')
             :project-hash='component.project_hash',
             :can-manage-issues='!!component.permissions?.can_manage_issues',
             :compact='true',
+            :sort-by='sort.sortBy',
+            :sort-order='sort.sortOrder',
             @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
           )
 
@@ -45,7 +49,7 @@ import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Project/CreateProject';
 import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
-import { useListPreferences } from 'app/extensions/capital/shared/lib';
+import { useListPreferences, sortCapitalList } from 'app/extensions/capital/shared/lib';
 import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -79,6 +83,7 @@ const { filters, sort } = useListPreferences('projects');
 // Фильтруем сами проекты: задачи внутри дерева не отсеиваем, для них есть
 // отдельный раздел «Задачи» со своими фильтрами
 const projectStatuses = computed(() => filters.value.entityStatuses);
+const projectPriorities = computed(() => filters.value.entityPriorities);
 const master = computed(() => filters.value.master);
 
 const projectsListKey = ref(0);

@@ -27,6 +27,15 @@ title: Списки Благороста — раздел «Компоненты
 # добавлена звёздочка избранного (FavoriteStarButton) рядом со статусом.
 # Фильтры, сортировка и правила показа списков не менялись — случаи прежние.
 
+# Правка 2026-08-18 (приоритеты, capital.priorities): у проектов/компонентов
+# появилось офчейн-поле priority — во все три списка добавлены сортировка
+# «Приоритет» (whitelist пропускает колонку по метаданным entity — механизм
+# ORDER BY не менялся) и фильтр по приоритетам сущностей (entityPriorities →
+# filter.priorities, тем же IN-механизмом, что statuses). IssuesListWidget
+# получил проброс sortBy/sortOrder (раньше _created_at был захардкожен);
+# вложенные компоненты раскрытого проекта сортируются локально тем же полем
+# (shared/lib/listSort.ts). Права и инлайн-редактирование — в capital.priorities.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts

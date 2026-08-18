@@ -1,0 +1,88 @@
+feature: capital.priorities
+title: Приоритеты проектов, компонентов и задач — редактирование, права, сортировка
+
+# Приоритет проектов и компонентов хранится офчейн в capital_projects (enum
+# urgent/high/medium/low, default medium) и меняется мутацией
+# capitalSetProjectPriority; у задач приоритет существовал и раньше — задача
+# добавляет инлайн-редактирование из списков и расширяет права.
+#
+# Матрица прав (приоритет ставит «уровень выше», поэтому обычной матрицы
+# project-ролей недостаточно):
+# - приоритет проекта — только председатель;
+# - приоритет компонента — председатель или мастер родительского проекта
+#   (мастер самого компонента себе приоритет не ставит);
+# - приоритет задачи — председатель или мастер проекта/компонента задачи
+#   (личный LOCAL-проект: владелец).
+# Флаг can_set_priority в permissions проекта скрывает контролы на фронте,
+# сервер валидирует сам. Сортировка по priority идёт enum-порядком PG
+# (ASC = срочный первым), фильтр priorities — по значениям enum.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/domain/enums/project-priority.enum.ts
+    - components/controller/src/extensions/capital/application/dto/project_management/set-project-priority.input.dto.ts
+    - components/controller/src/extensions/capital/application/services/project-permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/issue-permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/project-management.service.ts
+  ui:
+    - components/desktop/extensions/capital/features/Project/SetPriority/**
+    - components/desktop/extensions/capital/features/Issue/UpdateIssue/ui/UpdatePriority/**
+    - components/desktop/extensions/capital/shared/ui/PriorityControl/**
+    - components/desktop/extensions/capital/shared/lib/issuePriority.ts
+    - components/desktop/extensions/capital/shared/lib/listSort.ts
+
+cases:
+  - id: cap.prio.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель ставит приоритет проекту и компоненту; мастер родительского проекта — компоненту
+    expect: canSetProjectPriority=true, мутация пишет приоритет по нормализованному (lowercase) хэшу
+    test: components/controller/tests/unit/capital/project-priority.test.ts
+    status: written
+
+  - id: cap.prio.break.01
+    level: backend
+    kind: break
+    scenario: приоритет верхнеуровневого проекта пытается менять его мастер или член совета; приоритет компонента — мастер самого компонента
+    expect: отказ — право есть только у председателя (проект) и мастера родителя (компонент)
+    test: components/controller/tests/unit/capital/project-priority.test.ts
+    status: written
+
+  - id: cap.prio.break.02
+    level: backend
+    kind: break
+    scenario: мутация capitalSetProjectPriority без права can_set_priority
+    expect: ошибка «Недостаточно прав», interactor.setPriority не вызывается
+    test: components/controller/tests/unit/capital/project-priority.test.ts
+    status: written
+
+  - id: cap.prio.side.01
+    level: backend
+    kind: side
+    scenario: приоритет задачи меняет председатель (не мастер) и мастер родительского проекта компонента задачи
+    expect: оба проходят валидацию; исполнитель задачи — отказ
+    test: components/controller/tests/unit/capital/project-priority.test.ts
+    status: written
+
+  - id: cap.prio.side.02
+    level: backend
+    kind: side
+    scenario: гость (без имени пользователя) запрашивает право на приоритет
+    expect: canSetProjectPriority=false
+    test: components/controller/tests/unit/capital/project-priority.test.ts
+    status: written
+
+  - id: cap.prio.ui.01
+    level: ui
+    kind: happy
+    scenario: клик по чипу приоритета в строке проекта/компонента и по иконке приоритета в строке задачи открывает меню, выбор мгновенно (оптимистично) меняет значение с русской подписью
+    expect: значение сохранено на бэкенде, чип/иконка и страница описания синхронны, без прав меню не открывается
+    status: missing
+
+  - id: cap.prio.ui.02
+    level: ui
+    kind: happy
+    scenario: сортировка «Приоритет» на страницах «Проекты» / «Компоненты» / «Задачи» и фильтр по приоритетам сущностей
+    expect: прямой порядок — срочные сверху (в т.ч. вложенные компоненты и задачи в дереве), обратный — наоборот; фильтр сужает список; настройки переживают перезагрузку
+    status: missing

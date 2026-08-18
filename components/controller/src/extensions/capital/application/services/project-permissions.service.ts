@@ -10,6 +10,7 @@ import {
   ProjectAction,
 } from '../../domain/services/access-policy.service';
 import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 // Реэкспортируем типы для обратной совместимости
 export { UserRole, IssueAction, ProjectUserRole, ProjectAction };
@@ -96,6 +97,34 @@ export class ProjectPermissionsService {
     }
 
     return roles;
+  }
+
+  /**
+   * Проверяет право устанавливать приоритет проекта/компонента.
+   *
+   * Приоритет расставляется «уровнем выше», поэтому матрица project-ролей его
+   * не выражает: у верхнеуровневого проекта приоритет ставит только председатель,
+   * у компонента — председатель или мастер родительского проекта (мастер самого
+   * компонента приоритет себе не ставит — как исполнитель задачи не ставит
+   * приоритет своей задаче).
+   */
+  async canSetProjectPriority(
+    username: string | undefined,
+    project: { parent_hash?: string | null },
+    userRole?: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
+  ): Promise<boolean> {
+    if (!username) return false;
+    if (userRole === 'chairman') return true;
+
+    const parentHash = (project.parent_hash || '').toLowerCase();
+    if (!parentHash || parentHash === EMPTY_HASH.toLowerCase()) {
+      return false;
+    }
+    const parent = await cache.once(PermissionsLookupCache.projectKey(parentHash), () =>
+      this.projectRepository.findByHash(parentHash)
+    );
+    return parent?.master === username;
   }
 
   /**

@@ -75,7 +75,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput, BaseSelect, BaseCheckbox } from 'src/shared/ui/base';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel, capitalRouteName, useFormDraft } from 'app/extensions/capital/shared/lib';
+import { getIssueStatusLabel, capitalRouteName, useFormDraft, ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
 import { useCreateIssue, useIssueTargets, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -111,12 +111,7 @@ const formData = ref({
   attachments: [] as string[],
 });
 
-const priorityOptions = [
-  { value: Zeus.IssuePriority.LOW, label: 'Низкий' },
-  { value: Zeus.IssuePriority.MEDIUM, label: 'Средний' },
-  { value: Zeus.IssuePriority.HIGH, label: 'Высокий' },
-  { value: Zeus.IssuePriority.URGENT, label: 'Срочный' },
-];
+const priorityOptions = ISSUE_PRIORITY_OPTIONS;
 
 const statusOptions = computed(() => [
   { value: Zeus.IssueStatus.BACKLOG, label: getIssueStatusLabel(Zeus.IssueStatus.BACKLOG) },

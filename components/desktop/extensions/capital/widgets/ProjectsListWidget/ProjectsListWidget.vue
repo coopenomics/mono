@@ -45,13 +45,9 @@
                   flat
                 )
 
-              // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+              // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
               .col-auto.row-status
-                q-icon(
-                  :name='getProjectStatusIcon(props.row.status)',
-                  :color='getProjectStatusDotColor(props.row.status)',
-                  size='xs'
-                )
+                ProjectPriorityChip(:project='props.row' variant='icon')
 
               // Избранное — рядом со статусом, до заголовка
               .col-auto.row-favorite
@@ -73,6 +69,8 @@
               .col-auto.row-cells
                 .cell-time
                 .cell-side
+                  // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
+                  ProjectStatusChip(:project='props.row')
                 .cell-actions
                   // Мастер — ответственный за проект (зеркально исполнителям задач)
                   SetMasterAvatar(:project='props.row')
@@ -104,9 +102,10 @@ import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { ProjectPriorityChip } from 'app/extensions/capital/features/Project/SetPriority';
+import { ProjectStatusChip } from 'app/extensions/capital/features/Project/UpdateProjectStatus';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { Zeus } from '@coopenomics/sdk';
-import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 

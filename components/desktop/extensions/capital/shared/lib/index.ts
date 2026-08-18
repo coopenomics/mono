@@ -21,3 +21,4 @@ export * from './composables/useCsvParser';
 export * from './mapCapitalLogToActivity';
 export * from './capitalWorkspaceRoutes';
 export * from './listPreferences';
+export * from './listSort';

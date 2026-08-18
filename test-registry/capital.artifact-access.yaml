@@ -26,6 +26,12 @@ title: Кто читает документы проекта и его пере�
 # ORDER BY как есть — оно сверяется с колонками сущности (capital.list-filters-sort).
 # Правила доступа и набор случаев не менялись.
 
+# Правка 2026-08-18 (приоритеты, capital.priorities): в permissions-сервисах
+# появились расчёт can_set_priority проекта/компонента и председательский
+# override приоритета задач; в project-management добавлена офчейн-мутация
+# приоритета, в репозитории проектов — setter и фильтр по priority.
+# VIEW_ARTIFACTS / READ_COMMUNICATION и набор случаев этого слайса не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts

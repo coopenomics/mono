@@ -26,6 +26,17 @@ BaseDialog(
         )
 
       .filter-dialog__field
+        .filter-dialog__group-label {{ isComponentsScope ? "Приоритеты компонентов" : "Приоритеты проектов" }}
+        .filter-dialog__checks
+          BaseCheckbox(
+            v-for='opt in priorityOptions',
+            :key='opt.value',
+            :model-value='entityPriorities.includes(opt.value)',
+            :label='opt.label',
+            @update:model-value='(checked) => toggleEntityPriority(opt.value, checked)'
+          )
+
+      .filter-dialog__field
         ContributorSelector(
           v-model='selectedMaster',
           :coopname='coopname',
@@ -62,7 +73,7 @@ BaseDialog(
       .filter-dialog__field
         q-select(
           v-model='issuePriorities',
-          :options='issuePriorityOptions',
+          :options='priorityOptions',
           option-value='value',
           option-label='label',
           emit-value,
@@ -122,6 +133,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { BaseDialog, BaseButton, BaseCheckbox } from 'src/shared/ui/base';
 import type { IContributor } from 'app/extensions/capital/entities/Contributor/model/types';
 import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib/issueStatus';
+import { ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib/issuePriority';
 import { getProjectStatusLabel } from 'app/extensions/capital/shared/lib/projectStatus';
 import {
   useListPreferences,
@@ -175,6 +187,15 @@ const entityStatuses = computed({
   get: () => filters.value.entityStatuses,
   set: (value: string[]) => patch({ entityStatuses: [...value] }),
 });
+
+const entityPriorities = computed(() => filters.value.entityPriorities);
+
+const toggleEntityPriority = (value: string, checked: boolean) => {
+  const next = checked
+    ? [...entityPriorities.value, value]
+    : entityPriorities.value.filter((v) => v !== value);
+  patch({ entityPriorities: next });
+};
 
 const issueStatuses = computed({
   get: () => filters.value.issueStatuses,
@@ -232,12 +253,8 @@ const issueStatusOptions = computed(() =>
   ].map((status) => ({ value: status, label: getIssueStatusLabel(status) })),
 );
 
-const issuePriorityOptions = [
-  { label: 'Срочный', value: Zeus.IssuePriority.URGENT },
-  { label: 'Высокий', value: Zeus.IssuePriority.HIGH },
-  { label: 'Средний', value: Zeus.IssuePriority.MEDIUM },
-  { label: 'Низкий', value: Zeus.IssuePriority.LOW },
-];
+// Значения приоритетов общие для задач, проектов и компонентов
+const priorityOptions = ISSUE_PRIORITY_OPTIONS;
 
 // Список задач фильтруется по самим задачам, дерево — по проектам и компонентам.
 // Чужие для scope значения гасим, иначе они молча сужали бы выборку.
@@ -250,8 +267,8 @@ watch(
       || filters.value.creators.length)) {
       patch({ issueStatuses: [], issuePriorities: [], creators: [] });
     }
-    if (!isEntityScope.value && filters.value.entityStatuses.length) {
-      patch({ entityStatuses: [] });
+    if (!isEntityScope.value && (filters.value.entityStatuses.length || filters.value.entityPriorities.length)) {
+      patch({ entityStatuses: [], entityPriorities: [] });
     }
   },
   { immediate: false },
@@ -285,5 +302,17 @@ defineExpose({
 
 .filter-dialog__separator {
   margin-top: var(--p-2);
+}
+
+.filter-dialog__group-label {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
+  margin-bottom: var(--p-1);
+}
+
+.filter-dialog__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-1) var(--p-4);
 }
 </style>
