@@ -22,6 +22,7 @@ sources:
   ui:
     - components/desktop/extensions/capital/entities/Favorite/**
     - components/desktop/extensions/capital/features/Favorite/**
+    - components/desktop/extensions/capital/pages/ArtifactsListPage/**
     - components/desktop/src/shared/hooks/useMenuSubItems.ts
 
 cases:
@@ -78,4 +79,11 @@ cases:
     kind: happy
     scenario: звёздочка в строке списка и в шапке сущности добавляет/снимает избранное, суб-пункт появляется/исчезает в меню под своим разделом
     expect: состояние синхронно во всех трёх точках без перезагрузки
+    status: missing
+
+  - id: cap.fav.ui.02
+    level: ui
+    kind: happy
+    scenario: страница «Артефакты» показывает только доступные пайщику артефакты (границы допуска считает бэкенд), звёздочка помечает артефакт и он появляется в меню под «Артефакты»
+    expect: чужие артефакты в списке не видны; избранный артефакт — суб-пунктом в левой панели
     status: missing

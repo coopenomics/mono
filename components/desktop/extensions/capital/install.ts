@@ -2,7 +2,7 @@ import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
-import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage } from './pages';
+import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage, ArtifactsListPage } from './pages';
 import { CapitalBase } from './pages/CapitalBase';
 import { ProjectsListPage } from './pages/ProjectsListPage';
 import { ProjectPage } from './pages/ProjectPage';
@@ -291,6 +291,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 ],
               },
             ],
+          },
+          {
+            path: 'artifacts',
+            name: 'artifacts-list',
+            component: markRaw(ArtifactsListPage),
+            meta: {
+              title: 'Артефакты',
+              icon: 'article',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
           },
           {
             path: 'commits',

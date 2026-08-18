@@ -75,6 +75,15 @@ const FAVORITE_MENU_SOURCES: Array<{
       params: { coopname: system.info.coopname, issue_hash: hash },
     }),
   },
+  {
+    // Отдельной страницы артефакта пока нет — избранный артефакт ведёт в список
+    parent: 'artifacts-list',
+    type: Zeus.CapitalFavoriteTargetType.ARTIFACT,
+    route: () => ({
+      name: 'artifacts-list',
+      params: { coopname: system.info.coopname },
+    }),
+  },
 ];
 
 for (const source of FAVORITE_MENU_SOURCES) {
