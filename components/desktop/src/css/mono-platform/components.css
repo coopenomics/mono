@@ -1447,6 +1447,25 @@ body {
   color: var(--p-rail-item-active-fg);
   font-weight: 500;
 }
+/* Тёмная тема: глобальные `.body--dark a` / `.q-dark a` из style.css красят
+   ссылки оранжевым и по специфичности бьют одиночный класс — возвращаем
+   суб-пунктам основной цвет (токены сами следуют теме). */
+.body--dark .rail__subitem,
+.body--dark .rail__subitem:visited,
+.q-dark .rail__subitem,
+.q-dark .rail__subitem:visited {
+  color: var(--p-ink-2);
+}
+.body--dark .rail__subitem:hover,
+.q-dark .rail__subitem:hover {
+  color: var(--p-ink-1);
+}
+.body--dark .rail__subitem--active,
+.body--dark .rail__subitem--active:visited,
+.q-dark .rail__subitem--active,
+.q-dark .rail__subitem--active:visited {
+  color: var(--p-rail-item-active-fg);
+}
 .rail__subitem-label {
   display: -webkit-box;
   -webkit-line-clamp: 2;
