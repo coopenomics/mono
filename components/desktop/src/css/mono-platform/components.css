@@ -1334,7 +1334,13 @@ body {
   height: 100%;
   min-height: 0;
   flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+/* Контент выше вьюпорта (много пунктов, суб-пункты избранного, крупный масштаб)
+   прокручивается всей колонкой; без запрета сжатия flex вместо скролла
+   ужимал бы низ — карточка кошелька обрезалась и была недостижима. */
+.rail > * { flex-shrink: 0; }
 .rail__top {
   display: flex;
   align-items: center;
@@ -1422,7 +1428,8 @@ body {
   gap: 1px;
   padding: 0 0 4px 34px;
 }
-.rail__subitem {
+.rail__subitem,
+.rail__subitem:visited {
   display: block;
   padding: 4px 8px;
   border-radius: var(--p-r-xs);
@@ -1434,7 +1441,8 @@ body {
   transition: background var(--p-dur-fast), color var(--p-dur-fast);
 }
 .rail__subitem:hover { background: var(--p-rail-item-hover); color: var(--p-ink-1); }
-.rail__subitem--active {
+.rail__subitem--active,
+.rail__subitem--active:visited {
   background: var(--p-rail-item-active-bg);
   color: var(--p-rail-item-active-fg);
   font-weight: 500;
