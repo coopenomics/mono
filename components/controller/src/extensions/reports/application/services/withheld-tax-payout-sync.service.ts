@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BranchContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
 import {
   LOGGER_PORT,
   PAYMENT_DESK_PORT,
@@ -17,11 +17,11 @@ import {
  * же обязан узнать его судьбу. Программа-источник удержания к этому моменту
  * своё дело сделала.
  *
- * `branch::taxconfirm` приходит inline-вызовом из `gateway::outcomplete`,
+ * `soviet::taxconfirm` приходит inline-вызовом из `gateway::outcomplete`,
  * когда кассир подтвердил перевод по реквизитам налоговой — платёж
  * закрывается статусом COMPLETED, а долг перед бюджетом уменьшается на цепи.
  *
- * `branch::taxdecline` приходит, когда кассир не смог заплатить: заявка на
+ * `soviet::taxdecline` приходит, когда кассир не смог заплатить: заявка на
  * цепи стирается, обязательство остаётся в полном объёме, и бухгалтер создаёт
  * платёж заново. Этим налоговый платёж отличается от материальной помощи, где
  * отказ кассира невозможен: там исполняется решение совета, здесь — обычное
@@ -42,14 +42,14 @@ export class WithheldTaxPayoutSyncService {
   }
 
   @OnEvent(
-    `action::${BranchContract.contractName.production}::${BranchContract.Actions.TaxConfirm.actionName}`
+    `action::${SovietContract.contractName.production}::${SovietContract.Actions.Tax.TaxConfirm.actionName}`
   )
   async handleTaxConfirm(action: InnerChainActionRecord): Promise<void> {
     await this.applyOutcome(action, PaymentStatus.COMPLETED, 'taxconfirm');
   }
 
   @OnEvent(
-    `action::${BranchContract.contractName.production}::${BranchContract.Actions.TaxDecline.actionName}`
+    `action::${SovietContract.contractName.production}::${SovietContract.Actions.Tax.TaxDecline.actionName}`
   )
   async handleTaxDecline(action: InnerChainActionRecord): Promise<void> {
     await this.applyOutcome(action, PaymentStatus.FAILED, 'taxdecline');

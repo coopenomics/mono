@@ -60,6 +60,7 @@ struct ledger2_wallets {
   static constexpr eosio::name DELEGATE_FEES        = "w.sov.delgte"_n;  ///< Делегатские членские взносы (цель CONVERT_TO_AXN, COOPERATIVE)
   static constexpr eosio::name SOV_EXPENSES         = "w.sov.expns"_n;   ///< Хозяйственные расходы из числа целевого финансирования (COOPERATIVE)
   static constexpr eosio::name MIN_SHARE_USED       = "w.sov.mnused"_n;  ///< Использованные минимальные паевые взносы (Cr 80 source, перешедшие в 08; COOPERATIVE)
+  static constexpr eosio::name NDFL_WITHHELD        = "w.sov.ndfl"_n;   ///< Удержанный НДФЛ к перечислению в бюджет (COOPERATIVE, счёт 68). Кошелёк общекооперативный: в него стекаются удержания ЛЮБОЙ программы, выплатившей доход физлицу (сегодня — материальная помощь доверенному, o.brn.aidtax), а гасит его бухгалтерия единым налоговым платежом (o.sov.taxpay, BURN, Дт 68 / Кт 51). Поэтому кошелёк не принадлежит программе-источнику и назван по кооперативу, а не по участку. Остаток = долг кооператива перед бюджетом; он же ограничивает сумму платежа — перечислить больше удержанного налоговый агент не вправе. Деньги при удержании с расчётного счёта НЕ уходят: кооператив просто выплатил получателю меньше.
 
   // capital — единые программные кошельки + займы + пред-импорт
   static constexpr eosio::name LOAN_ISSUED          = "w.cap.loan"_n;    ///< Выданные пайщикам беспроцентные займы (COOPERATIVE; Dr 58 / Cr 51)
@@ -80,7 +81,6 @@ struct ledger2_wallets {
   static constexpr eosio::name BRANCH_DISTRIBUTION_POOL = "w.brn.pool"_n;  ///< Транзитный пул ручного распределения КУ (COOPERATIVE; баланс нулевой вне транзакции). Нужен из-за инварианта walletop «один username на обе стороны»: прямой TRANSFER w.brn.common (разрез по braname) → w.brn.person (разрез по доверенному) невозможен; двухходовка o.brn.release (username = braname) + o.brn.person (username = доверенный) внутри одной транзакции распределения.
   static constexpr eosio::name BRANCH_EXPENSE_POOL    = "w.brn.expns"_n;  ///< Пул расходов кооперативного участка (COOPERATIVE) — источник средств шасси расходов для КУ. Наполняется под конкретный расход при создании служебной записки (o.brn.expfnd, username = braname), расходуется прямой оплатой по реквизитам (o.brn.spend) либо выдачей аванса под отчёт (o.brn.expadv); неизрасходованный остаток возвращается в общий кошелёк участка (o.brn.expunf). Транзит нужен и по существу (видно, сколько средств участка отдано под расходы), и технически: шасси расходов требует COOPERATIVE-пул, а w.brn.common ведёт L3-разрез по braname.
 
-  static constexpr eosio::name BRANCH_NDFL_WITHHELD   = "w.brn.ndfl"_n;   ///< Удержанный НДФЛ к перечислению в бюджет (COOPERATIVE, счёт 68). Наполняется при выплате материальной помощи (o.brn.aidtax, TRANSFER с w.brn.person получателя), гасится единым налоговым платежом бухгалтера (o.brn.taxpay, BURN, Дт 68 / Кт 51). Остаток кошелька = долг кооператива перед бюджетом; он же ограничивает сумму платежа — перечислить больше удержанного налоговый агент не вправе. Деньги при удержании с расчётного счёта НЕ уходят: кооператив просто выплатил получателю меньше.
 
   // expense — шасси расходов (подотчёт пайщика, USER_SHARED)
   // Зеркало паттерна w.wal.wpend: кошелёк-резерв на пайщике-получателе ADVANCE-механики.
@@ -148,7 +148,7 @@ inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::BRANCH_DISTRIBUTION_POOL, "Транзитный пул ручного распределения кооперативного участка", WalletKind::COOPERATIVE },
   { ledger2_wallets::BRANCH_EXPENSE_POOL,   "Пул расходов кооперативного участка",                       WalletKind::COOPERATIVE },
   { ledger2_wallets::PROGRAM_EXPENSE_POOL, "Пул программных расходов ЦПП «Благорост»",              WalletKind::COOPERATIVE },
-  { ledger2_wallets::BRANCH_NDFL_WITHHELD, "Удержанный НДФЛ к перечислению",                        WalletKind::COOPERATIVE },
+  { ledger2_wallets::NDFL_WITHHELD,      "Удержанный НДФЛ к перечислению",                          WalletKind::COOPERATIVE },
 }};
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();

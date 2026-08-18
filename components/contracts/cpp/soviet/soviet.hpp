@@ -238,6 +238,35 @@ public:
 
   //branch.cpp
   [[eosio::action]] void deletebranch(eosio::name coopname, eosio::name braname);
+
+  /**
+   * @brief Отправить удержанный НДФЛ на оплату в бюджет (единый налоговый
+   * платёж). Инициирует бухгалтер; заявка попадает к кассиру в реестр
+   * исходящих платежей. Сумма не может превышать остаток w.sov.ndfl.
+   * @ingroup public_soviet_actions
+   */
+  [[eosio::action]] void createtax(eosio::name coopname,
+                                    eosio::checksum256 tax_hash,
+                                    eosio::asset amount,
+                                    std::string meta);
+
+  /**
+   * @brief Callback от gateway::outcomplete — кассир подтвердил перечисление
+   * налога. Здесь применяется o.sov.taxpay (Дт 68 / Кт 51).
+   * @ingroup public_soviet_actions
+   */
+  [[eosio::action]] void taxconfirm(eosio::name coopname,
+                                     eosio::checksum256 outcome_hash);
+
+  /**
+   * @brief Callback от gateway::outdecline — платёж в бюджет не состоялся;
+   * обязательство остаётся на счёте 68, заявка закрывается.
+   * @ingroup public_soviet_actions
+   */
+  [[eosio::action]] void taxdecline(eosio::name coopname,
+                                     eosio::checksum256 outcome_hash,
+                                     std::string reason);
+
   [[eosio::action]] void setbranch(eosio::name coopname, eosio::name username, eosio::name braname);
   
 };

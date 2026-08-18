@@ -8,7 +8,7 @@
  * кооператив удерживает НДФЛ, поэтому сумма заявления расходится надвое:
  *
  *  - Ledger2::apply(o.brn.aidtax, tax, …, hash=aid.hash) — TRANSFER
- *    w.brn.person → w.brn.ndfl, Дт 86 / Кт 68 (удержанный налог);
+ *    w.brn.person → w.sov.ndfl, Дт 86 / Кт 68 (удержанный налог);
  *  - Ledger2::apply(o.brn.aid, net, …, hash=aid.hash) — BURN с
  *    w.brn.person получателя, Дт 86 / Кт 51 (выплата на руки).
  *

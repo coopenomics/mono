@@ -91,6 +91,7 @@ namespace processes {
   // soviet
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
+    inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
   }
 
   // migration
@@ -128,7 +129,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
-  soviet::AXN_CONVERT,
+  soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,
 };

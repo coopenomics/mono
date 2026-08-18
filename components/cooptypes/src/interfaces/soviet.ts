@@ -726,3 +726,31 @@ export interface ISetminamt {
   username: IName
   minimum: IAsset
 }
+
+export interface ICreatetax {
+  coopname: IName
+  tax_hash: IChecksum256
+  /** Сумма к перечислению в бюджет; не больше остатка удержанного налога. */
+  amount: IAsset
+  meta: string
+}
+
+export interface ITaxconfirm {
+  coopname: IName
+  outcome_hash: IChecksum256
+}
+
+export interface ITaxdecline {
+  coopname: IName
+  outcome_hash: IChecksum256
+  reason: string
+}
+
+export interface ISovietTax {
+  id: IUint64
+  hash: IChecksum256
+  /** Сумма к перечислению в бюджет. */
+  amount: IAsset
+  created_at: ITimePointSec
+}
+

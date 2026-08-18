@@ -1,5 +1,5 @@
 import * as Actors from '../../../common/actors'
-import type * as Branch from '../../../interfaces/branch'
+import type * as Soviet from '../../../interfaces/soviet'
 
 /**
  * Имя таблицы
@@ -16,4 +16,4 @@ export const scope = Actors._coopname
  * Заявки на перечисление удержанного НДФЛ в бюджет: живут от отправки
  * бухгалтером до подтверждения кассиром.
  */
-export type IBranchTax = Branch.IBranchTax
+export type ISovietTax = Soviet.ISovietTax

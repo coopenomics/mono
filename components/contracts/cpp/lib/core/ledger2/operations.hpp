@@ -122,14 +122,14 @@ namespace operations {
     inline constexpr eosio::name EXPENSE_RETURN      = "o.brn.expret"_n;  ///< Возврат неиспользованного аванса под отчёт в пул расходов участка (TRANSFER w.exp.adv → w.brn.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов для КУ.
     inline constexpr eosio::name EXPENSE_OVERSPEND   = "o.brn.expovr"_n;  ///< Доплата сверх выданного аванса по расходу участка (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов для КУ; сразу за ней шасси закрывает подотчёт отчётом.
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ, сумма К ВЫПЛАТЕ за вычетом налога (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром). Парная операция удержания — FINANCIAL_AID_TAX, применяется той же транзакцией.
-    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.person → w.brn.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки уходит остаток. Деньги при этом с расчётного счёта не уходят — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
-    inline constexpr eosio::name TAX_PAYMENT         = "o.brn.taxpay"_n;  ///< Перечисление удержанного НДФЛ в бюджет единым налоговым платежом (BURN с w.brn.ndfl, Dr 68 / Cr 51). Инициирует бухгалтер, подтверждает кассир; сумма не может превышать остаток w.brn.ndfl — перечислить больше удержанного налоговый агент не вправе.
+    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки уходит остаток. Деньги при этом с расчётного счёта не уходят — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
     inline constexpr eosio::name CONVERT_TO_MKT      = "o.brn.conv"_n;    ///< Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (TRANSFER w.brn.person → w.mkt.member, без Dr/Cr — внутри 86) для заказов как обычный пайщик.
   }
 
   // soviet
   namespace soviet {
     inline constexpr eosio::name CONVERT_AXN      = "o.sov.axncnv"_n;   ///< Трансляция паевого взноса в членский (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES).
+    inline constexpr eosio::name TAX_PAYMENT      = "o.sov.taxpay"_n;   ///< Перечисление удержанного НДФЛ в бюджет единым налоговым платежом (BURN с w.sov.ndfl, Dr 68 / Cr 51). Инициирует бухгалтер, подтверждает кассир; сумма не может превышать остаток кошелька — перечислить больше удержанного налоговый агент не вправе. Префикс кооперативный, а не программы-источника: в один кошелёк стекаются удержания любой программы, выплатившей доход физлицу.
   }
 
   // expense — шасси расходов (MVP: только Благорост; хозрасходы из членских — отдельный эпик).
@@ -597,23 +597,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Материальная помощь доверенному кооперативного участка" },
 
   // 13c-bis. p.brn.aid: Удержание НДФЛ из материальной помощи
-  //      (TRANSFER w.brn.person → w.brn.ndfl, Dr 86 / Cr 68). Кооператив —
+  //      (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
   //      налоговый агент: с персонального кошелька списывается вся сумма
   //      заявления (выплата + налог), но с расчётного счёта уходит только
   //      выплата — удержанное повисает долгом перед бюджетом на счёте 68.
+  //      Операция остаётся за программой-источником: удерживает тот, кто
+  //      выплачивает доход, а кошелёк-получатель общий для кооператива.
   { operations::branch::FINANCIAL_AID_TAX, processes::branch::AID, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::BRANCH_NDFL_WITHHELD,
+    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::NDFL_WITHHELD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::TAX_SETTLEMENTS,
     "Удержание налога на доходы физических лиц из материальной помощи" },
-
-  // 13c-ter. p.brn.aid: Перечисление удержанного НДФЛ в бюджет
-  //      (BURN с w.brn.ndfl, Dr 68 / Cr 51). Единый налоговый платёж:
-  //      бухгалтер отправляет накопленный остаток на оплату, кассир платит
-  //      по реквизитам налоговой, обязательство закрывается.
-  { operations::branch::TAX_PAYMENT, processes::branch::AID, WalletOp::BURN,
-    ledger2_wallets::BRANCH_NDFL_WITHHELD, eosio::name{},
-    ledger2_accounts::TAX_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
-    "Перечисление удержанного налога на доходы физических лиц в бюджет" },
 
   // 13d. p.brn.fees: Перевод персональных средств доверенного в членский
   //      кошелёк «Стола заказов» (TRANSFER w.brn.person → w.mkt.member,
@@ -628,6 +621,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::DELEGATE_FEES,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Трансляция паевого взноса из ЦПП «Цифровой Кошелёк» в членский взнос за пользование инфраструктурой" },
+
+  // p.sov.tax: Перечисление удержанного НДФЛ в бюджет (BURN с w.sov.ndfl,
+  //      Dr 68 / Cr 51). Единый налоговый платёж: бухгалтер отправляет
+  //      накопленный остаток на оплату, кассир платит по реквизитам налоговой,
+  //      обязательство закрывается. Операция кооперативная — гасит удержания
+  //      всех программ разом.
+  { operations::soviet::TAX_PAYMENT, processes::soviet::TAX, WalletOp::BURN,
+    ledger2_wallets::NDFL_WITHHELD, eosio::name{},
+    ledger2_accounts::TAX_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
+    "Перечисление удержанного налога на доходы физических лиц в бюджет" },
 
   // 15. Запрос на возврат паевого: TRANSFER SHARE_FUND_PAY → WITHDRAW_PENDING
   // (без Dr/Cr — оба кошелька на счёте 80; резерв средств на время рассмотрения).

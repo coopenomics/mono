@@ -188,6 +188,12 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
   'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],
 
+  // p.sov.tax — перечисление удержанного налога в бюджет: process_hash =
+  // taxes.hash. Запись живёт от отправки бухгалтером до подтверждения кассиром
+  // и после финала стирается, поэтому у завершённого платежа анкера в таблице
+  // уже нет — деталь собирается из журнала действий.
+  'p.sov.tax': [{ code: 'soviet', table: 'taxes', field: 'hash' }],
+
   // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
   'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
 

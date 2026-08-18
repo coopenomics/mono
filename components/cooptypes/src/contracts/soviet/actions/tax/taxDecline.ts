@@ -1,6 +1,6 @@
-import * as Permissions from '../../../common/permissions'
-import type * as Branch from '../../../interfaces/branch'
-import { Actors } from '../../../common'
+import * as Permissions from '../../../../common/permissions'
+import type * as Soviet from '../../../../interfaces/soviet'
+import { Actors } from '../../../../common'
 
 /**
  * Callback gateway::outdecline — кассир не смог перечислить налог. Заявка
@@ -16,4 +16,4 @@ export const actionName = 'taxdecline'
 /**
  * @interface
  */
-export type ITaxdecline = Branch.ITaxdecline
+export type ITaxdecline = Soviet.ITaxdecline

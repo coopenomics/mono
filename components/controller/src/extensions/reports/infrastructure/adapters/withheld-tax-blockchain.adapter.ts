@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract } from 'cooptypes';
+import { Ledger2Contract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import { HttpApiError } from '@coopenomics/extension-kit';
 import {
@@ -16,11 +16,9 @@ import type { WithheldTaxBlockchainPort } from '../../domain/ports/withheld-tax-
  * бюджетом.
  *
  * Кошелёк общекооперативный: он один на кооператив и принимает удержания от
- * любой программы, которая выплатила доход физлицу. Имя досталось от группы
- * операций, вместе с которыми кошелёк заводили, — на область видимости оно не
- * влияет.
+ * любой программы, которая выплатила доход физлицу.
  */
-const WITHHELD_TAX_WALLET = 'w.brn.ndfl';
+const WITHHELD_TAX_WALLET = 'w.sov.ndfl';
 
 /**
  * Доступ стола бухгалтера к цепи в части удержанного налога.
@@ -47,16 +45,16 @@ export class WithheldTaxBlockchainAdapter implements WithheldTaxBlockchainPort {
 
   async listPendingTaxRequests(
     coopname: string
-  ): Promise<BranchContract.Tables.Taxes.IBranchTax[]> {
+  ): Promise<SovietContract.Tables.Taxes.ISovietTax[]> {
     return this.chain.getAllRows(
-      BranchContract.contractName.production,
+      SovietContract.contractName.production,
       coopname,
-      BranchContract.Tables.Taxes.tableName
+      SovietContract.Tables.Taxes.tableName
     );
   }
 
   async createTaxRequest(
-    data: BranchContract.Actions.CreateTax.ICreatetax
+    data: SovietContract.Actions.Tax.CreateTax.ICreatetax
   ): Promise<InnerTransactResult> {
     const wif = await this.vault.getWif(data.coopname);
     if (!wif) {
@@ -67,8 +65,8 @@ export class WithheldTaxBlockchainAdapter implements WithheldTaxBlockchainPort {
     }
     this.chain.initialize(data.coopname, wif);
     return this.chain.transact({
-      account: BranchContract.contractName.production,
-      name: BranchContract.Actions.CreateTax.actionName,
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Tax.CreateTax.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
       data,
     });

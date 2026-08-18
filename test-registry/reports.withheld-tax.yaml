@@ -23,6 +23,13 @@ title: Перечисление удержанного налога — разд
 #    живёт до подтверждения, и её сумма ещё сидит в остатке кошелька;
 #  - реквизиты бюджета показываются снимком с платежа, а не сегодняшние: они
 #    меняются приказами, а платили по тем, что действовали в день отправки.
+#
+# 2026-08-18: кошелёк и действия переехали из контракта участков в контракт
+# кооператива — `w.sov.ndfl`, `o.sov.taxpay`, `soviet::createtax/taxconfirm/
+# taxdecline`, процесс `p.sov.tax`. Долг общекооперативный: в него стекаются
+# удержания любой программы, поэтому и кошелёк, и заявка принадлежат
+# кооперативу, а не Столу заказов. Переезд бесплатный — на проде и тестнете
+# кошельков `w.brn.*` не существует, миграции не потребовалось.
 
 sources:
   backend:
@@ -32,6 +39,9 @@ sources:
     - components/controller/src/extensions/reports/application/services/withheld-tax-payout-sync.service.ts
     - components/controller/src/extensions/reports/domain/ports/withheld-tax-blockchain.port.ts
     - components/controller/src/extensions/reports/infrastructure/adapters/withheld-tax-blockchain.adapter.ts
+  contract:
+    - components/contracts/cpp/soviet/src/tax/**
+    - components/contracts/cpp/lib/domain/table_soviet_taxes.hpp
   ui:
     - components/desktop/extensions/reports/pages/NdflPage/**
 

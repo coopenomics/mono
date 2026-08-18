@@ -333,25 +333,6 @@ export interface IAiddecline {
   reason: string
 }
 
-export interface ICreatetax {
-  coopname: IName
-  tax_hash: IChecksum256
-  /** Сумма к перечислению в бюджет; не больше остатка удержанного налога. */
-  amount: IAsset
-  meta: string
-}
-
-export interface ITaxconfirm {
-  coopname: IName
-  outcome_hash: IChecksum256
-}
-
-export interface ITaxdecline {
-  coopname: IName
-  outcome_hash: IChecksum256
-  reason: string
-}
-
 export interface IBranchExpenseItem {
   item_hash: IChecksum256
   /** Способ оплаты позиции: 0 — аванс под отчёт, 1 — прямая оплата по реквизитам. */
@@ -406,14 +387,6 @@ export interface IBranchAid {
   status: IName
   statement: IDocument2
   protocol: IDocument2
-}
-
-export interface IBranchTax {
-  id: IUint64
-  hash: IChecksum256
-  /** Сумма к перечислению в бюджет. */
-  amount: IAsset
-  created_at: ITimePointSec
 }
 
 export interface IBranchSpend {

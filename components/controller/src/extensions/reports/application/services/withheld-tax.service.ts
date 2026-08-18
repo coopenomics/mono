@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
-import { BranchContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
 import { platformSettings, rethrowChainError } from '@coopenomics/extension-kit';
 import {
   getTaxTransferRequisites,
@@ -34,7 +34,7 @@ import type {
  *
  * Удерживая налог при выплате дохода физическому лицу, кооператив копит
  * обязательство перед бюджетом: деньги остаются на расчётном счёте, а долг
- * виден как остаток общекооперативного кошелька `w.brn.ndfl`. Гасится он не по
+ * виден как остаток общекооперативного кошелька `w.sov.ndfl`. Гасится он не по
  * каждой выплате, а единым налоговым платежом — так налоги и платятся: одной
  * суммой на счёт налоговой, с последующим уведомлением о том, как её разнести.
  *
@@ -196,7 +196,7 @@ export class WithheldTaxService {
         tax_hash: taxHash,
         amount: asset,
         meta: JSON.stringify({ kind: 'ndfl', amount: asset }),
-      } as BranchContract.Actions.CreateTax.ICreatetax);
+      } as SovietContract.Actions.Tax.CreateTax.ICreatetax);
     } catch (e) {
       // Заявка на цепь не встала — гасим core-платёж, иначе кассир заплатит
       // по заявке, которой на цепи нет, и подтверждение не найдёт запись.
