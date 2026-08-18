@@ -18,6 +18,7 @@ import { phase02 } from './phases/02-branches'
 import { phase03 } from './phases/03-assign-branches'
 import { phase04 } from './phases/04-supplier'
 import { phase05 } from './phases/05-sign-offer'
+import { phase06 } from './phases/06-catalog-offers'
 
 const PHASES: Record<string, () => Promise<void>> = {
   '01-l1-accept': phase01,
@@ -25,6 +26,7 @@ const PHASES: Record<string, () => Promise<void>> = {
   '03-assign-branches': phase03,
   '04-supplier': phase04,
   '05-sign-offer': phase05,
+  '06-catalog-offers': phase06,
 }
 
 const PHASE_ORDER = Object.keys(PHASES)

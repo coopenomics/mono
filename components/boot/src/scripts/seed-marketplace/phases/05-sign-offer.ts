@@ -35,7 +35,7 @@ const MARKETPLACE_AGREEMENT_TYPE = 'marketplace'
 const BRANAME = 'krg'
 
 /** Пайщики, работающие на столах: заказчик, поставщик, председатель участка. */
-const MEMBERS = ['ekaterina', 'ivanpetrov', 'chairkrg', 'orderer2']
+const MEMBERS = ['ekaterina', 'ivanpetrov', 'chairkrg', 'orderer2', 'sidorov']
 
 interface CoagreementRow {
   type: string
