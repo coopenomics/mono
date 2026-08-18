@@ -112,6 +112,10 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
+  // Кадр блока возврата отличается от общего вида карточки: прокручиваем к
+  // блоку гарантийного возврата, иначе два кадра выходят почти одинаковыми.
+  await page.locator('text=/[Гг]арантийн/').first().scrollIntoViewIfNeeded().catch(() => {});
+  await page.waitForTimeout(600);
   await shot(
     page,
     '02-return-available',

@@ -7,7 +7,7 @@
 // Повторный прогон терпим: тип и партия не пересоздаются, кадры снимаются
 // с уже заведённых.
 //
-// Фикстура: председатель КУ Красногорск (chairkrg) — грант Container:manage.
+// Фикстура: председатель Красногорск (chairkrg) — грант Container:manage.
 
 import fs from 'node:fs';
 import path from 'node:path';

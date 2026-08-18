@@ -279,3 +279,15 @@ cases:
       председателю, до одобрения разделы стола закрыты
     test: components/docs-harness/scenarios/marketplace/offerer/supplier-connect.mjs
     status: passing
+
+  - id: mkt.onb.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель подключает ЦПП «Стол заказов»: объявляет собрание совета по
+      Положению, вопрос уходит на повестку, совет голосует, документы утверждаются
+    expect: >
+      до утверждения статус «Не подключено» и шаги участков/ПВЗ заблокированы;
+      после — «ЦПП подключена», шаги разблокированы
+    test: components/docs-harness/scenarios/marketplace/onboarding/coop-accept-cpp.mjs
+    status: written

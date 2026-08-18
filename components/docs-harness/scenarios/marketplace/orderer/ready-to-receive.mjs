@@ -60,8 +60,38 @@ async function signAllAgreements(page) {
 }
 
 export default async ({ page, shot, expect }) => {
-  await loginAs(page, loadFixture('ekaterina'));
+  // Автоподпись каскада выключена: акт выдачи, отправленный оператором на
+  // подпись, обязан попасть в кадр, а не подписаться молча при логине.
+  await loginAs(page, loadFixture('ekaterina'), { signAgreements: false });
   await pickBranchIfAsked(page);
+
+  // После «Подписать и отправить пайщику» на столе ПВЗ у заказчицы всплывает
+  // persistent-оверлей: акт с фактом выдачи и кнопка «Подписать и получить».
+  const receiveBtn = page.locator('button:has-text("Подписать и получить")').first();
+  const gateShown = await receiveBtn.waitFor({ state: 'visible', timeout: 30000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (gateShown) {
+    await page.waitForTimeout(1000);
+    await shot(
+      page,
+      '01-sign-gate',
+      'Подпишите акт: оператор просканировал QR, сверил и взвесил имущество и отправил акт на подпись. Заказчица видит состав и сумму по факту выдачи — если оператор корректировал количество или цену, здесь видны именно фактические числа. Кнопка «Подписать и получить» закрывает выдачу.',
+    );
+
+    await receiveBtn.click();
+    await page.waitForTimeout(1500);
+    for (let i = 0; i < 4; i++) {
+      const dlgSign = page.locator('.q-dialog button:has-text("Подписать")').last();
+      if (!(await dlgSign.count())) break;
+      await dlgSign.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(2500);
+    }
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+    await cleanViteOverlays(page);
+  }
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
     waitUntil: 'domcontentloaded',
@@ -74,7 +104,7 @@ export default async ({ page, shot, expect }) => {
 
   await shot(
     page,
-    '01-order-received',
+    '02-order-received',
     'Заказ после выдачи: статус «Получен», указаны количество, сумма и пункт выдачи. Табы позволяют смотреть заказы по стадиям — от ожидания поставщика до полученных.',
     {
       expect: async (p) => {

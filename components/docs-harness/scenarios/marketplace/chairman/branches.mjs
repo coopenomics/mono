@@ -50,9 +50,9 @@ export default async ({ page, context, shot, expect, env }) => {
   await page.locator('text=Создать кооперативный участок').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(600);
 
-  // 5. Развернуть КУ Красногорск — детали с реквизитами, председатель, доверенные лица
-  const krgRow = page.locator('tr:has-text("КУ Красногорск")').first();
+  // 5. Развернуть Красногорск — детали с реквизитами, председатель, доверенные лица
+  const krgRow = page.locator('tr:has-text("Красногорск")').first();
   await krgRow.locator('button, .q-btn').first().click().catch(() => {});
   await page.waitForTimeout(900);
-  await shot(page, '04-branch-details', 'Развёрнутая карточка КУ Красногорск: реквизиты участка, председатель Иванов Пётр Сергеевич (chairkrg), доверенные лица — Петров Михаил Андреевич (trustedkrg) и Кузнецов Александр Владимирович (opkrg). Доверенные имеют расширенные права на участке (приёмка, выдача, маркировка).');
+  await shot(page, '04-branch-details', 'Развёрнутая карточка Красногорск: реквизиты участка, председатель Иванов Пётр Сергеевич (chairkrg), доверенные лица — Петров Михаил Андреевич (trustedkrg) и Кузнецов Александр Владимирович (opkrg). Доверенные имеют расширенные права на участке (приёмка, выдача, маркировка).');
 };

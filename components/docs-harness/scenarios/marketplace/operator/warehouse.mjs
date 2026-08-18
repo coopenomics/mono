@@ -36,7 +36,7 @@ export const meta = {
 };
 
 export default async ({ page, shot }) => {
-  // Склад scoped `read:own-KU` — логинимся председателем КУ Красногорск (chairkrg),
+  // Склад scoped `read:own-KU` — логинимся председателем Красногорск (chairkrg),
   // владельцем КУ `krg`, иначе таблица наклеек пуста.
   const fixture = loadFixture('chairkrg');
   await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
