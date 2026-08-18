@@ -4,6 +4,7 @@
 div(v-if='hasEditableProjects')
   BaseButton(
     variant='primary',
+    :size='isMobile ? "sm" : "md"',
     aria-label='Создать компонент',
     @click='dialogRef?.openDialog()'
   )
@@ -20,6 +21,7 @@ div(v-if='hasEditableProjects')
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { BaseButton } from 'src/shared/ui/base';
+import { useWindowSize } from 'src/shared/hooks';
 import { CreateComponentDialog } from './Dialog';
 import { useEditableProjects } from '../model';
 
@@ -38,6 +40,7 @@ const emit = defineEmits<{
   actionCompleted: [];
 }>();
 
+const { isMobile } = useWindowSize();
 const dialogRef = ref();
 const { hasEditableProjects, loadEditableProjects } = useEditableProjects();
 

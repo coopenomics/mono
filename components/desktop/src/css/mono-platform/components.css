@@ -1601,6 +1601,22 @@ body {
   gap: 8px;
   margin-left: auto;
 }
+/* Кнопка в шапке не переносит подпись на вторую строку: текст сокращается,
+   но остаётся однострочным — двухэтажная кнопка ломает высоту шапки */
+.topbar__actions .q-btn {
+  white-space: nowrap;
+}
+.topbar__actions .q-btn .q-btn__content {
+  flex-wrap: nowrap;
+}
+/* На мобильном заголовок страницы уступает место действиям: от «Проекты»
+   всё равно остаётся пара букв, а кнопка «Назад» продолжает показываться.
+   Условие «действия непусты» — то же, что показывает сам блок .topbar__actions:
+   любой элемент кроме host'а Teleport или телепортированный контент в host'е */
+.topbar--mobile:has(.topbar__actions > :not(.header-actions-host)) .topbar__crumb > *:not(.back-button),
+.topbar--mobile:has(.topbar__actions .header-actions-host:not(:empty)) .topbar__crumb > *:not(.back-button) {
+  display: none;
+}
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий
    (остался только пустой teleport-host) — прячем блок, чтобы не появлялся
    пустой разделитель перед глобальными действиями справа. */

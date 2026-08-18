@@ -96,7 +96,7 @@ const parentLabel = computed(() =>
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: var(--p-surface-2);
+    background: var(--p-surface-3);
   }
 }
 
@@ -106,8 +106,8 @@ const parentLabel = computed(() =>
 }
 
 .component-row__id {
-  min-width: 44px;
-  padding-right: var(--p-2);
+  min-width: 28px;
+  padding-right: var(--p-1);
   flex-shrink: 0;
 }
 

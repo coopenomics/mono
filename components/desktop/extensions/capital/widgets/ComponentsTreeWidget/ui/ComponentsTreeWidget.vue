@@ -223,28 +223,18 @@ watch(
 }
 
 // Вложенный уровень (задачи компонента) — отступ каскада.
-// Вертикальная линия по оси chevron'а — «горизонт» вложения
+// Раскрытый блок подкрашен целиком — однородный фон вместо линий
 .component-row__nested {
-  position: relative;
   padding-left: var(--p-7);
   min-width: 0;
+  background: var(--p-surface-2);
 
-  &::before {
-    content: '';
-    position: absolute;
-    left: 13px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--p-line);
+  :deep(.list-surface) {
+    background: transparent;
   }
 
   @media (max-width: 640px) {
     padding-left: var(--p-4);
-
-    &::before {
-      left: 7px;
-    }
   }
 }
 
