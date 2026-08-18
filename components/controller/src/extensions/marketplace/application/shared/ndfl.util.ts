@@ -1,3 +1,8 @@
+import { getPersonalIncomeTax, toIsoDate } from '@coopenomics/jurisdictions';
+
+/** Юрисдикция удержания: налог удерживается по месту регистрации кооператива. */
+const NDFL_JURISDICTION = 'Russia';
+
 /**
  * Удержание НДФЛ с материальной помощи доверенному кооперативного участка.
  *
@@ -21,8 +26,27 @@
  *    отбрасывается, 50 и более округляется до рубля.
  */
 
-/** Ставка налога на доходы физических лиц, процентов. */
-export const NDFL_RATE_PERCENT = 13;
+/**
+ * Ставка налога на доходы физических лиц, процентов.
+ *
+ * Берётся из справочника юрисдикций — того же, откуда её берут формы
+ * отчётности. Держать здесь своё число значило бы считать удержание по одной
+ * ставке, а отчитываться по другой: разойдись они при очередном изменении
+ * закона, расхождение вылезло бы только в сданном отчёте.
+ *
+ * Контракт считает удержание сам и остаётся зеркалом: при смене ставки
+ * справочник и контракт правятся вместе, иначе кассиру выставят одну сумму,
+ * а цепь проведёт другую.
+ */
+export function ndflRatePercent(on: Date = new Date()): number {
+  const params = getPersonalIncomeTax(NDFL_JURISDICTION, on);
+  if (!params) {
+    throw new Error(
+      `Ставка НДФЛ на ${toIsoDate(on)} неизвестна: справочник юрисдикции не содержит параметров`
+    );
+  }
+  return params.ratePercent;
+}
 
 /**
  * Сумма налога, удерживаемая из материальной помощи, в рублях.
@@ -40,7 +64,7 @@ export function calcNdflTax(gross: number, decimals = 4): number {
   const rouble = 10 ** decimals;
   const minor = Math.round(gross * rouble);
   const denominator = 100 * rouble;
-  return Math.floor((minor * NDFL_RATE_PERCENT + denominator / 2) / denominator);
+  return Math.floor((minor * ndflRatePercent() + denominator / 2) / denominator);
 }
 
 /**

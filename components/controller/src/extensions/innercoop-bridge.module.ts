@@ -13,7 +13,6 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
-  WITHHELD_TAX_PORT,
   EXTENSION_CONFIG_PORT,
   FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
@@ -118,8 +117,6 @@ import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './chatcoop/infrastr
 import { ChatcoopInnercoopChatCoopCalendarAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-chatcoop-calendar.adapter';
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './capital/infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { ExpensesInnercoopExpenseChassisAdapter } from './expenses/infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
-import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
-import { MarketplaceInnercoopWithheldTaxAdapter } from './marketplace/infrastructure/innercoop/marketplace-innercoop-withheld-tax.adapter';
 import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastructure/innercoop/ledger2-innercoop-history.adapter';
 
 /**
@@ -139,9 +136,6 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CapitalExtensionModule,
     ChatCoopExtensionModule,
     ExpensesExtensionModule,
-    // Отсюда берётся удержанный налог: удержания ведёт Стол заказов,
-    // перечисляет их стол бухгалтера.
-    MarketplaceExtensionModule,
     Ledger2Module,
     RedisModule,
     SystemDomainModule,
@@ -217,10 +211,6 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: EXPENSE_CHASSIS_PORT,
       useExisting: ExpensesInnercoopExpenseChassisAdapter,
-    },
-    {
-      provide: WITHHELD_TAX_PORT,
-      useExisting: MarketplaceInnercoopWithheldTaxAdapter,
     },
     {
       provide: LEDGER2_HISTORY_PORT,
@@ -412,8 +402,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
     EXPENSE_CHASSIS_PORT,
-    WITHHELD_TAX_PORT,
-    LEDGER2_HISTORY_PORT,
+      LEDGER2_HISTORY_PORT,
     LOGGER_PORT,
     MESSAGE_CHANNEL_PORT,
     COOPERATIVE_VARS_PORT,

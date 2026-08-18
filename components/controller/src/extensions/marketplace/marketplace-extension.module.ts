@@ -18,7 +18,6 @@ import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-id
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
-import { MarketplaceInnercoopWithheldTaxAdapter } from './infrastructure/innercoop/marketplace-innercoop-withheld-tax.adapter';
 import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
@@ -221,10 +220,8 @@ export class MarketplaceExtension extends BaseExtensionModule {
     MarketplaceExtension,
     // Кладёт себя в реестр ядра сам (onModuleInit).
     MarketplaceUdataParametersAdapter,
-    // Удержанный налог — стол бухгалтера смотрит его через порт контура.
-    MarketplaceInnercoopWithheldTaxAdapter,
   ],
-  exports: [MarketplaceExtension, MarketplaceInnercoopWithheldTaxAdapter],
+  exports: [MarketplaceExtension],
 })
 export class MarketplaceExtensionModule {
   constructor(private readonly marketplaceExtension: MarketplaceExtension) {}

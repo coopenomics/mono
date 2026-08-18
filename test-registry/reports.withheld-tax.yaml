@@ -7,18 +7,20 @@ title: Перечисление удержанного налога — разд
 # распоряжается долгом бухгалтерия: отправляет накопленное кассиру, кассир
 # платит по реквизитам налоговой и прикладывает чек.
 #
-# Стол бухгалтера смотрит удержания через порт контура `WITHHELD_TAX_PORT` и
-# добавляет от себя одно — расчётный период платежа. Период тот же, за который
-# подаётся уведомление об исчисленных суммах НДФЛ, поэтому связь платежа с
-# формой видна прямо в строке истории.
+# Стол бухгалтера читает остаток кошелька и заявки прямо из цепи, заводит
+# платёж кассиру и слушает его подтверждение. Он же добавляет расчётный период
+# платежа — тот, за который подаётся уведомление об исчисленных суммах НДФЛ,
+# поэтому связь платежа с формой видна прямо в строке истории.
 #
 # Что легко сломать и потому проверяется отдельно:
 #  - период считается по налоговому поясу: платёж поздним вечером 22-го числа
 #    по UTC уехал бы в чужой период, а 31 декабря — ещё и в чужой год;
 #  - подпись периода берётся из календаря отчётности: вторая копия разошлась
 #    бы с ней, и совпадение платежа с формой перестало бы читаться;
-#  - порт необязателен — кооператив мог не подключать расширение с выплатами,
-#    и тогда раздел обязан быть пустым, а не падать;
+#  - кошелёк общекооперативный: его может не быть вовсе (удержаний не было) —
+#    тогда раздел показывает нули, а не падает;
+#  - отправленное кассиру вычитается из доступного по заявкам на цепи: заявка
+#    живёт до подтверждения, и её сумма ещё сидит в остатке кошелька;
 #  - реквизиты бюджета показываются снимком с платежа, а не сегодняшние: они
 #    меняются приказами, а платили по тем, что действовали в день отправки.
 
@@ -27,8 +29,9 @@ sources:
     - components/controller/src/extensions/reports/application/services/withheld-tax.service.ts
     - components/controller/src/extensions/reports/application/resolvers/withheld-tax.resolver.ts
     - components/controller/src/extensions/reports/application/dto/withheld-tax.dto.ts
-    - components/controller/src/extensions/marketplace/infrastructure/innercoop/marketplace-innercoop-withheld-tax.adapter.ts
-    - components/innercoop/src/cross-plugin-ports/withheld-tax.port.ts
+    - components/controller/src/extensions/reports/application/services/withheld-tax-payout-sync.service.ts
+    - components/controller/src/extensions/reports/domain/ports/withheld-tax-blockchain.port.ts
+    - components/controller/src/extensions/reports/infrastructure/adapters/withheld-tax-blockchain.adapter.ts
   ui:
     - components/desktop/extensions/reports/pages/NdflPage/**
 
@@ -49,7 +52,10 @@ cases:
     level: backend
     kind: happy
     scenario: Бухгалтер отправляет удержанный налог на оплату кассиру
-    expect: сумма уходит источнику удержаний без искажений, в ответ — отправленная сумма
+    expect: >
+      платёж кассиру и заявка на цепи заводятся с одним хэшем — по нему
+      подтверждение кассира и найдёт платёж; кассир получает назначение
+      платежа и реквизиты бюджета готовыми
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
     status: passing
 
@@ -82,11 +88,30 @@ cases:
   - id: rep.tax.side.04
     level: backend
     kind: side
+    scenario: Кошелька удержанного налога ещё нет — удержаний не было
+    expect: остаток нулевой, отправлять в бюджет нечего
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.06
+    level: backend
+    kind: side
     scenario: >
-      В кооперативе нет расширения, ведущего удержания, — порт не привязан
+      Бухгалтер отправляет в бюджет больше удержанного либо то, что уже
+      отправлено кассиру и ждёт подтверждения
     expect: >
-      состояние нулевое, история пуста, а попытка заплатить отклоняется с
-      внятной причиной, а не молча
+      отказ — платить больше удержанного налоговый агент не вправе; доступная
+      сумма уменьшена на то, что уже у кассира; на цепь ничего не уходит
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.break.01
+    level: backend
+    kind: break
+    scenario: Цепь отклонила заявку на перечисление
+    expect: >
+      платёж кассира гасится, долг перед бюджетом остаётся целиком, а причина
+      отказа цепи доходит до бухгалтера читаемым текстом
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
     status: passing
 

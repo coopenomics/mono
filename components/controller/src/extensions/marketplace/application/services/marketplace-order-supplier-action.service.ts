@@ -1,3 +1,4 @@
+import { rethrowChainError } from '@coopenomics/extension-kit';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -23,7 +24,8 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
+import { normalizeChainTxHash } from '../shared/chain-tx.util';
+
 import {
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   type MarketplaceOrderDeclinedBySupplierEvent,

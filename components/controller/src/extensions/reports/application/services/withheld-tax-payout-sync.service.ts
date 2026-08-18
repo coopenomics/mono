@@ -11,8 +11,11 @@ import {
 } from '@coopenomics/innercoop';
 
 /**
- * Слушатель перечисления удержанного НДФЛ в бюджет (requirement b6, решение
- * владельца 2026-08-13).
+ * Слушатель перечисления удержанного налога в бюджет.
+ *
+ * Живёт на столе бухгалтера рядом с самой отправкой: платёж заводит он, и он
+ * же обязан узнать его судьбу. Программа-источник удержания к этому моменту
+ * своё дело сделала.
  *
  * `branch::taxconfirm` приходит inline-вызовом из `gateway::outcomplete`,
  * когда кассир подтвердил перевод по реквизитам налоговой — платёж
@@ -28,14 +31,14 @@ import {
  * на core-платеже как `hash`, поэтому платёж находится прямым поиском.
  */
 @Injectable()
-export class MarketplaceTaxPayoutSyncService {
+export class WithheldTaxPayoutSyncService {
   constructor(
     @Inject(PAYMENT_DESK_PORT)
     private readonly coreGateway: IPaymentDeskPort,
     @Inject(LOGGER_PORT)
     private readonly logger: ILoggerPort
   ) {
-    this.logger.setContext(MarketplaceTaxPayoutSyncService.name);
+    this.logger.setContext(WithheldTaxPayoutSyncService.name);
   }
 
   @OnEvent(

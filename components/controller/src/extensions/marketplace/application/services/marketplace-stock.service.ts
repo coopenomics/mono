@@ -1,3 +1,4 @@
+import { rethrowChainError } from '@coopenomics/extension-kit';
 import {
   BadRequestException,
   ConflictException,
@@ -48,7 +49,8 @@ import {
 import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import { rethrowChainError, normalizeChainTxHash } from '../shared/chain-tx.util';
+import { normalizeChainTxHash } from '../shared/chain-tx.util';
+
 import { MARKETPLACE_OFFER_APPROVED_EVENT } from '../events/marketplace-notification.events';
 
 export interface MarketplaceStockPublishInput {

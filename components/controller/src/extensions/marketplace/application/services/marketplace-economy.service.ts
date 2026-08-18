@@ -13,7 +13,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, HttpApiError, rethrowChainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -30,7 +30,7 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from './marketplace-ku-chairman.service';
-import { rethrowChainError } from '../shared/chain-tx.util';
+
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { ndflBreakdown } from '../shared/ndfl.util';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';

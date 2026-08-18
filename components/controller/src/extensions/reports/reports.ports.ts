@@ -12,10 +12,13 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_PORT,
   INDIVIDUAL_PORT,
   LEDGER2_HISTORY_PORT,
+  LOGGER_PORT,
   ORGANIZATION_PORT,
-  WITHHELD_TAX_PORT,
+  PAYMENT_DESK_PORT,
+  VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const reportsPorts = {
@@ -25,12 +28,15 @@ export const reportsPorts = {
     // датой рождения получателя выплаты — без карточки физлица её не собрать.
     INDIVIDUAL_PORT,
     LEDGER2_HISTORY_PORT,
+    LOGGER_PORT,
     ORGANIZATION_PORT,
+    // Удержанный налог: остаток общекооперативного кошелька и заявки на
+    // перечисление читаются прямо из цепи, а платёж кассиру заводится в
+    // реестре платежей. Заявку подписывает кооператив — отсюда ключ.
+    CHAIN_PORT,
+    PAYMENT_DESK_PORT,
+    VAULT_PORT,
   ],
   optional: [
-    // Удержанный налог ведёт то расширение, которое выплачивает доход
-    // физлицу. Его может не быть в кооперативе — тогда удерживать нечего, и
-    // раздел перечислений пуст.
-    WITHHELD_TAX_PORT,
   ],
 };

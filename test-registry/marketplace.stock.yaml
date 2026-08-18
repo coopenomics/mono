@@ -139,3 +139,7 @@ cases:
     expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
     status: passing
+
+# 2026-08-18: в файлах фичи изменилась только строка импорта — чистка отказа
+# цепи (`rethrowChainError`) уехала в каркас расширений, потому что в цепь
+# ходит не одно расширение. Поведение операций прежнее.

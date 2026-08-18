@@ -127,8 +127,6 @@ import {
   MarketplaceAidPayoutSyncService,
   MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
 } from './services/marketplace-aid-payout-sync.service';
-import { MarketplaceTaxService } from './services/marketplace-tax.service';
-import { MarketplaceTaxPayoutSyncService } from './services/marketplace-tax-payout-sync.service';
 import {
   MarketplaceAidCouncilSyncService,
   MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
@@ -406,8 +404,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceAidCouncilSyncService,
     // requirement b6 (2026-08-13) — удержанный НДФЛ: расчёт остатка долга
     // перед бюджетом, отправка платежа кассиру и слушатель его подтверждения.
-    MarketplaceTaxService,
-    MarketplaceTaxPayoutSyncService,
     // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
     // новая выплата кассиру, подтверждённая выплата поставщику).
     // Слушает per-contract event-bus, отправка через Novu без обратного
@@ -543,9 +539,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceAidPayoutSyncService,
     MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
     MarketplaceAidCouncilSyncService,
-    // requirement b6 (2026-08-13) — удержанный НДФЛ
-    MarketplaceTaxService,
-    MarketplaceTaxPayoutSyncService,
     // Story 6.1 / 6.3 / 6.4
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,

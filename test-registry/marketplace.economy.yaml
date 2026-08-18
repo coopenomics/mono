@@ -15,12 +15,12 @@ title: Экономика кооперативного участка — чле
 # branch::weights / branch::weighttotals (сетка), ledger2::userwallets
 # (балансы). Плановые расходы — общесистемный реестр расширения `expenses`.
 
-# 2026-08-17: интерфейс перечисления налога уехал со стола администратора на
-# стол бухгалтера — там ему место, там же и история платежей. Расчёт удержания
-# и заявка на цепи остались здесь: удерживает тот, кто платит доход. Стол
-# бухгалтера обращается сюда через порт контура, поэтому свои GraphQL-операции
-# налога отсюда убраны — точка входа обязана быть одна. Случаи расчёта и
-# ограничений отправки остались, интерфейсные проверки — в reports.withheld-tax.
+# 2026-08-18: перечисление удержанного налога целиком уехало на стол бухгалтера
+# (reports.withheld-tax) — вместе с чтением кошелька, заявкой на цепи и
+# слушателем кассира. Долг перед бюджетом общекооперативный: в один кошелёк
+# стекаются удержания любой программы, поэтому распоряжаться им Стол заказов не
+# вправе. Здесь остался только расчёт удержания в момент выплаты, а ставка для
+# него берётся из справочника юрисдикций — того же, откуда её берут формы.
 #
 # Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
 # пагинация, базовый DTO, порт документов и тип аккаунта переехали в
@@ -30,10 +30,8 @@ title: Экономика кооперативного участка — чле
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts
-    - components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-economy.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-economy.dto.ts
-    - components/controller/src/extensions/marketplace/infrastructure/innercoop/marketplace-innercoop-withheld-tax.adapter.ts
     - components/controller/src/extensions/marketplace/application/shared/ndfl.util.ts
   ui:
     - components/desktop/src/pages/Marketplace/**Economy**/**
@@ -176,10 +174,13 @@ cases:
     # Пункт плана заказчика «экономика распределяет членские взносы по
     # доверенным согласно сетке».
 
-  # --- Удержание НДФЛ с материальной помощи (решение владельца 13.08.2026) ---
-  # Кооператив стал налоговым агентом: заявление подаётся на сумму до налога,
-  # получатель получает её за вычетом 13 %, разница копится долгом перед
-  # бюджетом на счёте 68 и уходит одним платежом по решению бухгалтера.
+  # --- Удержание НДФЛ при выплате материальной помощи ---
+  # Кооператив — налоговый агент: заявление подаётся на сумму до налога,
+  # получатель получает её за вычетом ставки, разница становится долгом перед
+  # бюджетом. Здесь остаётся только расчёт удержания в момент выплаты —
+  # перечислением долга распоряжается стол бухгалтера (reports.withheld-tax):
+  # в один кошелёк стекаются удержания любой программы, и владеть ими Стол
+  # заказов не может.
 
   - id: mkt.eco.happy.04
     level: backend
@@ -187,19 +188,9 @@ cases:
     scenario: >
       Заявление на материальную помощь подано на сумму до удержания налога
     expect: >
-      кассиру выставляется платёж за вычетом 13 %, с персонального кошелька
+      кассиру выставляется платёж за вычетом налога, с персонального кошелька
       списывается вся сумма заявления
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing
-
-  - id: mkt.eco.happy.05
-    level: backend
-    kind: happy
-    scenario: Удержанный налог отправляется в бюджет по запросу стола бухгалтера
-    expect: >
-      создаётся исходящий платёж на кооператив с назначением «единый налоговый
-      платёж»; после подтверждения кассиром долг перед бюджетом уменьшается
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     status: passing
 
   - id: mkt.eco.side.10
@@ -212,48 +203,3 @@ cases:
     test: components/controller/src/extensions/marketplace/application/shared/ndfl.util.spec.ts
     status: passing
     # Расхождение округления развело бы платёжку кассира и проводку контракта.
-
-  - id: mkt.eco.side.11
-    level: backend
-    kind: side
-    scenario: Бухгалтер отправляет в бюджет больше, чем удержано
-    expect: отказ — платить больше удержанного налоговый агент не вправе
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing
-
-  - id: mkt.eco.side.12
-    level: backend
-    kind: side
-    scenario: >
-      Часть удержанного уже отправлена в бюджет и ждёт подтверждения кассиром
-    expect: доступная к отправке сумма уменьшается на то, что уже у кассира
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing
-
-  - id: mkt.eco.side.13
-    level: backend
-    kind: side
-    scenario: Кошелька удержанного налога ещё нет — удержаний не было
-    expect: остаток нулевой, отправить в бюджет нечего
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing
-
-  - id: mkt.eco.break.01
-    level: backend
-    kind: break
-    scenario: Цепь отклонила отправку налогового платежа
-    expect: платёж отменяется, долг перед бюджетом остаётся целиком
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing
-
-  - id: mkt.eco.side.14
-    level: backend
-    kind: side
-    scenario: >
-      Стол бухгалтера запрашивает историю перечислений после того, как кассир
-      подтвердил платёж
-    expect: >
-      история берётся из реестра платежей, а не из цепи (подтверждённая заявка
-      там уже стёрта); реквизиты отдаются снимком того дня, когда платили
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-tax.service.spec.ts
-    status: passing

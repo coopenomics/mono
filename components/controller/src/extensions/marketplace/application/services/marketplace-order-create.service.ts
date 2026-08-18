@@ -1,3 +1,4 @@
+import { rethrowChainError } from '@coopenomics/extension-kit';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
@@ -42,7 +43,7 @@ import {
   MarketplaceOfferStatuses,
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
-import { rethrowChainError } from '../shared/chain-tx.util';
+
 
 export interface MarketplaceOrderCreateInputDto {
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */

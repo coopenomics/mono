@@ -31,14 +31,3 @@ export function normalizeChainTxHash(tx: unknown, txHashMissingMessage: string):
   }
   return hash;
 }
-
-/**
- * Чистит `assertion failure with message: ...` из `eosio::check` и пробрасывает
- * пайщику как BadRequest с человекочитаемым текстом (без EOSIO-обёртки).
- */
-export function rethrowChainError(error: unknown): never {
-  const raw: string = (error as { message?: string })?.message ?? String(error);
-  const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-  const clean = match ? match[1].trim() : raw;
-  throw new BadRequestException(clean);
-}

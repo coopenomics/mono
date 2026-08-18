@@ -1,4 +1,4 @@
-import { calcNdflNet, calcNdflTax, ndflBreakdown, NDFL_RATE_PERCENT } from './ndfl.util';
+import { calcNdflNet, calcNdflTax, ndflBreakdown, ndflRatePercent } from './ndfl.util';
 
 /**
  * Расчёт удержания зеркалит `BranchNdfl` контракта. Разойтись они не должны:
@@ -7,7 +7,7 @@ import { calcNdflNet, calcNdflTax, ndflBreakdown, NDFL_RATE_PERCENT } from './nd
  */
 describe('ndfl.util — удержание налога с материальной помощи', () => {
   it('ставка зафиксирована на 13 %', () => {
-    expect(NDFL_RATE_PERCENT).toBe(13);
+    expect(ndflRatePercent()).toBe(13);
   });
 
   it('считает от суммы заявления: 10 000 → 1 300 налога и 8 700 на руки', () => {
