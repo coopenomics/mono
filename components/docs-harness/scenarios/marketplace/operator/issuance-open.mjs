@@ -36,7 +36,6 @@ const ISSUE_QUANTITY = 8;
 
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи заказа',
-  docPath: 'new/marketplace/operator/issuance-open.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-open',
   role: 'user',
   mode: 'docs',

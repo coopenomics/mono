@@ -37,7 +37,6 @@ const INSPECTION_RESULT =
 
 export const meta = {
   title: 'Стол ПВЗ — приём возвращаемого имущества',
-  docPath: 'new/marketplace/operator/return-accept.md',
   assetsDir: 'assets/new/marketplace/operator/return-accept',
   role: 'user',
   mode: 'docs',

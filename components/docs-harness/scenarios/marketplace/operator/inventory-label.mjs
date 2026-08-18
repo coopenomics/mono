@@ -39,7 +39,6 @@ const LABEL_CODE = '4600000000017';
 
 export const meta = {
   title: 'Стол ПВЗ — маркировка имущества',
-  docPath: 'new/marketplace/operator/inventory-label.md',
   assetsDir: 'assets/new/marketplace/operator/inventory-label',
   role: 'user',
   mode: 'docs',

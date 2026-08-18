@@ -28,7 +28,6 @@ export const REPUBLISH_WARRANTY_DAYS = 14;
 
 export const meta = {
   title: 'Стол ПВЗ — перепредложение остатка кооператива',
-  docPath: 'new/marketplace/operator/stock-republish.md',
   assetsDir: 'assets/new/marketplace/operator/stock-republish',
   role: 'user',
   mode: 'docs',

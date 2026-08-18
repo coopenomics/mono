@@ -36,8 +36,8 @@ export const FACT_UNIT_PRICE = 200;
 
 export const meta = {
   title: 'Стол ПВЗ — приёмка партии поставщика',
-  docPath: 'new/marketplace/operator/apl-reception-create.md',
-  assetsDir: 'assets/new/marketplace/operator/apl-reception-create',
+  docPath: 'new/marketplace/operator/reception-flow.md',
+  assetsDir: 'assets/new/marketplace/operator/reception-flow',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',

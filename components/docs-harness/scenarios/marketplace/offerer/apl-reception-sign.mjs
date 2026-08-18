@@ -22,8 +22,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол поставщика — партия на приёмке',
-  docPath: 'new/marketplace/offerer/apl-reception-sign.md',
-  assetsDir: 'assets/new/marketplace/offerer/apl-reception-sign',
+  docPath: 'new/marketplace/offerer/reception-sign.md',
+  assetsDir: 'assets/new/marketplace/offerer/reception-sign',
   role: 'user',
   mode: 'docs',
   fixture: 'ivanpetrov',

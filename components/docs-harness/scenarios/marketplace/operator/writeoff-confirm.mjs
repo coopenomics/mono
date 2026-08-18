@@ -23,8 +23,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — проведение списания со склада',
-  docPath: 'new/marketplace/operator/writeoff-confirm.md',
-  assetsDir: 'assets/new/marketplace/operator/writeoff-confirm',
+  docPath: 'new/marketplace/operator/writeoffs.md',
+  assetsDir: 'assets/new/marketplace/operator/writeoffs',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',

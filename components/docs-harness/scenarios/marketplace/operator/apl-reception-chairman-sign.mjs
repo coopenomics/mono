@@ -26,7 +26,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — закрывающая подпись приёмки',
-  docPath: 'new/marketplace/operator/apl-reception-chairman-sign.md',
   assetsDir: 'assets/new/marketplace/operator/apl-reception-chairman-sign',
   role: 'user',
   mode: 'docs',

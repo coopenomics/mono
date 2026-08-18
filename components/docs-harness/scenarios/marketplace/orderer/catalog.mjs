@@ -83,4 +83,41 @@ export default async ({ page, shot, expect }) => {
       },
     },
   );
+
+  // Карточка предложения: полное описание, фотографии, цена и остаток.
+  await page.locator("text=Мёд цветочный").first().click();
+  await page.waitForURL(/\/market\/offer\//, { timeout: 20000 });
+  await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    "02-offer-detail",
+    "Карточка предложения открывается по клику из каталога: фотографии, полное описание, цена за единицу с учётом наценки кооператива, поставщик и условия поставки на выбранный пункт выдачи.",
+    {
+      expect: async (p) => {
+        await p.locator("text=Мёд цветочный").first().waitFor({ state: "visible", timeout: 20000 });
+      },
+    },
+  );
+
+  // Диалог количества: показываем, но в корзину НЕ кладём — состояние корзины
+  // принадлежит сценарию order-create, лишняя позиция сломала бы его суммы.
+  await page.locator('button:has-text("В корзину")').first().click();
+  await page.waitForTimeout(1500);
+
+  await shot(
+    page,
+    "03-quantity-dialog",
+    "Кнопка «В корзину» открывает выбор количества. Количество указывается в единицах товара (кг, литры, штуки); итоговая сумма пересчитывается сразу. «Добавить» кладёт позицию в корзину.",
+    {
+      expect: async (p) => {
+        await p.locator(".q-dialog").first().waitFor({ state: "visible", timeout: 10000 });
+      },
+    },
+  );
+
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(500);
 };

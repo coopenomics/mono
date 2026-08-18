@@ -7,8 +7,8 @@ import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAsChairman } fro
 
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи',
-  docPath: 'new/marketplace/branch-chairman/issuance-open.md',
-  assetsDir: 'assets/new/marketplace/branch-chairman/issuance-open',
+  docPath: 'new/marketplace/operator/issuance.md',
+  assetsDir: 'assets/new/marketplace/operator/issuance',
   role: 'chairman',
 };
 

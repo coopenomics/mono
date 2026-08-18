@@ -24,8 +24,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол администратора — реестр заказов кооператива',
-  docPath: 'new/marketplace/chairman/orders-registry.md',
-  assetsDir: 'assets/new/marketplace/chairman/orders-registry',
+  docPath: 'new/marketplace/admin/orders-registry.md',
+  assetsDir: 'assets/new/marketplace/admin/orders-registry',
   role: 'chairman',
   mode: 'docs',
   feature: 'marketplace.order',

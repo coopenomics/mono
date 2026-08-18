@@ -25,8 +25,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — экономика участка: взносы и распределение',
-  docPath: 'new/marketplace/operator/branch-economy.md',
-  assetsDir: 'assets/new/marketplace/operator/branch-economy',
+  docPath: 'new/marketplace/operator/economy.md',
+  assetsDir: 'assets/new/marketplace/operator/economy',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',

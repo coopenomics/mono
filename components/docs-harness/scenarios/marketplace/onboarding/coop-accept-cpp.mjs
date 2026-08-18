@@ -24,8 +24,8 @@ export const meta = {
   feature: 'marketplace.onboarding',
   cases: [],
   title: 'L1 онбординг — приём ЦПП «Стол заказов» кооперативом',
-  docPath: 'new/marketplace/onboarding/coop-accept-cpp.md',
-  assetsDir: 'assets/new/marketplace/onboarding/coop-accept-cpp',
+  docPath: 'new/marketplace/connection/coop-accept-cpp.md',
+  assetsDir: 'assets/new/marketplace/connection/coop-accept-cpp',
   role: 'chairman',
 };
 

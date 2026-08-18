@@ -15,8 +15,8 @@ export const meta = {
   feature: 'marketplace.onboarding',
   cases: ['mkt.onb.happy.01'],
   title: 'L1 онбординг — установка расширения «market»',
-  docPath: 'new/marketplace/onboarding/install-market.md',
-  assetsDir: 'assets/new/marketplace/onboarding/install-market',
+  docPath: 'new/marketplace/connection/install-market.md',
+  assetsDir: 'assets/new/marketplace/connection/install-market',
   role: 'chairman',
 };
 

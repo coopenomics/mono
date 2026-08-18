@@ -38,8 +38,8 @@ export const ORDER_QUANTITY = 10;
 
 export const meta = {
   title: 'Стол заказчика — оформление заказа',
-  docPath: 'new/marketplace/orderer/order-create.md',
-  assetsDir: 'assets/new/marketplace/orderer/order-create',
+  docPath: 'new/marketplace/orderer/cart-order.md',
+  assetsDir: 'assets/new/marketplace/orderer/cart-order',
   role: 'user',
   mode: 'docs',
   fixture: 'ekaterina',

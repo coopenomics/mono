@@ -19,7 +19,6 @@ const WRITEOFF_REASON = 'Возвращённый по гарантии това
 
 export const meta = {
   title: 'Стол председателя — выделение имущества к списанию',
-  docPath: 'new/marketplace/chairman/writeoff-submit.md',
   assetsDir: 'assets/new/marketplace/chairman/writeoff-submit',
   role: 'chairman',
   mode: 'docs',

@@ -26,7 +26,6 @@ const COOP_STOCK_LABEL = 'Со склада кооператива';
 
 export const meta = {
   title: 'Стол заказчика — заказ остатка кооператива',
-  docPath: 'new/marketplace/orderer/stock-order.md',
   assetsDir: 'assets/new/marketplace/orderer/stock-order',
   role: 'user',
   mode: 'docs',

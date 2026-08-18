@@ -28,7 +28,6 @@ const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ekater
 
 export const meta = {
   title: 'Стол ПВЗ — правка количества и цены при выдаче',
-  docPath: 'new/marketplace/operator/issuance-correction.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-correction',
   role: 'user',
   mode: 'docs',

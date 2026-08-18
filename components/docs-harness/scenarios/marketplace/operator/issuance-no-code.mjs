@@ -28,7 +28,6 @@ const BOGUS_CODE = 'НЕТ-ТАКОГО-КОДА-123';
 
 export const meta = {
   title: 'Стол ПВЗ — выдача не открывается без кода получателя',
-  docPath: 'new/marketplace/operator/issuance-no-code.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-no-code',
   role: 'user',
   mode: 'docs',

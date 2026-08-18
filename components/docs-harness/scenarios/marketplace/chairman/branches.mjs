@@ -10,8 +10,8 @@ import { loginAsChairman, dismissOnboardingDialogs, pickBranchIfAsked } from '..
 
 export const meta = {
   title: 'Сеть ПВЗ: реестр кооперативных участков',
-  docPath: 'new/marketplace/chairman/branches.md',
-  assetsDir: 'assets/new/marketplace/chairman/branches',
+  docPath: 'new/marketplace/admin/issuance-points.md',
+  assetsDir: 'assets/new/marketplace/admin/issuance-points',
   role: 'chairman',
 };
 

@@ -30,7 +30,6 @@ const RETURN_REASON =
 
 export const meta = {
   title: 'Стол заказчика — возврат имущества, купленного из остатка',
-  docPath: 'new/marketplace/orderer/stock-return.md',
   assetsDir: 'assets/new/marketplace/orderer/stock-return',
   role: 'user',
   mode: 'docs',

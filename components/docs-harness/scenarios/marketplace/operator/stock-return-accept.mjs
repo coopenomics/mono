@@ -21,7 +21,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — приём возврата по заказу из остатка',
-  docPath: 'new/marketplace/operator/stock-return-accept.md',
   assetsDir: 'assets/new/marketplace/operator/stock-return-accept',
   role: 'user',
   mode: 'docs',

@@ -20,8 +20,8 @@ export const meta = {
   cases: ['mkt.offer.happy.02'],
   prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
   title: 'Стол председателя — модерация предложений',
-  docPath: 'new/marketplace/chairman/offer-moderation.md',
-  assetsDir: 'assets/new/marketplace/chairman/offer-moderation',
+  docPath: 'new/marketplace/admin/moderation.md',
+  assetsDir: 'assets/new/marketplace/admin/moderation',
   role: 'chairman',
 };
 

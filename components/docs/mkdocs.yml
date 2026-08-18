@@ -178,6 +178,7 @@ nav:
   - Стол заказов:
     - Введение: new/marketplace/index.md
     - Подключение:
+      - Установка приложения: new/marketplace/connection/install-market.md
       - Подключение кооперативом: new/marketplace/connection/coop-accept-cpp.md
       - Выбор ЦПП пайщиком: new/marketplace/connection/member-pick-cpp.md
     - Стол заказчика:

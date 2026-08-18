@@ -21,8 +21,8 @@ const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ordere
 
 export const meta = {
   title: 'Стол ПВЗ — выдача заказа из остатка второму пайщику',
-  docPath: 'new/marketplace/operator/stock-issuance.md',
-  assetsDir: 'assets/new/marketplace/operator/stock-issuance',
+  docPath: 'new/marketplace/operator/stock.md',
+  assetsDir: 'assets/new/marketplace/operator/stock',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',

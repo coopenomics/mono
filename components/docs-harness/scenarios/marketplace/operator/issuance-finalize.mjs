@@ -25,7 +25,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — история выдач участка',
-  docPath: 'new/marketplace/operator/issuance-finalize.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-finalize',
   role: 'user',
   mode: 'docs',

@@ -333,3 +333,27 @@ cases:
       поставщик обязан при первой же правке
     test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
     status: passing
+
+  - id: mkt.offer.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр поставщиков — в нём все допущенные
+      к публикации пайщики
+    expect: >
+      реестр непуст, допущенные фазой 04/06 поставщики видны; отсюда
+      одобряются заявки и добавляются поставщики напрямую
+    test: components/docs-harness/scenarios/marketplace/chairman/suppliers-registry.mjs
+    status: passing
+
+  - id: mkt.offer.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр предложений — все предложения кооператива
+      во всех статусах
+    expect: >
+      опубликованные позиции витрины видны в реестре; карточка предложения
+      открывается в режиме просмотра
+    test: components/docs-harness/scenarios/marketplace/chairman/offers-registry.mjs
+    status: passing
