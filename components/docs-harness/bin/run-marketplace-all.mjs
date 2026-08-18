@@ -363,6 +363,10 @@ if (needed.size) {
 const preparePlan = plan.filter((p) => p.group.startsWith('L0'));
 plan = plan.filter((p) => !p.group.startsWith('L0'));
 
+const started = Date.now();
+const results = [];
+let currentGroup = null;
+
 if (preparePlan.length) {
   console.log('\n▸ L0: девственный стенд — до подготовки');
   for (const item of preparePlan) runScenarioItem(item);
@@ -380,10 +384,6 @@ if (prepareSpecs.length) {
 }
 
 // ── Прогон ─────────────────────────────────────────────────────────────────
-const started = Date.now();
-const results = [];
-let currentGroup = null;
-
 // Тело прогона одного сценария вынесено в функцию: L0-план зовёт её ДО
 // глобальных prepare-фаз (hoisting function declaration это позволяет).
 function runScenarioItem(item) {
