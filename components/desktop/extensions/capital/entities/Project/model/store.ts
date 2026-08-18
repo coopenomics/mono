@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, Ref, computed } from 'vue';
+import { ref, Ref } from 'vue';
 import { api } from '../api';
 import { isComponent, isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import type {
@@ -17,19 +17,15 @@ import type {
 
 const namespace = 'projectStore';
 
-interface IProjectFilters {
-  statuses: string[];
-  priorities: string[];
-  creators: string[];
-  master?: string;
-}
-
 interface IProjectStore {
   projects: Ref<IProjectsPagination>;
+  /** Плоский список компонентов кооператива (раздел «Компоненты») */
+  components: Ref<IProjectsPagination>;
   /** Кэш загруженных проектов/компонентов по hash (компоненты не попадают в items мастерской) */
   entities: Ref<Record<string, IProject>>;
   getProject: (projectHash: string) => IProject | undefined;
   loadProjects: (data: IGetProjectsInput, append?: boolean) => Promise<IProjectsPagination>;
+  loadComponents: (data: IGetProjectsInput, append?: boolean) => Promise<IProjectsPagination>;
   addProjectToList: (projectData: IProject) => void;
   removeProjectFromList: (projectHash: string) => void;
   loadProject: (data: IGetProjectInput) => Promise<IGetProjectOutput>;
@@ -39,11 +35,6 @@ interface IProjectStore {
   ) => Promise<IProjectWithRelations>;
   loadProjectLogs: (data: IGetProjectLogsInput) => Promise<IGetProjectLogsOutput>;
   isMaster: (project_hash: string, username: string) => Promise<boolean>;
-  // Фильтры проектов
-  projectFilters: Ref<IProjectFilters>;
-  setProjectFilters: (filters: IProjectFilters) => void;
-  resetProjectFilters: () => void;
-  hasActiveProjectFilters: Ref<boolean>;
 }
 
 export const useProjectStore = defineStore(namespace, (): IProjectStore => {
@@ -53,22 +44,37 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     totalPages: 1,
     currentPage: 1,
   });
+  const components = ref<IProjectsPagination>({
+    items: [],
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+  });
   const entities = ref<Record<string, IProject>>({});
   const projectWithRelations = ref<IProjectWithRelations | null>(null);
 
-  // Фильтры проектов
-  const projectFilters = ref<IProjectFilters>({
-    statuses: [],
-    priorities: [],
-    creators: [],
-    master: undefined,
-  });
+  /**
+   * Обновить строку в плоском списке компонентов раздела «Компоненты».
+   * Список живёт отдельно от мастерской, поэтому правки (мастер, статус,
+   * заголовок), пришедшие через loadProject, иначе до него не доходят.
+   */
+  const syncIntoComponentsList = (project: IProject) => {
+    const idx = components.value.items.findIndex(
+      (c) => c.project_hash === project.project_hash,
+    );
+    if (idx === -1) return;
+    components.value.items.splice(idx, 1, {
+      ...components.value.items[idx],
+      ...project,
+    });
+  };
 
   const upsertEntity = (project: IProject) => {
     entities.value = {
       ...entities.value,
       [project.project_hash]: project,
     };
+    syncIntoComponentsList(project);
   };
 
   /** Обновить вложенный компонент в components[] родителя в списке мастерской */
@@ -100,6 +106,10 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
       const nested = p.components?.find((c) => c.project_hash === projectHash);
       if (nested) return nested as unknown as IProject;
     }
+
+    const flat = components.value.items.find((c) => c.project_hash === projectHash);
+    if (flat) return flat;
+
     return undefined;
   };
 
@@ -123,6 +133,36 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     }
 
     return projects.value;
+  };
+
+  /**
+   * Плоский список компонентов кооператива для раздела «Компоненты».
+   * Отдельный state: мастерская держит в items только корневые проекты, а
+   * здесь items — сами компоненты (filter.is_component на бэкенде).
+   */
+  const loadComponents = async (
+    data: IGetProjectsInput,
+    append = false,
+  ): Promise<IProjectsPagination> => {
+    const loadedData = await api.loadProjects(data);
+
+    if (append && components.value.items.length > 0) {
+      components.value = {
+        ...loadedData,
+        items: [...components.value.items, ...loadedData.items],
+      };
+    } else {
+      components.value = loadedData;
+    }
+
+    for (const item of components.value.items) {
+      entities.value = {
+        ...entities.value,
+        [item.project_hash]: item,
+      };
+    }
+
+    return components.value;
   };
 
   const addProjectToList = (projectData: IProject) => {
@@ -157,6 +197,13 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     if (idx !== -1) {
       projects.value.items.splice(idx, 1);
       projects.value.totalCount = Math.max(0, projects.value.totalCount - 1);
+    }
+    const flatIdx = components.value.items.findIndex(
+      (c) => c.project_hash === projectHash,
+    );
+    if (flatIdx !== -1) {
+      components.value.items.splice(flatIdx, 1);
+      components.value.totalCount = Math.max(0, components.value.totalCount - 1);
     }
     if (entities.value[projectHash]) {
       const next = { ...entities.value };
@@ -229,45 +276,19 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     return project.master === username;
   };
 
-  // Методы для работы с фильтрами проектов
-  const setProjectFilters = (filters: IProjectFilters) => {
-    projectFilters.value = { ...filters };
-  };
-
-  const resetProjectFilters = () => {
-    projectFilters.value = {
-      statuses: [],
-      priorities: [],
-      creators: [],
-      master: undefined,
-    };
-  };
-
-  const hasActiveProjectFilters = computed(() => {
-    return (
-      projectFilters.value.statuses.length > 0 ||
-      projectFilters.value.priorities.length > 0 ||
-      projectFilters.value.creators.length > 0 ||
-      !!projectFilters.value.master
-    );
-  });
-
   return {
     projects,
+    components,
     entities,
     getProject,
     projectWithRelations,
     loadProjects,
+    loadComponents,
     addProjectToList,
     removeProjectFromList,
     loadProject,
     loadProjectWithRelations,
     loadProjectLogs,
     isMaster,
-    // Фильтры проектов
-    projectFilters,
-    setProjectFilters,
-    resetProjectFilters,
-    hasActiveProjectFilters,
   };
 });

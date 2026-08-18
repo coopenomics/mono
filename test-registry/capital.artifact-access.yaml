@@ -21,6 +21,11 @@ title: Кто читает документы проекта и его пере�
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 2026-08-17 (раздел «Компоненты», фильтры и сортировка): в репозиториях
+# задач, проектов и артефактов имя поля сортировки перестало подставляться в
+# ORDER BY как есть — оно сверяется с колонками сущности (capital.list-filters-sort).
+# Правила доступа и набор случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts

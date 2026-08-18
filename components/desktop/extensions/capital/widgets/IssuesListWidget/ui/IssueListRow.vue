@@ -129,8 +129,11 @@ const canChangeEstimate = computed(
   justify-content: center;
 }
 
+// Зазор справа шире, чем у проектов/компонентов: у тех между ID и
+// заголовком стоит слот статус-иконки, у задачи заголовок идёт сразу
 .row-id {
-  width: 96px;
+  min-width: 28px;
+  padding-right: var(--p-3);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -211,28 +214,31 @@ const canChangeEstimate = computed(
 }
 
 // 3. Actions — фиксированная колоночная сетка справа, синхронная со
-// строками проектов/компонентов (см. .row-cells в их виджетах).
+// строками проектов/компонентов (см. .row-cells в их виджетах). Ширины
+// плотные, по самому широкому контенту колонки — время | статус | люди
+// читаются цельным блоком у правого края, без растянутых пустот
 .actions-block {
   display: flex;
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
+  gap: var(--p-3);
 }
 
 .cell-time {
-  width: 110px;
+  width: 80px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-side {
-  width: 132px;
+  width: 112px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-actions {
-  width: 160px;
+  width: 80px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -250,6 +256,16 @@ const canChangeEstimate = computed(
   .title-block {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  // Заголовок переносится максимум на две строки и обрезается многоточием:
+  // однострочный ellipsis на узком экране оставляет от названия пару слов
+  .title-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .actions-block {

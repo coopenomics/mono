@@ -16,6 +16,12 @@ export interface BaseInputProps {
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'textarea';
   /** Авторост высоты для type="textarea" */
   autogrow?: boolean;
+  /**
+   * Сколько строк показывать у `type="textarea"` до ввода. Поле в одну строку
+   * не сообщает, что сюда ждут развёрнутый текст, а `autogrow` растит его
+   * только по факту ввода — стартовую высоту задаём этим.
+   */
+  rows?: number;
   /** Маска ввода Quasar: `#` — цифра (например `####` — серия паспорта, `###-###` — код подразделения) */
   mask?: string;
   /** Моноширинный шрифт (для аккаунт-имён, hash, и т.п.) */

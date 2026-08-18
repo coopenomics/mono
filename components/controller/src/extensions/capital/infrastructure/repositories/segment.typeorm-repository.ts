@@ -15,6 +15,7 @@ import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
 import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -478,11 +479,11 @@ export class SegmentTypeormRepository
     } else {
       // Для обычного режима применяем пагинацию в запросе
       // Применяем сортировку
-      if (validatedOptions.sortBy) {
-        queryBuilder = queryBuilder.orderBy(`s.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-      } else {
-        queryBuilder = queryBuilder.orderBy('s._created_at', 'DESC');
-      }
+      const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+      queryBuilder = queryBuilder.orderBy(
+        `s.${sortColumn}`,
+        validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+      );
 
       // Получаем общее количество записей
       const totalCount = await queryBuilder.getCount();

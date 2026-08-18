@@ -202,35 +202,17 @@ const resetScrollState = () => {
   pagination.value.rowsNumber = 0;
 };
 
-// Определяем столбцы таблицы задач
+// Ровно одна колонка: тело рендерит всю строку одной ячейкой (IssueListRow),
+// хедер скрыт. Больше колонок нельзя — virtual-scroll вставляет первой
+// padding-строку с colspan = числу колонок, и table-layout: fixed сжимает
+// единственную ячейку тела в ширину первой из N колонок
 const columns = [
   {
-    name: 'expand',
+    name: 'row',
     label: '',
-    align: 'center' as const,
+    align: 'left' as const,
     field: '' as const,
     sortable: false,
-  },
-  {
-    name: 'id',
-    label: 'ID',
-    align: 'left' as const,
-    field: 'id' as const,
-    sortable: true,
-  },
-  {
-    name: 'title',
-    label: 'Задача',
-    align: 'left' as const,
-    field: 'title' as const,
-    sortable: true,
-  },
-  {
-    name: 'status',
-    label: 'Статус',
-    align: 'right' as const,
-    field: 'status' as const,
-    sortable: true,
   },
 ];
 
@@ -325,7 +307,9 @@ onMounted(async () => {
 // table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
 // контент: длинный title распирает строку шире контейнера, actions-блок
 // уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
-.q-table {
+// Обязательно через :deep — <table.q-table> внутри QTable не несёт
+// scoped-атрибут, без :deep правило молча не применяется
+.list-surface :deep(.q-table) {
   table-layout: fixed;
   width: 100%;
 

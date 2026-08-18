@@ -14,6 +14,7 @@ import type { ArtifactAccessScope } from '../../domain/repositories/artifact-acc
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.
@@ -611,11 +612,11 @@ export class ProjectTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`p.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('p._created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `p.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);
