@@ -53,12 +53,6 @@ q-card.column.no-wrap.edit-req-panel(
               :target-type='FavoriteTargetType.ARTIFACT'
               :target-hash='requirement.story_hash'
             )
-            EntityIdBadge(
-              v-if='shortId'
-              :raw-id='shortId'
-              copy-on-click
-              :copy-value='requirement?.story_hash'
-            )
             BaseButton(
               v-if='variant === "dialog"'
               variant='ghost'
@@ -117,7 +111,6 @@ import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
 import { BaseButton } from 'src/shared/ui/base';
-import { EntityIdBadge } from 'src/shared/ui';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
@@ -153,11 +146,6 @@ const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const formatIcon = computed(() =>
   props.requirement ? storyContentIcon(props.requirement) : 'description',
-);
-
-// Своего короткого id у артефактов нет — показываем начало хеша, копируется полный
-const shortId = computed(() =>
-  props.requirement?.story_hash ? props.requirement.story_hash.slice(0, 6).toUpperCase() : '',
 );
 
 const localTitle = ref('');
