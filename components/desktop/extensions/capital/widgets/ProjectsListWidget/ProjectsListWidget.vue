@@ -365,6 +365,14 @@ const columns = [
   overflow-y: auto;
 }
 
+// table-layout: fixed — иначе auto-раскладка считает ширину ячейки по
+// nowrap-контенту вложенных списков задач, таблица распирается шире
+// вьюпорта и на мобильном появляется горизонтальный скролл
+.q-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
 // Структурные ширины колонок строки проекта (привязаны к
 // virtual-scroll-item-size=48 — не spacing, токенам не подлежат)
 .project-row {
@@ -379,7 +387,8 @@ const columns = [
 }
 
 .project-row__id {
-  width: 96px;
+  min-width: 44px;
+  padding-right: var(--p-2);
   flex-shrink: 0;
 }
 
@@ -391,12 +400,30 @@ const columns = [
 }
 
 // Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,
-// сами виджеты при одиночном использовании отступа не имеют
+// сами виджеты при одиночном использовании отступа не имеют.
+// Вертикальная линия по оси chevron'а — «горизонт» вложения: без неё
+// раскрытый блок сливается с соседними строками верхнего уровня
 .project-row__nested {
+  position: relative;
   padding: 0 0 0 var(--p-7) !important;
+  min-width: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--p-line);
+  }
 
   @media (max-width: 640px) {
-    padding-left: var(--p-3) !important;
+    padding-left: var(--p-4) !important;
+
+    &::before {
+      left: 7px;
+    }
   }
 }
 

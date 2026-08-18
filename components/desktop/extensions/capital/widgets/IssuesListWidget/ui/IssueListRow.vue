@@ -130,7 +130,8 @@ const canChangeEstimate = computed(
 }
 
 .row-id {
-  width: 96px;
+  min-width: 44px;
+  padding-right: var(--p-2);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -250,6 +251,16 @@ const canChangeEstimate = computed(
   .title-block {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  // Заголовок переносится максимум на две строки и обрезается многоточием:
+  // однострочный ellipsis на узком экране оставляет от названия пару слов
+  .title-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .actions-block {

@@ -106,7 +106,8 @@ const parentLabel = computed(() =>
 }
 
 .component-row__id {
-  width: 96px;
+  min-width: 44px;
+  padding-right: var(--p-2);
   flex-shrink: 0;
 }
 
