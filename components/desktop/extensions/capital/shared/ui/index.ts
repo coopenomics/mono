@@ -7,3 +7,4 @@ export * from './FilterDialogWithButton';
 export * from './SortMenuButton';
 export * from './CapitalSectionEmpty';
 export * from './PrivateShieldIcon';
+export * from './PriorityControl';

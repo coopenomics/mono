@@ -104,6 +104,8 @@ const props = defineProps<{
   canManageIssues?: boolean;
   /** Личный проект/компонент — показать щит у задач */
   isPrivate?: boolean;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }>();
 
 const emit = defineEmits<{
@@ -150,7 +152,7 @@ watch(() => props.projectHash, async (newProjectHash, oldProjectHash) => {
 });
 
 // Следим за изменениями фильтров и сбрасываем состояние
-watch([() => props.statuses, () => props.priorities, () => props.creators, () => props.master], () => {
+watch([() => props.statuses, () => props.priorities, () => props.creators, () => props.master, () => props.sortBy, () => props.sortOrder], () => {
   resetScrollState();
   loadIssues(1, false);
 }, { deep: true });
@@ -249,8 +251,8 @@ const loadIssues = async (page = 1, append = false) => {
       options: {
         page,
         limit: props.compact ? 50 : 5, // В компактном режиме загружаем больше, в полноэкранном - постранично
-        sortBy: '_created_at',
-        sortOrder: 'DESC',
+        sortBy: props.sortBy || '_created_at',
+        sortOrder: props.sortOrder || 'DESC',
       },
     }, props.projectHash, append); // Передаем projectHash и флаг append для объединения результатов
 

@@ -51,6 +51,8 @@
   .col-auto.row-cells
     .cell-time
     .cell-side
+      // Приоритет — тот же слот, где у задач статус-чип
+      ProjectPriorityChip(:project='component')
     .cell-actions
       // Мастер — ответственный за компонент (зеркально исполнителям задач)
       SetMasterAvatar(:project='component')
@@ -64,6 +66,7 @@ import {
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { ProjectPriorityChip } from 'app/extensions/capital/features/Project/SetPriority';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { Zeus } from '@coopenomics/sdk';
 import { EntityIdBadge } from 'src/shared/ui';

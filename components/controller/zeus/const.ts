@@ -287,6 +287,7 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalProjectFilter:{
 		has_issues_with_priorities:"IssuePriority",
 		has_issues_with_statuses:"IssueStatus",
+		priorities:"ProjectPriority",
 		statuses:"ProjectStatus"
 	},
 	CapitalResumeTimerInput:{
@@ -1656,6 +1657,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalSetProjectDevelopmentRepositoryUrl:{
 			data:"SetCapitalProjectDevelopmentRepositoryUrlInput"
 		},
+		capitalSetProjectPriority:{
+			data:"SetCapitalProjectPriorityInput"
+		},
 		capitalSignActAsChairman:{
 			data:"SignActAsChairmanInput"
 		},
@@ -2477,6 +2481,7 @@ export const AllTypesProps: Record<string,any> = {
 	ProjectGenerationContractGenerateDocumentInput:{
 
 	},
+	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
@@ -3263,6 +3268,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetCapitalProjectDevelopmentRepositoryUrlInput:{
 
 	},
+	SetCapitalProjectPriorityInput:{
+		priority:"ProjectPriority"
+	},
 	SetConfigInput:{
 		config:"ConfigInput"
 	},
@@ -3657,6 +3665,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4365,6 +4374,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4399,6 +4409,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4458,6 +4469,7 @@ export const ReturnTypes: Record<string,any> = {
 		can_manage_issues:"Boolean",
 		can_set_master:"Boolean",
 		can_set_plan:"Boolean",
+		can_set_priority:"Boolean",
 		can_view_artifacts:"Boolean",
 		has_clearance:"Boolean",
 		has_parent_clearance:"Boolean",
@@ -6544,6 +6556,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
+		capitalSetProjectPriority:"CapitalProject",
 		capitalSignActAsChairman:"CapitalSegment",
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",

@@ -3,12 +3,13 @@
   // 1. Левые колонки — та же сетка, что у проектов/компонентов:
   // приоритет (на месте chevron) → плоский ID фиксированной ширины.
   .row-lead
-    q-icon.priority-icon(
-      :name='priorityIcon'
-      :color='priorityColor'
-      size='18px'
+    IssuePriorityControl(
+      :model-value='issue.priority'
+      :issue-hash='issue.issue_hash'
+      :project-hash='issue.project_hash'
+      :readonly='!issue.permissions.can_set_priority'
+      variant='icon'
     )
-      q-tooltip(anchor='bottom middle', self='top middle') Приоритет: {{ priorityLabel }}
   .row-id
     EntityIdBadge(
       :raw-id='issue.id'
@@ -79,12 +80,9 @@ import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/Tog
 import { Zeus } from '@coopenomics/sdk';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
+import { IssuePriorityControl } from '../../../features/Issue/UpdateIssue/ui/UpdatePriority';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
-import {
-  getIssuePriorityIcon,
-  getIssuePriorityColor,
-  getIssueLabels,
-} from 'app/extensions/capital/shared/lib';
+import { getIssueLabels } from 'app/extensions/capital/shared/lib';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
@@ -105,11 +103,6 @@ const onTitleClick = () => emit('click', props.issue);
 const onContextClick = () => emit('context-click', props.issue);
 
 const tags = computed(() => getIssueLabels(props.issue));
-const priorityIcon = computed(() => getIssuePriorityIcon(props.issue.priority));
-const priorityColor = computed(() =>
-  getIssuePriorityColor(props.issue.priority)
-);
-const priorityLabel = computed(() => props.issue.priority || '—');
 
 const canChangeEstimate = computed(
   () => !!props.issue.permissions?.can_set_estimate
@@ -149,11 +142,6 @@ const canChangeEstimate = computed(
   display: flex;
   align-items: center;
 }
-
-.priority-icon {
-  flex-shrink: 0;
-}
-
 
 // 2. Title — растягивается, ellipsis при нехватке места. flex-basis 200px:
 // если в строке есть место для (meta + 200 + actions) — однорядный layout;

@@ -4,6 +4,7 @@ import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interface
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { ProjectStatus } from '../../domain/enums/project-status.enum';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import { ProjectPriority } from '../../domain/enums/project-priority.enum';
 import {
   normalizeProjectCounts,
   normalizeProjectCrps,
@@ -40,6 +41,7 @@ export class ProjectMapper {
       matrix_room_id: entity.matrix_room_id ?? null,
       matrix_component_announcement_events: entity.matrix_component_announcement_events ?? [],
       development_repository_url: entity.development_repository_url ?? null,
+      priority: entity.priority ?? ProjectPriority.MEDIUM,
       origin: entity.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: entity.local_owner ?? null,
       _created_at: entity._created_at,
@@ -102,6 +104,7 @@ export class ProjectMapper {
       matrix_room_id: domain.matrix_room_id ?? null,
       matrix_component_announcement_events: domain.matrix_component_announcement_events ?? null,
       development_repository_url: domain.development_repository_url ?? null,
+      priority: domain.priority ?? ProjectPriority.MEDIUM,
       origin: domain.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: domain.local_owner ?? null,
       _created_at: domain._created_at as Date,

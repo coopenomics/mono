@@ -19,6 +19,8 @@ export interface ICapitalListFilters {
   master?: string;
   /** Статусы самого проекта или компонента */
   entityStatuses: string[];
+  /** Приоритеты самого проекта или компонента */
+  entityPriorities: string[];
 }
 
 export interface ICapitalListSort {
@@ -42,12 +44,14 @@ export const CAPITAL_SORT_FIELDS: Record<CapitalListScope, Array<{ value: string
     { value: '_updated_at', label: 'Дата изменения' },
     { value: 'title', label: 'Название' },
     { value: 'status', label: 'Статус' },
+    { value: 'priority', label: 'Приоритет' },
   ],
   components: [
     { value: '_created_at', label: 'Дата создания' },
     { value: '_updated_at', label: 'Дата изменения' },
     { value: 'title', label: 'Название' },
     { value: 'status', label: 'Статус' },
+    { value: 'priority', label: 'Приоритет' },
   ],
   issues: [
     { value: '_created_at', label: 'Дата создания' },
@@ -66,6 +70,7 @@ const emptyFilters = (): ICapitalListFilters => ({
   creators: [],
   master: undefined,
   entityStatuses: [],
+  entityPriorities: [],
 });
 
 const defaultSort = (): ICapitalListSort => ({
@@ -144,6 +149,7 @@ function createPreferences(scope: CapitalListScope): ICapitalListPreferences {
       filters.value.issuePriorities.length > 0 ||
       filters.value.creators.length > 0 ||
       filters.value.entityStatuses.length > 0 ||
+      filters.value.entityPriorities.length > 0 ||
       !!filters.value.master,
   );
 

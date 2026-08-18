@@ -46,6 +46,8 @@ const props = defineProps<{
   expanded: Record<string, boolean>;
   /** Фильтр по статусам компонентов */
   statuses?: string[];
+  /** Фильтр по приоритетам компонентов */
+  priorities?: string[];
   /** Показывать только компоненты указанного мастера */
   master?: string;
   /** blockchain | local | any — по умолчанию backend режет blockchain */
@@ -73,7 +75,7 @@ let observer: IntersectionObserver | null = null;
 const components = computed(() => projectStore.components);
 
 const hasFiltersApplied = computed(
-  () => (props.statuses?.length ?? 0) > 0 || !!props.master,
+  () => (props.statuses?.length ?? 0) > 0 || (props.priorities?.length ?? 0) > 0 || !!props.master,
 );
 
 const isInitialLoading = computed(
@@ -94,6 +96,9 @@ const loadComponents = async (page = 1, append = false) => {
 
     if (props.statuses?.length) {
       filter.statuses = props.statuses as IProjectsFilter['statuses'];
+    }
+    if (props.priorities?.length) {
+      filter.priorities = props.priorities as IProjectsFilter['priorities'];
     }
     if (props.master) {
       filter.master = props.master;
@@ -172,7 +177,7 @@ onBeforeUnmount(() => {
 
 // Смена фильтров и сортировки перечитывает список с первой страницы
 watch(
-  [() => props.statuses, () => props.master, () => props.sortBy, () => props.sortOrder],
+  [() => props.statuses, () => props.priorities, () => props.master, () => props.sortBy, () => props.sortOrder],
   async () => {
     resetList();
     await loadComponents(1, false);

@@ -504,7 +504,9 @@ export class PermissionsService {
     const can_set_done = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_DONE);
     const can_set_on_review = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_ON_REVIEW);
     const can_set_estimate = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_ESTIMATE);
-    const can_set_priority = this.issuePermissionsService.hasPermission(roles, IssueAction.SET_PRIORITY);
+    // Председатель управляет приоритетами всех кооперативных задач
+    const can_set_priority =
+      this.issuePermissionsService.hasPermission(roles, IssueAction.SET_PRIORITY) || this.isChairman(currentUser);
     const can_delete_issue = this.issuePermissionsService.hasPermission(roles, IssueAction.DELETE_ISSUE);
     const can_create_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.CREATE_REQUIREMENT);
     const can_edit_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.EDIT_REQUIREMENT);
@@ -572,6 +574,7 @@ export class PermissionsService {
         can_set_master: false,
         can_manage_authors: false,
         can_set_plan: false,
+        can_set_priority: false,
         can_create_requirement: false,
         can_edit_requirement: false,
         can_delete_requirement: false,
@@ -598,6 +601,8 @@ export class PermissionsService {
         can_set_master: false,
         can_manage_authors: false,
         can_set_plan: false,
+        // Личный проект: приоритет — часть личного планирования владельца
+        can_set_priority: isOwner,
         can_create_requirement: isOwner,
         can_edit_requirement: isOwner,
         can_delete_requirement: isOwner,
@@ -658,6 +663,12 @@ export class PermissionsService {
     const can_set_master = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.SET_MASTER);
     const can_manage_authors = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.MANAGE_AUTHORS);
     const can_set_plan = this.projectPermissionsService.hasProjectPermission(roles, ProjectAction.SET_PLAN);
+    const can_set_priority = await this.projectPermissionsService.canSetProjectPriority(
+      username,
+      project,
+      currentUser.role,
+      cache
+    );
     const can_create_requirement = this.projectPermissionsService.hasProjectPermission(
       roles,
       ProjectAction.CREATE_REQUIREMENT
@@ -683,6 +694,7 @@ export class PermissionsService {
       can_set_master,
       can_manage_authors,
       can_set_plan,
+      can_set_priority,
       can_create_requirement,
       can_edit_requirement,
       can_delete_requirement,

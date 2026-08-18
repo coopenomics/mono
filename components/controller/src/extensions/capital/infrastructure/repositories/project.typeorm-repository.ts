@@ -13,6 +13,7 @@ import type { ProjectFilterInputDTO } from '../../application/dto/property_manag
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
 import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
 import { resolveSortColumn } from './sort-column.util';
 
@@ -151,6 +152,11 @@ export class ProjectTypeormRepository
   async setDevelopmentRepositoryUrl(projectHash: string, url: string | null): Promise<void> {
     const h = projectHash.toLowerCase();
     await this.repository.update({ project_hash: h }, { development_repository_url: url });
+  }
+
+  async setPriority(projectHash: string, priority: ProjectPriority): Promise<void> {
+    const h = projectHash.toLowerCase();
+    await this.repository.update({ project_hash: h }, { priority });
   }
 
   async updateLocalContent(
@@ -415,6 +421,9 @@ export class ProjectTypeormRepository
     if (filter?.statuses?.length) {
       where.status = In(filter.statuses);
     }
+    if (filter?.priorities?.length) {
+      where.priority = In(filter.priorities);
+    }
     if (filter?.project_hash) {
       where.project_hash = filter.project_hash;
     }
@@ -522,6 +531,9 @@ export class ProjectTypeormRepository
     }
     if (filter?.statuses?.length) {
       queryBuilder = queryBuilder.andWhere('p.status IN (:...statuses)', { statuses: filter.statuses });
+    }
+    if (filter?.priorities?.length) {
+      queryBuilder = queryBuilder.andWhere('p.priority IN (:...priorities)', { priorities: filter.priorities });
     }
     if (filter?.project_hash) {
       queryBuilder = queryBuilder.andWhere('p.project_hash = :project_hash', { project_hash: filter.project_hash });
