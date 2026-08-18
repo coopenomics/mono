@@ -49,13 +49,6 @@ theme:
     
 repo_url: https://github.com/coopenomics/mono
 
-# Страницы Стола заказов не попадают в сборку вовсе: убрать их из nav было бы
-# мало — mkdocs всё равно собрал бы файлы и отдал по прямой ссылке, только без
-# пункта меню. Снимаем до вычитки текста и нормального прогона docs-harness;
-# соответствующий блок nav ниже закомментирован вместе с этим.
-exclude_docs: |
-  new/marketplace/
-
 plugins:
   - search
   - macros
@@ -182,60 +175,50 @@ nav:
   - Общие собрания: new/meet/index.md
   - Бухгалтерия: new/buh/index.md
 
-  # ── Стол заказов временно снят с публикации ───────────────────────────
-  # Кадры и проза сняты автоматическим прогоном docs-harness и пока сырые:
-  # много пробелов в описаниях, часть экранов отснята в промежуточном
-  # состоянии. Возвращать раздел в nav — после нормального ночного прогона
-  # сюиты и вычитки текста. Сами страницы дополнительно исключены из сборки
-  # через exclude_docs, иначе mkdocs собрал бы их и отдал по прямой ссылке.
-  #   - Стол заказов:
-  #     - Введение: new/marketplace/index.md
-  #     - Типы снабжения (отсечка заказов): new/marketplace/supply-types.md
-  #     - Подключение и онбординг:
-  #       - Подключение приложения: new/marketplace/onboarding/install-market.md
-  #       - L1 — Принятие программы кооперативом: new/marketplace/onboarding/coop-accept-cpp.md
-  #       - L2 — Выбор программы пайщиком: new/marketplace/onboarding/member-pick-cpp.md
-  #       - L3 — Гейт первого входа: new/marketplace/onboarding/extension-gate.md
-  #     - Стол заказчика:
-  #       - Обзор разделов заказчика: new/marketplace/orderer/marketplace-tour.md
-  #       - Каталог витрины: new/marketplace/orderer/catalog.md
-  #       - Оформление заказа: new/marketplace/orderer/order-create.md
-  #       - Мои заказы: new/marketplace/orderer/orders.md
-  #       - Готовые к получению: new/marketplace/orderer/ready-to-receive.md
-  #       - Сводный заказ: new/marketplace/orderer/consolidated.md
-  #       - Возврат имущества: new/marketplace/orderer/return-claim.md
-  #     - Стол поставщика:
-  #       - Создание предложения: new/marketplace/offerer/offer-create.md
-  #       - Мои предложения: new/marketplace/offerer/offers.md
-  #       - Входящие заказы: new/marketplace/offerer/incoming-orders.md
-  #       - Подготовка отгрузки: new/marketplace/offerer/shipment-prep.md
-  #       - Подпись акта приёмки: new/marketplace/offerer/apl-reception-sign.md
-  #       - История выплат: new/marketplace/offerer/payments.md
-  #     - Стол оператора ПВЗ:
-  #       - Ожидаемые поставки: new/marketplace/operator/incoming-shipments.md
-  #       - Приёмка партии: new/marketplace/operator/apl-reception-create.md
-  #       - Закрывающая подпись приёмки: new/marketplace/operator/apl-reception-chairman-sign.md
-  #       - Маркировка имущества: new/marketplace/operator/inventory-label.md
-  #       - Склад участка: new/marketplace/operator/inventory-list.md
-  #       - Поток выдач: new/marketplace/operator/orders-board.md
-  #       - Финальная подпись выдачи: new/marketplace/operator/issuance-finalize.md
-  #     - Стол председателя ПВЗ:
-  #       - Открытие выдачи: new/marketplace/branch-chairman/issuance-open.md
-  #       - Открытие выдачи (подпись председателя): new/marketplace/branch-chairman/issuance-open-sign.md
-  #       - Обработка возвратов: new/marketplace/branch-chairman/return-approve.md
-  #     - Стол председателя кооператива (Marketplace):
-  #       - Обзор Стола председателя: new/marketplace/chairman/dashboard.md
-  #       - Экскурсия по разделам Стола заказов: new/marketplace/chairman/market-tour.md
-  #       - Дизайн-система Стола заказов: new/marketplace/chairman/design-system.md
-  #       - Модерация предложений: new/marketplace/chairman/offer-moderation.md
-  #       - Категории ЦПП: new/marketplace/chairman/category-whitelist.md
-  #       - Сеть ПВЗ: new/marketplace/chairman/branches.md
-  #       - Списания имущества: new/marketplace/chairman/writeoff-propose.md
-  #       - Экосистема кооперативов: new/marketplace/chairman/ecosystem.md
-  #     - Стол совета (Marketplace):
-  #       - Голосование по списанию: new/marketplace/board/agenda-writeoff.md
-  #       - Склад кооператива: new/marketplace/board/warehouse-readonly.md
-  #       - Выплаты поставщикам: new/marketplace/board/payouts-readonly.md
+  - Стол заказов:
+    - Введение: new/marketplace/index.md
+    - Подключение:
+      - Подключение кооперативом: new/marketplace/connection/coop-accept-cpp.md
+      - Выбор ЦПП пайщиком: new/marketplace/connection/member-pick-cpp.md
+    - Стол заказчика:
+      - new/marketplace/orderer/index.md
+      - Подключение к столу: new/marketplace/orderer/connect.md
+      - Каталог: new/marketplace/orderer/catalog.md
+      - Корзина и оформление заказа: new/marketplace/orderer/cart-order.md
+      - Мои заказы: new/marketplace/orderer/my-orders.md
+      - Получение на пункте выдачи: new/marketplace/orderer/receive.md
+      - Гарантийный возврат: new/marketplace/orderer/returns.md
+    - Стол поставщика:
+      - new/marketplace/offerer/index.md
+      - Подключение поставщика: new/marketplace/offerer/connect.md
+      - Мои предложения: new/marketplace/offerer/offers.md
+      - Создание предложения: new/marketplace/offerer/offer-create.md
+      - Входящие заказы: new/marketplace/offerer/incoming-orders.md
+      - Подготовка отгрузки: new/marketplace/offerer/shipment.md
+      - Подпись акта приёма-передачи: new/marketplace/offerer/reception-sign.md
+      - Выплаты: new/marketplace/offerer/payments.md
+    - Стол оператора ПВЗ:
+      - new/marketplace/operator/index.md
+      - Ожидаемые поставки: new/marketplace/operator/reception.md
+      - Приёмка партии: new/marketplace/operator/reception-flow.md
+      - Склад участка: new/marketplace/operator/warehouse.md
+      - Боксы и типы боксов: new/marketplace/operator/containers.md
+      - Остатки: new/marketplace/operator/stock.md
+      - Списание на участке: new/marketplace/operator/writeoffs.md
+      - Выдача заказов: new/marketplace/operator/issuance.md
+      - Гарантийные возвраты: new/marketplace/operator/returns.md
+      - Экономика участка: new/marketplace/operator/economy.md
+      - История заказов: new/marketplace/operator/orders-history.md
+    - Стол администратора:
+      - new/marketplace/admin/index.md
+      - Реестр заказов: new/marketplace/admin/orders-registry.md
+      - Реестр поставщиков: new/marketplace/admin/suppliers-registry.md
+      - Реестр предложений: new/marketplace/admin/offers-registry.md
+      - Модерация: new/marketplace/admin/moderation.md
+      - Экономика: new/marketplace/admin/economy.md
+      - Доступные категории: new/marketplace/admin/categories.md
+      - Пункты выдачи заказов: new/marketplace/admin/issuance-points.md
+      - Списания скоропорта: new/marketplace/admin/writeoffs.md
 
   - Благорост:
     - Адаптация: new/blagorost/adaptation.md
