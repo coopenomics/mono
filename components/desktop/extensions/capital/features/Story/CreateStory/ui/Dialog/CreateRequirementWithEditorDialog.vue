@@ -22,6 +22,8 @@ CreateDialog(
           @keydown='handleTitleKeydown'
         )
 
+      //- Только заголовок и тип: содержимое пишется после создания
+      //- в полноэкранном редакторе, который открывается сам
       .crf-block
         .crf-toggle-shell
           q-btn-toggle.crf-toggle(
@@ -32,36 +34,6 @@ CreateDialog(
             toggle-color="primary"
             :options="contentFormatOptions"
           )
-
-
-      template(v-if="contentFormat === markdownFormat")
-        .crf-block
-          .crf-editor-frame
-            Editor(
-              v-model='formData.description'
-              placeholder='Опишите артефакт подробно...'
-              :minHeight="240"
-              :padded="false"
-              :show-focus-ring="true"
-            )
-
-      template(v-else-if="contentFormat === mermaidFormat")
-        .crf-block
-          .banner.banner--info
-            q-icon.banner__icon(name="info")
-            .banner__body Минимальный шаблон диаграммы подставится автоматически. После нажатия «Создать» откроется редактор Mermaid с предпросмотром.
-
-      template(v-else-if="contentFormat === bpmnFormat")
-        .crf-block
-          .banner.banner--info
-            q-icon.banner__icon(name="info")
-            .banner__body Тело диаграммы создаётся автоматически. После нажатия «Создать» откроется редактор BPMN — там можно нарисовать процесс.
-
-      template(v-else-if="contentFormat === drawioFormat")
-        .crf-block
-          .banner.banner--info
-            q-icon.banner__icon(name="info")
-            .banner__body Пустая диаграмма Draw.io подставится на сервере. После «Создать» откроется редактор diagrams.net во встроенном режиме.
 
 EditRequirementDialog(
   ref="followUpEditRef"
@@ -77,7 +49,6 @@ import { ref, nextTick, computed } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { Editor } from 'src/shared/ui';
 import { BaseInput } from 'src/shared/ui/base';
 import { useCreateStory } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
@@ -122,7 +93,6 @@ const isSubmitting = ref(false);
 
 const formData = ref({
   title: '',
-  description: '',
 });
 
 const canCreate = computed(() => {
@@ -132,7 +102,6 @@ const canCreate = computed(() => {
 const clearForm = async () => {
   formData.value = {
     title: '',
-    description: '',
   };
   contentFormat.value = markdownFormat;
   await nextTick();
@@ -154,16 +123,12 @@ const onFollowUpUpdated = (updated: IStory) => {
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    // Диаграммные форматы создаются с пустым телом — шаблон подставляет сервер,
-    // редактор открывается сразу после создания
-    const isDiagram =
-      contentFormat.value === Zeus.CapitalStoryContentFormat.BPMN ||
-      contentFormat.value === Zeus.CapitalStoryContentFormat.DRAWIO ||
-      contentFormat.value === Zeus.CapitalStoryContentFormat.MERMAID;
+    // Содержимое всегда пишется после создания: тело пустое (диаграммным
+    // форматам сервер подставляет шаблон), сразу открывается полноэкранный редактор
     const inputData = {
       coopname: system.info.coopname,
       title: formData.value.title,
-      description: isDiagram ? '' : formData.value.description,
+      description: '',
       content_format: contentFormat.value,
       story_hash: '',
       ...props.filter,
@@ -176,15 +141,9 @@ const handleSubmit = async () => {
     dialogRef.value?.clear();
     emit('success');
 
-    if (
-      created.content_format === Zeus.CapitalStoryContentFormat.BPMN ||
-      created.content_format === Zeus.CapitalStoryContentFormat.DRAWIO ||
-      created.content_format === Zeus.CapitalStoryContentFormat.MERMAID
-    ) {
-      storyForFollowUpEdit.value = created;
-      await nextTick();
-      followUpEditRef.value?.openDialog();
-    }
+    storyForFollowUpEdit.value = created;
+    await nextTick();
+    followUpEditRef.value?.openDialog();
   } catch (error) {
     FailAlert(error);
     emit('error', error);
@@ -226,9 +185,4 @@ defineExpose({
   padding: 2px 12px;
 }
 
-.crf-editor-frame {
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-sm);
-  overflow: visible;
-}
 </style>
