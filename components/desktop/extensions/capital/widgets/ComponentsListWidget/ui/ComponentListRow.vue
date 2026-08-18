@@ -25,6 +25,13 @@
       size='xs'
     )
 
+  // Избранное — рядом со статусом, до заголовка
+  .col-auto.row-favorite
+    FavoriteStarButton(
+      :target-type='FavoriteTargetType.COMPONENT',
+      :target-hash='component.project_hash'
+    )
+
   // Title (+ приписка родительского проекта, когда компонент показан вне проекта)
   .col.component-row__title-col
     .title-stack
@@ -57,9 +64,13 @@ import {
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { Zeus } from '@coopenomics/sdk';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const props = defineProps<{
   component: IProjectComponent | IProject;

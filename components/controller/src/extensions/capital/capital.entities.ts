@@ -15,6 +15,7 @@ import { ContributorTypeormEntity } from './infrastructure/entities/contributor.
 import { CycleTypeormEntity } from './infrastructure/entities/cycle.typeorm-entity';
 import { DebtTypeormEntity } from './infrastructure/entities/debt.typeorm-entity';
 import { ExpenseTypeormEntity } from './infrastructure/entities/expense.typeorm-entity';
+import { FavoriteTypeormEntity } from './infrastructure/entities/favorite.typeorm-entity';
 import { GithubBranchCommitSyncStateTypeormEntity } from './infrastructure/entities/github-branch-commit-sync-state.typeorm-entity';
 import { GithubCommMessageCursorTypeormEntity } from './infrastructure/entities/github-comm-message-cursor.typeorm-entity';
 import { GithubCommTranscriptionCursorTypeormEntity } from './infrastructure/entities/github-comm-transcription-cursor.typeorm-entity';
@@ -49,6 +50,7 @@ export const capitalEntities = [
   CycleTypeormEntity,
   DebtTypeormEntity,
   ExpenseTypeormEntity,
+  FavoriteTypeormEntity,
   GithubBranchCommitSyncStateTypeormEntity,
   GithubCommMessageCursorTypeormEntity,
   GithubCommTranscriptionCursorTypeormEntity,

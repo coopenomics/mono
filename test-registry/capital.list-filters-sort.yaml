@@ -23,6 +23,10 @@ title: Списки Благороста — раздел «Компоненты
 # Поле сортировки уходит в ORDER BY подстановкой имени, поэтому набор колонок
 # закрытый — см. случаи cap.lists.break.*.
 
+# Правка 2026-08-18 (личное избранное, capital.favorites): в строку компонента
+# добавлена звёздочка избранного (FavoriteStarButton) рядом со статусом.
+# Фильтры, сортировка и правила показа списков не менялись — случаи прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts

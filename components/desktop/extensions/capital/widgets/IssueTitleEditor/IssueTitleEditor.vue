@@ -42,12 +42,17 @@ q-input(
         @click="saveChanges"
       )
         q-tooltip Сохранить изменения
-      EntityIdBadge(
-        v-if="!(hasChanges && permissions?.can_edit_issue)"
-        :raw-id="issue?.id"
-        copy-on-click
-        address-clipboard
-      )
+      .row.items-center.no-wrap(v-if="!(hasChanges && permissions?.can_edit_issue)")
+        FavoriteStarButton(
+          v-if='issue?.issue_hash',
+          :target-type='FavoriteTargetType.ISSUE',
+          :target-hash='issue.issue_hash'
+        )
+        EntityIdBadge(
+          :raw-id="issue?.id"
+          copy-on-click
+          address-clipboard
+        )
 
   template(v-if="$slots.hint", #hint)
     slot(name="hint")
@@ -62,6 +67,10 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui'
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model'
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite'
+import { Zeus } from '@coopenomics/sdk'
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType
 
 const props = defineProps<{
   issue: IIssue | null | undefined

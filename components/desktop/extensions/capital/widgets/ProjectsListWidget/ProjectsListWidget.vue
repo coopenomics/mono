@@ -53,6 +53,13 @@
                   size='xs'
                 )
 
+              // Избранное — рядом со статусом, до заголовка
+              .col-auto.row-favorite
+                FavoriteStarButton(
+                  :target-type='FavoriteTargetType.PROJECT',
+                  :target-hash='props.row.project_hash'
+                )
+
               // Title
               .col.project-row__title-col
                 .list-item-title(
@@ -97,9 +104,13 @@ import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { Zeus } from '@coopenomics/sdk';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const props = defineProps<{
   coopname?: string;

@@ -3433,6 +3433,45 @@ export type ValueTypes = {
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null | Variable<any, string>
 };
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: AliasType<{
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Когда добавлено в избранное */
+	created_at?:boolean | `@${string}`,
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?:boolean | `@${string}`,
+	/** Хеш сущности */
+	target_hash?:boolean | `@${string}`,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type?:boolean | `@${string}`,
+	/** Актуальное наименование сущности */
+	title?:boolean | `@${string}`,
+	/** Имя пользователя — владельца избранного */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalFavorite']?: Omit<ValueTypes["CapitalFavorite"], "...on CapitalFavorite">
+}>;
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш сущности */
+	target_hash: string | Variable<any, string>,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ValueTypes["CapitalFavoriteTargetType"] | Variable<any, string>,
+	/** Имя пользователя — владельца избранного */
+	username: string | Variable<any, string>
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя — владельца избранного */
+	username: string | Variable<any, string>
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -11596,6 +11635,7 @@ archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -11665,6 +11705,7 @@ capitalPushResult?: [{	data: ValueTypes["PushResultInput"] | Variable<any, strin
 capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalRemoveFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
@@ -13320,6 +13361,7 @@ capitalDebt?: [{	data: ValueTypes["GetDebtInput"] | Variable<any, string>},Value
 capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ValueTypes["ExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalFavorites?: [{	filter: ValueTypes["CapitalFavoritesFilter"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -17779,6 +17821,44 @@ export type ResolverInputTypes = {
 	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
+};
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: AliasType<{
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Когда добавлено в избранное */
+	created_at?:boolean | `@${string}`,
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?:boolean | `@${string}`,
+	/** Хеш сущности */
+	target_hash?:boolean | `@${string}`,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type?:boolean | `@${string}`,
+	/** Актуальное наименование сущности */
+	title?:boolean | `@${string}`,
+	/** Имя пользователя — владельца избранного */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ResolverInputTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
 };
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
@@ -25717,6 +25797,7 @@ archiveProductCard?: [{	id: string},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
+capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -25786,6 +25867,7 @@ capitalPushResult?: [{	data: ResolverInputTypes["PushResultInput"]},ResolverInpu
 capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},ResolverInputTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalRemoveFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
@@ -27375,6 +27457,7 @@ capitalDebt?: [{	data: ResolverInputTypes["GetDebtInput"]},ResolverInputTypes["C
 capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ResolverInputTypes["ExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalFavorites?: [{	filter: ResolverInputTypes["CapitalFavoritesFilter"]},ResolverInputTypes["CapitalFavorite"]],
 capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string},ResolverInputTypes["ProcessInstance"]],
@@ -31733,6 +31816,42 @@ export type ModelTypes = {
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
+};
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Когда добавлено в избранное */
+	created_at: ModelTypes["DateTime"],
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?: string | undefined | null,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ModelTypes["CapitalFavoriteTargetType"],
+	/** Актуальное наименование сущности */
+	title: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ModelTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
 };
 	["CapitalFibLevel"]: {
 		/** Фибо-коэффициент */
@@ -39391,6 +39510,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
+	/** Добавить сущность в личное избранное
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddFavorite: Array<ModelTypes["CapitalFavorite"]>,
 	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
 
 Требуемые роли: chairman, member, user.  */
@@ -39667,6 +39790,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: ModelTypes["Transaction"],
+	/** Убрать сущность из личного избранного
+
+Требуемые роли: chairman, member, user.  */
+	capitalRemoveFavorite: Array<ModelTypes["CapitalFavorite"]>,
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -41710,6 +41837,10 @@ export type ModelTypes = {
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Список избранного пользователя с актуальными наименованиями
+
+Требуемые роли: chairman, member, user.  */
+	capitalFavorites: Array<ModelTypes["CapitalFavorite"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -46433,6 +46564,45 @@ export type GraphQLTypes = {
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
+};
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: {
+	__typename: "CapitalFavorite",
+	/** Имя кооператива */
+	coopname: string,
+	/** Когда добавлено в избранное */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?: string | undefined | null,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: GraphQLTypes["CapitalFavoriteTargetType"],
+	/** Актуальное наименование сущности */
+	title: string,
+	/** Имя пользователя — владельца избранного */
+	username: string,
+	['...on CapitalFavorite']: Omit<GraphQLTypes["CapitalFavorite"], "...on CapitalFavorite">
+};
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: GraphQLTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]: CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
 };
 	["CapitalFibLevel"]: {
 	__typename: "CapitalFibLevel",
@@ -54619,6 +54789,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
+	/** Добавить сущность в личное избранное
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
 
 Требуемые роли: chairman, member, user.  */
@@ -54895,6 +55069,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: GraphQLTypes["Transaction"],
+	/** Убрать сущность из личного избранного
+
+Требуемые роли: chairman, member, user.  */
+	capitalRemoveFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -57097,6 +57275,10 @@ export type GraphQLTypes = {
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Список избранного пользователя с актуальными наименованиями
+
+Требуемые роли: chairman, member, user.  */
+	capitalFavorites: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -59663,6 +59845,13 @@ export enum CandidateStatus {
 	PENDING = "PENDING",
 	REGISTERED = "REGISTERED"
 }
+/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+export enum CapitalFavoriteTargetType {
+	ARTIFACT = "ARTIFACT",
+	COMPONENT = "COMPONENT",
+	ISSUE = "ISSUE",
+	PROJECT = "PROJECT"
+}
 export enum CapitalOnboardingStep {
 	blagorost_offer_template = "blagorost_offer_template",
 	blagorost_program = "blagorost_program",
@@ -60496,6 +60685,9 @@ type ZEUS_VARIABLES = {
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
 	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
+	["CapitalFavoriteInput"]: ValueTypes["CapitalFavoriteInput"];
+	["CapitalFavoriteTargetType"]: ValueTypes["CapitalFavoriteTargetType"];
+	["CapitalFavoritesFilter"]: ValueTypes["CapitalFavoritesFilter"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];

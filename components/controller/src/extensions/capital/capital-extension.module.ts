@@ -308,6 +308,7 @@ import { CommitTypeormRepository } from './infrastructure/repositories/commit.ty
 import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
 import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
 import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
+import { FavoriteTypeormRepository } from './infrastructure/repositories/favorite.typeorm-repository';
 import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
 
 // GitHub (маркеры коммитов)
@@ -424,6 +425,7 @@ import { COMMIT_REPOSITORY } from './domain/repositories/commit.repository';
 import { STATE_REPOSITORY } from './domain/repositories/state.repository';
 import { TIME_ENTRY_REPOSITORY } from './domain/repositories/time-entry.repository';
 import { TIMER_SESSION_REPOSITORY } from './domain/repositories/timer-session.repository';
+import { FAVORITE_REPOSITORY } from './domain/repositories/favorite.repository';
 import { SEGMENT_REPOSITORY } from './domain/repositories/segment.repository';
 
 import { ContractManagementResolver } from './application/resolvers/contract-management.resolver';
@@ -442,6 +444,8 @@ import { ExpensesManagementResolver } from './application/resolvers/expenses-man
 import { ProgramExpensesResolver } from './application/resolvers/program-expenses.resolver';
 import { SegmentsResolver } from './application/resolvers/segments.resolver';
 import { LogResolver } from './application/resolvers/log.resolver';
+import { FavoritesResolver } from './application/resolvers/favorites.resolver';
+import { FavoritesService } from './application/services/favorites.service';
 import { MutationLogMapperService } from './application/services/mutation-log-mapper.service';
 import { CapitalOnboardingService } from './application/services/onboarding.service';
 import { CapitalOnboardingEventsService } from './application/services/onboarding-events.service';
@@ -839,6 +843,7 @@ IssueIdGenerationService,
     SegmentsResolver,
     TimeTrackerResolver,
     LogResolver,
+    FavoritesResolver,
     CapitalOnboardingResolver,
     // Repositories
     {
@@ -948,6 +953,10 @@ IssueIdGenerationService,
       useClass: TimerSessionTypeormRepository,
     },
     {
+      provide: FAVORITE_REPOSITORY,
+      useClass: FavoriteTypeormRepository,
+    },
+    {
       provide: SEGMENT_REPOSITORY,
       useClass: SegmentTypeormRepository,
     },
@@ -971,6 +980,7 @@ IssueIdGenerationService,
 
     // Services that depend on repositories
     TimeTrackingService,
+    FavoritesService,
     TimeTrackingSchedulerService,
     GamificationSchedulerService,
 

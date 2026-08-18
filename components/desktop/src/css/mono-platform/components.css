@@ -1413,6 +1413,40 @@ body {
   background: var(--p-rail-rail-color);
 }
 
+/* Суб-пункты под пунктом меню (избранное и т.п.): меньший шрифт, без иконок,
+   отступ выравнивает текст под label родителя (12px padding + 18px icon + 12px gap
+   − 8px собственного padding). Название клэмпится в две строки. */
+.rail__subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 0 4px 34px;
+}
+.rail__subitem {
+  display: block;
+  padding: 4px 8px;
+  border-radius: var(--p-r-xs);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--p-ink-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--p-dur-fast), color var(--p-dur-fast);
+}
+.rail__subitem:hover { background: var(--p-rail-item-hover); color: var(--p-ink-1); }
+.rail__subitem--active {
+  background: var(--p-rail-item-active-bg);
+  color: var(--p-rail-item-active-fg);
+  font-weight: 500;
+}
+.rail__subitem-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
 .rail__spacer { flex: 1; }
 
 /* ---- User card (sidebar bottom) — premium mini-wallet ----------------
