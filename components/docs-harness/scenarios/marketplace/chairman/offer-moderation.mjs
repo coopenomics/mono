@@ -5,6 +5,7 @@
 // каталоге Story 3.5. Канон UI — CatalogOfferCard (UX-DR10) с slot actions.
 
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
+import { runSeedPhase } from '../../../lib/fixtures.mjs';
 
 /**
  * Гарантийный срок возврата, который председатель назначает предложению при
@@ -129,4 +130,10 @@ export default async ({ page, shot, expect }) => {
       },
     );
   }
+
+  // Витрина фонового поставщика (фаза 06) до этого момента лежала в
+  // PENDING_MODERATION — ради кадров пустой витрины и этой самой модерации.
+  // Дальше по цепочке каталог обязан быть полным: одобряем её здесь, той же
+  // властью председателя, что и в кадрах выше.
+  runSeedPhase('06b-approve-catalog', { log: (m) => console.log(`[offer-moderation] ${m}`) });
 };

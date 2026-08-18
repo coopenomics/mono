@@ -177,3 +177,35 @@ export function fixturesOfScenario(scenario, meta = {}) {
   }
   return [...names];
 }
+
+
+/**
+ * Запускает seed-фазу boot из сценария. Для фаз, которые нельзя выполнять в
+ * глобальном prepare: фаза 06b одобряет витрину, а до сценария модерации
+ * витрина обязана оставаться PENDING (catalog-empty, offer-moderation).
+ */
+export function runSeedPhase(phase, { log = () => {} } = {}) {
+  const ports = harnessPorts();
+  const pg = readEnvFile(path.join(REPO_ROOT, 'components/controller/.env'));
+  const env = {
+    ...process.env,
+    MONGO_URI: `mongodb://127.0.0.1:${ports.mongo}/cooperative-x?directConnection=true`,
+    POSTGRES_HOST: '127.0.0.1',
+    POSTGRES_PORT: ports.postgres,
+    POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',
+    POSTGRES_PASSWORD: pg.POSTGRES_PASSWORD || 'postgres!23!23',
+    POSTGRES_DATABASE: pg.POSTGRES_DATABASE || 'voskhod',
+    CHAIN_URL: `http://127.0.0.1:${ports.chain}`,
+    CONTROLLER_GRAPHQL_URL: `http://127.0.0.1:${ports.controller}/v1/graphql`,
+  };
+  log(`seed-фаза ${phase}...`);
+  const r = spawnSync(
+    'pnpm',
+    ['--filter', '@coopenomics/boot', 'exec', 'esno', 'src/scripts/seed-marketplace/index.ts', phase],
+    { cwd: REPO_ROOT, env, encoding: 'utf8' }
+  );
+  if (r.status !== 0) {
+    throw new Error(`seed-фаза ${phase} упала:
+${(r.stderr || r.stdout || '').slice(-2000)}`);
+  }
+}

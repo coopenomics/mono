@@ -11,8 +11,13 @@
  * и фикстуры docs-harness state/participants/sidorov.json.
  *
  * Идемпотентна: предложение пропускается, если у sidorov уже есть offer с тем
- * же product_name (любой статус). Одобрение председателем — только для только
- * что созданных.
+ * же product_name (любой статус).
+ *
+ * Предложения остаются PENDING_MODERATION: сценарий catalog-empty снимает
+ * пустую витрину «между подачей и модерацией», а категории по умолчанию
+ * открыты все — сценарий category-whitelist рассчитывает на «Открыт весь
+ * каталог». Одобряет витрину фаза 06b-approve-catalog, которую сценарий
+ * offer-moderation вызывает после своих кадров.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -31,9 +36,6 @@ const CHAIRMAN = 'ant'
 const CHAIRMAN_EMAIL = 'ivanov@example.com'
 const SUPPLIER = 'sidorov'
 const BRANAME = 'krg'
-
-/** Категории витрины из базового справочника (marketplace-category.entity.ts). */
-const CATEGORY_IDS = [1, 2, 5, 9]
 
 interface SeedOffer {
   /** Имя файла фотографии в assets (без расширения). */
@@ -93,17 +95,6 @@ export async function phase06(): Promise<void> {
 
   const chairman = await makeClient(CHAIRMAN, CHAIRMAN_EMAIL, chairmanWif)
 
-  // Категории витрины: сервер отбивает дубликаты — повторный вызов не ошибка.
-  try {
-    await chairman.Mutation(Mutations.Marketplace.AddAvailableCategories.mutation, {
-      variables: { input: { categoryIds: CATEGORY_IDS } },
-    } as never)
-    log(`категории ${CATEGORY_IDS.join(', ')} включены`)
-  }
-  catch (e) {
-    log(`категории уже включены (${(e as Error).message.slice(0, 80)})`)
-  }
-
   try {
     await chairman.Mutation(Mutations.Marketplace.AddSupplier.mutation, {
       variables: { input: { member_account: SUPPLIER } },
@@ -154,11 +145,6 @@ export async function phase06(): Promise<void> {
     const offerId = created[Mutations.Marketplace.CreateOffer.name]?.id
     if (!offerId) throw new Error(`createOffer не вернул id для «${offer.product_name}»`)
     log(`создано «${offer.product_name}» (${offerId})`)
-
-    await chairman.Mutation(Mutations.Marketplace.ApproveOffer.mutation, {
-      variables: { input: { offer_id: offerId, warranty_days: 3 } },
-    } as never)
-    log(`одобрено «${offer.product_name}»`)
   }
 
   log('витрина наполнена')
