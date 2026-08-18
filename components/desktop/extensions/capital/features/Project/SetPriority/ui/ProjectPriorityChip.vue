@@ -3,7 +3,7 @@ PriorityControl(
   :model-value='displayPriority'
   :readonly='isReadonly'
   :saving='isSaving'
-  variant='chip'
+  :variant='variant'
   @select='onSelect'
 )
 </template>
@@ -16,9 +16,16 @@ import { PriorityControl } from 'app/extensions/capital/shared/ui';
 import { useSetProjectPriority } from '../model';
 import type { IProject, IProjectComponent } from 'app/extensions/capital/entities/Project/model';
 
-const props = defineProps<{
-  project: IProject | IProjectComponent;
-}>();
+const props = withDefaults(
+  defineProps<{
+    project: IProject | IProjectComponent;
+    /** chip — чип с подписью; icon — компактная иконка в сетке строки (как у задач) */
+    variant?: 'chip' | 'icon';
+  }>(),
+  {
+    variant: 'chip',
+  },
+);
 
 const { setProjectPriority } = useSetProjectPriority();
 

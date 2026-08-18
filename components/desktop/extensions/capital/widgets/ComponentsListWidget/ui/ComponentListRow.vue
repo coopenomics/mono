@@ -17,13 +17,9 @@
       flat
     )
 
-  // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+  // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
   .col-auto.row-status
-    q-icon(
-      :name='getProjectStatusIcon(component.status)',
-      :color='getProjectStatusDotColor(component.status)',
-      size='xs'
-    )
+    ProjectPriorityChip(:project='component' variant='icon')
 
   // Избранное — рядом со статусом, до заголовка
   .col-auto.row-favorite
@@ -51,8 +47,8 @@
   .col-auto.row-cells
     .cell-time
     .cell-side
-      // Приоритет — тот же слот, где у задач статус-чип
-      ProjectPriorityChip(:project='component')
+      // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
+      ProjectStatusChip(:project='component')
     .cell-actions
       // Мастер — ответственный за компонент (зеркально исполнителям задач)
       SetMasterAvatar(:project='component')
@@ -61,12 +57,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import type { IProject, IProjectComponent } from 'app/extensions/capital/entities/Project/model';
-import {
-  getProjectStatusIcon,
-  getProjectStatusDotColor,
-} from 'app/extensions/capital/shared/lib/projectStatus';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { ProjectPriorityChip } from 'app/extensions/capital/features/Project/SetPriority';
+import { ProjectStatusChip } from 'app/extensions/capital/features/Project/UpdateProjectStatus';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { Zeus } from '@coopenomics/sdk';
 import { EntityIdBadge } from 'src/shared/ui';

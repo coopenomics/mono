@@ -1,14 +1,16 @@
 <template lang="pug">
+//- Выпадающее меню инлайн-смены значения в строке списка (статус, приоритет):
+//- единый рисунок для всех чипов/иконок Благороста
 q-menu(
   anchor='bottom right'
   self='top right'
   auto-close
   :offset='[0, 6]'
 )
-  .priority-menu
-    .priority-menu__header Сменить приоритет
-    q-list.priority-menu__list
-      q-item.priority-menu__item(
+  .inline-select-menu
+    .inline-select-menu__header {{ title }}
+    q-list.inline-select-menu__list
+      q-item.inline-select-menu__item(
         v-for='opt in options'
         :key='opt.value'
         clickable
@@ -18,42 +20,44 @@ q-menu(
       )
         q-item-section(avatar style='min-width: 28px')
           q-icon(
-            :name='getIssuePriorityIcon(opt.value)'
-            :color='getIssuePriorityColor(opt.value)'
-            size='16px'
+            :name='opt.icon'
+            :color='opt.iconColor'
+            :size='opt.iconSize || "16px"'
           )
         q-item-section
-          .priority-menu__label {{ opt.label }}
+          .inline-select-menu__label {{ opt.label }}
 </template>
 
 <script setup lang="ts">
-import {
-  ISSUE_PRIORITY_OPTIONS,
-  getIssuePriorityIcon,
-  getIssuePriorityColor,
-} from 'app/extensions/capital/shared/lib';
+export interface InlineSelectMenuOption {
+  value: string;
+  label: string;
+  icon: string;
+  iconColor: string;
+  iconSize?: string;
+}
 
 defineProps<{
+  title: string;
+  options: InlineSelectMenuOption[];
   current: string;
 }>();
 
 const emit = defineEmits<{
   (e: 'select', value: string): void;
 }>();
-
-const options = ISSUE_PRIORITY_OPTIONS;
 </script>
 
 <style lang="scss" scoped>
 // Тот же рисунок меню, что у смены статуса задачи (IssueStatusChip)
-.priority-menu {
+.inline-select-menu {
   min-width: 200px;
   padding: 6px;
   background-color: var(--p-surface);
   border-radius: 8px;
 }
 
-.priority-menu__header {
+.inline-select-menu__header {
   font-size: 11px;
   font-weight: 500;
   color: var(--p-ink-3);
@@ -62,13 +66,13 @@ const options = ISSUE_PRIORITY_OPTIONS;
   padding: 4px 8px 6px;
 }
 
-.priority-menu__list {
+.inline-select-menu__list {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.priority-menu__item {
+.inline-select-menu__item {
   border-radius: 6px;
   min-height: 36px;
   padding: 4px 10px;
@@ -83,7 +87,7 @@ const options = ISSUE_PRIORITY_OPTIONS;
   }
 }
 
-.priority-menu__label {
+.inline-select-menu__label {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;

@@ -1,6 +1,6 @@
 <template lang="pug">
 .priority-control(@click.stop)
-  //- Чип с русской подписью — строки проектов/компонентов и шапки страниц
+  //- Чип с русской подписью — шапки страниц и широкие слоты
   .priority-control__trigger(
     v-if='variant === "chip"'
     :class='{ "priority-control__trigger--readonly": readonly }'
@@ -10,9 +10,9 @@
       span.priority-control__label {{ label }}
       q-icon.q-ml-xs(v-if='!readonly' name='arrow_drop_down' size='xs')
     q-tooltip(anchor='bottom middle' self='top middle') Приоритет: {{ label }}
-    PriorityMenuList(v-if='!readonly' :current='modelValue' @select='onSelect')
+    InlineSelectMenu(v-if='!readonly' title='Сменить приоритет' :options='menuOptions' :current='modelValue' @select='onSelect')
 
-  //- Компактная иконка — строки задач (на месте прежней статичной иконки)
+  //- Компактная иконка — строки списков (задачи, проекты, компоненты)
   .priority-control__trigger(
     v-else
     :class='{ "priority-control__trigger--readonly": readonly }'
@@ -20,19 +20,20 @@
     q-spinner(v-if='saving' size='16px' :color='iconColor')
     q-icon(v-else :name='icon' :color='iconColor' size='18px')
     q-tooltip(anchor='bottom middle' self='top middle') Приоритет: {{ label }}
-    PriorityMenuList(v-if='!readonly' :current='modelValue' @select='onSelect')
+    InlineSelectMenu(v-if='!readonly' title='Сменить приоритет' :options='menuOptions' :current='modelValue' @select='onSelect')
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseChip } from 'src/shared/ui/base';
 import {
+  ISSUE_PRIORITY_OPTIONS,
   getIssuePriorityIcon,
   getIssuePriorityColor,
   getIssuePriorityLabel,
   getIssuePriorityChipVariant,
 } from 'app/extensions/capital/shared/lib';
-import PriorityMenuList from './PriorityMenuList.vue';
+import { InlineSelectMenu } from '../InlineSelectMenu';
 
 const props = withDefaults(
   defineProps<{
@@ -58,6 +59,12 @@ const label = computed(() => getIssuePriorityLabel(props.modelValue));
 const icon = computed(() => getIssuePriorityIcon(props.modelValue));
 const iconColor = computed(() => getIssuePriorityColor(props.modelValue));
 const chipVariant = computed(() => getIssuePriorityChipVariant(props.modelValue));
+
+const menuOptions = ISSUE_PRIORITY_OPTIONS.map((opt) => ({
+  ...opt,
+  icon: getIssuePriorityIcon(opt.value),
+  iconColor: getIssuePriorityColor(opt.value),
+}));
 
 const onSelect = (value: string) => {
   if (value === props.modelValue) return;
