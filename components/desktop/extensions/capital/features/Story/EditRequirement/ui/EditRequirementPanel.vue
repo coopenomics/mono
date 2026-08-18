@@ -4,52 +4,62 @@ q-card.column.no-wrap.edit-req-panel(
   :class='{ "edit-req-panel--dialog": variant === "dialog", "edit-req-panel--page": variant === "page" }'
   flat
 )
-  q-bar.bg-primary.text-white(style='min-height: 40px')
-    q-input(
-      v-if='canEdit'
+  //- Шапка — как у задачи: заголовок-поле с иконкой типа слева; при изменениях
+  //- слева undo, справа save; в покое справа звёздочка избранного (и close в диалоге)
+  .edit-req-panel__head
+    BaseInput.full-width(
       v-model='localTitle'
-      :readonly='!canEdit'
-      dense
-      color='white'
-      input-class='text-white'
-      input-style='color: white;'
+      type='textarea'
+      autogrow
+      :rows='1'
+      label='Артефакт'
       placeholder='Заголовок артефакта'
-      :rules='[(val) => !!val?.trim() || "Заголовок обязателен"]'
-      style='font-size: 1.25rem; font-weight: 500'
-    ).q-mt-md.full-width
-    .text-h6(v-else) {{ requirement?.title || "Артефакт" }}
-    q-space
-    q-btn(
-      v-if='variant === "dialog"'
-      dense
-      flat
-      icon='close'
-      @click='handleClose'
+      :readonly='!canEdit'
+      :error="canEdit && !titleOk ? 'Заголовок обязателен' : undefined"
     )
-      q-tooltip Закрыть
-
-  .edit-req-panel__toolbar.row.items-center.no-wrap.full-width(
-    v-if='variant === "page"'
-  )
-    .col-auto.row.items-center.no-wrap
-      slot(name='toolbar-leading')
-    q-space
-    .col-auto.row.items-center.q-gutter-sm(v-if='canEdit')
-      q-btn(
-        flat
-        color='primary'
-        label='Отменить'
-        @click='resetChanges'
-        :disable='isSaving || !hasChanges'
-      )
-      q-btn(
-        unelevated
-        color='primary'
-        label='Сохранить'
-        @click='handleSave'
-        :loading='isSaving'
-        :disable='isSaving || !hasChanges || !titleOk'
-      )
+      template(#prepend)
+        BaseButton(
+          v-if='canEdit && hasChanges'
+          variant='ghost'
+          size='sm'
+          icon-only
+          aria-label='Отменить изменения'
+          :disabled='isSaving'
+          @click='resetChanges'
+        )
+          template(#icon-left)
+            q-icon(name='undo' size='18px')
+            q-tooltip Отменить изменения
+        q-icon(v-else :name='formatIcon' size='24px' color='primary')
+      template(#append)
+        BaseButton(
+          v-if='canEdit && hasChanges'
+          variant='primary'
+          size='sm'
+          icon-only
+          aria-label='Сохранить'
+          :loading='isSaving'
+          :disabled='isSaving || !titleOk'
+          @click='handleSave'
+        )
+          template(#icon-left)
+            q-icon(name='save' size='18px')
+            q-tooltip Сохранить
+        FavoriteStarButton(
+          v-else-if='requirement'
+          :target-type='FavoriteTargetType.ARTIFACT'
+          :target-hash='requirement.story_hash'
+        )
+        BaseButton(
+          v-if='variant === "dialog"'
+          variant='ghost'
+          size='sm'
+          icon-only
+          aria-label='Закрыть'
+          @click='handleClose'
+        )
+          template(#icon-left)
+            q-icon(name='close' size='18px')
 
   q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
     template(v-if='requirement && isBpmnFormat')
@@ -89,25 +99,6 @@ q-card.column.no-wrap.edit-req-panel(
         :show-focus-ring="variant === 'dialog'"
       )
 
-  q-card-actions.q-pa-md(
-    v-if='variant === "dialog" && (canEdit && hasChanges)'
-    align='right'
-  )
-
-    q-btn(
-      v-if='variant === "dialog" && !hasChanges'
-      flat
-      label='Закрыть'
-      @click='handleClose'
-    )
-    template(v-if='canEdit && hasChanges')
-      q-btn(flat label='Отменить' @click='resetChanges' :disable='isSaving')
-      q-btn(
-        label='Сохранить'
-        color='primary'
-        @click='handleSave'
-        :loading='isSaving'
-      )
 </template>
 
 <script setup lang="ts">
@@ -116,6 +107,9 @@ import { useEditorViewportMinHeight } from 'src/shared/lib/composables/useEditor
 import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
+import { BaseButton, BaseInput } from 'src/shared/ui/base';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
 import { MermaidStoryEditor } from 'app/extensions/capital/features/Story/MermaidStoryEditor';
 import { DrawioStoryEmbedEditor } from 'app/extensions/capital/features/Story/DrawioStoryEmbedEditor';
@@ -144,6 +138,12 @@ const emit = defineEmits<{
   close: [];
   updated: [requirement: IStory];
 }>();
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
+
+const formatIcon = computed(() =>
+  props.requirement ? storyContentIcon(props.requirement) : 'description',
+);
 
 const localTitle = ref('');
 const localDescription = ref('');
@@ -281,11 +281,9 @@ defineExpose({
   flex-direction: column;
 }
 
-.edit-req-panel__toolbar {
+.edit-req-panel__head {
   flex-shrink: 0;
-  min-height: 48px;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding: var(--p-3) var(--p-4) 0;
 }
 
 .edit-req-panel__body {
