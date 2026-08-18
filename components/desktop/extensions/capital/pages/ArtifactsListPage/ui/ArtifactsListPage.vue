@@ -5,7 +5,11 @@
       template(v-if='items.length')
         .row.items-center.artifact-row(
           v-for='story in items',
-          :key='story._id'
+          :key='story._id',
+          role='button',
+          tabindex='0',
+          @click='openStory(story)',
+          @keydown.enter='openStory(story)'
         )
           // Избранное — слева, до иконки типа и наименования
           .col-auto.row-favorite
@@ -24,6 +28,14 @@
       .list-empty(v-else)
         q-icon(name='inbox', size='20px')
         span Нет доступных артефактов
+
+  //- Просмотр/правка — полноэкранный диалог, тот же, что на вкладках «Артефакты»
+  EditRequirementDialog(
+    ref='editDialogRef',
+    :requirement='selectedStory',
+    :can-edit='selectedCanEdit',
+    @updated='onStoryUpdated'
+  )
 </template>
 
 <script lang="ts" setup>
@@ -32,8 +44,11 @@ import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
+import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
+import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
@@ -62,6 +77,49 @@ async function load(): Promise<void> {
 }
 
 onMounted(load);
+
+// --- Открытие артефакта: полноэкранный диалог, право на правку — от проекта-владельца
+
+const projectStore = useProjectStore();
+const editDialogRef = ref<{ openDialog: () => void } | null>(null);
+const selectedStory = ref<IStory | null>(null);
+const selectedCanEdit = ref(false);
+
+async function resolveOwnerProjectHash(story: IStory): Promise<string | undefined> {
+  if (story.issue_hash) {
+    try {
+      const issue = await IssueApi.loadIssue({ issue_hash: story.issue_hash });
+      if (issue?.project_hash) return issue.project_hash;
+    } catch {
+      // остаёмся на project_hash самого артефакта
+    }
+  }
+  return story.project_hash ?? undefined;
+}
+
+function openStory(story: IStory): void {
+  selectedStory.value = story;
+  selectedCanEdit.value = false;
+  editDialogRef.value?.openDialog();
+  // Право подтягивается после открытия — просмотр не ждёт загрузки проекта
+  void (async () => {
+    try {
+      const ownerHash = await resolveOwnerProjectHash(story);
+      if (!ownerHash) return;
+      const project = await projectStore.loadProject({ hash: ownerHash });
+      if (selectedStory.value?.story_hash === story.story_hash) {
+        selectedCanEdit.value = project?.permissions?.can_edit_requirement ?? false;
+      }
+    } catch {
+      // без прав остаёмся в режиме просмотра
+    }
+  })();
+}
+
+function onStoryUpdated(updated: IStory): void {
+  selectedStory.value = updated;
+  items.value = items.value.map((s) => (s.story_hash === updated.story_hash ? updated : s));
+}
 </script>
 
 <style lang="scss" scoped>
@@ -100,6 +158,12 @@ onMounted(load);
   padding: var(--p-3);
   min-height: 48px;
   border-bottom: 1px solid var(--p-line);
+  cursor: pointer;
+  transition: background var(--p-dur-fast);
+}
+
+.artifact-row:hover {
+  background: var(--p-surface-2);
 }
 
 .artifact-row__icon {
