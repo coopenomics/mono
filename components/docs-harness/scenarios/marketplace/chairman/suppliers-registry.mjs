@@ -17,7 +17,8 @@ export const meta = {
   mode: 'docs',
   feature: 'marketplace.offer',
   cases: ['mkt.offer.ui.01'],
-  prepare: ['marketplace:01-l1-accept', 'marketplace:04-supplier'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:04-supplier', 'marketplace:06-catalog-offers'],
+  fixtures: ['sidorov'],
 };
 
 export default async ({ page, shot, expect, env, context }) => {

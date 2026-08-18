@@ -87,6 +87,7 @@ const GROUPS = [
     scenarios: [
       'marketplace/offerer/incoming-orders',
       'marketplace/offerer/shipment-prep',
+      'marketplace/offerer/ship-party',
     ],
   },
   {
@@ -99,6 +100,10 @@ const GROUPS = [
       'marketplace/offerer/apl-reception-sign',
       'marketplace/operator/apl-reception-chairman-sign',
       'marketplace/operator/inventory-label',
+      // Адресное хранение (Эпик 19): боксы и сетка снимаются, пока склад полон —
+      // после выдачи раскладывать нечего.
+      'marketplace/operator/containers',
+      'marketplace/operator/warehouse-cells',
       'marketplace/operator/warehouse',
     ],
   },
@@ -111,6 +116,7 @@ const GROUPS = [
       'marketplace/operator/issuance-open',
       'marketplace/operator/issuance',
       'marketplace/orderer/ready-to-receive',
+      'marketplace/orderer/receive-code',
       'marketplace/operator/issuance-finalize',
     ],
   },
@@ -167,6 +173,10 @@ const GROUPS = [
       'marketplace/board/payouts-readonly',
       'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
+      'marketplace/chairman/suppliers-registry',
+      'marketplace/chairman/offers-registry',
+      'marketplace/chairman/economy',
+      'marketplace/operator/orders-history',
       // Проверяет отказ на произвольный код и состояние не меняет, но стоять
       // в середине выдачи не может: там на столе висит модалка подписи акта
       // от предыдущего шага, и клик по кнопке стола не проходит.

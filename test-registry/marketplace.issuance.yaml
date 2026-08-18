@@ -136,3 +136,14 @@ cases:
       выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
     test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
     status: passing
+
+  - id: mkt.iss.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Заказчица открывает «Показать QR» — пропуск на выдачу для сканирования
+      оператором ПВЗ
+    expect: >
+      QR-код отображается, когда заказ готов к получению
+    test: components/docs-harness/scenarios/marketplace/orderer/receive-code.mjs
+    status: written

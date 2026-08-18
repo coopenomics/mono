@@ -143,3 +143,27 @@ cases:
 # 2026-08-18: в файлах фичи изменилась только строка импорта — чистка отказа
 # цепи (`rethrowChainError`) уехала в каркас расширений, потому что в цепь
 # ходит не одно расширение. Поведение операций прежнее.
+
+  - id: mkt.stock.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор заводит тип боксов (габариты, объём) и партию боксов с QR-кодами
+      на вкладках склада «Типы боксов» и «Боксы»
+    expect: >
+      тип с габаритами появляется в реестре типов; партия получает сквозные
+      коды BX-NNNN и открывает лист QR-этикеток на печать
+    test: components/docs-harness/scenarios/marketplace/operator/containers.mjs
+    status: passing
+
+  - id: mkt.stock.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор заводит координатную сетку склада (секции и ярусы) и перекладывает
+      принятую позицию в ячейку перетаскиванием
+    expect: >
+      ячейка A-01 появляется на карте; позиция получает адрес и уходит из
+      колонки «Поступило»
+    test: components/docs-harness/scenarios/marketplace/operator/warehouse-cells.mjs
+    status: written
