@@ -117,8 +117,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         path: '/:coopname/capital',
         name: 'capital',
         component: markRaw(CapitalBase),
-        // Порядок рейла — по процессу работы:
-        // профиль → личная работа → кооперативный цикл → админ → лента
+        // Порядок рейла — сверху вниз по укрупнению работы: профиль →
+        // проекты → компоненты → задачи → коммиты → результаты → приглашения →
+        // участники → деньги → лента
         children: [
           {
             path: 'wallet',
@@ -160,6 +161,50 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               hidden: true,
             },
             children: myProjectTreeChildren,
+          },
+          {
+            path: 'tracker',
+            name: 'tracker',
+            component: markRaw(TrackerPage),
+            meta: {
+              title: 'Время',
+              icon: 'fa-solid fa-clock',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: true,
+            },
+            children: [],
+          },
+          {
+            path: 'projects',
+            name: 'projects-list',
+            component: markRaw(ProjectsListPage),
+            meta: {
+              title: 'Проекты',
+              icon: 'fa-solid fa-list',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: false,
+            },
+            children: coopProjectTreeChildren,
+          },
+          {
+            // Тот же список, что и внутри проекта, но без первого уровня:
+            // все компоненты кооператива подряд, у каждого — свои задачи
+            path: 'components',
+            name: 'components-list',
+            component: markRaw(ComponentsListPage),
+            meta: {
+              title: 'Компоненты',
+              icon: 'account_tree',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: false,
+            },
+            children: componentsTreeChildren,
           },
           {
             path: 'my-tasks',
@@ -248,63 +293,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             ],
           },
           {
-            path: 'tracker',
-            name: 'tracker',
-            component: markRaw(TrackerPage),
-            meta: {
-              title: 'Время',
-              icon: 'fa-solid fa-clock',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-              hidden: true,
-            },
-            children: [],
-          },
-          {
-            path: 'projects',
-            name: 'projects-list',
-            component: markRaw(ProjectsListPage),
-            meta: {
-              title: 'Проекты',
-              icon: 'fa-solid fa-list',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-              hidden: false,
-            },
-            children: coopProjectTreeChildren,
-          },
-          {
-            // Тот же список, что и внутри проекта, но без первого уровня:
-            // все компоненты кооператива подряд, у каждого — свои задачи
-            path: 'components',
-            name: 'components-list',
-            component: markRaw(ComponentsListPage),
-            meta: {
-              title: 'Компоненты',
-              icon: 'account_tree',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-              hidden: false,
-            },
-            children: componentsTreeChildren,
-          },
-          {
-            path: 'invitations',
-            name: 'my-invitations',
-            component: markRaw(InvitationsPage),
-            meta: {
-              title: 'Приглашения',
-              icon: 'fa-solid fa-envelope-open-text',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
             path: 'commits',
             name: 'commits-list',
             component: markRaw(MasterCommitsPage),
@@ -375,6 +363,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
             ],
+          },
+          {
+            path: 'invitations',
+            name: 'my-invitations',
+            component: markRaw(InvitationsPage),
+            meta: {
+              title: 'Приглашения',
+              icon: 'fa-solid fa-envelope-open-text',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
           },
           {
             path: 'contributors',

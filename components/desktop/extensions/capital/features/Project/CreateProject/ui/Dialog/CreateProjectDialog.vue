@@ -18,7 +18,7 @@ CreateDialog(
         :error='titleError'
       )
 
-      BaseInput(
+      BaseInput.create-form__description(
         v-model='formData.description'
         label='Описание проекта'
         placeholder='Опишите проект...'
@@ -129,5 +129,11 @@ defineExpose({
 .create-form {
   display: flex;
   flex-direction: column;
+}
+
+// Описание сразу открыто на три строки: поле в одну строку не показывает,
+// что сюда ждут развёрнутый текст
+.create-form__description :deep(textarea) {
+  min-height: 4.5em;
 }
 </style>

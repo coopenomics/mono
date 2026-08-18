@@ -33,7 +33,7 @@ CreateDialog(
         :error='titleError'
       )
 
-      BaseInput(
+      BaseInput.create-issue-form__description(
         v-model='formData.description'
         label='Описание задачи'
         placeholder='Опишите задачу подробно...'
@@ -269,5 +269,11 @@ defineExpose({
 // Чекбокс не участвует в резерве подсказки — отбиваем его от полей вручную
 .create-issue-form :deep(.base-checkbox) {
   margin-top: var(--p-1);
+}
+
+// Описание сразу открыто на три строки: поле в одну строку не показывает,
+// что сюда ждут развёрнутый текст
+.create-issue-form__description :deep(textarea) {
+  min-height: 4.5em;
 }
 </style>
