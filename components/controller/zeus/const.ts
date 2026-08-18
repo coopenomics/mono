@@ -255,6 +255,13 @@ export const AllTypesProps: Record<string,any> = {
 		mechanics:"ExpenseMechanics",
 		recipient_type:"ExpenseRecipientType"
 	},
+	CapitalFavoriteInput:{
+		target_type:"CapitalFavoriteTargetType"
+	},
+	CapitalFavoriteTargetType: "enum" as const,
+	CapitalFavoritesFilter:{
+
+	},
 	CapitalGetOpenTimerInput:{
 
 	},
@@ -1396,6 +1403,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
+		capitalAddFavorite:{
+			data:"CapitalFavoriteInput"
+		},
 		capitalAddWorklog:{
 			data:"CapitalAddWorklogInput"
 		},
@@ -1624,6 +1634,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
+		},
+		capitalRemoveFavorite:{
+			data:"CapitalFavoriteInput"
 		},
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
@@ -2527,6 +2540,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalExpenses:{
 			filter:"ExpenseFilter",
 			options:"PaginationInput"
+		},
+		capitalFavorites:{
+			filter:"CapitalFavoritesFilter"
 		},
 		capitalGetOpenTimer:{
 			data:"CapitalGetOpenTimerInput"
@@ -4022,6 +4038,15 @@ export const ReturnTypes: Record<string,any> = {
 		project_hash:"String",
 		spended_at:"String",
 		status:"ExpenseStatus",
+		username:"String"
+	},
+	CapitalFavorite:{
+		coopname:"String",
+		created_at:"DateTime",
+		parent_hash:"String",
+		target_hash:"String",
+		target_type:"CapitalFavoriteTargetType",
+		title:"String",
 		username:"String"
 	},
 	CapitalFibLevel:{
@@ -6442,6 +6467,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorizeDecision:"Transaction",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
+		capitalAddFavorite:"CapitalFavorite",
 		capitalAddWorklog:"CapitalTimeEntry",
 		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
@@ -6511,6 +6537,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalRemoveFavorite:"CapitalFavorite",
 		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
@@ -7298,6 +7325,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
+		capitalFavorites:"CapitalFavorite",
 		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",

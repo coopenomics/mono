@@ -17,6 +17,13 @@
       flat
     )
 
+  // Избранное — перед наименованием задачи
+  .row-favorite
+    FavoriteStarButton(
+      :target-type='FavoriteTargetType.ISSUE',
+      :target-hash='issue.issue_hash'
+    )
+
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
     .title-stack
@@ -68,6 +75,8 @@ import { computed } from 'vue';
 import { EntityIdBadge } from 'src/shared/ui';
 import { BaseChip } from 'src/shared/ui/base';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { Zeus } from '@coopenomics/sdk';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
@@ -77,6 +86,8 @@ import {
   getIssueLabels,
 } from 'app/extensions/capital/shared/lib';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const props = defineProps<{
   issue: IIssue;

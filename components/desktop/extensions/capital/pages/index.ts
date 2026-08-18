@@ -34,4 +34,5 @@ export * from './ProgramExpensePage';
 export * from './AllocationsPage';
 export * from './MeasuresPage';
 export * from './MyTasksPage';
+export * from './ArtifactsListPage';
 export * from './MyProjectsPage';

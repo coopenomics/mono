@@ -31,6 +31,12 @@ div
                 // Пустое пространство для выравнивания с проектами/компонентами (35px)
                 .col-auto(style='width: 35px; flex-shrink: 0')
 
+                // Избранное — слева, до иконки типа и наименования
+                .col-auto.row-favorite
+                  FavoriteStarButton(
+                    :target-type='FavoriteTargetType.ARTIFACT',
+                    :target-hash='props.row.story_hash'
+                  )
 
                 // Иконка типа (кликабельная)
                 .col-auto(style='width: 32px; flex-shrink: 0')
@@ -98,6 +104,10 @@ import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/mo
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSectionEmpty';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const props = withDefaults(
   defineProps<{
@@ -171,19 +181,6 @@ const onComponentScopeBadgeClick = (row: IStory) => {
     name: 'component-description',
     params: { project_hash: ph },
   });
-};
-
-const storyContentIcon = (row: IStory): string => {
-  if (row.content_format === Zeus.CapitalStoryContentFormat.BPMN) {
-    return 'account_tree';
-  }
-  if (row.content_format === Zeus.CapitalStoryContentFormat.DRAWIO) {
-    return 'device_hub';
-  }
-  if (row.content_format === Zeus.CapitalStoryContentFormat.MERMAID) {
-    return 'schema';
-  }
-  return 'description';
 };
 
 // Реактивная связь с store

@@ -3,6 +3,7 @@ export * from './emptyDrawioStoryXml';
 export * from './decodeBpmnXmlIfEscaped';
 export * from './drawioEmbed';
 export * from './projectStatus';
+export * from './storyContentIcon';
 export * from './segmentStatus';
 export * from './issueStatus';
 export * from './issuePriority';
