@@ -24,7 +24,7 @@ fi
 # `rm -v` снимает только анонимные тома, поэтому именованные удаляем явно —
 # иначе БД и цепь переживут «перезапуск с чистого листа».
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose rm -svf mongo postgres monoredis minio cooparser coopback || true
+docker compose rm -svf mongo postgres monoredis minio parser2 coopback || true
 for vol in postgres_data mongo_data minio_data; do
   docker volume rm -f "${COMPOSE_PROJECT_NAME:-mono-ai-4}_${vol}" >/dev/null 2>&1 || true
 done
@@ -76,9 +76,9 @@ echo "MinIO готов!"
 echo "Запускаем boot процесс..."
 pnpm run boot:extra
 
-# Запускаем parser
+# Запускаем parser2 (индексер нового поколения; cooparser снят из compose)
 echo "Запускаем parser..."
-docker compose up -d cooparser
+docker compose up -d parser2
 
 echo "Запускаем контроллер..."
 docker compose up -d --force-recreate coopback || true

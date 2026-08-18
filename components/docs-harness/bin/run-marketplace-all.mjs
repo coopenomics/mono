@@ -267,6 +267,12 @@ if (REBOOT) {
   // WIF прежних пайщиков на новой цепи невалидны. Файлы сносим здесь, а не
   // после прогона: иначе первый же логин уйдёт в «неверный ключ доступа»,
   // и причина будет выглядеть как поломка интерфейса.
+  // После пересоздания цепи parser2 может остаться на SHiP-стриме старой:
+  // «блоков нет 60 с — чтение остановилось», таблицы цепи в PG пустеют, и
+  // первая же prepare-фаза падает на «Информация о кооперативе не обнаружена».
+  // Профилактический рестарт заставляет его переподключиться к новой цепи.
+  console.log('▸ рестарт parser2 (SHiP-стрим новой цепи)...');
+  spawnSync('docker', ['compose', 'restart', 'parser2'], { cwd: REPO_ROOT, stdio: 'inherit' });
   const stateDir = path.join(HARNESS_ROOT, 'state/participants');
   for (const f of fs.existsSync(stateDir) ? fs.readdirSync(stateDir) : []) {
     if (f.endsWith('.json')) fs.rmSync(path.join(stateDir, f));
