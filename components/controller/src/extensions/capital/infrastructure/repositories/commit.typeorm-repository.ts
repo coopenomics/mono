@@ -5,17 +5,12 @@ import { CommitRepository } from '../../domain/repositories/commit.repository';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { CommitMapper } from '../mappers/commit.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CommitTypeormRepository
@@ -156,10 +151,10 @@ export class CommitTypeormRepository
 
   async findAllPaginated(
     filter?: CommitFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<CommitDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<CommitDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

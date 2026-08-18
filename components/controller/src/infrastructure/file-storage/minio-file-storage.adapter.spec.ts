@@ -7,14 +7,14 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import {
-  InterFileStorageBackendUnavailableError,
-  InterFileStorageBucketNotConfiguredError,
-  InterFileStorageMetadataValidationError,
-  InterFileStorageMimeRejectedError,
-  InterFileStorageObjectNotFoundError,
-  InterFileStorageObjectTooLargeError,
-  type InterFileStorageBucketSpec,
-} from '@coopenomics/inter';
+  InnerFileStorageBackendUnavailableError,
+  InnerFileStorageBucketNotConfiguredError,
+  InnerFileStorageMetadataValidationError,
+  InnerFileStorageMimeRejectedError,
+  InnerFileStorageObjectNotFoundError,
+  InnerFileStorageObjectTooLargeError,
+  type InnerFileStorageBucketSpec,
+} from '@coopenomics/innercoop';
 import type { FileStorageInfrastructureOptions } from './file-storage.config';
 import { MinioFileStorageAdapter } from './minio-file-storage.adapter';
 import { verifyReadUrl } from './signing';
@@ -28,7 +28,7 @@ const BASE_OPTS: FileStorageInfrastructureOptions = {
   publicBaseUrl: 'https://test.example.org',
 };
 
-const SPEC: InterFileStorageBucketSpec = {
+const SPEC: InnerFileStorageBucketSpec = {
   name: 'orders:images',
   maxBytes: 1024,
   allowedMime: ['image/jpeg', 'image/png'],
@@ -53,21 +53,21 @@ describe('MinioFileStorageAdapter — getBucket валидация спеки', 
   it('отклоняет name без двоеточия', () => {
     const { adapter } = makeAdapter();
     expect(() => adapter.getBucket({ ...SPEC, name: 'no-colon' })).toThrow(
-      InterFileStorageBucketNotConfiguredError,
+      InnerFileStorageBucketNotConfiguredError,
     );
   });
 
   it('отклоняет неположительный maxBytes', () => {
     const { adapter } = makeAdapter();
     expect(() => adapter.getBucket({ ...SPEC, maxBytes: 0 })).toThrow(
-      InterFileStorageBucketNotConfiguredError,
+      InnerFileStorageBucketNotConfiguredError,
     );
   });
 
   it('отклоняет пустой allowedMime', () => {
     const { adapter } = makeAdapter();
     expect(() => adapter.getBucket({ ...SPEC, allowedMime: [] })).toThrow(
-      InterFileStorageBucketNotConfiguredError,
+      InnerFileStorageBucketNotConfiguredError,
     );
   });
 });
@@ -106,7 +106,7 @@ describe('MinioFileStorageAdapter — put', () => {
         contentType: 'application/octet-stream',
         metadata: { ownerId: 'u-1' },
       }),
-    ).rejects.toBeInstanceOf(InterFileStorageMimeRejectedError);
+    ).rejects.toBeInstanceOf(InnerFileStorageMimeRejectedError);
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -116,7 +116,7 @@ describe('MinioFileStorageAdapter — put', () => {
     const body = new Uint8Array(SPEC.maxBytes + 1);
     await expect(
       bucket.put('big.jpg', body, { contentType: 'image/jpeg', metadata: { ownerId: 'u-1' } }),
-    ).rejects.toBeInstanceOf(InterFileStorageObjectTooLargeError);
+    ).rejects.toBeInstanceOf(InnerFileStorageObjectTooLargeError);
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -135,7 +135,7 @@ describe('MinioFileStorageAdapter — put', () => {
         contentType: 'image/jpeg',
         metadata: { ownerId: 'u-1' },
       }),
-    ).rejects.toBeInstanceOf(InterFileStorageObjectTooLargeError);
+    ).rejects.toBeInstanceOf(InnerFileStorageObjectTooLargeError);
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -144,7 +144,7 @@ describe('MinioFileStorageAdapter — put', () => {
     const bucket = adapter.getBucket(SPEC);
     await expect(
       bucket.put('x.jpg', new Uint8Array([1]), { contentType: 'image/jpeg', metadata: {} }),
-    ).rejects.toBeInstanceOf(InterFileStorageMetadataValidationError);
+    ).rejects.toBeInstanceOf(InnerFileStorageMetadataValidationError);
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -179,7 +179,7 @@ describe('MinioFileStorageAdapter — put', () => {
         contentType: 'image/jpeg',
         metadata: { ownerId: 'u' },
       }),
-    ).rejects.toBeInstanceOf(InterFileStorageBackendUnavailableError);
+    ).rejects.toBeInstanceOf(InnerFileStorageBackendUnavailableError);
   });
 });
 
@@ -216,7 +216,7 @@ describe('MinioFileStorageAdapter — head', () => {
 
     const bucket = adapter.getBucket(SPEC);
     await expect(bucket.head('missing.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageObjectNotFoundError,
+      InnerFileStorageObjectNotFoundError,
     );
   });
 
@@ -227,7 +227,7 @@ describe('MinioFileStorageAdapter — head', () => {
 
     const bucket = adapter.getBucket(SPEC);
     await expect(bucket.head('missing.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageObjectNotFoundError,
+      InnerFileStorageObjectNotFoundError,
     );
   });
 
@@ -236,7 +236,7 @@ describe('MinioFileStorageAdapter — head', () => {
     send.mockRejectedValueOnce(new Error('timeout'));
     const bucket = adapter.getBucket(SPEC);
     await expect(bucket.head('x.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageBackendUnavailableError,
+      InnerFileStorageBackendUnavailableError,
     );
   });
 });
@@ -258,7 +258,7 @@ describe('MinioFileStorageAdapter — delete', () => {
     send.mockRejectedValueOnce(new Error('500'));
     const bucket = adapter.getBucket(SPEC);
     await expect(bucket.delete('x.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageBackendUnavailableError,
+      InnerFileStorageBackendUnavailableError,
     );
   });
 });
@@ -350,7 +350,7 @@ describe('MinioFileStorageAdapter — onApplicationBootstrap', () => {
     const { adapter, send } = makeAdapter();
     send.mockRejectedValueOnce(new Error('connection refused'));
     await expect(adapter.onApplicationBootstrap()).rejects.toBeInstanceOf(
-      InterFileStorageBackendUnavailableError,
+      InnerFileStorageBackendUnavailableError,
     );
   });
 });

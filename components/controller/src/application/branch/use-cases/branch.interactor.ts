@@ -4,7 +4,6 @@ import { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entit
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { CreateBranchDomainInput } from '~/domain/branch/interfaces/create-branch-domain-input.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import type { EditBranchDomainInput } from '~/domain/branch/interfaces/edit-branch-domain-input.interface';
 import type { DeleteBranchDomainInput } from '~/domain/branch/interfaces/delete-branch-domain-input';
@@ -26,6 +25,7 @@ import { Cooperative } from 'cooptypes';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class BranchInteractor {
@@ -356,13 +356,26 @@ export class BranchInteractor {
     return await this.getBranch(data.coopname, data.braname);
   }
 
-  async selectBranch(data: SelectBranchInputDomainInterface): Promise<boolean> {
+  async selectBranch(data: SelectBranchInputDomainInterface, currentUsername?: string): Promise<boolean> {
+    // Заявление о выборе участка пайщик подаёт только за себя: контракт
+    // авторизует кооператив целиком, поэтому сверка подателя — обязанность backend.
+    if (currentUsername && currentUsername !== data.username)
+      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
+
     // TODO move it to separate document domain service for validate
     const document = await this.documentRepository.findByHash(data.document.doc_hash);
     if (!document) throw new BadRequestException('Документ не найден');
 
     if (data.document.meta.registry_id != Cooperative.Registry.SelectBranchStatement.registry_id)
       throw new BadRequestException('Неверный registry_id в переданном документе, ожидается registry_id == 101');
+
+    // подписанное заявление должно быть выписано на того же пайщика,
+    // иначе на цепь уедет документ одного пайщика с участком другого
+    if (data.document.meta.username !== data.username)
+      throw new BadRequestException('Пайщик в документе не совпадает с пайщиком заявления');
+
+    if (data.document.meta.braname !== data.braname)
+      throw new BadRequestException('Кооперативный участок в документе не совпадает с выбранным');
 
     if (data.coopname != config.coopname)
       throw new HttpApiError(httpStatus.BAD_REQUEST, 'Указанное имя аккаунта кооператива не обслуживается здесь');

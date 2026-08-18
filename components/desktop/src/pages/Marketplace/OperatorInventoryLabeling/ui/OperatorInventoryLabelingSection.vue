@@ -857,7 +857,7 @@ onMounted(async () => {
   EmptyState(
     v-if='branchStore.loaded && !branchStore.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Раскладка имущества доступна председателю участка и его доверенным лицам.'
+    body='Раскладка имущества доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')

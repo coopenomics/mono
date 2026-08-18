@@ -6,7 +6,7 @@ import { Name, TransactResult } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class BranchBlockchainAdapter implements BranchBlockchainPort {

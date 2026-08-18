@@ -1,25 +1,19 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { Throttle } from '@nestjs/throttler';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
 import { RegistrationService } from '../services/registration.service';
 import { GenerateRegistrationDocumentsInputDTO } from '../dto/generate-registration-documents-input.dto';
 import { GenerateRegistrationDocumentsOutputDTO } from '../dto/generate-registration-documents-output.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ParticipantApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { AccountDTO } from '~/application/account/dto/account.dto';
 import { RegisterParticipantInputDTO } from '../dto/register-participant-input.dto';
 import { GatewayPaymentDTO } from '~/application/gateway/dto/gateway-payment.dto';
 import { CreateInitialPaymentInputDTO } from '~/application/gateway/dto/create-initial-payment-input.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
@@ -42,7 +36,7 @@ export class RegistrationResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async getCandidates(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: CandidateFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<CandidateOutputDTO>> {

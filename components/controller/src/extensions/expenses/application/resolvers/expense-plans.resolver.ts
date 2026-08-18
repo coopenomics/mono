@@ -1,9 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   EXPENSE_PLANS_SERVICE,
   ExpensePlansService,
@@ -40,7 +38,7 @@ export class ExpensePlansResolver {
   async listExpensePlans(
     @Args('data', { nullable: true }) data?: ListExpensePlansInputDTO
   ): Promise<ExpensePlanDTO[]> {
-    const plans = await this.plansService.listPlans(config.coopname, data?.braname ?? null);
+    const plans = await this.plansService.listPlans(platformSettings().coopname, data?.braname ?? null);
     return plans.map(toExpensePlanDTO);
   }
 
@@ -51,10 +49,10 @@ export class ExpensePlansResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async createExpensePlan(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: CreateExpensePlanInputDTO
   ): Promise<ExpensePlanDTO> {
-    const plan = await this.plansService.createPlan(config.coopname, currentUser.username, {
+    const plan = await this.plansService.createPlan(platformSettings().coopname, currentUser.username, {
       braname: data.braname ?? null,
       title: data.title,
       amount: data.amount,
@@ -72,10 +70,10 @@ export class ExpensePlansResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async deleteExpensePlan(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: DeleteExpensePlanInputDTO
   ): Promise<boolean> {
-    await this.plansService.deletePlan(config.coopname, currentUser.username, data.plan_id);
+    await this.plansService.deletePlan(platformSettings().coopname, currentUser.username, data.plan_id);
     return true;
   }
 }

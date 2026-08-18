@@ -2,19 +2,16 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PaymentTypeEnum, PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
-import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
-import { QuantityUtils } from '~/shared/utils/quantity.utils';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
+import { QuantityUtils } from '@coopenomics/extension-kit';
+import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;
@@ -39,13 +36,13 @@ const RECIPIENT_ORG = 2;
 @Injectable()
 export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
-    @Inject(PAYMENT_REPOSITORY)
-    private readonly payments: PaymentRepository,
+    @Inject(PAYMENT_PORT)
+    private readonly payments: IPaymentPort,
     @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
     private readonly snapshots: Repository<ExpenseRequisiteSnapshotTypeormEntity>,
     @InjectRepository(ExpenseProposalTypeormEntity)
     private readonly proposalEntities: Repository<ExpenseProposalTypeormEntity>,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ExpensePaymentsListener.name);
   }
@@ -108,8 +105,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
       const isOrganization = item.recipient_type === RECIPIENT_ORG;
       const now = new Date();
 
-      const payment: PaymentDomainInterface = {
-        id: '',
+      const payment: InnerPaymentDraft = {
         coopname: entity.coopname,
         // Владелец платежа в реестре = тот, к кому платёж относится ЛИЧНО:
         // аванс под отчёт — пайщик-получатель (платёж виден в его личном реестре,
@@ -124,10 +120,10 @@ export class ExpensePaymentsListener implements OnModuleInit {
         username: isOrganization ? entity.coopname : item.recipient,
         quantity: amount,
         symbol,
-        type: PaymentTypeEnum.EXPENSE,
-        direction: PaymentDirectionEnum.OUTGOING,
+        type: PaymentType.EXPENSE,
+        direction: PaymentDirection.OUTGOING,
         // Совет уже решил — платёж сразу готов к выплате кассиром.
-        status: PaymentStatusEnum.PENDING,
+        status: PaymentStatus.PENDING,
         // Назначение платежа из снимка: пайщику — всегда «Аванс под отчёт»,
         // организации — введённый при создании СЗ текст. Кассир копирует as-is.
         memo: snapshot.payment_purpose ?? EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose,

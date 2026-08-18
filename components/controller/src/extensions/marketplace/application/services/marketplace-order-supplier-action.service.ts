@@ -1,6 +1,7 @@
+import { rethrowChainError } from '@coopenomics/extension-kit';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -23,7 +24,8 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
+import { normalizeChainTxHash } from '../shared/chain-tx.util';
+
 import {
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   type MarketplaceOrderDeclinedBySupplierEvent,
@@ -69,7 +71,7 @@ export class MarketplaceOrderSupplierActionService {
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceOrderSupplierActionService.name);
   }

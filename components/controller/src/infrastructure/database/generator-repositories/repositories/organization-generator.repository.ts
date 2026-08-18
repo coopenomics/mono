@@ -5,8 +5,8 @@ import httpStatus from 'http-status';
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 import { OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { HttpApiError } from '~/utils/httpApiError';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class OrganizationRepositoryImplementation implements OrganizationRepository {

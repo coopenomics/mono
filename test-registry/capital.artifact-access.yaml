@@ -1,0 +1,267 @@
+feature: capital.artifact-access
+title: Кто читает документы проекта и его переписку
+
+# Документы проекта — карточка проекта и компонента, задачи, требования. Переписка —
+# сообщения рабочих комнат и записи звонков.
+#
+# Правило: документы читают председатель, член совета, ведущий проекта, соавтор и
+# пайщик с подтверждённым допуском. Переписку и записи звонков — только совет и
+# ведущий: допуск к работам сам по себе переписку не открывает.
+#
+# Права заданы таблицей ролей и действий (VIEW_ARTIFACTS, READ_COMMUNICATION), а не
+# условиями по коду: чтобы, например, открыть переписку соавторам, правится таблица.
+#
+# Каскад вниз: роль на проекте распространяется на его компоненты. Обратного каскада
+# нет — допуск к компоненту не открывает проект целиком.
+#
+# Выдача самого допуска — соседний слайс (capital.project-contributors), здесь только
+# последствия для чтения.
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
+    - components/controller/src/extensions/capital/application/services/permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/permissions-lookup-cache.ts
+    - components/controller/src/extensions/capital/application/services/project-permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/issue-permissions.service.ts
+    - components/controller/src/extensions/capital/application/services/generation.service.ts
+    - components/controller/src/extensions/capital/application/services/project-management.service.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/inter/capital-inter-project-capital-clearance.adapter.ts
+    - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts
+    - components/controller/src/extensions/chatcoop/application/resolvers/project-communication.resolver.ts
+    - components/controller/src/extensions/chatcoop/application/resolvers/transcription.resolver.ts
+
+cases:
+  # ── Таблица ролей и действий ──────────────────────────────────────────────
+
+  - id: cap.access.happy.01
+    level: backend
+    kind: happy
+    scenario: ведущий проекта запрашивает документы и переписку своего проекта
+    expect: доступно и то, и другое
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.happy.02
+    level: backend
+    kind: happy
+    scenario: пайщик с подтверждённым допуском запрашивает документы проекта
+    expect: документы доступны
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.01
+    level: backend
+    kind: side
+    scenario: пайщик с допуском запрашивает переписку проекта
+    expect: отказ — допуск к работам переписку не открывает
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.02
+    level: backend
+    kind: side
+    scenario: соавтор проекта запрашивает документы и переписку
+    expect: документы доступны, переписка — нет
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.03
+    level: backend
+    kind: side
+    scenario: член совета без допуска запрашивает переписку чужого проекта
+    expect: доступно — совет видит всё
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.break.01
+    level: backend
+    kind: break
+    scenario: посторонний пайщик запрашивает документы и переписку проекта
+    expect: отказ по обоим
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  # ── Каскад по иерархии ────────────────────────────────────────────────────
+
+  - id: cap.access.side.04
+    level: backend
+    kind: side
+    scenario: ведущий проекта запрашивает переписку компонента этого проекта
+    expect: доступно — роль на проекте распространяется на компоненты
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.05
+    level: backend
+    kind: side
+    scenario: пайщик с допуском к проекту запрашивает документы и переписку компонента
+    expect: документы доступны, переписка — нет
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.break.02
+    level: backend
+    kind: break
+    scenario: запрос переписки по несуществующему проекту от ведущего другого проекта
+    expect: отказ, а не пустой ответ «как будто проект есть и пуст»
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  # ── Общие списки без указания проекта (синхронизация рабочей копии) ───────
+
+  - id: cap.access.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель запрашивает общий список задач и требований кооператива
+    expect: ограничения не ставится, виден весь кооператив
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.06
+    level: backend
+    kind: side
+    scenario: ведущий запрашивает общий список без указания проекта
+    expect: область сужается до его проектов и их компонентов
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.side.07
+    level: backend
+    kind: side
+    scenario: область доступа к переписке для пайщика с допуском
+    expect: пустая — по этой роли переписка не открывается
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.break.03
+    level: backend
+    kind: break
+    scenario: запрос общего списка без авторизации
+    expect: пустая область, а не «ограничения нет»
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.break.04
+    level: backend
+    kind: break
+    scenario: >
+      пайщик запрашивает список задач с фильтром по чужому проекту, к которому
+      у него нет ни роли, ни допуска
+    expect: >
+      пустой ответ с нулевым счётчиком — количество чужих задач тоже не
+      раскрывается
+    test: ~
+    status: missing
+
+  - id: cap.access.side.08
+    level: backend
+    kind: side
+    scenario: >
+      постраничный запрос задач у пайщика с доступом к части проектов
+      кооператива
+    expect: >
+      счётчик и число страниц считаются по доступным задачам; страницы не
+      приходят рваными из-за отсева после выборки
+    test: ~
+    status: missing
+
+  # ── Переписка: доступ проверяется по самой комнате ─────────────────────────
+
+  - id: cap.access.break.05
+    level: backend
+    kind: break
+    scenario: >
+      пайщик подставляет в запрос сообщений идентификатор комнаты чужого
+      проекта, полученный со стороны
+    expect: >
+      отказ — доступ проверяется по комнате и её проекту, а не по тому, что
+      комната названа в запросе
+    test: ~
+    status: missing
+
+  - id: cap.access.break.06
+    level: backend
+    kind: break
+    scenario: пайщик запрашивает комнаты пайщиков, совета или секретаря
+    expect: пустой список — эти комнаты к проектам не привязаны и читаются только советом
+    test: ~
+    status: missing
+
+  - id: cap.access.break.07
+    level: backend
+    kind: break
+    scenario: пайщик запрашивает список записей звонков без указания комнаты
+    expect: возвращаются только записи комнат, которые ему доступны
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.side.09
+    level: backend
+    kind: side
+    scenario: ведущий проекта правит заметку к записи звонка своего проекта
+    expect: >
+      разрешено — заметку правит тот же круг, что и читает запись; раньше это
+      мог только совет
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      совет и ведущий проекта открывают запись звонка проекта целиком — с
+      расшифровкой по репликам
+    expect: доступно обоим
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.break.09
+    level: backend
+    kind: break
+    scenario: >
+      у записи звонка два разных идентификатора — комната переписки и комната
+      самого звонка; доступ считается по комнате переписки
+    expect: >
+      запись открывается тем, кто вправе читать переписку этой комнаты; по
+      идентификатору комнаты звонка комната не ищется — иначе отказ получает
+      даже председатель
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  - id: cap.access.break.10
+    level: backend
+    kind: break
+    scenario: запись звонка комнаты, которой нет в реестре комнат кооператива
+    expect: отказ всем, включая совет — читать нечего и права считать не от чего
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    status: written
+
+  # ── Кэш справочных чтений ─────────────────────────────────────────────────
+
+  - id: cap.access.side.10
+    level: backend
+    kind: side
+    scenario: права считаются для списка задач одного проекта
+    expect: >
+      проект, допуск и участие читаются по одному разу на весь список, а не
+      заново на каждую задачу
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written
+
+  - id: cap.access.break.08
+    level: backend
+    kind: break
+    scenario: справочное чтение внутри расчёта прав завершилось ошибкой
+    expect: >
+      ошибка не запоминается — следующий запрос в том же расчёте читает
+      заново, а не получает залипший отказ
+    test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    status: written

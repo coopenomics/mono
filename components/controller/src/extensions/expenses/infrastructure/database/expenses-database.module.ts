@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
 import { ExpenseFileTypeormEntity } from '../entities/expense-file.typeorm-entity';
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../entities/expense-requisite-snapshot.typeorm-entity';
-import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
+import { EntityVersionTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * TypeORM-модуль расширения `expense` — зеркало SP-расходов + реестр файлов

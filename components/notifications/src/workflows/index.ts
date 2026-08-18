@@ -46,6 +46,9 @@ import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplac
 import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
+import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
+import { workflow as marketplaceOfferApprovedWorkflow } from './marketplace-offer-approved';
+import { workflow as marketplaceOfferRejectedWorkflow } from './marketplace-offer-rejected';
 import { workflow as marketplaceSupplierApprovedWorkflow } from './marketplace-supplier-approved';
 import { workflow as marketplaceAidPayoutConfirmedWorkflow } from './marketplace-aid-payout-confirmed';
 import { workflow as marketplaceAidCouncilDecidedWorkflow } from './marketplace-aid-council-decided';
@@ -102,6 +105,9 @@ export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-sup
 export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
+export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
+export * as MarketplaceOfferApproved from './marketplace-offer-approved';
+export * as MarketplaceOfferRejected from './marketplace-offer-rejected';
 export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as MarketplaceAidPayoutConfirmed from './marketplace-aid-payout-confirmed';
 export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided';
@@ -155,6 +161,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceReturnAcceptedSupplierWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceNewSupplierRequestWorkflow,
+  marketplaceOfferOnModerationWorkflow,
+  marketplaceOfferApprovedWorkflow,
+  marketplaceOfferRejectedWorkflow,
   marketplaceSupplierApprovedWorkflow,
   marketplaceAidPayoutConfirmedWorkflow,
   marketplaceAidCouncilDecidedWorkflow,

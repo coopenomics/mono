@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { IsString, IsBoolean, IsNumber } from 'class-validator';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { IGeneratedRegistrationDocument } from '~/domain/registration/interfaces/registration-documents.interface';
 
 @ObjectType('GeneratedRegistrationDocument')

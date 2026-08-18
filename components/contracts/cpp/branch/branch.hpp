@@ -9,6 +9,7 @@
 #include "../lib/index.hpp"
 #include "../lib/core/gateway/gateway.hpp"
 #include "../lib/core/ledger2/ledger2.hpp"
+#include "../lib/core/branch/ndfl.hpp"   // BranchNdfl::calc_tax / calc_net — удержание НДФЛ из материальной помощи
 #include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси расходов
 
 /**
@@ -132,6 +133,7 @@ public:
   [[eosio::action]] void accrue(eosio::name coopname, eosio::name braname,
                                  eosio::name source_contract,
                                  eosio::asset amount,
+                                 eosio::name process_type,
                                  eosio::checksum256 process_hash,
                                  std::string memo);
 
@@ -145,6 +147,7 @@ public:
   [[eosio::action]] void retfee(eosio::name coopname, eosio::name braname,
                                  eosio::name source_contract,
                                  eosio::asset amount,
+                                 eosio::name process_type,
                                  eosio::checksum256 process_hash,
                                  std::string memo);
 
@@ -207,7 +210,8 @@ public:
 
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил банковский
-   * перевод материальной помощи. Здесь применяется o.brn.aid (Дт 86 / Кт 51).
+   * перевод материальной помощи. Здесь применяются o.brn.aidtax (удержание
+   * налога, Дт 86 / Кт 68) и o.brn.aid (выплата, Дт 86 / Кт 51).
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void aidconfirm(eosio::name coopname,

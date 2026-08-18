@@ -1,8 +1,8 @@
 import { InvestStatus } from '../enums/invest-status.enum';
 import type { IInvestDatabaseData } from '../interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../interfaces/invest-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность инвестиции

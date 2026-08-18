@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * DTO для завершения регистрации в Capital

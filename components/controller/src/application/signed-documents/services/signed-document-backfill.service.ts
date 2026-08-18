@@ -91,13 +91,18 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
     let page = 1;
 
     while (true) {
-      // Скоуп ровно как у прежнего chairman-пути getDocuments: {name: type, receiver: coopname}.
-      // Без receiver explorer вернул бы все трейсы каждого действия (receiver=soviet/пайщик) и,
-      // возможно, другие кооперативы — лишняя обработка и чужие данные. receiver=coopname даёт
-      // один трейс на документ и только наш кооператив (coopname — всегда получатель soviet-документа).
+      // Скоуп прежнего chairman-пути getDocuments задавался как {name: type, receiver: coopname}:
+      // обозреватель держал в своей mongo ВСЕ трейсы действия (по одному на каждого
+      // нотифицируемого), и receiver=coopname отбирал из них ровно один — наш.
+      //
+      // В собственной базе узла такого выбора нет: consumer сохраняет только основной
+      // трейс (receiver == account) и только действия нашего кооператива, поэтому
+      // условие по receiver здесь не нужно — в базе и так один трейс на документ.
+      // Оставить его означало бы искать receiver='voskhod' там, где записан 'soviet',
+      // и не найти ничего.
       const response = await this.documentDomainService.getImmutableSignedDocuments({
         type: pass.type,
-        query: { receiver: config.coopname },
+        query: {},
         page,
         limit: PAGE_LIMIT,
       });

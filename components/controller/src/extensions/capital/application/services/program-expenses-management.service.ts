@@ -1,24 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
-import type { TransactResult } from '@wharfkit/session';
-import { config } from '~/config';
-import {
-  INTER_EXPENSE_CHASSIS,
-  type InterExpenseChassisPort,
-  type InterExpenseItem,
-  type InterExpenseProposalRead,
-  type InterExpenseProposalStatus,
-  type InterExpenseRequisiteItemInput,
-} from '@coopenomics/inter';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, type InnerExpenseItem, type InnerExpenseProposalRead, type InnerExpenseProposalStatus, type InnerExpenseRequisiteItemInput, ACCOUNT_PORT, type IAccountPort,
+  type InnerTransactResult,
+  InnerExpenseProposalState,
+  InnerExpenseMechanics,
+  InnerExpenseRecipientType,
+  InnerExpenseItemState,
+} from '@coopenomics/innercoop';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import {
-  buildPaginationResult,
-  PaginationInputDTO,
-  paginationInputToOffset,
-  type PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+import { buildPaginationResult, PaginationInputDTO, paginationInputToOffset, type PaginationResult, DomainToBlockchainUtils,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import type { CreateProgramExpenseInputDTO } from '../dto/program_expenses/create-program-expense.input';
 import type { TopupProgramExpenseInputDTO } from '../dto/program_expenses/topup-program-expense.input';
 import type {
@@ -26,16 +18,12 @@ import type {
   ProgramExpenseItemOutputDTO,
   ProgramExpenseOutputDTO,
 } from '../dto/program_expenses/program-expense.output';
-import { ExpenseProposalStatus } from '~/extensions/expenses/domain/enums/expense-proposal-status.enum';
-import { ExpenseMechanics } from '~/extensions/expenses/domain/enums/expense-mechanics.enum';
-import { ExpenseRecipientType } from '~/extensions/expenses/domain/enums/expense-recipient-type.enum';
-import { ExpenseItemStatus } from '~/extensions/expenses/domain/enums/expense-item-status.enum';
 
 /**
  * Управление программными расходами Капитала.
  *
  * Тонкое расширение: write — `capital::createpgexp` / `topupprogexp` через
- * `CapitalBlockchainPort`; read — через inter-порт `INTER_EXPENSE_CHASSIS`
+ * `CapitalBlockchainPort`; read — через inter-порт `EXPENSE_CHASSIS_PORT`
  * (шасси-extension отвечает за хранение proposals).
  */
 @Injectable()
@@ -43,40 +31,40 @@ export class ProgramExpensesManagementService {
   constructor(
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
-    @Inject(INTER_EXPENSE_CHASSIS)
-    private readonly expenseChassis: InterExpenseChassisPort,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort,
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
   ) {}
 
-  async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<TransactResult> {
+  async createProgramExpense(data: CreateProgramExpenseInputDTO): Promise<InnerTransactResult> {
     // Реквизиты получателей: валидация ДО on-chain заявки, снимок в шасси —
     // ПОСЛЕ (фиксация «куда платить» на момент создания СЗ).
-    const requisiteItems: InterExpenseRequisiteItemInput[] = data.items.map((it) => ({
+    const requisiteItems: InnerExpenseRequisiteItemInput[] = data.items.map((it) => ({
       proposalHash: data.expense_hash,
       itemHash: it.item_hash,
       recipient: it.recipient,
-      isOrganization: it.recipient_type === ExpenseRecipientType.ORG,
-      mechanics: it.mechanics === ExpenseMechanics.DIRECT ? 'DIRECT' : 'ADVANCE',
+      isOrganization: it.recipient_type === InnerExpenseRecipientType.ORG,
+      mechanics: it.mechanics === InnerExpenseMechanics.DIRECT ? 'DIRECT' : 'ADVANCE',
       paymentMethodId: it.payment_method_id,
       requisites: it.requisites,
       paymentPurpose: it.payment_purpose,
     }));
     await this.expenseChassis.validateRequisites(data.coopname, requisiteItems);
 
-    const zeroAmount = `0.0000 ${config.blockchain.root_govern_symbol}`;
+    const zeroAmount = `0.0000 ${platformSettings().blockchain.rootGovernSymbol}`;
     const blockchainData: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense = {
       coopname: data.coopname,
       expense_hash: data.expense_hash,
       creator: data.creator,
       items: data.items.map((it) => ({
         item_hash: it.item_hash,
-        mechanics: it.mechanics === ExpenseMechanics.DIRECT ? 1 : 0,
+        mechanics: it.mechanics === InnerExpenseMechanics.DIRECT ? 1 : 0,
         recipient_type:
-          it.recipient_type === ExpenseRecipientType.SELF
+          it.recipient_type === InnerExpenseRecipientType.SELF
             ? 0
-            : it.recipient_type === ExpenseRecipientType.MEMBER
+            : it.recipient_type === InnerExpenseRecipientType.MEMBER
               ? 1
               : 2,
         recipient: it.recipient,
@@ -95,7 +83,7 @@ export class ProgramExpensesManagementService {
     return result;
   }
 
-  async topupProgramExpense(data: TopupProgramExpenseInputDTO): Promise<TransactResult> {
+  async topupProgramExpense(data: TopupProgramExpenseInputDTO): Promise<InnerTransactResult> {
     return this.capitalBlockchainPort.topupProgramExpense({
       coopname: data.coopname,
       amount: data.amount,
@@ -130,9 +118,9 @@ export class ProgramExpensesManagementService {
   }
 
   /** Получатели-пайщики СЗ (у ORG-строк recipient — уже название организации). */
-  private memberRecipients(p: InterExpenseProposalRead): string[] {
+  private memberRecipients(p: InnerExpenseProposalRead): string[] {
     return p.items
-      .filter((it) => this.mapRecipientType(it.recipientType) !== ExpenseRecipientType.ORG)
+      .filter((it) => this.mapRecipientType(it.recipientType) !== InnerExpenseRecipientType.ORG)
       .map((it) => it.recipient);
   }
 
@@ -152,7 +140,7 @@ export class ProgramExpensesManagementService {
     return new Map(entries);
   }
 
-  private toOutput(p: InterExpenseProposalRead, names: Map<string, string>): ProgramExpenseOutputDTO {
+  private toOutput(p: InnerExpenseProposalRead, names: Map<string, string>): ProgramExpenseOutputDTO {
     return {
       coopname: p.coopname,
       expense_hash: p.proposalHash,
@@ -169,7 +157,7 @@ export class ProgramExpensesManagementService {
     };
   }
 
-  private toItemOutput(it: InterExpenseItem, names: Map<string, string>): ProgramExpenseItemOutputDTO {
+  private toItemOutput(it: InnerExpenseItem, names: Map<string, string>): ProgramExpenseItemOutputDTO {
     const recipientType = this.mapRecipientType(it.recipientType);
     return {
       item_hash: it.itemHash,
@@ -177,7 +165,7 @@ export class ProgramExpensesManagementService {
       recipient_type: recipientType,
       recipient: it.recipient,
       recipient_name:
-        recipientType === ExpenseRecipientType.ORG
+        recipientType === InnerExpenseRecipientType.ORG
           ? it.recipient
           : (names.get(it.recipient) ?? it.recipient),
       description: it.description,
@@ -191,49 +179,49 @@ export class ProgramExpensesManagementService {
     return { contract: cb.contract, action: cb.action, data: cb.data };
   }
 
-  private mapStatus(status: InterExpenseProposalStatus): ExpenseProposalStatus {
+  private mapStatus(status: InnerExpenseProposalStatus): InnerExpenseProposalState {
     switch (status) {
       case 'CREATED':
-        return ExpenseProposalStatus.CREATED;
+        return InnerExpenseProposalState.CREATED;
       case 'AUTHORIZED':
-        return ExpenseProposalStatus.AUTHORIZED;
+        return InnerExpenseProposalState.AUTHORIZED;
       case 'PARTIALLY_PAID':
-        return ExpenseProposalStatus.PARTIALLY_PAID;
+        return InnerExpenseProposalState.PARTIALLY_PAID;
       case 'REPORT_SUBMITTED':
-        return ExpenseProposalStatus.REPORT_SUBMITTED;
+        return InnerExpenseProposalState.REPORT_SUBMITTED;
       case 'CLOSED':
-        return ExpenseProposalStatus.CLOSED;
+        return InnerExpenseProposalState.CLOSED;
       case 'DECLINED':
-        return ExpenseProposalStatus.DECLINED;
+        return InnerExpenseProposalState.DECLINED;
       default:
-        return ExpenseProposalStatus.UNDEFINED;
+        return InnerExpenseProposalState.UNDEFINED;
     }
   }
 
-  private mapMechanics(raw: number): ExpenseMechanics {
-    return raw === 1 ? ExpenseMechanics.DIRECT : ExpenseMechanics.ADVANCE;
+  private mapMechanics(raw: number): InnerExpenseMechanics {
+    return raw === 1 ? InnerExpenseMechanics.DIRECT : InnerExpenseMechanics.ADVANCE;
   }
 
-  private mapRecipientType(raw: number): ExpenseRecipientType {
-    if (raw === 2) return ExpenseRecipientType.ORG;
-    if (raw === 1) return ExpenseRecipientType.MEMBER;
-    return ExpenseRecipientType.SELF;
+  private mapRecipientType(raw: number): InnerExpenseRecipientType {
+    if (raw === 2) return InnerExpenseRecipientType.ORG;
+    if (raw === 1) return InnerExpenseRecipientType.MEMBER;
+    return InnerExpenseRecipientType.SELF;
   }
 
-  private mapItemStatus(raw: number): ExpenseItemStatus {
+  private mapItemStatus(raw: number): InnerExpenseItemState {
     switch (raw) {
       case 0:
-        return ExpenseItemStatus.APPROVED;
+        return InnerExpenseItemState.APPROVED;
       case 1:
-        return ExpenseItemStatus.PAID;
+        return InnerExpenseItemState.PAID;
       case 2:
-        return ExpenseItemStatus.REPORTED;
+        return InnerExpenseItemState.REPORTED;
       case 3:
-        return ExpenseItemStatus.RETURNED;
+        return InnerExpenseItemState.RETURNED;
       case 4:
-        return ExpenseItemStatus.OVERSPENT;
+        return InnerExpenseItemState.OVERSPENT;
       default:
-        return ExpenseItemStatus.UNDEFINED;
+        return InnerExpenseItemState.UNDEFINED;
     }
   }
 }

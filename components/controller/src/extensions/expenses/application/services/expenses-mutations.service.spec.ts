@@ -1,10 +1,6 @@
 import { ExpensesMutationsService } from './expenses-mutations.service'
 import type { ExpensesBlockchainPort } from '../../domain/interfaces/expenses-blockchain.port'
-import type { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service'
 import type { ExpenseProposalRepository } from '../../domain/repositories/expense-proposal.repository'
-import type { PaymentRepository } from '~/domain/gateway/repositories/payment.repository'
-import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum'
-import config from '~/config/config'
 import type { PayExpenseItemInputDTO } from '../dto/pay-expense-item.input'
 import type { ReportExpenseItemInputDTO } from '../dto/report-expense-item.input'
 import { ExpenseReportOutcome } from '../dto/report-expense-item.output'
@@ -15,11 +11,17 @@ import type { CreateExpenseProposalInputDTO } from '../dto/create-expense-propos
 import { ExpenseMechanics } from '../../domain/enums/expense-mechanics.enum'
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum'
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
+import type { IPaymentPort } from '@coopenomics/innercoop';
+import { PaymentType, PaymentDirection,
+  DOCUMENT_PORT,
+  type IDocumentPort,
+} from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 // Символ/precision берём из конфига ноды — тесты расчёта разницы не зависят от
 // того, какой именно root_govern_symbol сконфигурирован в окружении CI.
-const SYM = config.blockchain.root_govern_symbol
-const PREC = config.blockchain.root_govern_precision
+const SYM = platformSettings().blockchain.rootGovernSymbol
+const PREC = platformSettings().blockchain.rootGovernPrecision
 const asset = (n: number) => `${n.toFixed(PREC)} ${SYM}`
 
 /**
@@ -31,7 +33,7 @@ const asset = (n: number) => `${n.toFixed(PREC)} ${SYM}`
 describe('ExpensesMutationsService', () => {
   let service: ExpensesMutationsService
   let chain: jest.Mocked<ExpensesBlockchainPort>
-  let generator: jest.Mocked<Pick<GeneratorInfrastructureService, 'generateDocument'>>
+  let generator: jest.Mocked<Pick<IDocumentPort, 'generate' | 'saveData'>>
   let requisiteSnapshots: {
     validate: jest.Mock
     snapshot: jest.Mock
@@ -54,7 +56,10 @@ describe('ExpensesMutationsService', () => {
       closeExp: jest.fn().mockResolvedValue(fakeResult),
     } as unknown as jest.Mocked<ExpensesBlockchainPort>
     generator = {
-      generateDocument: jest.fn().mockResolvedValue({} as never),
+      generate: jest.fn().mockResolvedValue({} as never),
+      // Приватная часть сметы сохраняется отдельно от документа: сервис берёт
+      // из ответа только хэш и кладёт его в документ.
+      saveData: jest.fn().mockResolvedValue({ hash: 'test-doc-data-hash' } as never),
     }
     requisiteSnapshots = {
       validate: jest.fn().mockResolvedValue(undefined),
@@ -71,10 +76,10 @@ describe('ExpensesMutationsService', () => {
     }
     service = new ExpensesMutationsService(
       chain,
-      generator as unknown as GeneratorInfrastructureService,
+      generator as unknown as IDocumentPort,
       requisiteSnapshots as never,
       proposals as unknown as ExpenseProposalRepository,
-      payments as unknown as PaymentRepository
+      payments as unknown as IPaymentPort
     )
   })
 
@@ -282,8 +287,8 @@ describe('ExpensesMutationsService', () => {
       },
     })
     const payment = payments.create.mock.calls[0][0]
-    expect(payment.type).toBe(PaymentTypeEnum.EXPENSE_RETURN)
-    expect(payment.direction).toBe(PaymentDirectionEnum.INCOMING)
+    expect(payment.type).toBe(PaymentType.EXPENSE_RETURN)
+    expect(payment.direction).toBe(PaymentDirection.INCOMING)
     expect(payment.username).toBe('petrov')
     expect(payment.quantity).toBe(200)
     expect(payment.blockchain_data).toMatchObject({ proposal_hash: '0xabc', item_hash: '0xdef' })
@@ -306,8 +311,8 @@ describe('ExpensesMutationsService', () => {
     expect(chain.reportExp).not.toHaveBeenCalled()
     expect(payments.create).toHaveBeenCalledTimes(1)
     const payment = payments.create.mock.calls[0][0]
-    expect(payment.type).toBe(PaymentTypeEnum.EXPENSE_OVERSPEND)
-    expect(payment.direction).toBe(PaymentDirectionEnum.OUTGOING)
+    expect(payment.type).toBe(PaymentType.EXPENSE_OVERSPEND)
+    expect(payment.direction).toBe(PaymentDirection.OUTGOING)
     expect(payment.quantity).toBe(200)
     // Перерасход: реквизиты для выплаты — снимок реквизитов пайщика по позиции.
     expect(requisiteSnapshots.getItemRequisiteData).toHaveBeenCalledWith('voskhod', '0xabc', '0xdef')

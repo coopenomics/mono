@@ -19,10 +19,13 @@ import { ReportType } from '../enums/report-type.enum';
  * не отражает регламентные переносы).
  */
 
-export type PeriodKind = 'yearly' | 'quarterly' | 'monthly';
+export type PeriodKind = 'yearly' | 'quarterly' | 'monthly' | 'semi-monthly';
 
 export interface CalendarPeriodEntry {
-  /** Код периода для генератора: 1..4 для quarterly, 1..12 для monthly, null для yearly. */
+  /**
+   * Код периода для генератора: 1..4 для quarterly, 1..12 для monthly,
+   * 1..24 для semi-monthly (по два периода на месяц), null для yearly.
+   */
   periodCode: number | null;
   /** Человекочитаемая метка: «I кв.», «Январь», «Год». */
   label: string;
@@ -32,6 +35,13 @@ export interface CalendarPeriodEntry {
   dueDay: number;
   /** 0 = сдавать в том же году, 1 = в следующем. */
   dueYearOffset: 0 | 1;
+  /**
+   * Куда переносить срок, если он выпал на выходной или праздник. По умолчанию
+   * вперёд — обычное правило п. 7 ст. 6.1 НК. Назад переносится единственный
+   * срок: уведомление по НДФЛ за 23–31 декабря подаётся «не позднее
+   * последнего рабочего дня года», и перенос вперёд вынес бы его в январь.
+   */
+  shiftDirection?: 'forward' | 'backward';
 }
 
 export interface CalendarFormEntry {
@@ -86,6 +96,42 @@ function psvEntries(): CalendarPeriodEntry[] {
     });
 }
 
+/**
+ * Уведомление по НДФЛ — 24 периода в году, по два на месяц.
+ *
+ * Сроки: за период с 1 по 22 число — до 25 числа того же месяца; за период с
+ * 23 по последнее число — до 3 числа следующего месяца. Исключение одно:
+ * уведомление за 23–31 декабря подаётся не позднее последнего рабочего дня
+ * года, поэтому срок стоит на 31 декабря и переносится назад, а не вперёд.
+ *
+ * Периоды без выплат подавать не нужно — календарь показывает все, а пустые
+ * бухгалтер отмечает как несдаваемые, как это уже сделано для ПСВ.
+ */
+function uvNdflEntries(): CalendarPeriodEntry[] {
+  const entries: CalendarPeriodEntry[] = [];
+  for (let month = 1; month <= 12; month += 1) {
+    const monthLabel = RUSSIAN_MONTHS[month - 1] ?? String(month);
+    entries.push({
+      periodCode: (month - 1) * 2 + 1,
+      label: `${monthLabel} · 1–22`,
+      dueMonth: month,
+      dueDay: 25,
+      dueYearOffset: 0,
+    });
+
+    const isDecember = month === 12;
+    entries.push({
+      periodCode: (month - 1) * 2 + 2,
+      label: `${monthLabel} · 23–конец`,
+      dueMonth: isDecember ? 12 : month + 1,
+      dueDay: isDecember ? 31 : 3,
+      dueYearOffset: 0,
+      ...(isDecember ? { shiftDirection: 'backward' as const } : {}),
+    });
+  }
+  return entries;
+}
+
 export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
   {
     reportType: ReportType.BUHOTCH,
@@ -126,6 +172,12 @@ export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
     shortName: 'ПСВ',
     periodKind: 'monthly',
     periods: psvEntries(),
+  },
+  {
+    reportType: ReportType.UV_NDFL,
+    shortName: 'Уведомление НДФЛ',
+    periodKind: 'semi-monthly',
+    periods: uvNdflEntries(),
   },
   {
     reportType: ReportType.FSS4,
@@ -183,7 +235,13 @@ function isNonBusinessDay(year: number, month1to12: number, day: number): boolea
  * (самый длинный подряд-выходной в РФ — 1-8 января = 8 дней + возможные
  * субботы/воскресенья после = до 10-12 подряд; 14 с запасом).
  */
-function shiftToBusinessDay(year: number, month1to12: number, day: number): { year: number; month: number; day: number } {
+function shiftToBusinessDay(
+  year: number,
+  month1to12: number,
+  day: number,
+  direction: 'forward' | 'backward' = 'forward',
+): { year: number; month: number; day: number } {
+  const step = direction === 'backward' ? -1 : 1;
   const d = new Date(Date.UTC(year, month1to12 - 1, day));
   for (let i = 0; i < 14; i++) {
     const y = d.getUTCFullYear();
@@ -192,7 +250,7 @@ function shiftToBusinessDay(year: number, month1to12: number, day: number): { ye
     if (!isNonBusinessDay(y, m, dd)) {
       return { year: y, month: m, day: dd };
     }
-    d.setUTCDate(d.getUTCDate() + 1);
+    d.setUTCDate(d.getUTCDate() + step);
   }
   // Защита: если за 14 дней не нашли рабочий — возвращаем исходную дату
   // (лучше показать правильный вид, чем падать).
@@ -206,7 +264,12 @@ function shiftToBusinessDay(year: number, month1to12: number, day: number): { ye
  */
 export function calcDueDate(reportYear: number, entry: CalendarPeriodEntry): string {
   const rawYear = reportYear + entry.dueYearOffset;
-  const { year, month, day } = shiftToBusinessDay(rawYear, entry.dueMonth, entry.dueDay);
+  const { year, month, day } = shiftToBusinessDay(
+    rawYear,
+    entry.dueMonth,
+    entry.dueDay,
+    entry.shiftDirection,
+  );
   const m = String(month).padStart(2, '0');
   const d = String(day).padStart(2, '0');
   return `${year}-${m}-${d}`;

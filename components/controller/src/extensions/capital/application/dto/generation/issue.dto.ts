@@ -2,7 +2,7 @@ import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 import GraphQLJSON from 'graphql-type-json';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { IssuePermissionsOutputDTO } from './issue-permissions.dto';
 
 @ObjectType('CapitalIssueLinkedGitCommit', {

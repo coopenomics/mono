@@ -1,19 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
-import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
-import config from '~/config/config';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
-import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
-import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
+import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
+import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'
@@ -37,8 +32,8 @@ type CapitalOnboardingConfig = IConfig &
 export class CapitalOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: FreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: DecisionTrackingPort
+    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
   ) {}
 
   private mapStepToFlag(step: CapitalOnboardingStepEnum): OnboardingFlagKey {
@@ -102,7 +97,7 @@ export class CapitalOnboardingService {
     return typeof value === 'string' ? value : undefined;
   }
 
-  private isSignatureInfo(value: unknown): value is ISignedDocumentDomainInterface['signatures'][number] {
+  private isSignatureInfo(value: unknown): value is ISignedDocument['signatures'][number] {
     if (!this.isRecord(value)) return false;
 
     return (
@@ -116,27 +111,27 @@ export class CapitalOnboardingService {
     );
   }
 
-  private getMetaSignatures(meta: unknown): ISignedDocumentDomainInterface['signatures'] {
+  private getMetaSignatures(meta: unknown): ISignedDocument['signatures'] {
     if (!this.isRecord(meta)) return [];
     const value = meta.signatures;
     return Array.isArray(value) ? value.filter((item) => this.isSignatureInfo(item)) : [];
   }
 
-  private async loadPlugin(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
-    const plugin = await this.extensionRepository.findByName('capital');
-    if (!plugin) throw new Error('Конфигурация расширения capital не найдена');
-    const pluginConfig: CapitalOnboardingConfig = { ...plugin.config };
+  private async loadExtension(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
+    const extension = await this.extensionRepository.findByName('capital');
+    if (!extension) throw new Error('Конфигурация расширения capital не найдена');
+    const extensionConfig: CapitalOnboardingConfig = { ...extension.config };
 
     const patch: Partial<CapitalOnboardingConfig> = {};
-    if (!pluginConfig.onboarding_init_at) {
-      pluginConfig.onboarding_init_at = new Date().toISOString();
-      patch.onboarding_init_at = pluginConfig.onboarding_init_at;
+    if (!extensionConfig.onboarding_init_at) {
+      extensionConfig.onboarding_init_at = new Date().toISOString();
+      patch.onboarding_init_at = extensionConfig.onboarding_init_at;
     }
 
-    if (!pluginConfig.onboarding_expire_at) {
-      const start = new Date(pluginConfig.onboarding_init_at);
-      pluginConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
-      patch.onboarding_expire_at = pluginConfig.onboarding_expire_at;
+    if (!extensionConfig.onboarding_expire_at) {
+      const start = new Date(extensionConfig.onboarding_init_at);
+      extensionConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
+      patch.onboarding_expire_at = extensionConfig.onboarding_expire_at;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -144,37 +139,37 @@ export class CapitalOnboardingService {
       // целиком (как раньше) конкурирует с параллельными записями других шагов
       // онбординга (флаги, хэши) и теряет их изменения (lost update).
       const updated = await this.extensionRepository.patchConfig('capital', patch);
-      return { ...plugin, config: updated.config };
+      return { ...extension, config: updated.config };
     }
 
-    return { ...plugin, config: pluginConfig };
+    return { ...extension, config: extensionConfig };
   }
 
-  private buildState(pluginConfig: CapitalOnboardingConfig): CapitalOnboardingStateDTO {
+  private buildState(extensionConfig: CapitalOnboardingConfig): CapitalOnboardingStateDTO {
     return {
-      generator_program_template_done: !!pluginConfig.onboarding_generator_program_template_done,
-      onboarding_generator_program_template_hash: pluginConfig.onboarding_generator_program_template_hash || null,
-    generation_contract_template_done: !!pluginConfig.onboarding_generation_contract_template_done,
-    onboarding_generation_contract_template_hash: pluginConfig.onboarding_generation_contract_template_hash || null,
-    generator_offer_template_done: !!pluginConfig.onboarding_generator_offer_template_done,
-    onboarding_generator_offer_template_hash: pluginConfig.onboarding_generator_offer_template_hash || null,
-      blagorost_provision_done: !!pluginConfig.onboarding_blagorost_provision_done,
-      onboarding_blagorost_provision_hash: pluginConfig.onboarding_blagorost_provision_hash || null,
-      blagorost_offer_template_done: !!pluginConfig.onboarding_blagorost_offer_template_done,
-      onboarding_blagorost_offer_template_hash: pluginConfig.onboarding_blagorost_offer_template_hash || null,
-      capital_program_doc_data_hash: pluginConfig.capital_program_doc_data_hash || null,
-      onboarding_init_at: pluginConfig.onboarding_init_at || '',
-      onboarding_expire_at: pluginConfig.onboarding_expire_at || '',
+      generator_program_template_done: !!extensionConfig.onboarding_generator_program_template_done,
+      onboarding_generator_program_template_hash: extensionConfig.onboarding_generator_program_template_hash || null,
+    generation_contract_template_done: !!extensionConfig.onboarding_generation_contract_template_done,
+    onboarding_generation_contract_template_hash: extensionConfig.onboarding_generation_contract_template_hash || null,
+    generator_offer_template_done: !!extensionConfig.onboarding_generator_offer_template_done,
+    onboarding_generator_offer_template_hash: extensionConfig.onboarding_generator_offer_template_hash || null,
+      blagorost_provision_done: !!extensionConfig.onboarding_blagorost_provision_done,
+      onboarding_blagorost_provision_hash: extensionConfig.onboarding_blagorost_provision_hash || null,
+      blagorost_offer_template_done: !!extensionConfig.onboarding_blagorost_offer_template_done,
+      onboarding_blagorost_offer_template_hash: extensionConfig.onboarding_blagorost_offer_template_hash || null,
+      capital_program_doc_data_hash: extensionConfig.capital_program_doc_data_hash || null,
+      onboarding_init_at: extensionConfig.onboarding_init_at || '',
+      onboarding_expire_at: extensionConfig.onboarding_expire_at || '',
     };
   }
 
   public async getState(): Promise<CapitalOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
-    return this.buildState(plugin.config);
+    const extension = await this.loadExtension();
+    return this.buildState(extension.config);
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
-    await this.loadPlugin();
+    await this.loadExtension();
     const normalizedHash = docDataHash.trim();
 
     if (!normalizedHash) {
@@ -189,13 +184,13 @@ export class CapitalOnboardingService {
   }
 
   public async completeStep(data: CapitalOnboardingStepInputDTO, username: string): Promise<CapitalOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
     const flagKey = this.mapStepToFlag(data.step);
     const hashKey = this.mapStepToHash(data.step);
     const normalizedTitle = data.title?.trim().substring(0, 200) || undefined;
 
-    if (plugin.config[flagKey]) {
-      return this.buildState(plugin.config);
+    if (extension.config[flagKey]) {
+      return this.buildState(extension.config);
     }
     const project_id = uuid();
     const actor = username;
@@ -211,7 +206,7 @@ export class CapitalOnboardingService {
     const generatedDoc = await this.freeDecisionPort.generateProjectOfFreeDecisionDocument(
       {
         project_id,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: actor,
         registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
         title: normalizedTitle,
@@ -220,7 +215,7 @@ export class CapitalOnboardingService {
     );
 
     // Публикуем проект решения в блокчейн сразу после генерации
-    const documentForPublish: ISignedDocumentDomainInterface = {
+    const documentForPublish: ISignedDocument = {
       version: this.getMetaString(generatedDoc.meta, 'version') || '1.0',
       hash: generatedDoc.hash,
       doc_hash: this.getMetaString(generatedDoc.meta, 'doc_hash') || generatedDoc.hash,
@@ -230,7 +225,7 @@ export class CapitalOnboardingService {
     };
 
     await this.freeDecisionPort.publishProjectOfFreeDecision({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: actor,
       meta: JSON.stringify({ step: data.step, project_id, title: normalizedTitle }),
       document: documentForPublish,

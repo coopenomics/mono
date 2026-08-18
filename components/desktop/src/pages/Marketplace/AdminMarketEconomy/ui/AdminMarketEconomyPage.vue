@@ -32,7 +32,7 @@ async function load(): Promise<void> {
     const config = await getEconomyConfig()
     currentPercent.value = config.membership_fee_percent
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить ставку членского взноса')
+    FailAlert(e, 'Не удалось загрузить кооперативную наценку')
   } finally {
     loading.value = false
   }
@@ -49,7 +49,7 @@ async function onSave(): Promise<void> {
     const config = await setMembershipFee({ membership_fee_percent: Number(draftPercent.value) })
     currentPercent.value = config.membership_fee_percent
     dialogOpen.value = false
-    SuccessAlert('Ставка членского взноса установлена')
+    SuccessAlert('Кооперативная наценка установлена')
   } catch (e) {
     FailAlert(e, 'Не удалось установить ставку')
   } finally {
@@ -57,24 +57,28 @@ async function onSave(): Promise<void> {
   }
 }
 
-onMounted(() => void load())
+onMounted(() => {
+  void load()
+})
 </script>
 
 <template lang="pug">
 q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
-    | Членский взнос добавляется к стоимости каждого заказа Стола заказов и
+    | Кооперативная наценка добавляется к стоимости каждого заказа Стола заказов и
     | после исполнения заказа распределяется кооперативному участку выдачи.
-    | Ставка единая для всех участков и категорий — так исключаются
+    | Наценка идёт на обеспечение хозяйственной деятельности кооператива и
+    | едина для всех участков и категорий — так исключаются
     | спекуляции и переток заказов между участками. Изменение действует на
     | заказы, созданные после установки.
 
   .admin-economy__card
     .admin-economy__stat
-      .admin-economy__label Ставка членского взноса
+      .admin-economy__label Кооперативная наценка
       .admin-economy__value
         span.admin-economy__amount {{ displayValue }}
         span.admin-economy__unit %
+      .admin-economy__caption на обеспечение хозяйственной деятельности
     BaseButton.admin-economy__edit(
       variant='secondary',
       size='sm',
@@ -85,13 +89,14 @@ q-page.admin-economy
         q-icon(name='edit', size='16px')
       | Изменить
 
-  BaseDialog(v-model='dialogOpen', title='Ставка членского взноса', size='sm')
+  BaseDialog(v-model='dialogOpen', title='Кооперативная наценка', size='sm')
     p.admin-economy__dialog-hint
-      | Новая ставка применится к заказам, созданным после сохранения. Уже
+      | Наценка идёт на обеспечение хозяйственной деятельности кооператива.
+      | Новое значение применится к заказам, созданным после сохранения. Уже
       | оформленные заказы не пересчитываются.
     AmountInput(
       v-model='draftPercent',
-      label='Ставка',
+      label='Наценка',
       symbol='%',
       :precision='2',
       :min='0',
@@ -131,6 +136,13 @@ q-page.admin-economy
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
     margin-bottom: var(--p-1, 4px);
+  }
+
+  &__caption {
+    margin-top: var(--p-1, 4px);
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body-sm, 1.5);
   }
 
   &__value {

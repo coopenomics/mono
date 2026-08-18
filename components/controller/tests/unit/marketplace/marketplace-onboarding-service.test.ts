@@ -15,6 +15,8 @@
  *   (e) owner.present=false (откат форком) → подпись не засчитывается.
  */
 
+import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+
 const PROGRAM_ID = 2;
 
 const makeProgram = (overrides: any = {}) => ({
@@ -26,28 +28,19 @@ const makeProgram = (overrides: any = {}) => ({
   ...overrides,
 });
 
-const makeOwner = (programs: any[], present = true) =>
+// Подпись программной оферты хранит ядро: расширение только спрашивает порт,
+// есть ли она. Отсутствие записи, откат подписи форком и подпись по чужой
+// программе снаружи неразличимы — во всех трёх случаях порт отвечает `null`.
+const makeProgramAgreements = (signature: any) =>
   ({
-    present,
-    programs,
-    findProgram(pid: number | string) {
-      return programs.find((p) => Number(p.program_id) === Number(pid));
-    },
+    findProgramSignature: jest.fn().mockResolvedValue(signature),
+    signProgramAgreement: jest.fn().mockResolvedValue({}),
   } as any);
 
-const makeUserAgreementRepo = (owner: any) =>
-  ({
-    findByUsername: jest.fn().mockResolvedValue(owner),
-  } as any);
-
-const makeSovietPort = (coagreement: any) =>
+const makeSovietPort = (coagreement: any, programs: any[] = []) =>
   ({
     getCoagreement: jest.fn().mockResolvedValue(coagreement),
-  } as any);
-
-const makeWalletPort = () =>
-  ({
-    signProgramAgreement: jest.fn(),
+    getPrograms: jest.fn().mockResolvedValue(programs),
   } as any);
 
 const makeLogger = () =>
@@ -61,9 +54,15 @@ const makeLogger = () =>
 
 const COAGREEMENT = { program_id: PROGRAM_ID, draft_id: 1100, type: 'marketplace' };
 
+import { configurePlatformSettingsForTest } from '../../mocks/platform-settings';
+
 describe('MarketplaceOnboardingService.getOnboardingState', () => {
   afterEach(() => {
     jest.resetModules();
+  });
+
+  beforeEach(async () => {
+    await configurePlatformSettingsForTest();
   });
 
   it('placeholder=0 (rollback Story 1.7) → requires_gate=false, source=not_configured', async () => {
@@ -77,16 +76,16 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
+    const repo = makeProgramAgreements(null);
     const soviet = makeSovietPort(COAGREEMENT);
-    const service = new MarketplaceOnboardingService(repo, soviet, makeWalletPort(), makeLogger());
+    const service = new MarketplaceOnboardingService(repo, soviet, makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
-    expect(state.source).toBe('not_configured');
+    expect(state.source).toBe(MarketplaceOnboardingSource.NOT_CONFIGURED);
     expect(state.template_registry_id).toBe(0);
     expect(soviet.getCoagreement).not.toHaveBeenCalled();
-    expect(repo.findByUsername).not.toHaveBeenCalled();
+    expect(repo.findProgramSignature).not.toHaveBeenCalled();
   });
 
   it('ЦПП не настроена как программа (нет коагримента) → not_configured', async () => {
@@ -94,13 +93,13 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(null), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(null), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
-    expect(state.source).toBe('not_configured');
-    expect(repo.findByUsername).not.toHaveBeenCalled();
+    expect(state.source).toBe(MarketplaceOnboardingSource.NOT_CONFIGURED);
+    expect(repo.findProgramSignature).not.toHaveBeenCalled();
   });
 
   it('подпись программы есть → requires_gate=false, source=agreement_signed, completed_at из signed_at', async () => {
@@ -108,13 +107,12 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram()]);
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(makeProgram());
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(false);
-    expect(state.source).toBe('agreement_signed');
+    expect(state.source).toBe(MarketplaceOnboardingSource.AGREEMENT_SIGNED);
     expect(state.completed_at).toBe('2026-05-14T12:00:00Z');
   });
 
@@ -123,12 +121,12 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const repo = makeUserAgreementRepo(null);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.source).toBe(MarketplaceOnboardingSource.GATE_REQUIRED);
   });
 
   it('owner есть, но другой program_id → requires_gate=true', async () => {
@@ -136,9 +134,9 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram({ program_id: 1 })]); // capital, не marketplace
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    // Подпись есть, но по другой программе (capital) — порт её не отдаёт.
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
@@ -149,11 +147,112 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
     );
-    const owner = makeOwner([makeProgram()], false);
-    const repo = makeUserAgreementRepo(owner);
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeWalletPort(), makeLogger());
+    // Подпись откатило форком — порт больше её не видит.
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(COAGREEMENT), makeLogger());
 
     const state = await service.getOnboardingState('alice');
     expect(state.requires_gate).toBe(true);
+  });
+});
+
+/**
+ * Подписание оферты ЦПП пайщиком (L3).
+ *
+ * Оферта подписывается через `wallet::signagree` в программу ЦПП, поэтому
+ * подписание невозможно, пока у соглашения нет программного кошелька: без
+ * program_id подпись некуда положить, и пайщик остался бы с гейтом навсегда,
+ * не понимая причины. Отказ обязан быть внятным и до обращения к цепи.
+ */
+describe('MarketplaceOnboardingService.signOnboardingOffer', () => {
+  const signedDocument = { hash: 'doc-hash', signatures: [{ signer: 'alice' }] } as never;
+
+  // Программа по умолчанию несёт draft_id, ОТЛИЧНЫЙ от коагримента (1100):
+  // подпись обязана уйти с шаблоном программы, и подмена источника сразу видна.
+  async function loadService(
+    coagreement: unknown,
+    wallet = makeProgramAgreements(null),
+    programs: any[] = [{ id: PROGRAM_ID, draft_id: 1102 }]
+  ) {
+    jest.dontMock('~/extensions/marketplace/constants/marketplace-agreement-ids');
+    const { MarketplaceOnboardingService } = await import(
+      '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
+    );
+    const service = new MarketplaceOnboardingService(wallet, makeSovietPort(coagreement, programs), makeLogger());
+    return { service, wallet };
+  }
+
+  it('соглашение ЦПП без программного кошелька → отказ, цепь не трогаем', async () => {
+    const { service, wallet } = await loadService({ ...COAGREEMENT, program_id: 0 });
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не имеет программного wallet');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('соглашение ЦПП вообще не настроено → отказ с указанием, что выполнить', async () => {
+    const { service, wallet } = await loadService(null);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('не настроено соглашение типа');
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
+  });
+
+  it('цепь недоступна в момент подписи → ошибка наружу, состояние не меняется', async () => {
+    // Подпись — единственное действие этого пути: локально фиксировать нечего,
+    // поэтому отказ цепи просто поднимается вызывающему, и пайщик увидит гейт
+    // при следующем заходе.
+    const wallet = {
+      signProgramAgreement: jest.fn().mockRejectedValue(new Error('chain timeout')),
+    } as never as ReturnType<typeof makeProgramAgreements>;
+    const { service } = await loadService(COAGREEMENT, wallet);
+
+    await expect(
+      service.signOnboardingOffer({ coopname: 'voskhod', username: 'alice', document: signedDocument })
+    ).rejects.toThrow('chain timeout');
+  });
+
+  it('настроенное соглашение → подпись уходит в цепь с draft_id из программы, а не из коагримента', async () => {
+    // `wallet::signagree` сверяет присланный draft_id с
+    // `soviet::programs[program_id].draft_id`. После правки шаблона через
+    // `soviet::editprog` коагримент остаётся со старым значением — взяли бы его,
+    // подпись падала бы «draft_id соглашения не совпадает с draft_id программы».
+    const wallet = {
+      signProgramAgreement: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
+    } as never as ReturnType<typeof makeProgramAgreements>;
+    const { service } = await loadService({ ...COAGREEMENT, draft_id: 699 }, wallet);
+
+    await service.signOnboardingOffer({
+      coopname: 'voskhod',
+      username: 'alice',
+      document: signedDocument,
+    });
+
+    expect(wallet.signProgramAgreement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coopname: 'voskhod',
+        username: 'alice',
+        program_id: PROGRAM_ID,
+        draft_id: 1102,
+      })
+    );
+  });
+
+  it('программа ЦПП не создана в кооперативе → отказ, подпись не отправляется', async () => {
+    const { service, wallet } = await loadService(COAGREEMENT, makeProgramAgreements(null), []);
+
+    await expect(
+      service.signOnboardingOffer({
+        coopname: 'voskhod',
+        username: 'alice',
+        document: signedDocument,
+      })
+    ).rejects.toThrow(/не найдена/);
+
+    expect(wallet.signProgramAgreement).not.toHaveBeenCalled();
   });
 });

@@ -71,8 +71,10 @@ function makeService(o: Overrides = {}) {
     getResultById: jest.fn(),
   } as any;
 
-  const documentInteractor = {
-    generateDocument: jest.fn(async () => ({ hash: 'generated' })),
+  // Порт документов ядра: генерация черновика и поиск ранее сгенерированного.
+  const documentPort = {
+    generate: jest.fn(async () => ({ hash: 'generated' })),
+    getByHash: jest.fn(async () => ('generatedDocument' in o ? o.generatedDocument : { doc_hash: 'doc-hash-1' })),
   } as any;
 
   const segmentMapper = { toDTO: jest.fn(async (s: any) => s) } as any;
@@ -110,13 +112,9 @@ function makeService(o: Overrides = {}) {
     ),
   } as any;
 
-  const documentRepository = {
-    findByHash: jest.fn(async () => ('generatedDocument' in o ? o.generatedDocument : { doc_hash: 'doc-hash-1' })),
-  } as any;
-
   const service = new ResultSubmissionService(
     resultSubmissionInteractor,
-    documentInteractor,
+    documentPort,
     segmentMapper,
     resultMapper,
     projectRepository,
@@ -126,7 +124,6 @@ function makeService(o: Overrides = {}) {
     segmentRepository,
     { findProjectStories: jest.fn(async () => []), findByIssueHash: jest.fn(async () => []) } as any,
     { findByProjectHash: jest.fn(async () => []), findCompletedByProjectAndCreators: jest.fn(async () => []) } as any,
-    documentRepository,
     makeLoggerStub()
   );
 
@@ -137,11 +134,10 @@ function makeService(o: Overrides = {}) {
   return {
     service,
     resultSubmissionInteractor,
-    documentInteractor,
+    documentPort,
     projectRepository,
     resultRepository,
     segmentRepository,
-    documentRepository,
   };
 }
 
@@ -198,11 +194,11 @@ describe('ResultSubmissionService', () => {
     });
 
     it('ищет сгенерированный документ именно по doc_hash из присланного заявления', async () => {
-      const { service, documentRepository } = makeService();
+      const { service, documentPort } = makeService();
 
       await service.pushResult(pushDto({ statement: makeSignedDocument({ doc_hash: 'иной-хэш' }) }), alice);
 
-      expect(documentRepository.findByHash).toHaveBeenCalledWith('иной-хэш');
+      expect(documentPort.getByHash).toHaveBeenCalledWith('иной-хэш');
     });
 
     // cap.rid.side.26
@@ -330,12 +326,12 @@ describe('ResultSubmissionService', () => {
 
   describe('generateResultContributionStatement', () => {
     it('отказывает при генерации заявления за другого пайщика', async () => {
-      const { service, documentInteractor } = makeService();
+      const { service, documentPort } = makeService();
 
       await expect(
         service.generateResultContributionStatement({ project_hash: 'ph', username: 'mallory' } as any, {} as any, alice)
       ).rejects.toThrow('Вы можете генерировать документы только для себя');
-      expect(documentInteractor.generateDocument).not.toHaveBeenCalled();
+      expect(documentPort.generate).not.toHaveBeenCalled();
     });
 
     it('отказывает, если текст результата ещё не сформирован', async () => {
@@ -407,7 +403,7 @@ describe('ResultSubmissionService', () => {
     });
 
     it('передаёт долю с восемью знаками и суммы из сегмента', async () => {
-      const { service, documentInteractor } = makeService();
+      const { service, documentPort } = makeService();
 
       await service.generateResultContributionStatement(
         { project_hash: 'ph', username: 'alice' } as any,
@@ -415,7 +411,7 @@ describe('ResultSubmissionService', () => {
         alice
       );
 
-      const { data } = documentInteractor.generateDocument.mock.calls[0][0];
+      const { data } = documentPort.generate.mock.calls[0][0];
       expect(data.percent_of_result).toBe('0.50000000');
       expect(data.total_amount).toBe('100.0000 RUB');
       expect(data.component_name).toBe('Компонент');
@@ -431,7 +427,7 @@ describe('ResultSubmissionService', () => {
       ['общей суммы', { total_amount: '999.0000 RUB' }, 'Несоответствие общей суммы'],
       ['доли участника', { percent_of_result: '0.99000000' }, 'Несоответствие процента от результата'],
     ])('отказывает при расхождении %s между заявлением и текущими данными', async (_label, patch, message) => {
-      const { service, documentInteractor } = makeService({
+      const { service, documentPort } = makeService({
         resultByHash: {
           result_hash: 'rh',
           project_hash: 'ph',
@@ -443,7 +439,7 @@ describe('ResultSubmissionService', () => {
       await expect(
         service.generateResultContributionDecision({ result_hash: 'rh', decision_id: 7 } as any, {} as any, chairman)
       ).rejects.toThrow(message);
-      expect(documentInteractor.generateDocument).not.toHaveBeenCalled();
+      expect(documentPort.generate).not.toHaveBeenCalled();
     });
 
     it('отказывает, если у результата нет заявления', async () => {
@@ -485,7 +481,7 @@ describe('ResultSubmissionService', () => {
     });
 
     it('генерирует решение, когда заявление сходится с текущими данными', async () => {
-      const { service, documentInteractor } = makeService({
+      const { service, documentPort } = makeService({
         resultByHash: {
           result_hash: 'rh',
           project_hash: 'ph',
@@ -500,7 +496,7 @@ describe('ResultSubmissionService', () => {
         chairman
       );
 
-      const { data } = documentInteractor.generateDocument.mock.calls[0][0];
+      const { data } = documentPort.generate.mock.calls[0][0];
       expect(data.decision_id).toBe(7);
       expect(data.username).toBe('alice');
     });
@@ -525,14 +521,14 @@ describe('ResultSubmissionService', () => {
       ['доли участника', { percent_of_result: '0.99000000' }, 'Несоответствие процента от результата'],
       ['хэша результата', { result_hash: 'иной' }, 'Несоответствие хеша результата'],
     ])('отказывает при расхождении %s между заявлением и решением совета', async (_label, patch, message) => {
-      const { service, documentInteractor } = makeService({
+      const { service, documentPort } = makeService({
         resultByHash: resultWithActSources({}, patch),
       });
 
       await expect(
         service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
       ).rejects.toThrow(message);
-      expect(documentInteractor.generateDocument).not.toHaveBeenCalled();
+      expect(documentPort.generate).not.toHaveBeenCalled();
     });
 
     // cap.rid.side.51
@@ -593,7 +589,7 @@ describe('ResultSubmissionService', () => {
         ['rh', 8],
         ['иной', 7],
       ] as const) {
-        const { service, documentInteractor } = makeService({
+        const { service, documentPort } = makeService({
           resultByHash: resultWithActSources({ result_hash: resultHash }, { result_hash: resultHash, decision_id: decisionId }),
         });
 
@@ -603,7 +599,7 @@ describe('ResultSubmissionService', () => {
           alice
         );
 
-        const { data } = documentInteractor.generateDocument.mock.calls[0][0];
+        const { data } = documentPort.generate.mock.calls[0][0];
         expect(data.result_act_hash).toMatch(/^[0-9a-f]{64}$/);
         hashes.add(data.result_act_hash);
       }
@@ -614,20 +610,20 @@ describe('ResultSubmissionService', () => {
 
     it('повторный вызов с теми же входными даёт тот же result_act_hash', async () => {
       const run = async () => {
-        const { service, documentInteractor } = makeService({ resultByHash: resultWithActSources() });
+        const { service, documentPort } = makeService({ resultByHash: resultWithActSources() });
         await service.generateResultContributionAct(
           { result_hash: 'rh', username: 'alice' } as any,
           {} as any,
           alice
         );
-        return documentInteractor.generateDocument.mock.calls[0][0].data.result_act_hash;
+        return documentPort.generate.mock.calls[0][0].data.result_act_hash;
       };
 
       expect(await run()).toBe(await run());
     });
 
     it('председателю разрешено генерировать акт по чужому результату', async () => {
-      const { service, documentInteractor } = makeService({ resultByHash: resultWithActSources() });
+      const { service, documentPort } = makeService({ resultByHash: resultWithActSources() });
 
       await service.generateResultContributionAct(
         { result_hash: 'rh', username: 'alice' } as any,
@@ -635,23 +631,23 @@ describe('ResultSubmissionService', () => {
         chairman
       );
 
-      expect(documentInteractor.generateDocument).toHaveBeenCalled();
+      expect(documentPort.generate).toHaveBeenCalled();
     });
 
     // cap.rid.side.38 — исправлено: владельца определяет result.username
     it('отказывает пайщику по чужому результату, даже если он назвал своё имя', async () => {
-      const { service, documentInteractor } = makeService({
+      const { service, documentPort } = makeService({
         resultByHash: { ...resultWithActSources(), username: 'mallory' },
       });
 
       await expect(
         service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
       ).rejects.toThrow('Вы можете генерировать документы только для себя');
-      expect(documentInteractor.generateDocument).not.toHaveBeenCalled();
+      expect(documentPort.generate).not.toHaveBeenCalled();
     });
 
     it('разрешает пайщику свой результат независимо от присланного имени', async () => {
-      const { service, documentInteractor } = makeService({ resultByHash: resultWithActSources() });
+      const { service, documentPort } = makeService({ resultByHash: resultWithActSources() });
 
       await service.generateResultContributionAct(
         { result_hash: 'rh', username: 'кто-угодно' } as any,
@@ -659,7 +655,7 @@ describe('ResultSubmissionService', () => {
         alice
       );
 
-      expect(documentInteractor.generateDocument).toHaveBeenCalled();
+      expect(documentPort.generate).toHaveBeenCalled();
     });
 
     it('отказывает, если у результата нет имени пользователя', async () => {

@@ -52,6 +52,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
 };
@@ -96,8 +97,12 @@ export default async ({ page, shot, expect }) => {
 
   // Кнопка сканера у самой позиции — не универсальный сканер в шапке стола.
   await page.locator('button[aria-label="Привязать этикетку сканером"]').first().click();
+  // Целимся в карточку диалога, а не в портал-контейнер: у внешнего
+  // `q-portal--dialog--N` нулевые метрики, и `:visible` на нём не срабатывает
+  // даже когда диалог на экране. Фильтр по видимости всё равно нужен —
+  // закрытый диалог печати остаётся в DOM, и `.first()` цепляется за него.
   const bindDialog = page
-    .locator('[id^="q-portal--dialog--"]')
+    .locator('.q-dialog__inner:visible')
     .filter({ hasText: 'Привязать этикетку' })
     .first();
   await bindDialog.waitFor({ state: 'visible', timeout: 20000 });

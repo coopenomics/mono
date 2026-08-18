@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 import type { DeltaDomainInterface } from '~/domain/parser/interfaces/delta-domain.interface';
+import { chainBlockTimeTransformer } from '~/infrastructure/blockchain/block-time.util';
 
 /**
  * TypeORM сущность для хранения дельт таблиц блокчейна
@@ -22,6 +23,14 @@ export class DeltaEntity implements DeltaDomainInterface {
 
   @Column({ type: 'varchar' })
   block_id!: string;
+
+  /**
+   * Время блока из SHiP-трейса. В объекте — строка ISO (как приходит из
+   * потока), в базе — `timestamptz`; перевод делает трансформер. Необязательно:
+   * старый парсер времени не отдавал, и у записей тех времён колонка пуста.
+   */
+  @Column({ type: 'timestamptz', nullable: true, transformer: chainBlockTimeTransformer })
+  block_time?: string;
 
   @Column({ type: 'boolean' })
   present!: boolean;

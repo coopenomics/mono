@@ -11,6 +11,9 @@
 import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
 
 export const meta = {
+  mode: 'docs',
+  feature: 'marketplace.onboarding',
+  cases: ['mkt.onb.happy.01'],
   title: 'L1 онбординг — установка расширения «market»',
   docPath: 'new/marketplace/onboarding/install-market.md',
   assetsDir: 'assets/new/marketplace/onboarding/install-market',
@@ -41,7 +44,7 @@ async function signAllAgreements(page) {
   }
 }
 
-export default async ({ page, context, shot, env }) => {
+export default async ({ page, context, shot, env, expect }) => {
   await loginAsChairman(page, context);
   await signAllAgreements(page);
   await dismissOnboardingDialogs(page);
@@ -73,10 +76,33 @@ export default async ({ page, context, shot, env }) => {
     // Backend install: write to PG → load desktop → load extension routes → notify.
     await page.waitForTimeout(8000);
     await dismissOnboardingDialogs(page);
-    await shot(
-      page,
-      '02-after-install',
-      'Состояние после установки: уведомление об успехе + desktop перестроен с новыми extension routes (включая /market-admin/onboarding/coop-cpp).',
-    );
   }
+
+  // Проверяем не факт клика, а результат: расширение считается установленным
+  // только тогда, когда его столы реально появились у председателя. После
+  // установки интерфейс сам уводит на первую доступную страницу расширения —
+  // страницу подключения ЦПП; если бы установка не доехала до сервера, маршрута
+  // бы не существовало и роутер отдал бы «Недостаточно прав доступа».
+  //
+  // Сценарий терпим к уже установленному расширению (повторный прогон без
+  // чистой цепи): кнопки «включить» тогда нет, но конечное состояние обязано
+  // быть тем же, поэтому проверка стоит снаружи условия.
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/onboarding/coop-cpp`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 45000,
+  });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await dismissOnboardingDialogs(page);
+
+  await shot(
+    page,
+    '02-after-install',
+    'Состояние после установки: столы Стола заказов появились у председателя, интерфейс сам открыл первую доступную страницу расширения — подключение ЦПП.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Подключение ЦПП').first()).toBeVisible({ timeout: 30000 });
+        await expect(p.locator('text=Недостаточно прав доступа')).toHaveCount(0);
+      },
+    },
+  );
 };

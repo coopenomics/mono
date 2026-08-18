@@ -1,7 +1,7 @@
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import type { IUserWalletBlockchainData } from '../interfaces/user-wallet-blockchain.interface';
 import type { IUserWalletDatabaseData } from '../interfaces/user-wallet-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность L3 кошелька пайщика (`ledger2::userwallets`, ADR-008 / Эпик 3).

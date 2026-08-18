@@ -245,7 +245,7 @@ export const AllTypesProps: Record<string,any> = {
 		status:"ContributorStatus"
 	},
 	CapitalCreateProgramExpenseInput:{
-		items:"ExpenseItemInput",
+		items:"CapitalExpenseItemInput",
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	CapitalCycleFilter:{
@@ -256,6 +256,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalDeallocationLimitInput:{
 
+	},
+	CapitalExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
 	},
 	CapitalGetOpenTimerInput:{
 
@@ -459,9 +463,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CreateMeasureInput:{
-		series_mode:"MetricSeriesMode",
-		tag:"MeasureCatalogTag",
-		wave_period:"MetricSeriesPeriod"
+		series_mode:"MetricSeriesMode"
 	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
@@ -808,17 +810,16 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	GetMetricSeriesInput:{
 		from:"DateTime",
-		period:"MetricSeriesPeriod",
 		to:"DateTime"
 	},
 	GetMetricSuperpositionHistoryInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetMetricSuperpositionInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetMetricWaveInput:{
-		period:"MetricSeriesPeriod"
+
 	},
 	GetPaymentMethodsInput:{
 
@@ -1206,6 +1207,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceOfferStatus: "enum" as const,
+	MarketplaceOnboardingSource: "enum" as const,
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
@@ -1361,7 +1363,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceWriteoffStatementSignablePayloadInput:{
 
 	},
-	MeasureCatalogTag: "enum" as const,
 	MembershipExitApplicationGenerateDocumentInput:{
 
 	},
@@ -1379,7 +1380,6 @@ export const AllTypesProps: Record<string,any> = {
 	MetricContributionSource: "enum" as const,
 	MetricDriveDirection: "enum" as const,
 	MetricSeriesMode: "enum" as const,
-	MetricSeriesPeriod: "enum" as const,
 	MetricStatus: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
@@ -2272,6 +2272,9 @@ export const AllTypesProps: Record<string,any> = {
 		payExpenseItem:{
 			data:"PayExpenseItemInput"
 		},
+		payWithheldTax:{
+			data:"PayWithheldTaxInput"
+		},
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
@@ -2402,6 +2405,8 @@ export const AllTypesProps: Record<string,any> = {
 			input:"WalmoveInput"
 		}
 	},
+	NodeSyncOutage: "enum" as const,
+	NodeSyncStatus: "enum" as const,
 	NonProjectRoomKind: "enum" as const,
 	NotificationChannel: "enum" as const,
 	NotificationDeliveryStatus: "enum" as const,
@@ -2446,6 +2451,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	PayExpenseItemInput:{
+
+	},
+	PayWithheldTaxInput:{
 
 	},
 	PaymentDirection: "enum" as const,
@@ -2875,6 +2883,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
+		},
+		getWithheldTaxPayments:{
+
 		},
 		kuDecision:{
 
@@ -3439,9 +3450,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UpdateMeasureInput:{
 		series_mode:"MetricSeriesMode",
-		status:"MetricStatus",
-		tag:"MeasureCatalogTag",
-		wave_period:"MetricSeriesPeriod"
+		status:"MetricStatus"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -4025,7 +4034,7 @@ export const ReturnTypes: Record<string,any> = {
 		appendixes:"String",
 		blagorost_agreement_hash:"String",
 		blagorost_offer_hash:"String",
-		blagorost_wallet:"ProgramWallet",
+		blagorost_wallet:"CapitalProgramWallet",
 		block_num:"Float",
 		blockchain_status:"String",
 		contract:"DocumentAggregate",
@@ -4043,7 +4052,7 @@ export const ReturnTypes: Record<string,any> = {
 		document_parameters:"ContributorDocumentParameters",
 		energy:"Float",
 		generation_contract_hash:"String",
-		generation_wallet:"ProgramWallet",
+		generation_wallet:"CapitalProgramWallet",
 		generator_offer_hash:"String",
 		hours_per_day:"Float",
 		id:"Int",
@@ -4051,7 +4060,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_external_contract:"Boolean",
 		last_energy_update:"String",
 		level:"Int",
-		main_wallet:"ProgramWallet",
+		main_wallet:"CapitalProgramWallet",
 		memo:"String",
 		present:"Boolean",
 		program_key:"String",
@@ -4236,10 +4245,8 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		series_mode:"MetricSeriesMode",
 		status:"MetricStatus",
-		tag:"MeasureCatalogTag",
 		title:"String",
-		unit:"String",
-		wave_period:"MetricSeriesPeriod"
+		unit:"String"
 	},
 	CapitalMetricComponentRollup:{
 		fact_sum:"Float",
@@ -4265,7 +4272,6 @@ export const ReturnTypes: Record<string,any> = {
 	CapitalMetricSeries:{
 		fact:"Float",
 		metric_hash:"String",
-		period:"MetricSeriesPeriod",
 		points:"CapitalMetricSeriesPoint",
 		series_mode:"MetricSeriesMode",
 		target_value:"Float",
@@ -4290,7 +4296,6 @@ export const ReturnTypes: Record<string,any> = {
 		flat_count:"Int",
 		growth:"Float",
 		items:"CapitalMetricSuperpositionItem",
-		period:"MetricSeriesPeriod",
 		project_hash:"String",
 		resultant_angle:"Float",
 		resultant_im:"Float",
@@ -4319,7 +4324,6 @@ export const ReturnTypes: Record<string,any> = {
 	CapitalMetricSuperpositionHistory:{
 		frames:"CapitalMetricSuperpositionFrame",
 		from:"DateTime",
-		period:"MetricSeriesPeriod",
 		project_hash:"String",
 		to:"DateTime"
 	},
@@ -4347,7 +4351,6 @@ export const ReturnTypes: Record<string,any> = {
 		fact:"Float",
 		fib_levels:"CapitalFibLevel",
 		metric_hash:"String",
-		period:"MetricSeriesPeriod",
 		point_labels:"WaveLabel",
 		series_mode:"MetricSeriesMode",
 		swings:"CapitalWaveSwing",
@@ -4400,6 +4403,16 @@ export const ReturnTypes: Record<string,any> = {
 		recipient_name:"String",
 		recipient_type:"ExpenseRecipientType",
 		status:"ExpenseItemStatus"
+	},
+	CapitalProgramWallet:{
+		agreement_id:"ID",
+		available:"String",
+		coopname:"String",
+		id:"ID",
+		membership_contribution:"String",
+		program_id:"ID",
+		program_type:"ProgramType",
+		username:"String"
 	},
 	CapitalProject:{
 		_created_at:"DateTime",
@@ -4620,6 +4633,7 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		equal_author_bonus:"String",
 		has_vote:"Boolean",
+		has_voted:"Boolean",
 		id:"Int",
 		intellectual_cost:"String",
 		investor_amount:"String",
@@ -4638,8 +4652,12 @@ export const ReturnTypes: Record<string,any> = {
 		last_known_coordinators_investment_pool:"String",
 		last_known_creators_base_pool:"String",
 		last_known_invest_pool:"String",
+		parent_hash:"String",
+		parent_title:"String",
 		present:"Boolean",
 		project_hash:"String",
+		project_status:"ProjectStatus",
+		project_title:"String",
 		property_base:"String",
 		provisional_amount:"String",
 		share_percent:"Float",
@@ -4649,7 +4667,8 @@ export const ReturnTypes: Record<string,any> = {
 		total_segment_cost:"String",
 		username:"String",
 		value:"String",
-		voting_bonus:"String"
+		voting_bonus:"String",
+		voting_completed:"Boolean"
 	},
 	CapitalState:{
 		_created_at:"DateTime",
@@ -5897,6 +5916,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		is_default:"Boolean",
 		label:"String",
+		package_type:"String",
 		price:"String",
 		size:"Float",
 		sort_order:"Int"
@@ -5920,7 +5940,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreement_id:"Int",
 		completed_at:"String",
 		requires_gate:"Boolean",
-		source:"String",
+		source:"MarketplaceOnboardingSource",
 		template_registry_id:"Int"
 	},
 	MarketplaceOrder:{
@@ -5970,6 +5990,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost_with_fee:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime",
+		warehouse_arrival_price:"String",
 		warehouse_locations:"String",
 		warehouse_quantity:"Float",
 		warranty_period_secs:"Int",
@@ -6820,6 +6841,7 @@ export const ReturnTypes: Record<string,any> = {
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
 		overspendExpenseItem:"Transaction",
 		payExpenseItem:"Transaction",
+		payWithheldTax:"String",
 		processConvertToAxonStatement:"Boolean",
 		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
@@ -6865,6 +6887,16 @@ export const ReturnTypes: Record<string,any> = {
 		verifyEmail:"Boolean",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
+	},
+	NodeSyncState:{
+		catch_up_blocks_per_second:"Float",
+		current_block_num:"Int",
+		cursor_updated_at:"String",
+		estimated_seconds_remaining:"Int",
+		head_block_num:"Int",
+		lag_blocks:"Int",
+		outage:"NodeSyncOutage",
+		status:"NodeSyncStatus"
 	},
 	Notification:{
 		attempts:"Int",
@@ -7515,6 +7547,7 @@ export const ReturnTypes: Record<string,any> = {
 		getMyAccess:"ParticipantAccess",
 		getMyCertificate:"ParticipantCertificate",
 		getMyProductCards:"ProductCard",
+		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
 		getParticipantCapabilitySets:"CapabilitySetAssignment",
@@ -7541,6 +7574,8 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
+		getWithheldTaxPayments:"WithheldTaxPaymentPage",
+		getWithheldTaxState:"WithheldTaxState",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
@@ -7880,7 +7915,8 @@ export const ReturnTypes: Record<string,any> = {
 		documentAggregate:"DocumentAggregate"
 	},
 	Subscription:{
-		marketplaceEvents:"MarketplaceEvent"
+		marketplaceEvents:"MarketplaceEvent",
+		nodeSyncState:"NodeSyncState"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -8016,6 +8052,36 @@ export const ReturnTypes: Record<string,any> = {
 		updatedAt:"DateTime",
 		userAgent:"String",
 		username:"String"
+	},
+	WithheldTaxPayment:{
+		amount:"String",
+		completed_at:"DateTime",
+		created_at:"DateTime",
+		hash:"String",
+		memo:"String",
+		message:"String",
+		recipient_name:"String",
+		report_period:"Int",
+		report_period_label:"String",
+		report_year:"Int",
+		requisite_rows:"WithheldTaxRequisiteRow",
+		status:"PaymentStatus",
+		symbol:"String"
+	},
+	WithheldTaxPaymentPage:{
+		currentPage:"Int",
+		items:"WithheldTaxPayment",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	WithheldTaxRequisiteRow:{
+		label:"String",
+		value:"String"
+	},
+	WithheldTaxState:{
+		available:"String",
+		in_payment:"String",
+		withheld:"String"
 	},
 	WorkingHours:{
 		fri:"WorkingHoursDay",

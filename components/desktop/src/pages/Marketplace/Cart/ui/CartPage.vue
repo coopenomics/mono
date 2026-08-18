@@ -8,7 +8,8 @@ import {
   useMarketplaceCartStore,
   type IMarketplaceCartItem,
 } from 'src/entities/MarketplaceCart';
-import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseChip, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import {
@@ -159,6 +160,20 @@ function onClear(): void {
 // Оформление → отдельная страница подтверждения (итог не показываем в корзине,
 // которая после оформления пустеет). Результат уезжает в стор (lastCheckout),
 // confirmation-страница его читает.
+/**
+ * Нехватка средств — не ошибка, а развилка: человеку нужно внести взнос и
+ * вернуться к оформлению. Раньше сообщение просто гасло тостом, и заказчик
+ * шёл искать кошелёк на другом столе (жалоба 12.08). Поэтому такой ответ
+ * ловим отдельно и предлагаем пополнение прямо здесь.
+ */
+const insufficientOpen = ref(false);
+const insufficientMessage = ref('');
+
+function isInsufficientFunds(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /недостаточно средств/i.test(message);
+}
+
 async function onCheckout(): Promise<void> {
   try {
     await cartStore.checkout();
@@ -167,6 +182,11 @@ async function onCheckout(): Promise<void> {
       params: { coopname: coopname.value },
     });
   } catch (e) {
+    if (isInsufficientFunds(e)) {
+      insufficientMessage.value = e instanceof Error ? e.message : String(e);
+      insufficientOpen.value = true;
+      return;
+    }
     FailAlert(e);
   }
 }
@@ -325,7 +345,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
           span Себестоимость
           span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
         .mp-cart__summary-line(v-if="feePercent > 0")
-          span Членский взнос ({{ feePercent }}%)
+          span Кооперативная наценка ({{ feePercent }}%)
           span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
           span Итого
@@ -342,6 +362,18 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
           :disabled="cartStore.mutating || cartStore.checkingOut",
           @click="onClear"
         ) Очистить корзину
+
+  //- Не хватило средств — предлагаем внести взнос не отходя от корзины;
+  //- позиции остаются на месте, оформление можно повторить сразу.
+  BaseDialog(v-model="insufficientOpen", title="Не хватает средств", size="sm")
+    .mp-cart__insufficient
+      p.mp-cart__insufficient-text {{ insufficientMessage }}
+      p.mp-cart__insufficient-hint
+        | Внесите паевой взнос — деньги попадут в кошелёк, и заказ можно будет
+        | оформить тем же составом. Корзина сохранится.
+    template(#footer)
+      BaseButton(variant="ghost", @click="insufficientOpen = false") Закрыть
+      DepositButton
 </template>
 
 <style scoped lang="scss">
@@ -560,6 +592,24 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   &__checkout {
     width: 100%;
     margin-top: var(--p-4, 16px);
+  }
+
+  &__insufficient {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__insufficient-text {
+    margin: 0;
+    color: var(--p-ink);
+  }
+
+  &__insufficient-hint {
+    margin: 0;
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body-sm, 1.5);
   }
 
   &__clear {

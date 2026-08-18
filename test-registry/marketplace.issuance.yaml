@@ -6,6 +6,12 @@ title: Выдача заказа на пункте выдачи — открыт
 # председатель участка (оператор), финальную подпись ставит заказчик — то есть
 # зеркально приёмке, где финальная подпись у председателя.
 
+#
+# Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
+# из `@coopenomics/innercoop` вместо прямого `WinstonLoggerService` ядра —
+# расширение не должно знать, чем именно пишется лог. Сменились только тип
+# параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
@@ -39,16 +45,16 @@ cases:
     kind: side
     scenario: Оператор пытается открыть выдачу без кода получателя
     expect: выдача не открывается
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
+    status: passing
 
   - id: mkt.iss.side.02
     level: backend
     kind: side
     scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
     expect: отказ — выдать чужой заказ нельзя
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
+    status: passing
 
   - id: mkt.iss.side.03
     level: backend
@@ -59,12 +65,20 @@ cases:
     status: passing
 
   - id: mkt.iss.side.04
-    level: ui
+    level: backend
     kind: side
-    scenario: Часть позиций снята с выдачи (заказчик забирает не всё)
-    expect: снятые позиции остаются на складе, к оплате идёт только выданное
-    test: ~
-    status: missing
+    scenario: Заказчик забирает не всё принятое по его заказу
+    expect: >
+      невыданное отделяется в обезличенный остаток кооператива по выданному
+      количеству, к оплате идёт только выданное
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+    # Денежная сторона недовыдачи закрыта отдельно
+    # (marketplace-discrepancy-matrix), здесь — имущественная: остаток обязан
+    # перестать быть адресным, иначе имущество числится за пайщиком, который
+    # его не получал, и не попадает ни в перепубликацию, ни в списание.
+    # В цепочке сюиты недовыдача проходит целиком (принято 9, выдано 8) —
+    # см. operator/issuance-open и operator/stock-republish.
 
   - id: mkt.iss.side.05
     level: backend
@@ -82,13 +96,36 @@ cases:
     test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
     status: passing
 
+  - id: mkt.iss.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
+    expect: >
+      снижение цены уменьшает итог к оплате, повышение увеличивает; количество
+      сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог
+      без возврата (остаётся на складе), а нулевое количество у оставленной
+      позиции показывает всю сумму как возврат в кошелёк Стола заказов
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: passing
+    # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
+    # количество и сумму заказа, а от них считаются возврат и остаток склада —
+    # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
+    # который показывают оператору до подписи; проводки закрывает mkt.iss.side.04.
+    #
+    # Разница снятой позиции и нулевого количества существенна — расчёт
+    # возврата идёт только по включённым позициям, поэтому снятая позиция это
+    # отложенная выдача (деньги остаются в резерве заказа), а не возврат.
+    # Настоящая частичная выдача идёт в цепочке сюиты отдельно: заказ на
+    # десять единиц, принято девять, выдано восемь.
+
   - id: mkt.iss.break.01
     level: backend
     kind: break
     scenario: Цепь недоступна в момент подписи акта выдачи
     expect: акт не считается подписанным, повторная попытка возможна
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.happy.03
     level: ui

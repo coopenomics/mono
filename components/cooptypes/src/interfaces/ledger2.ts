@@ -99,6 +99,8 @@ export interface IApply {
   coopname: IName
   initiator: IName
   action_code: IName
+  /** Имя нитки процесса (`p.<contract>.<noun>`) — его называет контракт-инициатор. */
+  process_type: IName
   amount: IAsset
   username: IName
   process_hash: IChecksum256

@@ -206,10 +206,17 @@ export class MarketplaceCartService {
         if (available && lineTotal !== null) {
           lineTotals.push(lineTotal);
         }
-        const packageLabel =
-          offer && pkg
-            ? presentSaleUnit(item.quantity * packageSize, offer.unit_of_measure, packageSize).unitLabel
-            : null;
+        // Подпись упаковки в корзине несёт и тару: заказчик должен помнить,
+        // что берёт молоко в стекле, а яйца — в возвратной корзинке.
+        const packageLabel = (() => {
+          if (!offer || !pkg) return null;
+          const base = presentSaleUnit(
+            item.quantity * packageSize,
+            offer.unit_of_measure,
+            packageSize
+          ).unitLabel;
+          return pkg.package_type ? `${base}, ${pkg.package_type}` : base;
+        })();
         // Обложка товара — первое изображение оффера (как и в каталоге). URL
         // подписан и TTL-ограничен; строим тем же сервисом, что field-резолвер
         // images, чтобы в корзине было фото имущества, а не заглушка.

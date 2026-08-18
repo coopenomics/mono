@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { config } from '~/config';
 import type { GeocoderPort, GeocoderResult } from '../../domain/ports/geocoder.port';
 
 const YANDEX_DEFAULT_BASE_URL = 'https://geocode-maps.yandex.ru/1.x/';
@@ -8,13 +7,25 @@ const YANDEX_DEFAULT_BASE_URL = 'https://geocode-maps.yandex.ru/1.x/';
 // Сетевые исключения не пробрасываются — возвращаем FAILED со строкой ошибки.
 // Локальный rate-limit (GEOCODER_RATE_LIMIT_RPS) реализован как sliding-window
 // очередь — следующий запрос ждёт ближайший свободный slot.
+/** Настройки геокодера, которые задаются в контуре. */
+export interface YandexGeocoderSettings {
+  api_key?: string;
+  base_url?: string;
+  timeout_ms?: number;
+  /** Предел обращений в секунду; без него ограничение не применяется. */
+  rate_limit_rps?: number;
+}
+
 @Injectable()
 export class YandexGeocoderAdapter implements GeocoderPort {
+  /** Настройки приходят из контура: у адаптера своих ключей нет. */
+  constructor(private readonly settings: YandexGeocoderSettings) {}
+
   private readonly logger = new Logger(YandexGeocoderAdapter.name);
   private readonly slotTimestamps: number[] = [];
 
   async geocode(addressFull: string): Promise<GeocoderResult> {
-    const apiKey = config.geocoder.api_key;
+    const apiKey = this.settings.api_key;
     if (!apiKey) {
       this.logger.warn('GEOCODER_API_KEY не задан — Yandex-геокодинг пропущен');
       return { status: 'FAILED', errorMessage: 'GEOCODER_API_KEY не задан в окружении' };
@@ -22,14 +33,14 @@ export class YandexGeocoderAdapter implements GeocoderPort {
 
     await this.acquireSlot();
 
-    const url = new URL(config.geocoder.base_url || YANDEX_DEFAULT_BASE_URL);
+    const url = new URL(this.settings.base_url || YANDEX_DEFAULT_BASE_URL);
     url.searchParams.set('apikey', apiKey);
     url.searchParams.set('geocode', addressFull);
     url.searchParams.set('format', 'json');
     url.searchParams.set('results', '1');
 
     const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => controller.abort(), config.geocoder.timeout_ms);
+    const timeoutTimer = setTimeout(() => controller.abort(), this.settings.timeout_ms);
 
     try {
       const response = await fetch(url.toString(), { signal: controller.signal });
@@ -61,7 +72,7 @@ export class YandexGeocoderAdapter implements GeocoderPort {
   }
 
   private async acquireSlot(): Promise<void> {
-    const rps = config.geocoder.rate_limit_rps;
+    const rps = this.settings.rate_limit_rps ?? 0;
     if (rps <= 0) return;
 
     const now = Date.now();

@@ -1,9 +1,7 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount } from '@coopenomics/innercoop';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
-import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 
 /**
  * Сервис синхронизации участников при обновлении аккаунтов
@@ -16,9 +14,9 @@ export class ContributorAccountSyncService implements OnModuleInit {
   constructor(
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountDataPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(ACCOUNT_PORT)
+    private readonly accountDataPort: IAccountPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ContributorAccountSyncService.name);
   }
@@ -31,7 +29,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
    * Обработка события обновления аккаунта
    */
   @OnEvent('account::updated')
-  async handleAccountUpdate(eventData: { username: string; account: AccountDomainEntity }): Promise<void> {
+  async handleAccountUpdate(eventData: { username: string; account: InnerAccount }): Promise<void> {
     try {
       this.logger.log(`Получено событие обновления аккаунта: ${eventData.username}`);
 

@@ -19,6 +19,7 @@ import type {
   MarketplaceInventoryListFilter,
   MarketplaceWriteoffCandidate,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceInventoryMapper } from '../mappers/marketplace-inventory.mapper';
 
@@ -52,6 +53,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       expiry_date: input.expiry_date ?? null,
       ownership: input.ownership ?? MarketplaceInventoryOwnerships.ORDER,
       arrival_price: input.arrival_price ?? null,
+      package_size: input.package_size ?? 0,
+      unit_of_measure: input.unit_of_measure ?? MarketplaceUnitsOfMeasure.PIECE,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
@@ -137,6 +140,31 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return out;
   }
 
+  async arrivalPriceOnWarehouseByOrders(
+    coopname: string,
+    order_ids: string[]
+  ): Promise<Map<string, string>> {
+    if (order_ids.length === 0) return new Map();
+    // Позиции одного заказа приходят одной приёмкой и по одной цене, но
+    // берём минимальную: если приёмок было несколько, платить пайщику по
+    // худшей для кооператива цене честнее, чем по лучшей.
+    const rows = await this.repo
+      .createQueryBuilder('inv')
+      .select('inv.order_id', 'order_id')
+      .addSelect('MIN(inv.arrival_price)', 'arrival_price')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
+      .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.ORDER })
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .andWhere('inv.arrival_price IS NOT NULL')
+      .groupBy('inv.order_id')
+      .getRawMany<{ order_id: string; arrival_price: string }>();
+
+    return new Map(rows.map((r) => [r.order_id, String(r.arrival_price)]));
+  }
+
   async list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.order_id) where.order_id = filter.order_id;
@@ -181,6 +209,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
         asset_title: r.product_name_snapshot,
         quantity: r.quantity_per_label,
         arrival_price: r.arrival_price,
+        package_size: r.package_size,
+        unit_of_measure: r.unit_of_measure,
         expiry_date: r.expiry_date,
         is_expired: r.expiry_date !== null && r.expiry_date.getTime() <= cutoffMs,
       }))
@@ -547,6 +577,10 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       expiry_date: row.expiry_date,
       ownership: MarketplaceInventoryOwnerships.COOP,
       arrival_price: row.arrival_price ?? arrival_price,
+      // Фасовка едет с отколотой частью: цена позиции — за единицу отпуска,
+      // без размера упаковки её не с чем перемножать.
+      package_size: row.package_size,
+      unit_of_measure: row.unit_of_measure,
       published_offer_id: null,
       reserved_order_id: null,
     };

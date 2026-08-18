@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import config from '~/config/config';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type {
   ChannelDeliveryResult,
   ChannelMessage,
   EmailChannelPort,
 } from '~/domain/notification/interfaces/channel.ports';
 import { renderTemplate, resolveTemplate } from '../template.util';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /**
  * Канал «Почта» — реализация {@link EmailChannelPort}.

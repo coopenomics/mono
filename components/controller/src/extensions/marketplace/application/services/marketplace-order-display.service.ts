@@ -1,13 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { formatInventoryLocation } from '../../domain/entities/marketplace-inventory.types';
-import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
-import { UserCertificateInteractor } from '~/application/user/interactors/user-certificate.interactor';
-import { AccountType } from '~/application/account/enum/account-type.enum';
 
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -31,6 +25,11 @@ import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-orde
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
 import { isStockOrder } from '../shared/order-kind.util';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
+import { ORGANIZATION_PORT, type IOrganizationPort,
+  InnerAccountType,
+  USER_CERTIFICATE_PORT,
+  type IUserCertificatePort,
+} from '@coopenomics/innercoop';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -45,7 +44,7 @@ export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPL
  *     копируем реквизиты в детализацию ПВЗ: копия отстаёт при правке участка
  *     председателем, а live-резолв всегда отдаёт актуальные данные. Организация/
  *     КУ — core-домен (общий с платформой), поэтому читаем напрямую через core
- *     `ORGANIZATION_REPOSITORY`, а не через ext↔ext мост `inter`.
+ *     `ORGANIZATION_PORT`, а не через ext↔ext мост `inter`.
  *
  * Best-effort: отсутствующее предложение/ПВЗ/организация оставляют
  * соответствующие поля пустыми — лента заказов никогда не падает из-за
@@ -58,13 +57,13 @@ export class MarketplaceOrderDisplayService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(KU_DETAILS_DOMAIN_REPOSITORY)
     private readonly kuRepo: KuDetailsDomainRepository,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository,
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    private readonly userCertificate: UserCertificateInteractor,
+    @Inject(USER_CERTIFICATE_PORT) private readonly userCertificate: IUserCertificatePort,
     private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
@@ -103,7 +102,7 @@ export class MarketplaceOrderDisplayService {
     const cycleIds = opts?.withGroupProgress
       ? ([...new Set(orders.map((o) => o.cycle_id).filter((c): c is string => !!c))])
       : [];
-    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId, locationsByOrderId] =
+    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId, locationsByOrderId, arrivalPriceByOrderId] =
       await Promise.all([
         this.offerRepo.findByIds(offerIds),
         this.resolveBranches(branames),
@@ -111,10 +110,10 @@ export class MarketplaceOrderDisplayService {
         // «Сколько накоплено» по парам (offer × КУ) и по партиям считаем только
         // когда лента должна показать прогресс сбора (стол заказчика).
         opts?.withGroupProgress
-          ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
+          ? this.orderRepo.sumActiveByOfferBranch(platformSettings().coopname, offerIds)
           : Promise.resolve([]),
         cycleIds.length
-          ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
+          ? this.orderRepo.sumByCycleIds(platformSettings().coopname, cycleIds)
           : Promise.resolve([]),
         opts?.withWarehouseQuantity
           ? this.resolveWarehouseQuantity(orders)
@@ -124,6 +123,11 @@ export class MarketplaceOrderDisplayService {
         opts?.withWarehouseQuantity
           ? this.resolveWarehouseLocations(orders)
           : Promise.resolve(new Map<string, string[]>()),
+        // Цена прибытия — той же опцией: лента выдачи считает от неё факт,
+        // иначе пайщик заплатил бы за принятое с уценкой по полной цене.
+        opts?.withWarehouseQuantity
+          ? this.resolveWarehouseArrivalPrice(orders)
+          : Promise.resolve(new Map<string, string>()),
       ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     // Обложка товара — первое изображение оффера (как в каталоге/корзине).
@@ -189,6 +193,9 @@ export class MarketplaceOrderDisplayService {
           : null,
         warehouse_locations: opts?.withWarehouseQuantity
           ? (locationsByOrderId.get(order.id) ?? null)
+          : null,
+        warehouse_arrival_price: opts?.withWarehouseQuantity
+          ? (arrivalPriceByOrderId.get(order.id) ?? null)
           : null,
         warranty_until: order.warranty_until ?? null,
       });
@@ -332,10 +339,10 @@ export class MarketplaceOrderDisplayService {
     const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
     const [stockSums, regularSums] = await Promise.all([
       stockIds.length
-        ? this.inventoryRepo.sumReservedByOrders(config.coopname, stockIds)
+        ? this.inventoryRepo.sumReservedByOrders(platformSettings().coopname, stockIds)
         : Promise.resolve(new Map<string, number>()),
       regularIds.length
-        ? this.inventoryRepo.sumOnWarehouseByOrders(config.coopname, regularIds)
+        ? this.inventoryRepo.sumOnWarehouseByOrders(platformSettings().coopname, regularIds)
         : Promise.resolve(new Map<string, number>()),
     ]);
     return new Map([...stockSums, ...regularSums]);
@@ -346,13 +353,22 @@ export class MarketplaceOrderDisplayService {
    * приёмке от поставщика. У заказа из остатка кооператива своего места нет
    * (резерв позиций остатка не переносит их физический адрес на заказ).
    */
+  /** Цена прибытия имущества заказа на складе — база факта выдачи. */
+  private async resolveWarehouseArrivalPrice(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, string>> {
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    if (!regularIds.length) return new Map();
+    return this.inventoryRepo.arrivalPriceOnWarehouseByOrders(platformSettings().coopname, regularIds);
+  }
+
   private async resolveWarehouseLocations(
     orders: MarketplaceOrderDomainEntity[]
   ): Promise<Map<string, string[]>> {
     const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
     if (!regularIds.length) return new Map();
 
-    const raw = await this.inventoryRepo.locationsOnWarehouseByOrders(config.coopname, regularIds);
+    const raw = await this.inventoryRepo.locationsOnWarehouseByOrders(platformSettings().coopname, regularIds);
     const out = new Map<string, string[]>();
     for (const [order_id, locations] of raw) {
       out.set(order_id, locations.map(formatInventoryLocation));
@@ -387,7 +403,7 @@ export class MarketplaceOrderDisplayService {
 
   private async safeKu(braname: string) {
     try {
-      return await this.kuRepo.findByCoreBraname(config.coopname, braname);
+      return await this.kuRepo.findByCoreBraname(platformSettings().coopname, braname);
     } catch {
       return null;
     }
@@ -420,7 +436,7 @@ export class MarketplaceOrderDisplayService {
     try {
       const cert = await this.userCertificate.getCertificateByUsername(account);
       if (!cert) return null;
-      if (cert.type === AccountType.organization) {
+      if (cert.type === InnerAccountType.organization) {
         return cert.short_name?.trim() || null;
       }
       return (

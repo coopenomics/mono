@@ -11,6 +11,11 @@ import type {
   MarketplaceInventoryOwnership,
   MarketplaceInventoryStatus,
 } from '../../domain/entities/marketplace-inventory.types';
+import { numericQuantityTransformer } from './numeric-quantity.transformer';
+import {
+  MarketplaceUnitsOfMeasure,
+  type MarketplaceUnitOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
 
 /**
  * TypeORM-сущность склада КУ. Запись рождается на приёмке кооперативом по акту
@@ -120,10 +125,41 @@ export class MarketplaceInventoryEntity {
   @Column({ type: 'varchar', length: 8, default: 'ORDER' })
   public ownership!: MarketplaceInventoryOwnership;
 
-  // Цена прибытия за единицу (закупочная из акта приёмки) — база публикации
-  // остатка. nullable: synchronize добавляет колонку без backfill.
+  // Цена прибытия за ЕДИНИЦУ ОТПУСКА (закупочная из акта приёмки) — база
+  // публикации остатка. По мере — за базовую единицу, упаковкой — за упаковку
+  // (см. package_size ниже и канон единицы отпуска в README расширения).
+  // nullable: synchronize добавляет колонку без backfill.
   @Column({ type: 'numeric', precision: 18, scale: 4, nullable: true })
   public arrival_price!: string | null;
+
+  /**
+   * Содержимое упаковки в базовой единице — снапшот фасовки, в которой
+   * имущество принято на склад (Эпик 18). 0 = отпуск по мере (`arrival_price`
+   * за базовую единицу); >0 = упаковкой (`arrival_price` за упаковку,
+   * `quantity_per_label` кратно `package_size`).
+   *
+   * Без этого поля цена и количество позиции разной размерности, и любое
+   * `arrival_price × quantity_per_label` завышает сумму в `package_size` раз
+   * (инцидент 2026-08-12: списание десятка яиц ушло в совет на 1500 ₽ вместо
+   * 150 ₽). `synchronize:true` создаёт колонку с default 0.
+   */
+  @Column({
+    type: 'numeric',
+    precision: 18,
+    scale: 3,
+    default: 0,
+    transformer: numericQuantityTransformer,
+  })
+  public package_size!: number;
+
+  /**
+   * Базовая единица измерения имущества (штука/килограмм/литр), снапшот с
+   * приёмки. Денормализована вместе с фасовкой: без неё размерность цены и
+   * количества позиции приходилось восстанавливать окольным путём — через
+   * заказ и оферту, по запросу на каждую партию склада.
+   */
+  @Column({ type: 'varchar', length: 16, default: MarketplaceUnitsOfMeasure.PIECE })
+  public unit_of_measure!: MarketplaceUnitOfMeasure;
 
   // Оффер кооператива, которым остаток опубликован в каталоге; NULL — нет.
   @Column({ type: 'uuid', nullable: true })

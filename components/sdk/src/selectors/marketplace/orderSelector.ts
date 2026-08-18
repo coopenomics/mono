@@ -52,6 +52,7 @@ export const rawOrderSelector = {
   package_size: true,
   warehouse_quantity: true,
   warehouse_locations: true,
+  warehouse_arrival_price: true,
   group_accumulated_quantity: true,
   group_min_volume: true,
   price_per_unit: true,

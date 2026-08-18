@@ -54,7 +54,7 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
 
     const user = await resolveUserBySub(payload.sub, this.userRepository, this.userDomainService);
 
-    // Возвращаем объект в формате, совместимом с MonoAccountDomainInterface
+    // Возвращаем объект в формате, совместимом с IMonoAccount
     return {
       // Сессия, которой выдан токен. Нужна, чтобы отличить текущую сессию в списке
       // устройств и не завершить её вместе с чужими. Раньше для этого пришлось бы

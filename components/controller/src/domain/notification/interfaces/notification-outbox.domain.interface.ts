@@ -1,16 +1,16 @@
+import type { NotificationChannel } from './notify-input.domain.interface';
 /**
  * Доменные типы транзакционного outbox Центра уведомлений (DC v3).
  *
  * `notification_outbox` — очередь на доставку: одна строка = намерение доставить
  * один тип уведомления одному получателю по одному каналу. Пишется в той же
- * транзакции вызывающего domain-сервиса (см. {@link NotificationPort}); если
+ * транзакции вызывающего domain-сервиса (см. {@link INotificationPort}); если
  * транзакция откатилась — строки нет, уведомление не «повисает».
  *
  * `notification_deliveries` — журнал фактических попыток отправки и их исходов:
  * источник для «стола председателя» (кто/что/когда получил) и кнопки «переотправить».
  */
 
-import type { NotificationChannel } from './notify-input.domain.interface';
 
 /** Статус строки outbox. Жизненный цикл: PENDING → SENDING → SENT | FAILED (| CANCELED). */
 export enum NotificationOutboxStatus {

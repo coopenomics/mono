@@ -30,6 +30,17 @@
     //- свободной строкой из снимка СЗ (не платёжным методом пайщика).
     DataRow(v-if='freeData?.recipient_name', label='Получатель', :value='freeData.recipient_name', copyable)
     DataRow(v-if='freeData?.requisites', label='Реквизиты', :value='freeData.requisites', copyable, mono)
+    //- Перечисление налога: реквизиты бюджета приходят готовым списком строк —
+    //- они не принадлежат пайщику и зависят от страны кооператива, поэтому
+    //- сервер отдаёт их снимком, а не через платёжный метод.
+    DataRow(
+      v-for='row in requisiteRows',
+      :key='row.label',
+      :label='row.label',
+      :value='row.value',
+      copyable,
+      mono
+    )
     DataRow(v-if='expenseDescription', label='Что оплачиваем', :value='expenseDescription')
     DataRow(v-if='payment.memo', label='Назначение платежа', :value='payment.memo', copyable)
     DataRow(
@@ -97,6 +108,15 @@ const freeData = computed(() => {
     return data as { recipient_name?: string; requisites?: string };
   }
   return null;
+});
+
+// Реквизиты получателя-бюджета: список пар «название реквизита — значение».
+const requisiteRows = computed<{ label: string; value: string }[]>(() => {
+  const data = payment.payment_details?.data;
+  if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).requisite_rows)) {
+    return (data as { requisite_rows: { label: string; value: string }[] }).requisite_rows;
+  }
+  return [];
 });
 
 // Описание позиции расхода — кассиру важно видеть, что именно оплачивается

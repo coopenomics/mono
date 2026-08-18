@@ -24,16 +24,13 @@ import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
 import { MetricContributionDomainEntity } from '../../domain/entities/metric-contribution.entity';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
-import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/catalog/default-blagorost-measures';
-import { buildMetricSeries } from '../../domain/utils/build-metric-series';
+import { buildMetricSeries, defaultSeriesFrom } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
@@ -67,11 +64,13 @@ import {
   type SuperpositionContributionInput,
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
- * Меры (справочник) и цели по мерам на компонентах.
+ * Меры кооператива и цели по мерам на компонентах.
  * Off-chain: мера → цель на компоненте → привязки задач → журнал вкладов → ряд / резонанс.
+ * Единственный таймфрейм ряда и волны — день.
  */
 @Injectable()
 export class ComponentMetricService {
@@ -92,55 +91,48 @@ export class ComponentMetricService {
   ) {}
 
   async createMeasure(
-    _data: CreateMeasureInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    data: CreateMeasureInputDTO,
+    currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
-    throw new Error(
-      'Справочник мер централизован. Новые меры добавляются только через деплой и миграции.'
+    const measure = await this.findOrCreateMeasure(
+      data.coopname,
+      data.title,
+      data.unit,
+      data.series_mode,
+      currentUser
     );
+    return this.toMeasureOutput(measure);
   }
 
   async updateMeasure(
     data: UpdateMeasureInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO> {
-    const existing = await this.measureRepository.findByMeasureHash(data.measure_hash);
-    if (!existing) {
-      throw new Error(`Мера ${data.measure_hash} не найдена`);
-    }
-    // Мера — системный справочник: состав/волна/тег только через миграции.
-    // Через API разрешено лишь включение и выключение (active / archived).
+    const existing = await this.requireMeasure(data.measure_hash);
     void currentUser;
 
-    const touchesCatalog =
-      data.title !== undefined ||
-      data.unit !== undefined ||
-      data.series_mode !== undefined ||
-      data.wave_period !== undefined ||
-      data.tag !== undefined;
-    if (touchesCatalog) {
-      throw new Error(
-        'Справочник мер централизован. Название, единицу, режим, волну и категорию меняют только через деплой и миграции.'
-      );
-    }
-    if (data.status === undefined) {
-      throw new Error('Укажите статус меры: активна или архивна');
-    }
-    if (data.status !== MetricStatus.ACTIVE && data.status !== MetricStatus.ARCHIVED) {
-      throw new Error('Допустимы только статусы active и archived');
-    }
+    this.assertMeasureStatus(data.status);
+    const title = this.resolveMeasureText(
+      data.title,
+      existing.title,
+      'Название меры не может быть пустым'
+    );
+    const unit = this.resolveMeasureText(
+      data.unit,
+      existing.unit,
+      'Единица измерения не может быть пустой'
+    );
+    await this.assertMeasureRenameFree(existing, title, unit);
 
     const updated = new MeasureDomainEntity({
       _id: existing._id,
       measure_hash: existing.measure_hash,
       coopname: existing.coopname,
-      title: existing.title,
-      unit: existing.unit,
-      series_mode: existing.series_mode,
-      wave_period: existing.wave_period,
-      tag: existing.tag,
+      title,
+      unit,
+      series_mode: data.series_mode ?? existing.series_mode,
       created_by: existing.created_by,
-      status: data.status,
+      status: data.status ?? existing.status,
       present: existing.present,
       block_num: existing.block_num,
       _created_at: existing._created_at,
@@ -150,53 +142,112 @@ export class ComponentMetricService {
     return this.toMeasureOutput(saved);
   }
 
+  private assertMeasureStatus(status: MetricStatus | undefined): void {
+    if (status === undefined) return;
+    if (status !== MetricStatus.ACTIVE && status !== MetricStatus.ARCHIVED) {
+      throw new Error('Допустимы только статусы active и archived');
+    }
+  }
+
+  private resolveMeasureText(
+    input: string | undefined,
+    fallback: string,
+    emptyMessage: string
+  ): string {
+    const value = input !== undefined ? input.trim() : fallback;
+    if (!value) {
+      throw new Error(emptyMessage);
+    }
+    return value;
+  }
+
+  /**
+   * Переименование в уже существующую пару название+единица слило бы две меры
+   * кооператива в одну — вклады обеих остались бы на своих целях, а в списке
+   * мер появился бы дубль.
+   */
+  private async assertMeasureRenameFree(
+    existing: MeasureDomainEntity,
+    title: string,
+    unit: string
+  ): Promise<void> {
+    if (title === existing.title && unit === existing.unit) {
+      return;
+    }
+    const duplicate = await this.measureRepository.findByCoopnameAndTitleUnit(
+      existing.coopname,
+      title,
+      unit
+    );
+    if (duplicate && duplicate.measure_hash !== existing.measure_hash) {
+      throw new Error(`Мера «${title}» в единицах «${unit}» у кооператива уже есть`);
+    }
+  }
+
+  /**
+   * Меры кооператива: только те, что он сам завёл по ходу планирования.
+   */
   async getMeasures(
     coopname: string,
     status: MetricStatus | undefined,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<MeasureOutputDTO[]> {
-    await this.ensureDefaultMeasures(coopname);
     const measures = await this.measureRepository.findByCoopname(coopname, status);
     return measures.map((m) => this.toMeasureOutput(m));
   }
 
   /**
-   * Идемпотентный сид справочника Благороста: недостающие меры по title+unit.
-   * Существующие не перетираем (правка волны/тега — админка / миграция).
+   * Мера по названию и единице: своя у каждого кооператива.
+   * Повтор той же пары не плодит дубль — возвращает заведённую ранее,
+   * в том числе выключенную (её же и включаем обратно).
    */
-  async ensureDefaultMeasures(coopname: string): Promise<void> {
-    for (const seed of DEFAULT_BLAGOROST_MEASURES) {
-      const existing = await this.measureRepository.findByCoopnameAndTitleUnit(
-        coopname,
-        seed.title,
-        seed.unit,
-        MetricStatus.ACTIVE
-      );
-      if (existing) {
-        continue;
-      }
-      await this.measureRepository.create(
-        new MeasureDomainEntity({
-          _id: '',
-          measure_hash: defaultMeasureHash(coopname, seed.title, seed.unit),
-          coopname,
-          title: seed.title,
-          unit: seed.unit,
-          series_mode: seed.series_mode,
-          wave_period: seed.wave_period,
-          tag: seed.tag,
-          created_by: 'system',
-          status: MetricStatus.ACTIVE,
-          present: false,
-          block_num: 0,
-        })
-      );
+  private async findOrCreateMeasure(
+    coopname: string,
+    titleInput: string,
+    unitInput: string,
+    seriesMode: MetricSeriesMode | undefined,
+    currentUser: IMonoAccount
+  ): Promise<MeasureDomainEntity> {
+    const title = (titleInput ?? '').trim();
+    const unit = (unitInput ?? '').trim();
+    if (!title) {
+      throw new Error('Укажите название меры');
     }
+    if (!unit) {
+      throw new Error('Укажите единицу измерения');
+    }
+
+    const existing = await this.measureRepository.findByCoopnameAndTitleUnit(coopname, title, unit);
+    if (existing) {
+      // Тип меры (скорость / уровень) задают в той же строке плана — явно
+      // выбранный применяем к уже заведённой мере, а не молча игнорируем.
+      if (existing.status === MetricStatus.ARCHIVED) {
+        existing.status = MetricStatus.ACTIVE;
+        existing.series_mode = seriesMode ?? existing.series_mode;
+        return this.measureRepository.update(existing);
+      }
+      return this.applySeriesModeIfChanged(existing, seriesMode);
+    }
+
+    return this.measureRepository.create(
+      new MeasureDomainEntity({
+        _id: '',
+        measure_hash: generateUniqueHash(),
+        coopname,
+        title,
+        unit,
+        series_mode: seriesMode ?? MetricSeriesMode.RATE,
+        created_by: currentUser.username,
+        status: MetricStatus.ACTIVE,
+        present: false,
+        block_num: 0,
+      })
+    );
   }
 
   async createMetric(
     data: CreateComponentMetricInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
@@ -226,7 +277,7 @@ export class ComponentMetricService {
 
   async updateMetric(
     data: UpdateComponentMetricInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!existing) {
@@ -267,7 +318,7 @@ export class ComponentMetricService {
 
   async archiveMetric(
     metricHash: string,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(metricHash);
     if (!existing) {
@@ -289,7 +340,7 @@ export class ComponentMetricService {
   async getComponentMetrics(
     projectHash: string,
     status: MetricStatus | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO[]> {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -316,7 +367,7 @@ export class ComponentMetricService {
 
   async setIssueMetricBindings(
     data: SetIssueMetricBindingsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
     if (!issue) {
@@ -370,7 +421,7 @@ export class ComponentMetricService {
 
   async getIssueMetricBindings(
     issueHash: string,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(issueHash);
     if (!issue) {
@@ -391,7 +442,7 @@ export class ComponentMetricService {
 
   async logMetricContribution(
     data: LogMetricContributionInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricContributionOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
@@ -435,7 +486,7 @@ export class ComponentMetricService {
   async getMetricContributions(
     metricHash: string,
     options: PaginationInputDTO | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
     const metric = await this.metricRepository.findByMetricHash(metricHash);
     if (!metric) {
@@ -461,7 +512,7 @@ export class ComponentMetricService {
    */
   async getMetricSeries(
     data: GetMetricSeriesInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSeriesOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
@@ -474,9 +525,8 @@ export class ComponentMetricService {
     await this.assertCanViewMetrics(project, currentUser);
 
     const measure = await this.requireMeasure(metric.measure_hash);
-    const period = data.period ?? measure.wave_period ?? MetricSeriesPeriod.WEEK;
     const to = data.to ? new Date(data.to) : new Date();
-    const from = data.from ? new Date(data.from) : this.defaultSeriesFrom(to, period);
+    const from = data.from ? new Date(data.from) : defaultSeriesFrom(to);
 
     const contributions = await this.contributionRepository.findChronologicalByMetricHash(
       data.metric_hash
@@ -487,7 +537,6 @@ export class ComponentMetricService {
     const points = buildMetricSeries(
       contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at })),
       {
-        period,
         from,
         to,
         target_value: metric.target_value,
@@ -502,7 +551,6 @@ export class ComponentMetricService {
       unit: measure.unit,
       target_value: metric.target_value,
       series_mode: measure.series_mode,
-      period,
       fact,
       points,
     };
@@ -513,15 +561,9 @@ export class ComponentMetricService {
    */
   async getMetricWave(
     data: GetMetricWaveInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricWaveOutputDTO> {
-    const series = await this.getMetricSeries(
-      {
-        metric_hash: data.metric_hash,
-        period: data.period,
-      },
-      currentUser
-    );
+    const series = await this.getMetricSeries({ metric_hash: data.metric_hash }, currentUser);
 
     const values =
       series.series_mode === MetricSeriesMode.LEVEL
@@ -533,7 +575,6 @@ export class ComponentMetricService {
       series_mode: series.series_mode,
       fact: series.fact,
       target_value: series.target_value,
-      periods_ahead: data.periods_ahead ?? 8,
     });
 
     return {
@@ -543,7 +584,6 @@ export class ComponentMetricService {
       target_value: series.target_value,
       fact: series.fact,
       series_mode: series.series_mode,
-      period: series.period,
       values,
       current_label: markup.current_label,
       current_phase: markup.current_phase,
@@ -560,18 +600,11 @@ export class ComponentMetricService {
    */
   async getMetricSuperposition(
     data: GetMetricSuperpositionInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSuperpositionOutputDTO> {
-    const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
+    const ctx = await this.loadSuperpositionContext(data.project_hash, currentUser);
     const to = new Date();
-    const from = defaultSuperpositionFrom(to, ctx.period);
-    const snapshot = computeSuperpositionAt(
-      ctx.metricsInput,
-      ctx.contributionsByMetric,
-      ctx.period,
-      from,
-      to
-    );
+    const snapshot = computeSuperpositionAt(ctx.metricsInput, ctx.contributionsByMetric, to);
 
     const components = ctx.scopes.map((scope) => {
       const scopeItems = snapshot.items.filter(
@@ -588,7 +621,6 @@ export class ComponentMetricService {
 
     return {
       project_hash: ctx.project.project_hash,
-      period: ctx.period,
       fact_sum: snapshot.fact_sum,
       target_sum: snapshot.target_sum,
       up_count: snapshot.up_count,
@@ -613,22 +645,15 @@ export class ComponentMetricService {
    */
   async getMetricSuperpositionHistory(
     data: GetMetricSuperpositionHistoryInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MetricSuperpositionHistoryOutputDTO> {
-    const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
+    const ctx = await this.loadSuperpositionContext(data.project_hash, currentUser);
     const to = new Date();
-    const from = defaultSuperpositionFrom(to, ctx.period);
-    const frameAts = listSuperpositionFrameAts(from, to, ctx.period);
+    const from = defaultSuperpositionFrom(to);
+    const frameAts = listSuperpositionFrameAts(from, to);
 
     const frames = frameAts.map((at) => {
-      const frameFrom = defaultSuperpositionFrom(at, ctx.period);
-      const snapshot = computeSuperpositionAt(
-        ctx.metricsInput,
-        ctx.contributionsByMetric,
-        ctx.period,
-        frameFrom,
-        at
-      );
+      const snapshot = computeSuperpositionAt(ctx.metricsInput, ctx.contributionsByMetric, at);
       return {
         at,
         activity: snapshot.activity,
@@ -650,7 +675,6 @@ export class ComponentMetricService {
 
     return {
       project_hash: ctx.project.project_hash,
-      period: ctx.period,
       from,
       to,
       frames,
@@ -659,8 +683,7 @@ export class ComponentMetricService {
 
   private async loadSuperpositionContext(
     projectHash: string,
-    periodInput: MetricSeriesPeriod | undefined,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ) {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -668,7 +691,6 @@ export class ComponentMetricService {
     }
     await this.assertCanViewMetrics(project, currentUser);
 
-    const period = periodInput ?? MetricSeriesPeriod.WEEK;
     const children = await this.projectRepository.findComponentsByParentHash(projectHash);
     const scopes = children.length > 0 ? children : [project];
     const scopeHashes = scopes.map((s) => s.project_hash);
@@ -702,17 +724,12 @@ export class ComponentMetricService {
         unit: measure.unit,
         target_value: metric.target_value,
         series_mode: measure.series_mode,
-        wave_period: measure.wave_period,
         plan_start: metric._created_at ? new Date(metric._created_at) : null,
         deadline: metric.deadline ? new Date(metric.deadline) : null,
       };
     });
 
-    return { project, period, scopes, metricsInput, contributionsByMetric };
-  }
-
-  private defaultSeriesFrom(to: Date, period: MetricSeriesPeriod): Date {
-    return defaultSuperpositionFrom(to, period);
+    return { project, scopes, metricsInput, contributionsByMetric };
   }
 
   /**
@@ -792,7 +809,7 @@ export class ComponentMetricService {
    */
   private async assertCanViewMetrics(
     project: ProjectDomainEntity,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
       throw new Error('Нет прав на просмотр метрик компонента');
@@ -808,7 +825,7 @@ export class ComponentMetricService {
 
   private async assertCanManageMetrics(
     project: Awaited<ReturnType<ProjectRepository['findByHash']>>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     if (!project) {
       throw new Error('Компонент не найден');
@@ -822,7 +839,7 @@ export class ComponentMetricService {
   private async assertCanEditIssueMetrics(
     project: NonNullable<Awaited<ReturnType<ProjectRepository['findByHash']>>>,
     issue: NonNullable<Awaited<ReturnType<IssueRepository['findByIssueHash']>>>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     const projectPermissions = await this.permissionsService.calculateProjectPermissions(
       project,
@@ -847,42 +864,93 @@ export class ComponentMetricService {
     return new Map(measures.map((m) => [m.measure_hash.toLowerCase(), m] as const));
   }
 
+  /**
+   * Мера новой цели: либо уже заведённая (measure_hash), либо вводится текстом.
+   */
   private async resolveMeasureForCreate(
     data: CreateComponentMetricInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MeasureDomainEntity> {
-    if (!data.measure_hash) {
-      throw new Error(
-        'Выберите меру из централизованного справочника. Создание мер через план недоступно.'
-      );
+    if (data.measure_hash) {
+      return this.resolveMeasureByHash(data.measure_hash, data.coopname);
     }
-    const measure = await this.requireMeasure(data.measure_hash);
-    if (measure.status === MetricStatus.ARCHIVED) {
-      throw new Error('Нельзя привязать выключенную меру');
+
+    if (!data.title?.trim()) {
+      throw new Error('Укажите меру: название и единицу измерения');
     }
-    return measure;
+
+    return this.findOrCreateMeasure(
+      data.coopname,
+      data.title,
+      data.unit ?? '',
+      data.series_mode,
+      currentUser
+    );
   }
 
+  /**
+   * Мера при правке цели: смена названия/единицы заводит меру, а не правит текущую —
+   * иначе переименование в одной цели поехало бы по всем целям с той же мерой.
+   */
   private async resolveMeasureForUpdate(
     data: UpdateComponentMetricInputDTO,
     existing: ComponentMetricDomainEntity,
     currentMeasure: MeasureDomainEntity,
-    _currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<MeasureDomainEntity> {
-    if (data.title !== undefined || data.unit !== undefined || data.series_mode !== undefined) {
-      throw new Error(
-        'Меру цели меняют только выбором из справочника (measure_hash), без создания новых мер.'
-      );
+    if (data.measure_hash) {
+      return this.resolveMeasureByHash(data.measure_hash, existing.coopname);
     }
-    if (!data.measure_hash) {
-      return currentMeasure;
+
+    const title = data.title !== undefined ? data.title.trim() : currentMeasure.title;
+    const unit = data.unit !== undefined ? data.unit.trim() : currentMeasure.unit;
+    const sameMeasure = title === currentMeasure.title && unit === currentMeasure.unit;
+
+    if (sameMeasure) {
+      return this.applySeriesModeIfChanged(currentMeasure, data.series_mode);
     }
-    const measure = await this.requireMeasure(data.measure_hash);
+
+    return this.findOrCreateMeasure(
+      existing.coopname,
+      title,
+      unit,
+      data.series_mode ?? currentMeasure.series_mode,
+      currentUser
+    );
+  }
+
+  /** Мера кооператива по хешу; выключенную возвращаем в строй. */
+  private async resolveMeasureByHash(
+    measureHash: string,
+    coopname: string
+  ): Promise<MeasureDomainEntity> {
+    const measure = await this.requireMeasure(measureHash);
+    if (measure.coopname !== coopname) {
+      throw new Error('Мера принадлежит другому кооперативу');
+    }
     if (measure.status === MetricStatus.ARCHIVED) {
-      throw new Error('Нельзя привязать выключенную меру');
+      measure.status = MetricStatus.ACTIVE;
+      return this.measureRepository.update(measure);
     }
-    void existing;
     return measure;
+  }
+
+  private async applySeriesModeIfChanged(
+    measure: MeasureDomainEntity,
+    seriesMode: MetricSeriesMode | undefined
+  ): Promise<MeasureDomainEntity> {
+    if (seriesMode === undefined || seriesMode === measure.series_mode) {
+      return measure;
+    }
+    return this.updateMeasureSeriesMode(measure, seriesMode);
+  }
+
+  private async updateMeasureSeriesMode(
+    measure: MeasureDomainEntity,
+    seriesMode: MetricSeriesMode
+  ): Promise<MeasureDomainEntity> {
+    measure.series_mode = seriesMode;
+    return this.measureRepository.update(measure);
   }
 
   private toMeasureOutput(measure: MeasureDomainEntity): MeasureOutputDTO {
@@ -897,8 +965,6 @@ export class ComponentMetricService {
       title: measure.title,
       unit: measure.unit,
       series_mode: measure.series_mode,
-      wave_period: measure.wave_period,
-      tag: measure.tag,
       created_by: measure.created_by,
       status: measure.status,
     };

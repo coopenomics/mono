@@ -17,6 +17,7 @@ export * from './ListVotingProjectWidget';
 export * from './ProjectVotingSegmentsWidget';
 export * from './SegmentVotesWidget';
 export * from './ListResultProjectsWidget';
+export * from './ContributorResultsListWidget';
 export * from './ResultSubmissionSegmentsWidget';
 export * from './ResultSubmissionActionsWidget';
 export * from './SegmentResultInfoWidget';

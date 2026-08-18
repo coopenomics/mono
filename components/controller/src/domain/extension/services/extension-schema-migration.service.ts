@@ -1,49 +1,28 @@
 // domain/extension/services/extension-schema-migration.service.ts
+//
+// Контракт миграции (IExtensionSchemaMigration, ExtensionSchemaMigrationAfterContext)
+// живёт в @coopenomics/extension-kit — его реализуют сами расширения. Здесь остаётся
+// только применение миграций: сервис знает про логгер ядра и Nest-приложение,
+// поэтому в каркас не выносится.
 
-import { Injectable, Inject, type INestApplication } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository } from '../repositories/extension-domain.repository';
-import { ExtensionDomainEntity } from '../entities/extension-domain.entity';
+import { Injectable, Inject } from '@nestjs/common';
+
+/**
+ * Чем миграция достаёт провайдеры. Ровно `get` — сузили намеренно: полный
+ * `INestApplication` здесь означал бы, что домен расширений знает про точку
+ * входа приложения.
+ */
+export interface ExtensionDependencyResolver {
+  get<T = unknown>(token: string | symbol | (new (...args: any[]) => any)): T;
+}
+import {
+  EXTENSION_REPOSITORY,
+  ExtensionDomainEntity,
+  type ExtensionDomainRepository,
+  type ExtensionSchemaMigrationAfterContext,
+  type IExtensionSchemaMigration,
+} from '@coopenomics/extension-kit';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-
-/**
- * Контекст для опциональной фазы миграции данных (PG, вызовы репозиториев и т.д.).
- * resolve — Nest get() по токену провайдера.
- */
-export interface ExtensionSchemaMigrationAfterContext {
-  /** Токен Nest DI (строка, symbol или класс вроде DataSource — у конструкторов свои параметры, поэтому `any[]`). */
-  resolve: <T = unknown>(typeOrToken: string | symbol | (new (...args: any[]) => any)) => T;
-  logInfo: (message: string) => void;
-  logWarn: (message: string) => void;
-  logError: (message: string, error?: unknown) => void;
-}
-
-/**
- * Интерфейс для миграции схемы расширения
- */
-export interface IExtensionSchemaMigration<TOldConfig = any, TNewConfig = any> {
-  /**
-   * Уникальное имя расширения
-   */
-  extensionName: string;
-
-  /**
-   * Версия миграции (для отслеживания порядка применения)
-   */
-  version: number;
-
-  /**
-   * Функция миграции: преобразует старую конфигурацию в новую
-   * @param oldConfig Старая конфигурация из базы данных
-   * @param defaultConfig Дефолтная конфигурация новой схемы
-   * @returns Новая конфигурация, совместимая с новой схемой
-   */
-  migrate(oldConfig: TOldConfig, defaultConfig: TNewConfig): TNewConfig;
-
-  /**
-   * Вызывается до записи новой schema_version в БД (при ошибке версия не повышается — миграция повторится при следующем старте).
-   */
-  afterMigrate?: (ctx: ExtensionSchemaMigrationAfterContext) => Promise<void>;
-}
 
 /**
  * Сервис для миграции схем расширений
@@ -138,7 +117,9 @@ export class ExtensionSchemaMigrationService {
   async migrateAndUpdateExtension<TConfig = any>(
     extensionName: string,
     defaultConfig: TConfig,
-    appContext?: INestApplication
+    // Миграции нужен только резолвинг провайдеров, а не всё приложение:
+    // ссылка на само приложение тянула бы за собой точку входа контроллера.
+    dependencies?: ExtensionDependencyResolver
   ): Promise<ExtensionDomainEntity<TConfig> | null> {
     this.logger.debug(`[MIGRATION] Начало миграции расширения ${extensionName}`);
 
@@ -170,15 +151,15 @@ export class ExtensionSchemaMigrationService {
       this.logger.info(`[MIGRATION] Применяем обновление для ${extensionName}`);
 
       const needsAfterMigrate = appliedMigrations.some((m) => typeof m.afterMigrate === 'function');
-      if (needsAfterMigrate && !appContext) {
+      if (needsAfterMigrate && !dependencies) {
         this.logger.warn(
-          `[MIGRATION] Расширение ${extensionName}: заданы afterMigrate, но appContext не передан — фаза данных пропущена`
+          `[MIGRATION] Расширение ${extensionName}: заданы afterMigrate, но резолвер зависимостей не передан — фаза данных пропущена`
         );
       }
 
-      if (needsAfterMigrate && appContext) {
+      if (needsAfterMigrate && dependencies) {
         const afterCtx: ExtensionSchemaMigrationAfterContext = {
-          resolve: (token) => appContext.get(token as never),
+          resolve: (token) => dependencies.get(token),
           logInfo: (m) => this.logger.info(m),
           logWarn: (m) => this.logger.warn(m),
           logError: (m, err) =>

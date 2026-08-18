@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 /**
  * Доменный интерфейс для действия регистрации участника CAPITAL контракта
  */
@@ -22,5 +22,5 @@ export interface RegisterContributorDomainInput {
   hours_per_day?: number;
 
   /** Документ договора УХД */
-  contract: ISignedDocumentDomainInterface;
+  contract: ISignedDocument;
 }

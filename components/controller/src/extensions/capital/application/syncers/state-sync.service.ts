@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { StateDomainEntity } from '../../domain/entities/state.entity';
 import { StateRepository, STATE_REPOSITORY } from '../../domain/repositories/state.repository';
 import { StateDeltaMapper } from '../../infrastructure/blockchain/mappers/state-delta.mapper';
@@ -24,7 +24,7 @@ export class StateSyncService
     @Inject(STATE_REPOSITORY)
     stateRepository: StateRepository,
     stateDeltaMapper: StateDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(stateRepository, stateDeltaMapper, logger);
@@ -48,14 +48,5 @@ export class StateSyncService
     });
 
     this.logger.debug('Сервис синхронизации состояния полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для состояния
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleStateFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

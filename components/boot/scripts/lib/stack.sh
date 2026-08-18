@@ -14,7 +14,7 @@
 # раскладывает запросы по уже поднятым.
 STACK_INFRA_SERVICES="mongo postgres monoredis minio"
 STACK_AUTH_SERVICES="authentik-server authentik-worker"
-STACK_APP_SERVICES="cooparser coopback desktop nginx"
+STACK_APP_SERVICES="parser2 coopback desktop nginx"
 
 # ── Окружение ────────────────────────────────────────────────────────────────
 
@@ -155,10 +155,21 @@ stack_up_authentik() {
 }
 
 stack_up_app() {
-  echo "▸ Поднимаем парсер, бэкенд, рабочий стол и единый вход..."
-  docker compose up -d cooparser
+  echo "▸ Поднимаем индексер, бэкенд, рабочий стол и единый вход..."
+  # Индексер parser2 — источник событий для контроллера, поднимается ДО него:
+  # coopback читает только стрим parser2, без индексера синхронизация с цепью
+  # просто стоит. Стрим пуст после чистого ребута — индексер перечитывает цепь
+  # с первого блока.
+  docker compose up -d parser2
   docker compose up -d --force-recreate coopback || true
-  docker compose up -d desktop nginx
+  # Фронт могли запустить с хоста через `quasar dev` — тогда контейнер лишь
+  # отобрал бы у него порт. Поднимаем контейнер, только если порт молчит.
+  if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${DESKTOP_HOST_PORT:-2999}"; then
+    echo "  фронт уже отвечает на ${DESKTOP_HOST_PORT:-2999} — оставляем как есть"
+  else
+    docker compose up -d desktop
+  fi
+  docker compose up -d nginx
   stack_wait_coopback || true
   stack_migrate_controller
   stack_wait_desktop || true

@@ -21,7 +21,6 @@ import type { ContributorProjectsTimeStatsDomainInterface } from '../../domain/i
 import type { TimeEntriesResultDomainInterface } from '../../domain/interfaces/time-entries-result-domain.interface';
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
 import type { FlexibleTimeStatsResultDomainInterface } from '../../domain/interfaces/flexible-time-stats-domain.interface';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectTimeStatsDomainInterface } from '../../domain/interfaces/project-time-stats-domain.interface';
 import type { TimeEntriesByIssuesResultDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
 import type {
@@ -29,12 +28,14 @@ import type {
   ContributorProjectTimeStatsDomainInterface,
 } from '../../domain/interfaces/time-stats-domain.interface';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { config } from '~/config';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../domain/utils/hours-float';
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
-import { EMPTY_HASH } from '~/shared/utils/constants';
 import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import { EMPTY_HASH,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте
@@ -53,7 +54,7 @@ export class TimeTrackingInteractor {
     private readonly issueRepository: IssueRepository,
     @Inject(TIMER_SESSION_REPOSITORY)
     private readonly timerSessionRepository: TimerSessionRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(TimeTrackingInteractor.name);
   }
@@ -599,7 +600,7 @@ export class TimeTrackingInteractor {
    */
   async getTimeEntries(
     data: GetTimeEntriesDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<TimeEntriesResultDomainInterface> {
     // Если передан username, но не contributor_hash, находим contributor_hash
     let contributorHash = data.contributor_hash;
@@ -607,7 +608,7 @@ export class TimeTrackingInteractor {
     if (data.username && !contributorHash) {
       const contributor = await this.contributorRepository.findByUsernameAndCoopname(
         data.username,
-        data.coopname || config.coopname
+        data.coopname || platformSettings().coopname
       );
       if (contributor) {
         contributorHash = contributor.contributor_hash;
@@ -631,7 +632,7 @@ export class TimeTrackingInteractor {
    */
   async getFlexibleTimeStats(
     data: GetFlexibleTimeStatsDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<FlexibleTimeStatsResultDomainInterface> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -645,7 +646,7 @@ export class TimeTrackingInteractor {
     if (data.username && !contributorHash) {
       const contributor = await this.contributorRepository.findByUsernameAndCoopname(
         data.username,
-        data.coopname || config.coopname
+        data.coopname || platformSettings().coopname
       );
       if (contributor) {
         contributorHash = contributor.contributor_hash;
@@ -995,7 +996,7 @@ export class TimeTrackingInteractor {
     date: string
   ): Promise<Record<string, number>> {
     // в дев режиме нет ограничения на количество часов в день
-    const HOURS_PER_DAY = config.env === 'development' ? 100000 : Number(contributor.hours_per_day || 0);
+    const HOURS_PER_DAY = platformSettings().environment === 'development' ? 100000 : Number(contributor.hours_per_day || 0);
     const HOURS_PER_HOUR = 1; // Каждый час добавляем 1 час работы
 
     const distribution: Record<string, number> = {};
@@ -1203,7 +1204,7 @@ export class TimeTrackingInteractor {
    */
   async getTimeEntriesByIssues(
     data: GetTimeEntriesDomainInput,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDTO
   ): Promise<TimeEntriesByIssuesResultDomainInterface> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;

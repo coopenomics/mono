@@ -117,15 +117,31 @@ function getSigners(row: IDocumentPackageAggregate): string[] {
   return getSignersListFromDocumentPackage(row);
 }
 
+/**
+ * Сколько документов лежит в пакете кроме самого заявления: решение совета,
+ * акты и связанные документы из меты. Заявление — инициирующий документ, за
+ * ним тянется вся сделка, но по строке реестра этого не видно: в прогоне
+ * 12.08 протокол совета сочли пропавшим, хотя он лежал внутри заявления
+ * (Игорь, 13.08 — «нужен индикатор, что есть связанные документы»).
+ */
+function relatedCount(row: IDocumentPackageAggregate): number {
+  const decision = row.decision ? 1 : 0;
+  const acts = row.acts?.length ?? 0;
+  const links = row.links?.length ?? 0;
+  return decision + acts + links;
+}
+
 // Маппинг агрегата в канон-строку документа. Статус НЕ передаём: в реестре всё
 // подписано по определению — чип «Подписано/Не подписано» запрещён каноном.
 function toRowDoc(row: IDocumentPackageAggregate): DocumentRowDoc {
   const signers = getSigners(row);
+  const related = relatedCount(row);
   return {
     type: 'pdf',
     title: getDocumentTitle(row),
     date: getDocumentDate(row) || undefined,
     author: signers.length ? signers.join(', ') : undefined,
+    description: related > 0 ? `+ связанные документы: ${related}` : undefined,
   };
 }
 

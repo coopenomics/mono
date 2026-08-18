@@ -1,4 +1,4 @@
-import type { OnboardingStepRegistrationPort } from '~/domain/onboarding/ports/onboarding-step-registration.port';
+import { type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Регистрирует 5 шагов онбординга capital в платформенном реестре.
@@ -17,7 +17,7 @@ import type { OnboardingStepRegistrationPort } from '~/domain/onboarding/ports/o
  * CapitalOnboardingEventsService.
  */
 export function registerCapitalOnboardingSteps(
-  port: OnboardingStepRegistrationPort
+  port: IOnboardingStepRegistryPort
 ): void {
   port.unregisterStepsByExtension('capital');
 

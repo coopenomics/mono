@@ -10,7 +10,7 @@ q-dialog(
   q-card.column.no-wrap
     q-bar.bg-primary.text-white
       .text-subtitle1.ellipsis
-        | {{ reportTitle }} за {{ year }}{{ period ? ` · период ${period}` : '' }}
+        | {{ reportTitle }} за {{ year }}{{ periodSuffix }}
       q-space
       q-chip(
         :color='saveStatusColor'
@@ -74,13 +74,34 @@ q-dialog(
           @dirty='onDirty'
         )
 
-        ZeroReportEditor(
-          v-else-if='reportType && reportType !== "BUHOTCH" && edits'
-          :report-type='reportType'
-          v-model:edits='zeroEdits'
-          :field-errors='fieldErrors'
-          @dirty='onDirty'
-        )
+        //- Обычный контейнер, а не <template>: фрагмент с несколькими корнями,
+        //- часть которых условная, при закрытии диалога роняет Vue на
+        //- размонтировании пустого узла («Cannot destructure property type of
+        //- vnode as it is null»), и окно перестаёт закрываться.
+        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+          ZeroReportEditor(
+            :report-type='reportType'
+            v-model:edits='zeroEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
+          //- Разделы с суммами и справки о доходах есть только у 6-НДФЛ:
+          //- это единственный отчёт, где кооператив выступает налоговым агентом.
+          Ndfl6TaxSection(
+            v-if='reportType === "NDFL6" && ndfl6Edits?.tax'
+            v-model:edits='ndfl6Edits'
+            :field-errors='fieldErrors'
+            :is-annual='ndfl6Edits.header.period === 4'
+            @dirty='onDirty'
+          )
+
+          //- Уведомление по НДФЛ — та же шапка плюс одна сумма к перечислению.
+          UvNdflAmountSection(
+            v-if='reportType === "UV_NDFL" && uvNdflEdits?.payment'
+            v-model:edits='uvNdflEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
 
         .stub-other(v-else-if='!isLoading && !reportType')
           q-icon(name='fa-solid fa-triangle-exclamation' size='48px' color='warning')
@@ -287,6 +308,16 @@ q-dialog(
         :requisites='requisites'
         :year='year'
       )
+      //- Уведомление об исчисленных суммах — одна форма КНД 1110355 на все
+      //- налоги: КБК, период и сумма читаются из XML, в бланке ничего от
+      //- конкретного налога нет. Поэтому НДФЛ печатается тем же бланком, что
+      //- УСН и взносы, а не своей копией.
+      UusnForm(
+        v-else-if='lastGeneratedXml && reportType === "UV_NDFL"'
+        :xml='lastGeneratedXml'
+        :requisites='requisites'
+        :year='year'
+      )
 </template>
 
 <script setup lang="ts">
@@ -304,11 +335,17 @@ import {
 } from 'src/entities/Report'
 import BuhotchEditor from 'extensions/reports/widgets/report-forms/BuhotchEditor.vue'
 import ZeroReportEditor from 'extensions/reports/widgets/report-forms/ZeroReportEditor.vue'
+import Ndfl6TaxSection from 'extensions/reports/widgets/report-forms/Ndfl6TaxSection.vue'
+import type { Ndfl6Edits } from 'extensions/reports/widgets/report-forms/ndfl6-edits'
+import UvNdflAmountSection from 'extensions/reports/widgets/report-forms/UvNdflAmountSection.vue'
+import { uvNdflPeriodTitle } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
+import type { UvNdflEdits } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
 import BuhotchForm from 'extensions/reports/widgets/report-forms/BuhotchForm.vue'
 import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
 import RsvForm from 'extensions/reports/widgets/report-forms/RsvForm.vue'
 import PsvForm from 'extensions/reports/widgets/report-forms/PsvForm.vue'
 import Efs1Form from 'extensions/reports/widgets/report-forms/Efs1Form.vue'
+import UusnForm from 'extensions/reports/widgets/report-forms/UusnForm.vue'
 import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/report-forms/pdf-export'
 
 // Набор типов отчётов, для которых у нас есть paper-view для PDF-экспорта.
@@ -316,7 +353,7 @@ import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/rep
 // Сравниваем через строковое представление IReportType (Zeus-enum тип
 // нестыкуется с литералами напрямую).
 const PDF_SUPPORTED_TYPES: ReadonlySet<string> = new Set<string>([
-  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4',
+  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4', 'UV_NDFL',
 ])
 
 interface BalanceRow {
@@ -373,6 +410,7 @@ const REPORT_TITLES: Record<string, string> = {
   PSV: 'Персонифицированные сведения',
   UUSN: 'Уведомление УСН',
   UV_VZNOSY: 'Уведомление о взносах',
+  UV_NDFL: 'Уведомление об исчисленном НДФЛ',
 }
 
 const props = defineProps<{
@@ -502,9 +540,30 @@ const zeroEdits = computed<ZeroReportEdits | null>({
   set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
 })
 
+// 6-НДФЛ — та же шапка плюс собственные разделы с суммами: редактируется
+// двумя компонентами поверх одного состояния.
+const ndfl6Edits = computed<Ndfl6Edits | null>({
+  get: () => edits.value as unknown as Ndfl6Edits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
+const uvNdflEdits = computed<UvNdflEdits | null>({
+  get: () => edits.value as unknown as UvNdflEdits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
 const reportTitle = computed(() =>
   props.reportType ? (REPORT_TITLES[props.reportType] ?? props.reportType) : '',
 )
+
+// У уведомления по НДФЛ период — сквозной номер 1..24, который человеку ничего
+// не говорит; в шапке показываем месяц и половину месяца. Остальным формам
+// хватает номера квартала или месяца.
+const periodSuffix = computed(() => {
+  if (!props.period) return ''
+  if (props.reportType === 'UV_NDFL') return ` · ${uvNdflPeriodTitle(props.period)}`
+  return ` · период ${props.period}`
+})
 
 const notReady = computed(() => readiness.value !== null && readiness.value.ready === false)
 
@@ -774,6 +833,16 @@ function goToRequisites(): void {
   overflow: auto;
   background: var(--p-canvas);
   position: relative;
+}
+
+// Отступы и зазор между карточками живут здесь, а не внутри форм: разделы
+// 6-НДФЛ и уведомления — соседи ZeroReportEditor, и без общего контейнера они
+// прижимались к краям диалога и слипались с формой над ними.
+.editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  padding: var(--p-3, 12px);
 }
 
 .action-panel {

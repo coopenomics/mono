@@ -6,6 +6,7 @@
   .attach-proof__section
     .t-sm.t-muted(v-if='step') Приложите чек об оплате — подтверждение, что платёж исполнен.
     .t-sm.t-muted(v-else) Чек об оплате
+    .t-sm.t-muted(v-if='readonly && !proofFiles.length') Кассир ещё не приложил чек
     .files(v-if='proofFiles.length')
       button.file-link(
         v-for='file in proofFiles',
@@ -18,6 +19,7 @@
         span {{ fileLabel(file) }}
         q-spinner(v-if='openingId === file.id', size='14px')
     FileUploader(
+      v-if='!readonly',
       v-model='pendingProof',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
@@ -39,6 +41,9 @@ const props = defineProps<{
   // Опциональный заголовок-этап (номер + название) для последовательной подачи
   // на столе кассира.
   step?: { number: number | string; title: string };
+  // Только просмотр: чек прикладывает тот, кто платил, — на чужих столах
+  // (бухгалтерия смотрит перечисления налога) загрузка не предлагается.
+  readonly?: boolean;
 }>();
 
 const emit = defineEmits<{

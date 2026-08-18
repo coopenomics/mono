@@ -11,9 +11,10 @@ import {
   getMembershipFeePercent,
   applyMembershipFee,
   computeIssuanceDiff,
+  marketplaceLineCost,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
   getStockIssuancePayloads,
@@ -85,6 +86,8 @@ const stockPickOpen = ref(false);
 const restockLines = ref<StockPickLine[]>([]);
 const recipientAccount = computed(() => props.orders[0]?.orderer_account ?? '');
 const issueBraname = computed(() => props.orders[0]?.delivery_braname ?? '');
+// Строка докладки ведётся в единицах отпуска: и количество (число упаковок),
+// и цена (за упаковку) — одной размерности, поэтому произведение прямое.
 const restockTotal = computed(() =>
   restockLines.value
     .reduce((sum, l) => sum + l.quantity * Number.parseFloat(l.price_per_unit), 0)
@@ -92,11 +95,10 @@ const restockTotal = computed(() =>
 );
 
 function restockLineSum(l: StockPickLine): string {
-  return (Number.parseFloat(l.price_per_unit) * l.quantity).toFixed(4);
+  return (l.quantity * Number.parseFloat(l.price_per_unit)).toFixed(4);
 }
 function restockLineQuantityLabel(l: StockPickLine): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit_of_measure, l.stock_package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return `${l.quantity}×${marketplaceSaleUnitLabel(l.unit_of_measure, l.stock_package_size)}`;
 }
 function onAddRestock(lines: StockPickLine[]): void {
   const map = new Map(restockLines.value.map((l) => [l.offer_id, { ...l }]));
@@ -130,6 +132,23 @@ function availableOf(o: MarketplaceOrderIssuanceView): number {
   return o.warehouse_quantity ?? o.quantity;
 }
 
+/**
+ * Цена, с которой открывается выдача, — цена прибытия: по ней имущество
+ * лежит на складе после приёмки. Если на приёмке взяли дешевле объявленного
+ * (уценка за качество), пайщик платит по цене приёмки, а разница
+ * возвращается ему как недостача. Иначе выбытие со склада ушло бы по цене
+ * заказа, а приход — по цене приёмки, и счёт материалов ушёл бы в минус на
+ * всю разницу.
+ *
+ * Цены прибытия нет — заказ из остатка кооператива либо склад не
+ * запрашивали: остаётся цена заказа.
+ */
+function defaultPriceOf(o: MarketplaceOrderIssuanceView): number {
+  return o.warehouse_arrival_price != null
+    ? Number.parseFloat(o.warehouse_arrival_price)
+    : Number.parseFloat(o.price_per_unit);
+}
+
 function initFacts(): void {
   const next: Record<string, FactState> = {};
   for (const o of props.orders) {
@@ -138,7 +157,7 @@ function initFacts(): void {
     // выключены из выдачи (выдавать нечего) — оператор включит вручную нельзя.
     next[o.id] = {
       qty: Math.min(o.quantity, availableOf(o)),
-      price: Number.parseFloat(o.price_per_unit),
+      price: defaultPriceOf(o),
       included: availableOf(o) > 0,
     };
   }
@@ -150,19 +169,35 @@ const includedOrders = computed(() =>
   props.orders.filter((o) => facts.value[o.id]?.included && availableOf(o) > 0),
 );
 
+/**
+ * Оператор правит выдачу в единицах отпуска: упаковками при упаковочном
+ * отпуске, базовыми единицами по мере. Упаковку не вскрывают — если внутри
+ * брак, выдают её целиком, но по сниженной цене (решение 2026-08-13).
+ * Внутри формы факт хранится в базовой единице (как на цепи), поэтому здесь
+ * он делится на фасовку, а обратно умножается в `onCorrectionChange`.
+ */
+function saleUnitsOf(o: MarketplaceOrderIssuanceView, baseQuantity: number): number {
+  const size = o.package_size ?? 0;
+  return size > 0 ? Math.round(baseQuantity / size) : baseQuantity;
+}
+
 const correctionRows = computed<CorrectionRow[]>(() =>
   props.orders.map((o) => {
     const f = facts.value[o.id];
+    const packaged = (o.package_size ?? 0) > 0;
     return {
       sku: o.id.slice(0, 8),
       title: o.product_name || 'Товар по предложению',
-      unit: marketplaceOrderUnitLabel(o.unit_of_measure),
-      expected: o.quantity,
-      available: availableOf(o),
+      unit: marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null),
+      packaged,
+      expected: saleUnitsOf(o, o.quantity),
+      available: saleUnitsOf(o, availableOf(o)),
       location: (o.warehouse_locations ?? []).join(', ') || undefined,
-      fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
+      fact: saleUnitsOf(o, f?.qty ?? Math.min(o.quantity, availableOf(o))),
       expectedPrice: Number.parseFloat(o.price_per_unit),
-      factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
+      // Правку оператора показываем как есть, до неё — цену прибытия
+      // (см. defaultPriceOf).
+      factPrice: f?.price ?? defaultPriceOf(o),
       included: f?.included ?? availableOf(o) > 0,
     };
   }),
@@ -173,7 +208,9 @@ const totalFactCost = computed<string>(() => {
   let sum = 0;
   for (const o of includedOrders.value) {
     const f = facts.value[o.id];
-    if (f) sum += f.qty * f.price;
+    // Цена факта — за единицу отпуска (за упаковку при упаковочном отпуске),
+    // количество — в базовой единице: перемножать напрямую нельзя.
+    if (f) sum += marketplaceLineCost(f.qty, f.price, o.package_size ?? null);
   }
   return sum.toFixed(4);
 });
@@ -198,7 +235,9 @@ const issuanceDiff = computed(() =>
       const f = facts.value[o.id];
       return {
         orderedTotal: Number.parseFloat(o.total_cost),
-        factTotal: f ? f.qty * f.price : Number.parseFloat(o.total_cost),
+        factTotal: f
+          ? marketplaceLineCost(f.qty, f.price, o.package_size ?? null)
+          : Number.parseFloat(o.total_cost),
       };
     }),
     feePercent.value,
@@ -281,7 +320,11 @@ function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: nu
   // принятого нельзя, акт на большее не сформируется (двойная защита с
   // backend-гардом). Таблица показывает откорректированное значение.
   const ceiling = order ? availableOf(order) : Number.POSITIVE_INFINITY;
-  f.qty = Math.min(Math.max(0, payload.fact), ceiling);
+  // Таблица отдаёт факт в единицах отпуска — возвращаем его в базовую
+  // единицу, в которой заказ живёт в БД и на цепи.
+  const packageSize = order?.package_size ?? 0;
+  const factBase = packageSize > 0 ? Math.max(0, payload.fact) * packageSize : payload.fact;
+  f.qty = Math.min(Math.max(0, factBase), ceiling);
   if (payload.factPrice !== undefined) f.price = Math.max(0, payload.factPrice);
   facts.value = { ...facts.value, [id]: f };
   // Акты зависят от факта — сбрасываем устаревший превью.
@@ -380,12 +423,19 @@ async function confirm(): Promise<void> {
       const payloads = await getStockIssuancePayloads({
         braname: issueBraname.value,
         member_account: recipientAccount.value,
-        items: restockLines.value.map((l) => ({ offer_id: l.offer_id, quantity: l.quantity })),
+        // Фасовка едет с каждой строкой: без неё бэкенд не примет докладку
+        // упаковочного остатка (упаковку нельзя дробить).
+        items: restockLines.value.map((l) => ({
+          offer_id: l.offer_id,
+          quantity: l.quantity,
+          package_id: l.package_id,
+        })),
       });
       items = await Promise.all(
         payloads.map(async (p) => ({
           offer_id: p.offer_id,
           quantity: p.quantity,
+          package_id: p.package_id,
           order_hash: p.order_hash,
           signiss1_act: (await docSigner.signDocument(
             p.signiss1_document,
@@ -472,7 +522,7 @@ BaseDialog(
           span.issue-act__sum-label Себестоимость ({{ includedCount }} из {{ positionsCount }} позиц.)
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
         .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label Членский взнос ({{ feePercent }}%)
+          span.issue-act__sum-label Кооперативная наценка ({{ feePercent }}%)
           span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
         .issue-act__sum
           span.issue-act__sum-label Итого к оплате

@@ -1,20 +1,21 @@
 import { Logger } from '@nestjs/common';
-import { config } from '~/config';
 import type { GeocoderPort } from '../../domain/ports/geocoder.port';
 import { NoopGeocoderAdapter } from './noop-geocoder.adapter';
-import { YandexGeocoderAdapter } from './yandex-geocoder.adapter';
+import { YandexGeocoderAdapter, type YandexGeocoderSettings } from './yandex-geocoder.adapter';
 
-// Фабрика реализаций GeocoderPort: выбирает адаптер по config.geocoder.provider.
+// Фабрика реализаций GeocoderPort: выбирает адаптер по настройке контура.
 // Добавление нового провайдера — отдельный адаптер + ветка switch здесь;
 // доменный код и application service от выбора не зависят.
-export function geocoderPortFactory(): GeocoderPort {
+export function geocoderPortFactory(
+  settings: (YandexGeocoderSettings & { provider?: string }) | null
+): GeocoderPort {
   const logger = new Logger('GeocoderFactory');
-  const provider = config.geocoder.provider;
+  const provider = settings?.provider;
 
   switch (provider) {
     case 'yandex':
       logger.log('Геокодер: Yandex');
-      return new YandexGeocoderAdapter();
+      return new YandexGeocoderAdapter(settings ?? {});
     case 'noop':
     default:
       logger.log(`Геокодер: noop${provider === 'noop' ? '' : ` (неизвестный provider="${String(provider)}")`}`);

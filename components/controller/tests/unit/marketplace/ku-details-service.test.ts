@@ -10,7 +10,9 @@
  *  - геокодер FAILED → запись хранит статус FAILED + errorMessage;
  *  - setStatus меняет ACTIVE↔INACTIVE; запись отсутствует → NotFoundException;
  *  - list проксирует onlyActive; foreign-coopname → NotFoundException;
- *  - retryGeocode перезапускает геокодер по адресу организации.
+ *  - retryGeocode перезапускает геокодер по адресу организации;
+ *  - list не отдаёт ПВЗ удалённого участка, а при недоступной цепи отдаёт
+ *    список без сверки; detailKU несуществующего участка → NotFoundException.
  */
 import { KuDetailsService } from '~/extensions/marketplace/application/services/ku-details.service';
 import { KuDetailsDomainEntity } from '~/extensions/marketplace/domain/entities/ku-details-domain.entity';
@@ -18,6 +20,7 @@ import type { KuDetailsDomainRepository } from '~/extensions/marketplace/domain/
 import type { GeocoderPort, GeocoderResult } from '~/extensions/marketplace/domain/ports/geocoder.port';
 import type { OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
+import type { BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -131,6 +134,23 @@ class StubOrgRepo implements OrganizationRepository {
   }
 }
 
+/**
+ * Состав кооперативных участков в цепи. Из порта сервису нужен только
+ * `getBranches`; удаление участка здесь — `branames.delete(...)`.
+ */
+class StubBranchPort {
+  public branames = new Set<string>(['voskhod1', 'voskhod2']);
+  /** Цепь не отвечает — сверять состав участков не с чем. */
+  public unavailable = false;
+
+  async getBranches(coopname: string): Promise<Array<{ braname: string; coopname: string }>> {
+    if (this.unavailable) throw new Error('chain unavailable');
+    return [...this.branames].map((braname) => ({ braname, coopname }));
+  }
+}
+
+const branchPortOf = (stub: StubBranchPort) => stub as unknown as BranchBlockchainPort;
+
 const sampleInput = () => ({
   coopname: 'voskhod',
   coreBraname: 'voskhod1',
@@ -142,14 +162,16 @@ describe('KuDetailsService', () => {
   let repo: InMemoryKuDetailsRepo;
   let geocoder: StubGeocoder;
   let orgRepo: StubOrgRepo;
+  let branchPort: StubBranchPort;
   let service: KuDetailsService;
 
   beforeEach(() => {
     repo = new InMemoryKuDetailsRepo();
     geocoder = new StubGeocoder();
     orgRepo = new StubOrgRepo();
+    branchPort = new StubBranchPort();
     orgRepo.addresses.set('voskhod1', 'г. Москва, ул. Тверская, 1');
-    service = new KuDetailsService(repo, geocoder, orgRepo);
+    service = new KuDetailsService(repo, geocoder, orgRepo, branchPortOf(branchPort));
   });
 
   async function flushGeocode() {
@@ -255,6 +277,54 @@ describe('KuDetailsService', () => {
   it('foreign coopname отклоняется NotFoundException', async () => {
     await expect(service.detailKU({ ...sampleInput(), coopname: 'other' })).rejects.toThrow(
       /Controller обслуживает кооператив "voskhod"/
+    );
+  });
+
+  it('ПВЗ удалённого участка исчезает из списка тем же запросом', async () => {
+    orgRepo.addresses.set('voskhod2', 'г. Москва, ул. Арбат, 2');
+    await service.detailKU(sampleInput());
+    await flushGeocode();
+    await service.detailKU({ ...sampleInput(), coreBraname: 'voskhod2' });
+    await flushGeocode();
+
+    // Председатель удалил участок в «Кооперативных участках».
+    branchPort.branames.delete('voskhod1');
+
+    const all = await service.list({ coopname: 'voskhod', onlyActive: false });
+    const active = await service.list({ coopname: 'voskhod', onlyActive: true });
+
+    expect(all.map((row) => row.coreBraname)).toEqual(['voskhod2']);
+    expect(active.map((row) => row.coreBraname)).toEqual(['voskhod2']);
+    // Запись не уничтожена: вернут участок под тем же именем — ПВЗ вернётся с
+    // прежним режимом работы и координатами.
+    expect(await repo.findByCoreBraname('voskhod', 'voskhod1')).not.toBeNull();
+  });
+
+  it('участок вернули под тем же именем — его ПВЗ снова в списке', async () => {
+    await service.detailKU(sampleInput());
+    await flushGeocode();
+    branchPort.branames.delete('voskhod1');
+    expect(await service.list({ coopname: 'voskhod', onlyActive: false })).toHaveLength(0);
+
+    branchPort.branames.add('voskhod1');
+
+    const restored = await service.list({ coopname: 'voskhod', onlyActive: false });
+    expect(restored.map((row) => row.coreBraname)).toEqual(['voskhod1']);
+  });
+
+  it('цепь не ответила — список отдаётся без сверки, а не пустым', async () => {
+    await service.detailKU(sampleInput());
+    await flushGeocode();
+    branchPort.unavailable = true;
+
+    const rows = await service.list({ coopname: 'voskhod', onlyActive: false });
+
+    expect(rows.map((row) => row.coreBraname)).toEqual(['voskhod1']);
+  });
+
+  it('detailKU несуществующего участка → NotFoundException', async () => {
+    await expect(service.detailKU({ ...sampleInput(), coreBraname: 'no-such' })).rejects.toThrow(
+      /Кооперативный участок "no-such" не найден/
     );
   });
 

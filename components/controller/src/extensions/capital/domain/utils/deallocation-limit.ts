@@ -1,5 +1,5 @@
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { ProjectStatus } from '../enums/project-status.enum';
+import { AssetUtils } from '@coopenomics/extension-kit';
 
 /**
  * Статусы проекта, в которых контракт разрешает возврат средств.

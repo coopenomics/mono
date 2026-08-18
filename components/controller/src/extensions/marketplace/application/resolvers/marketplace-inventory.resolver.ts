@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -64,7 +63,7 @@ export class MarketplaceInventoryResolver {
     @Args('data') data: MarketplaceAssignInventoryPlacementInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
     const result = await this.labelService.assignPlacement({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
       container_id: data.container_id ?? null,
@@ -87,7 +86,7 @@ export class MarketplaceInventoryResolver {
     @Args('data') data: MarketplaceSplitInventoryInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
     const result = await this.labelService.splitInventory({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
       splits: data.splits.map((s) => ({
@@ -113,7 +112,7 @@ export class MarketplaceInventoryResolver {
     @Args('data') data: MarketplaceGenerateInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
     const result = await this.labelService.generateLabel({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
       format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
@@ -135,7 +134,7 @@ export class MarketplaceInventoryResolver {
     @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
     const result = await this.labelService.bindLabel({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
       barcode_value: data.barcode_value,
@@ -158,7 +157,7 @@ export class MarketplaceInventoryResolver {
     @Args('data') data: MarketplaceClearInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
     const result = await this.labelService.clearLabel({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
     });
@@ -177,7 +176,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
     // Ownership-фильтрация данных — ответственность резолвера, а не матрицы

@@ -1,14 +1,11 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import {
   MarketplaceAcceptReturnAtVisitInputDTO,
   MarketplaceApproveReturnVisitInputDTO,
@@ -35,9 +32,9 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
   dto.full_title = e.full_title;
   dto.html = e.html;
@@ -82,7 +79,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceReturnClaimSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const doc = await this.service.getReturnClaimSignablePayload({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
       order_id: data.order_id,
       actual_quantity: data.actual_quantity,
@@ -103,7 +100,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceCreateReturnClaimInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const result = await this.service.submitReturnClaim({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       orderer_account: member.username,
       order_id: data.order_id,
       reason_text: data.reason_text,
@@ -127,7 +124,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const result = await this.service.approveReturnVisit({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       chairman_account: member.username,
       braname: data.braname,
       claim_id: data.claim_id,
@@ -148,7 +145,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const result = await this.service.rejectReturnRemote({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       chairman_account: member.username,
       braname: data.braname,
       claim_id: data.claim_id,
@@ -169,7 +166,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const result = await this.service.acceptReturnAtVisit({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       chairman_account: member.username,
       braname: data.braname,
       claim_id: data.claim_id,
@@ -193,7 +190,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const result = await this.service.rejectReturnAtVisit({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       chairman_account: member.username,
       braname: data.braname,
       claim_id: data.claim_id,
@@ -212,7 +209,7 @@ export class MarketplaceReturnClaimResolver {
   async marketplaceListMyReturnClaims(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceReturnClaimDTO[]> {
-    const claims = await this.service.listByOrderer(config.coopname, member.username);
+    const claims = await this.service.listByOrderer(platformSettings().coopname, member.username);
     return this.toClaimDTOs(claims);
   }
 
@@ -231,7 +228,7 @@ export class MarketplaceReturnClaimResolver {
     // именно того КУ, к которому привязано заявление. Проверка идёт
     // через единый источник истины состава КУ (MarketplaceKuChairmanService).
     const isMember = await this.kuChairmanService.isMemberOfBranch(
-      config.coopname,
+      platformSettings().coopname,
       data.delivery_braname,
       member.username
     );
@@ -241,7 +238,7 @@ export class MarketplaceReturnClaimResolver {
       );
     }
     const claims = await this.service.listByDeliveryBraname(
-      config.coopname,
+      platformSettings().coopname,
       data.delivery_braname
     );
     return this.toClaimDTOs(claims);
@@ -261,7 +258,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceReturnClaimDTO> {
-    const claim = await this.service.findById(config.coopname, claim_id);
+    const claim = await this.service.findById(platformSettings().coopname, claim_id);
     // Ownership-проверка `:own` — matrix capability проверена guard'ом,
     // здесь верифицируем, что пайщик действительно владелец заявления:
     // либо заказчик Order'а, либо член КУ доставки (trustee/trusted —
@@ -270,7 +267,7 @@ export class MarketplaceReturnClaimResolver {
     const isOperatorOfDeliveryKu =
       member.marketplace_roles.includes('operator') &&
       (await this.kuChairmanService.isMemberOfBranch(
-        config.coopname,
+        platformSettings().coopname,
         claim.delivery_braname,
         member.username
       ));
@@ -291,9 +288,9 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
   ): Promise<DocumentAggregateDTO> {
-    const claim = await this.service.findById(config.coopname, claim_id);
+    const claim = await this.service.findById(platformSettings().coopname, claim_id);
     const isMember = await this.kuChairmanService.isMemberOfBranch(
-      config.coopname,
+      platformSettings().coopname,
       claim.delivery_braname,
       member.username
     );
@@ -303,7 +300,7 @@ export class MarketplaceReturnClaimResolver {
       );
     }
     const aggregate = await this.service.getChairmanReturnSignablePayload(
-      config.coopname,
+      platformSettings().coopname,
       claim_id
     );
     return new DocumentAggregateDTO(aggregate);

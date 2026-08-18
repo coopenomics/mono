@@ -31,6 +31,8 @@ export interface MarketplaceOfferPackageForm {
   price: string;
   /** Подпись упаковки («Пакет 0,5 л»); пусто — строится из размера. */
   label: string;
+  /** Вид упаковки (тара) словами поставщика: «стекло», «корзинка». Обязателен. */
+  package_type: string;
   /** Упаковка по умолчанию (для витрины). */
   is_default: boolean;
 }
@@ -99,6 +101,8 @@ export interface MarketplaceCreateOfferPayload {
     size: number;
     price: string;
     label?: string | null;
+    /** Вид упаковки (тара) — обязателен при отпуске упаковкой. */
+    package_type: string;
     is_default?: boolean;
   }>;
   quantity_available: number | null;
@@ -143,7 +147,15 @@ export interface MarketplaceOfferEditPrefill {
   price_per_unit: string;
   unit_of_measure: string;
   sale_form?: string;
-  packages?: Array<{ id: string; size: number; price: string; label: string | null; is_default: boolean }>;
+  packages?: Array<{
+    id: string;
+    size: number;
+    price: string;
+    label: string | null;
+    /** Пусто у предложений, заведённых до появления поля — тара не названа. */
+    package_type: string | null;
+    is_default: boolean;
+  }>;
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];

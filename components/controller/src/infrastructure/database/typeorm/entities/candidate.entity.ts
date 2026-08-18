@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 @Entity('candidates')
 export class CandidateEntity {
@@ -25,29 +25,29 @@ export class CandidateEntity {
   created_at!: Date;
 
   @Column('json', { nullable: true })
-  statement?: ISignedDocumentDomainInterface;
+  statement?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  wallet_agreement?: ISignedDocumentDomainInterface;
+  wallet_agreement?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  signature_agreement?: ISignedDocumentDomainInterface;
+  signature_agreement?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  privacy_agreement?: ISignedDocumentDomainInterface;
+  privacy_agreement?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  user_agreement?: ISignedDocumentDomainInterface;
+  user_agreement?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  blagorost_offer?: ISignedDocumentDomainInterface;
+  blagorost_offer?: ISignedDocument;
 
   @Column('json', { nullable: true })
-  generator_offer?: ISignedDocumentDomainInterface;
+  generator_offer?: ISignedDocument;
 
   /** Generic map agreement_id → signed document (marketplace и следующие расширения). */
   @Column('jsonb', { nullable: false, default: {} })
-  program_agreements!: Record<string, ISignedDocumentDomainInterface>;
+  program_agreements!: Record<string, ISignedDocument>;
 
   @Column({ nullable: true })
   program_key?: string;

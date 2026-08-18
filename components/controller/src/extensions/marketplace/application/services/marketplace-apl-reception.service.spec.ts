@@ -12,9 +12,8 @@ import type { MarketplaceAplReceptionDomainRepository } from '../../domain/repos
 import type { MarketplaceOutgoingPaymentRequestDomainRepository } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import type { GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
-import type { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { type IPaymentDeskPort, type IDocumentPort } from '@coopenomics/innercoop';
 
 function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): MarketplaceOrderDomainEntity {
   return {
@@ -115,11 +114,11 @@ function buildMocks() {
   const coreGateway = {
     createSystemOutgoingPayment: jest.fn(),
     setPaymentStatus: jest.fn(),
-  } as unknown as jest.Mocked<GatewayInteractorPort>;
+  } as unknown as jest.Mocked<IPaymentDeskPort>;
 
   const documentDomainService = {
-    generateDocument: jest.fn(),
-  } as unknown as jest.Mocked<DocumentDomainService>;
+    generate: jest.fn(),
+  } as unknown as jest.Mocked<IDocumentPort>;
 
   const supplierSettings = {
     resolvePayoutMethod: jest.fn().mockResolvedValue(null),
@@ -651,6 +650,79 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
       ).rejects.toThrow('нет Order');
     });
   });
+
+  /**
+   * Потолок приёмки — акцепт, то есть заказанное количество.
+   *
+   * Привезли меньше — принимаем недовоз, это штатная ситуация. Привезти больше
+   * заказанного нельзя: лишнее имущество никем не оплачено и не заказано, а
+   * акт приёма-передачи стал бы основанием для выплаты поставщику сверх
+   * заказа. Партия и ТТН здесь не ограничитель — они лишь декларация.
+   */
+  describe('create: приёмка сверх заказанного', () => {
+    const shipment = {
+      id: 'ship-1',
+      coopname: 'voskhod',
+      cycle_id: 'cycle-1',
+      braname: 'ku.krasn.1',
+      status: 'SUPPLY_PREPARED',
+    };
+
+    function withOrder(quantity: number) {
+      mocks.shipmentRepo.findById.mockResolvedValue(shipment as never);
+      mocks.receptionRepo.findByShipmentId.mockResolvedValue(null);
+      const order = buildOrder({ id: 'order-1', quantity });
+      (mocks.orderRepo as any).findByShipmentId = jest.fn().mockResolvedValue([order]);
+    }
+
+    it('факт больше заказанного → отказ, акт не создаётся', async () => {
+      withOrder(2);
+
+      await expect(
+        service.create({
+          coopname: 'voskhod',
+          shipment_id: 'ship-1',
+          fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 3 }],
+        } as never)
+      ).rejects.toThrow('Нельзя принять сверх акцепта');
+
+      expect(mocks.receptionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('дробный или отрицательный факт → отказ', async () => {
+      withOrder(5);
+
+      for (const bad of [-1, 1.5]) {
+        await expect(
+          service.create({
+            coopname: 'voskhod',
+            shipment_id: 'ship-1',
+            fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: bad }],
+          } as never)
+        ).rejects.toThrow('Некорректное fact_quantity');
+      }
+
+      expect(mocks.receptionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('недовоз проходит: факт меньше заказанного — не отказ', async () => {
+      withOrder(5);
+
+      // Дальше сценарий упрётся в заглушки документа; важно, что проверка
+      // количества пропустила — недовоз это нормальный ход приёмки.
+      const error = await service
+        .create({
+          coopname: 'voskhod',
+          shipment_id: 'ship-1',
+          fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 3 }],
+        } as never)
+        .then(() => null)
+        .catch((e: Error) => e);
+
+      expect(error?.message ?? '').not.toContain('сверх акцепта');
+      expect(error?.message ?? '').not.toContain('Некорректное fact_quantity');
+    });
+  });
 });
 
 describe('MarketplaceAplReceptionService — единица заказа (фасовка) в акте приёмки', () => {
@@ -685,14 +757,101 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
       product_name: 'Икра',
       unit_of_measure: 'kg',
     });
-    mocks.documentDomainService.generateDocument.mockResolvedValue({} as any);
+    mocks.documentDomainService.generate.mockResolvedValue({} as any);
 
     await service.getSupplierSignablePayloads('voskhod', 'apl-1');
 
-    const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
+    const action = mocks.documentDomainService.generate.mock.calls[0][0].data;
     expect(action.fact_quantity).toBe(5);
     expect(action.unit_cost).toBe('100.0000');
     expect(action.total_amount).toBe('500.0000');
     expect(action.unit_of_measurement).toBe('упак. 0,1 кг');
+  });
+
+  it('оприходование пишет в позицию склада фасовку и единицу приёмки', async () => {
+    // Цена прибытия хранится за единицу отпуска, поэтому склад обязан знать
+    // размер упаковки и базовую единицу — иначе списание и публикация остатка
+    // умножают цену на базовое количество (инцидент 2026-08-12).
+    const reception = buildReception({
+      braname: 'voskhod1',
+      fact_quantity_per_order: [
+        { order_id: 'order-1', fact_quantity: 20, fact_unit_price: '150.0000' } as any,
+      ],
+    });
+    const order = buildOrder({
+      id: 'order-1',
+      offer_id: 'offer-1',
+      delivery_braname: 'voskhod1',
+      quantity: 20,
+      unit_of_measure: 'piece',
+      package_size: 10,
+      price_per_unit: '150.0000',
+    });
+    mocks.offerRepo.findByIds.mockResolvedValue([
+      { id: 'offer-1', product_name: 'Яйцо куриное', shelf_life_days: 0 },
+    ]);
+
+    await (service as any).materializeInventory(reception, [order]);
+
+    const created = mocks.inventoryRepo.create.mock.calls[0][0];
+    expect(created.quantity_per_label).toBe(20);
+    expect(created.arrival_price).toBe('150.0000');
+    expect(created.package_size).toBe(10);
+    expect(created.unit_of_measure).toBe('piece');
+  });
+});
+
+/**
+ * Состав партии к приёмке ищется строго по владельцу кода передачи.
+ *
+ * Оператор сканирует код пайщика и видит то, что этот пайщик привёз. Если
+ * фильтр по поставщику потерять, по чужому коду откроется состав чужой
+ * поставки — оператор примет имущество на не того человека, и акт уйдёт не
+ * тому получателю выплаты. Заказы без заявки (cycle_id) отсеиваются: модель
+ * приёмки — per (заявка, участок), открывать нечего.
+ */
+describe('MarketplaceAplReceptionService.listSupplierPickupOrders', () => {
+  let mocks: ReturnType<typeof buildMocks>;
+  let service: MarketplaceAplReceptionService;
+
+  beforeEach(() => {
+    mocks = buildMocks();
+    service = buildService(mocks);
+  });
+
+  it('код пайщика, который ничего не привозил → пустой состав', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({ items: [] });
+
+    const orders = await service.listSupplierPickupOrders('voskhod', 'ku.krasn.1', 'not-a-supplier');
+
+    expect(orders).toEqual([]);
+    expect((mocks.orderRepo as any).list).toHaveBeenCalledWith(
+      expect.objectContaining({ supplier_account: 'not-a-supplier', delivery_braname: 'ku.krasn.1' }),
+      expect.anything()
+    );
+  });
+
+  it('заказы без заявки отсеиваются — приёмку по ним не открыть', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({
+      items: [
+        buildOrder({ id: 'order-1', cycle_id: 'cycle-1' }),
+        buildOrder({ id: 'order-2', cycle_id: null }),
+      ],
+    });
+
+    const orders = await service.listSupplierPickupOrders('voskhod', 'ku.krasn.1', 'supplier1');
+
+    expect(orders.map((o) => o.id)).toEqual(['order-1']);
+  });
+
+  it('фильтр несёт участок и владельца кода — иначе откроется чужая поставка', async () => {
+    (mocks.orderRepo as any).list = jest.fn().mockResolvedValue({ items: [] });
+
+    await service.listSupplierPickupOrders('voskhod', 'ku.odn.2', 'supplier1');
+
+    const filter = (mocks.orderRepo as any).list.mock.calls[0][0];
+    expect(filter.supplier_account).toBe('supplier1');
+    expect(filter.delivery_braname).toBe('ku.odn.2');
+    expect(filter.coopname).toBe('voskhod');
   });
 });

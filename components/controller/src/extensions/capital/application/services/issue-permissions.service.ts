@@ -10,6 +10,7 @@ import {
   ProjectUserRole,
   ProjectAction,
 } from '../../domain/services/access-policy.service';
+import { PermissionsLookupCache } from './permissions-lookup-cache';
 
 // Реэкспортируем типы для обратной совместимости
 export { UserRole, IssueAction, ProjectUserRole, ProjectAction };
@@ -45,7 +46,8 @@ export class IssuePermissionsService {
     projectHash: string | null | undefined,
     issueSubmaster?: string,
     issueCreators?: string[],
-    userRole?: string
+    userRole?: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<Set<UserRole>> {
     const roles = new Set<UserRole>();
 
@@ -56,23 +58,27 @@ export class IssuePermissionsService {
 
     if (projectHash) {
       // Project-specific роли — только если задача привязана к проекту/компоненту
-      const isMaster = await this.isProjectMaster(username, coopname, projectHash);
+      const isMaster = await this.isProjectMaster(username, coopname, projectHash, cache);
       if (isMaster) {
         roles.add(UserRole.MASTER);
       }
 
-      const segment = await this.segmentRepository.findOne({
-        username,
-        project_hash: projectHash,
-        coopname,
-      });
+      const segment = await cache.once(
+        PermissionsLookupCache.segmentKey(username, coopname, projectHash),
+        () =>
+          this.segmentRepository.findOne({
+            username,
+            project_hash: projectHash,
+            coopname,
+          })
+      );
       if (segment?.is_author) {
         roles.add(UserRole.AUTHOR);
       }
 
-      const contributor = await this.contributorRepository.findByUsernameAndCoopname(
-        username,
-        coopname
+      const contributor = await cache.once(
+        PermissionsLookupCache.contributorKey(username, coopname),
+        () => this.contributorRepository.findByUsernameAndCoopname(username, coopname)
       );
       if (contributor && contributor.appendixes.includes(projectHash)) {
         roles.add(UserRole.CONTRIBUTOR);
@@ -123,11 +129,19 @@ export class IssuePermissionsService {
    * @param username - имя пользователя
    * @param coopname - имя кооператива
    * @param projectHash - хеш проекта
+   * @param cache - кэш справочных чтений на время одного расчёта
    * @returns true, если пользователь является мастером
    */
-  async isProjectMaster(username: string, coopname: string, projectHash: string): Promise<boolean> {
+  async isProjectMaster(
+    username: string,
+    coopname: string,
+    projectHash: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
+  ): Promise<boolean> {
     // Находим проект
-    const project = await this.projectRepository.findByHash(projectHash);
+    const project = await cache.once(PermissionsLookupCache.projectKey(projectHash), () =>
+      this.projectRepository.findByHash(projectHash)
+    );
     if (!project) {
       throw new Error(`Проект с хэшем ${projectHash} не найден`);
     }
@@ -140,7 +154,10 @@ export class IssuePermissionsService {
     // Если у проекта есть родительский проект (т.е. это компонент),
     // проверяем, является ли пользователь мастером родительского проекта
     if (project.parent_hash) {
-      const parentProject = await this.projectRepository.findByHash(project.parent_hash);
+      const parentHash = project.parent_hash;
+      const parentProject = await cache.once(PermissionsLookupCache.projectKey(parentHash), () =>
+        this.projectRepository.findByHash(parentHash)
+      );
       if (parentProject && parentProject.master === username) {
         return true;
       }
@@ -182,7 +199,8 @@ export class IssuePermissionsService {
   async getProjectUserRole(
     username: string | undefined,
     project: any, // ProjectDomainEntity
-    userRole?: string
+    userRole?: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<Set<ProjectUserRole>> {
     const roles = new Set<ProjectUserRole>();
 
@@ -197,21 +215,28 @@ export class IssuePermissionsService {
       roles.add(ProjectUserRole.BOARD_MEMBER);
     }
 
-    const isMaster = await this.isProjectMaster(username, project.coopname, project.project_hash);
+    const isMaster = await this.isProjectMaster(username, project.coopname, project.project_hash, cache);
     if (isMaster) {
       roles.add(ProjectUserRole.MASTER);
     }
 
-    const segment = await this.segmentRepository.findOne({
-      username,
-      project_hash: project.project_hash,
-      coopname: project.coopname,
-    });
+    const segment = await cache.once(
+      PermissionsLookupCache.segmentKey(username, project.coopname, project.project_hash),
+      () =>
+        this.segmentRepository.findOne({
+          username,
+          project_hash: project.project_hash,
+          coopname: project.coopname,
+        })
+    );
     if (segment?.is_author) {
       roles.add(ProjectUserRole.AUTHOR);
     }
 
-    const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, project.coopname);
+    const contributor = await cache.once(
+      PermissionsLookupCache.contributorKey(username, project.coopname),
+      () => this.contributorRepository.findByUsernameAndCoopname(username, project.coopname)
+    );
     if (contributor && contributor.appendixes.includes(project.project_hash)) {
       roles.add(ProjectUserRole.CONTRIBUTOR);
     }

@@ -36,6 +36,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+/** Пересчёт меняет стоимость доли — список обязан перечитать строку */
+const emit = defineEmits<{ refreshed: [] }>();
+
 const { info } = useSystemStore();
 
 const refreshProps = computed<IRefreshSegmentProps>(() => ({
@@ -51,6 +55,7 @@ const handleRefreshSegment = async () => {
   loading.value = true;
   try {
     await refreshSegmentAndUpdateStore(refreshSegmentInput.value);
+    emit('refreshed');
   } catch (error) {
     FailAlert(error);
   } finally {

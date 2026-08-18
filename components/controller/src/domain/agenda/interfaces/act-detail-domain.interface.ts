@@ -1,4 +1,4 @@
-import type { GeneratedDocumentDomainInterface } from '~/domain/document/interfaces/generated-document-domain.interface';
+import type { GeneratedDocumentDomainInterface } from '@coopenomics/extension-kit';
 import type { ExtendedBlockchainActionDomainInterface } from './extended-blockchain-action-domain.interface';
 
 export interface ActDetailDomainInterface {

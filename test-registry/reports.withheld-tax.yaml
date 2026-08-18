@@ -1,0 +1,161 @@
+feature: reports.withheld-tax
+title: Перечисление удержанного налога — раздел «НДФЛ» стола бухгалтера
+
+# Кооператив, выплачивая доход физическому лицу, удерживает налог и обязан
+# перечислить его в бюджет. Удержания ведёт то расширение, где возникает
+# выплата (сегодня — материальная помощь доверенным в Столе заказов), а
+# распоряжается долгом бухгалтерия: отправляет накопленное кассиру, кассир
+# платит по реквизитам налоговой и прикладывает чек.
+#
+# Стол бухгалтера читает остаток кошелька и заявки прямо из цепи, заводит
+# платёж кассиру и слушает его подтверждение. Он же добавляет расчётный период
+# платежа — тот, за который подаётся уведомление об исчисленных суммах НДФЛ,
+# поэтому связь платежа с формой видна прямо в строке истории.
+#
+# Что легко сломать и потому проверяется отдельно:
+#  - период считается по налоговому поясу: платёж поздним вечером 22-го числа
+#    по UTC уехал бы в чужой период, а 31 декабря — ещё и в чужой год;
+#  - подпись периода берётся из календаря отчётности: вторая копия разошлась
+#    бы с ней, и совпадение платежа с формой перестало бы читаться;
+#  - кошелёк общекооперативный: его может не быть вовсе (удержаний не было) —
+#    тогда раздел показывает нули, а не падает;
+#  - отправленное кассиру вычитается из доступного по заявкам на цепи: заявка
+#    живёт до подтверждения, и её сумма ещё сидит в остатке кошелька;
+#  - реквизиты бюджета показываются снимком с платежа, а не сегодняшние: они
+#    меняются приказами, а платили по тем, что действовали в день отправки.
+#
+# 2026-08-18: кошелёк и действия переехали из контракта участков в контракт
+# кооператива — `w.sov.ndfl`, `o.sov.taxpay`, `soviet::createtax/taxconfirm/
+# taxdecline`, процесс `p.sov.tax`. Долг общекооперативный: в него стекаются
+# удержания любой программы, поэтому и кошелёк, и заявка принадлежат
+# кооперативу, а не Столу заказов. Переезд бесплатный — на проде и тестнете
+# кошельков `w.brn.*` не существует, миграции не потребовалось.
+
+sources:
+  backend:
+    - components/controller/src/extensions/reports/application/services/withheld-tax.service.ts
+    - components/controller/src/extensions/reports/application/resolvers/withheld-tax.resolver.ts
+    - components/controller/src/extensions/reports/application/dto/withheld-tax.dto.ts
+    - components/controller/src/extensions/reports/application/services/withheld-tax-payout-sync.service.ts
+    - components/controller/src/extensions/reports/domain/ports/withheld-tax-blockchain.port.ts
+    - components/controller/src/extensions/reports/infrastructure/adapters/withheld-tax-blockchain.adapter.ts
+  contract:
+    - components/contracts/cpp/soviet/src/tax/**
+    - components/contracts/cpp/lib/domain/table_soviet_taxes.hpp
+  ui:
+    - components/desktop/extensions/reports/pages/NdflPage/**
+
+cases:
+  - id: rep.tax.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Бухгалтер видит историю перечислений: у каждого платежа проставлен
+      расчётный период, за который подаётся уведомление
+    expect: >
+      платёж до 22-го числа включительно попадает в первую половину месяца,
+      с 23-го — во вторую; подпись периода совпадает с календарём отчётности
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.happy.02
+    level: backend
+    kind: happy
+    scenario: Бухгалтер отправляет удержанный налог на оплату кассиру
+    expect: >
+      платёж кассиру и заявка на цепи заводятся с одним хэшем — по нему
+      подтверждение кассира и найдёт платёж; кассир получает назначение
+      платежа и реквизиты бюджета готовыми
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Платёж отправлен поздним вечером 22-го числа: по UTC ещё 22-е, по
+      налоговому поясу уже 23-е
+    expect: платёж относится ко второй половине месяца
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.02
+    level: backend
+    kind: side
+    scenario: Платёж отправлен поздним вечером 31 декабря по UTC
+    expect: расчётный период — первая половина января следующего года
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.03
+    level: backend
+    kind: side
+    scenario: Кассир не смог заплатить и указал причину
+    expect: состояние платежа и причина отказа доходят до стола бухгалтера как есть
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.04
+    level: backend
+    kind: side
+    scenario: Кошелька удержанного налога ещё нет — удержаний не было
+    expect: остаток нулевой, отправлять в бюджет нечего
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Бухгалтер отправляет в бюджет больше удержанного либо то, что уже
+      отправлено кассиру и ждёт подтверждения
+    expect: >
+      отказ — платить больше удержанного налоговый агент не вправе; доступная
+      сумма уменьшена на то, что уже у кассира; на цепь ничего не уходит
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.break.01
+    level: backend
+    kind: break
+    scenario: Цепь отклонила заявку на перечисление
+    expect: >
+      платёж кассира гасится, долг перед бюджетом остаётся целиком, а причина
+      отказа цепи доходит до бухгалтера читаемым текстом
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.side.05
+    level: backend
+    kind: side
+    scenario: История запрашивается постранично
+    expect: страницы идут от новых платежей к старым
+    test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    status: passing
+
+  - id: rep.tax.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Бухгалтер открывает раздел «НДФЛ», отправляет накопленный налог на оплату
+      и видит платёж в истории с расчётным периодом и состоянием
+    expect: >
+      после отправки долг к перечислению уменьшается на отправленную сумму, а
+      в истории появляется строка со статусом ожидания кассира
+    test: null
+    status: missing
+    # Сценарий требует цепочки «выплата материальной помощи → удержание →
+    # перечисление», то есть прогона Стола заказов до выплаты. Ставится после
+    # сценария материальной помощи.
+
+  - id: rep.tax.ui.02
+    level: ui
+    kind: side
+    scenario: >
+      Кассир подтвердил перевод и приложил чек — бухгалтер раскрывает строку
+      платежа
+    expect: >
+      видны реквизиты, по которым платили, и чек кассира; загрузить свой чек
+      бухгалтеру не предлагается
+    test: null
+    status: missing

@@ -5,8 +5,7 @@ import {
   USER_CERTIFICATE_DOMAIN_PORT,
 } from '~/domain/user/ports/user-certificate-domain.port';
 import { WalletNotificationService } from './wallet-notification.service';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
 import { CreateWithdrawInputDTO } from '../dto/create-withdraw-input.dto';
@@ -14,7 +13,6 @@ import { CreateWithdrawResponseDTO } from '../dto/create-withdraw-response.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { Cooperative } from 'cooptypes';
 import type { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-payment-input.dto';
 import type { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';

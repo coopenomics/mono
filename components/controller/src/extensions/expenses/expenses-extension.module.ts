@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
-import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
-import { DocumentDomainModule } from '~/domain/document/document.module';
-import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
-import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
 import { ExpenseProposalDeltaMapper } from './infrastructure/blockchain/mappers/expense-proposal-delta.mapper';
@@ -25,7 +22,7 @@ import { ExpenseFilesService } from './application/services/expense-files.servic
 import { ExpenseProposalResolver } from './application/resolvers/expense-proposal.resolver';
 import { ExpenseMutationsResolver } from './application/resolvers/expense-mutations.resolver';
 import { ExpenseFilesResolver } from './application/resolvers/expense-files.resolver';
-import { ExpensesInterExpenseChassisAdapter } from './infrastructure/inter/expenses-inter-expense-chassis.adapter';
+import { ExpensesInnercoopExpenseChassisAdapter } from './infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
 import {
   EXPENSE_PLANS_SERVICE,
@@ -54,13 +51,11 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
   imports: [
     NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
-    DocumentDomainModule,
-    BlockchainModule,
-    VaultDomainModule,
-    GeneratorInfrastructureModule,
-    FileStorageInfrastructureModule.forFeature([ExpenseFilesService]),
   ],
   providers: [
+    // Хранилище файлов расхода: объявление висит на самом сервисе
+    // (`@UseBucket`), здесь оно превращается в провайдер.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [ExpenseFilesService]),
     ExpenseContractInfoService,
     ExpenseProposalDeltaMapper,
     ExpenseProposalTypeormRepository,
@@ -88,7 +83,7 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpenseProposalResolver,
     ExpenseMutationsResolver,
     ExpenseFilesResolver,
-    ExpensesInterExpenseChassisAdapter,
+    ExpensesInnercoopExpenseChassisAdapter,
     ExpensePlansService,
     { provide: EXPENSE_PLANS_SERVICE, useExisting: ExpensePlansService },
     ExpensePlansResolver,
@@ -102,9 +97,9 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpensesManagementService,
     ExpensesMutationsService,
     ExpenseFilesService,
-    ExpensesInterExpenseChassisAdapter,
+    ExpensesInnercoopExpenseChassisAdapter,
     ExpensePlansService,
     EXPENSE_PLANS_SERVICE,
   ],
 })
-export class ExpensesPluginModule {}
+export class ExpensesExtensionModule {}

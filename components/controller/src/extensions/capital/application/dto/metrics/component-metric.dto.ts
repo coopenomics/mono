@@ -1,7 +1,7 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
 import { MetricStatus } from '../../../domain/enums/metric-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 @ObjectType('CapitalComponentMetric', {
   description: 'Цель по мере на компоненте (инстанс меры с целевым значением)',

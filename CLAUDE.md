@@ -118,6 +118,20 @@ pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInB
 
 Перед пушем — `pnpm check`. Гейты ловят забывчивость, а не халтуру: зелёный `check` не значит, что фича защищена, это показывают только мутации.
 
+### ПОСЛЕ ЛЮБОЙ ПРАВКИ — СМОТРЕТЬ ЛОГИ КОНТРОЛЛЕРА
+
+Контроллер поднят в docker и следит за `src/` через nodemon. **Ни eslint, ни `pnpm check` код не компилируют** — они пропускают битые импорты, несуществующие методы и ошибки инъекций. Единственная быстрая проверка компиляции и старта — логи.
+
+```bash
+docker logs --tail 40 mono-ai-1-coopback-1 2>&1 | grep -E "running on port|error TS|app crashed"
+```
+
+Ждать исхода после правки: `until docker logs --since 20s <ctr> 2>&1 | grep -qE "running on port|error TS"; do sleep 6; done`. Успех — строка `NestJS app with Express routes running on port 2998`.
+
+Отдельно смотреть на `Nest can't resolve dependencies`, `circular dependency`, `Cannot find module` — это ошибки инъекций и границ, а не опечатки.
+
+**Кейс 2026-08-09:** пять коммитов с зелёными гейтами, а контроллер всё это время лежал: `@coopenomics/extension-kit/sync` не резолвился. Найдено только когда пользователь спросил про логи.
+
 ### ПОЛНЫЕ ТЕСТЫ ЛОКАЛЬНО НЕ ЗАПУСКАТЬ
 
 **Локально гоню только те тесты, которые сейчас пишу — точечно, по файлу.**
@@ -157,6 +171,35 @@ CI: Actions работают на GitHub-зеркале; PR туда не поп
 Любой кусок кода (валидация, маппинг, guard, построение payload, helper-логика), повторённый **второй раз**, обязан быть вынесен в общее: `shared/`-helper / util / базовый класс (controller) или соответствующий FSD-слой `shared/` (desktop). Это **обязательное правило**, не рекомендация — не «то тут то там стряпать одно и то же».
 
 **Триггер:** заметил второе вхождение → сразу выноси, не копируй. Применяется и в controller, и в desktop. (Зафиксировано пользователем в ревью PR #17 «Стол заказов».)
+
+## Пакеты расширений: innercoop и extension-kit
+
+Расширение готовится к выносу из монолита, поэтому **из `src/extensions/` нельзя импортировать пути `~/...`** — за пределами контроллера их нет. Всё общее живёт в двух пакетах.
+
+| Пакет | Что там | Зависимости |
+|---|---|---|
+| `@coopenomics/innercoop` | **контракты**: порты ядра (`core-ports/`), межрасширенческие порты (`cross-plugin-ports/`), DI-токены `Symbol.for('Innercoop.CorePort.<Name>')` | только peer `@nestjs/common` (INV-014) |
+| `@coopenomics/extension-kit` | **каркас**: `BaseExtensionModule`, guard'ы и декораторы авторизации, сущности реестра, пагинация, документные типы GraphQL, политика конфига | nest, graphql, typeorm, cooptypes, class-validator |
+| `@coopenomics/extension-kit/sync` | каркас блокчейн-синхронизации: `BaseTypeormEntity`, `BaseDomainEntity`, `AbstractEntitySyncService`, `BaseBlockchainRepository`, версионирование | то же |
+
+**Пакеты не зависят друг от друга (INV-007).** Ни в одну сторону.
+
+### Правила, нарушение которых ломает сборку или рантайм
+
+- **`implements` контракта из `innercoop` в каркасе не ставится.** Пакеты ортогональны, поэтому совместимость только структурная: набор полей/методов тот же, номинальной связи нет. Так сделаны `ISyncLogger`↔`ILoggerPort`, `SignedDigitalDocumentInputDTO`↔`ISignedDocumentDomainInterface`, `WinstonLoggerService`↔`ILoggerPort`.
+- **Порт заменяется инъекцией, базовый класс — нет.** Если расширение делает `extends`, класс обязан физически лежать в пакете. Проверять замером `extends`, а не чтением каталога портов.
+- **В пакетах нет `emitDecoratorMetadata`** — они собираются unbuild/esbuild. Значит: у полей GraphQL всегда явный thunk `@Field(() => String)`, у колонок TypeORM явный `type`, у недекорированных параметров `@Injectable` явный `@Inject(Token)`. `@Field({ description })` без thunk'а в пакете даёт поле без типа и падение сборки схемы.
+- **Из `typeorm` в пакете берутся только декораторы и типы.** pnpm может дать пакету второй экземпляр модуля: декораторы это переживут (`MetadataArgsStorage` в `global`, как и `TypeMetadataStorage` у graphql), а значения нет — `MoreThan()` из второй копии не пройдёт `instanceof FindOperator`. Условия собирать query builder'ом.
+- **Скаляры и метаданные проверять на единственность экземпляра.** `GraphQLJSON` — объект, две копии дадут два скаляра `JSON` и падение схемы. Перед добавлением зависимости в пакет: `realpath components/<pkg>/node_modules/<m> components/controller/node_modules/<m>` — пути обязаны совпасть.
+- **`@nestjs/common` у пакета и контроллера обязан быть одним экземпляром.** pnpm вшивает в путь хэш peer-зависимостей, поэтому один и тот же `@nestjs/common@10.4.22` раздваивается, если пакет не пинит `reflect-metadata` так же, как контроллер (`^0.1.13`). Симптом: `The intersection 'HttpException & X' was reduced to 'never'` при `instanceof` через границу — типы разные номинально. Рантайм сломался бы молча: `instanceof` вернул бы false. Проверять тем же `realpath`, что и скаляры.
+- **Подпуть пакета требует `typesVersions`.** У контроллера классическая схема резолвинга (`module: commonjs` без `moduleResolution`), она игнорирует `exports`. Без `typesVersions` подпуть виден рантайму и не виден TypeScript.
+- **Секреты через настройки контура не передаются.** `platformSettings()` из каркаса — только несекретное и общее (`coopname`, адреса, зона, символ токена). Ключи интеграций получают явный порт под capability-гейтом.
+- **Сущности TypeORM ищутся глобами по `src/`.** Класс, уехавший в пакет, из глоба выпадает — добавлять в `entities` явным классом.
+- **Утилита переезжает целиком, копия в ядре не остаётся.** Общий helper, которым пользуются и расширения, и ядро, живёт в каркасе в одном экземпляре; ядро импортирует его оттуда наравне с расширениями. Оставить в `~/shared/utils` «версию для ядра» — значит завести две реализации, которые разойдутся. Так перенесены `PaginationUtils`, `RequireFields`, `DomainToBlockchainUtils`.
+
+### Регистрация порта
+
+Контракт и токен — в `innercoop/core-ports/`. Адаптер — в ядре (`infrastructure/innercoop/` или рядом с сервисом-владельцем). Биндинг — только в `src/extensions/innercoop-bridge.module.ts`, он же composition root и единственное место, которому позволено знать обе стороны. По умолчанию `useExisting`; `useClass` со `scope` — если у реализации нестандартная область видимости (так у `LOGGER_PORT`: `setContext` мутирует инстанс, нужен `Scope.TRANSIENT`).
 
 ## Backend (controller) каноны
 
@@ -224,7 +267,7 @@ Marketplace в монорепе живёт в **двух контурах**:
 ### Пагинация — единый паттерн
 
 В controller-resolver'ах пагинация делается единым каноническим паттерном:
-- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `~/application/common/dto/pagination.dto.ts`, поля page/limit/sortBy/sortOrder).
+- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `@coopenomics/extension-kit`, поля page/limit/sortBy/sortOrder).
 - Выход: `createPaginationResult(ItemDTO, 'PaginatedXxx')` + сигнатура `Promise<PaginationResult<T>>` (items / totalCount / totalPages / currentPage).
 - Repository принимает `PaginationInputDTO`, сам считает offset/limit/sort через TypeORM `findAndCount`.
 
@@ -312,6 +355,38 @@ await sendPOST('/v1/graphql', { query: QUERY, variables });
 
 Эталоны: `p.mkt.return.standard.yaml`, `p.cap.rid.standard.yaml`, `reg.coop.standard.yaml`. Антипример — `p.mkt.wroff.standard.yaml` в PR #399 review 2026-05-18 (был забит callback-описаниями и «type=mktwroff»).
 
+## Реестр документов раскатывается релизом, не миграциями
+
+Шаблоны документов больше **не правятся миграциями мигратора**. Локальный реестр
+(`components/factory/src/Templates/registry.ts`) — источник истины; команда
+`pnpm -F @coopenomics/boot run drafts:sync` сверяет его с `draft::drafts` /
+`draft::translations` и доливает недостающее, переписывает разошедшееся,
+поднимает версию по объявлению. Playbook деплоя контрактов
+(`coopenomics/playbooks`, `contracts/setup-contracts.yaml`) запускает её из
+`dicoop/bootcoop:<branch>` сразу после установки контрактов.
+
+**Версия шаблона — требование к подписи, а не номер редакции.** Рабочий стол
+сверяет версию шаблона с версией подписи пайщика (`RequireAgreements`) и при
+расхождении просит подписать заново. Поэтому:
+
+- правка текста/вёрстки/опечатки — просто меняем шаблон, `editdraft` версию не
+  трогает, переподписей нет;
+- смысловое изменение — дополнительно поднимаем число в
+  `components/factory/src/Templates/versions.ts`, синхронизатор вызовет
+  `upversion`.
+
+Синхронизатор ничего не удаляет, версию не понижает и идемпотентен. Проверить
+план без транзакций: `CHAIN_URL=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run`.
+
+**Ключ в раскатке синхронизатору не отдаётся.** Он живёт в кошельке
+`cleos`-контейнера плейбука ровно на время деплоя контрактов и стирается вместе
+с ним, поэтому команда работает в два шага: `--plan <каталог>` считает план по
+цепи (только чтение) и раскладывает его файлами `actions/*.json` + `apply.sh`, а
+подписывает и отправляет `cleos` из того же контейнера. Прямое применение (без
+флагов, ключ из `EOSIO_PRV_KEY`) остаётся для локальной цепи. Добавляя сюда
+что-то новое, ключ наружу не выносить — это осознанное требование, а не деталь
+реализации.
+
 ## Vault & SERVER_SECRET
 
 WIF админ-аккаунта (например `voskhod`) хранится в `vaults` PostgreSQL зашифрованным AES-256-CBC с ключом `sha256(SERVER_SECRET)`. Если `SERVER_SECRET` потом меняли — **старые записи разрушаются**, `decipher.final()` бросает `error:1C800064:Provider routines::bad decrypt`.
@@ -344,6 +419,28 @@ WIF админ-аккаунта (например `voskhod`) хранится в
 **Legacy data caveat:** `capital_time_entries` с `entry_type='hourly'` + `commit_hash != NULL` могут быть как (а) настоящей hourly работой до установки estimate, так и (б) split-наследием БАГ #2. Различить: если у задачи `estimate>0` и `DONE`, и записи hourly от тех же creators что в estimate-долях — это (б), чинить.
 
 **Edge-case дробных остатков:** при `estimate=2.5` и одном creator, после commit'а 2 ч (`Math.floor < 1` для остатка) остаётся 0.5 ч uncommitted estimate, который никогда не закоммитится. Либо ручной DELETE uncommitted остатка, либо изменить estimate на целое (но estimate в `capital_issues` — on-chain, через UI mutation, не DELETE'ом в БД).
+
+## Стол Заказов — канон единицы отпуска (читать до любых правок сумм)
+
+**Упаковка неделима.** Товар, отпускаемый упаковкой, принимают, выдают,
+возвращают и списывают целыми упаковками; брак внутри упаковки отражается
+**ценой**, а не пересчётом штук — решает оператор ПВЗ на месте. Отпуск по мере
+(кг/л/шт) корректируется количеством как обычно.
+
+- Цена (`price_per_unit`, `unit_price`, `fact_unit_price`, `arrival_price`) —
+  **за единицу отпуска**: при упаковочном отпуске это цена ЗА УПАКОВКУ.
+- Количество (`quantity`, `quantity_per_label`, on-chain asset) — в **базовой
+  единице** и обязано быть кратно упаковке (`Marketplace::check_packaging`).
+- Значит `quantity × price` — **неверно**. Сумма только через
+  `calcCostAmount`/`calcCostMinor` (controller `application/shared/cost.util.ts`)
+  и `marketplaceLineCost` (desktop `shared/lib/marketplace/line-cost.ts`).
+- Ввод оператора (приёмка, выдача, докладка, раскладка по боксам) — в единицах
+  отпуска, целыми упаковками; в базовую единицу переводится на границе с API.
+
+Полный текст с историей инцидента 2026-08-12 — в
+`components/controller/src/extensions/marketplace/README.md`, раздел «Единица
+отпуска». Не предлагать «привести всё к базовым единицам»: это узаконивает
+вскрытие упаковки и противоречит контракту.
 
 ## Стол Заказов MVP — текущее состояние
 

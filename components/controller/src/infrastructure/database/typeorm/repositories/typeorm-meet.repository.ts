@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { MeetPreEntity } from '../entities/meet-pre.entity';
 import { MeetRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { MeetPreProcessingDomainEntity } from '~/domain/meet/entities/meet-pre-domain.entity';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class TypeOrmMeetRepository implements MeetRepository {

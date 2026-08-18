@@ -19,6 +19,7 @@ import {
   pruneOrphans,
   type ServerHashSets,
 } from './delete.js'
+import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
 import { loadIndex, saveIndex } from './index-store.js'
 import {
   generateSlug,
@@ -28,8 +29,8 @@ import {
   storyFileRelativePath,
   workspaceBasePath,
 } from './layout.js'
+import { loadProjectMapsFromIndex } from './project-index-map.js'
 import { pullNonProjectCommunicationArtifacts, pullProjectCommunicationArtifacts } from './pull-communication.js'
-import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
 import { scaffoldBmadWorkspacesAfterPull } from './scaffold-bmad-workspace.js'
 import { syncEntityFile } from './sync-entity-file.js'
 import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
@@ -132,65 +133,139 @@ function requireCoopname(cfg: BlagoConfigFile): string {
 export interface RunPullOptions {
   /** Удалить локальные файлы и записи индекса для сущностей, которых нет в выборке pull (orphan). По умолчанию — только предупреждение. */
   readonly prune?: boolean
+  /** Ограничить выгрузку одним проектом/компонентом (его hash) и его содержимым. */
+  readonly projectHash?: string
+  /** Перечитать карту комнат переписки, не дожидаясь истечения суточного кэша. */
+  readonly refreshRooms?: boolean
 }
 
-export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions = {}): Promise<void> {
-  const coopname = requireCoopname(ctx.config)
-  const index = await loadIndex(ctx.root)
-  const projectByHash = new Map<string, ProjectPathModel>()
-
-  const allProjects: CapitalProjectRow[] = []
-  const seen = new Set<string>()
+/** Все страницы проектов по фильтру; вложенные компоненты разворачиваются в плоский список. */
+async function fetchProjectsPaged(
+  ctx: AuthenticatedContext,
+  filter: Record<string, unknown>,
+): Promise<CapitalProjectRow[]> {
+  const out: CapitalProjectRow[] = []
   let page = 1
   for (;;) {
     const { [Queries.Capital.GetProjects.name]: pageResult } = await ctx.client.Query(
       Queries.Capital.GetProjects.query,
       {
         variables: {
-          filter: { coopname },
+          filter,
           options: { limit: 100, page, sortOrder: 'DESC' },
         },
       },
     )
-    const chunk = pageResult.items as CapitalProjectRow[]
-    for (const item of chunk) {
-      for (const p of flattenProjects([item])) {
-        if (!seen.has(p.project_hash)) {
-          seen.add(p.project_hash)
-          allProjects.push(p)
-        }
-      }
-    }
+    out.push(...(pageResult.items as CapitalProjectRow[]))
     if (page >= pageResult.totalPages) {
       break
     }
     page += 1
   }
+  return out
+}
 
-  page = 1
+async function fetchIssuesPaged(
+  ctx: AuthenticatedContext,
+  filter: Record<string, unknown>,
+): Promise<CapitalIssueRow[]> {
+  const out: CapitalIssueRow[] = []
+  let page = 1
   for (;;) {
-    const { [Queries.Capital.GetProjects.name]: pageResult } = await ctx.client.Query(
-      Queries.Capital.GetProjects.query,
+    const { [Queries.Capital.GetIssues.name]: pageResult } = await ctx.client.Query(
+      Queries.Capital.GetIssues.query,
       {
         variables: {
-          filter: { coopname, is_component: true },
-          options: { limit: 100, page, sortOrder: 'DESC' },
+          filter,
+          options: { limit: 200, page, sortOrder: 'DESC' },
         },
       },
     )
-    const chunk = pageResult.items as CapitalProjectRow[]
-    for (const item of chunk) {
-      for (const p of flattenProjects([item])) {
-        if (!seen.has(p.project_hash)) {
-          seen.add(p.project_hash)
-          allProjects.push(p)
-        }
-      }
-    }
+    out.push(...(pageResult.items as CapitalIssueRow[]))
     if (page >= pageResult.totalPages) {
       break
     }
     page += 1
+  }
+  return out
+}
+
+async function fetchStoriesPaged(
+  ctx: AuthenticatedContext,
+  filter: Record<string, unknown>,
+): Promise<CapitalStoryRow[]> {
+  const out: CapitalStoryRow[] = []
+  let page = 1
+  for (;;) {
+    const { [Queries.Capital.GetStories.name]: pageResult } = await ctx.client.Query(
+      Queries.Capital.GetStories.query,
+      {
+        variables: {
+          filter,
+          options: { limit: 200, page, sortOrder: 'DESC' },
+        },
+      },
+    )
+    out.push(...(pageResult.items as CapitalStoryRow[]))
+    if (page >= pageResult.totalPages) {
+      break
+    }
+    page += 1
+  }
+  return out
+}
+
+export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions = {}): Promise<void> {
+  const coopname = requireCoopname(ctx.config)
+  const index = await loadIndex(ctx.root)
+  const projectByHash = new Map<string, ProjectPathModel>()
+  const targetProjectHash = options.projectHash?.trim().toLowerCase() || undefined
+
+  // Фильтры выборки. only_with_artifact_access оставляет только проекты, документы которых
+  // пайщику разрешено читать: без него не-председатель упирается в отказ на весь список.
+  const projectFilterBase: Record<string, unknown> = { coopname, only_with_artifact_access: true }
+  const issueFilter: Record<string, unknown> = { coopname }
+  const storyFilter: Record<string, unknown> = {
+    coopname,
+    show_issues_requirements: true,
+    show_components_requirements: true,
+  }
+  if (targetProjectHash) {
+    projectFilterBase.project_hash = targetProjectHash
+    issueFilter.project_hash = targetProjectHash
+    storyFilter.project_hash = targetProjectHash
+  }
+
+  // Запросы независимы — тянем их разом, а не по очереди.
+  const [rootProjectPages, componentProjectPages, issues, stories, usernameByHash] = await Promise.all([
+    fetchProjectsPaged(ctx, projectFilterBase),
+    targetProjectHash
+      ? Promise.resolve([] as CapitalProjectRow[])
+      : fetchProjectsPaged(ctx, { ...projectFilterBase, is_component: true }),
+    fetchIssuesPaged(ctx, issueFilter),
+    fetchStoriesPaged(ctx, storyFilter),
+    loadContributorUsernameByHash(ctx, coopname),
+  ])
+
+  const allProjects: CapitalProjectRow[] = []
+  const seen = new Set<string>()
+  for (const item of [...rootProjectPages, ...componentProjectPages]) {
+    for (const p of flattenProjects([item])) {
+      if (!seen.has(p.project_hash)) {
+        seen.add(p.project_hash)
+        allProjects.push(p)
+      }
+    }
+  }
+
+  // Путь компонента строится от каталога родителя. При pull одного компонента родителя в
+  // выборке нет, и без этой подложки все его файлы «переехали» бы в корень копии. Берём
+  // недостающих родителей из уже синхронизированного индекса; серверные строки поверх.
+  if (targetProjectHash) {
+    const { projectByHash: fromIndex } = await loadProjectMapsFromIndex(ctx.root, index)
+    for (const [hash, model] of fromIndex) {
+      projectByHash.set(hash, model)
+    }
   }
 
   for (const p of allProjects) {
@@ -202,11 +277,14 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     projectRowByHash.set(p.project_hash, p)
   }
 
+  // Пересобирать INDEX.md есть смысл только если что-то реально изменилось на диске.
+  let changed = false
+
   for (const p of allProjects) {
     const { data, body } = projectToFrontmatterAndBody(p)
     const content = serializeBlagoMarkdown(data, body)
     const rel = projectFileRelativePath(asProjectPathModel(p), projectByHash)
-    await syncEntityFile({
+    changed = (await syncEntityFile({
       root: ctx.root,
       index,
       entityType: 'project',
@@ -215,35 +293,13 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       content,
       remoteUpdatedAt: toUpdatedIso(p._updated_at),
       label: `проект ${p.project_hash}`,
-    })
-  }
-
-  const issues: CapitalIssueRow[] = []
-  page = 1
-  for (;;) {
-    const { [Queries.Capital.GetIssues.name]: pageResult } = await ctx.client.Query(
-      Queries.Capital.GetIssues.query,
-      {
-        variables: {
-          filter: { coopname },
-          options: { limit: 200, page, sortOrder: 'DESC' },
-        },
-      },
-    )
-    const chunk = pageResult.items as CapitalIssueRow[]
-    issues.push(...chunk)
-    if (page >= pageResult.totalPages) {
-      break
-    }
-    page += 1
+    })) || changed
   }
 
   const issueByHash = new Map<string, CapitalIssueRow>()
   for (const i of issues) {
     issueByHash.set(i.issue_hash, i)
   }
-
-  const usernameByHash = await loadContributorUsernameByHash(ctx, coopname)
 
   for (const i of issues) {
     const proj = projectByHash.get(i.project_hash)
@@ -258,7 +314,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     const fact_hours = factHoursForIssueFile(i.fact_by_contributor, usernameByHash, `задача ${i.issue_hash}`)
     const { data, body } = issueToFrontmatterAndBody({ ...i, fact_hours }, workspace)
     const content = serializeBlagoMarkdown(data, body)
-    await syncEntityFile({
+    changed = (await syncEntityFile({
       root: ctx.root,
       index,
       entityType: 'issue',
@@ -267,31 +323,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       content,
       remoteUpdatedAt: toUpdatedIso(i._updated_at),
       label: `задача ${i.issue_hash}`,
-    })
-  }
-
-  const stories: CapitalStoryRow[] = []
-  page = 1
-  for (;;) {
-    const { [Queries.Capital.GetStories.name]: pageResult } = await ctx.client.Query(
-      Queries.Capital.GetStories.query,
-      {
-        variables: {
-          filter: {
-            coopname,
-            show_issues_requirements: true,
-            show_components_requirements: true,
-          },
-          options: { limit: 200, page, sortOrder: 'DESC' },
-        },
-      },
-    )
-    const chunk = pageResult.items as CapitalStoryRow[]
-    stories.push(...chunk)
-    if (page >= pageResult.totalPages) {
-      break
-    }
-    page += 1
+    })) || changed
   }
 
   for (const s of stories) {
@@ -321,7 +353,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
     const rel = storyFileRelativePath(s.title, basePath, storyRecordId, s.story_hash, issueArg)
     const { data, body } = storyToFrontmatterAndBody(s)
     const content = serializeBlagoMarkdown(data, body)
-    await syncEntityFile({
+    changed = (await syncEntityFile({
       root: ctx.root,
       index,
       entityType: 'story',
@@ -330,30 +362,46 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       content,
       remoteUpdatedAt: toUpdatedIso(s._updated_at),
       label: `требование ${s.story_hash}`,
-    })
+    })) || changed
   }
 
-  await pullProjectCommunicationArtifacts(ctx, index, allProjects, projectByHash)
+  const indexEntriesBefore = index.entries.length
 
-  await pullNonProjectCommunicationArtifacts(ctx, index)
+  await pullProjectCommunicationArtifacts(ctx, index, allProjects, projectByHash, {
+    refreshRooms: options.refreshRooms,
+  })
+
+  // Комнаты вне проектов к выбранному проекту отношения не имеют — при точечном pull пропускаем.
+  if (!targetProjectHash) {
+    await pullNonProjectCommunicationArtifacts(ctx, index, { refreshRooms: options.refreshRooms })
+  }
 
   await scaffoldBmadWorkspacesAfterPull(ctx, allProjects, projectByHash)
 
   await saveIndex(ctx.root, index)
 
-  const server: ServerHashSets = {
-    projectHashes: new Set(allProjects.map(p => p.project_hash)),
-    issueHashes: new Set(issues.map(i => i.issue_hash)),
-    storyHashes: new Set(stories.map(s => s.story_hash)),
+  // Точечный pull видит только один проект — по такой выборке нельзя судить, что остальное
+  // удалено на сервере. Поиск «сирот» осмыслен лишь при полной выгрузке.
+  if (!targetProjectHash) {
+    const server: ServerHashSets = {
+      projectHashes: new Set(allProjects.map(p => p.project_hash)),
+      issueHashes: new Set(issues.map(i => i.issue_hash)),
+      storyHashes: new Set(stories.map(s => s.story_hash)),
+    }
+    const orphans = await detectOrphanIndexEntries({
+      root: ctx.root,
+      index: await loadIndex(ctx.root),
+      server,
+      currentCoopname: coopname,
+    })
+    await reportAndMaybePruneOrphans(ctx.root, orphans, options.prune === true)
   }
-  const orphans = await detectOrphanIndexEntries({
-    root: ctx.root,
-    index: await loadIndex(ctx.root),
-    server,
-    currentCoopname: coopname,
-  })
-  await reportAndMaybePruneOrphans(ctx.root, orphans, options.prune === true)
-  await writeWorkspaceIndexMarkdown(ctx.root)
+
+  // INDEX.md собирается перечитыванием всех файлов рабочей копии — на тысяче сущностей это
+  // заметная часть pull. Если ничего не изменилось, пересобирать нечего.
+  if (changed || index.entries.length !== indexEntriesBefore) {
+    await writeWorkspaceIndexMarkdown(ctx.root)
+  }
 }
 
 async function reportAndMaybePruneOrphans(

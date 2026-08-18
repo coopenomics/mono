@@ -1,7 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -40,7 +39,7 @@ export class MarketplaceSupplierSettingsResolver {
   async marketplaceGetSupplierPaymentSettings(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierPaymentSettingsDTO> {
-    const view = await this.settingsService.getSettings(config.coopname, member.username);
+    const view = await this.settingsService.getSettings(platformSettings().coopname, member.username);
     return toMarketplaceSupplierPaymentSettingsDTO(view);
   }
 
@@ -55,7 +54,7 @@ export class MarketplaceSupplierSettingsResolver {
     @Args('input') input: MarketplaceSetSupplierPayoutMethodInputDTO
   ): Promise<MarketplaceSupplierPaymentSettingsDTO> {
     const view = await this.settingsService.setPayoutMethod(
-      config.coopname,
+      platformSettings().coopname,
       member.username,
       input.method_id
     );

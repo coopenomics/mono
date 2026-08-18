@@ -5,9 +5,8 @@ import { ProgramWalletDomainEntity } from '~/domain/wallet/entities/program-wall
 import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
 import { ProgramWalletMapper } from '../mappers/program-wallet.mapper';
 import type { ProgramWalletRepository } from '~/domain/wallet/repositories/program-wallet.repository';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
 import type { IProgramWalletDatabaseData } from '~/domain/wallet/interfaces/program-wallet-database.interface';
 

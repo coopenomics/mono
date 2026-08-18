@@ -1,4 +1,4 @@
-# Архитектура связей ядро ↔ расширения ↔ расширения и пакет `@coopenomics/inter`
+# Архитектура связей ядро ↔ расширения ↔ расширения и пакет `@coopenomics/innercoop`
 
 Документ фиксирует **результат исследования** текущего состояния контроллера (монорепозиторий monocoop) и **архитектурные правила** для движения к модели из `COOPSTORE_FUTURE_ARCH_2.md`: публичные контракты, приватные расширения по подписке, разделение пакетов без поломки единообразия.
 
@@ -12,15 +12,15 @@
 - **Приватные расширения** — отдельные npm-пакеты, подключаемые без пересборки образа (на практике — с перезапуском процесса из‑за статичности GraphQL-схемы).
 - **Пакет контрактов** (`platform-interfaces` в ТЗ) — общие TypeScript-интерфейсы, токены DI, DTO пересечений; слабая связность, порты и адаптеры.
 
-Пакет **`@coopenomics/inter`** в текущей реализации — первый шаг к этому слою: он **не тянет NestJS**, содержит только типы и `Symbol.for`-токены, собирается отдельно (`unbuild`).
+Пакет **`@coopenomics/innercoop`** в текущей реализации — первый шаг к этому слою: он **не тянет NestJS**, содержит только типы и `Symbol.for`-токены, собирается отдельно (`unbuild`).
 
 ---
 
-## 2. Текущее состояние `@coopenomics/inter`
+## 2. Текущее состояние `@coopenomics/innercoop`
 
 | Аспект | Как сейчас |
 |--------|------------|
-| Расположение | `components/inter/` |
+| Расположение | `components/innercoop/` |
 | Содержимое | `InterProjectCommunicationArtifactsPort`, связанные DTO-типы, токен `INTER_PROJECT_COMMUNICATION_ARTIFACTS` |
 | Зависимости | Только TypeScript + сборка; нет импорта `controller`, `chatcoop`, `capital` |
 | Версия | Семантическая метка в `package.json` (например `2026.3.26-alpha-1`) |
@@ -33,14 +33,14 @@
 
 ### 3.1. `ExtensionsModule.register()`
 
-- **Статический** список импортов: `BuiltinPluginModule`, `Chairman`, `Capital`, `ChatCoop`, платежи, `InterCommunicationBridgeModule`, и т.д.
+- **Статический** список импортов: `BuiltinPluginModule`, `Chairman`, `Capital`, `ChatCoop`, платежи, `InnercoopBridgeModule`, и т.д.
 - Все расширения живут **в одном репозитории** и подключаются **на этапе компиляции**.
 - Экспорт модулей наружу — чтобы провайдеры были доступны остальному приложению (в т.ч. опциональная инъекция).
 
-### 3.2. `InterCommunicationBridgeModule`
+### 3.2. `InnercoopBridgeModule`
 
 - Помечен `@Global()`.
-- Связывает токен из `@coopenomics/inter` с **`useExisting: ChatcoopInterProjectCommunicationArtifactsAdapter`**.
+- Связывает токен из `@coopenomics/innercoop` с **`useExisting: ChatcoopInnercoopProjectCommunicationArtifactsAdapter`**.
 - Импортирует `ChatCoopPluginModule` (реализация живёт в chatcoop).
 
 **Паттерн:** composition root внутри монолита: «кто реализует порт для Capital» — ChatCoop, без прямого импорта chatcoop из capital.
@@ -58,7 +58,7 @@
 
 ### 4.1. Чистые сущности
 
-Пример: `ExtensionDomainEntity` в `domain/extension/entities/` **не** импортирует код из `extensions/` — это хороший ориентир: доменные сущности остаются без знания о конкретных плагинах.
+Пример: `ExtensionDomainEntity` в `@coopenomics/extension-kit` **не** импортирует код из `extensions/` — это хороший ориентир: доменные сущности остаются без знания о конкретных плагинах.
 
 ### 4.2. Смешение границ (технический долг под split)
 
@@ -85,11 +85,11 @@
 ### 5.2. Расширение ↔ расширение
 
 - Ни одно расширение **не** импортирует модуль другого по пути `~/extensions/other/...`.
-- Общий **порт + DTO** объявляются в `@coopenomics/inter` (или в логическом подпакете `@coopenomics/inter-capital-chatcoop`, если контрактов станет много).
+- Общий **порт + DTO** объявляются в `@coopenomics/innercoop` (или в логическом подпакете `@coopenomics/innercoop-capital-chatcoop`, если контрактов станет много).
 - Реализация порта — в «поставщике» (например ChatCoop).
 - **Мост** (bridge module) в host-приложении: `provide: TOKEN, useExisting: Adapter` + `@Global()` при необходимости, либо явный импорт модуля-поставщика в модуль-потребитель (если отказаться от global).
 
-**Уже сделано:** `InterProjectCommunicationArtifactsPort` + `InterCommunicationBridgeModule` + адаптер в chatcoop + потребление в Capital (`GitHubSyncService`, типы в `FileFormatService`).
+**Уже сделано:** `InterProjectCommunicationArtifactsPort` + `InnercoopBridgeModule` + адаптер в chatcoop + потребление в Capital (`GitHubSyncService`, типы в `FileFormatService`).
 
 ---
 
@@ -98,7 +98,7 @@
 ### Правило A — «Контракт в `inter`, реализация в расширении»
 
 - Любая потребность **Ext A** в данных/операциях **Ext B** оформляется как:
-  - интерфейс порта и нейтральные типы в `@coopenomics/inter`;
+  - интерфейс порта и нейтральные типы в `@coopenomics/innercoop`;
   - токен DI (`Symbol.for` с стабильным именем);
   - адаптер в Ext B;
   - регистрация в host (bridge или `imports` + `providers`).
@@ -123,14 +123,14 @@
 
 ### Правило E — версионирование `inter`
 
-- SemVer для `@coopenomics/inter`: breaking changes в портах → major; добавление нового порта/полей — minor/patch по политике.
+- SemVer для `@coopenomics/innercoop`: breaking changes в портах → major; добавление нового порта/полей — minor/patch по политике.
 - Расширения и host пинят диапазон версий `inter`, совместимый с GraphQL/SDK при необходимости.
 
 ### Правило F — разрезание ChatCoop (база / ИИ / транскрипция)
 
 - **Базовый** публичный слой: Matrix, комнаты, без Whisper/OpenAI.
 - **Приватный** подпакет или отдельный npm: STT, секретарь, дорогие интеграции — отдельный Nest-модуль, зависящий от базового chatcoop или регистрирующий дополнительные порты в `inter`.
-- Порты в `inter` должны быть **сгруппированы по смыслу** (например `inter-chatcoop-capital-bridge` vs общий `inter`), чтобы публичная сборка не тащила типы «только для приватной подписки» без необходимости — либо отдельные entrypoints в одном репозитории (`@coopenomics/inter/capital-chatcoop`).
+- Порты в `inter` должны быть **сгруппированы по смыслу** (например `inter-chatcoop-capital-bridge` vs общий `inter`), чтобы публичная сборка не тащила типы «только для приватной подписки» без необходимости — либо отдельные entrypoints в одном репозитории (`@coopenomics/innercoop/capital-chatcoop`).
 
 ### Правило G — GraphQL и приватные резолверы
 
@@ -145,7 +145,7 @@
 
 ## 7. Что переносить в `inter` vs что оставить в ядре
 
-| Класть в `@coopenomics/inter` (или специализированный публичный пакет) | Держать в ядре / host |
+| Класть в `@coopenomics/innercoop` (или специализированный публичный пакет) | Держать в ядре / host |
 |------------------------------------------------------------------------|------------------------|
 | Порты «расширение ↔ расширение» | Реализация портов ядра (UserRepository, BlockchainPort и т.д.) — это не `inter`, если ими не пользуются внешние расширения |
 | DTO пересечений между расширениями | Конкретные TypeORM-сущности расширений |
@@ -161,14 +161,14 @@
 1. Вынести **импорты миграций и AppRegistry** из `ExtensionDomainModule` в host-слой или механизм саморегистрации расширений.
 2. Разбить `AppRegistry` на **ядро (метаданные)** + **дистрибутив (классы модулей)**.
 3. Добавлять новые сценарии Ext↔Ext только через **новые порты в `inter`** + bridge.
-4. Для Capital как приватного пакета: зависимость `capital → @coopenomics/inter`, запрет зависимости `capital → chatcoop`; host подключает оба и bridge.
+4. Для Capital как приватного пакета: зависимость `capital → @coopenomics/innercoop`, запрет зависимости `capital → chatcoop`; host подключает оба и bridge.
 5. Документировать в README расширения: «требуемые токены `inter`, опциональные peer-модули».
 
 ---
 
 ## 9. Краткое резюме
 
-- **`@coopenomics/inter`** уже выполняет роль минимального **platform-interfaces** для одного сценария (коммуникации проекта Capital ↔ ChatCoop).
+- **`@coopenomics/innercoop`** уже выполняет роль минимального **platform-interfaces** для одного сценария (коммуникации проекта Capital ↔ ChatCoop).
 - **`ExtensionsModule`** и **`domain/extension`** сегодня **монолитны** и **связывают ядро с конкретными путями `extensions/*`** — это нужно развязать для приватных пакетов.
 - Целевая архитектура: **два направления** — (1) расширения реализуют порты ядра/платформы по публичному контракту; (2) расширения общаются друг с другом **только** через **`inter` + мосты**, как уже сделано для GitHub-транскрипций и сообщений.
 - Следование правилам A–H даёт **однотипный** каркас: публичный контракт, приватная реализация, опциональная инъекция, host как единственное место жёстких зависимостей между пакетами.

@@ -19,7 +19,7 @@ export const meta = {
   mode: 'docs',
   feature: 'marketplace.offer',
   cases: ['mkt.offer.happy.03'],
-  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier', 'marketplace:05-sign-offer'],
   title: 'Стол заказчика — каталог витрины',
   docPath: 'new/marketplace/orderer/catalog.md',
   assetsDir: 'assets/new/marketplace/orderer/catalog',

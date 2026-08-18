@@ -8,22 +8,11 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import {
-  DOCUMENT_VALIDATION_SERVICE,
-  type DocumentValidationService,
-} from '~/domain/document/services/document-validation.service';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import {
-  USER_WALLET_REPOSITORY,
-  type UserWalletRepository,
-} from '~/domain/wallet/repositories/user-wallet.repository';
-import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
-import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import type { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
 import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { resolveSaleUnit, type ResolvedSaleUnit } from '../shared/packaging.util';
@@ -63,6 +52,7 @@ import {
   type MarketplaceStockProposalCreatedEvent,
   type MarketplaceStockProposalResolvedEvent,
 } from '../events/marketplace-notification.events';
+import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 
 /** Строка корзины докладки на этапе формирования бандла оператором. */
 export interface MarketplaceStockProposalCreateLine {
@@ -73,7 +63,7 @@ export interface MarketplaceStockProposalCreateLine {
   /** Детерминированный order_hash (из payloads оператора). */
   order_hash: string;
   /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
-  signiss1_act: ISignedDocumentDomainInterface;
+  signiss1_act: ISignedDocument;
 }
 
 /**
@@ -88,7 +78,7 @@ export interface MarketplaceOrderProposalCreateLine {
   /** Фактическая цена за единицу (оператор мог скорректировать). */
   actual_unit_price: string;
   /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
-  signiss1_act: ISignedDocumentDomainInterface;
+  signiss1_act: ISignedDocument;
 }
 
 export interface MarketplaceStockProposalCreateInput {
@@ -122,7 +112,7 @@ export interface MarketplaceStockIssuanceOperatorLine {
   package_id: string | null;
   /** Содержимое упаковки в базовой единице; 0 — отпуск по мере. */
   package_size: number;
-  signiss1_document: DocumentDomainEntity;
+  signiss1_document: InnerGeneratedDocument;
 }
 
 /**
@@ -133,7 +123,7 @@ export interface MarketplaceStockIssuanceOperatorLine {
 export interface MarketplaceStockAcceptOrderLine {
   offer_id: string;
   order_hash: string;
-  signiss1_aggregate: DocumentDomainAggregate;
+  signiss1_aggregate: InnerDocumentAggregate;
 }
 
 /**
@@ -157,7 +147,7 @@ export interface MarketplaceStockAcceptPayload {
   convert: {
     amount: string;
     convert_hash: string;
-    document: DocumentDomainEntity;
+    document: InnerGeneratedDocument;
   } | null;
 }
 
@@ -201,13 +191,11 @@ export class MarketplaceStockProposalService {
     private readonly issuanceService: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    @Inject(USER_WALLET_REPOSITORY)
-    private readonly userWalletRepo: UserWalletRepository,
-    @Inject(DOCUMENT_VALIDATION_SERVICE)
-    private readonly documentValidationService: DocumentValidationService,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(USER_WALLET_PORT)
+    private readonly userWalletRepo: IUserWalletPort,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceStockProposalService.name);
   }
@@ -243,7 +231,7 @@ export class MarketplaceStockProposalService {
           'Докладка сформирована в устаревшем формате (без подписи оператора) — переформируйте её у стойки.'
         );
       }
-      const signiss1_aggregate = await this.documentDomainService.buildDocumentAggregate(
+      const signiss1_aggregate = await this.documentPort.buildAggregate(
         item.signiss1_act
       );
       if (!signiss1_aggregate) {
@@ -288,7 +276,7 @@ export class MarketplaceStockProposalService {
       amount,
       skip_save: false,
     };
-    const document = await this.documentDomainService.generateDocument({ data: action });
+    const document = await this.documentPort.generate({ data: action });
     return { member_amount, order_lines, convert: { amount, convert_hash, document } };
   }
 
@@ -809,7 +797,7 @@ export class MarketplaceStockProposalService {
     member_account: string
   ): Promise<void> {
     const stored = item.signiss1_act!;
-    const sub = submitted as unknown as ISignedDocumentDomainInterface;
+    const sub = submitted as unknown as ISignedDocument;
     const label = item.product_name || item.offer_id;
 
     // 1. Тот же документ, что подписал оператор: тело и мета НЕ подменены.
@@ -843,7 +831,7 @@ export class MarketplaceStockProposalService {
     }
 
     // 4. Крипто + структура + сверка тела с оригиналом в сторе документов.
-    const validation = await this.documentValidationService.validateSignedDocument(
+    const validation = await this.documentPort.validateSigned(
       item.offer_id,
       sub
     );

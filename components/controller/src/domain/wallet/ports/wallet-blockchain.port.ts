@@ -1,6 +1,6 @@
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type { WalletContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '../interfaces/program-wallet-blockchain.interface';
 
 /**
@@ -11,7 +11,7 @@ export interface CreateWithdrawDomainInterface {
   username: string;
   withdraw_hash: string;
   quantity: string;
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }
 
 export interface SignProgramAgreementDomainInterface {
@@ -19,7 +19,7 @@ export interface SignProgramAgreementDomainInterface {
   username: string;
   program_id: number;
   draft_id: number;
-  document: ISignedDocumentDomainInterface;
+  document: ISignedDocument;
 }
 
 export interface GenerateReturnStatementDomainInterface {
@@ -42,7 +42,7 @@ export interface WalletBlockchainPort {
   signProgramAgreement(data: SignProgramAgreementDomainInterface): Promise<TransactionResult>;
 
   // Генерация заявления на возврат паевого взноса
-  generateReturnStatement(data: GenerateReturnStatementDomainInterface): Promise<ISignedDocumentDomainInterface>;
+  generateReturnStatement(data: GenerateReturnStatementDomainInterface): Promise<ISignedDocument>;
 
   // Получение данных из wallet контракта
   getWithdraw(coopname: string, withdraw_hash: string): Promise<WalletContract.Tables.Withdraws.IWithdraws | null>;

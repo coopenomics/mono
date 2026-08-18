@@ -218,6 +218,83 @@ describe('MarketplaceOrderCreateService', () => {
     expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999);
   });
 
+  /**
+   * Сумма заказа считается тем же способом, что и на цепи. Цена и количество
+   * по отдельности положительны, но на малых величинах произведение способно
+   * схлопнуться в ноль после округления до точности актива — контракт такой
+   * заказ отвергнет, поэтому отказываем до отправки транзакции и не тратим
+   * оптимистичную блокировку остатка.
+   */
+  describe('сумма заказа', () => {
+    it('нулевая итоговая сумма → отказ до цепи, остаток не блокируется', async () => {
+      // Цена настолько мала, что при точности 4 знака произведение округляется
+      // в ноль: 0.00001 × 1 = 0.0000.
+      mocks.offerRepo.findById.mockResolvedValue(
+        buildOffer({ price_per_unit: '0.0000', quantity_available: 100 })
+      );
+
+      await expect(
+        service.execute({
+          coopname: 'voskhod',
+          orderer_account: 'orderer1',
+          offer_id: 'offer-1',
+          quantity: 1,
+          delivery_braname: 'ku.krasn.1',
+          convert_statement: CONVERT_STATEMENT,
+        })
+      ).rejects.toThrow(/Некорректная цена за единицу|нулевой/);
+
+      expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
+      expect(mocks.chainPort.createOrder).not.toHaveBeenCalled();
+    });
+
+    it('положительная цена, но произведение схлопывается в ноль → отказ', async () => {
+      // Килограмм считается с точностью 3 знака, деньги — 4. При цене
+      // 0.0001 ₽/кг и заказе 0.001 кг произведение округляется в 0.0000:
+      // цена и количество по отдельности валидны, а платить не за что.
+      mocks.offerRepo.findById.mockResolvedValue(
+        buildOffer({
+          price_per_unit: '0.0001',
+          unit_of_measure: MarketplaceUnitsOfMeasure.KG,
+          quantity_available: 1000,
+        })
+      );
+
+      await expect(
+        service.execute({
+          coopname: 'voskhod',
+          orderer_account: 'orderer1',
+          offer_id: 'offer-1',
+          quantity: 0.001,
+          delivery_braname: 'ku.krasn.1',
+          convert_statement: CONVERT_STATEMENT,
+        })
+      ).rejects.toThrow('Итоговая сумма заказа получилась нулевой');
+
+      expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
+      expect(mocks.chainPort.createOrder).not.toHaveBeenCalled();
+    });
+
+    it('отрицательная цена предложения → отказ', async () => {
+      mocks.offerRepo.findById.mockResolvedValue(
+        buildOffer({ price_per_unit: '-10.0000' })
+      );
+
+      await expect(
+        service.execute({
+          coopname: 'voskhod',
+          orderer_account: 'orderer1',
+          offer_id: 'offer-1',
+          quantity: 1,
+          delivery_braname: 'ku.krasn.1',
+          convert_statement: CONVERT_STATEMENT,
+        })
+      ).rejects.toThrow('Некорректная цена за единицу');
+
+      expect(mocks.chainPort.createOrder).not.toHaveBeenCalled();
+    });
+  });
+
   it('compensating rollback: при chain submit fail вызывает counters.onOrderRolledBack', async () => {
     mocks.offerRepo.findById.mockResolvedValue(buildOffer());
     mocks.counters.onOrderBlocked.mockResolvedValue({
@@ -317,7 +394,15 @@ describe('MarketplaceOrderCreateService', () => {
         sale_form: MarketplaceSaleForms.PACKAGED,
         unit_of_measure: MarketplaceUnitsOfMeasure.LITER,
         packages: [
-          { id: 'pkg-0.1l', size: 0.1, price: '100.0000', label: null, sort_order: 0, is_default: true },
+          {
+            id: 'pkg-0.1l',
+            size: 0.1,
+            price: '100.0000',
+            label: null,
+            package_type: 'пластиковая бутылка',
+            sort_order: 0,
+            is_default: true,
+          },
         ],
         quantity_available: 10,
       })

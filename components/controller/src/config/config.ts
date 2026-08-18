@@ -30,6 +30,14 @@ const envVarsSchema = z.object({
     .min(1)
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
+  LOG_LEVEL: z
+    .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
+    .optional()
+    .describe(
+      'Уровень логов winston. По умолчанию info на проде и debug в разработке. ' +
+        'На debug в лог попадают успешные HTTP-запросы с временем ответа (morgan successHandler) — ' +
+        'без этого в логе видны только ответы 4xx/5xx, и латентность по логам не измерить',
+    ),
   PORT: z
     .string()
     .default('3000')
@@ -161,7 +169,86 @@ const envVarsSchema = z.object({
     .string()
     .default('1000')
     .transform((val) => parseInt(val, 10)),
-
+  /**
+   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
+   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
+   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   */
+  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Story 4.4: глобальный выключатель ежечасного retention-крона архива
+   * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
+   * кооператив) данные могут копиться годами — отключить кроном.
+   */
+  BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
+  /**
+   * Story 4.4: cron-расписание retention. Default — ежечасно. RETENTION_HORIZON_BLOCKS
+   * (=1000) хардкод в BlockchainArchiveRetentionService — не вынесен в env намеренно
+   * (свойство сети, не оператора).
+   */
+  BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
+  /**
+   * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
+   * быть silent loss и поднимается `UnsupportedContractVersionError` из
+   * `AbstractEntitySyncService.processDelta`. Парсер не ACK'ает delta — DLQ
+   * сработает. Default `false` для не-ломать-прод-немедленно; включается после
+   * подтверждения, что schema drift отсутствует (например на стенде).
+   */
+  BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  /**
+   * Как часто пересчитывается отставание узла от головы цепи. Тик стоит один
+   * RPC `get_info` и одно чтение Redis, поэтому дёшев; от него же зависит,
+   * насколько быстро рабочий стол узнает, что узел вернулся в строй.
+   */
+  BLOCKCHAIN_SYNC_TICK_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание (в блоках), с которого рабочий стол считается неработоспособным
+   * и закрывается заглушкой. Порог входа выше порога выхода намеренно —
+   * см. `BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS`.
+   */
+  BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS: z
+    .string()
+    .default('40')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание, ниже которого узел снова считается догнавшим. Обязано быть
+   * меньше порога входа: на живой сети отставание колеблется вокруг границы, и
+   * при одном пороге заглушка замигает посреди работы.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько тиков подряд узел обязан продержаться у головы, чтобы заглушка
+   * снялась. Вторая половина гистерезиса: порог по блокам гасит дрожание
+   * амплитуды, счётчик тиков — дрожание по времени.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_TICKS: z
+    .string()
+    .default('3')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Окно, после которого неподвижный курсор парсера считается обрывом чтения
+   * цепи, а не медленным догоном. Курсор обновляется на каждом обработанном
+   * блоке, поэтому тишина дольше нескольких десятков секунд — это остановка.
+   */
+  BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS: z
+    .string()
+    .default('60')
+    .transform((val) => parseInt(val, 10)),
 
   // Параметры VAPID для web push
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
@@ -278,6 +365,7 @@ if (!envVars.success) {
 // Экспорт настроек
 export default {
   env: envVars.data.NODE_ENV,
+  log_level: envVars.data.LOG_LEVEL ?? (envVars.data.NODE_ENV === 'development' ? 'debug' : 'info'),
   backend_url: envVars.data.BACKEND_URL,
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
@@ -372,6 +460,15 @@ export default {
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
+    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
+    archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
+    unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
+    sync_tick_ms: envVars.data.BLOCKCHAIN_SYNC_TICK_MS,
+    sync_lagging_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS,
+    sync_healthy_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS,
+    sync_healthy_ticks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_TICKS,
+    sync_stale_cursor_seconds: envVars.data.BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),

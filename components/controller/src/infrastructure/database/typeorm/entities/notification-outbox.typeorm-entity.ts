@@ -1,9 +1,9 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import {
   NotificationOutboxStatus,
   type NotificationOutboxDomainInterface,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /**
  * Транзакционный outbox Центра уведомлений.

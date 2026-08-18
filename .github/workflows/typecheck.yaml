@@ -101,7 +101,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Полный lerna build по всему workspace — controller импортирует
-      # @coopenomics/sdk, @coopenomics/inter, @coopenomics/notifications
+      # @coopenomics/sdk, @coopenomics/innercoop, @coopenomics/notifications
       # помимо cooptypes/factory; их dist/ генерируется unbuild и без
       # этого шага tsc валится на 37 TS2307. См. root cause выше.
       - name: Build all workspace packages

@@ -38,12 +38,7 @@
         )
           | {{ mode.label }}
           q-tooltip {{ mode.hint }}
-      .metric-series__period
-        BaseSelect(
-          v-model='period',
-          :options='periodOptions',
-          placeholder='Период'
-        )
+      .metric-series__scale.t-sm.t-muted Дни
 
   .metric-series__empty(v-else-if='!isLoading')
     EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой метрики')
@@ -62,9 +57,8 @@
  */
 import { computed, defineAsyncComponent, ref, toRef } from 'vue';
 import { useQuasar } from 'quasar';
-import { Zeus } from '@coopenomics/sdk';
 import type { ApexOptions } from 'apexcharts';
-import { BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { EmptyState } from 'src/shared/ui/base';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { useMetricSeries } from '../model';
 import { formatPeriodLabel } from '../lib/formatPeriodLabel';
@@ -88,31 +82,16 @@ const props = defineProps<{
 
 const $q = useQuasar();
 const metricHashRef = toRef(props, 'metricHash');
-const {
-  series,
-  wave,
-  isLoading,
-  period,
-} = useMetricSeries(() => metricHashRef.value);
+const { series, wave, isLoading } = useMetricSeries(() => metricHashRef.value);
 
 const chartMode = ref<ChartMode>('accumulation');
-
-const periodOptions = [
-  { label: '1 мин', value: Zeus.MetricSeriesPeriod.MINUTE },
-  { label: '5 мин', value: Zeus.MetricSeriesPeriod.MINUTE_5 },
-  { label: '15 мин', value: Zeus.MetricSeriesPeriod.MINUTE_15 },
-  { label: 'Час', value: Zeus.MetricSeriesPeriod.HOUR },
-  { label: 'День', value: Zeus.MetricSeriesPeriod.DAY },
-  { label: 'Неделя', value: Zeus.MetricSeriesPeriod.WEEK },
-  { label: 'Месяц', value: Zeus.MetricSeriesPeriod.MONTH },
-];
 
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'));
 
 const histCategories = computed(() => {
   const s = series.value;
   if (!s?.points.length) return [];
-  return s.points.map((p) => formatPeriodLabel(p.period_start, period.value));
+  return s.points.map((p) => formatPeriodLabel(p.period_start));
 });
 
 const forecastCategories = computed(() => [...histCategories.value, '→', '→→']);
@@ -422,42 +401,11 @@ const dynamicsOptions = computed((): ApexOptions => {
   background: var(--p-surface-3, var(--p-line));
 }
 
-.metric-series__period {
-  width: 120px;
+.metric-series__scale {
   height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-}
-
-.metric-series__period :deep(.q-field) {
-  width: 100%;
-  height: 32px;
-  margin: 0;
-  padding: 0;
-}
-
-.metric-series__period :deep(.q-field__bottom) {
-  display: none;
-}
-
-.metric-series__period :deep(.q-field__control),
-.metric-series__period :deep(.q-field--dense .q-field__control) {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px;
-}
-
-.metric-series__period :deep(.q-field__marginal),
-.metric-series__period :deep(.q-field__native),
-.metric-series__period :deep(.q-field__prefix),
-.metric-series__period :deep(.q-field__suffix),
-.metric-series__period :deep(.q-field__input) {
-  height: 32px;
-  min-height: 32px;
-  padding-top: 0;
-  padding-bottom: 0;
-  line-height: 32px;
 }
 
 .metric-series__chart {

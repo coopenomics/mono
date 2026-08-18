@@ -1,20 +1,14 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { InnerExpenseProposalState } from '@coopenomics/innercoop';
 
 /**
- * Доменный статус СЗ-расхода. Зеркалит `ExpenseDomain::ProposalStatus`
- * из `components/contracts/cpp/expense/expense.hpp`.
+ * Перечень живёт в межрасширенческом контракте: с ним сверяются расширения,
+ * заказывающие расход, а шасси остаётся его владельцем и регистрирует перечень
+ * в схеме. Здесь он доступен под привычным шасси именем.
  */
-export enum ExpenseProposalStatus {
-  CREATED = 'CREATED',
-  AUTHORIZED = 'AUTHORIZED',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  REPORT_SUBMITTED = 'REPORT_SUBMITTED',
-  CLOSED = 'CLOSED',
-  DECLINED = 'DECLINED',
-  UNDEFINED = 'UNDEFINED',
-}
+export { InnerExpenseProposalState as ExpenseProposalStatus };
 
-registerEnumType(ExpenseProposalStatus, {
+registerEnumType(InnerExpenseProposalState, {
   name: 'ExpenseProposalStatus',
-  description: 'Статус сметы расхода.',
+  description: 'Состояние служебной записки-сметы',
 });

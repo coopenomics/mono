@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { AppendixStatus } from '../../../domain/enums/appendix-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Appendix

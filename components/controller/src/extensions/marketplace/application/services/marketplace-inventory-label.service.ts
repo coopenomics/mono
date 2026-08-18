@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CONTAINER_REPOSITORY,
   type MarketplaceContainerDomainRepository,
@@ -100,7 +100,7 @@ export class MarketplaceInventoryLabelService {
     private readonly containerRepo: MarketplaceContainerDomainRepository,
     @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
     private readonly cellRepo: MarketplaceStorageCellDomainRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceInventoryLabelService.name);
   }

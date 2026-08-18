@@ -27,6 +27,7 @@
 import { ProcessRegistryService } from '../../../src/domain/process-registry/services/process-registry.service';
 import type { DeltaEntity } from '../../../src/infrastructure/database/typeorm/entities/delta.entity';
 import type { ActionEntity } from '../../../src/infrastructure/database/typeorm/entities/action.entity';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 type AnyQB = any;
 
@@ -308,5 +309,402 @@ describe('ProcessRegistryService.getProcess', () => {
   test('(f3) 404, если apply-якоря нет (actions пусты)', async () => {
     const svc = makeService({ actions: [], entityDeltasPerLocation: [] });
     await expect(svc.getProcess(HASH, COOP)).rejects.toThrow(/не найден/);
+  });
+
+  test('(g1) нитка поставки с инлайновым взносом КУ называется поставкой', async () => {
+    // marketplace::signiss2 вызывает branch::accrue инлайн с process_hash заказа,
+    // поэтому o.brn.common живёт в нитке поставки. По исторической карте эта
+    // операция объявлена под p.brn.fees — имя нитки она давать не должна, иначе
+    // поставка подписывается «Членские взносы кооперативного участка».
+    const lock = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.mkt.lock', process_hash: HASH, coopname: COOP, username: 'orderer' },
+      global_sequence: '10',
+    });
+    const fee = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.brn.common', process_hash: HASH, coopname: COOP, username: 'krasnogorsk' },
+      global_sequence: '11',
+    });
+    const order = makeDelta({
+      code: 'marketplace',
+      table: 'orders',
+      value: { hash: HASH, coopname: COOP },
+    });
+
+    const svc = makeService({ actions: [lock, fee], entityDeltasPerLocation: [[order]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.supply');
+    expect(view.delta_history[0].table).toBe('orders');
+  });
+
+  test('(g2) нитка гарантийного возврата с инлайновым возвратом взноса КУ', async () => {
+    // marketplace::accretrn вызывает branch::retfee с хэшем заявки на возврат.
+    const ret = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.mkt.return', process_hash: HASH, coopname: COOP, username: 'orderer' },
+      global_sequence: '20',
+    });
+    const retfee = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.brn.retfee', process_hash: HASH, coopname: COOP, username: 'krasnogorsk' },
+      global_sequence: '21',
+    });
+
+    const svc = makeService({ actions: [ret, retfee], entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.return');
+  });
+
+  test('(g3) порядок операций в нитке имени не меняет', async () => {
+    // Тот же набор, что в (g1), но взнос идёт первым: имя нитки не должно
+    // зависеть ни от порядка блоков, ни от алфавита operation_code.
+    const fee = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.brn.common', process_hash: HASH, coopname: COOP, username: 'krasnogorsk' },
+      global_sequence: '9',
+    });
+    const lock = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: { operation_code: 'o.mkt.lock', process_hash: HASH, coopname: COOP, username: 'orderer' },
+      global_sequence: '10',
+    });
+
+    const svc = makeService({ actions: [fee, lock], entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.supply');
+  });
+
+  test('(g4) эмитированный контрактом process_type побеждает историческую карту', async () => {
+    // После того как контракт начал эмитить имя нитки, оно читается дословно —
+    // историческая карта operation_code → process_type больше не применяется.
+    const apply = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.brn.common',
+        process_type: 'p.mkt.supply',
+        process_hash: HASH,
+        coopname: COOP,
+        username: 'krasnogorsk',
+      },
+    });
+
+    const svc = makeService({ actions: [apply], entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.supply');
+  });
+
+  test('(g5) нитка гарантийного возврата: все три ноги названы возвратом', async () => {
+    // marketplace::accretrn отправляет по хэшу заявки на возврат три операции:
+    // o.mkt.return, инлайновый o.brn.retfee и o.mkt.refund. Последний в реестре
+    // операций объявлен под поставкой — нитку он называть не должен, её называет
+    // инициатор.
+    const codes = ['o.mkt.return', 'o.brn.retfee', 'o.mkt.refund'];
+    const actions = codes.map((code, i) =>
+      makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: {
+          operation_code: code,
+          process_type: 'p.mkt.return',
+          process_hash: HASH,
+          coopname: COOP,
+          username: 'orderer',
+        },
+        global_sequence: String(20 + i),
+      }),
+    );
+
+    const svc = makeService({ actions, entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.return');
+  });
+
+  test('(g6) конфликт эмитированных имён: берётся первое, а не минимум по алфавиту', async () => {
+    // Инвариант «одна нитка — одно имя» контрактом не принуждается, поэтому
+    // читающая сторона обязана вести себя предсказуемо: имя даёт та операция,
+    // что пришла первой по блоку и global_sequence. Алфавит кода операции
+    // ('o.mkt.lock' < 'o.mkt.return') на результат не влияет.
+    const first = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.mkt.return',
+        process_type: 'p.mkt.return',
+        process_hash: HASH,
+        coopname: COOP,
+      },
+      global_sequence: '30',
+    });
+    const stray = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.mkt.lock',
+        process_type: 'p.mkt.supply',
+        process_hash: HASH,
+        coopname: COOP,
+      },
+      global_sequence: '31',
+    });
+
+    const svc = makeService({ actions: [first, stray], entityDeltasPerLocation: [[]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.mkt.return');
+  });
+
+  test('(g7) коммиты РИД: бэкенд-оверрайд сильнее имени из цепи', async () => {
+    // Контракт эмитит p.cap.rid (своего имени для коммитов у него нет), но
+    // бэкенд показывает коммиты отдельным процессом с якорем project_hash.
+    // Без оверрайда поверх эмитированного имени нитка уехала бы в локатор
+    // p.cap.rid, который ищет result_hash, и проект перестал бы находиться.
+    const apply = makeAction({
+      account: 'ledger2',
+      name: 'apply',
+      data: {
+        operation_code: 'o.cap.commit',
+        process_type: 'p.cap.rid',
+        process_hash: HASH,
+        coopname: COOP,
+        username: 'ant',
+      },
+    });
+    const project = makeDelta({
+      code: 'capital',
+      table: 'projects',
+      value: { project_hash: HASH, coopname: COOP },
+    });
+
+    const svc = makeService({ actions: [apply], entityDeltasPerLocation: [[project]] });
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.cap.commit');
+    expect(view.delta_history[0].table).toBe('projects');
+  });
+});
+
+// ---------- listProcesses ----------
+
+/**
+ * `listProcesses` идёт через raw SQL (`manager.query`): первый вызов — COUNT,
+ * второй — страница строк. Мок отдаёт готовые строки агрегата и запоминает
+ * запросы, чтобы проверить условия фильтра.
+ */
+function makeListService(rows: any[]): { svc: ProcessRegistryService; query: jest.Mock } {
+  const query = jest.fn(async (sql: string) => {
+    if (/COUNT\(/i.test(sql)) return [{ cnt: String(rows.length) }];
+    return rows;
+  });
+  const repo: any = { createQueryBuilder: jest.fn(() => mockQB([])), manager: { query } };
+  const aggregator: any = { buildDocumentAggregate: jest.fn() };
+  const redisClient: any = {
+    publisher: { status: 'not-ready', get: jest.fn(), set: jest.fn() },
+    subscriber: {},
+    streamManager: {},
+    streamReader: {},
+  };
+  const logger: any = {
+    setContext: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return {
+    svc: new ProcessRegistryService(repo, repo, aggregator, redisClient, logger),
+    query,
+  };
+}
+
+function makeRow(partial: {
+  operationCodes: (string | null)[];
+  processTypes?: (string | null)[];
+  usernames?: (string | null)[];
+  processHash?: string;
+}) {
+  return {
+    operationCodes: partial.operationCodes,
+    processTypes: partial.processTypes ?? partial.operationCodes.map(() => null),
+    usernames: partial.usernames ?? partial.operationCodes.map(() => null),
+    processHash: partial.processHash ?? HASH,
+    coopname: COOP,
+    firstSeenAt: '2026-08-10T19:11:00Z',
+    lastSeenAt: '2026-08-11T09:39:00Z',
+    lastBlockNum: '100',
+  };
+}
+
+const PAGE: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'ASC' };
+
+describe('ProcessRegistryService.listProcesses', () => {
+  test('нитка поставки: имя — поставка, субъект — заказчик, а не участок', async () => {
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.mkt.lock', 'o.brn.common'],
+        usernames: ['orderer', 'krasnogorsk'],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0].processType).toBe('p.mkt.supply');
+    expect(page.items[0].username).toBe('orderer');
+  });
+
+  test('список и деталь называют один процесс одинаково', async () => {
+    const codes = ['o.mkt.lock', 'o.brn.common'];
+    const { svc: listSvc } = makeListService([makeRow({ operationCodes: codes })]);
+    const detailSvc = makeService({
+      actions: codes.map((code, i) =>
+        makeAction({
+          account: 'ledger2',
+          name: 'apply',
+          data: { operation_code: code, process_hash: HASH, coopname: COOP },
+          global_sequence: String(10 + i),
+        }),
+      ),
+      entityDeltasPerLocation: [[]],
+    });
+
+    const page = await listSvc.listProcesses({ coopname: COOP }, PAGE);
+    const view = await detailSvc.getProcess(HASH, COOP);
+
+    expect(page.items[0].processType).toBe(view.process_type);
+  });
+
+  test('нитка с эмитированным именем читается дословно', async () => {
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.brn.common'],
+        processTypes: ['p.mkt.supply'],
+        usernames: ['krasnogorsk'],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].processType).toBe('p.mkt.supply');
+  });
+
+  test('незнакомый код операции не выбрасывает запись из реестра', async () => {
+    // Историческая запись старее текущего реестра операций: показываем её без
+    // типа, но не теряем — реестр обязан показывать всё, что есть в цепи.
+    const { svc } = makeListService([makeRow({ operationCodes: ['o.unknown.proc'] })]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0].processType).toBe('');
+    expect(page.items[0].processHash).toBe(HASH);
+  });
+
+  test('фильтр «взносы КУ» не разворачивается в инлайновые операции поставки', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.brn.fees' }, PAGE);
+
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    expect(codeParams).toContain('o.brn.person');
+    expect(codeParams).not.toContain('o.brn.common');
+    expect(codeParams).not.toContain('o.brn.retfee');
+  });
+
+  test('фильтр по типу учитывает и эмитированное имя, и историческую карту', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.mkt.supply' }, PAGE);
+
+    const sql = String(query.mock.calls[0][0]);
+    expect(sql).toContain("a.data ->> 'process_type'");
+    expect(sql).toContain("a.data ->> 'operation_code'");
+  });
+
+  test('фильтр «Поставка» не разворачивается в возвратную ногу членского взноса', async () => {
+    // o.mkt.refund возвращает взнос и по заказу, и по заявке на гарантийный
+    // возврат. В реестре операций он объявлен под поставкой, поэтому без
+    // исключения фильтр «Поставка» вытаскивал нитку возврата отдельной строкой,
+    // подписанной поставкой, — а при раскрытии та же нитка называлась возвратом.
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.mkt.supply' }, PAGE);
+
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    expect(codeParams).toContain('o.mkt.lock');
+    expect(codeParams).not.toContain('o.mkt.refund');
+  });
+
+  test('фильтр коммитов РИД ловит строки, в которых контракт эмитил приём РИД', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.cap.commit' }, PAGE);
+
+    const sql = String(query.mock.calls[0][0]);
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    // Ищем по коду операции, а не по имени из цепи: контракт эмитит p.cap.rid.
+    expect(sql).toContain("a.data ->> 'operation_code' = ANY(");
+    expect(codeParams).toContain('o.cap.commit');
+  });
+
+  test('фильтр «Приём РИД» не втягивает коммиты, показанные отдельным процессом', async () => {
+    const { svc, query } = makeListService([]);
+
+    await svc.listProcesses({ coopname: COOP, processType: 'p.cap.rid' }, PAGE);
+
+    const sql = String(query.mock.calls[0][0]);
+    const codeParams = query.mock.calls
+      .flatMap((call) => (call[1] ?? []) as unknown[])
+      .filter((p): p is string[] => Array.isArray(p))
+      .flat();
+    expect(sql).toContain("<> ALL(");
+    expect(codeParams).toContain('o.cap.commit');
+  });
+
+  test('список и деталь одинаково показывают коммиты РИД', async () => {
+    const { svc: listSvc } = makeListService([
+      makeRow({ operationCodes: ['o.cap.commit'], processTypes: ['p.cap.rid'] }),
+    ]);
+    const detailSvc = makeService({
+      actions: [
+        makeAction({
+          account: 'ledger2',
+          name: 'apply',
+          data: {
+            operation_code: 'o.cap.commit',
+            process_type: 'p.cap.rid',
+            process_hash: HASH,
+            coopname: COOP,
+          },
+        }),
+      ],
+      entityDeltasPerLocation: [[]],
+    });
+
+    const page = await listSvc.listProcesses({ coopname: COOP }, PAGE);
+    const view = await detailSvc.getProcess(HASH, COOP);
+
+    expect(page.items[0].processType).toBe('p.cap.commit');
+    expect(page.items[0].processType).toBe(view.process_type);
   });
 });

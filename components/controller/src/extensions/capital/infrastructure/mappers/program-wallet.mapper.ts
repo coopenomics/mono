@@ -2,7 +2,7 @@ import { ProgramWalletDomainEntity } from '../../domain/entities/program-wallet.
 import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
 import type { IProgramWalletDatabaseData } from '../../domain/interfaces/program-wallet-database.interface';
 import type { IProgramWalletBlockchainData } from '../../domain/interfaces/program-wallet-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ProgramWalletTypeormEntity>, keyof IProgramWalletDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProgramWalletTypeormEntity>, keyof IProgramWalletBlockchainData>;

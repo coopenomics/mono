@@ -1,5 +1,4 @@
 import { Injectable, Inject, Optional, Logger } from '@nestjs/common';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { GenerationInteractor } from '../use-cases/generation.interactor';
 import type { CreateCommitInputDTO } from '../dto/generation/create-commit-input.dto';
 import { hoursAlmostEqual } from '../../domain/utils/hours-float';
@@ -34,11 +33,16 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, EMPTY_HASH,
+  CurrencyValidationUtil,
+} from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
 import { canViewPrivateScopedIssue } from '../../domain/utils/private-project-access';
+import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { ProjectAction } from '../../domain/services/access-policy.service';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { EMPTY_BPMN_STORY_XML } from '../constants/empty-bpmn-story-xml';
 import { DEFAULT_MERMAID_STORY_SOURCE } from '../constants/default-mermaid-story';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
@@ -52,12 +56,8 @@ import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import type { IStoryDatabaseData, IStoryMatrixRequirementAnnouncementEvent } from '../../domain/interfaces/story-database.interface';
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
-import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
-import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
+import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/capitalization-program-money-invest-statement-document.dto';
 import { Cooperative } from 'cooptypes';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import { IssuePermissionsService } from './issue-permissions.service';
@@ -67,15 +67,9 @@ import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import {
-  INTER_MATRIX_ROOM_MESSAGING,
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterMatrixRoomMessagingPort,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
-import config from '~/config/config';
-import { EMPTY_HASH } from '~/shared/utils/constants';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL
@@ -102,7 +96,7 @@ export class GenerationService {
     @Inject(CYCLE_REPOSITORY)
     private readonly cycleRepository: CycleRepository,
     private readonly issueIdGenerationService: IssueIdGenerationService,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly investsManagementInteractor: InvestsManagementInteractor,
     private readonly issuePermissionsService: IssuePermissionsService,
     private readonly permissionsService: PermissionsService,
@@ -111,11 +105,11 @@ export class GenerationService {
     private readonly commitMapperService: CommitMapperService,
     private readonly timeTrackingInteractor: TimeTrackingInteractor,
     @Optional()
-    @Inject(INTER_MATRIX_ROOM_MESSAGING)
-    private readonly matrixRoomMessaging: InterMatrixRoomMessagingPort | undefined,
+    @Inject(MATRIX_ROOM_MESSAGING_PORT)
+    private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly projectCommArtifacts: InterProjectCommunicationArtifactsPort | undefined
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined
   ) {}
 
   private rowsToLinkedCommitSummaries(rows: IssueLinkedGitCommitRow[]): IssueLinkedGitCommitSummaryDTO[] {
@@ -202,7 +196,7 @@ export class GenerationService {
    * Создание коммита в CAPITAL контракте
    * Возвращает полный объект коммита с обогащенными данными
    */
-  async createCommit(data: CreateCommitInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async createCommit(data: CreateCommitInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const commitEntity = await this.generationInteractor.createCommit(data, currentUser);
     return await this.commitMapperService.toDTO(commitEntity, currentUser);
   }
@@ -210,7 +204,7 @@ export class GenerationService {
   /**
    * Одобрение коммита в CAPITAL контракте
    */
-  async approveCommit(data: CommitApproveInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async approveCommit(data: CommitApproveInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitApproveDomainInput = {
       ...data,
       master: currentUser.username,
@@ -223,7 +217,7 @@ export class GenerationService {
   /**
    * Отклонение коммита в CAPITAL контракте
    */
-  async declineCommit(data: CommitDeclineInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async declineCommit(data: CommitDeclineInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitDeclineDomainInput = {
       ...data,
       master: currentUser.username,
@@ -238,7 +232,7 @@ export class GenerationService {
   /**
    * Создание истории
    */
-  async createStory(data: CreateStoryInputDTO, currentUser: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async createStory(data: CreateStoryInputDTO, currentUser: IMonoAccount): Promise<StoryOutputDTO> {
     // Проверяем права доступа на создание требования
     if (data.project_hash) {
       // Получаем проект и проверяем права на создание требования
@@ -376,7 +370,7 @@ export class GenerationService {
       return null;
     }
     const pathPrefix = project.isComponent() ? 'components' : 'projects';
-    const baseUrl = config.frontend_url.replace(/\/$/, '');
+    const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/${pathPrefix}/${encodeURIComponent(anchorProjectHash)}/requirements/${encodeURIComponent(story.story_hash)}`;
     const desktopUrl = `${baseUrl}/#${path}`;
     return [`${story.title}`, desktopUrl].join('\n');
@@ -495,7 +489,7 @@ export class GenerationService {
    */
   private async assertCanEditStoryRequirement(
     anchor: { project_hash?: string | null; issue_hash?: string | null },
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
       throw new Error('Требуется авторизация');
@@ -532,7 +526,7 @@ export class GenerationService {
    */
   private async assertCanDeleteStoryRequirement(
     story: Pick<StoryDomainEntity, 'project_hash' | 'issue_hash'>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     const projectHash = story.project_hash?.trim();
     if (projectHash) {
@@ -564,7 +558,7 @@ export class GenerationService {
   /**
    * Обновление истории
    */
-  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: IMonoAccount): Promise<StoryOutputDTO> {
     // Получаем существующую историю
     const existingStory = await this.storyRepository.findByStoryHash(data.story_hash);
 
@@ -645,7 +639,7 @@ export class GenerationService {
   async getStories(
     filter?: StoryFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<StoryOutputDTO>> {
     const emptyResult: PaginationResult<StoryOutputDTO> = {
       items: [],
@@ -803,15 +797,15 @@ export class GenerationService {
       };
     }
 
-    // Для остальных случаев (без project_hash/issue_hash) — стандартная пагинация только
-    // для председателя/члена совета. Обычным пайщикам общий список артефактов недоступен:
-    // обращение должно быть строго в скоупе проекта или задачи, где допуск проверен выше.
-    const role = currentUser?.role;
-    const isBoard = role === 'chairman' || role === 'member';
-    if (!isBoard) {
+    // Для остальных случаев (без project_hash/issue_hash) — общий список в границах допуска:
+    // председатель и член совета видят всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Это путь синхронизации рабочей копии, где проект заранее не назван.
+    const scope = await this.buildArtifactAccessScope(undefined, currentUser, new PermissionsLookupCache());
+    const listScope: ArtifactAccessScope | undefined = scope === 'denied' ? { projectHashes: [] } : scope;
+    if (listScope !== undefined && listScope.projectHashes.length === 0) {
       return emptyResult;
     }
-    const result = await this.storyRepository.findAllPaginated(filter, options);
+    const result = await this.storyRepository.findAllPaginated(filter, options, listScope);
     return {
       items: result.items as StoryOutputDTO[],
       totalCount: result.totalCount,
@@ -826,7 +820,7 @@ export class GenerationService {
    */
   async getStoryByHash(
     storyHash: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<StoryOutputDTO | null> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
@@ -852,7 +846,7 @@ export class GenerationService {
   /**
    * Удаление истории по хэшу
    */
-  async deleteStoryByHash(storyHash: string, currentUser: MonoAccountDomainInterface): Promise<boolean> {
+  async deleteStoryByHash(storyHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
       throw new Error(`История с хэшем ${storyHash} не найдена`);
@@ -874,7 +868,7 @@ export class GenerationService {
   async createIssue(
     data: CreateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const projectHash = data.project_hash?.trim() || null;
     const isFree = !projectHash;
@@ -998,7 +992,7 @@ export class GenerationService {
    */
   async moveIssueToComponent(
     data: MoveCapitalIssueToComponentInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const targetHash = data.target_project_hash.toLowerCase();
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1124,7 +1118,7 @@ export class GenerationService {
   async updateIssue(
     data: UpdateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     // Получаем существующую задачу
     const existingIssue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1291,14 +1285,28 @@ export class GenerationService {
   async getIssues(
     filter?: IssueFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<IssueOutputDTO>> {
-    // Получаем результат с пагинацией из домена
-    const result = await this.issueRepository.findAllPaginated(filter, options);
+    // Кэш справочных чтений — один на весь список (проект, допуск, участие переспрашиваются
+    // для каждой задачи заново).
+    const cache = new PermissionsLookupCache();
+
+    // Область доступа: совет видит всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Ограничение уходит в SQL, чтобы пагинация оставалась целой.
+    const scope = await this.buildArtifactAccessScope(filter?.project_hash, currentUser, cache);
+    if (scope === 'denied') {
+      return { items: [], totalCount: 0, currentPage: options?.page || 1, totalPages: 0 };
+    }
+
+    const result = await this.issueRepository.findAllPaginated(filter, options, scope);
     const visibleIssues = await this.filterAccessibleIssues(result.items, currentUser?.username);
 
     // Рассчитываем права доступа для всех задач пакетно
-    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(visibleIssues, currentUser);
+    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(
+      visibleIssues,
+      currentUser,
+      cache
+    );
 
     // Обогащаем задачи правами доступа
     const itemsWithPermissions = visibleIssues.map((issue) => {
@@ -1326,7 +1334,7 @@ export class GenerationService {
   /**
    * Получение задачи по ID
    */
-  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findById(data.id);
 
     if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
@@ -1347,7 +1355,7 @@ export class GenerationService {
   /**
    * Получение задачи по хэшу
    */
-  async getIssueByHash(issueHash: string, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueByHash(issueHash: string, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
 
     if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
@@ -1390,7 +1398,7 @@ export class GenerationService {
   async getCommits(
     filter?: CommitFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<CommitOutputDTO>> {
     const resolvedFilter = this.resolveCommitFilterForViewer(filter, currentUser);
 
@@ -1407,7 +1415,7 @@ export class GenerationService {
 
   private resolveCommitFilterForViewer(
     filter: CommitFilterInputDTO | undefined,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): CommitFilterInputDTO | undefined {
     if (!filter) {
       return filter;
@@ -1442,7 +1450,7 @@ export class GenerationService {
    */
   async getCommitById(
     data: GetCommitByIdInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findById(data.id);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
@@ -1451,7 +1459,7 @@ export class GenerationService {
   /**
    * Получение коммита по хэшу
    */
-  async getCommitByHash(commitHash: string, currentUser?: MonoAccountDomainInterface): Promise<CommitOutputDTO | null> {
+  async getCommitByHash(commitHash: string, currentUser?: IMonoAccount): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findByCommitHash(commitHash);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
   }
@@ -1504,12 +1512,12 @@ export class GenerationService {
   async generateGenerationMoneyInvestStatement(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Подготавливаем данные через интерактор
     const enrichedData = await this.investsManagementInteractor.prepareGenerationMoneyInvestStatementData(data, currentUser);
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
         registry_id: Cooperative.Registry.GenerationMoneyInvestStatement.registry_id,
@@ -1528,7 +1536,7 @@ export class GenerationService {
   ): Promise<GeneratedDocumentDTO> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестирования');
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,
@@ -1539,6 +1547,37 @@ export class GenerationService {
   }
 
   /** Чужие свободные / LOCAL-задачи не отдаём. */
+  /**
+   * Область доступа к артефактам для общих списков.
+   *
+   * Совет — `undefined` (ограничения нет). Остальным — проекты, где пайщик ведущий или получил
+   * допуск, плюс их компоненты. Если запрошен конкретный проект вне этого набора — `'denied'`:
+   * список пуст, содержимое чужого проекта не раскрывается даже количеством строк.
+   */
+  private async buildArtifactAccessScope(
+    requestedProjectHash: string | undefined,
+    currentUser: IMonoAccount | undefined,
+    cache: PermissionsLookupCache
+  ): Promise<ArtifactAccessScope | undefined | 'denied'> {
+    const accessible = await this.permissionsService.listAccessibleProjectHashes(
+      ProjectAction.VIEW_ARTIFACTS,
+      currentUser,
+      cache
+    );
+    if (accessible === null) {
+      return undefined;
+    }
+    const username = currentUser?.username;
+    const requested = requestedProjectHash?.trim().toLowerCase();
+    if (requested) {
+      if (!accessible.has(requested)) {
+        return 'denied';
+      }
+      return { projectHashes: [requested], username };
+    }
+    return { projectHashes: [...accessible], username };
+  }
+
   private async canAccessIssue(issue: IssueDomainEntity, username?: string): Promise<boolean> {
     if (!issue.project_hash?.trim()) {
       return canViewPrivateScopedIssue(issue, null, username);

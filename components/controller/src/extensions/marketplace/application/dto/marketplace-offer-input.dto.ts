@@ -16,7 +16,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_MAX_IMAGES,
   MARKETPLACE_OFFER_MAX_PACKAGES,
@@ -58,6 +58,16 @@ export class MarketplaceOfferPackageInputDTO {
   @IsString()
   @MaxLength(100)
   public readonly label?: string | null;
+
+  @Field(() => String, {
+    description:
+      'Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», ' +
+      '«картонная коробка», «корзинка (возвратная)». Заполняется своими словами.',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  public readonly package_type!: string;
 
   @Field(() => Boolean, { nullable: true, description: 'Упаковка по умолчанию (для витрины).' })
   @IsOptional()

@@ -8,7 +8,9 @@ const namespace = 'agendaStore';
 interface IAgendaStore {
   agenda: ComputedRef<IAgenda[]>
   loading: Ref<boolean>
+  refreshing: Ref<boolean>
   loadAgenda: (data: IGetAgendaInput, hidden?: boolean) => Promise<IAgenda[]>;
+  refresh: (data: IGetAgendaInput) => Promise<void>;
   insertCreated: (item: IAgenda) => void;
 }
 
@@ -51,6 +53,29 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
     }
   };
 
+  // Обновление повестки по требованию: кнопка в шапке и дозагрузка после
+  // действия пайщика. Живёт в сторе, а не на странице, потому что кнопка
+  // рендерится в топбаре — вне дерева страницы, — и оба пути обязаны делить
+  // одно состояние загрузки и один guard.
+  //
+  // Ошибку наружу не отдаём: обновление списка фоновое, и его падение не должно
+  // выглядеть как несостоявшееся действие пайщика (см. C28-41 — из-за этого
+  // таймаут обновления показывался как провал голоса).
+  const refreshing = ref(false)
+
+  const refresh = async (data: IGetAgendaInput): Promise<void> => {
+    if (refreshing.value) return
+
+    refreshing.value = true
+    try {
+      await loadAgenda(data, true)
+    } catch (e) {
+      console.error('[agenda] обновление повестки не удалось', e)
+    } finally {
+      refreshing.value = false
+    }
+  }
+
   // Оптимистично добавляет только что созданный вопрос (из ответа publish).
   const insertCreated = (item: IAgenda): void => {
     if (!item?.table?.id) return
@@ -63,7 +88,9 @@ export const useAgendaStore = defineStore(namespace, (): IAgendaStore => {
   return {
     agenda,
     loading,
+    refreshing,
     loadAgenda,
+    refresh,
     insertCreated
   }
 })

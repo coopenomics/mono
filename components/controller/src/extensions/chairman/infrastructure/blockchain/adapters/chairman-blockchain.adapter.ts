@@ -1,32 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SovietContract } from 'cooptypes';
 import { ChairmanBlockchainPort } from '../../../domain/interfaces/chairman-blockchain.port';
-import { type TransactResult } from '@wharfkit/session';
-import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
-import { Inject } from '@nestjs/common';
+
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ConfirmApproveDomainInput } from '../../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../../domain/actions/decline-approve-domain-input.interface';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { VAULT_PORT, type IVaultPort,
+  CHAIN_PORT,
+  type IChainPort,
+  type InnerTransactResult,
+} from '@coopenomics/innercoop';
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CHAIRMAN
- * Осуществляет взаимодействие с блокчейном через BlockchainService
+ * Осуществляет взаимодействие с блокчейном через IChainPort
  */
 @Injectable()
 export class ChairmanBlockchainAdapter implements ChairmanBlockchainPort {
   constructor(
-    private readonly blockchainService: BlockchainService,
+    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_PORT) private readonly vaultDomainService: IVaultPort
   ) {}
 
   /**
    * Подтвердить одобрение документа
    */
-  async confirmApprove(data: ConfirmApproveDomainInput): Promise<TransactResult> {
+  async confirmApprove(data: ConfirmApproveDomainInput): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 
@@ -54,7 +55,7 @@ export class ChairmanBlockchainAdapter implements ChairmanBlockchainPort {
   /**
    * Отклонить одобрение документа
    */
-  async declineApprove(data: DeclineApproveDomainInput): Promise<TransactResult> {
+  async declineApprove(data: DeclineApproveDomainInput): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
 

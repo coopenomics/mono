@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для перезапуска собрания
@@ -6,7 +6,7 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 export interface RestartAnnualGeneralMeetInputDomainInterface {
   coopname: string;
   hash: string;
-  newproposal: ISignedDocumentDomainInterface;
+  newproposal: ISignedDocument;
   new_open_at: Date;
   new_close_at: Date;
   /** Если передано — пишем в meet_pre нового hash; если в мутации не передано — details у нового pre пустой (старый pre не подмешиваем) */

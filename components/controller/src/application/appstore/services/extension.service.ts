@@ -8,17 +8,12 @@ import { ExtensionLogDTO } from '../dto/extension-log.dto';
 import { GetExtensionLogsInputDTO } from '../dto/get-extension-logs-input.dto';
 import { ExtensionInteractor } from '~/application/appstore/interactors/extension.interactor';
 import { ExtensionListingInteractor } from '~/application/appstore/interactors/extension-listing.interactor';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, PaginationInputDTO } from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
   LogExtensionPaginationResult,
-} from '~/domain/extension/interfaces/log-extension-domain.interface';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-
+} from '@coopenomics/extension-kit';
 /**
  * Application-слой, который:
  *  1) делегирует установку/удаление в старый интерактор
@@ -36,6 +31,9 @@ export class AppManagementService<TConfig = any> {
   async installApp(data: ExtensionGraphQLInput<TConfig>): Promise<ExtensionDTO<TConfig>> {
     // Приложение должно быть открыто для установки в текущей сети
     this.listingInteractor.assertInstallable(data.name);
+    // Возвращаем на место секреты, пришедшие маркером «задано» — до валидации:
+    // маркер не пройдёт проверку формата, а сохранение затёрло бы ключ.
+    data = { ...data, config: await this.listingInteractor.prepareConfigForSave(data.name, data.config) };
     // Валидируем конфиг
     this.listingInteractor.validateConfig(data.name, data.config);
     // Устанавливаем
@@ -53,6 +51,7 @@ export class AppManagementService<TConfig = any> {
 
   // Обновление
   async updateApp(data: ExtensionGraphQLInput<TConfig>): Promise<ExtensionDTO<TConfig>> {
+    data = { ...data, config: await this.listingInteractor.prepareConfigForSave(data.name, data.config) };
     this.listingInteractor.validateConfig(data.name, data.config);
     await this.extensionInteractor.updateApp(data);
 

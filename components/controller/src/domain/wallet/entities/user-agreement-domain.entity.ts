@@ -1,10 +1,10 @@
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import type {
   IUserAgreementBlockchainData,
   IProgramAgreement,
 } from '../interfaces/user-agreement-blockchain.interface';
 import type { IUserAgreementDatabaseData } from '../interfaces/user-agreement-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность owner'а программных соглашений (`wallet::users`, ADR-008 / Эпик 2).

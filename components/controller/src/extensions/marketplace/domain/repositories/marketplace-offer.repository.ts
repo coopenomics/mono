@@ -10,10 +10,7 @@ import type {
   MarketplaceOfferStatus,
   MarketplaceSaleForm,
 } from '../entities/marketplace-offer.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_OFFER_REPOSITORY = Symbol('MARKETPLACE_OFFER_REPOSITORY');
 
@@ -122,8 +119,8 @@ export interface MarketplaceOfferDomainRepository {
   findByIds(ids: string[]): Promise<MarketplaceOfferDomainEntity[]>;
   list(
     filter: OfferListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>>;
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>>;
   countByCategory(
     coopname: string,
     delivery_braname?: string | null

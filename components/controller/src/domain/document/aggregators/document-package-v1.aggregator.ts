@@ -1,4 +1,4 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DocumentAggregator } from './document.aggregator';
 import { DocumentPackageUtils } from './document-package-utils.aggregator';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
@@ -7,22 +7,24 @@ import {
   USER_CERTIFICATE_DOMAIN_SERVICE,
 } from '~/domain/user/services/user-certificate-domain.service';
 import { Cooperative, SovietContract } from 'cooptypes';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import type { DocumentPackageAggregateDomainInterface } from '../interfaces/document-package-aggregate-domain.interface';
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
 import type { DecisionDetailAggregateDomainInterface } from '../interfaces/decision-detail-aggregate-domain.interface';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/interfaces/extended-blockchain-action-domain.interface';
 
 @Injectable()
 export class DocumentPackageV1Aggregator {
   constructor(
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => DocumentPackageUtils)) private readonly documentPackageUtils: DocumentPackageUtils,
-    @Inject(forwardRef(() => ACCOUNT_DOMAIN_SERVICE)) private readonly accountDomainService: AccountDomainService,
-    @Inject(forwardRef(() => USER_CERTIFICATE_DOMAIN_SERVICE))
-    private readonly userCertificateService: UserCertificateDomainService
+    // `forwardRef` снят: циклов между агрегаторами документов нет (FC1-18).
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentPackageUtils) private readonly documentPackageUtils: DocumentPackageUtils,
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
+    @Inject(USER_CERTIFICATE_DOMAIN_SERVICE)
+    private readonly userCertificateService: UserCertificateDomainService,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   /**
@@ -97,7 +99,7 @@ export class DocumentPackageV1Aggregator {
     };
 
     // signatures уже есть в rawData.document
-    const signedMainDoc: ISignedDocumentDomainInterface = {
+    const signedMainDoc: ISignedDocument = {
       version: rawData.document.version,
       hash: rawData.document.hash,
       doc_hash: rawData.document.doc_hash,
@@ -127,18 +129,11 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<DecisionDetailAggregateDomainInterface | null> {
-    const decisionActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewDecision.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 1,
+    const decisionAction = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewDecision.actionName,
+      data: { package: String(rawData.package).toUpperCase() },
     });
-
-    const decisionAction = decisionActionResponse?.results?.[0];
     if (!decisionAction) return null;
 
     const account = await this.accountDomainService.getPrivateAccount(decisionAction.data?.username);
@@ -164,7 +159,7 @@ export class DocumentPackageV1Aggregator {
     }
 
     // signatures уже есть в decisionAction.data.document
-    const signedDecisionDoc: ISignedDocumentDomainInterface = {
+    const signedDecisionDoc: ISignedDocument = {
       version: decisionAction.data?.document?.version,
       hash: decisionAction.data?.document?.hash,
       doc_hash: decisionAction.data?.document?.doc_hash,
@@ -196,16 +191,15 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<DecisionDetailAggregateDomainInterface[]> {
-    const actsActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
+    const actsActionResponse = await this.actionHistory.find(
+      {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Registry.NewAct.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 100, // Получаем до 100 актов для пакета
-    });
+        data: { package: String(rawData.package).toUpperCase() },
+      },
+      1,
+      100 // Получаем до 100 актов для пакета
+    );
 
     const actsResults = actsActionResponse?.results || [];
     const actsDetails: DecisionDetailAggregateDomainInterface[] = [];
@@ -234,7 +228,7 @@ export class DocumentPackageV1Aggregator {
       }
 
       // signatures уже есть в actAction.data.document
-      const signedActDoc: ISignedDocumentDomainInterface = {
+      const signedActDoc: ISignedDocument = {
         version: actAction.data?.document?.version,
         hash: actAction.data?.document?.hash,
         doc_hash: actAction.data?.document?.doc_hash,
@@ -287,7 +281,7 @@ export class DocumentPackageV1Aggregator {
     const agreementDocument = await this.findLinkedAgreementDocument(linkHash);
     if (!agreementDocument) return null;
 
-    const signedLinkedDoc: ISignedDocumentDomainInterface = {
+    const signedLinkedDoc: ISignedDocument = {
       version,
       hash: linkedDoc.hash,
       doc_hash: linkedDoc.hash,
@@ -318,32 +312,22 @@ export class DocumentPackageV1Aggregator {
   ): Promise<{ meta_hash: string; meta: string; signatures: any[] } | null> {
     const docHashFilter = String(linkHash.toUpperCase());
 
-    const sovietAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewAgreement.actionName,
-        receiver: process.env.COOPNAME,
-        'data.document.doc_hash': docHashFilter,
-      }),
-      page: 1,
-      limit: 1,
+    const sovietAgreement = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewAgreement.actionName,
+      data: { 'document.doc_hash': docHashFilter },
     });
 
-    const sovietDocument = sovietAgreement?.results?.[0]?.data?.document;
+    const sovietDocument = sovietAgreement?.data?.document;
     if (sovietDocument) return sovietDocument;
 
-    const resolvedAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewResolved.actionName,
-        receiver: process.env.COOPNAME,
-        'data.document.doc_hash': docHashFilter,
-      }),
-      page: 1,
-      limit: 1,
+    const resolvedAgreement = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewResolved.actionName,
+      data: { 'document.doc_hash': docHashFilter },
     });
 
-    const resolvedDocument = resolvedAgreement?.results?.[0]?.data?.document;
+    const resolvedDocument = resolvedAgreement?.data?.document;
     if (resolvedDocument) return resolvedDocument;
 
     return null;
@@ -358,16 +342,15 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<void> {
-    const linksActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
+    const linksActionResponse = await this.actionHistory.find(
+      {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Registry.NewLink.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 10000, // Получаем до 10000 связанных документов для пакета
-    });
+        data: { package: String(rawData.package).toUpperCase() },
+      },
+      1,
+      10000 // Получаем до 10000 связанных документов для пакета
+    );
 
     const linksResults = linksActionResponse?.results || [];
 

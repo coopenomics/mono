@@ -6,14 +6,18 @@
 // (wallet::signagree), эта страница только показывает пакет и редиректит
 // в мастер.
 //
-// Фикстура: ivanpetrov (Иван Сергеевич Петров) — может быть уже подписан
-// после прошлых сценариев. Если страница покажет «уже подключены» —
-// требуется --reboot.
+// Пайщик берётся свежий из пула, а не из рабочих фикстур: страница онбординга
+// существует ровно до подписи оферты. После неё грант `Onboarding:orderer` не
+// выдаётся вовсе (провайдер отдаёт полный набор orderer-прав), маршрут
+// пропадает и роутер уводит на `/permission-denied` — сценарий падал бы на
+// собственном заголовке. Рабочим фикстурам оферту подписывает фаза
+// `marketplace:05-sign-offer`, поэтому им сюда нельзя.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loginAs, env, cleanViteOverlays } from '../../../lib/harness.mjs';
+import { freshGateFixture } from '../../../lib/fixtures.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,11 +31,11 @@ export const meta = {
   docPath: 'new/marketplace/onboarding/member-pick-cpp.md',
   assetsDir: 'assets/new/marketplace/onboarding/member-pick-cpp',
   role: 'user',
-  fixture: 'ivanpetrov',
 };
 
 export default async ({ page, shot }) => {
-  const fixture = loadFixture('ivanpetrov');
+  const username = freshGateFixture({ log: (m) => console.log(`  ${m}`) });
+  const fixture = loadFixture(username);
   await loginAs(page, fixture);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 

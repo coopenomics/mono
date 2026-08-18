@@ -2,8 +2,8 @@ import { Field, InputType } from '@nestjs/graphql';
 import {
   NotificationOutboxStatus,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import './notification-enums';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /** Фильтры журнала уведомлений (стол председателя). */
 @InputType('NotificationsFilterInput')

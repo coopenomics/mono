@@ -79,4 +79,10 @@ export class SegmentFilterInputDTO {
     description: 'Фильтр по parent_hash проекта (для фильтрации по проектам верхнего уровня передайте пустой хэш)',
   })
   parent_hash?: string;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description: 'Только доли компонентов (true) или только доли проектов верхнего уровня (false)',
+  })
+  is_component?: boolean;
 }

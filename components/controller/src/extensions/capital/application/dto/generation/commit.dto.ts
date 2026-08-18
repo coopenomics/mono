@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 import { CommitStatus } from '../../../domain/enums/commit-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { BaseProjectOutputDTO } from '../project_management/project.dto';
 
 /**

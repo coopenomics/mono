@@ -1,6 +1,5 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseMechanics } from '../../domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum';
@@ -9,6 +8,7 @@ import { ExpenseItemOutputDTO } from './expense-item.output';
 import type { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import type { IExpenseItemBlockchainData } from '../../domain/interfaces/expense-proposal-blockchain.interface';
 import type { ExpenseProposalDocumentAggregates } from '../services/expenses-management.service';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * Output DTO СЗ-расхода. Сборка из доменной сущности через `fromDomain`.

@@ -9,21 +9,21 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import {
-  InterFileStorageBackendUnavailableError,
-  InterFileStorageBucketNotConfiguredError,
-  InterFileStorageMetadataValidationError,
-  InterFileStorageMimeRejectedError,
-  InterFileStorageObjectNotFoundError,
-  InterFileStorageObjectTooLargeError,
-  type InterFileStorageBody,
-  type InterFileStorageBucket,
-  type InterFileStorageBucketSpec,
-  type InterFileStorageGetReadUrlOptions,
-  type InterFileStorageObjectMetadata,
-  type InterFileStoragePort,
-  type InterFileStoragePutOptions,
-  type InterFileStoragePutResult,
-} from '@coopenomics/inter';
+  InnerFileStorageBackendUnavailableError,
+  InnerFileStorageBucketNotConfiguredError,
+  InnerFileStorageMetadataValidationError,
+  InnerFileStorageMimeRejectedError,
+  InnerFileStorageObjectNotFoundError,
+  InnerFileStorageObjectTooLargeError,
+  type InnerFileStorageBody,
+  type InnerFileStorageBucket,
+  type InnerFileStorageBucketSpec,
+  type InnerFileStorageGetReadUrlOptions,
+  type InnerFileStorageObjectMetadata,
+  type IFileStoragePort,
+  type InnerFileStoragePutOptions,
+  type InnerFileStoragePutResult,
+} from '@coopenomics/innercoop';
 import { BucketRegistry } from './bucket-registry';
 import {
   FILE_STORAGE_DEFAULT_URL_TTL_SECONDS,
@@ -42,16 +42,16 @@ import { signReadUrl } from './signing';
 const READ_URL_STABILIZATION_WINDOW_SECONDS = 300;
 
 /**
- * Адаптер `InterFileStoragePort` поверх MinIO/S3. Реализация одна и та же для обоих —
+ * Адаптер `IFileStoragePort` поверх MinIO/S3. Реализация одна и та же для обоих —
  * различается только `endpoint` и `forcePathStyle`. На bootstrap идемпотентно создаёт
- * физический бакет, дальше отдаёт `InterFileStorageBucket`-хэндлы по спекам.
+ * физический бакет, дальше отдаёт `InnerFileStorageBucket`-хэндлы по спекам.
  *
  * URL чтения формируется на собственный домен контроллера (служебная ручка `/api/storage/...`),
  * подписывается HMAC-SHA256 секретом из конфига. При переходе на нативный S3 здесь же
  * можно начать возвращать настоящие S3 presigned URL — контракт строки не меняется.
  */
 @Injectable()
-export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicationBootstrap {
+export class MinioFileStorageAdapter implements IFileStoragePort, OnApplicationBootstrap {
   private readonly logger = new Logger(MinioFileStorageAdapter.name);
   private readonly s3: S3Client | null;
   private readonly enabled: boolean;
@@ -95,7 +95,7 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
 
   private assertEnabled(): S3Client {
     if (!this.enabled || !this.s3) {
-      throw new InterFileStorageBackendUnavailableError(
+      throw new InnerFileStorageBackendUnavailableError(
         'File storage не сконфигурирован: MINIO_ENDPOINT пуст. Задайте переменную окружения, чтобы включить загрузку/чтение файлов.',
       );
     }
@@ -109,7 +109,7 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
       return;
     } catch (e) {
       if (!isNotFound(e)) {
-        throw new InterFileStorageBackendUnavailableError(
+        throw new InnerFileStorageBackendUnavailableError(
           `HeadBucket(${this.opts.bucket}) не удался: ${getMessage(e)}`,
           { cause: asError(e) },
         );
@@ -119,14 +119,14 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
       await s3.send(new CreateBucketCommand({ Bucket: this.opts.bucket }));
       this.logger.log(`Создан физический бакет '${this.opts.bucket}'`);
     } catch (e) {
-      throw new InterFileStorageBackendUnavailableError(
+      throw new InnerFileStorageBackendUnavailableError(
         `CreateBucket(${this.opts.bucket}) не удался: ${getMessage(e)}`,
         { cause: asError(e) },
       );
     }
   }
 
-  getBucket(spec: InterFileStorageBucketSpec): InterFileStorageBucket {
+  getBucket(spec: InnerFileStorageBucketSpec): InnerFileStorageBucket {
     const s3 = this.assertEnabled();
     validateSpec(spec);
     return new MinioBucketHandle(s3, this.opts, spec);
@@ -135,7 +135,7 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
   /**
    * Внутренний fetch для HTTP-ручки `/api/storage/:bucket/:key` (E59-4).
    * `physicalKey` — это уже собранный ключ S3-объекта вида `<extension>-<purpose>/<caller-key>`.
-   * @throws InterFileStorageObjectNotFoundError, InterFileStorageBackendUnavailableError
+   * @throws InnerFileStorageObjectNotFoundError, InnerFileStorageBackendUnavailableError
    */
   async fetchObjectForReadProxy(physicalKey: string): Promise<FileStorageObjectStream> {
     const s3 = this.assertEnabled();
@@ -151,21 +151,21 @@ export class MinioFileStorageAdapter implements InterFileStoragePort, OnApplicat
       };
     } catch (e) {
       if (isNotFound(e)) {
-        throw new InterFileStorageObjectNotFoundError(`Объект '${physicalKey}' не найден`);
+        throw new InnerFileStorageObjectNotFoundError(`Объект '${physicalKey}' не найден`);
       }
       throw wrapBackendError(e, `getObject '${physicalKey}'`);
     }
   }
 }
 
-class MinioBucketHandle implements InterFileStorageBucket {
+class MinioBucketHandle implements InnerFileStorageBucket {
   private readonly publicBucketName: string;
   private readonly defaultTtlSeconds: number;
 
   constructor(
     private readonly s3: S3Client,
     private readonly opts: FileStorageInfrastructureOptions,
-    private readonly spec: InterFileStorageBucketSpec,
+    private readonly spec: InnerFileStorageBucketSpec,
   ) {
     this.publicBucketName = spec.name.replace(/:/g, '-');
     this.defaultTtlSeconds =
@@ -178,11 +178,11 @@ class MinioBucketHandle implements InterFileStorageBucket {
 
   async put(
     key: string,
-    body: InterFileStorageBody,
-    opts: InterFileStoragePutOptions,
-  ): Promise<InterFileStoragePutResult> {
+    body: InnerFileStorageBody,
+    opts: InnerFileStoragePutOptions,
+  ): Promise<InnerFileStoragePutResult> {
     if (!this.spec.allowedMime.includes(opts.contentType)) {
-      throw new InterFileStorageMimeRejectedError(
+      throw new InnerFileStorageMimeRejectedError(
         `MIME '${opts.contentType}' не входит в allowedMime бакета '${this.spec.name}'`,
       );
     }
@@ -210,7 +210,7 @@ class MinioBucketHandle implements InterFileStorageBucket {
     }
   }
 
-  async getReadUrl(key: string, opts?: InterFileStorageGetReadUrlOptions): Promise<string> {
+  async getReadUrl(key: string, opts?: InnerFileStorageGetReadUrlOptions): Promise<string> {
     const ttl = opts?.ttlSeconds ?? this.defaultTtlSeconds;
     // Округляем exp вверх к границе окна стабилизации: один и тот же объект
     // при повторных запросах даёт идентичный URL (см.
@@ -243,7 +243,7 @@ class MinioBucketHandle implements InterFileStorageBucket {
     }
   }
 
-  async head(key: string): Promise<InterFileStorageObjectMetadata> {
+  async head(key: string): Promise<InnerFileStorageObjectMetadata> {
     try {
       const r = await this.s3.send(
         new HeadObjectCommand({ Bucket: this.opts.bucket, Key: this.physicalKey(key) }),
@@ -257,7 +257,7 @@ class MinioBucketHandle implements InterFileStorageBucket {
       };
     } catch (e) {
       if (isNotFound(e)) {
-        throw new InterFileStorageObjectNotFoundError(
+        throw new InnerFileStorageObjectNotFoundError(
           `Объект '${this.spec.name}/${key}' не найден`,
         );
       }
@@ -271,7 +271,7 @@ class MinioBucketHandle implements InterFileStorageBucket {
       if (kind !== 'required') continue;
       const value = metadata?.[field];
       if (!value) {
-        throw new InterFileStorageMetadataValidationError(
+        throw new InnerFileStorageMetadataValidationError(
           `Метаданное '${field}' обязательно для бакета '${this.spec.name}'`,
         );
       }
@@ -281,7 +281,7 @@ class MinioBucketHandle implements InterFileStorageBucket {
 
 /**
  * Результат внутреннего fetch для HTTP-ручки `/api/storage/...`.
- * Не часть публичного `InterFileStoragePort` — только для proxy-стрима внутри контроллера.
+ * Не часть публичного `IFileStoragePort` — только для proxy-стрима внутри контроллера.
  */
 export interface FileStorageObjectStream {
   stream: NodeJS.ReadableStream;
@@ -290,32 +290,32 @@ export interface FileStorageObjectStream {
   lastModified: Date;
 }
 
-function validateSpec(spec: InterFileStorageBucketSpec): void {
+function validateSpec(spec: InnerFileStorageBucketSpec): void {
   if (!spec.name || !spec.name.includes(':')) {
-    throw new InterFileStorageBucketNotConfiguredError(
+    throw new InnerFileStorageBucketNotConfiguredError(
       `BucketSpec.name должен иметь формат '<extension>:<purpose>', получено '${spec.name}'`,
     );
   }
   if (!Number.isFinite(spec.maxBytes) || spec.maxBytes <= 0) {
-    throw new InterFileStorageBucketNotConfiguredError(
+    throw new InnerFileStorageBucketNotConfiguredError(
       `BucketSpec.maxBytes должно быть положительным конечным числом, получено ${spec.maxBytes}`,
     );
   }
   if (!spec.allowedMime || spec.allowedMime.length === 0) {
-    throw new InterFileStorageBucketNotConfiguredError(
+    throw new InnerFileStorageBucketNotConfiguredError(
       `BucketSpec.allowedMime должен содержать хотя бы один MIME-тип`,
     );
   }
 }
 
 async function materializeAndCheckSize(
-  body: InterFileStorageBody,
+  body: InnerFileStorageBody,
   maxBytes: number,
   specName: string,
 ): Promise<Buffer> {
   if (body instanceof Uint8Array) {
     if (body.byteLength > maxBytes) {
-      throw new InterFileStorageObjectTooLargeError(
+      throw new InnerFileStorageObjectTooLargeError(
         `Размер ${body.byteLength} байт превышает лимит ${maxBytes} бакета '${specName}'`,
       );
     }
@@ -343,7 +343,7 @@ async function materializeAndCheckSize(
           } catch {
             // ignore
           }
-          throw new InterFileStorageObjectTooLargeError(
+          throw new InnerFileStorageObjectTooLargeError(
             `Размер тела превышает лимит ${maxBytes} бакета '${specName}'`,
           );
         }
@@ -352,7 +352,7 @@ async function materializeAndCheckSize(
     }
     return Buffer.concat(chunks);
   }
-  throw new InterFileStorageBackendUnavailableError(
+  throw new InnerFileStorageBackendUnavailableError(
     `Неподдерживаемый тип тела для бакета '${specName}'`,
   );
 }
@@ -375,8 +375,8 @@ function isNotFound(e: unknown): boolean {
   return false;
 }
 
-function wrapBackendError(e: unknown, op: string): InterFileStorageBackendUnavailableError {
-  return new InterFileStorageBackendUnavailableError(`${op}: ${getMessage(e)}`, {
+function wrapBackendError(e: unknown, op: string): InnerFileStorageBackendUnavailableError {
+  return new InnerFileStorageBackendUnavailableError(`${op}: ${getMessage(e)}`, {
     cause: asError(e),
   });
 }

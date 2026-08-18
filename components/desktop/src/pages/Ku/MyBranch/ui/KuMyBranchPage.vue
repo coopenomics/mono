@@ -16,6 +16,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useBranchStore } from 'src/entities/Branch/model';
+import { findChairedBranch } from 'src/entities/Branch/lib';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
@@ -40,21 +41,20 @@ const loading = ref(true);
 // председателю участка braname устанавливается автоматически при избрании,
 // fallback по председательству — для участков, учреждённых до автопривязки
 const myBraname = computed(() => {
-  const selected = account.account?.participant_account?.braname;
+  const selected = session.currentUserAccount?.participant_account?.braname;
   if (selected) return selected;
-  const chaired = branchStore.publicBranches.find(
-    (item: any) => item.trustee_certificate?.username === session.username,
-  ) as any;
-  return chaired?.braname ?? '';
+  return findChairedBranch(branchStore.publicBranches, session.username)?.braname ?? '';
 });
 
 onMounted(async () => {
   loading.value = true;
   try {
-    await Promise.all([
+    const [, refreshed] = await Promise.all([
       branchStore.loadPublicBranches({ coopname: system.info.coopname }),
       account.getAccount(session.username),
     ]);
+    // свой аккаунт держит сессия — она источник истины для «моих» экранов
+    if (refreshed) session.setCurrentUserAccount(refreshed);
   } catch (e: unknown) {
     FailAlert(e);
   } finally {

@@ -1,2 +1,2 @@
 // Re-export from shared sync
-export { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
+export { BaseBlockchainRepository } from '@coopenomics/extension-kit/sync';

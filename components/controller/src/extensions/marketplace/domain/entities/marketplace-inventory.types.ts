@@ -1,3 +1,5 @@
+import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
+
 /**
  * Story 5.5: типы инвентарной записи — внутренний штрих-код имущества на КУ.
  *
@@ -158,6 +160,14 @@ export interface MarketplaceInventoryProps {
    * База цены при публикации остатка; nullable для записей до введения остатка.
    */
   arrival_price: string | null;
+  /**
+   * Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере
+   * (`arrival_price` за базовую единицу), >0 — упаковкой (`arrival_price` за
+   * упаковку, `quantity_per_label` кратно этому значению).
+   */
+  package_size?: number;
+  /** Базовая единица измерения имущества (штука/килограмм/литр). */
+  unit_of_measure?: MarketplaceUnitOfMeasure;
   /** Оффер кооператива, которым позиция остатка опубликована в каталог; NULL — не опубликована. */
   published_offer_id: string | null;
   /** Заказ из остатка, под который позиция зарезервирована; NULL — свободна. */

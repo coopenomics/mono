@@ -83,7 +83,10 @@ export function workspaceBasePath(project: ProjectPathModel, projectByHash: Read
   }
   const parent = projectByHash.get(parentRef)
   if (!parent) {
-    throw new Error(`Родительский проект ${parentRef} не найден для компонента ${project.project_hash}`)
+    // Родителя нет в выборке — так бывает, когда доступ выдан на компонент, а не на проект
+    // целиком, либо при pull одного компонента. Кладём его верхним уровнем: это честнее,
+    // чем упасть и не синхронизировать доступное.
+    return name
   }
   const parentBase = workspaceBasePath(parent, projectByHash)
   return `${parentBase}/components/${name}`
@@ -96,6 +99,8 @@ export function projectFileRelativePath(project: ProjectPathModel, projectByHash
     const name = `${capitalIdPathPrefix(project.capital_id)}-${slug || 'unnamed-project'}`
     return `${name}/project.md`
   }
+  // Если родитель вне выборки, base уже свёлся к верхнему уровню — каталог компонента
+  // становится собственным workspace, и component.md лежит в нём же.
   const base = workspaceBasePath(project, projectByHash)
   return `${base}/component.md`
 }

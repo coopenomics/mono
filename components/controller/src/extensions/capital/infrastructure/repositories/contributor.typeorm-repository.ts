@@ -5,18 +5,13 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import { ContributorMapper } from '../mappers/contributor.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import type { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ContributorTypeormRepository
@@ -117,10 +112,10 @@ export class ContributorTypeormRepository
 
   async findAllPaginated(
     filter?: ContributorFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ContributorDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ContributorDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

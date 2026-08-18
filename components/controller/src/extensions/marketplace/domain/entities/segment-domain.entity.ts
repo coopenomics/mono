@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { RequestType } from './request-domain.entity';
 
 /**
@@ -26,29 +26,29 @@ export enum NetworkSegmentStatus {
  * Документы сегмента (из блокчейна)
  */
 export class SegmentDocuments {
-  public readonly contributeProductStatement?: ISignedDocumentDomainInterface;
-  public readonly returnProductStatement?: ISignedDocumentDomainInterface;
+  public readonly contributeProductStatement?: ISignedDocument;
+  public readonly returnProductStatement?: ISignedDocument;
   public readonly contributionProductDecisionId?: number;
-  public readonly contributionProductAuthorization?: ISignedDocumentDomainInterface;
+  public readonly contributionProductAuthorization?: ISignedDocument;
   public readonly returnProductDecisionId?: number;
-  public readonly returnProductAuthorization?: ISignedDocumentDomainInterface;
-  public readonly productContributionAct?: ISignedDocumentDomainInterface;
-  public readonly productContributionActValidation?: ISignedDocumentDomainInterface;
-  public readonly productReceiveAct?: ISignedDocumentDomainInterface;
-  public readonly productReceiveActValidation?: ISignedDocumentDomainInterface;
+  public readonly returnProductAuthorization?: ISignedDocument;
+  public readonly productContributionAct?: ISignedDocument;
+  public readonly productContributionActValidation?: ISignedDocument;
+  public readonly productReceiveAct?: ISignedDocument;
+  public readonly productReceiveActValidation?: ISignedDocument;
 
   constructor(
     data: {
-      contributeProductStatement?: ISignedDocumentDomainInterface;
-      returnProductStatement?: ISignedDocumentDomainInterface;
+      contributeProductStatement?: ISignedDocument;
+      returnProductStatement?: ISignedDocument;
       contributionProductDecisionId?: number;
-      contributionProductAuthorization?: ISignedDocumentDomainInterface;
+      contributionProductAuthorization?: ISignedDocument;
       returnProductDecisionId?: number;
-      returnProductAuthorization?: ISignedDocumentDomainInterface;
-      productContributionAct?: ISignedDocumentDomainInterface;
-      productContributionActValidation?: ISignedDocumentDomainInterface;
-      productReceiveAct?: ISignedDocumentDomainInterface;
-      productReceiveActValidation?: ISignedDocumentDomainInterface;
+      returnProductAuthorization?: ISignedDocument;
+      productContributionAct?: ISignedDocument;
+      productContributionActValidation?: ISignedDocument;
+      productReceiveAct?: ISignedDocument;
+      productReceiveActValidation?: ISignedDocument;
     } = {}
   ) {
     this.contributeProductStatement = data.contributeProductStatement;

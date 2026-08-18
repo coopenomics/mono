@@ -1,15 +1,12 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import {
-  AGREEMENT_QUERY_PORT,
-  AgreementQueryPort,
-} from '~/domain/registration/ports/agreement-query.port';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 
 import { MARKETPLACE_OFFER_AGREEMENT_ID } from '../../constants/marketplace-agreement-ids';
 import { MarketplaceRegistrationOfferStatusDTO } from '../dto/marketplace-registration-offer-status.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { AGREEMENT_CATALOG_PORT, type IAgreementCatalogPort } from '@coopenomics/innercoop';
 
 /**
  * Story 1.10: Query видимости marketplace-оферты в registration-flow.
@@ -17,17 +14,17 @@ import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.gua
  * Открыт всем активным пайщикам (admin UI использует, чтобы рисовать
  * статус «Оферта зарегистрирована в registration-flow»).
  *
- * Запись попадает в реестр автоматически из `MarketplacePlugin.initialize`
+ * Запись попадает в реестр автоматически из `MarketplaceExtension.initialize`
  * (Story 1.2 + Story 1.7 — `port.registerAgreement`). Story 1.9.accept также
- * делает re-register на случай, если до установки template (Story 1.7) Plugin
+ * делает re-register на случай, если до установки template (Story 1.7) Extension
  * уже отработал init и пропустил регистрацию.
  */
 @Resolver()
 @Injectable()
 export class MarketplaceRegistrationOfferResolver {
   constructor(
-    @Inject(AGREEMENT_QUERY_PORT)
-    private readonly agreementQueryPort: AgreementQueryPort
+    @Inject(AGREEMENT_CATALOG_PORT)
+    private readonly agreementQueryPort: IAgreementCatalogPort
   ) {}
 
   @Query(() => MarketplaceRegistrationOfferStatusDTO, {

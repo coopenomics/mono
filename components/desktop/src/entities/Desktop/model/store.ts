@@ -192,6 +192,49 @@ export const useDesktopStore = defineStore(namespace, () => {
     return !roles || roles.length === 0 || roles.includes(currentUserRole());
   }
 
+  /**
+   * Имя стола, которому принадлежит маршрут: среди `matched`-имён ищем то,
+   * что объявлено столом на бэкенде (родительский маршрут стола назван так же,
+   * как workspace). Общий хелпер для гарда — и проверки доступа, и поиска шлюза.
+   */
+  function workspaceNameFromRoute(
+    matchedRouteNames: Array<string | symbol | null | undefined>,
+  ): string | undefined {
+    const wsNames = new Set(
+      (currentDesktop.value?.workspaces ?? []).map((w) => w.name),
+    );
+    return matchedRouteNames
+      .filter((n): n is string | symbol => n != null)
+      .map(String)
+      .find((n) => wsNames.has(n));
+  }
+
+  /**
+   * Страница-шлюз стола, доступная пайщику сейчас (`meta.gate` + выданное
+   * `requires`), либо `null`.
+   *
+   * Нужна навигационному гарду: пайщик без допуска в стол просит рабочую
+   * страницу (из меню, по ссылке, из истории браузера) — вести его на глухое
+   * «Недостаточно прав доступа» неверно, потому что допуск он получает сам,
+   * на шлюзе. Инцидент 2026-08-11: заказчик подписал оферту ЦПП ещё при
+   * регистрации, но пункт выдачи не выбирал, поэтому `Order:create` не выдан;
+   * заход на каталог давал отказ вместо страницы подключения к Столу заказов.
+   *
+   * Ищем именно по `meta.gate`, а не «первую доступную страницу»: порядок
+   * маршрутов в install.ts — деталь оформления, и рабочая страница, случайно
+   * оказавшаяся первой, увела бы пайщика мимо шлюза.
+   */
+  function gateRouteFor(workspaceName: string): { name: string } | null {
+    const ws = workspaceMenus.value.find((m) => m.workspaceName === workspaceName);
+    const children = (ws?.mainRoute?.children ?? []) as RouteRecordRaw[];
+    const gate = children.find(
+      (c) =>
+        (c.meta as RouteMeta | undefined)?.gate === true &&
+        isPageVisible(c.meta as RouteMeta, workspaceName),
+    );
+    return gate?.name ? { name: String(gate.name) } : null;
+  }
+
   // Доступ к маршруту для навигационного гарда. В grant-столе глушит только при
   // явном невыполненном `requires`; нет требования → пускаем (настоящий
   // enforcement — на резолверах бэкенда). Для legacy — по `meta.roles`.
@@ -199,13 +242,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     matchedRouteNames: Array<string | symbol | null | undefined>,
     meta: RouteMeta | undefined,
   ): boolean {
-    const wsNames = new Set(
-      (currentDesktop.value?.workspaces ?? []).map((w) => w.name),
-    );
-    const wsName = matchedRouteNames
-      .filter((n): n is string | symbol => n != null)
-      .map(String)
-      .find((n) => wsNames.has(n));
+    const wsName = workspaceNameFromRoute(matchedRouteNames);
     const grants = wsName ? workspaceGrants(wsName) : undefined;
     if (grants !== undefined) {
       const requires = (meta as any)?.requires as string | undefined;
@@ -484,7 +521,14 @@ export const useDesktopStore = defineStore(namespace, () => {
       }
     }
 
-    // Иначе — первый ДОСТУПНЫЙ дочерний маршрут стола.
+    // Дефолт закрыт — значит допуска в стол нет. Сначала пробуем шлюз стола
+    // (`meta.gate`): именно на нём допуск и получают. Только потом — первая
+    // доступная страница, порядок которой в install.ts случаен.
+    const gate = gateRouteFor(activeWorkspaceName.value as string);
+    if (gate) {
+      return { name: gate.name, params: { coopname: info.coopname } };
+    }
+
     const firstVisible = children.find((c) =>
       isPageVisible(c.meta as RouteMeta, activeWorkspaceName.value as string),
     );
@@ -546,6 +590,8 @@ export const useDesktopStore = defineStore(namespace, () => {
     isPageVisible,
     isWorkspaceVisible,
     hasRouteAccess,
+    workspaceNameFromRoute,
+    gateRouteFor,
     firstAccessibleRoute,
     activeWorkspaceName,
     selectWorkspace,

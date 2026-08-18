@@ -5,12 +5,9 @@ import type {
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');
 
@@ -95,8 +92,8 @@ export interface MarketplaceOrderDomainRepository
 
   list(
     filter: MarketplaceOrderListFilter,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOrderDomainEntity>>;
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOrderDomainEntity>>;
 
   /**
    * Backend-only status transition (например `ACCEPTED → CANCELLED_BY_ORDERER`,
@@ -185,7 +182,7 @@ export interface MarketplaceOrderDomainRepository
       signiss1_tx_hash: string;
       current_warehouse_braname: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocumentDomainInterface;
+      issue_act_signiss1_document: ISignedDocument;
     }
   ): Promise<MarketplaceOrderDomainEntity>;
 

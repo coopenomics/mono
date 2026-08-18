@@ -5,21 +5,15 @@ import { ProjectRepository } from '../../domain/repositories/project.repository'
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { ProjectMapper } from '../mappers/project.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
-import { AssetUtils } from '~/shared/utils/asset.utils';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.
@@ -394,10 +388,10 @@ export class ProjectTypeormRepository
 
   async findAllPaginated(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -493,10 +487,11 @@ export class ProjectTypeormRepository
    */
   async findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -601,6 +596,15 @@ export class ProjectTypeormRepository
       }
 
       queryBuilder = queryBuilder.andWhere(existsQuery, params);
+    }
+
+    // Ограничение правами доступа к артефактам. Отсев в SQL, иначе постраничные
+    // totalCount/totalPages считаются по недоступным проектам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      queryBuilder = queryBuilder.andWhere('lower(p.project_hash) = ANY(CAST(:scopeHashes AS text[]))', {
+        scopeHashes,
+      });
     }
 
     // Получаем общее количество записей

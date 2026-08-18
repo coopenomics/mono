@@ -4,26 +4,19 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { INDIVIDUAL_REPOSITORY, type IndividualRepository } from '~/domain/common/repositories/individual.repository';
-import {
-  PAYMENT_METHOD_REPOSITORY,
-  type PaymentMethodRepository,
-} from '~/domain/common/repositories/payment-method.repository';
-import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
-import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
-import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
-import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import config from '~/config/config';
-import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  BRANCH_PORT,
+  type IBranchPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {
   KU_TRUST_REQUEST_REPOSITORY,
   type KuTrustRequestRepository,
 } from '../../domain/repositories/ku-trust-request.repository';
+import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { ORGANIZATION_PORT, INDIVIDUAL_PORT, type IOrganizationPort, type IIndividualPort } from '@coopenomics/innercoop';
 
 /**
  * Событийные реакции собраний кооперативных участков:
@@ -35,24 +28,24 @@ import {
 @Injectable()
 export class KuEventsService {
   constructor(
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
-    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
-    @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
-    @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
-    @Inject(PAYMENT_METHOD_REPOSITORY) private readonly paymentMethodRepository: PaymentMethodRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(BRANCH_PORT) private readonly branchBlockchainPort: IBranchPort,
+    @Inject(ORGANIZATION_PORT) private readonly organizationRepository: IOrganizationPort,
+    @Inject(INDIVIDUAL_PORT) private readonly individualRepository: IIndividualPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethodPort: IPaymentMethodPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(KuEventsService.name);
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::startdec`)
-  async handleVotingStarted(actionData: ActionDomainInterface): Promise<void> {
+  async handleVotingStarted(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision) {
@@ -69,7 +62,7 @@ export class KuEventsService {
         coopShortName,
         meetPlace: decision.meet_place || '',
         closeAtTime,
-        meetingUrl: `${config.frontend_url}/${action.coopname}/ku/meetings/${decision.hash}`,
+        meetingUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/meetings/${decision.hash}`,
       };
 
       let sent = 0;
@@ -105,7 +98,7 @@ export class KuEventsService {
     if (!subscriberId || !email) return false;
 
     await this.notificationPort.notify({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       workflowId,
       to: { subscriberId, email, username },
       payload,
@@ -124,14 +117,14 @@ export class KuEventsService {
 
       for (const meeting of meetings) {
         // окно [now, now+65m): шлём, когда до начала остался час или меньше
-        const coopShortName = await this.accountPort.getDisplayName(config.coopname).catch(() => config.coopname);
+        const coopShortName = await this.accountPort.getDisplayName(platformSettings().coopname).catch(() => platformSettings().coopname);
         const payload: Workflows.BranchMeetingReminder.IPayload = {
           coopShortName,
           meetPlace: meeting.meet_place || '',
           meetAtTime: meeting.meet_at
             ? new Date(meeting.meet_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
             : '',
-          meetingUrl: `${config.frontend_url}/${config.coopname}/ku/meetings/${meeting.hash}`,
+          meetingUrl: `${platformSettings().frontendUrl}/${platformSettings().coopname}/ku/meetings/${meeting.hash}`,
         };
 
         let sent = 0;
@@ -152,10 +145,10 @@ export class KuEventsService {
 
   /** Новая заявка доверенного → уведомление председателю участка */
   @OnEvent(`action::${BranchContract.contractName.production}::reqtrusted`)
-  async handleTrustedRequested(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedRequested(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; braname: string; username: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const branch = await this.branchBlockchainPort.getBranch(action.coopname, action.braname);
       if (!branch?.trustee) {
@@ -168,7 +161,7 @@ export class KuEventsService {
       const payload: Workflows.BranchTrustedRequested.IPayload = {
         coopShortName,
         applicantName,
-        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${action.braname}`,
+        branchUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/branches/${action.braname}`,
       };
 
       await this.notifyUser(branch.trustee, Workflows.BranchTrustedRequested.id, payload);
@@ -179,20 +172,20 @@ export class KuEventsService {
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
-  async handleTrustedApproved(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedApproved(actionData: InnerChainActionRecord): Promise<void> {
     await this.notifyTrustedResolved(actionData, 'одобрена');
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
-  async handleTrustedDeclined(actionData: ActionDomainInterface): Promise<void> {
+  async handleTrustedDeclined(actionData: InnerChainActionRecord): Promise<void> {
     await this.notifyTrustedResolved(actionData, 'отклонена');
   }
 
   /** Решение председателя по заявке доверенного → уведомление заявителю */
-  private async notifyTrustedResolved(actionData: ActionDomainInterface, resolution: string): Promise<void> {
+  private async notifyTrustedResolved(actionData: InnerChainActionRecord, resolution: string): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const request = await this.trustRequestRepository.findByHash(action.hash);
       if (!request?.username) {
@@ -204,7 +197,7 @@ export class KuEventsService {
       const payload: Workflows.BranchTrustedResolved.IPayload = {
         coopShortName,
         resolution,
-        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${request.braname}`,
+        branchUrl: `${platformSettings().frontendUrl}/${action.coopname}/ku/branches/${request.braname}`,
       };
 
       await this.notifyUser(request.username, Workflows.BranchTrustedResolved.id, payload);
@@ -215,10 +208,10 @@ export class KuEventsService {
   }
 
   @OnEvent(`action::${BranchContract.contractName.production}::confirmdec`)
-  async handleBranchEstablished(actionData: ActionDomainInterface): Promise<void> {
+  async handleBranchEstablished(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as { coopname: string; hash: string };
-      if (action.coopname !== config.coopname) return;
+      if (action.coopname !== platformSettings().coopname) return;
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision?.braname || !decision.chairman) {
@@ -235,10 +228,10 @@ export class KuEventsService {
         return;
       }
 
-      const trustee = new IndividualDomainEntity(await this.individualRepository.findByUsername(decision.chairman));
+      const trustee = await this.individualRepository.findByUsername(decision.chairman);
       const branchName = decision.branch_name || decision.braname;
 
-      const combinedData = new OrganizationDomainEntity({
+      const combinedData = {
         ...cooperative,
         short_name: `КУ «${branchName}»`,
         full_name: `Кооперативный Участок «${branchName}»`,
@@ -251,25 +244,23 @@ export class KuEventsService {
           position: 'председатель кооперативного участка',
         },
         username: decision.braname,
-      });
+      };
 
       await this.organizationRepository.create(combinedData);
 
-      const cooperativeBank = await this.paymentMethodRepository.get({
+      const cooperativeBank = await this.paymentMethodPort.get({
         username: action.coopname,
         method_type: 'bank_transfer',
         is_default: true,
       });
 
-      await this.paymentMethodRepository.save(
-        new PaymentMethodDomainEntity({
-          username: decision.braname,
-          method_id: randomUUID().toString(),
-          method_type: 'bank_transfer',
-          data: cooperativeBank.data,
-          is_default: true,
-        })
-      );
+      await this.paymentMethodPort.save({
+        username: decision.braname,
+        method_id: randomUUID().toString(),
+        method_type: 'bank_transfer',
+        data: cooperativeBank.data,
+        is_default: true,
+      });
 
       this.logger.log(`confirmdec ${action.hash}: создана карточка участка ${decision.braname} («${branchName}»)`);
     } catch (error: any) {

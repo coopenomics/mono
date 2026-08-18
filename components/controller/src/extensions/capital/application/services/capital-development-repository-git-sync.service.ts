@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import { GitCommitMarkersSyncService } from './git-commit-markers-sync.service';
 import {
   GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,

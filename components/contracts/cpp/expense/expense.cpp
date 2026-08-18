@@ -260,7 +260,7 @@ void expense::payexp(name coopname, checksum256 proposal_hash, checksum256 item_
   const auto code = static_cast<D::Mechanics>(paid_mechanics) == D::Mechanics::ADVANCE
     ? ops.advance
     : ops.direct;
-  Ledger2::apply(get_self(), coopname, code, actual_amount,
+  Ledger2::apply(get_self(), coopname, code, processes::expense::PROPOSAL, actual_amount,
                  paid_recipient, proposal_hash, "expense:payexp");
 }
 
@@ -307,7 +307,8 @@ void expense::reportexp(name coopname, checksum256 proposal_hash, checksum256 it
   // Подотчёт числится на получателе аванса — его username и закрывает burn.
   // Полный возврат аванса (actual == 0) — burn не нужен, подотчёт уже пуст.
   if (item_amount.amount > 0) {
-    Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).report, item_amount,
+    Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).report,
+                   processes::expense::PROPOSAL, item_amount,
                    item_recipient, proposal_hash, "expense:reportexp");
   }
 }
@@ -375,7 +376,8 @@ void expense::returnexp(name coopname, checksum256 proposal_hash, checksum256 it
 
   // ledger2: TRANSFER подотчёт → пул-источник (зеркало выдачи аванса).
   // Подотчёт снимается с получателя аванса.
-  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).refund, return_amount,
+  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).refund,
+                 processes::expense::PROPOSAL, return_amount,
                  item_recipient, proposal_hash, "expense:returnexp");
 }
 
@@ -420,6 +422,7 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
 
   // ledger2: доплата перерасхода — TRANSFER пул-источник → подотчёт получателя
   // (зеркало выдачи аванса на сумму доплаты). Закрытие на полную сумму — в reportexp.
-  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).overspend, overspend_amount,
+  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).overspend,
+                 processes::expense::PROPOSAL, overspend_amount,
                  item_recipient, proposal_hash, "expense:overspend");
 }

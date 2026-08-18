@@ -27,9 +27,12 @@
   branch_index branches(_branch, coopname.value);
 
   // председатель может возглавлять только один кооперативный участок
-  auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
-  eosio::check(branches_by_trustee.find(dec.chairman.value) == branches_by_trustee.end(),
-               "Избранный председатель уже является председателем другого кооперативного участка");
+  // (на тестнете ограничение снято — см. ENFORCE_SINGLE_BRANCH_TRUSTEE)
+  if (ENFORCE_SINGLE_BRANCH_TRUSTEE) {
+    auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
+    eosio::check(branches_by_trustee.find(dec.chairman.value) == branches_by_trustee.end(),
+                 "Избранный председатель уже является председателем другого кооперативного участка");
+  }
 
   branches.emplace(coopname, [&](auto &row) {
     row.braname = dec.braname;

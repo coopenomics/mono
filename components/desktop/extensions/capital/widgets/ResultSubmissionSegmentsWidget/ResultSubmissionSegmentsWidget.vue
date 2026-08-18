@@ -50,7 +50,7 @@
               span.t-sm.t-muted {{ Number(segment.share_percent || 0).toFixed(2) }}%
 
         .result-segments__side(@click.stop)
-          BaseBadge(:variant='statusVariant(segment)') {{ shortStatus(segment) }}
+          BaseBadge(:variant='getSegmentStatusVariant(segment)') {{ getSegmentShortStatus(segment) }}
           slot(name='actions', :segment='segment')
 
       .result-segments__details(v-if='expanded[segment.username]')
@@ -71,8 +71,10 @@ import { useSystemStore } from 'src/entities/System/model';
 import { Zeus } from '@coopenomics/sdk';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
-import type { BaseBadgeVariant } from 'src/shared/ui/base';
-import { getSegmentStatusLabel } from 'app/extensions/capital/shared/lib/segmentStatus';
+import {
+  getSegmentShortStatus,
+  getSegmentStatusVariant,
+} from 'app/extensions/capital/shared/lib/segmentStatus';
 
 interface Props {
   projectHash: string;
@@ -136,50 +138,6 @@ const calculateBlagorost = (segment: ISegment) => {
 const formatMetric = (amount: string | number) => {
   const value = parseFloat(String(amount || '0'));
   return formatAsset2Digits(`${value} ${governSymbol.value}`);
-};
-
-const shortStatus = (segment: ISegment) => {
-  if (segment.is_completed) return 'Получен';
-  switch (segment.status) {
-    case Zeus.SegmentStatus.GENERATION:
-      return 'Расчёт';
-    case Zeus.SegmentStatus.READY:
-      return 'Готов';
-    case Zeus.SegmentStatus.STATEMENT:
-      return 'На рассмотрении';
-    case Zeus.SegmentStatus.APPROVED:
-      return 'Одобрен';
-    case Zeus.SegmentStatus.AUTHORIZED:
-      return 'Подпись пайщика';
-    case Zeus.SegmentStatus.ACT1:
-      return 'Подпись председателя';
-    case Zeus.SegmentStatus.CONTRIBUTED:
-      return 'Принят';
-    case Zeus.SegmentStatus.FINALIZED:
-      return 'Завершён';
-    default:
-      return getSegmentStatusLabel(segment.status, segment.is_completed, segment);
-  }
-};
-
-const statusVariant = (segment: ISegment): BaseBadgeVariant => {
-  if (segment.is_completed) return 'pos';
-  switch (segment.status) {
-    case Zeus.SegmentStatus.GENERATION:
-      return 'warn';
-    case Zeus.SegmentStatus.READY:
-      return 'info';
-    case Zeus.SegmentStatus.STATEMENT:
-    case Zeus.SegmentStatus.APPROVED:
-    case Zeus.SegmentStatus.AUTHORIZED:
-    case Zeus.SegmentStatus.ACT1:
-      return 'info';
-    case Zeus.SegmentStatus.CONTRIBUTED:
-    case Zeus.SegmentStatus.FINALIZED:
-      return 'pos';
-    default:
-      return 'neutral';
-  }
 };
 
 const loadProjectSegments = async () => {

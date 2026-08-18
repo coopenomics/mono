@@ -4,7 +4,15 @@ import { GraphQLModule } from '@nestjs/graphql';
 import config from '~/config/config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { docDirectiveTransformer } from './directives/doc.directive';
-import { GraphQLError, GraphQLFormattedError } from 'graphql';
+import {
+  DirectiveLocation,
+  GraphQLDirective,
+  GraphQLError,
+  GraphQLFormattedError,
+  GraphQLList,
+  GraphQLNonNull,
+  GraphQLString,
+} from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
 import * as jwt from 'jsonwebtoken';
@@ -20,6 +28,24 @@ function extractBearerToken(raw: unknown): string | null {
   return match ? match[1] : raw;
 }
 
+/**
+ * Объявление директивы `@auth`, которую ставит декоратор `AuthRoles`.
+ *
+ * Объявление обязательно: без него graphql-tools отбрасывает аргументы, о
+ * которых не знает, — директива продолжает работать, но «молча» теряет часть
+ * условий доступа. Именно так потерялся `self`, пока директива держалась на
+ * одном лишь `roles`.
+ */
+const authDirective = new GraphQLDirective({
+  name: 'auth',
+  description: 'Роли кооператива и пути принадлежности, открывающие поле его владельцу',
+  locations: [DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
+  args: {
+    roles: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) },
+    self: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) },
+  },
+});
+
 @Global()
 @Module({
   imports: [
@@ -27,6 +53,7 @@ function extractBearerToken(raw: unknown): string | null {
       driver: ApolloDriver,
       introspection: true,
       autoSchemaFile: 'schema.gql',
+      buildSchemaOptions: { directives: [authDirective] },
       sortSchema: true,
       debug: config.env !== 'production',
       // context: ({ req }) => req,

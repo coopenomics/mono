@@ -1,14 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IConfig } from '../../types';
+import { EXTENSION_CONFIG_PORT, type IExtensionConfigPort } from '@coopenomics/innercoop';
 
 /**
  * Чтение конфига расширения «Стол заказов».
  *
- * Почему через `ModuleRef`, а не обычной инъекцией: `ExtensionDomainModule`
+ * Почему через `ModuleRef`, а не обычной инъекцией: ``
  * нельзя импортировать в модуль расширения — получается цикл
- * `AppModule → ExtensionDomainModule → ExtensionsModule → MarketplacePluginModule
+ * `AppModule → → ExtensionsModule → MarketplaceExtensionModule
  * → MarketplaceExtensionApplicationModule`. Прежний обход — `@Optional()`
  * инъекция — цикл действительно разрывал, но молча подставлял `null`: сервис
  * никогда не видел конфига и всегда отдавал значения по умолчанию. Для
@@ -21,34 +20,11 @@ import type { IConfig } from '../../types';
 @Injectable()
 export class MarketplaceExtensionConfigService {
   private readonly logger = new Logger(MarketplaceExtensionConfigService.name);
-  private resolved: ExtensionDomainService | null = null;
-  private warned = false;
 
-  constructor(private readonly moduleRef: ModuleRef) {}
-
-  private extensionService(): ExtensionDomainService | null {
-    if (this.resolved) return this.resolved;
-    try {
-      this.resolved = this.moduleRef.get(ExtensionDomainService, { strict: false });
-    } catch {
-      // Один раз на процесс: иначе лог зальётся при каждом обращении.
-      if (!this.warned) {
-        this.warned = true;
-        this.logger.error(
-          'ExtensionDomainService недоступен: настройки расширения «Стол заказов» читаться не будут, ' +
-            'поведение откатится на значения по умолчанию.'
-        );
-      }
-      return null;
-    }
-    return this.resolved;
-  }
+  constructor(@Inject(EXTENSION_CONFIG_PORT) private readonly extensionConfig: IExtensionConfigPort) {}
 
   /** Конфиг расширения; `null` — расширение не установлено либо сервис недоступен. */
   async get(): Promise<IConfig | null> {
-    const service = this.extensionService();
-    if (!service) return null;
-    const extension = await service.getAppByName('market');
-    return (extension?.config as IConfig | undefined) ?? null;
+    return this.extensionConfig.get<IConfig>('market');
   }
 }

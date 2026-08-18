@@ -30,7 +30,7 @@ export function useFioCache() {
     await Promise.allSettled(
       usernames.map(async (username) => {
         try {
-          const acc = await accountStore.getAccount(username)
+          const acc = await accountStore.fetchAccount(username)
           if (acc?.account_kind) kindCache.value.set(username, acc.account_kind)
           const pd = acc?.private_account
           if (!pd) return

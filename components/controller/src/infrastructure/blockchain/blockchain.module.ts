@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
 import { EventsInfrastructureModule } from '../events/events.module';
@@ -18,7 +19,6 @@ import { SovietBlockchainAdapter } from './adapters/soviet-blockchain.adapter';
 import { SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetBlockchainAdapter } from './adapters/meet-blockchain.adapter';
-import { DomainToBlockchainUtils } from '../../shared/utils/domain-to-blockchain.utils';
 import { GatewayBlockchainAdapter } from './adapters/gateway-blockchain.adapter';
 import { WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
 import { GATEWAY_BLOCKCHAIN_PORT } from '~/domain/gateway/ports/gateway-blockchain.port';
@@ -30,6 +30,8 @@ import { LEDGER2_BLOCKCHAIN_PORT } from '~/domain/ledger2/ports/ledger2-blockcha
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockchain-archive-retention.service';
 
 @Global()
 @Module({
@@ -38,6 +40,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,
+    DraftRegistrySyncService,
     BlockchainRepeatService,
     {
       provide: BLOCKCHAIN_PORT,
@@ -88,6 +91,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
   exports: [
     RpcPool,
@@ -108,6 +112,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
 })
 export class BlockchainModule {}

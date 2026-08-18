@@ -11,6 +11,7 @@ import { Organization } from './Organization'
 import { PaymentMethod } from './PaymentMethod'
 import type { ExternalIndividualData } from './Individual'
 import { Individual } from './Individual'
+import type { IChainDataSource } from '../DataSource'
 
 export type CooperativeData = CooperativeApi.Model.ICooperativeData
 export type MembersData = CooperativeApi.Model.MembersData
@@ -21,7 +22,11 @@ export class Cooperative {
 
   private data_service: DataService<CooperativeData>
 
-  constructor(storage: MongoDBConnector) {
+  /**
+   * Источник данных цепи передаётся снаружи: модель не должна знать, откуда
+   * читаются реквизиты кооператива — из базы узла или прямыми запросами.
+   */
+  constructor(storage: MongoDBConnector, private readonly chain: IChainDataSource) {
     this.db = storage
     this.cooperative = null
     this.data_service = new DataService<CooperativeData>(storage, 'cooperatives')
@@ -35,16 +40,14 @@ export class Cooperative {
     if (!organizationPrivateData)
       throw new Error('Информация о организации не обнаружена в базе данных.')
 
-    const cooperative_response = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': RegistratorContract.contractName.production,
-        'scope': RegistratorContract.contractName.production,
-        'table': RegistratorContract.Tables.Cooperatives.tableName,
-        'value.username': username,
-      }),
-    }))
-
-    const cooperativeBlockchainData = cooperative_response.results[0]?.value as RegistratorContract.Tables.Cooperatives.ICooperative
+    const cooperativeBlockchainData = (await this.chain.getTableRows<RegistratorContract.Tables.Cooperatives.ICooperative>({
+      code: RegistratorContract.contractName.production,
+      scope: RegistratorContract.contractName.production,
+      table: RegistratorContract.Tables.Cooperatives.tableName,
+      filter: { username },
+      ...(block_num ? { block_num } : {}),
+      limit: 1,
+    }))[0]
 
     if (!cooperativeBlockchainData)
       throw new Error('Информация о кооперативе не обнаружена в базе данных.')
@@ -57,16 +60,14 @@ export class Cooperative {
       is_enrolled: Boolean(cooperativeBlockchainData.is_enrolled),
     }
 
-    const soviet_response = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': SovietContract.contractName.production,
-        'scope': username,
-        'table': SovietContract.Tables.Boards.tableName,
-        'value.type': 'soviet',
-      }),
-    }))
-
-    const soviet = soviet_response.results[0]?.value as SovietContract.Tables.Boards.IBoards
+    const soviet = (await this.chain.getTableRows<SovietContract.Tables.Boards.IBoards>({
+      code: SovietContract.contractName.production,
+      scope: username,
+      table: SovietContract.Tables.Boards.tableName,
+      filter: { type: 'soviet' },
+      ...(block_num ? { block_num } : {}),
+      limit: 1,
+    }))[0]
 
     if (!soviet)
       throw new Error('Совет кооператива не обнаружен в базе данных.')

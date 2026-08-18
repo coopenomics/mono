@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { GetDeltasInteractor } from '../interactors/get-deltas.interactor';
 import type { DeltaFilterDomainInterface } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import type { DeltaDomainInterface } from '~/domain/parser/interfaces/delta-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { DeltaDTO } from '../dto/delta.dto';
 import type { DeltaFiltersInputDTO } from '../dto/delta-filters-input.dto';
 

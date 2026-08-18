@@ -1,5 +1,4 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { UserRepository, USER_REPOSITORY } from '../repositories/user.repository';
 import type { UserDomainEntity } from '../entities/user-domain.entity';
@@ -19,6 +18,7 @@ import type {
 export const USER_DOMAIN_SERVICE = Symbol('UserDomainService');
 import { userStatus } from '~/types/user.types';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 /**
  * Доменный сервис для работы с пользователями

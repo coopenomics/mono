@@ -8,6 +8,30 @@ import {
 } from '../../domain/entities/marketplace-category.entity';
 import { MarketplaceCategoryEntity } from '../entities/marketplace-category.entity';
 import { MarketplaceCategoryMapper } from '../mappers/marketplace-category.mapper';
+import {
+  CATEGORY_NAME_TAKEN,
+  UX_CATEGORY_DISPLAY_NAME,
+} from '../../constants/marketplace-category.constants';
+
+/** Сколько раз пересчитываем номер при проигранной гонке за MAX(id)+1. */
+const CREATE_ATTEMPTS = 3;
+
+/** Код нарушения уникальности в PostgreSQL. */
+const PG_UNIQUE_VIOLATION = '23505';
+
+const violatedConstraint = (e: unknown): string | null => {
+  const driver = (e as { driverError?: { code?: string; constraint?: string } })?.driverError;
+  if (driver?.code !== PG_UNIQUE_VIOLATION) return null;
+  return driver.constraint ?? '';
+};
+
+const isDisplayNameConflict = (e: unknown): boolean =>
+  violatedConstraint(e) === UX_CATEGORY_DISPLAY_NAME;
+
+const isPrimaryKeyConflict = (e: unknown): boolean => {
+  const constraint = violatedConstraint(e);
+  return constraint !== null && constraint !== UX_CATEGORY_DISPLAY_NAME;
+};
 
 @Injectable()
 export class MarketplaceCategoryRepositoryAdapter
@@ -49,30 +73,60 @@ export class MarketplaceCategoryRepositoryAdapter
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async existsByDisplayName(displayName: string): Promise<boolean> {
+    // Регистронезависимо и по всему справочнику: имя категории уникально
+    // глобально, а не в пределах кооператива. Условие повторяет выражение
+    // уникального индекса `ux_marketplace_category_display_name_lower`,
+    // иначе проверка и индекс разойдутся.
+    const found = await this.repo
+      .createQueryBuilder('c')
+      .where('lower(c.display_name) = lower(:name)', { name: displayName })
+      .getCount();
+    return found > 0;
+  }
+
   async createCustom(
     coopname: string,
     displayName: string
   ): Promise<MarketplaceCategoryDomainEntity> {
-    // baseline занимает фиксированные id 1..9; кастомные нумеруем поверх максимума.
-    // sort_order также наследует максимум — новая категория уходит в конец списка.
-    const max = await this.repo
-      .createQueryBuilder('c')
-      .select('MAX(c.id)', 'maxId')
-      .addSelect('MAX(c.sort_order)', 'maxSort')
-      .getRawOne<{ maxId: number | null; maxSort: number | null }>();
+    // Идентификатор считается как MAX(id)+1, поэтому две одновременные вставки
+    // претендуют на один и тот же номер: проигравшая падает на первичном ключе.
+    // Это не конфликт имён, а гонка нумерации — её пересчитываем и повторяем.
+    for (let attempt = 0; attempt < CREATE_ATTEMPTS; attempt++) {
+      // baseline занимает фиксированные id 1..9; кастомные нумеруем поверх максимума.
+      // sort_order также наследует максимум — новая категория уходит в конец списка.
+      const max = await this.repo
+        .createQueryBuilder('c')
+        .select('MAX(c.id)', 'maxId')
+        .addSelect('MAX(c.sort_order)', 'maxSort')
+        .getRawOne<{ maxId: number | null; maxSort: number | null }>();
 
-    const nextId = Number(max?.maxId ?? 0) + 1;
-    const nextSort = Number(max?.maxSort ?? 0) + 1;
+      const nextId = Number(max?.maxId ?? 0) + 1;
+      const nextSort = Number(max?.maxSort ?? 0) + 1;
 
-    const row = this.repo.create({
-      id: nextId,
-      display_name: displayName,
-      sort_order: nextSort,
-      mvp_baseline: false,
-      coopname,
-    });
-    const saved = await this.repo.save(row);
-    return this.mapper.toDomain(saved);
+      const row = this.repo.create({
+        id: nextId,
+        display_name: displayName,
+        sort_order: nextSort,
+        mvp_baseline: false,
+        coopname,
+      });
+
+      try {
+        const saved = await this.repo.save(row);
+        return this.mapper.toDomain(saved);
+      } catch (e) {
+        if (isDisplayNameConflict(e)) {
+          // Второй запрос с тем же названием прошёл проверку сервиса и упёрся
+          // в индекс — отказ тот же, что и при проверке.
+          throw new Error(CATEGORY_NAME_TAKEN);
+        }
+        if (!isPrimaryKeyConflict(e) || attempt === CREATE_ATTEMPTS - 1) {
+          throw e;
+        }
+      }
+    }
+    throw new Error(CATEGORY_NAME_TAKEN);
   }
 
   async deleteCustom(coopname: string, id: number): Promise<boolean> {

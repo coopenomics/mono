@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { config as appConfig } from '~/config';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import type { CreateProjectInputDTO } from '../dto/project_management';
-import type { TransactResult } from '@wharfkit/session';
 import type {
   SetMasterInputDTO,
   AddAuthorInputDTO,
@@ -17,16 +15,20 @@ import type {
 } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { PaginationInputDTO, PaginationResult,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { canViewLocalProject } from '../../domain/utils/private-project-access';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
+import { PermissionsService } from './permissions.service';
+import { ProjectAction } from '../../domain/services/access-policy.service';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 /**
  * Сервис уровня приложения для управления проектами CAPITAL
@@ -38,15 +40,15 @@ export class ProjectManagementService {
 
   constructor(
     private readonly projectManagementInteractor: ProjectManagementInteractor,
-    private readonly documentInteractor: DocumentInteractor,
     private readonly projectMapperService: ProjectMapperService,
-    private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService
+    private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
+    private readonly permissionsService: PermissionsService
   ) {}
 
   /**
    * Создание проекта в CAPITAL контракте
    */
-  async createProject(data: CreateProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
+  async createProject(data: CreateProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.createProject(data, currentUser);
   }
 
@@ -55,7 +57,7 @@ export class ProjectManagementService {
    */
   async createLocalProject(
     data: CreateProjectInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.createLocalProject(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
@@ -64,7 +66,7 @@ export class ProjectManagementService {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: EditProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
+  async editProject(data: EditProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     if (currentUser.role === 'user') {
       const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
       if (!project) {
@@ -82,14 +84,14 @@ export class ProjectManagementService {
   /**
    * Установка мастера проекта CAPITAL контракта
    */
-  async setMaster(data: SetMasterInputDTO, currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
+  async setMaster(data: SetMasterInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.setMaster(data, currentUser);
   }
 
   /**
    * Добавление автора проекта CAPITAL контракта
    */
-  async addAuthor(data: AddAuthorInputDTO, currentUser: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async addAuthor(data: AddAuthorInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.addAuthor(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -97,7 +99,7 @@ export class ProjectManagementService {
   /**
    * Установка плана проекта CAPITAL контракта
    */
-  async setPlan(data: SetPlanInputDTO, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async setPlan(data: SetPlanInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     // Находим проект для проверки прав
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!project) {
@@ -125,7 +127,7 @@ export class ProjectManagementService {
   /**
    * Запуск проекта CAPITAL контракта
    */
-  async startProject(data: StartProjectInputDTO, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async startProject(data: StartProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.startProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -133,7 +135,7 @@ export class ProjectManagementService {
   /**
    * Открытие проекта для инвестиций CAPITAL контракта
    */
-  async openProject(data: OpenProjectInputDTO, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async openProject(data: OpenProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.openProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -141,7 +143,7 @@ export class ProjectManagementService {
   /**
    * Закрытие проекта от инвестиций CAPITAL контракта
    */
-  async closeProject(data: CloseProjectInputDTO, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async closeProject(data: CloseProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.closeProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -149,7 +151,7 @@ export class ProjectManagementService {
   /**
    * Остановка проекта CAPITAL контракта
    */
-  async stopProject(data: StopProjectInputDTO, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async stopProject(data: StopProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.stopProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -158,7 +160,7 @@ export class ProjectManagementService {
    * Финализация проекта CAPITAL контракта
    * Финализация проекта после завершения всех конвертаций участников
    */
-  async finalizeProject(data: FinalizeProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async finalizeProject(data: FinalizeProjectInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.finalizeProject(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -166,7 +168,7 @@ export class ProjectManagementService {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectInputDTO): Promise<TransactResult> {
+  async deleteProject(data: DeleteProjectInputDTO): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.deleteProject(data);
   }
 
@@ -175,7 +177,7 @@ export class ProjectManagementService {
    */
   async setDevelopmentRepositoryUrl(
     data: SetCapitalProjectDevelopmentRepositoryUrlInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
@@ -207,7 +209,7 @@ export class ProjectManagementService {
       await this.projectManagementInteractor.setDevelopmentRepositoryUrl(project.project_hash, normalized);
     }
 
-    const coopname = project.coopname?.trim() || appConfig.coopname;
+    const coopname = project.coopname?.trim() || platformSettings().coopname;
     if (previousNormalizedKey !== nextNormalizedKey) {
       void this.capitalDevelopmentRepositoryGitSync
         .runAfterDevelopmentRepositoryUrlChange({
@@ -236,10 +238,10 @@ export class ProjectManagementService {
   async getProjects(
     filter?: ProjectFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<ProjectOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.projectManagementInteractor.getProjects(filter, domainOptions);
@@ -265,13 +267,30 @@ export class ProjectManagementService {
   async getProjectsWithComponents(
     filter?: ProjectFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<ProjectOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
+
+    // Каталог проектов кооператива открыт всем пайщикам — он и нужен, чтобы попросить допуск.
+    // Флаг only_with_artifact_access сужает выборку до проектов, документы которых пайщику
+    // разрешено читать: так рабочую копию синхронизирует не только председатель.
+    let scope: ArtifactAccessScope | undefined;
+    if (filter?.only_with_artifact_access === true) {
+      const accessible = await this.permissionsService.listAccessibleProjectHashes(
+        ProjectAction.VIEW_ARTIFACTS,
+        currentUser
+      );
+      if (accessible !== null) {
+        if (accessible.size === 0) {
+          return { items: [], totalCount: 0, totalPages: 0, currentPage: options?.page || 1 };
+        }
+        scope = { projectHashes: [...accessible], username: currentUser?.username };
+      }
+    }
 
     // Получаем результат с пагинацией из домена
-    const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions);
+    const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions, scope);
     const visible = this.filterAccessibleProjects(result.items, currentUser?.username);
 
     // Маппим проекты с компонентами в DTO с правами доступа
@@ -291,7 +310,7 @@ export class ProjectManagementService {
   /**
    * Получение проекта по ID
    */
-  async getProjectById(_id: string, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO | null> {
+  async getProjectById(_id: string, currentUser?: IMonoAccount): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectById(_id);
 
     if (!project || !canViewLocalProject(project, currentUser?.username)) {
@@ -304,7 +323,7 @@ export class ProjectManagementService {
   /**
    * Получение проекта по хешу
    */
-  async getProjectByHash(hash: string, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO | null> {
+  async getProjectByHash(hash: string, currentUser?: IMonoAccount): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectByHash(hash);
 
     if (!project || !canViewLocalProject(project, currentUser?.username)) {
@@ -319,7 +338,7 @@ export class ProjectManagementService {
    */
   async getProjectByHashWithComponents(
     hash: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectByHashWithComponents(hash);
 
@@ -335,7 +354,7 @@ export class ProjectManagementService {
    */
   async getProjectWithRelations(
     projectHash: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectWithRelations(projectHash);
 

@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 export interface MeetQuestionResultDomainInterface {
   question_id: number;
@@ -21,5 +21,5 @@ export interface MeetDecisionDomainInterface {
   signed_ballots: number;
   quorum_percent: number;
   quorum_passed: boolean;
-  decision: ISignedDocumentDomainInterface;
+  decision: ISignedDocument;
 }

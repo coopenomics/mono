@@ -9,7 +9,7 @@ import {
   type MarketplaceReturnClaimProps,
   type MarketplaceReturnClaimStatus,
 } from './marketplace-return-claim.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Эпик 7: домен заявления на гарантийный возврат. Backend ведёт state
@@ -35,7 +35,7 @@ export class MarketplaceReturnClaimDomainEntity {
   /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата пайщику. */
   public readonly fee_refund: string;
   public readonly photos: MarketplaceReturnClaimPhoto[];
-  public readonly statement: ISignedDocumentDomainInterface | null;
+  public readonly statement: ISignedDocument | null;
   public readonly submretrn_tx_hash: string;
   public decision_log: MarketplaceReturnClaimDecisionLogEntry[];
   public on_site_inspection: MarketplaceReturnClaimOnSiteInspection | null;

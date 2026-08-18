@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 /**
@@ -66,7 +66,7 @@ export interface MarketplaceStockProposalItem {
    * (signiss2) одной кнопкой; на финализации бэкенд создаёт заказ из остатка и
    * проводит обе подписи. Хранится в jsonb строки бандла.
    */
-  signiss1_act?: ISignedDocumentDomainInterface;
+  signiss1_act?: ISignedDocument;
 }
 
 export interface MarketplaceStockProposalProps {

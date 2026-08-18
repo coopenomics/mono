@@ -5,21 +5,19 @@ import { SegmentRepository } from '../../domain/repositories/segment.repository'
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { SegmentMapper } from '../mappers/segment.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
+import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils } from '@coopenomics/extension-kit';
+
+/** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
+const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
 /**
  * TypeORM реализация репозитория сегментов
@@ -103,6 +101,17 @@ export class SegmentTypeormRepository
     if (filter.parent_hash !== undefined) {
       queryBuilder = queryBuilder.andWhere('project.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
     }
+    if (filter.is_component !== undefined) {
+      // Результат приходуется по компоненту: у проекта верхнего уровня своего
+      // результата нет, он складывается из результатов компонентов
+      queryBuilder = filter.is_component
+        ? queryBuilder.andWhere('(project.parent_hash IS NOT NULL AND project.parent_hash != :emptyHash)', {
+            emptyHash: NULL_PROJECT_HASH,
+          })
+        : queryBuilder.andWhere('(project.parent_hash IS NULL OR project.parent_hash = :emptyHash)', {
+            emptyHash: NULL_PROJECT_HASH,
+          });
+    }
 
     return queryBuilder;
   }
@@ -161,6 +170,70 @@ export class SegmentTypeormRepository
   }
 
   /**
+   * Заполняет контекст проекта: название проекта-родителя и признак отданного голоса.
+   *
+   * Доли участника читаются общим списком по всем проектам сразу (стол «Результаты»),
+   * поэтому строке нужны название проекта и ответ на вопрос «от меня ещё что-то
+   * требуется?». Оба значения берутся пакетно: поэлементные запросы на списке
+   * в сотню долей дали бы сотню обращений к базе.
+   */
+  private async populateProjectContextForSegments(segments: SegmentTypeormEntity[]): Promise<void> {
+    if (segments.length === 0) {
+      return;
+    }
+
+    // Названия проектов-родителей
+    const parentHashes = Array.from(
+      new Set(
+        segments
+          .map((segment) => segment.project?.parent_hash)
+          .filter((hash): hash is string => !!hash && hash !== NULL_PROJECT_HASH)
+      )
+    );
+
+    const parentTitles = new Map<string, string>();
+    if (parentHashes.length > 0) {
+      const parents = await this.repository.manager
+        .createQueryBuilder(ProjectTypeormEntity, 'p')
+        .select(['p.project_hash', 'p.title'])
+        .where('p.project_hash IN (:...parentHashes)', { parentHashes })
+        .getMany();
+
+      parents.forEach((parent) => parentTitles.set(parent.project_hash, parent.title));
+    }
+
+    // Отданные голоса: пара «проект + голосующий»
+    const projectHashes = Array.from(new Set(segments.map((segment) => segment.project_hash)));
+    const usernames = Array.from(new Set(segments.map((segment) => segment.username)));
+
+    const votedKeys = new Set<string>();
+    if (projectHashes.length > 0 && usernames.length > 0) {
+      const votes = await this.repository.manager
+        .createQueryBuilder(VoteTypeormEntity, 'v')
+        .select(['v.project_hash', 'v.voter'])
+        .where('v.project_hash IN (:...projectHashes)', { projectHashes })
+        .andWhere('v.voter IN (:...usernames)', { usernames })
+        .getMany();
+
+      votes.forEach((vote) => votedKeys.add(`${vote.voter}_${vote.project_hash}`));
+    }
+
+    segments.forEach((segment) => {
+      const parentHash = segment.project?.parent_hash;
+      const hasParent = !!parentHash && parentHash !== NULL_PROJECT_HASH;
+      segment.parent_hash = hasParent ? parentHash : undefined;
+      segment.parent_title = hasParent ? parentTitles.get(parentHash) : undefined;
+      segment.has_voted = votedKeys.has(`${segment.username}_${segment.project_hash}`);
+
+      // Голосование бывает закрыто и без записей о голосах: когда распределять
+      // не между кем, цепь засчитывает голоса сразу. Без этого признака участник
+      // видел бы призыв голосовать там, где голосовать уже не за кого.
+      const voting = segment.project?.voting;
+      segment.voting_completed = voting ? voting.votes_received >= voting.total_voters : false;
+    });
+  }
+
+  /**
    * Определяет, является ли проект компонентом
    * Компонент - это проект с непустым parent_hash, отличным от нулевого хэша
    */
@@ -168,8 +241,7 @@ export class SegmentTypeormRepository
     if (!project || !project.parent_hash) {
       return false;
     }
-    const NULL_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
-    return project.parent_hash !== NULL_HASH;
+    return project.parent_hash !== NULL_PROJECT_HASH;
   }
 
   /**
@@ -283,10 +355,10 @@ export class SegmentTypeormRepository
    */
   async findAllPaginated(
     filter?: SegmentFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SegmentDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -396,6 +468,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результаты для сегментов
       await this.populateResultsForSegments(entities);
+      await this.populateProjectContextForSegments(entities);
 
       // Преобразуем в доменные сущности
       const items = entities.map((entity) => SegmentMapper.toDomain(entity));
@@ -422,6 +495,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результаты для сегментов
       await this.populateResultsForSegments(entities);
+      await this.populateProjectContextForSegments(entities);
 
       // Преобразуем в доменные сущности
       const items = entities.map((entity) => SegmentMapper.toDomain(entity));
@@ -534,6 +608,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результат для сегмента
       await this.populateResultsForSegments([entity]);
+      await this.populateProjectContextForSegments([entity]);
 
       // Преобразуем в доменную сущность
       return SegmentMapper.toDomain(entity);
@@ -551,6 +626,7 @@ export class SegmentTypeormRepository
 
       // Заполняем результат для сегмента
       await this.populateResultsForSegments([entity]);
+      await this.populateProjectContextForSegments([entity]);
 
       // Преобразуем в доменную сущность
       return SegmentMapper.toDomain(entity);

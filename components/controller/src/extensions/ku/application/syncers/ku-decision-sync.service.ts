@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { KuDecisionDomainEntity } from '../../domain/entities/ku-decision.entity';
 import { KuDecisionRepository, KU_DECISION_REPOSITORY } from '../../domain/repositories/ku-decision.repository';
 import { KuDecisionDeltaMapper } from '../../infrastructure/blockchain/mappers/ku-decision-delta.mapper';
@@ -19,7 +19,7 @@ export class KuDecisionSyncService extends AbstractEntitySyncService<KuDecisionD
     @Inject(KU_DECISION_REPOSITORY)
     repository: KuDecisionRepository,
     mapper: KuDecisionDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(repository, mapper, logger);
@@ -32,10 +32,5 @@ export class KuDecisionSyncService extends AbstractEntitySyncService<KuDecisionD
     allPatterns.forEach((pattern) => {
       this.eventEmitter.on(pattern, this.processDelta.bind(this));
     });
-  }
-
-  @OnEvent('fork::*')
-  async handleEntityFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

@@ -15,7 +15,6 @@ const rawMetricSeriesSelector = {
   unit: true,
   target_value: true,
   series_mode: true,
-  period: true,
   fact: true,
   points: rawMetricSeriesPointSelector,
 }

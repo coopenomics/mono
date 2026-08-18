@@ -1,11 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Logger, UseGuards } from '@nestjs/common';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SecretaryRoomManagementService } from '../services/secretary-room-management.service';
 import {
   ChatcoopSecretaryRoomDTO,
@@ -57,7 +53,7 @@ export class SecretaryRoomsResolver {
   })
   @AuthRoles(['chairman', 'member'])
   async listSecretaryRooms(
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ChatcoopSecretaryRoomDTO[]> {
     this.logger.debug(`chatcoopListSecretaryRooms user=${user.username}`);
     const rooms = await this.service.listRooms();
@@ -70,7 +66,7 @@ export class SecretaryRoomsResolver {
   })
   @AuthRoles(['chairman', 'member'])
   async createSecretaryRoom(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => CreateSecretaryRoomInputDTO }) data: CreateSecretaryRoomInputDTO
   ): Promise<ChatcoopSecretaryRoomDTO> {
     this.logger.log(`chatcoopCreateSecretaryRoom user=${user.username} isPublic=${data.isPublic}`);
@@ -89,7 +85,7 @@ export class SecretaryRoomsResolver {
   })
   @AuthRoles(['chairman', 'member'])
   async removeSecretaryRoom(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => RemoveSecretaryRoomInputDTO }) data: RemoveSecretaryRoomInputDTO
   ): Promise<string> {
     this.logger.log(`chatcoopRemoveSecretaryRoom user=${user.username} room=${data.id}`);

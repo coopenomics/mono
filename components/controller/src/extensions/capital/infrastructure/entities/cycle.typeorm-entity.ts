@@ -1,7 +1,7 @@
 import { Entity, Column, CreateDateColumn, Index, OneToMany } from 'typeorm';
 import { CycleStatus } from '../../domain/enums/cycle-status.enum';
 import { IssueTypeormEntity } from './issue.typeorm-entity';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_cycles';
 @Entity(EntityName)

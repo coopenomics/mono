@@ -6,10 +6,19 @@
  * @brief Типы процессов ledger2 (process_type).
  *
  * Процесс — юридически значимая цепочка (`process_type`, `process_hash`,
- * `coopname`) ссылок, размазанная по ончейн-записям (wjournal/journal/
- * сущностным таблицам). `process_type` выводится бэкендом по operation_code
- * из `OPERATION_REGISTRY`; на контракте он используется только как значение
- * поля в wjournal/journal.
+ * `coopname`) ссылок, размазанная по ончейн-записям (сущностным таблицам).
+ *
+ * `process_type` называет контракт-инициатор при вызове `ledger2::apply` — имя
+ * нитки эмитится в цепь вместе с операцией, а не выводится по operation_code.
+ * Так процесс называет тот, кто нитку открыл: `branch::accrue` зачисляет
+ * членский взнос КУ внутри нитки поставки (`p.mkt.supply`) и возврата
+ * (`p.mkt.return`), хотя сама операция относится к экономике КУ. Пока имя
+ * выводилось по операции, у такой нитки было два претендента на название, и
+ * поставка подписывалась «Членские взносы кооперативного участка».
+ *
+ * Поле `process_type` в `OPERATION_REGISTRY` (operations.hpp) — типовая
+ * принадлежность операции: контрактом не читается, бэкенду нужна только для
+ * записей, сделанных до появления эмиссии имени.
  *
  * Один `process_type` может соответствовать нескольким operation_code — это
  * явно разрешённая модель мульти-операционных процессов:
@@ -82,6 +91,7 @@ namespace processes {
   // soviet
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
+    inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
   }
 
   // migration
@@ -98,5 +108,54 @@ namespace processes {
   namespace adjustment {
     inline constexpr eosio::name CORRECTION = "p.adj.fix"_n;     ///< Ручная корректировка председателя (перевод между кошельками или откат операции).
   }
+
+/**
+ * @brief Перечень известных имён процессов — для валидации в ledger2::apply.
+ *
+ * Имя нитки называет контракт-инициатор при вызове `apply`, поэтому опечатка в
+ * имени иначе ушла бы в историю молча и процесс остался бы без названия на
+ * столе бухгалтера. Порядок записей не важен (линейный поиск).
+ *
+ * Каждое добавленное сюда имя обязано иметь человеческое название в реестре
+ * процессов `cooptypes/src/ledger2/processes.ts` — иначе интерфейс покажет
+ * технический код вместо названия.
+ */
+static constexpr eosio::name PROCESS_REGISTRY[] = {
+  registrator::ACCEPT,   registrator::REFUND,
+  wallet::DEPOSIT,       wallet::WITHDRAW,
+  capital::IMPORT,       capital::INVEST,      capital::DEBT,
+  capital::RID,          capital::PROPERTY,    capital::PREIMP,
+  capital::WTHCAP,       capital::PGEXP,
+  marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
+  branch::FEES,          branch::AID,          branch::SPEND,
+  expense::PROPOSAL,
+  soviet::AXN_CONVERT,   soviet::TAX,
+  migration::TRANSIT,
+  adjustment::CORRECTION,
+};
+
+/// @brief Известно ли имя нитки процесса (см. PROCESS_REGISTRY).
+inline bool is_known_process(eosio::name process_type) {
+  for (const auto& known : PROCESS_REGISTRY) {
+    if (known == process_type) return true;
+  }
+  return false;
+}
+
+/// @brief Уникальность имён в PROCESS_REGISTRY — проверяется на сборке.
+constexpr bool process_registry_is_unique() {
+  constexpr auto count = sizeof(PROCESS_REGISTRY) / sizeof(PROCESS_REGISTRY[0]);
+  for (unsigned i = 0; i < count; ++i) {
+    for (unsigned j = i + 1; j < count; ++j) {
+      if (PROCESS_REGISTRY[i].value == PROCESS_REGISTRY[j].value) return false;
+    }
+  }
+  return true;
+}
+
+// Дубль в перечне означает, что имя завели дважды — линейный поиск это
+// проглотит, а рассинхронизацию с cooptypes/локатором заметить будет негде.
+static_assert(process_registry_is_unique(),
+              "PROCESS_REGISTRY содержит дубликаты имён процессов");
 
 } // namespace processes

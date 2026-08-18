@@ -79,9 +79,11 @@ function makeRepos(decision: any = makeDecision(), trustRequest: any = null) {
   return { decisionRepository, questionRepository, trustRequestRepository };
 }
 
-function makeDocumentService() {
+// Порт документов ядра: генерация по шаблону реестра и сборка агрегата.
+function makeDocumentPort() {
   return {
-    generateDocument: jest.fn(async ({ data }: any) => ({ hash: 'doc', meta: data })),
+    generate: jest.fn(async ({ data }: any) => ({ hash: 'doc', meta: data })),
+    buildAggregate: jest.fn(async () => null),
   } as any;
 }
 
@@ -98,9 +100,8 @@ function makeAccountPort() {
 function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
   const { kuPort, branchPort } = makePorts();
   const repos = makeRepos(opts.decision === undefined ? makeDecision() : opts.decision, opts.trustRequest ?? null);
-  const documentService = makeDocumentService();
+  const documentPort = makeDocumentPort();
   const accountPort = makeAccountPort();
-  const documentAggregator = { buildDocumentAggregate: jest.fn(async () => null) } as any;
   const service = new KuService(
     kuPort,
     branchPort,
@@ -108,10 +109,9 @@ function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
     repos.questionRepository,
     repos.trustRequestRepository,
     accountPort,
-    documentService,
-    documentAggregator
+    documentPort
   );
-  return { service, kuPort, branchPort, repos, documentService, accountPort, documentAggregator };
+  return { service, kuPort, branchPort, repos, documentPort, accountPort };
 }
 
 describe('KuService — проверки прав', () => {
@@ -290,47 +290,47 @@ describe('KuService — маппинг DTO', () => {
 
 describe('KuService — генерация документов', () => {
   it('generateBranchMeetingProposal проставляет registry_id 320', async () => {
-    const { service, documentService } = makeService();
+    const { service, documentPort } = makeService();
 
     await service.generateBranchMeetingProposal({ coopname: COOP, username: 'alice' } as any);
 
-    const { data } = documentService.generateDocument.mock.calls[0][0];
+    const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(320);
   });
 
   it('generateBranchTrustedLiabilityAgreement проставляет registry_id 327', async () => {
-    const { service, documentService } = makeService();
+    const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
-    const { data } = documentService.generateDocument.mock.calls[0][0];
+    const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(327);
   });
 
   it('generateBranchTrusteeLiabilityAgreement проставляет registry_id 328', async () => {
-    const { service, documentService } = makeService();
+    const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteeLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
-    const { data } = documentService.generateDocument.mock.calls[0][0];
+    const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(328);
   });
 
   it('generateBranchTrusteePowerOfAttorney проставляет registry_id 329', async () => {
-    const { service, documentService } = makeService();
+    const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
-    const { data } = documentService.generateDocument.mock.calls[0][0];
+    const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(329);
   });
 
   it('generateBranchTrustedPowerOfAttorney проставляет registry_id 330', async () => {
-    const { service, documentService } = makeService();
+    const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
-    const { data } = documentService.generateDocument.mock.calls[0][0];
+    const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(330);
   });
 });

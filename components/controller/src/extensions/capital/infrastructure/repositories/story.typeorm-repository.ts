@@ -7,12 +7,9 @@ import { StoryDomainEntity } from '../../domain/entities/story.entity';
 import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 import { StoryMapper } from '../mappers/story.mapper';
 import type { StoryStatus } from '../../domain/enums/story-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 @Injectable()
 export class StoryTypeormRepository implements StoryRepository {
@@ -171,10 +168,11 @@ export class StoryTypeormRepository implements StoryRepository {
 
   async findAllPaginated(
     filter?: StoryFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<StoryDomainEntity>> {
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
+  ): Promise<PaginationResult<StoryDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -186,41 +184,53 @@ export class StoryTypeormRepository implements StoryRepository {
     // Получаем параметры для SQL запроса
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
-    // Строим условия поиска
-    const where: any = {};
+    let queryBuilder = this.storyTypeormRepository.createQueryBuilder('s').select('s').where('1=1');
+
     if (filter?.title) {
-      where.title = filter.title;
+      queryBuilder = queryBuilder.andWhere('s.title = :title', { title: filter.title });
     }
     if (filter?.status) {
-      where.status = filter.status;
+      queryBuilder = queryBuilder.andWhere('s.status = :status', { status: filter.status });
     }
     if (filter?.project_hash) {
-      where.project_hash = filter.project_hash;
+      queryBuilder = queryBuilder.andWhere('s.project_hash = :project_hash', { project_hash: filter.project_hash });
     }
     if (filter?.issue_hash) {
-      where.issue_hash = filter.issue_hash;
+      queryBuilder = queryBuilder.andWhere('s.issue_hash = :issue_hash', { issue_hash: filter.issue_hash });
     }
     if (filter?.created_by) {
-      where.created_by = filter.created_by;
+      queryBuilder = queryBuilder.andWhere('s.created_by = :created_by', { created_by: filter.created_by });
+    }
+
+    // Ограничение правами доступа: требования разрешённых проектов, а также требования задач,
+    // лежащих в этих проектах (у таких требований собственный project_hash бывает пустым).
+    // Отсев в SQL, иначе totalCount/totalPages считаются по недоступным строкам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      queryBuilder = queryBuilder.andWhere(
+        `(
+          lower(s.project_hash) = ANY(CAST(:scopeHashes AS text[]))
+          OR EXISTS (
+            SELECT 1 FROM capital_issues i
+            WHERE i.issue_hash = s.issue_hash
+              AND lower(i.project_hash) = ANY(CAST(:scopeHashes AS text[]))
+          )
+        )`,
+        { scopeHashes }
+      );
     }
 
     // Получаем общее количество записей
-    const totalCount = await this.storyTypeormRepository.count({ where });
+    const totalCount = await queryBuilder.getCount();
 
     // Получаем записи с пагинацией
-    const orderBy: any = {};
     if (validatedOptions.sortBy) {
-      orderBy[validatedOptions.sortBy] = validatedOptions.sortOrder;
+      queryBuilder = queryBuilder.orderBy(`s.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
     } else {
-      orderBy.sort_order = 'ASC';
+      queryBuilder = queryBuilder.orderBy('s.sort_order', 'ASC');
     }
 
-    const entities = await this.storyTypeormRepository.find({
-      where,
-      skip: offset,
-      take: limit,
-      order: orderBy,
-    });
+    const entities = await queryBuilder.skip(offset).take(limit).getMany();
 
     // Преобразуем в доменные сущности
     const items = entities.map((entity) => StoryMapper.toDomain(entity));

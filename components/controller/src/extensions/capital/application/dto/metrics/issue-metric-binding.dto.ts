@@ -1,5 +1,5 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 @ObjectType('CapitalIssueMetricBinding', {
   description: 'Привязка задачи к метрике с плановым вкладом',

@@ -1,8 +1,9 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { config } from '~/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -42,10 +43,10 @@ export class MarketplaceOnboardingResolver {
    * L3 fallback sign-mutation: пайщик акцептует оферту ЦПП «Стол заказов»
    * прямо со стола (`OnboardingMemberPickCpp`) после прохождения gate'а.
    *
-   * Backend пишет on-chain `wallet::signagree` с `program_id=2` и
-   * `draft_id=1100`. После подтверждения транзакции `AgreementSyncService`
-   * подтянет подпись в PG; следующий `marketplaceOnboardingState` ответит
-   * `requires_gate=false, source='agreement_signed'`.
+   * Backend пишет on-chain `wallet::signagree` с `program_id=2` и шаблоном,
+   * записанным в самой программе (1102 — персональный инстанс оферты). После
+   * подтверждения транзакции синк подтянет подпись в PG; следующий
+   * `marketplaceOnboardingState` ответит `source=AGREEMENT_SIGNED`.
    *
    * Возвращает свежее состояние онбординга — UI не нужно делать второй
    * запрос. Если sync ещё не успел (high-throughput edge case) — UI
@@ -63,7 +64,7 @@ export class MarketplaceOnboardingResolver {
     input: MarketplaceSignOnboardingOfferInputDTO
   ): Promise<MarketplaceOnboardingStateDTO> {
     await this.onboardingService.signOnboardingOffer({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: currentMember.username,
       document: input.document,
     });

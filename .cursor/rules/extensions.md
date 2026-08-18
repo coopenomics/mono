@@ -2,7 +2,7 @@
 
 ## Основные принципы
 1. Расширения построены на модулях NestJS с использованием шаблона "Порты и адаптеры"
-2. Каждое расширение наследуется от `BaseExtModule` и реализует интерфейс `OnModuleInit`
+2. Каждое расширение наследуется от `BaseExtensionModule` и реализует интерфейс `OnModuleInit`
 3. Расширения могут взаимодействовать с блокчейном через соответствующие порты
 4. Конфигурации расширений хранятся в БД и описываются с помощью Zod-схем
 5. Расширения регистрируются в глобальном реестре `AppRegistry`
@@ -17,7 +17,7 @@
 
 ## Создание нового расширения
 1. Создайте директорию для расширения в `components/controller/src/extensions/`
-2. Создайте основной класс расширения, наследующийся от `BaseExtModule`
+2. Создайте основной класс расширения, наследующийся от `BaseExtensionModule` (импорт из `@coopenomics/extension-kit`)
 3. Определите Zod-схему для конфигурации
 4. Реализуйте метод `initialize()`
 5. Зарегистрируйте расширение в `extensions.registry.ts`
@@ -26,13 +26,13 @@
 ## Пример структуры модуля расширения
 ```typescript
 // XXX-extension.module.ts
-export class XXXPlugin extends BaseExtModule {
+export class XXXExtension extends BaseExtensionModule {
   constructor(...) {
     super();
   }
 
   name = 'xxx';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
   public configSchemas = Schema;
 
   async initialize() {
@@ -42,13 +42,13 @@ export class XXXPlugin extends BaseExtModule {
 }
 
 @Module({
-  providers: [XXXPlugin],
+  providers: [XXXExtension],
 })
-export class XXXPluginModule {
-  constructor(private readonly xxxPlugin: XXXPlugin) {}
+export class XXXExtensionModule {
+  constructor(private readonly xxxExtension: XXXExtension) {}
 
   async initialize() {
-    await this.xxxPlugin.initialize();
+    await this.xxxExtension.initialize();
   }
 }
 ```
@@ -193,7 +193,7 @@ export const AppRegistry: INamedExtension = {
     title: 'Моё расширение',
     description: 'Описание функциональности.',
     image: 'https://example.com/image.png',
-    class: MyExtensionPluginModule,
+    class: MyExtensionModule,
     schema: MyExtensionSchema,
     tags: ['тег1', 'тег2'],
     readme: getReadmeContent('./myExtension'),

@@ -1,14 +1,12 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ProcessService } from '../services/process.service';
 import { ProcessTemplateDTO, CreateProcessTemplateInputDTO, UpdateProcessTemplateInputDTO } from '../dto/process/process-template.dto';
 import { ProcessInstanceDTO, StartProcessInputDTO, CompleteProcessStepInputDTO } from '../dto/process/process-instance.dto';
-import { config } from '~/config';
 
 @Resolver()
 export class ProcessResolver {
@@ -24,10 +22,10 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member'])
   async createProcessTemplate(
     @Args('data') data: CreateProcessTemplateInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessTemplateDTO> {
     return this.processService.createTemplate({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       project_hash: data.project_hash,
       title: data.title,
       description: data.description,
@@ -71,7 +69,7 @@ export class ProcessResolver {
     if (projectHash) {
       return this.processService.getTemplatesByProject(projectHash) as any;
     }
-    return this.processService.getTemplatesByCoopname(config.coopname) as any;
+    return this.processService.getTemplatesByCoopname(platformSettings().coopname) as any;
   }
 
   @Query(() => ProcessTemplateDTO, {
@@ -96,13 +94,13 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async startProcess(
     @Args('data') data: StartProcessInputDTO,
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessInstanceDTO> {
     return this.processService.startProcess({
       template_id: data.template_id,
       project_hash: data.project_hash,
       started_by: user.username,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
     }) as any;
   }
 

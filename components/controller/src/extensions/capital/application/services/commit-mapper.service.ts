@@ -5,7 +5,7 @@ import { BaseProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectRepository, PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { TimeTrackingService } from './time-tracking.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей коммитов в DTO
@@ -24,7 +24,7 @@ export class CommitMapperService {
    * Преобразование доменной сущности коммита в CommitOutputDTO
    * Обогащает коммит данными о проекте и amounts
    */
-  async toDTO(commitEntity: CommitDomainEntity, currentUser?: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async toDTO(commitEntity: CommitDomainEntity, currentUser?: IMonoAccount): Promise<CommitOutputDTO> {
     let project: BaseProjectOutputDTO | undefined;
     if (commitEntity.project_hash) {
       const projectEntity = await this.projectRepository.findByHash(commitEntity.project_hash);
@@ -50,7 +50,7 @@ export class CommitMapperService {
    */
   async toDTOBatch(
     commitEntities: CommitDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO[]> {
     const projectHashes: string[] = commitEntities
       .map((commit) => commit.project_hash)

@@ -12,19 +12,29 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # Чтение состояния идёт из UserAgreementRepository. Тест, читающий агримент из
 # AgreementRepository, зафиксировал бы ровно тот баг, из-за которого гейт
 # оставался поднятым навсегда после подписи.
+#
+# Переименование 2026-08-09 (FC1-3): `MarketplacePlugin`/`MarketplacePluginModule`
+# стали `MarketplaceExtension`/`MarketplaceExtensionModule`, локальные `plugin*`
+# — `extension*`. Только имена; поведение и набор случаев не менялись.
 
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/onboarding/**
     - components/controller/src/extensions/marketplace/application/coop-acceptance/**
+    - components/controller/src/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-onboarding.resolver.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-coop-acceptance.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-onboarding-state.dto.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-sign-onboarding-offer-input.dto.ts
     - components/controller/src/extensions/marketplace/constants/marketplace-agreement-ids.ts
+    - components/controller/src/infrastructure/blockchain/adapters/soviet-blockchain.adapter.ts
   ui:
     - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/**
     - components/desktop/src/pages/Marketplace/OnboardingMemberPickCpp/**
+    # Объявление страниц-шлюзов столов (`gate`) — какая страница перехватывает
+    # заход пайщика без допуска. Сама механика перехвата — платформенная,
+    # см. реестр extensions.workspace-gating.
+    - components/desktop/extensions/market/install.ts
 
 cases:
   # ── L1: кооператив принимает ЦПП ─────────────────────────────────────────
@@ -34,17 +44,65 @@ cases:
     scenario: >
       Председатель устанавливает расширение «Стол заказов» из каталога приложений кооператива.
     expect: расширение появляется установленным, столы Стола заказов доступны в меню
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/onboarding/install-market.mjs
+    status: passing
 
+  # Уровень backend, а не ui, и это вынужденно. Приём ЦПП — решение совета:
+  # председатель выносит вопрос, три члена совета голосуют, председатель
+  # подписывает протокол и исполняет решение. Пока это не сделано, у него нет
+  # ни одного admin-права расширения и ВСЕ остальные экраны Стола заказов
+  # отдают «Недостаточно прав доступа», поэтому приём выполняет фаза
+  # подготовки `marketplace:01-l1-accept`. Фазы раннер выполняет один раз до
+  # всех сценариев — к моменту открытия экрана ЦПП уже принята, и нажать
+  # «Принять» через интерфейс нельзя в принципе. Сам экран документируется
+  # сценарием onboarding/coop-accept-cpp, но случая он не закрывает.
   - id: mkt.onb.happy.02
-    level: ui
+    level: backend
     kind: happy
-    scenario: Председатель принимает ЦПП «Стол заказов» от имени кооператива (L1)
+    scenario: Кооператив принимает ЦПП «Стол заказов» решением совета (L1)
     expect: >
-      статус ЦПП становится «принята», регистрируется оферта в реестре регистрационных оферт кооператива
-    test: ~
-    status: missing
+      статус ЦПП становится «принята», в конфигурации расширения сохраняются решение совета и дата принятия
+    test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    status: passing
+
+  # Самоинициализация программы ЦПП в цепи. Механика общая с Благоростом —
+  # расширение при старте открывает свою программу, если кооператив её не имеет.
+  - id: mkt.onb.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Расширение стартует в кооперативе, где программа ЦПП ещё не открыта
+    expect: >
+      программа открывается автоматически ключом кооператива; шаблон оферты
+      назначает контракт, а не вызывающая сторона
+    test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    status: passing
+
+  - id: mkt.onb.side.13
+    level: backend
+    kind: side
+    scenario: Повторный старт расширения, когда программа ЦПП уже открыта
+    expect: транзакция не отправляется, ключ кооператива не запрашивается, старт продолжается
+    test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    status: passing
+
+  - id: mkt.onb.side.14
+    level: backend
+    kind: side
+    scenario: В кооперативе открыта другая ЦПП, своей нет
+    expect: чужая программа не засчитывается за свою — открывается собственная
+    test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    status: passing
+
+  - id: mkt.onb.break.04
+    level: backend
+    kind: break
+    scenario: Цепь недоступна либо нет ключа кооператива в момент старта расширения
+    expect: >
+      расширение всё равно поднимается, ошибка уходит в лог, следующий старт
+      повторяет попытку; на столе пайщик видит, что подключение ЦПП не завершено
+    test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    status: passing
 
   - id: mkt.onb.side.01
     level: backend
@@ -75,8 +133,7 @@ cases:
     kind: side
     scenario: Повторный приём уже принятой ЦПП тем же кооперативом
     expect: >
-      не отказ: ЦПП остаётся принятой, реквизиты нового решения совета
-      перезаписывают прежние, дубликата записи не появляется
+      не отказ: ЦПП остаётся принятой, реквизиты нового решения совета перезаписывают прежние, дубликата записи не появляется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
     status: passing
     # Решение заказчика (2026-08-08): текущее поведение (перезапись) устраивает.
@@ -91,7 +148,9 @@ cases:
     scenario: >
       Пайщик, не подписавший ЦПП, впервые заходит на Стол заказов и видит гейт с офертой; после подписания попадает на стол.
     expect: >
-      до подписи стол закрыт гейтом, после подписи гейт не показывается ни при переходе, ни после перезагрузки страницы
+      до подписи заход на рабочую страницу стола уводит на страницу подключения
+      (не на «Недостаточно прав доступа»), после подписи гейт не показывается ни
+      при переходе, ни после перезагрузки страницы
     test: components/docs-harness/scenarios/marketplace/onboarding/extension-gate.mjs
     status: passing
 
@@ -117,8 +176,8 @@ cases:
     kind: side
     scenario: Соглашение ЦПП настроено, но у него нет программного кошелька
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.08
     level: backend
@@ -143,8 +202,8 @@ cases:
     kind: side
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    status: passing
 
   - id: mkt.onb.break.01
     level: backend
@@ -152,5 +211,59 @@ cases:
     scenario: Цепь недоступна в момент подписания оферты
     expect: >
       пайщику показывается ошибка, состояние не считается подписанным, повторная попытка возможна
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
+
+  # ── Незавершённое подключение ЦПП кооперативом (инцидент 2026-08-10) ──────
+  # Кооператив утвердил оба документа решениями совета, но программа ЦПП в
+  # кооперативе так и не была открыта. Отсутствие подписи в этом состоянии
+  # выдавалось за состоявшуюся подпись — и в правах, и в тексте на экране.
+  - id: mkt.onb.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Кооператив не завершил подключение ЦПП (программа не открыта), пайщик выбрал пункт выдачи
+    expect: >
+      права заказчика НЕ выдаются — остаётся страница подключения; выбор пункта
+      выдачи сам по себе стол не открывает
+    test: components/controller/tests/unit/marketplace/marketplace-desktop-grants-provider.test.ts
+    status: passing
+
+  - id: mkt.onb.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик подписывает оферту Стола заказов, когда кооператив не завершил
+      подключение ЦПП
+    expect: >
+      отказ с указанием, чего не хватает; подпись на цепь не отправляется и
+      оферта не объявляется подписанной
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
+    # Переведён с ui на backend по той же причине, что и mkt.onb.happy.02:
+    # фазы подготовки принимают ЦПП один раз до всех сценариев, поэтому
+    # состояния «кооператив не завершил подключение» на стенде не бывает —
+    # экран с недоступным «Продолжить» в одном прогоне с рабочей цепочкой
+    # непредставим. Правило живёт на сервере и проверено там: нет соглашения,
+    # нет программного кошелька, нет самой программы — три отдельных отказа,
+    # и ни один не доходит до wallet::signagree.
+
+  - id: mkt.onb.side.11
+    level: backend
+    kind: side
+    scenario: >
+      Шаблон оферты у программы отличается от шаблона, записанного в соглашении
+      (программу правили после создания)
+    expect: >
+      подписывается шаблон программы — иначе цепь отклоняет подпись как
+      несовпадающую с программой
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
+
+  - id: mkt.onb.side.12
+    level: backend
+    kind: side
+    scenario: Соглашение ЦПП есть, но самой программы в кооперативе не существует
+    expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing

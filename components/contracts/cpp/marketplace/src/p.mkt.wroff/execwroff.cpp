@@ -43,6 +43,7 @@ void marketplace::execwroff(eosio::name coopname,
   // o.mkt.wroff: Дт 86 / Кт 10
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::WRITE_OFF_PERISHABLE,
+                 processes::marketplace::WRITEOFF,
                  item.amount, item.braname, p.hash,
                  Marketplace::Memo::get_writeoff_memo(p.id, item_index));
 

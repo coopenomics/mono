@@ -1,9 +1,6 @@
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { KuDecisionDomainEntity } from '../entities/ku-decision.entity';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface KuDecisionFilterDomainInterface {
   coopname?: string;
@@ -36,8 +33,8 @@ export interface KuDecisionRepository extends IBlockchainSyncRepository<KuDecisi
   findByHash(hash: string): Promise<KuDecisionDomainEntity | null>;
   findAllPaginated(
     filter?: KuDecisionFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<KuDecisionDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<KuDecisionDomainEntity>>;
   /**
    * Записать приватные данные собрания (upsert по hash): запись могла ещё
    * не появиться из синка — тогда создаётся placeholder, который синк дополнит.

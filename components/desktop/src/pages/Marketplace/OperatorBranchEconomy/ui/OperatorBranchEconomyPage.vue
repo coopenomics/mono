@@ -15,6 +15,7 @@ import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
+import { NDFL_RATE_PERCENT, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/shared/lib/payment'
 import {
   type ExpensePlanView,
@@ -46,8 +47,9 @@ import {
  *
  *  1. «Мои средства» — персональный кошелёк членских средств текущего
  *     оператора: перевод в членский кошелёк Стола заказов (заказы себе)
- *     либо материальная помощь (заявление → выплата кассиром, НДФЛ
- *     получатель платит сам).
+ *     либо материальная помощь (заявление → решение совета → выплата
+ *     кассиром). НДФЛ кооператив удерживает сам: заявление подаётся на
+ *     сумму до налога, на счёт приходит остаток.
  *  2. «Общий кошелёк участка» — сюда приходит 100% членских взносов
  *     исполненных заказов; показатели «Резерв на 30 дней» и «Доступно к
  *     распределению».
@@ -68,7 +70,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 const branch = computed(() => store.activeBranch?.branch ?? null)
 const isBranchTrustee = computed(
-  () => !!branch.value && branch.value.trustee.username === session.username
+  () => !!branch.value?.trustee && branch.value.trustee.username === session.username
 )
 
 const loading = ref(true)
@@ -135,8 +137,9 @@ function personName(p: { first_name?: string; last_name?: string; middle_name?: 
 const nameByUsername = computed<Record<string, string>>(() => {
   const b = branch.value
   if (!b) return {}
+  if (!b.trustee) return {}
   const map: Record<string, string> = { [b.trustee.username]: personName(b.trustee) }
-  for (const t of b.trusted) map[t.username] = personName(t)
+  for (const t of b.trusted ?? []) map[t.username] = personName(t)
   return map
 })
 
@@ -365,7 +368,8 @@ const weightCandidates = computed(() => {
   const b = branch.value
   if (!b || !economy.value) return []
   const present = new Set(economy.value.weights.map((w) => w.username))
-  return [b.trustee, ...b.trusted]
+  if (!b.trustee) return []
+  return [b.trustee, ...(b.trusted ?? [])]
     .filter((p) => !present.has(p.username))
     .map((p) => ({ label: personName(p), value: p.username }))
 })
@@ -450,6 +454,12 @@ const getFundsOverBalance = computed(
   () => getFundsTotal.value > assetAmount(personalBalance.value)
 )
 
+// Кооператив удерживает НДФЛ с материальной помощи: с кошелька спишется вся
+// заявленная сумма, на счёт придёт остаток. Расчёт зеркалит контракт.
+const aidGross = computed(() => Number(aidPart.value) || 0)
+const aidTax = computed(() => ndflTax(aidGross.value))
+const aidNet = computed(() => ndflNet(aidGross.value))
+
 function openGetFundsDialog(): void {
   convertPart.value = null
   aidPart.value = null
@@ -529,21 +539,22 @@ q-page.economy
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Экономика участка доступна председателю участка и его доверенным лицам.'
+    body='Экономика участка доступна оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='savings', size='48px')
 
   template(v-else)
     PageHint(storage-key='mp:operator-economy:banner-dismissed')
-      | С каждого исполненного заказа участок получает членский взнос по единой
-      | ставке кооператива — он целиком зачисляется в общий кошелёк участка.
+      | С каждого исполненного заказа участок получает кооперативную наценку по
+      | единой ставке кооператива — она целиком зачисляется в общий кошелёк участка.
       | Сначала из него покрываются плановые расходы (срочные и ближайшие
-      | 30 дней образуют неснижаемый резерв), и только остаток председатель
+      | 30 дней образуют неснижаемый резерв), и только остаток оператор
       | распределяет между участниками по весам — когда и сколько решит сам.
       | Распределённым вы распоряжаетесь двояко: заказать имущество через Стол
       | заказов можно сразу, а материальная помощь выплачивается по вашему
-      | заявлению и решению совета (налог с дохода оплачиваете самостоятельно).
+      | заявлению и решению совета (налог на доходы кооператив удерживает сам —
+      | на счёт придёт сумма за вычетом).
 
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
       //- Главное действие таба — в правый верхний угол строки вкладок
@@ -635,7 +646,7 @@ q-page.economy
           program='wallet',
           icon='call_split',
           title='Доступно к распределению',
-          subtitle='Остаток сверх резерва — из него председатель распределяет',
+          subtitle='Остаток сверх резерва — из него оператор распределяет',
           :balance='economy ? assetAmount(economy.available_to_distribute).toFixed(2) : "0.00"',
           :symbol='economy ? assetSymbol(economy.available_to_distribute) : ""',
           :loading='loading && !economy'
@@ -741,7 +752,7 @@ q-page.economy
           q-icon.banner__icon(name='info', size='18px')
           .banner__body
             | Веса распределения не настроены. Назначьте веса участникам, чтобы
-            | председатель мог распределять средства общего кошелька персонально.
+            | оператор мог распределять средства общего кошелька персонально.
 
         .economy__add(v-if='isBranchTrustee && weightCandidates.length')
           BaseSelect.economy__add-select(
@@ -888,7 +899,8 @@ q-page.economy
         | Разделите сумму между переводом в Стол заказов и материальной
         | помощью — её вы получаете по заявлению, которое рассматривает
         | совет; после одобрения кассир переводит деньги на выбранные
-        | реквизиты. Налог с дохода вы оплачиваете самостоятельно.
+        | реквизиты. Налог на доходы кооператив удерживает сам: на счёт придёт
+        | сумма за вычетом налога.
       AmountInput(
         v-model='convertPart',
         label='В Стол заказов',
@@ -903,6 +915,23 @@ q-page.economy
         :precision='2',
         :min='0'
       )
+      //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
+      //- меньше — без этой строки разница читается как ошибка выплаты.
+      .economy__tax-breakdown(v-if='Number(aidPart) > 0')
+        .economy__tax-row
+          span Начислено
+          span {{ aidGross.toFixed(2) }} {{ assetSymbol(personalBalance) }}
+        .economy__tax-row
+          span Удержан налог, {{ NDFL_RATE_PERCENT }}%
+          span −{{ aidTax.toFixed(2) }} {{ assetSymbol(personalBalance) }}
+        .economy__tax-row.economy__tax-row--total
+          span К перечислению
+          span {{ aidNet.toFixed(2) }} {{ assetSymbol(personalBalance) }}
+        //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
+        //- процентов — это 1,30, а удерживается ровно рубль.
+        p.economy__tax-note
+          | Налог исчисляется в полных рублях: копейки менее 50 отбрасываются,
+          | 50 и более округляются до рубля.
       PaymentMethodSelect(
         v-if='Number(aidPart) > 0',
         v-model='aidPaymentMethodId',
@@ -969,6 +998,39 @@ q-page.economy
   &__get-funds-note {
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__tax-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    padding: var(--p-3, 12px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-surface-2);
+  }
+
+  &__tax-note {
+    margin: var(--p-2, 8px) 0 0;
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-meta, 12px);
+    line-height: var(--p-lh-meta, 1.4);
+  }
+
+  &__tax-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    font-variant-numeric: tabular-nums;
+
+    &--total {
+      color: var(--p-ink);
+      font-weight: 600;
+      padding-top: var(--p-1, 4px);
+      border-top: 1px solid var(--p-line);
+    }
   }
 
   &__get-funds-total {

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { AgreementDomainEntity } from '~/domain/agreement/entities/agreement.entity';
 import { AgreementRepository, AGREEMENT_REPOSITORY } from '~/domain/agreement/repositories/agreement.repository';
 import { AgreementDeltaMapper } from '../mappers/agreement-delta.mapper';
@@ -48,14 +48,5 @@ export class AgreementSyncService
     });
 
     this.logger.debug('Сервис синхронизации соглашений полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для соглашений
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleAgreementFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

@@ -1,0 +1,266 @@
+feature: reports.ndfl6
+title: 6-НДФЛ и уведомление об исчисленных суммах — расчёт удержанного налога
+
+# Кооператив удерживает НДФЛ из материальной помощи доверенным лицам участков,
+# поэтому 6-НДФЛ перестал быть нулёвкой. Данные целиком берутся из ledger2:
+# `o.brn.aid` (выплата на руки) и `o.brn.aidtax` (удержанный налог) проводятся
+# одной транзакцией и несут общий хэш заявления — доход до удержания
+# восстанавливается их сложением, без деления налога на ставку.
+#
+# Что легко сломать и потому проверяется отдельно:
+#  - итоги (строки 020 и 160) идут нарастающим итогом с начала года, а шесть
+#    сроков (021–026, они же 161–166) — только за последний квартал;
+#  - срок определяется по московскому времени: блокчейн штампует блоки в UTC,
+#    и выплата поздним вечером 22-го числа иначе уехала бы в чужой срок;
+#  - справки о доходах (приложение № 1) схема допускает ТОЛЬКО в годовом
+#    отчёте — в квартальном они делают файл невалидным;
+#  - ИНН физлица в справке необязателен и системой не хранится, а серия
+#    паспорта лежит числом и теряет ведущий ноль.
+#
+# Форма: КНД 1151100, ВерсФорм 5.05 (приказ ФНС от 18.10.2024 № ЕД-7-11/877@).
+# Источник истины структуры — XSD в `components/controller/src/extensions/reports/schemas/`.
+
+sources:
+  backend:
+    - components/controller/src/extensions/reports/domain/services/ndfl6-data.service.ts
+    - components/controller/src/extensions/reports/domain/edits-shapes/ndfl6-edits.shape.ts
+    - components/controller/src/extensions/reports/domain/edits-shapes/uv-ndfl-edits.shape.ts
+    - components/controller/src/extensions/reports/infrastructure/generators/ndfl6.generator.ts
+    - components/controller/src/extensions/reports/infrastructure/generators/uv-ndfl.generator.ts
+    - components/controller/src/extensions/reports/application/dto/ndfl6-edits.dto.ts
+    - components/controller/src/extensions/reports/application/dto/uv-ndfl-edits.dto.ts
+  ui:
+    - components/desktop/extensions/reports/widgets/report-forms/Ndfl6*
+    - components/desktop/extensions/reports/widgets/report-forms/UvNdfl*
+
+cases:
+  - id: rep.ndfl6.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Выплата материальной помощи с удержанием попадает в отчёт: доход считается
+      до удержания, налог — по факту проводки
+    expect: >
+      доход = выплата на руки плюс удержанный налог; налоговая база равна
+      доходу, исчисленный и удержанный налог совпадают
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.happy.02
+    level: backend
+    kind: happy
+    scenario: Посчитанные суммы раскладываются по разделам 1 и 2 формы
+    expect: >
+      итог удержанного попадает в строки 020 и 160, разбивка по срокам — в
+      021–026 и 161–166; ставка 13 %, КБК 18210102010011000110
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.happy.03
+    level: backend
+    kind: happy
+    scenario: Годовой отчёт содержит справку о доходах на каждого получателя
+    expect: >
+      справка выходит с ФИО, датой рождения, статусом, гражданством и
+      документом; доход разложен по месяцам кодом 2710
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.01
+    level: backend
+    kind: side
+    scenario: Удержание прошло с 23-го числа месяца, а не до 22-го включительно
+    expect: сумма попадает во второй срок месяца, а не в первый
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Выплата прошла ночью — по московскому времени это уже следующие сутки,
+      по UTC ещё предыдущие
+    expect: срок считается по московскому времени
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+    # Граница суток на 23-м числе разделяет два срока перечисления, поэтому
+    # трёхчасовой сдвиг переносит сумму в соседнюю строку отчёта.
+
+  - id: rep.ndfl6.side.03
+    level: backend
+    kind: side
+    scenario: В отчётном периоде было удержание в предыдущем квартале того же года
+    expect: >
+      оно входит в нарастающий итог, но в разбивку по срокам последнего
+      квартала не попадает
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.04
+    level: backend
+    kind: side
+    scenario: Есть выплаты соседнего года и следующего квартала
+    expect: в отчёт попадают только выплаты своего года и не позже отчётного квартала
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Сумма выплаты настолько мала, что налог округляется в ноль и контракт
+      проводку удержания не делает
+    expect: доход всё равно попадает в отчёт, удержанный налог нулевой
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.06
+    level: backend
+    kind: side
+    scenario: Один получатель получил материальную помощь несколько раз за период
+    expect: >
+      количество физлиц считает уникальных получателей, а не число выплат;
+      суммы складываются
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.07
+    level: backend
+    kind: side
+    scenario: Квартальный отчёт формируется при наличии посчитанных справок
+    expect: >
+      справки не выводятся — схема допускает приложение № 1 только в годовом
+      отчёте
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.08
+    level: backend
+    kind: side
+    scenario: У получателя серия паспорта начинается с нуля
+    expect: ведущий ноль восстанавливается — в справку уходит «0405 123456»
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+    # Серия и номер хранятся числами, поэтому «0405» лежит в базе как 405.
+
+  - id: rep.ndfl6.break.01
+    level: backend
+    kind: break
+    scenario: Персональные данные получателя не найдены в профиле
+    expect: >
+      отчёт формируется, справка выходит с пустыми полями — пробел виден
+      бухгалтеру до отправки, а не роняет генерацию
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.break.02
+    level: backend
+    kind: break
+    scenario: Черновик отчёта сохранён до появления разделов с суммами
+    expect: генерация не падает, отчёт выходит нулевым
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.break.03
+    level: backend
+    kind: break
+    scenario: Сформированный отчёт проверяется схемой ФНС
+    expect: >
+      и квартальный с суммами, и годовой со справками проходят XSD-валидацию
+      по NO_NDFL6.2_1_231_00_05_05_02.xsd
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Бухгалтер открывает 6-НДФЛ и видит посчитанные суммы удержаний с
+      разбивкой по срокам
+    expect: >
+      разделы с суммами доступны к правке, сумма по срокам сверяется с
+      удержанным за год
+    test: ~
+    status: missing
+    # Сценарий требует выплаченной матпомощи в прогоне — ставится после
+    # сценария заявления доверенного и подтверждения кассиром.
+
+  # --- Уведомление об исчисленных суммах НДФЛ (КНД 1110355) ---
+  # Отдельный документ, а не часть 6-НДФЛ: расчёт сдаётся раз в квартал, а
+  # уведомление говорит налоговой, сколько списать с единого счёта до сдачи
+  # расчёта. Форма общая с уведомлениями по УСН и взносам, различаются КБК и
+  # коды периода. Подаётся только за периоды, где реально было удержание.
+
+  - id: rep.ndfl6.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Уведомление за расчётный период содержит удержанный за него налог
+    expect: >
+      КБК НДФЛ, сумма равна удержанному за период; форма та же, что у
+      уведомлений по УСН и взносам
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.happy.05
+    level: backend
+    kind: happy
+    scenario: Удержания раскладываются по расчётным периодам месяца
+    expect: >
+      удержанное с 1 по 22 число попадает в первый период месяца, с 23 по
+      последнее — во второй; суммы внутри периода складываются
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Период относится ко второй половине месяца — кодирование отличается от
+      прочих налогов
+    expect: >
+      первый расчётный период месяца кодируется 01/02/03, второй — 11/12/13;
+      квартал определяется месяцем
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+    # Коды 11/12/13 есть только у НДФЛ: у него два срока уплаты внутри месяца.
+
+  - id: rep.ndfl6.side.10
+    level: backend
+    kind: side
+    scenario: В расчётном периоде не было выплат материальной помощи
+    expect: >
+      период не попадает в список к подаче — уведомление с нулевой суммой не
+      подаётся
+    test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    status: passing
+
+  - id: rep.ndfl6.break.04
+    level: backend
+    kind: break
+    scenario: Номер расчётного периода вне диапазона 1..24 или дробный
+    expect: генерация не проходит с понятной ошибкой, а не отдаёт битый XML
+    test: components/controller/tests/unit/reports/report-generators.test.ts
+    status: passing
+
+  - id: rep.ndfl6.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      В календаре отчётности периоды уведомления без выплат погашены, а период
+      с выплатой требует сдачи
+    expect: >
+      период без удержаний показан как «нечего подавать» и не краснеет по
+      сроку; после выплаты задним числом тот же период становится активным
+    test: ~
+    status: missing
+    # Требует прогона цепочки до выплаченной матпомощи, как и rep.ndfl6.ui.01.
+
+# 2026-08-17: приведение даты к налоговому поясу переехало из сервиса в общий
+# `toTaxDateParts` (им же пользуется раздел перечислений НДФЛ). Поведение то
+# же: срок по-прежнему определяется по московскому времени, случаи
+# rep.ndfl6.side.02 и side.04 это стерегут.
+
+# 2026-08-18: кошелёк удержанного налога переименован в `w.sov.ndfl` и стал
+# общекооперативным. На расчёт 6-НДФЛ это не влияет — он читает операции
+# удержания (`o.brn.aidtax`), а не остаток кошелька.

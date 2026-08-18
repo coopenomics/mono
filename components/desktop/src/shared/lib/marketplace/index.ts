@@ -38,6 +38,12 @@ export {
   type SaleQuantityOffer,
 } from './sale-quantity-step';
 export {
+  marketplaceLineCost,
+  marketplaceLineCostAmount,
+  marketplaceSaleUnits,
+} from './line-cost';
+export { ndflTax, ndflNet, NDFL_RATE_PERCENT } from './ndfl';
+export {
   printLabelSheet,
   escapeHtml,
   type PrintLabelSheetOptions,

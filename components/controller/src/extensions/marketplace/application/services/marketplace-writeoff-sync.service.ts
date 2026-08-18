@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MarketContract } from 'cooptypes';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
-import type { IAction } from '~/types';
 
 /**
  * Слушатель callback'ов совета по проекту списания скоропорта.
@@ -22,7 +23,7 @@ import type { IAction } from '~/types';
 export class MarketplaceWriteoffSyncService {
   constructor(
     private readonly writeoffService: MarketplaceWriteoffService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffSyncService.name);
   }
@@ -30,7 +31,7 @@ export class MarketplaceWriteoffSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.OnMktWoAuth.actionName}`
   )
-  async handleAuthorized(action: IAction): Promise<void> {
+  async handleAuthorized(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.OnMktWoAuth.IOnMktWoAuth;
       if (!data?.coopname || !data?.hash) {
@@ -53,7 +54,7 @@ export class MarketplaceWriteoffSyncService {
   @OnEvent(
     `action::${MarketContract.contractName.production}::${MarketContract.Actions.OnMktWoDecl.actionName}`
   )
-  async handleDeclined(action: IAction): Promise<void> {
+  async handleDeclined(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as MarketContract.Actions.OnMktWoDecl.IOnMktWoDecl;
       if (!data?.coopname || !data?.hash) {

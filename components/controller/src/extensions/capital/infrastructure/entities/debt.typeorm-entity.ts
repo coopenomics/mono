@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { DebtStatus } from '../../domain/enums/debt-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_debts';
 @Entity(EntityName)
@@ -42,13 +42,13 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   amount!: string;
 
   @Column({ type: 'json' })
-  statement!: ISignedDocumentDomainInterface;
+  statement!: ISignedDocument;
 
   @Column({ type: 'json' })
-  approved_statement!: ISignedDocumentDomainInterface;
+  approved_statement!: ISignedDocument;
 
   @Column({ type: 'json' })
-  authorization!: ISignedDocumentDomainInterface;
+  authorization!: ISignedDocument;
 
   @Column({ type: 'text', nullable: true })
   memo!: string;

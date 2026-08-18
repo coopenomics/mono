@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const ComponentMetricEntityName = 'capital_component_metrics';
 

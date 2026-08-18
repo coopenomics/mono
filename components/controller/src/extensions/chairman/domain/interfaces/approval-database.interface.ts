@@ -1,5 +1,5 @@
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Интерфейс данных одобрения из базы данных
@@ -7,5 +7,5 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 export interface IApprovalDatabaseData extends IBaseDatabaseData {
   // Специфические поля для approval
   approval_hash?: string; // Ключ синхронизации
-  approved_document?: ISignedDocumentDomainInterface; // Одобренный документ (заполняется при подтверждении)
+  approved_document?: ISignedDocument; // Одобренный документ (заполняется при подтверждении)
 }

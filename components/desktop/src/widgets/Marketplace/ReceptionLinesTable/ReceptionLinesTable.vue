@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceLineCost } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
@@ -12,9 +13,13 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 export interface ReceptionLineRow {
   product_name: string | null;
+  /** Количество в базовой единице; к показу приводится к единицам отпуска. */
   fact_quantity: number;
   unit_of_measure: string | null;
+  /** Цена за единицу отпуска: за упаковку при `package_size` > 0. */
   fact_unit_price: string | null;
+  /** Содержимое упаковки; null/0 — отпуск по мере. */
+  package_size?: number | null;
 }
 
 const props = defineProps<{
@@ -22,12 +27,16 @@ const props = defineProps<{
 }>();
 
 function qtyLabel(row: ReceptionLineRow): string {
-  return marketplaceQuantityLabel(row.fact_quantity, row.unit_of_measure);
+  const saleUnit = marketplaceOrderSaleUnit(
+    row.fact_quantity,
+    row.unit_of_measure,
+    row.package_size ?? null,
+  );
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function lineSum(row: ReceptionLineRow): number {
-  const price = Number.parseFloat(row.fact_unit_price ?? '0');
-  return Number.isFinite(price) ? row.fact_quantity * price : 0;
+  return marketplaceLineCost(row.fact_quantity, row.fact_unit_price, row.package_size ?? null);
 }
 
 const total = computed(() => props.rows.reduce((acc, r) => acc + lineSum(r), 0));

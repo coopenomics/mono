@@ -4,6 +4,7 @@ import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
 import { NotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { ExitOverlay } from 'src/features/Membership/ExitFromCoop';
 import { PinPrompt } from 'src/features/Security/PinPrompt';
+import { NodeSyncOverlay } from 'src/entities/System/ui/NodeSyncOverlay';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ глобальных оверлеев в универсальный реестр.
@@ -23,4 +24,5 @@ export function registerCoreOverlays(): void {
   registerGlobalOverlay('core:exit-overlay', ExitOverlay);
   // CoopID: запрос PIN при подписи после простоя и после перезагрузки.
   registerGlobalOverlay('core:pin-prompt', PinPrompt);
+  registerGlobalOverlay('core:node-sync-overlay', NodeSyncOverlay);
 }

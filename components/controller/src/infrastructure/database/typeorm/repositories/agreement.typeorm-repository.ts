@@ -5,16 +5,15 @@ import { AgreementDomainEntity } from '~/domain/agreement/entities/agreement.ent
 import { AgreementTypeormEntity } from '../entities/agreement.typeorm-entity';
 import { AgreementMapper } from '../mappers/agreement.mapper';
 import type { AgreementRepository, AgreementFilterInput } from '~/domain/agreement/repositories/agreement.repository';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IAgreementBlockchainData } from '~/domain/agreement/interfaces/agreement-blockchain.interface';
 import type { IAgreementDatabaseData } from '~/domain/agreement/interfaces/agreement-database.interface';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationUtils } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория соглашений

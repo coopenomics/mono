@@ -9,8 +9,6 @@ const rawMeasureSelector = {
   title: true,
   unit: true,
   series_mode: true,
-  wave_period: true,
-  tag: true,
   created_by: true,
   status: true,
 }

@@ -232,6 +232,9 @@ export interface MarketplaceOfferApprovedEvent {
   approved_by: string;
   /** Категория предложения — каталог решает, нужно ли обновлять текущую вкладку. */
   category_id: number;
+  coopname: string;
+  /** Название имущества — поставщик узнаёт из письма, какое предложение открыто. */
+  product_name: string;
 }
 
 /**
@@ -245,6 +248,9 @@ export const MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT =
 export interface MarketplaceOfferModerationRequestedEvent {
   offer_id: string;
   supplier_account: string;
+  coopname: string;
+  /** Название имущества — администратор видит в письме, что именно проверять. */
+  product_name: string;
 }
 
 /**
@@ -260,6 +266,9 @@ export interface MarketplaceOfferRejectedEvent {
   supplier_account: string;
   rejected_by: string;
   reason: string;
+  coopname: string;
+  /** Название имущества — поставщик узнаёт из письма, что именно поправить. */
+  product_name: string;
 }
 
 export interface MarketplaceOrderStatusChangedEvent {

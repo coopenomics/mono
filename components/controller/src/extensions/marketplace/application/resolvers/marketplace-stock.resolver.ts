@@ -1,7 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -43,11 +42,9 @@ import {
   MarketplaceUnpublishStockResultDTO,
   toMarketplaceStockProposalDTO,
 } from '../dto/marketplace-stock.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -81,7 +78,7 @@ export class MarketplaceStockResolver {
   ): Promise<MarketplaceInventoryItemDTO[]> {
     const branames = await this.resolveBranames(member, braname, 'Stock');
     if (branames.length === 0) return [];
-    const list = await this.stockService.listStock(config.coopname, branames);
+    const list = await this.stockService.listStock(platformSettings().coopname, branames);
     // Единица измерения + package_size (Эпик 18) — «витрина на месте»:
     // остаток показывается в той же упаковке, в которой партия принята на
     // склад (см. resolveStockPackageSize для уже опубликованных офферов
@@ -108,7 +105,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplacePublishStockInputDTO
   ): Promise<MarketplaceOfferDTO[]> {
     const offers = await this.stockService.publishStock({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_ids: data.inventory_ids,
       price_per_unit: data.price_per_unit ?? null,
@@ -128,7 +125,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceUnpublishStockInputDTO
   ): Promise<MarketplaceUnpublishStockResultDTO> {
     const affected = await this.stockService.unpublishStock({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       inventory_ids: data.inventory_ids,
     });
@@ -152,7 +149,7 @@ export class MarketplaceStockResolver {
   ): Promise<MarketplaceStockIssuanceOperatorLineDTO[]> {
     await this.assertBranameAllowed(member, data.braname, 'StockProposal', 'create');
     const lines = await this.proposalService.getOperatorIssuancePayloads({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       braname: data.braname,
       member_account: data.member_account,
       operator_account: member.username,
@@ -185,7 +182,7 @@ export class MarketplaceStockResolver {
   ): Promise<MarketplaceStockProposalDTO> {
     await this.assertBranameAllowed(member, data.braname, 'StockProposal', 'create');
     const proposal = await this.proposalService.createProposal({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       operator_account: member.username,
       braname: data.braname,
       member_account: data.member_account,
@@ -194,13 +191,13 @@ export class MarketplaceStockResolver {
         quantity: i.quantity,
         package_id: i.package_id ?? null,
         order_hash: i.order_hash,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
       order_items: (data.order_items ?? []).map((i) => ({
         order_id: i.order_id,
         actual_quantity: i.actual_quantity,
         actual_unit_price: i.actual_unit_price,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
     });
     return toMarketplaceStockProposalDTO(proposal);
@@ -217,7 +214,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
   ): Promise<MarketplaceStockProposalDTO> {
     const proposal = await this.proposalService.cancelProposal(
-      config.coopname,
+      platformSettings().coopname,
       data.proposal_id,
       member.username
     );
@@ -237,7 +234,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
   ): Promise<MarketplaceStockAcceptPayloadDTO> {
     const payload = await this.proposalService.getAcceptSignablePayloads(
-      config.coopname,
+      platformSettings().coopname,
       data.proposal_id,
       member.username
     );
@@ -279,7 +276,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceFinalizeStockIssuanceInputDTO
   ): Promise<MarketplaceStockProposalAcceptResultDTO> {
     const result = await this.proposalService.finalizeStockIssuance(
-      config.coopname,
+      platformSettings().coopname,
       data.proposal_id,
       member.username,
       { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
@@ -301,7 +298,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
   ): Promise<MarketplaceStockProposalDTO> {
     const proposal = await this.proposalService.declineProposal(
-      config.coopname,
+      platformSettings().coopname,
       data.proposal_id,
       member.username
     );
@@ -320,7 +317,7 @@ export class MarketplaceStockResolver {
     @Args('data') data: MarketplaceCancelStockOrderInputDTO
   ): Promise<MarketplaceOrderDTO> {
     const order = await this.stockService.cancelStockOrder(
-      config.coopname,
+      platformSettings().coopname,
       data.order_id,
       member.username,
       data.reason ?? 'Докладка переформирована оператором'
@@ -349,14 +346,14 @@ export class MarketplaceStockResolver {
       const branames = await this.resolveBranames(member, data?.braname, 'StockProposal');
       if (branames.length === 0) return [];
       const list = await this.proposalService.listProposals({
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         braname: branames,
         status: statuses,
       });
       return list.map(toMarketplaceStockProposalDTO);
     }
     const list = await this.proposalService.listProposals({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       member_account: member.username,
       status: statuses,
     });
@@ -377,10 +374,10 @@ export class MarketplaceStockResolver {
   ): Promise<string[]> {
     const roles = member.marketplace_roles as MarketplaceRole[];
     if (canAccess(roles, resource, 'read:all')) {
-      return requested ? [requested] : await this.kuChairmanService.listAllBranames(config.coopname);
+      return requested ? [requested] : await this.kuChairmanService.listAllBranames(platformSettings().coopname);
     }
     const ownBranames = await this.kuChairmanService.listBranamesForMember(
-      config.coopname,
+      platformSettings().coopname,
       member.username
     );
     if (requested) {
@@ -403,7 +400,7 @@ export class MarketplaceStockResolver {
     const roles = member.marketplace_roles as MarketplaceRole[];
     if (canAccess(roles, resource, `${action}:all`)) return;
     const ownBranames = await this.kuChairmanService.listBranamesForMember(
-      config.coopname,
+      platformSettings().coopname,
       member.username
     );
     if (!ownBranames.includes(braname)) {

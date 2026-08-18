@@ -3,12 +3,12 @@ import { ResultDomainEntity } from '../../domain/entities/result.entity';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import { DocumentDataPort, DOCUMENT_DATA_PORT } from '~/domain/document/ports/document-data.port';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ResultTypeormEntity>, keyof IResultBlockchainData>;
@@ -22,8 +22,8 @@ type toDomainBlockchainPart = RequireFields<Partial<ResultDomainEntity>, keyof I
 @Injectable()
 export class ResultMapper {
   constructor(
-    @Inject(DOCUMENT_DATA_PORT)
-    private readonly documentDataPort: DocumentDataPort
+    @Inject(DOCUMENT_PORT)
+    private readonly documentPort: IDocumentPort
   ) {}
   /**
    * Преобразование TypeORM сущности в доменную сущность
@@ -100,9 +100,9 @@ export class ResultMapper {
         created_at: new Date(domain.created_at ?? new Date()),
         debt_amount: domain.debt_amount as string,
         total_amount: domain.total_amount as string,
-        statement: domain.statement as ISignedDocumentDomainInterface,
-        authorization: domain.authorization as ISignedDocumentDomainInterface,
-        act: domain.act as ISignedDocumentDomainInterface,
+        statement: domain.statement as ISignedDocument,
+        authorization: domain.authorization as ISignedDocument,
+        act: domain.act as ISignedDocument,
       };
     }
 
@@ -134,17 +134,17 @@ export class ResultMapper {
     // Обогащаем документы в result
     const enrichedStatement =
       domain.statement && domain.statement.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.statement)
+        ? await this.documentPort.buildAggregate(domain.statement)
         : null;
 
     const enrichedAuthorization =
       domain.authorization && domain.authorization.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.authorization)
+        ? await this.documentPort.buildAggregate(domain.authorization)
         : null;
 
     const enrichedAct =
       domain.act && domain.act.hash !== DomainToBlockchainUtils.getEmptyHash()
-        ? await this.documentDataPort.buildDocumentAggregate(domain.act)
+        ? await this.documentPort.buildAggregate(domain.act)
         : null;
 
     // Создаем ResultOutputDTO с обогащенными документами

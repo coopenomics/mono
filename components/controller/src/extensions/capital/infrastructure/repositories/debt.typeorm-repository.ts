@@ -5,9 +5,8 @@ import { DebtRepository } from '../../domain/repositories/debt.repository';
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import { DebtMapper } from '../mappers/debt.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
 

@@ -15,6 +15,7 @@ import { FailAlert } from 'src/shared/api/alerts';
 import { getGlobalOverlays } from 'src/shared/lib/overlays';
 import { startRealtimeChannel } from 'src/shared/lib/realtime';
 import { registerCoreOverlays } from 'src/app/providers/global-overlays';
+import { registerCoreRealtimeSubscriptions } from 'src/app/providers/core-realtime';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
@@ -36,6 +37,7 @@ const globalOverlays = getGlobalOverlays();
 // Универсальный realtime-канал ядра: открывает подписки расширений по факту
 // авторизации, дёргает catch-up на возврат активности. Подписки расширения
 // регистрируют сами в своих install.ts (фабрика, как и оверлеи).
+registerCoreRealtimeSubscriptions();
 startRealtimeChannel();
 
 // [BOOTRACE] таймстемп первого холодного старта (грепается по слову BOOTRACE).

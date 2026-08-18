@@ -1,4 +1,7 @@
 // app.module.ts
+// Первым — предусловие: расширения читают настройки контура уже при построении
+// своих схем конфига, то есть раньше, чем выполнится любой код приложения.
+import './config/platform-bootstrap';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -11,6 +14,7 @@ import { GraphqlModule } from './infrastructure/graphql/graphql.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
+import { ForkRegistryModule } from './shared/sync/fork';
 import { GeneratorInfrastructureModule } from './infrastructure/generator/generator.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { EventsInfrastructureModule } from './infrastructure/events/events.module';
@@ -34,7 +38,6 @@ import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
-import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
 import { VaultDomainModule } from './domain/vault/vault-domain.module';
 import { LedgerDomainModule } from './domain/ledger/ledger-domain.module';
 import { ProcessRegistryDomainModule } from './domain/process-registry/process-registry-domain.module';
@@ -82,7 +85,7 @@ import { OnboardingApplicationModule } from './application/onboarding/onboarding
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
-import { MarketplacePluginModule } from './extensions/marketplace/marketplace-extension.module';
+import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
 import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
@@ -90,6 +93,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     ConfigModule.forRoot({
       isGlobal: true, // Чтобы .env был доступен глобально
     }),
+    ScheduleModule.forRoot(), // @Cron / @Interval / @Timeout (Story 4.4 retention)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -106,6 +110,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
     GraphqlModule,
+    ForkRegistryModule,
     BlockchainModule,
     GeneratorInfrastructureModule,
     RedisModule,
@@ -138,7 +143,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     FreeDecisionDomainModule,
     ParticipantDomainModule,
     MeetDomainModule,
-    GatewayDomainModule,
     VaultDomainModule,
     LedgerDomainModule,
     ProcessRegistryDomainModule,
@@ -183,7 +187,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     SearchModule,
     SignedDocumentsModule,
     // Marketplace extensions
-    MarketplacePluginModule,
+    MarketplaceExtensionModule,
     MarketplaceCardsModule,
   ],
   providers: [

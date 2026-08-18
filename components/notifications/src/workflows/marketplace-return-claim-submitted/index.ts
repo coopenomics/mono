@@ -6,7 +6,10 @@ import { createEmailStep, createInAppStep, createPushStep } from '../../base/def
 import { slugify } from '../../utils';
 
 export const marketplaceReturnClaimSubmittedPayloadSchema = z.object({
-  chairmanName: z.string(),
+  // Имя ПОЛУЧАТЕЛЯ письма, а не председателя: заявление уходит веером всем
+  // операторам пункта выдачи — председателю участка и его доверенным лицам,
+  // они равны в правах по столу ПВЗ (см. matrix: ReturnClaim.decide у operator).
+  recipientName: z.string(),
   ordererName: z.string(),
   brananame: z.string(),
   coopname: z.string(),
@@ -27,14 +30,14 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление председателю кооперативного участка о поступившем заявлении на гарантийный возврат имущества пайщиком.')
+  .description('Уведомление операторам пункта выдачи — председателю кооперативного участка и его доверенным лицам — о поступившем заявлении на гарантийный возврат имущества пайщиком.')
   .payloadSchema(marketplaceReturnClaimSubmittedPayloadSchema)
   .tags(['marketplace', 'operator', 'return'])
   .addSteps([
     createEmailStep(
       'marketplace-return-claim-submitted-email',
       'Новое заявление на гарантийный возврат от {{payload.ordererName}}',
-      'Уважаемый {{payload.chairmanName}}!<br><br>Пайщик <strong>{{payload.ordererName}}</strong> подал заявление на гарантийный возврат имущества по заказу <strong>{{payload.order_id}}</strong> на вашем кооперативном участке <strong>{{payload.brananame}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Рассмотреть заявление: {{payload.deepLinkUrl}}'
+      'Уважаемый {{payload.recipientName}}!<br><br>Пайщик <strong>{{payload.ordererName}}</strong> подал заявление на гарантийный возврат имущества по заказу <strong>{{payload.order_id}}</strong> на вашем пункте выдачи <strong>{{payload.brananame}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Рассмотреть заявление: {{payload.deepLinkUrl}}'
     ),
     createInAppStep(
       'marketplace-return-claim-submitted-notification',
@@ -44,7 +47,7 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createPushStep(
       'marketplace-return-claim-submitted-push',
       'Новое заявление на гарантийный возврат',
-      'Заявление на гарантийный возврат на КУ {{payload.brananame}} ждёт рассмотрения.'
+      'Заявление на гарантийный возврат на пункте выдачи {{payload.brananame}} ждёт рассмотрения.'
     ),
   ])
   .build();

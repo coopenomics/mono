@@ -1,5 +1,5 @@
 import { ObjectType, Field } from '@nestjs/graphql';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { ActDetailDomainInterface } from '~/domain/agenda/interfaces/act-detail-domain.interface';
 import { ExtendedBlockchainActionDTO } from './extended-action.dto';
 

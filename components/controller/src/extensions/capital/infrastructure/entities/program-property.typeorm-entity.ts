@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { ProgramPropertyStatus } from '../../domain/enums/program-property-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_program_properties';
 @Entity(EntityName)
@@ -37,13 +37,13 @@ export class ProgramPropertyTypeormEntity extends BaseTypeormEntity {
   property_description!: string;
 
   @Column({ type: 'json' })
-  statement!: ISignedDocumentDomainInterface;
+  statement!: ISignedDocument;
 
   @Column({ type: 'json' })
-  authorization!: ISignedDocumentDomainInterface;
+  authorization!: ISignedDocument;
 
   @Column({ type: 'json' })
-  act!: ISignedDocumentDomainInterface;
+  act!: ISignedDocument;
 
   @Column({ type: 'timestamp' })
   created_at!: Date;

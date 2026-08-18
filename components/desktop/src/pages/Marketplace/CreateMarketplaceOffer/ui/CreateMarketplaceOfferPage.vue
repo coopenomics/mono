@@ -191,6 +191,15 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   hide-bottom-space,
                   :suffix='governSymbol'
                 )
+                q-input.offer-wizard__pkg-type(
+                  v-model='pkg.package_type',
+                  label='Вид упаковки',
+                  placeholder='стекло, пластик, корзинка',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space
+                )
                 q-input.offer-wizard__pkg-label(
                   v-model='pkg.label',
                   label='Подпись (необяз.)',
@@ -540,7 +549,7 @@ function goToPayouts(): void {
 // прочих — что цена/остаток применяются сразу, а контент уходит на модерацию.
 const infoText = computed(() => {
   if (!isEdit.value) {
-    return 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию председателю — до одобрения оно не появится в каталоге.';
+    return 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию администратору — до одобрения оно не появится в каталоге.';
   }
   if (currentStatus.value === 'WITHDRAWN') {
     return 'Доработайте карточку снятого предложения. Пока вы не вернёте его на публикацию, оно остаётся снятым и в каталоге не показывается. При возврате изменённое содержимое снова пройдёт модерацию, неизменное — опубликуется сразу.';
@@ -743,7 +752,13 @@ function setDefaultPackage(index: number): void {
 
 function addPackage(): void {
   const isFirst = form.value.packages.length === 0;
-  form.value.packages.push({ size: null, price: '', label: '', is_default: isFirst });
+  form.value.packages.push({
+    size: null,
+    price: '',
+    label: '',
+    package_type: '',
+    is_default: isFirst,
+  });
 }
 
 function removePackage(index: number): void {
@@ -1160,6 +1175,14 @@ async function onSubmit(): Promise<void> {
         FailAlert(new Error('У каждой упаковки укажите корректную цену.'));
         return;
       }
+      // Вид упаковки заказчик видит в карточке и в корзине — без него
+      // непонятно, в чём приедет товар (стекло, пластик, возвратная корзинка).
+      if (!p.package_type.trim()) {
+        FailAlert(
+          new Error('У каждой упаковки укажите вид: стекло, пластиковая бутылка, корзинка и т.п.')
+        );
+        return;
+      }
     }
     packagesPayload = f.packages.map((p) => ({
       // Идентификатор уже сохранённой упаковки возвращаем обратно: на него
@@ -1168,6 +1191,7 @@ async function onSubmit(): Promise<void> {
       size: p.size as number,
       price: p.price.trim().replace(',', '.'),
       label: p.label.trim() ? p.label.trim() : null,
+      package_type: p.package_type.trim(),
       is_default: p.is_default,
     }));
     // price_per_unit при упаковочном отпуске backend выводит из упаковки по
@@ -1204,7 +1228,7 @@ async function onSubmit(): Promise<void> {
     } else {
       await createOffer(payload);
       clearDraft();
-      SuccessAlert('Предложение создано и отправлено на модерацию председателю.');
+      SuccessAlert('Предложение создано и отправлено на модерацию администратору.');
       // Поставщика возвращаем на его стол «Мои предложения» — там он сразу
       // видит только что созданную оферту в статусе «На модерации», а не в
       // каталог заказчика.
@@ -1238,6 +1262,7 @@ async function prefillForEdit(id: string): Promise<void> {
         size: p.size,
         price: formatPriceForInput(p.price),
         label: p.label ?? '',
+        package_type: p.package_type ?? '',
         is_default: p.is_default,
       })),
       quantity_available: offer.quantity_available,

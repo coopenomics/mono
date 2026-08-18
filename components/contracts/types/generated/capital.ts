@@ -2,10 +2,12 @@
 
 export type IAsset = string
 export type IName = string
+export type IBytes = string | number[] | Uint8Array
 export type IChecksum256 = string
 export type IPublicKey = string
 export type ISignature = string
 export type ITimePointSec = string
+export type IUint8 = number
 export type IUint32 = number
 export type IUint64 = number | string
 export type IFloat64 = number
@@ -107,13 +109,6 @@ export interface IApprvappndx {
   username: IName
   appendix_hash: IChecksum256
   approved_document: IDocument2
-}
-
-export interface IApprvpinv {
-  coopname: IName
-  username: IName
-  invest_hash: IChecksum256
-  approved_statement: IDocument2
 }
 
 export interface IAuthpgprp {
@@ -230,7 +225,7 @@ export interface IConvertsegm {
   coopname: IName
   username: IName
   project_hash: IChecksum256
-  convert_hash: IChecksum256
+  result_hash: IChecksum256
   wallet_amount: IAsset
   capital_amount: IAsset
   convert_statement: IDocument2
@@ -284,6 +279,15 @@ export interface ICreateinvest {
   project_hash: IChecksum256
   invest_hash: IChecksum256
   amount: IAsset
+  statement: IDocument2
+}
+
+export interface ICreatepgexp {
+  coopname: IName
+  expense_hash: IChecksum256
+  creator: IName
+  items: IItem[]
+  description: string
   statement: IDocument2
 }
 
@@ -413,13 +417,6 @@ export interface IDeclinereg {
   reason: string
 }
 
-export interface IDeclpinv {
-  coopname: IName
-  username: IName
-  invest_hash: IChecksum256
-  declined_statement: IDocument2
-}
-
 export interface IDeclrslt {
   coopname: IName
   result_hash: IChecksum256
@@ -434,6 +431,7 @@ export interface IDelproject {
 export interface IDiallocate {
   coopname: IName
   project_hash: IChecksum256
+  amount: IAsset
 }
 
 export interface IDocument2 {
@@ -556,6 +554,8 @@ export interface IGlobalState {
   program_membership_distributed: IAsset
   program_membership_cumulative_reward_per_share: IFloat64
   config: IConfig
+  program_expense_pool: IAsset$
+  program_expense_reserved: IAsset$
 }
 
 export interface IImportcontrib {
@@ -580,11 +580,33 @@ export interface IInvest {
   coordinator_amount: IAsset
 }
 
+export interface IItem {
+  item_hash: IChecksum256
+  mechanics: IUint8
+  recipient_type: IUint8
+  recipient: IName
+  description: string
+  planned_amount: IAsset
+  actual_amount: IAsset
+  status: IUint8
+}
+
 export interface ILvlnotify {
   coopname: IName
   username: IName
   prev_level: IUint32
   new_level: IUint32
+}
+
+export interface IMigrate {
+}
+
+export interface IOnpgexpdone {
+  coopname: IName
+  expense_hash: IChecksum256
+  status: IUint8
+  total_actual: IAsset
+  data: IBytes
 }
 
 export interface IOpenproject {
@@ -611,6 +633,21 @@ export interface IPlanPool {
   total_generation_pool: IAsset
   total: IAsset
   total_with_investments: IAsset
+}
+
+export interface IProgramExpense {
+  id: IUint64
+  coopname: IName
+  username: IName
+  status: IName
+  expense_hash: IChecksum256
+  fund_id: IUint64
+  amount: IAsset
+  description: string
+  expense_statement: IDocument2
+  approved_statement: IDocument2
+  authorization: IDocument2
+  spended_at: ITimePointSec
 }
 
 export interface IProgramInvest {
@@ -671,6 +708,7 @@ export interface IProject {
   crps: ICrpsData
   voting: IVotingData
   created_at: ITimePointSec
+  total_debt_amount: IAsset$
 }
 
 export interface IProperty {
@@ -876,6 +914,11 @@ export interface ISubmitvote {
   voter: IName
   project_hash: IChecksum256
   votes: IVoteInput[]
+}
+
+export interface ITopupprogexp {
+  coopname: IName
+  amount: IAsset
 }
 
 export interface IVote {

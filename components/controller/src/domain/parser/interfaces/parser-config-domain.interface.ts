@@ -23,9 +23,17 @@ export interface ActionConfigDomainInterface {
 export interface ActionFilterDomainInterface {
   account?: string;
   name?: string;
+  /** Аккаунт, до которого действие дошло: у нотификации это не тот же аккаунт, что account. */
+  receiver?: string;
   block_num?: number;
   global_sequence?: string;
   repeat?: boolean;
+  /**
+   * Точное совпадение по полям полезной нагрузки действия. Ключ — имя поля
+   * верхнего уровня (`package`, `hash`), значение сравнивается как строка.
+   * Так история ищется по документу, а не по номеру блока.
+   */
+  data?: Record<string, string>;
 }
 
 /**

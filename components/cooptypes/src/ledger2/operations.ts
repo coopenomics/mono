@@ -20,7 +20,17 @@ export type WalletOp = 'ISSUE' | 'TRANSFER' | 'BURN' | 'NONE'
 export interface OperationMeta {
   /** Машинный идентификатор — eosio::name в контракте. */
   code: string
-  /** Контрактный `process_type`, связанный с этой операцией. */
+  /**
+   * Типовая принадлежность операции к процессу.
+   *
+   * НЕ имя нитки: имя называет контракт-инициатор и эмитит его в
+   * `ledger2::apply` (см. `processes.hpp`), поэтому одна операция может идти в
+   * разных процессах — членский взнос КУ (`o.brn.common`) зачисляется внутри
+   * нитки поставки, а возвращается внутри нитки гарантийного возврата.
+   *
+   * Бэкенду это поле нужно только для записей, сделанных до появления эмиссии
+   * имени: по нему выводится название процесса у исторических блоков.
+   */
   process_type: string
   /** Контракт-источник. */
   contract: string
@@ -289,6 +299,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 51,
     human_name: 'Материальная помощь доверенному кооперативного участка' },
 
+  { code: 'o.brn.aidtax',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.sov.ndfl',
+    debit: 86, credit: 68,
+    human_name: 'Удержание налога на доходы физических лиц из материальной помощи' },
+
   { code: 'o.brn.conv',    process_type: 'p.brn.fees',    contract: 'branch',
     name: 'CONVERT_TO_MKT', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.mkt.member',
     debit: null, credit: null,
@@ -296,6 +311,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   // soviet
   { code: 'o.sov.axncnv', process_type: 'p.sov.axncnv', contract: 'soviet', name: 'CONVERT_AXN', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.sov.delgte', debit: 80, credit: 86, human_name: 'Трансляция паевого в членский взнос инфраструктуры' },
+
+  { code: 'o.sov.taxpay',  process_type: 'p.sov.tax',     contract: 'soviet',
+    name: 'TAX_PAYMENT',    wallet_op: 'BURN', wallet_from: 'w.sov.ndfl', wallet_to: null,
+    debit: 68, credit: 51,
+    human_name: 'Перечисление удержанного налога на доходы физических лиц в бюджет' },
 
   // migration
   { code: 'o.mig.minshr', process_type: 'p.mig.trans', contract: 'migration', name: 'MIN_SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Транзит: минимальные паевые взносы' },

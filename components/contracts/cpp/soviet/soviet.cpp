@@ -78,6 +78,9 @@
 #include "src/wallet/subbal.cpp"
 #include "src/wallet/unblockbal.cpp"
 
+#include "src/tax/createtax.cpp"
+#include "src/tax/taxconfirm.cpp"
+#include "src/tax/taxdecline.cpp"
 #include "src/withdraw/withdraw.cpp"
 
 using namespace eosio;

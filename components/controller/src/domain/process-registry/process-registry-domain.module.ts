@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeltaEntity } from '~/infrastructure/database/typeorm/entities/delta.entity';
 import { ActionEntity } from '~/infrastructure/database/typeorm/entities/action.entity';
@@ -16,7 +16,7 @@ import { ProcessRegistryService } from './services/process-registry.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([DeltaEntity, ActionEntity]),
-    forwardRef(() => DocumentDomainModule),
+    DocumentDomainModule,
     RedisModule,
   ],
   providers: [ProcessRegistryService],

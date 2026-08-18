@@ -67,6 +67,7 @@ void marketplace::signchair(eosio::name coopname,
   // Только приёмка имущества; payout — отдельный lazy action (L12).
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PURCHASE_FROM_SUPPLIER,
+                 processes::marketplace::SUPPLY,
                  fact_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_purchase_from_supplier_memo(o.id));
 

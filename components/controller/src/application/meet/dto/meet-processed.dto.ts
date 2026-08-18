@@ -1,17 +1,16 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { MeetQuestionResultDTO } from './meet-question-result.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { Type } from 'class-transformer';
 import { ValidateNested } from 'class-validator';
 import { MeetProcessedDomainInterface } from '~/domain/meet/interfaces/meet-processed-domain.interface';
 import { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
-import { SignedDigitalDocumentDTO } from '~/application/document/dto/signed-digital-document.dto';
 import { UserCertificateUnion } from '~/application/document/unions/user-certificate.union';
 import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';
 import { EntrepreneurCertificateDTO } from '~/application/common/dto/entrepreneur-certificate.dto';
 import { OrganizationCertificateDTO } from '~/application/common/dto/organization-certificate.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
+import { DocumentAggregateDTO, SignedDigitalDocumentDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('MeetProcessed', { description: 'Данные о собрании после обработки' })
 export class MeetProcessedDTO {

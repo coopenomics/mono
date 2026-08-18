@@ -5,7 +5,7 @@ import type {
   PaymentDomainInterface,
   PaymentDetailsDomainInterface,
 } from '~/domain/gateway/interfaces/payment-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Унифицированная сущность платежа для TypeORM
@@ -87,7 +87,7 @@ export class PaymentEntity implements PaymentDomainInterface {
   blockchain_data?: any;
 
   @Column('json', { nullable: true })
-  statement?: ISignedDocumentDomainInterface;
+  statement?: ISignedDocument;
 
   /**
    * Связь с extension, инициировавшим платёж. Заполняется для системных

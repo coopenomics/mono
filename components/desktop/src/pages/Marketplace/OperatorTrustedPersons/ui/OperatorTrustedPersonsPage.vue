@@ -54,8 +54,9 @@ function personName(p: { first_name?: string; last_name?: string; middle_name?: 
 const rows = computed<PersonRow[]>(() => {
   const b = branch.value
   if (!b) return []
+  if (!b.trustee) return []
   const out: PersonRow[] = [{ username: b.trustee.username, name: personName(b.trustee), isTrustee: true }]
-  for (const t of b.trusted) {
+  for (const t of b.trusted ?? []) {
     out.push({ username: t.username, name: personName(t), isTrustee: false })
   }
   return out
@@ -139,7 +140,7 @@ q-page.trusted
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Стол ПВЗ доступен председателю участка и его доверенным лицам. Управление доверенными лицами появится, когда вы станете оператором КУ.'
+    body='Стол ПВЗ доступен оператору участка и его доверенным лицам. Управление доверенными лицами появится, когда вы станете оператором КУ.'
   )
     template(#icon)
       q-icon(name='group_off', size='48px')
@@ -147,7 +148,7 @@ q-page.trusted
   template(v-else)
     PageHint(storage-key='mp:operator-trusted:banner-dismissed')
       | Доверенные лица получают те же права на этом пункте выдачи, что и
-      | председатель участка: приёмка партий, маркировка, выдача заказов,
+      | оператор участка: приёмка партий, маркировка, выдача заказов,
       | гарантийные возвраты и склад. Добавляйте только тех пайщиков, кому
       | доверяете операции от имени участка.
 

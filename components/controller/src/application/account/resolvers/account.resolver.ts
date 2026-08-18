@@ -3,10 +3,7 @@ import { AccountService } from '../services/account.service';
 import { AccountDTO } from '../dto/account.dto';
 import { GetAccountInputDTO } from '../dto/get-account-input.dto';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { createPaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { AuthRoles, GqlJwtAuthGuard, RolesGuard, createPaginationResult, PaginationInputDTO, CurrentUser } from '@coopenomics/extension-kit';
 import { GetAccountsInputDTO } from '../dto/get-accounts-input.dto';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
@@ -16,8 +13,7 @@ import { PassportInputDTO } from '../dto/passport-input.dto';
 import { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { IMonoAccount } from '@coopenomics/innercoop';
 
 export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Accounts');
 
@@ -95,7 +91,7 @@ export class AccountResolver {
       'Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств.',
   })
   @UseGuards(GqlJwtAuthGuard)
-  async resetRegistration(@CurrentUser() currentUser: MonoAccountDomainInterface): Promise<AccountDTO> {
+  async resetRegistration(@CurrentUser() currentUser: IMonoAccount): Promise<AccountDTO> {
     return await this.accountService.resetRegistration(currentUser.username);
   }
 
@@ -121,7 +117,7 @@ export class AccountResolver {
   @UseGuards(GqlJwtAuthGuard)
   async saveMyPassport(
     @Args('passport', { type: () => PassportInputDTO }) passport: PassportInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AccountDTO> {
     return await this.accountService.saveOwnPassport(currentUser.username, passport);
   }

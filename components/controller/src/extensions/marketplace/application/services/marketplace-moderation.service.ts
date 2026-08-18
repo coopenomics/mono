@@ -20,14 +20,11 @@ import {
   type MarketplaceOfferStatus,
 } from '../../domain/entities/marketplace-offer.types';
 import type { MarketplaceModerationLogDomainEntity } from '../../domain/entities/marketplace-moderation-log.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_MODERATION_SERVICE = Symbol('MARKETPLACE_MODERATION_SERVICE');
 
@@ -59,8 +56,8 @@ export class MarketplaceModerationService {
 
   async listPending(
     coopname: string,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.offerRepo.list({ coopname, status: MarketplaceOfferStatuses.PENDING_MODERATION }, pagination);
   }
 
@@ -96,6 +93,8 @@ export class MarketplaceModerationService {
       supplier_account: offer.supplier_account,
       approved_by: admin_account,
       category_id: offer.category_id,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
     });
     return updated;
   }
@@ -133,6 +132,8 @@ export class MarketplaceModerationService {
       supplier_account: offer.supplier_account,
       rejected_by: admin_account,
       reason: trimmed,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
     });
     return updated;
   }

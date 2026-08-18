@@ -1,7 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
- * Извлекает tx_hash из ответа цепи (wharfkit TransactResult).
+ * Извлекает tx_hash из ответа цепи (ответ wharfkit).
  *
  * wharfkit держит Antelope push_transaction response под `response`
  * (`response.processed.id` / `response.transaction_id`). Для совместимости
@@ -29,15 +30,4 @@ export function normalizeChainTxHash(tx: unknown, txHashMissingMessage: string):
     throw new BadRequestException(txHashMissingMessage);
   }
   return hash;
-}
-
-/**
- * Чистит `assertion failure with message: ...` из `eosio::check` и пробрасывает
- * пайщику как BadRequest с человекочитаемым текстом (без EOSIO-обёртки).
- */
-export function rethrowChainError(error: unknown): never {
-  const raw: string = (error as { message?: string })?.message ?? String(error);
-  const match = raw.match(/assertion failure with message: (.+?)(?:\n|$)/);
-  const clean = match ? match[1].trim() : raw;
-  throw new BadRequestException(clean);
 }

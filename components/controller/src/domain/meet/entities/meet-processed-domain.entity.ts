@@ -1,5 +1,5 @@
 import type { MeetProcessedDomainInterface } from '../interfaces/meet-processed-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 
 export class MeetProcessedDomainEntity implements MeetProcessedDomainInterface {
@@ -13,11 +13,11 @@ export class MeetProcessedDomainEntity implements MeetProcessedDomainInterface {
   public readonly signed_ballots!: number;
   public readonly quorum_percent!: number;
   public readonly quorum_passed!: boolean;
-  public readonly decision!: ISignedDocumentDomainInterface;
+  public readonly decision!: ISignedDocument;
 
   constructor(
     data: Partial<MeetProcessedDomainInterface> & {
-      decision: ISignedDocumentDomainInterface;
+      decision: ISignedDocument;
       presider: string;
       secretary: string;
     }

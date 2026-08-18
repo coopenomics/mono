@@ -16,6 +16,11 @@ function isIncompleteInstallMaintenance(systemStatus: string, hasSavedVars: bool
   return systemStatus === Zeus.SystemStatus.maintenance && !hasSavedVars;
 }
 
+/**
+ * Техобслуживание закрывает рабочий стол лоадером. Отставание узла от цепи —
+ * отдельное состояние со своим экраном (`NodeSyncOverlay`): там нужен ход
+ * догона, а не бесконечный спиннер.
+ */
 export function useDesktopHealthWatcherProcess() {
   const $q = useQuasar();
   const systemStore = useSystemStore();
@@ -53,24 +58,12 @@ export function useDesktopHealthWatcherProcess() {
   // Первоначальная проверка
   check();
 
+  // Выход из обслуживания снимает заглушку — и только. Раньше здесь стояла
+  // перезагрузка страницы: рабочий стол уезжал в полную загрузку ради данных,
+  // которые и так приезжают подпиской, а на dev-сборке это минута ожидания.
   watch(
     systemStatus,
-    (newSystemStatus, oldSystemStatus) => {
-
-      // Если состояние изменилось с maintenance на active (выход из технического обслуживания)
-      if (
-        oldSystemStatus === Zeus.SystemStatus.maintenance &&
-        (newSystemStatus === Zeus.SystemStatus.active ||
-          newSystemStatus === Zeus.SystemStatus.install)
-      ) {
-        // Перезагружаем страницу
-        if (process.env.CLIENT) {
-          window.location.reload();
-        }
-        return;
-      }
-
-      // Обычная логика проверки
+    () => {
       check();
     },
     {
@@ -82,12 +75,4 @@ export function useDesktopHealthWatcherProcess() {
   setTimeout(() => {
     check();
   }, 100);
-
-  // Следим за счетчиком maintenance для принудительной проверки
-  watch(
-    () => systemStore.maintenanceCounter,
-    () => {
-      check();
-    },
-  );
 }

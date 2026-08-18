@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ReportType } from '../enums/report-type.enum';
 import { ReportRequisitesService } from './report-requisites.service';
-import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
   BALANCE_CORRECTION_REPOSITORY,
   type BalanceCorrectionRepository,
@@ -11,12 +10,16 @@ import { toThousands } from '../../infrastructure/generators/buhotch.generator';
 import { formatDate } from '../../infrastructure/generators/xml-utils';
 import type { BuhotchEditsShape } from '../edits-shapes/buhotch-edits.shape';
 import type { ZeroReportEditsShape } from '../edits-shapes/zero-report-edits.shape';
-import { REPORT_CONFIG } from '../enums/report-type.enum';
+import type { Ndfl6EditsShape } from '../edits-shapes/ndfl6-edits.shape';
+import type { UvNdflEditsShape } from '../edits-shapes/uv-ndfl-edits.shape';
+import { Ndfl6DataService } from './ndfl6-data.service';
+import { REPORT_CONFIG, splitUvNdflPeriod } from '../enums/report-type.enum';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort } from '@coopenomics/innercoop';
 
 /**
  * Строит «дефолтное» редактируемое состояние формы отчёта из:
  *   - реквизитов организации (`ReportRequisitesService.getMerged`),
- *   - остатков по счетам ledger2 (`Ledger2Service.getAccounts`),
+ *   - остатков по счетам ledger2 (`ILedger2HistoryPort.getAccounts`),
  *   - ручных корректировок прошлых периодов (`BalanceCorrectionRepository`).
  *
  * Результат — POJO той же формы, что `Buhotch/Ndfl6/…EditsDTO`. Сервис
@@ -48,15 +51,13 @@ type BalanceRowEdits = BuhotchEditsShape['balance']['assetsTotal'];
 export class ReportEditsBuilderService {
   constructor(
     private readonly requisitesService: ReportRequisitesService,
-    private readonly ledger2Service: Ledger2Service,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2Service: ILedger2HistoryPort,
+    private readonly ndfl6DataService: Ndfl6DataService,
     @Inject(BALANCE_CORRECTION_REPOSITORY)
     private readonly correctionRepo: BalanceCorrectionRepository,
   ) {}
 
-  /**
-   * Вернуть дефолтное состояние edits для указанного типа отчёта.
-   * Сейчас реализован BUHOTCH; остальные типы — в STORY-2-5.
-   */
+  /** Вернуть дефолтное состояние edits для указанного типа отчёта. */
   async build(
     reportType: ReportType,
     year: number,
@@ -66,7 +67,13 @@ export class ReportEditsBuilderService {
     if (reportType === ReportType.BUHOTCH) {
       return this.buildBuhotch(coopname, year);
     }
-    // Остальные 6 форм — нулёвки через общий ZeroReportEditsShape.
+    if (reportType === ReportType.NDFL6) {
+      return this.buildNdfl6(coopname, year, period ?? 1);
+    }
+    if (reportType === ReportType.UV_NDFL) {
+      return this.buildUvNdfl(coopname, year, period ?? 1);
+    }
+    // Остальные 5 форм — нулёвки через общий ZeroReportEditsShape.
     // Per-type отличается только генерируемый XML (хардкод КНД/ВерсФорм/
     // periodCode), но edits-состояние одинаковое по структуре.
     return this.buildZeroReport(reportType, coopname, year, period ?? null);
@@ -241,6 +248,49 @@ export class ReportEditsBuilderService {
           merged.chairmanPosition.value || merged.chairmanPositionFromOrg.value,
       },
     };
+  }
+
+  /**
+   * 6-НДФЛ: шапка и реквизиты — как у любой формы, суммы — из ledger2 по
+   * удержаниям с материальной помощи.
+   *
+   * Справки о доходах (приложение № 1) добавляются только к годовому отчёту:
+   * схема прямо запрещает их при периодах «1 квартал», «полугодие» и
+   * «девять месяцев», так что в квартальных отчётах массив пуст.
+   */
+  private async buildNdfl6(
+    coopname: string,
+    year: number,
+    quarter: number,
+  ): Promise<Ndfl6EditsShape> {
+    const base = await this.buildZeroReport(ReportType.NDFL6, coopname, year, quarter);
+    const isAnnual = quarter === 4;
+    const [tax, certificates] = await Promise.all([
+      this.ndfl6DataService.buildTaxSection(coopname, year, quarter),
+      isAnnual ? this.ndfl6DataService.buildCertificates(coopname, year) : Promise.resolve([]),
+    ]);
+    return { ...base, tax, certificates };
+  }
+
+  /**
+   * Уведомление об исчисленных суммах НДФЛ. Сумма — налог, удержанный за один
+   * расчётный период месяца; она же попадёт одной из шести строк в раздел 1
+   * формы 6-НДФЛ за соответствующий квартал.
+   */
+  private async buildUvNdfl(
+    coopname: string,
+    year: number,
+    period: number,
+  ): Promise<UvNdflEditsShape> {
+    const base = await this.buildZeroReport(ReportType.UV_NDFL, coopname, year, period);
+    const { month, secondHalf } = splitUvNdflPeriod(period);
+    const amount = await this.ndfl6DataService.buildNotificationAmount(
+      coopname,
+      year,
+      month,
+      secondHalf,
+    );
+    return { ...base, payment: { amount } };
   }
 
   private defaultPeriodFor(reportType: ReportType, requested: number | null): number | null {

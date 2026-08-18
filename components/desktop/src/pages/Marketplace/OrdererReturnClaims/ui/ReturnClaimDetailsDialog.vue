@@ -74,7 +74,7 @@ TakeoverDialog(
           .text-subtitle1.q-mb-sm Покажите этот код на пункте выдачи
           HandoffQr(
             :value="encodeReturnClaimCode(claim.coopname, claim.id)"
-            caption="Председатель отсканирует его на очном осмотре — так он сразу откроет решение по вашей заявке."
+            caption="Оператор пункта выдачи отсканирует его на очном осмотре — так он сразу откроет решение по вашей заявке."
           )
 
       q-card(flat bordered).q-mb-md
@@ -96,7 +96,7 @@ TakeoverDialog(
 
       q-card(flat bordered).q-mb-md(v-if="claim.decision_log.length > 0")
         q-card-section
-          .text-subtitle1 История решений председателя
+          .text-subtitle1 История решений по заявлению
           q-timeline(layout="dense" color="primary").q-mt-sm
             q-timeline-entry(
               v-for="entry in claim.decision_log" :key="entry.tx_hash"

@@ -1,14 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type {
   KuTrustRequestFilterDomainInterface,
   KuTrustRequestRepository,
@@ -20,6 +14,7 @@ import type {
   IKuTrustRequestBlockchainData,
   IKuTrustRequestDatabaseData,
 } from '../../domain/interfaces/ku-blockchain-data.interface';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class KuTrustRequestTypeormRepository
@@ -71,9 +66,9 @@ export class KuTrustRequestTypeormRepository
 
   async findAllPaginated(
     filter?: KuTrustRequestFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<KuTrustRequestDomainEntity>> {
-    const validatedOptions: PaginationInputDomainInterface = options
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<KuTrustRequestDomainEntity>> {
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortBy: undefined, sortOrder: 'ASC' as const };
 

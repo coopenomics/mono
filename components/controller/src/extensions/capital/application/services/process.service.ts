@@ -9,7 +9,6 @@ import type { IssueRepository } from '../../domain/repositories/issue.repository
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
-import { config } from '~/config';
 import { v4 as uuid } from 'uuid';
 
 @Injectable()

@@ -7,7 +7,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { BaseCard, BaseButton, BaseCheckbox, BaseChip, BaseDialog } from 'src/shared/ui/base';
+import { BaseBanner, BaseCard, BaseButton, BaseCheckbox, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { Loader } from 'src/shared/ui/Loader';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import type { DigitalDocument } from 'src/shared/lib/document';
@@ -88,16 +88,31 @@ const selectedName = computed<string>(() => {
   return d?.name || d?.addressFull || '';
 });
 
-// Нужна ли подпись оферты. Если пайщик подписал её при регистрации (выбрал ЦПП
-// «Стол заказов» как программу) — backend вернёт requires_gate=false, и здесь
-// подпись/чекбокс НЕ показываем: пайщик уже всё подписал, нужен лишь выбор КУ.
-// Председателю/тому, кто регистрировался без этой ЦПП — requires_gate=true,
-// показываем согласие + подпись (тот же документ и хранилище, что при регистрации).
-const requiresGate = computed(() => Boolean(state.value?.requires_gate));
-// «Продолжить» доступно: КУ выбран всегда обязателен; согласие — только если
-// требуется гейт (подпись).
+// Три РАЗНЫХ состояния присоединения, и различает их `source`, а не
+// `requires_gate`. Флаг `requires_gate` равен false в двух несовместимых
+// случаях: пайщик подписал оферту И кооператив ещё не завершил подключение ЦПП
+// (подписывать нечего). Раньше страница смотрела только на флаг и во втором
+// случае объявляла неподписанную оферту подписанной (инцидент 2026-08-10).
+//
+//  - GATE_REQUIRED    → показываем согласие + подпись (тот же документ и
+//    хранилище, что при регистрации);
+//  - AGREEMENT_SIGNED → подписал при регистрации, нужен лишь выбор КУ;
+//  - NOT_CONFIGURED   → присоединиться нельзя, пока кооператив не завершит
+//    подключение ЦПП; выбор КУ ничего не даст, продолжение блокируем.
+// Приводим enum к строке шаблонным литералом — тот же приём, что в MyOrders
+// (`MarketplaceOrderStatusView`): сравнивать member'ы enum'а из SDK с литералами
+// напрямую TS не даёт.
+const onboardingSource = computed<string>(() => `${state.value?.source ?? ''}`);
+const requiresGate = computed(() => onboardingSource.value === 'GATE_REQUIRED');
+const alreadySigned = computed(() => onboardingSource.value === 'AGREEMENT_SIGNED');
+const cppNotConfigured = computed(() => onboardingSource.value === 'NOT_CONFIGURED');
+// «Продолжить» доступно: ЦПП подключена кооперативом, КУ выбран (всегда
+// обязателен), согласие — только если требуется подпись.
 const canContinue = computed(
-  () => Boolean(selectedBraname.value) && (!requiresGate.value || agreed.value)
+  () =>
+    !cppNotConfigured.value &&
+    Boolean(selectedBraname.value) &&
+    (!requiresGate.value || agreed.value)
 );
 
 async function load(): Promise<void> {
@@ -113,17 +128,21 @@ async function load(): Promise<void> {
 
 /**
  * После подписи `wallet::signagree` уже подтверждён цепочкой (мутация
- * вернулась), но `requires_gate` и гранты завязаны на PG-кеш `wallet::users`,
- * который parser синхронизирует со следующего блока. Коротко поллим состояние
- * онбординга, пока подпись не отразится в PG, — тогда и `getDesktop` отдаст
- * полные orderer-права. Так переключение происходит само, без ручного refresh.
+ * вернулась), но состояние присоединения и гранты завязаны на PG-кеш
+ * `wallet::users`, который parser синхронизирует со следующего блока. Коротко
+ * поллим состояние, пока подпись не отразится в PG, — тогда и `getDesktop`
+ * отдаст полные orderer-права. Так переключение происходит само, без ручного
+ * refresh.
+ *
+ * Подтверждением считаем именно AGREEMENT_SIGNED: снятый `requires_gate` — не
+ * доказательство подписи (см. комментарий к состояниям выше).
  */
 async function waitForSignatureSynced(): Promise<boolean> {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     state.value = await fetchOnboardingState();
-    if (state.value && !state.value.requires_gate) return true;
+    if (alreadySigned.value) return true;
   }
   return false;
 }
@@ -205,11 +224,13 @@ async function proceedToDesk(): Promise<void> {
 
 /**
  * «Продолжить». Две равнозначные ветки одного гейта:
- *  - requires_gate=true  → пайщик ещё не подписывал оферту (напр. председатель,
+ *  - GATE_REQUIRED    → пайщик ещё не подписывал оферту (напр. председатель,
  *    регистрировавшийся без этой ЦПП): подписываем здесь (тот же документ 1102 и
  *    то же ончейн-хранилище wallet::users.programs, что и при регистрации);
- *  - requires_gate=false → подписал при регистрации: подпись не нужна, лишь
+ *  - AGREEMENT_SIGNED → подписал при регистрации: подпись не нужна, лишь
  *    фиксируем выбранный КУ и уходим на стол.
+ *
+ * При NOT_CONFIGURED кнопка недоступна (`canContinue`), сюда не попадаем.
  */
 async function onContinue(): Promise<void> {
   if (!canContinue.value) return;
@@ -237,10 +258,9 @@ async function onSign(): Promise<void> {
     // Передаём уже прочитанный инстанс оферты (если был сгенерирован при
     // ознакомлении), иначе signOnboardingOffer сгенерирует свежий.
     state.value = await signOnboardingOffer(offerDoc.value ?? undefined);
-    // requires_gate=false сразу — редкий случай (PG уже синхронен); иначе ждём
+    // AGREEMENT_SIGNED сразу — редкий случай (PG уже синхронен); иначе ждём
     // синк подписи в PG коротким поллингом.
-    const confirmed =
-      (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
+    const confirmed = alreadySigned.value || (await waitForSignatureSynced());
     if (confirmed) {
       await proceedToDesk();
     } else {
@@ -269,10 +289,10 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     q-spinner(color="primary", size="2em")
 
   //- Подключение к столу: карточка выбора пункта выдачи (с картой) показывается
-  //- ВСЕГДА. Липкий нижний бар: согласие+подпись — только если requires_gate
-  //- (пайщик ещё не подписывал оферту). Если подписал при регистрации —
-  //- requires_gate=false: только выбор КУ, без подписи. Пока идёт переход
-  //- (redirecting) — скрыто (один спиннер).
+  //- ВСЕГДА. Липкий нижний бар меняется по состоянию присоединения: подпись
+  //- (GATE_REQUIRED), напоминание о подписи с регистрации (AGREEMENT_SIGNED)
+  //- либо предупреждение о незавершённом подключении ЦПП (NOT_CONFIGURED).
+  //- Пока идёт переход (redirecting) — скрыто (один спиннер).
   template(v-if="state && !redirecting")
     BaseCard.mp-member-cpp__card
       header.mp-member-cpp__head
@@ -287,7 +307,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
       .mp-member-cpp__selector(:class="{ 'mp-member-cpp__selector--busy': loading }")
         KUSelector(v-model="selectedBraname", :coopname="coopname")
 
-    //- Липкий нижний бар: согласие (только при requires_gate) + продолжение.
+    //- Липкий нижний бар: согласие (только когда подпись требуется) + продолжение.
     //- Ссылка в подписи генерит оферту для ознакомления (как ReadStatement в SignUp).
     .mp-member-cpp__bar
       BaseCheckbox.mp-member-cpp__consent(
@@ -301,8 +321,15 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         span.mp-member-cpp__offer-link(@click.stop="openOffer") офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП
         |  и согласен(на) с условиями участия.
       //- Уже подписал при регистрации — подпись не нужна, лишь выбор КУ.
-      .mp-member-cpp__consent.text-body2.text-grey-7(v-else)
+      .mp-member-cpp__consent.text-body2.text-grey-7(v-else-if="alreadySigned")
         | Оферта ЦПП «Стол заказов» уже подписана при регистрации — выберите пункт выдачи, чтобы продолжить.
+      //- Кооператив не довёл подключение ЦПП до конца: подписывать нечего, и
+      //- выбор пункта выдачи ничего не откроет. Честно говорим об этом, а не
+      //- выдаём отсутствие подписи за состоявшуюся.
+      BaseBanner.mp-member-cpp__consent(v-else, variant="warn")
+        template(#icon)
+          q-icon(name="info")
+        | Кооператив ещё не завершил подключение ЦПП «Стол заказов» — подписать оферту сейчас нельзя. Обратитесь к председателю: присоединение станет доступно, как только программа будет открыта.
       .mp-member-cpp__action
         BaseButton.mp-member-cpp__sign(
           variant="primary",
@@ -311,7 +338,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
           @click="onContinue"
         ) Продолжить
         //- Подсказка-зачем кнопка неактивна: согласие (если нужно) есть, но ПВЗ не выбран.
-        .mp-member-cpp__why(v-if="(!requiresGate || agreed) && !selectedBraname")
+        .mp-member-cpp__why(v-if="!cppNotConfigured && (!requiresGate || agreed) && !selectedBraname")
           q-icon(name="info", size="14px")
           span Чтобы продолжить, выберите пункт выдачи — щёлкните по его названию или адресу в списке либо отметьте точку на карте.
 

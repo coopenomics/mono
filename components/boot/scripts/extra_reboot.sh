@@ -27,8 +27,12 @@ stack_up_app
 # Таблицы marketplace создаёт контроллер при старте (TypeORM synchronize).
 # Без досева таблица ПВЗ пуста, селект в интерфейсе приходит пустым, и
 # harness-сценарии Стола заказов падают на ровном месте. Сидер идемпотентен.
+#
+# 300 попыток по 2 с = 10 минут. Прежних двух минут не хватало: контроллер
+# поднимается через ts-node, и на загруженной машине компиляция вместе с
+# миграциями TypeORM занимает дольше. Пропуск сидинга тихо ломает весь прогон.
 echo "▸ Ждём создания marketplace_ku_details контроллером..."
-if stack_wait_for "таблица ПВЗ" 60 2 \
+if stack_wait_for "таблица ПВЗ" 300 2 \
   bash -c 'docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}" -tAc "SELECT to_regclass('"'"'public.marketplace_ku_details'"'"')" 2>/dev/null | grep -q marketplace_ku_details'
 then
   echo "▸ Засеваем 3 ПВЗ Подмосковья (krg/odn/myt)..."

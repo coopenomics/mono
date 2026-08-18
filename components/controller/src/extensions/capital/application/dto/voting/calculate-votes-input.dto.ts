@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { CalculateVotesDomainInput } from '~/extensions/capital/domain/actions/calculate-votes-domain-input.interface';
+import type { CalculateVotesDomainInput } from '../../../domain/actions/calculate-votes-domain-input.interface';
 
 /**
  * GraphQL DTO для расчета голосов CAPITAL контракта

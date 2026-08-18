@@ -15,10 +15,10 @@
       )
       q-input(
         v-if='periodKind !== "none"'
-        :label='periodKind === "quarter" ? "Квартал (1-4)" : "Месяц (1-12)"'
+        :label='periodLabel'
         type='number'
         :model-value='editsValue.header.period'
-        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodKind === "quarter" ? 4 : 12))'
+        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodMax))'
         :error='errFor("header.period")'
         :error-message='msgFor("header.period")'
         dense filled
@@ -38,7 +38,7 @@
     h3.section-title Организация
     .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
-    q-input(
+    q-input.org-name(
       label='Наименование организации'
       :model-value='editsValue.organization.orgName'
       readonly disable
@@ -219,12 +219,15 @@ const headerTitle = computed(() => {
     DUSN: 'Декларация УСН (КНД 1152017)',
     UUSN: 'Уведомление об исчисленных суммах УСН (КНД 1110355)',
     UV_VZNOSY: 'Уведомление об исчисленных взносах (КНД 1110355)',
+    UV_NDFL: 'Уведомление об исчисленном НДФЛ (КНД 1110355)',
   }
   return titles[props.reportType] ?? props.reportType
 })
 
-// Тип периода: квартал (1..4), месяц (1..12) или нет.
-const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
+// Тип периода: квартал (1..4), месяц (1..12), расчётный период НДФЛ (1..24)
+// или нет. У уведомления по НДФЛ на месяц приходится два периода — с 1 по 22
+// число и с 23 по последнее, — поэтому нумерация сквозная по году.
+const periodKind = computed<'quarter' | 'month' | 'semi-month' | 'none'>(() => {
   switch (props.reportType) {
     case 'NDFL6':
     case 'RSV':
@@ -234,14 +237,28 @@ const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
     case 'PSV':
     case 'UV_VZNOSY':
       return 'month'
+    case 'UV_NDFL':
+      return 'semi-month'
     default:
       return 'none'
   }
 })
 
+const periodLabel = computed(() => {
+  if (periodKind.value === 'quarter') return 'Квартал (1-4)'
+  if (periodKind.value === 'semi-month') return 'Расчётный период (1-24)'
+  return 'Месяц (1-12)'
+})
+
+const periodMax = computed(() => {
+  if (periodKind.value === 'quarter') return 4
+  if (periodKind.value === 'semi-month') return 24
+  return 12
+})
+
 // Флаги опциональных полей per-форме.
 const needs = computed(() => ({
-  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY'].includes(props.reportType),
+  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY', 'UV_NDFL'].includes(props.reportType),
   snils: props.reportType === 'PSV',
   sfrExtras: props.reportType === 'FSS4',
 }))
@@ -295,17 +312,23 @@ function clampInt(v: unknown, min: number, max: number): number {
 }
 
 .editor-section {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 16px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-4, 16px);
 }
 
 .section-title {
-  margin: 0 0 12px;
-  font-size: 14px;
+  margin: 0 0 var(--p-3, 12px);
+  font-size: var(--p-fs-h3, 15px);
   font-weight: 600;
-  color: #222;
+  color: var(--p-ink);
+}
+
+// Наименование организации — отдельная строка над сеткой ИНН/КПП/ОКТМО:
+// без этого отступа поля слипаются в один блок и читаются как одна группа.
+.org-name {
+  margin-bottom: var(--p-3, 12px);
 }
 
 .fields-grid {

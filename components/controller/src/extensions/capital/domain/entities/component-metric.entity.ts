@@ -1,6 +1,6 @@
 import { MetricStatus } from '../enums/metric-status.enum';
 import type { IComponentMetricDatabaseData } from '../interfaces/component-metric-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Цель по мере на компоненте.

@@ -10,14 +10,10 @@ import { createHash } from 'crypto';
 import { Cooperative, MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -28,14 +24,13 @@ import {
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
-  MARKETPLACE_ORDER_REPOSITORY,
-  type MarketplaceOrderDomainRepository,
-} from '../../domain/repositories/marketplace-order.repository';
-import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { presentSaleUnit } from '../shared/packaging.util';
+import { calcCostAmount } from '../shared/cost.util';
+import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
@@ -60,6 +55,8 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;
@@ -138,6 +135,14 @@ export interface MarketplaceWriteoffConfirmationGroup {
   total_amount: string;
 }
 
+/** Количество и единица позиции списания в том виде, в каком их читает человек. */
+export interface MarketplaceWriteoffItemPresentation {
+  /** Количество в единицах отпуска: число упаковок либо базовое количество. */
+  quantity: string;
+  /** Подпись единицы отпуска: «упак. 10 шт» либо «шт.». */
+  unit: string;
+}
+
 export interface MarketplaceWriteoffServiceMemoData {
   proposal: MarketplaceWriteoffProposalDomainEntity;
   braname: string;
@@ -155,18 +160,16 @@ export class MarketplaceWriteoffService {
     private readonly repo: MarketplaceWriteoffProposalDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly orderDisplay: MarketplaceOrderDisplayService,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffService.name);
   }
@@ -213,31 +216,37 @@ export class MarketplaceWriteoffService {
   }
 
   /**
-   * Человекочитаемая единица измерения (шт./кг/л/упак.) для каждой позиции
-   * проекта — по её партиям. Единица живёт на оффере (снапшот товара); партии
-   * одного наименования агрегированы в одну позицию, поэтому берём единицу по
-   * первой партии: inventory → оффер (через published_offer_id либо заказ,
-   * который сослался на оффер). Фолбэк «ед.» — если товар/оффер уже удалён.
+   * Как позиция списания читается человеком в документах: количество в
+   * ЕДИНИЦАХ ОТПУСКА и подпись этой единицы. Списывают целыми упаковками —
+   * значит и Заявление, и Служебная записка говорят «1 × упак. 10 шт», а не
+   * «10 шт»: десяток яиц уходит на списание десятком, а не десятью штуками
+   * (решение 2026-08-13). Хранится количество по-прежнему в базовой единице.
+   *
+   * Размерность берётся с первой партии позиции (партии одного наименования
+   * агрегированы, фасовка у них одна). Партия не найдена — фолбэк «ед.» и
+   * количество как есть.
    */
-  async resolveUnitLabels(items: { inventory_ids: string[] }[]): Promise<string[]> {
-    return Promise.all(items.map((it) => this.resolveUnitLabel(it.inventory_ids)));
+  async resolveItemPresentations(
+    items: { inventory_ids: string[]; quantity: string }[]
+  ): Promise<MarketplaceWriteoffItemPresentation[]> {
+    return Promise.all(items.map((it) => this.resolveItemPresentation(it)));
   }
 
-  private async resolveUnitLabel(inventoryIds: string[]): Promise<string> {
-    const FALLBACK = 'ед.';
-    const invId = inventoryIds[0];
+  private async resolveItemPresentation(item: {
+    inventory_ids: string[];
+    quantity: string;
+  }): Promise<MarketplaceWriteoffItemPresentation> {
+    const FALLBACK = { quantity: item.quantity, unit: 'ед.' };
+    const invId = item.inventory_ids[0];
     if (!invId) return FALLBACK;
     const inv = await this.inventoryRepo.findById(invId);
     if (!inv) return FALLBACK;
-    let offerId = inv.published_offer_id;
-    if (!offerId && inv.order_id) {
-      const order = await this.orderRepo.findById(inv.order_id);
-      offerId = order?.offer_id ?? null;
+    const baseQuantity = Number.parseFloat(item.quantity);
+    if (!Number.isFinite(baseQuantity)) {
+      return { quantity: item.quantity, unit: marketplaceOrderUnitLabel(inv.unit_of_measure) };
     }
-    if (!offerId) return FALLBACK;
-    const offer = await this.offerRepo.findById(offerId);
-    if (!offer) return FALLBACK;
-    return marketplaceOrderUnitLabel(offer.unit_of_measure);
+    const pres = presentSaleUnit(baseQuantity, inv.unit_of_measure, inv.package_size);
+    return { quantity: String(pres.units), unit: pres.unitLabel };
   }
 
   /**
@@ -264,28 +273,27 @@ export class MarketplaceWriteoffService {
   private async resolveItemDisplay(
     invId: string
   ): Promise<{ unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }> {
-    const EMPTY = { unit_of_measure: null, package_size: null };
     const inv = await this.inventoryRepo.findById(invId);
-    if (!inv) return EMPTY;
-    let offerId = inv.published_offer_id;
-    let package_size: number | null = null;
-    if (inv.order_id) {
-      const order = await this.orderRepo.findById(inv.order_id);
-      if (order) {
-        offerId = offerId ?? order.offer_id;
-        package_size = order.package_size || null;
-      }
-    }
-    if (!offerId) return { unit_of_measure: null, package_size };
-    const offer = await this.offerRepo.findById(offerId);
-    return { unit_of_measure: offer?.unit_of_measure ?? null, package_size };
+    if (!inv) return { unit_of_measure: null, package_size: null };
+    // Единица и фасовка — снапшот самой позиции склада (пишутся приёмкой).
+    // Раньше их восстанавливали через заказ и оферту, двумя запросами на
+    // партию: позиция знала цену, но не знала её размерность.
+    return {
+      unit_of_measure: inv.unit_of_measure,
+      package_size: inv.package_size || null,
+    };
   }
 
   /**
    * Кандидаты на списание для admin-стола: все позиции на складах кооператива.
    * Председатель выделяет нужные и создаёт из них черновик — вручную можно
    * списать как просроченный скоропорт (флаг is_expired), так и ещё годное
-   * имущество (порча, невозврат). Сумма = arrival_price × quantity.
+   * имущество (порча, невозврат).
+   *
+   * Сумма позиции считается через `calcCostAmount` — ту же формулу, что и на
+   * цепи: цена прибытия задана за единицу отпуска, поэтому при отпуске
+   * упаковкой умножать её на базовое количество нельзя (десяток яиц по 150 ₽
+   * давал 1500 ₽ вместо 150 ₽ — инцидент 2026-08-12).
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
@@ -312,6 +320,10 @@ export class MarketplaceWriteoffService {
         asset_title: string;
         quantity: number;
         amount: number;
+        // Размерность строки — из первой партии группы: ключ группировки
+        // включает наименование и КУ, у таких партий фасовка одна.
+        unit_of_measure: MarketplaceUnitOfMeasure;
+        package_size: number;
         expiry_ms: number | null;
         is_expired: boolean;
         state: string;
@@ -323,8 +335,7 @@ export class MarketplaceWriteoffService {
       // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
       const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
       const key = `${c.braname}|${c.asset_title}|${state}`;
-      const unit = c.arrival_price !== null ? Number(c.arrival_price) : 0;
-      const amount = Number.isFinite(unit) ? unit * c.quantity : 0;
+      const amount = this.candidateAmount(c);
       const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
 
       const existing = groups.get(key);
@@ -344,6 +355,8 @@ export class MarketplaceWriteoffService {
           asset_title: c.asset_title,
           quantity: c.quantity,
           amount,
+          unit_of_measure: c.unit_of_measure,
+          package_size: c.package_size,
           expiry_ms: expiryMs,
           is_expired: c.is_expired,
           state,
@@ -365,20 +378,14 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
-        unit_of_measure: null,
-        package_size: null,
+        unit_of_measure: g.unit_of_measure,
+        package_size: g.package_size || null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
         expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
       });
-    }
-    const display = await this.resolveItemDisplayMap(result);
-    for (const r of result) {
-      const d = display.get(r.inventory_ids[0] ?? '');
-      r.unit_of_measure = d?.unit_of_measure ?? null;
-      r.package_size = d?.package_size ?? null;
     }
     // Просроченное — наверх (первоочередные кандидаты), затем остальное.
     result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
@@ -456,7 +463,7 @@ export class MarketplaceWriteoffService {
     }
     const branch = await this.orderDisplay.resolveBranchDisplay(braname);
     const total = this.sumItems(items);
-    const units = await this.resolveUnitLabels(items);
+    const presentations = await this.resolveItemPresentations(items);
     return {
       proposal,
       braname,
@@ -465,8 +472,8 @@ export class MarketplaceWriteoffService {
       proposal_hash: proposal.proposal_hash,
       items: items.map((it, i) => ({
         asset_title: it.asset_title,
-        quantity: it.quantity,
-        unit: units[i],
+        quantity: presentations[i].quantity,
+        unit: presentations[i].unit,
         amount: it.amount,
         reason: it.reason,
       })),
@@ -481,11 +488,11 @@ export class MarketplaceWriteoffService {
    * `protocol_doc` = signed-документ из callback'а onmktwoauth. Канон —
    * issuance/return-claim. null, если протокола ещё нет (проект не одобрен).
    */
-  async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
+  async getProtocolDocumentAggregate(id: string): Promise<InnerDocumentAggregate | null> {
     const proposal = await this.getProposal(id);
-    const signed = proposal.protocol_doc as ISignedDocumentDomainInterface | null;
+    const signed = proposal.protocol_doc as ISignedDocument | null;
     if (!signed) return null;
-    return this.documentDomainService.buildDocumentAggregate(signed);
+    return this.documentPort.buildAggregate(signed);
   }
 
   // ── DRAFT pipeline ─────────────────────────────────────────────────
@@ -1012,6 +1019,25 @@ export class MarketplaceWriteoffService {
     });
   }
 
+  /**
+   * Стоимость партии-кандидата по цене прибытия. Единственная формула суммы в
+   * списании: `calcCostAmount` делит количество на упаковку там, где цена
+   * задана за упаковку, и перемножает напрямую только при отпуске по мере.
+   * Позиция без цены прибытия (записи до введения остатка) стоит 0.
+   */
+  private candidateAmount(candidate: MarketplaceWriteoffCandidate): number {
+    if (candidate.arrival_price === null) return 0;
+    return Number(
+      calcCostAmount({
+        quantity: candidate.quantity,
+        unit: candidate.unit_of_measure,
+        unitPrice: candidate.arrival_price,
+        packageSize: candidate.package_size,
+        decimals: this.assetDecimals,
+      })
+    );
+  }
+
   sumItems(items: MarketplaceWriteoffProposalItem[]): number {
     return items.reduce((acc, it) => acc + Number(it.amount), 0);
   }
@@ -1049,7 +1075,7 @@ export class MarketplaceWriteoffService {
     );
   }
 
-  private verifyDocumentSignature(document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) throw new HttpApiError(http.BAD_REQUEST, 'Заявление не подписано');
     const publicKey = PublicKey.from(sig.public_key);

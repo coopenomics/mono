@@ -114,6 +114,7 @@ void marketplace::createorder(eosio::name coopname,
   // ── o.mkt.lock: TRANSFER w.wal.share → w.mkt.order (Дт 80 / Кт 86) ───
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::LOCK_ORDER,
+                 processes::marketplace::SUPPLY,
                  total_cost, orderer, order_hash,
                  Marketplace::Memo::get_create_order_block_memo(new_id));
 
@@ -122,6 +123,7 @@ void marketplace::createorder(eosio::name coopname,
   if (membership_fee.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                   processes::marketplace::SUPPLY,
                    membership_fee, orderer, order_hash,
                    Marketplace::Memo::get_membership_fee_lock_memo(new_id));
   }

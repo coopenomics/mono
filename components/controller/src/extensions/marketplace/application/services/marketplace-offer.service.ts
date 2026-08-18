@@ -41,12 +41,8 @@ import {
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
   type AvailableCategoryDomainService,
 } from '../../domain/services/available-category-domain.service';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import config from '~/config/config';
+import { platformSettings, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
@@ -210,7 +206,7 @@ export class MarketplaceOfferService {
       const created = await this.repo.create(dbInput);
       // Новое предложение рождается в PENDING_MODERATION — заявка должна
       // появиться на столе модерации сразу.
-      this.emitModerationRequested(created.id, created.supplier_account);
+      this.emitModerationRequested(created);
       return created;
     } catch (e) {
       // Запись Offer'а не удалась — не оставляем загруженные файлы сиротами.
@@ -349,7 +345,7 @@ export class MarketplaceOfferService {
       // Значимая правка вернула предложение на модерацию — очередь
       // председателя должна показать повторную заявку сразу.
       if (normalizedPatch.status === MarketplaceOfferStatuses.PENDING_MODERATION) {
-        this.emitModerationRequested(updated.id, updated.supplier_account);
+        this.emitModerationRequested(updated);
       }
       return updated;
     } catch (e) {
@@ -421,10 +417,12 @@ export class MarketplaceOfferService {
         supplier_account: updated.supplier_account,
         approved_by: updated.approved_by ?? supplier_account,
         category_id: updated.category_id,
+        coopname: updated.coopname,
+        product_name: updated.product_name,
       };
       this.eventBus.emit(MARKETPLACE_OFFER_APPROVED_EVENT, event);
     } else {
-      this.emitModerationRequested(updated.id, updated.supplier_account);
+      this.emitModerationRequested(updated);
     }
     return updated;
   }
@@ -434,16 +432,26 @@ export class MarketplaceOfferService {
    * перечитывает очередь сразу, без поллинга. Эмитится ПОСЛЕ commit'а в PG
    * (INV-12); маршрутизация по каналу модерации — в realtime-мосте.
    */
-  private emitModerationRequested(offer_id: string, supplier_account: string): void {
-    const event: MarketplaceOfferModerationRequestedEvent = { offer_id, supplier_account };
+  private emitModerationRequested(offer: {
+    id: string;
+    supplier_account: string;
+    coopname: string;
+    product_name: string;
+  }): void {
+    const event: MarketplaceOfferModerationRequestedEvent = {
+      offer_id: offer.id,
+      supplier_account: offer.supplier_account,
+      coopname: offer.coopname,
+      product_name: offer.product_name,
+    };
     this.eventBus.emit(MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT, event);
   }
 
   async listMine(
     coopname: string,
     supplier_account: string,
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list({ coopname, supplier_account }, pagination);
   }
 
@@ -452,8 +460,8 @@ export class MarketplaceOfferService {
   async listAll(
     coopname: string,
     filter: { statuses?: MarketplaceOfferStatus[]; supplier_account?: string },
-    pagination: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    pagination: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceOfferDomainEntity>> {
     return this.repo.list(
       {
         coopname,
@@ -578,6 +586,16 @@ export class MarketplaceOfferService {
       if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
         throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
       }
+      // Вид упаковки обязателен: заказчик должен знать, в чём получит товар.
+      const package_type = typeof p.package_type === 'string' ? p.package_type.trim() : '';
+      if (!package_type) {
+        throw new BadRequestException(
+          'Укажите вид упаковки — в чём поставляется товар (например «стекло», «пластиковая бутылка», «корзинка»).'
+        );
+      }
+      if (package_type.length > 64) {
+        throw new BadRequestException('Вид упаковки не длиннее 64 символов.');
+      }
       const is_default = p.is_default === true && !hasDefault;
       if (is_default) hasDefault = true;
       // Чужой или повторно присланный идентификатор игнорируем — упаковка
@@ -589,6 +607,7 @@ export class MarketplaceOfferService {
         size: p.size,
         price: p.price,
         label: p.label?.trim() ? p.label.trim() : null,
+        package_type,
         sort_order: index,
         is_default,
       };
@@ -717,7 +736,7 @@ export class MarketplaceOfferService {
   private async ensureCategoryExists(category_id: number): Promise<void> {
     // Категория должна принадлежать списку кооператива (общая baseline ИЛИ
     // собственная категория этого кооператива) — кастомные имеют id > 9.
-    const coopCategories = await this.categoryRepo.listForCoop(config.coopname);
+    const coopCategories = await this.categoryRepo.listForCoop(platformSettings().coopname);
     const category = coopCategories.find((c) => c.id === category_id);
     if (!category) {
       throw new BadRequestException(
@@ -727,7 +746,7 @@ export class MarketplaceOfferService {
     // Категория должна быть доступна для публикации (включена в whitelist).
     // Пустой whitelist = открытый каталог: доступны все категории.
     const isAvailable = await this.availableCategoryService.isCategoryAvailable(
-      config.coopname,
+      platformSettings().coopname,
       category_id
     );
     if (!isAvailable) {

@@ -72,7 +72,10 @@ const quantityStep = computed(() => saleQuantityStep(props.offer));
 const packageOptions = computed(() =>
   (props.offer?.packages ?? []).map((p) => {
     const sizeLabel = `${String(p.size).replace('.', ',')} ${unitLabel.value}`;
-    const nameLabel = p.label ? `${p.label} — ${sizeLabel}` : `Упаковка ${sizeLabel}`;
+    // Вид тары идёт вместе с объёмом: молоко в стекле и в пластике заказчик
+    // выбирает по-разному, а возвратную корзинку надо будет вернуть.
+    const withType = p.package_type ? `${sizeLabel}, ${p.package_type}` : sizeLabel;
+    const nameLabel = p.label ? `${p.label} — ${withType}` : `Упаковка ${withType}`;
     const priceLabel = `${applyMembershipFee(Number(p.price), props.feePercent).toLocaleString('ru-RU')} ${system.governSymbol}`;
     return {
       value: p.id,
@@ -205,7 +208,7 @@ async function onSubmit(): Promise<void> {
           });
         },
       },
-      { caption: addedLabel, dismissText: 'Продолжить покупки' },
+      { caption: addedLabel, dismissText: 'Продолжить заказы' },
     );
     emit('added');
     open.value = false;
@@ -247,6 +250,8 @@ BaseDialog(
       )
       .add-to-cart__note(v-if="alreadyInCart > 0")
         | Уже в корзине: {{ alreadyInCart }} — добавление суммируется.
+      .add-to-cart__packaging(v-if="selectedPackage?.package_type")
+        | Упаковка: {{ selectedPackage.package_type }}
       .add-to-cart__price(v-if="offer")
         | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ saleUnitLabel }}
       .add-to-cart__total(v-if="offer")
@@ -273,6 +278,11 @@ BaseDialog(
   }
 
   &__note {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
+  }
+
+  &__packaging {
     font-size: var(--p-fs-body-sm);
     color: var(--p-ink-2);
   }

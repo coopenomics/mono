@@ -6,6 +6,7 @@ import type {
   MarketplaceInventoryPlacement,
   MarketplaceInventoryStatus,
 } from '../entities/marketplace-inventory.types';
+import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 
 export const MARKETPLACE_INVENTORY_REPOSITORY = Symbol('MARKETPLACE_INVENTORY_REPOSITORY');
 
@@ -32,8 +33,15 @@ export interface MarketplaceInventoryCreateInput {
   expiry_date?: Date | null;
   /** Принадлежность (requirement 76); дефолт — адресная под заказ (ORDER). */
   ownership?: MarketplaceInventoryOwnership;
-  /** Цена прибытия за единицу (закупочная из акта приёмки). */
+  /** Цена прибытия за единицу отпуска (закупочная из акта приёмки). */
   arrival_price?: string | null;
+  /**
+   * Содержимое упаковки в базовой единице: 0 — отпуск по мере, >0 — упаковкой.
+   * Задаёт размерность `arrival_price`, без него сумму позиции не посчитать.
+   */
+  package_size?: number;
+  /** Базовая единица измерения имущества (штука/килограмм/литр). */
+  unit_of_measure?: MarketplaceUnitOfMeasure;
 }
 
 /** Наложение штрих-кода на существующую позицию (RECEIVED → LABELED). */
@@ -75,8 +83,10 @@ export interface MarketplaceInventoryListFilter {
  * вправе списать вручную и то, что испорчено/не возвращено, а не только то,
  * у чего формально истёк `expiry_date`. `is_expired` отмечает позиции с
  * истёкшим сроком (auto-кандидаты крона) для подсветки в интерфейсе.
- * `arrival_price` — закупочная цена за единицу из акта приёмки;
- * сумма списания = arrival_price × quantity.
+ * `arrival_price` — закупочная цена за ЕДИНИЦУ ОТПУСКА из акта приёмки, а
+ * `quantity` — в базовой единице. Сумма списания считается только через
+ * `calcCostAmount` с `package_size`: при отпуске упаковкой это
+ * `quantity / package_size × arrival_price`, перемножать напрямую нельзя.
  */
 export interface MarketplaceWriteoffCandidate {
   inventory_id: string;
@@ -84,6 +94,10 @@ export interface MarketplaceWriteoffCandidate {
   asset_title: string;
   quantity: number;
   arrival_price: string | null;
+  /** Фасовка позиции: 0 — по мере, >0 — упаковкой (размерность цены). */
+  package_size: number;
+  /** Базовая единица измерения позиции (штука/килограмм/литр). */
+  unit_of_measure: MarketplaceUnitOfMeasure;
   expiry_date: Date | null;
   is_expired: boolean;
 }
@@ -114,6 +128,16 @@ export interface MarketplaceInventoryDomainRepository {
    * показывает оператору, куда идти за имуществом. Заказы без размещённых
    * позиций в карте отсутствуют.
    */
+  /**
+   * Цена прибытия имущества на складе по заказам — во столько единица
+   * обошлась кооперативу при приёмке. От неё считается факт выдачи: пайщик не
+   * должен платить за принятое дешевле как за полную цену заказа, иначе
+   * выбытие со счёта имущества превышает поступление.
+   *
+   * Заказы без позиций на складе в карте отсутствуют.
+   */
+  arrivalPriceOnWarehouseByOrders(coopname: string, order_ids: string[]): Promise<Map<string, string>>;
+
   locationsOnWarehouseByOrders(
     coopname: string,
     order_ids: string[]

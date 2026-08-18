@@ -2170,13 +2170,13 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
@@ -2184,7 +2184,7 @@ export type ValueTypes = {
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
@@ -2935,7 +2935,7 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -3233,7 +3233,7 @@ export type ValueTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ValueTypes["ProgramWallet"],
+	blagorost_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -3269,7 +3269,7 @@ export type ValueTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ValueTypes["ProgramWallet"],
+	generation_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -3285,7 +3285,7 @@ export type ValueTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ValueTypes["ProgramWallet"],
+	main_wallet?:ValueTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -3330,7 +3330,7 @@ export type ValueTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string | Variable<any, string>,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ValueTypes["ExpenseItemInput"]> | Variable<any, string>,
+	items: Array<ValueTypes["CapitalExpenseItemInput"]> | Variable<any, string>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ValueTypes["ExpenseProposalStatementSignedDocumentInput"] | Variable<any, string>
 };
@@ -3483,6 +3483,26 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string | Variable<any, string>,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string | Variable<any, string>,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ValueTypes["ExpenseMechanics"] | Variable<any, string>,
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string | Variable<any, string>,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string | Variable<any, string>,
+	/** Тип получателя. */
+	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null | Variable<any, string>
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -3762,7 +3782,7 @@ export type ValueTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null | Variable<any, string>
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: AliasType<{
 	/** Дата создания записи */
 	_created_at?:boolean | `@${string}`,
@@ -3784,14 +3804,10 @@ export type ValueTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMeasure']?: Omit<ValueTypes["CapitalMeasure"], "...on CapitalMeasure">
 }>;
@@ -3843,8 +3859,6 @@ export type ValueTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Точки ряда */
 	points?:ValueTypes["CapitalMetricSeriesPoint"],
 	/** Режим ряда */
@@ -3893,8 +3907,6 @@ export type ValueTypes = {
 	growth?:boolean | `@${string}`,
 	/** Метрики в резонансе */
 	items?:ValueTypes["CapitalMetricSuperpositionItem"],
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Угол суммы фазоров в радианах */
@@ -3951,8 +3963,6 @@ export type ValueTypes = {
 	frames?:ValueTypes["CapitalMetricSuperpositionFrame"],
 	/** Начало окна истории */
 	from?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Конец окна истории */
@@ -4007,8 +4017,6 @@ export type ValueTypes = {
 	fib_levels?:ValueTypes["CapitalFibLevel"],
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Метка волны на каждой точке ряда */
 	point_labels?:boolean | `@${string}`,
 	/** Режим ряда, на котором построена волна */
@@ -4094,6 +4102,26 @@ export type ValueTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalProgramExpenseItem']?: Omit<ValueTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalProgramWallet']?: Omit<ValueTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 }>;
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: AliasType<{
@@ -4344,6 +4372,8 @@ export type ValueTypes = {
 	is_planed?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null | Variable<any, string>,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null | Variable<any, string>,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
@@ -4582,6 +4612,8 @@ export type ValueTypes = {
 	equal_author_bonus?:boolean | `@${string}`,
 	/** Наличие права голоса */
 	has_vote?:boolean | `@${string}`,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted?:boolean | `@${string}`,
 	/** ID в блокчейне */
 	id?:boolean | `@${string}`,
 	/** Интеллектуальная стоимость сегмента */
@@ -4618,10 +4650,18 @@ export type ValueTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
+	/** Название проекта, в который входит компонент */
+	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?:boolean | `@${string}`,
+	/** Название проекта, к которому относится доля участника */
+	project_title?:boolean | `@${string}`,
 	/** Базовый имущественный вклад */
 	property_base?:boolean | `@${string}`,
 	/** Предварительная сумма */
@@ -4642,6 +4682,8 @@ export type ValueTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalSegment']?: Omit<ValueTypes["CapitalSegment"], "...on CapitalSegment">
 }>;
@@ -4653,6 +4695,8 @@ export type ValueTypes = {
 	has_vote?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null | Variable<any, string>,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по роли координатора */
@@ -4955,7 +4999,7 @@ export type ValueTypes = {
 	eta_pessimistic_periods?:boolean | `@${string}`,
 	/** Оптимистичный прогноз ряда */
 	optimistic?:boolean | `@${string}`,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead?:boolean | `@${string}`,
 	/** Пессимистичный прогноз ряда */
 	pessimistic?:boolean | `@${string}`,
@@ -5538,17 +5582,17 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Срок достижения цели */
 	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string | Variable<any, string>,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null | Variable<any, string>,
 	/** Хеш компонента */
 	project_hash: string | Variable<any, string>,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Целевое значение на компоненте */
 	target_value: number | Variable<any, string>,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null | Variable<any, string>
 };
 	["CreateCustomCategoryInput"]: {
@@ -5761,14 +5805,10 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
 	/** Название меры */
 	title: string | Variable<any, string>,
 	/** Единица измерения */
-	unit: string | Variable<any, string>,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
+	unit: string | Variable<any, string>
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -6832,7 +6872,7 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -7663,34 +7703,24 @@ export type ValueTypes = {
 	metric_hash: string | Variable<any, string>
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>,
-	/** Период агрегации ряда */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string | Variable<any, string>
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string | Variable<any, string>
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string | Variable<any, string>,
-	/** Период агрегации ряда для разметки */
-	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null | Variable<any, string>
+	metric_hash: string | Variable<any, string>
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -9924,6 +9954,8 @@ export type ValueTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -9940,6 +9972,8 @@ export type ValueTypes = {
 	is_default?: boolean | undefined | null | Variable<any, string>,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null | Variable<any, string>,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string | Variable<any, string>,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string | Variable<any, string>,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -9979,11 +10013,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -10084,6 +10121,8 @@ export type ValueTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?:boolean | `@${string}`,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?:boolean | `@${string}`,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -11333,8 +11372,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MatrixAccountStatusResponseDTO']?: Omit<ValueTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 }>;
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -11628,8 +11665,6 @@ export type ValueTypes = {
 ["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -11969,6 +12004,7 @@ marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"]
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
@@ -12019,6 +12055,31 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on Mutation']?: Omit<ValueTypes["Mutation"], "...on Mutation">
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on NodeSyncState']?: Omit<ValueTypes["NodeSyncState"], "...on NodeSyncState">
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -12763,6 +12824,11 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	item_hash: string | Variable<any, string>,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string | Variable<any, string>
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number | Variable<any, string>
 };
 	["PaymentDetails"]: AliasType<{
 	/** Сумма платежа с учетом комиссии */
@@ -13561,6 +13627,8 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 	getMyCertificate?:ValueTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards?:ValueTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
 getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},ValueTypes["CapabilitySetAssignment"]],
@@ -13599,6 +13667,11 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
+getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>},ValueTypes["WithheldTaxPaymentPage"]],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -14883,6 +14956,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ValueTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`,
 	['...on Subscription']?: Omit<ValueTypes["Subscription"], "...on Subscription">
 }>;
@@ -14977,7 +15052,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -15165,18 +15240,14 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null | Variable<any, string>,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
+	/** Единица измерения */
+	unit?: string | undefined | null | Variable<any, string>
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -15528,6 +15599,70 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** P256DH ключ для шифрования */
 	p256dh: string | Variable<any, string>
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: AliasType<{
+	/** Сумма платежа */
+	amount?:boolean | `@${string}`,
+	/** Когда кассир подтвердил перевод */
+	completed_at?:boolean | `@${string}`,
+	/** Когда платёж отправлен кассиру */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash?:boolean | `@${string}`,
+	/** Назначение платежа */
+	memo?:boolean | `@${string}`,
+	/** Причина отказа, если кассир не заплатил */
+	message?:boolean | `@${string}`,
+	/** Получатель платежа */
+	recipient_name?:boolean | `@${string}`,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period?:boolean | `@${string}`,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label?:boolean | `@${string}`,
+	/** Год расчётного периода, в который входит платёж */
+	report_year?:boolean | `@${string}`,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?:ValueTypes["WithheldTaxRequisiteRow"],
+	/** Состояние платежа в реестре кассира */
+	status?:boolean | `@${string}`,
+	/** Символ валюты */
+	symbol?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxPayment']?: Omit<ValueTypes["WithheldTaxPayment"], "...on WithheldTaxPayment">
+}>;
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Платежи страницы */
+	items?:ValueTypes["WithheldTaxPayment"],
+	/** Всего платежей */
+	totalCount?:boolean | `@${string}`,
+	/** Всего страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxPaymentPage']?: Omit<ValueTypes["WithheldTaxPaymentPage"], "...on WithheldTaxPaymentPage">
+}>;
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: AliasType<{
+	/** Название реквизита */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxRequisiteRow']?: Omit<ValueTypes["WithheldTaxRequisiteRow"], "...on WithheldTaxRequisiteRow">
+}>;
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WithheldTaxState']?: Omit<ValueTypes["WithheldTaxState"], "...on WithheldTaxState">
+}>;
 	["WorkingHours"]: AliasType<{
 	fri?:ValueTypes["WorkingHoursDay"],
 	mon?:ValueTypes["WorkingHoursDay"],
@@ -16654,13 +16789,13 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
@@ -16668,7 +16803,7 @@ export type ResolverInputTypes = {
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
@@ -17412,7 +17547,7 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]:CalendarEntryStatus;
 	["CallTranscription"]: AliasType<{
 	createdAt?:boolean | `@${string}`,
@@ -17700,7 +17835,7 @@ export type ResolverInputTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?:ResolverInputTypes["ProgramWallet"],
+	blagorost_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
@@ -17736,7 +17871,7 @@ export type ResolverInputTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?:boolean | `@${string}`,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?:ResolverInputTypes["ProgramWallet"],
+	generation_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Хеш оферты Генератор */
 	generator_offer_hash?:boolean | `@${string}`,
 	/** Часов в день */
@@ -17752,7 +17887,7 @@ export type ResolverInputTypes = {
 	/** Уровень участника */
 	level?:boolean | `@${string}`,
 	/** Программный кошелек в программе Main */
-	main_wallet?:ResolverInputTypes["ProgramWallet"],
+	main_wallet?:ResolverInputTypes["CapitalProgramWallet"],
 	/** Мемо/комментарий */
 	memo?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
@@ -17796,7 +17931,7 @@ export type ResolverInputTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ResolverInputTypes["ExpenseItemInput"]>,
+	items: Array<ResolverInputTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ResolverInputTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -17945,6 +18080,26 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ResolverInputTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -18216,7 +18371,7 @@ export type ResolverInputTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: AliasType<{
 	/** Дата создания записи */
 	_created_at?:boolean | `@${string}`,
@@ -18238,14 +18393,10 @@ export type ResolverInputTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalMetricComponentRollup"]: AliasType<{
@@ -18294,8 +18445,6 @@ export type ResolverInputTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Точки ряда */
 	points?:ResolverInputTypes["CapitalMetricSeriesPoint"],
 	/** Режим ряда */
@@ -18342,8 +18491,6 @@ export type ResolverInputTypes = {
 	growth?:boolean | `@${string}`,
 	/** Метрики в резонансе */
 	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Угол суммы фазоров в радианах */
@@ -18398,8 +18545,6 @@ export type ResolverInputTypes = {
 	frames?:ResolverInputTypes["CapitalMetricSuperpositionFrame"],
 	/** Начало окна истории */
 	from?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Конец окна истории */
@@ -18452,8 +18597,6 @@ export type ResolverInputTypes = {
 	fib_levels?:ResolverInputTypes["CapitalFibLevel"],
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
-	/** Период агрегации */
-	period?:boolean | `@${string}`,
 	/** Метка волны на каждой точке ряда */
 	point_labels?:boolean | `@${string}`,
 	/** Режим ряда, на котором построена волна */
@@ -18533,6 +18676,25 @@ export type ResolverInputTypes = {
 	recipient_name?:boolean | `@${string}`,
 	recipient_type?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalProgramWallet"]: AliasType<{
+	/** Идентификатор соглашения */
+	agreement_id?:boolean | `@${string}`,
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Проект в системе CAPITAL с компонентами */
@@ -18779,6 +18941,8 @@ export type ResolverInputTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -19011,6 +19175,8 @@ export type ResolverInputTypes = {
 	equal_author_bonus?:boolean | `@${string}`,
 	/** Наличие права голоса */
 	has_vote?:boolean | `@${string}`,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted?:boolean | `@${string}`,
 	/** ID в блокчейне */
 	id?:boolean | `@${string}`,
 	/** Интеллектуальная стоимость сегмента */
@@ -19047,10 +19213,18 @@ export type ResolverInputTypes = {
 	last_known_creators_base_pool?:boolean | `@${string}`,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool?:boolean | `@${string}`,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?:boolean | `@${string}`,
+	/** Название проекта, в который входит компонент */
+	parent_title?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?:boolean | `@${string}`,
+	/** Название проекта, к которому относится доля участника */
+	project_title?:boolean | `@${string}`,
 	/** Базовый имущественный вклад */
 	property_base?:boolean | `@${string}`,
 	/** Предварительная сумма */
@@ -19071,6 +19245,8 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 	/** Бонус голосования */
 	voting_bonus?:boolean | `@${string}`,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
@@ -19081,6 +19257,8 @@ export type ResolverInputTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -19376,7 +19554,7 @@ export type ResolverInputTypes = {
 	eta_pessimistic_periods?:boolean | `@${string}`,
 	/** Оптимистичный прогноз ряда */
 	optimistic?:boolean | `@${string}`,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead?:boolean | `@${string}`,
 	/** Пессимистичный прогноз ряда */
 	pessimistic?:boolean | `@${string}`,
@@ -19942,17 +20120,17 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -20165,14 +20343,10 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -21214,7 +21388,7 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]:ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]:ExpenseRecipientType;
@@ -22028,34 +22202,24 @@ export type ResolverInputTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ResolverInputTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ResolverInputTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: ResolverInputTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -24224,6 +24388,8 @@ export type ResolverInputTypes = {
 	is_default?:boolean | `@${string}`,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?:boolean | `@${string}`,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -24239,6 +24405,8 @@ export type ResolverInputTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -24275,11 +24443,14 @@ export type ResolverInputTypes = {
 	unlimited_flag?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate?:boolean | `@${string}`,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 	source?:boolean | `@${string}`,
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id?:boolean | `@${string}`,
@@ -24379,6 +24550,8 @@ export type ResolverInputTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?:boolean | `@${string}`,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?:boolean | `@${string}`,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -25578,8 +25751,6 @@ export type ResolverInputTypes = {
 	matrixUsername?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -25864,8 +26035,6 @@ export type ResolverInputTypes = {
 ["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -26203,6 +26372,7 @@ marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOffe
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInputTypes["Transaction"]],
+payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
@@ -26252,6 +26422,30 @@ voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetIn
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: AliasType<{
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?:boolean | `@${string}`,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?:boolean | `@${string}`,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?:boolean | `@${string}`,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?:boolean | `@${string}`,
+	/** Последний блок цепи */
+	head_block_num?:boolean | `@${string}`,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?:boolean | `@${string}`,
+	/** Что оборвалось, если связи нет */
+	outage?:boolean | `@${string}`,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]:NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: AliasType<{
@@ -26955,6 +27149,11 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: AliasType<{
 	/** Сумма платежа с учетом комиссии */
@@ -27727,6 +27926,8 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 	getMyCertificate?:ResolverInputTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards?:ResolverInputTypes["ProductCard"],
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
 getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["CapabilitySetAssignment"]],
@@ -27765,6 +27966,11 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
+getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | undefined | null},ResolverInputTypes["WithheldTaxPaymentPage"]],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -29017,6 +29223,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	["Subscription"]: AliasType<{
 marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState?:ResolverInputTypes["NodeSyncState"],
 		__typename?: boolean | `@${string}`
 }>;
 	["SubscriptionStatsDto"]: AliasType<{
@@ -29104,7 +29312,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	response?:boolean | `@${string}`,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?:boolean | `@${string}`,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?:boolean | `@${string}`,
 	/** Подписи транзакции */
 	signatures?:boolean | `@${string}`,
@@ -29288,18 +29496,14 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ResolverInputTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -29646,6 +29850,66 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: AliasType<{
+	/** Сумма платежа */
+	amount?:boolean | `@${string}`,
+	/** Когда кассир подтвердил перевод */
+	completed_at?:boolean | `@${string}`,
+	/** Когда платёж отправлен кассиру */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash?:boolean | `@${string}`,
+	/** Назначение платежа */
+	memo?:boolean | `@${string}`,
+	/** Причина отказа, если кассир не заплатил */
+	message?:boolean | `@${string}`,
+	/** Получатель платежа */
+	recipient_name?:boolean | `@${string}`,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period?:boolean | `@${string}`,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label?:boolean | `@${string}`,
+	/** Год расчётного периода, в который входит платёж */
+	report_year?:boolean | `@${string}`,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?:ResolverInputTypes["WithheldTaxRequisiteRow"],
+	/** Состояние платежа в реестре кассира */
+	status?:boolean | `@${string}`,
+	/** Символ валюты */
+	symbol?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Платежи страницы */
+	items?:ResolverInputTypes["WithheldTaxPayment"],
+	/** Всего платежей */
+	totalCount?:boolean | `@${string}`,
+	/** Всего страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: AliasType<{
+	/** Название реквизита */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: AliasType<{
+	/** Доступно к отправке на оплату */
+	available?:boolean | `@${string}`,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment?:boolean | `@${string}`,
+	/** Удержано и ещё не перечислено */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["WorkingHours"]: AliasType<{
 	fri?:ResolverInputTypes["WorkingHoursDay"],
 	mon?:ResolverInputTypes["WorkingHoursDay"],
@@ -30740,24 +31004,24 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trusted: Array<ModelTypes["Individual"]>,
+	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trustee: ModelTypes["Individual"],
+	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
-	whitelist_certificates: Array<ModelTypes["IndividualCertificate"]>
+	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -31767,7 +32031,7 @@ export type ModelTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -31803,7 +32067,7 @@ export type ModelTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -31819,7 +32083,7 @@ export type ModelTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: ModelTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: ModelTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -31862,7 +32126,7 @@ export type ModelTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<ModelTypes["ExpenseItemInput"]>,
+	items: Array<ModelTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: ModelTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -32006,6 +32270,26 @@ export type ModelTypes = {
 	status: ModelTypes["ExpenseStatus"],
 	/** Имя пользователя */
 	username?: string | undefined | null
+};
+	["CapitalExpenseItemInput"]: {
+	/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: ModelTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: ModelTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 		/** Фибо-коэффициент */
@@ -32270,7 +32554,7 @@ export type ModelTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: {
 		/** Дата создания записи */
 	_created_at: ModelTypes["DateTime"],
@@ -32292,14 +32576,10 @@ export type ModelTypes = {
 	series_mode: ModelTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: ModelTypes["MetricStatus"],
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag: ModelTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period: ModelTypes["MetricSeriesPeriod"]
+	unit: string
 };
 	["CapitalMetricComponentRollup"]: {
 		/** Сумма фактов метрик */
@@ -32345,8 +32625,6 @@ export type ModelTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Точки ряда */
 	points: Array<ModelTypes["CapitalMetricSeriesPoint"]>,
 	/** Режим ряда */
@@ -32391,8 +32669,6 @@ export type ModelTypes = {
 	growth: number,
 	/** Метрики в резонансе */
 	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Угол суммы фазоров в радианах */
@@ -32445,8 +32721,6 @@ export type ModelTypes = {
 	frames: Array<ModelTypes["CapitalMetricSuperpositionFrame"]>,
 	/** Начало окна истории */
 	from: ModelTypes["DateTime"],
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Конец окна истории */
@@ -32497,8 +32771,6 @@ export type ModelTypes = {
 	fib_levels: Array<ModelTypes["CapitalFibLevel"]>,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Метка волны на каждой точке ряда */
 	point_labels: Array<ModelTypes["WaveLabel"]>,
 	/** Режим ряда, на котором построена волна */
@@ -32574,6 +32846,24 @@ export type ModelTypes = {
 	recipient_name: string,
 	recipient_type: ModelTypes["ExpenseRecipientType"],
 	status: ModelTypes["ExpenseItemStatus"]
+};
+	["CapitalProgramWallet"]: {
+		/** Идентификатор соглашения */
+	agreement_id: ModelTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: ModelTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: ModelTypes["ID"],
+	/** Тип программы */
+	program_type?: ModelTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -32814,6 +33104,8 @@ export type ModelTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -33040,6 +33332,8 @@ export type ModelTypes = {
 	equal_author_bonus: string,
 	/** Наличие права голоса */
 	has_vote: boolean,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted: boolean,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Интеллектуальная стоимость сегмента */
@@ -33076,10 +33370,18 @@ export type ModelTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
+	/** Название проекта, в который входит компонент */
+	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Хеш проекта */
 	project_hash: string,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?: ModelTypes["ProjectStatus"] | undefined | null,
+	/** Название проекта, к которому относится доля участника */
+	project_title?: string | undefined | null,
 	/** Базовый имущественный вклад */
 	property_base: string,
 	/** Предварительная сумма */
@@ -33099,7 +33401,9 @@ export type ModelTypes = {
 	/** Вклад участника словами участника */
 	value?: string | undefined | null,
 	/** Бонус голосования */
-	voting_bonus: string
+	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
 ["CapitalSegmentFilter"]: {
@@ -33109,6 +33413,8 @@ export type ModelTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -33396,7 +33702,7 @@ export type ModelTypes = {
 	eta_pessimistic_periods?: number | undefined | null,
 	/** Оптимистичный прогноз ряда */
 	optimistic: Array<number>,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead: number,
 	/** Пессимистичный прогноз ряда */
 	pessimistic: Array<number>
@@ -33942,17 +34248,17 @@ export type ModelTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ModelTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -34165,14 +34471,10 @@ export type ModelTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -35974,34 +36276,24 @@ export type ModelTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: ModelTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ModelTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-	/** Период агрегации кадров истории */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-	/** Период агрегации для волновой фазы */
-	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: ModelTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
@@ -38069,6 +38361,8 @@ export type ModelTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -38083,6 +38377,8 @@ export type ModelTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -38115,12 +38411,14 @@ export type ModelTypes = {
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag: boolean
 };
+	["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: ModelTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number
 };
@@ -38218,6 +38516,8 @@ export type ModelTypes = {
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: ModelTypes["DateTime"],
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?: string | undefined | null,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?: Array<string> | undefined | null,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -39352,7 +39652,6 @@ export type ModelTypes = {
 	iframeUrl?: string | undefined | null,
 	matrixUsername?: string | undefined | null
 };
-	["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 		/** Документ с решением совета о проведении собрания */
@@ -39624,7 +39923,6 @@ export type ModelTypes = {
 	["MetricContributionSource"]:MetricContributionSource;
 	["MetricDriveDirection"]:MetricDriveDirection;
 	["MetricSeriesMode"]:MetricSeriesMode;
-	["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: {
 		key: string,
@@ -40097,7 +40395,7 @@ export type ModelTypes = {
 	chatcoopUpdateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: ModelTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -40615,6 +40913,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	payExpenseItem: ModelTypes["Transaction"],
+	/** Отправить удержанный налог на оплату кассиру. Возвращает отправленную сумму
+
+Требуемые роли: chairman.  */
+	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
 
 Требуемые роли: member, chairman.  */
@@ -40760,6 +41062,27 @@ export type ModelTypes = {
 Требуемые роли: chairman.  */
 	walmoveWallets: ModelTypes["Ledger2AdjustmentResult"]
 };
+	["NodeSyncOutage"]:NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+		/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: ModelTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: ModelTypes["NodeSyncStatus"]
+};
+	["NodeSyncStatus"]:NodeSyncStatus;
 	["NonProjectRoomKind"]:NonProjectRoomKind;
 	["Notification"]: {
 		/** Сделано попыток */
@@ -41417,6 +41740,11 @@ export type ModelTypes = {
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+	/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: {
 		/** Сумма платежа с учетом комиссии */
@@ -42352,6 +42680,8 @@ export type ModelTypes = {
 	getMyCertificate: ModelTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards: Array<ModelTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -42440,6 +42770,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
+	/** История перечислений удержанного налога — от новых к старым
+
+Требуемые роли: chairman.  */
+	getWithheldTaxPayments: ModelTypes["WithheldTaxPaymentPage"],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState: ModelTypes["WithheldTaxState"],
 	/** Получить решение собрания участка по хэшу (с вопросами повестки)
 
 Требуемые роли: user, member, chairman.  */
@@ -43760,7 +44098,9 @@ export type ModelTypes = {
 };
 	["Subscription"]: {
 		/** Поток событий пайщика в Столе заказов: личные и каталог. */
-	marketplaceEvents: ModelTypes["MarketplaceEvent"]
+	marketplaceEvents: ModelTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: ModelTypes["NodeSyncState"]
 };
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
@@ -43840,7 +44180,7 @@ export type ModelTypes = {
 	response?: ModelTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: ModelTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: ModelTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: ModelTypes["JSON"] | undefined | null,
@@ -44019,18 +44359,14 @@ export type ModelTypes = {
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: ModelTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -44362,6 +44698,62 @@ export type ModelTypes = {
 	auth: string,
 	/** P256DH ключ для шифрования */
 	p256dh: string
+};
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: {
+		/** Сумма платежа */
+	amount: string,
+	/** Когда кассир подтвердил перевод */
+	completed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда платёж отправлен кассиру */
+	created_at: ModelTypes["DateTime"],
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Причина отказа, если кассир не заплатил */
+	message?: string | undefined | null,
+	/** Получатель платежа */
+	recipient_name?: string | undefined | null,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period: number,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label: string,
+	/** Год расчётного периода, в который входит платёж */
+	report_year: number,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?: Array<ModelTypes["WithheldTaxRequisiteRow"]> | undefined | null,
+	/** Состояние платежа в реестре кассира */
+	status: ModelTypes["PaymentStatus"],
+	/** Символ валюты */
+	symbol: string
+};
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Платежи страницы */
+	items: Array<ModelTypes["WithheldTaxPayment"]>,
+	/** Всего платежей */
+	totalCount: number,
+	/** Всего страниц */
+	totalPages: number
+};
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: {
+		/** Название реквизита */
+	label: string,
+	/** Значение реквизита */
+	value: string
+};
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: {
+		/** Доступно к отправке на оплату */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment: string,
+	/** Удержано и ещё не перечислено */
+	withheld: string
 };
 	["WorkingHours"]: {
 		fri?: ModelTypes["WorkingHoursDay"] | undefined | null,
@@ -45513,24 +45905,24 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trusted: Array<GraphQLTypes["Individual"]>,
+	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
 
 Требуемые роли: chairman, member.  */
-	trustee: GraphQLTypes["Individual"],
+	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО)
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
 
 Требуемые роли: chairman, member.  */
-	whitelist_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
+	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -46277,7 +46669,7 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
-	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+	/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 ["CalendarEntryStatus"]: CalendarEntryStatus;
 	["CallTranscription"]: {
 	__typename: "CallTranscription",
@@ -46576,7 +46968,7 @@ export type GraphQLTypes = {
 	/** Хеш оферты Благорост */
 	blagorost_offer_hash?: string | undefined | null,
 	/** Программный кошелек в программе Blagorost */
-	blagorost_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	blagorost_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -46612,7 +47004,7 @@ export type GraphQLTypes = {
 	/** Хеш договора УХД */
 	generation_contract_hash?: string | undefined | null,
 	/** Программный кошелек в программе Generation */
-	generation_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	generation_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Хеш оферты Генератор */
 	generator_offer_hash?: string | undefined | null,
 	/** Часов в день */
@@ -46628,7 +47020,7 @@ export type GraphQLTypes = {
 	/** Уровень участника */
 	level?: number | undefined | null,
 	/** Программный кошелек в программе Main */
-	main_wallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
+	main_wallet?: GraphQLTypes["CapitalProgramWallet"] | undefined | null,
 	/** Мемо/комментарий */
 	memo?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
@@ -46672,7 +47064,7 @@ export type GraphQLTypes = {
 	/** Хэш СЗ-расхода (детерминированный, из UI). Он же станет proposal_hash в шасси. */
 	expense_hash: string,
 	/** Строки расхода. Способ оплаты (аванс под отчёт / оплата по счёту) задаётся на каждой строке отдельно. */
-	items: Array<GraphQLTypes["ExpenseItemInput"]>,
+	items: Array<GraphQLTypes["CapitalExpenseItemInput"]>,
 	/** Подписанная СЗ-смета (document2, registry 2010). */
 	statement: GraphQLTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
@@ -46824,6 +47216,26 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
+};
+	["CapitalExpenseItemInput"]: {
+		/** Описание назначения расхода. */
+	description: string,
+	/** Хеш строки расхода (детерминированный, из UI). */
+	item_hash: string,
+	/** Способ оплаты (ADVANCE / DIRECT). */
+	mechanics: GraphQLTypes["ExpenseMechanics"],
+	/** Идентификатор сохранённых реквизитов получателя-пайщика — реквизиты снимаются в момент создания и прикладываются к платежу. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа (для оплаты по счёту) — фиксируется в снимке для кассира. */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма (asset, eg "1000.0000 RUB"). */
+	planned_amount: string,
+	/** Получатель: username пайщика; для организации — пустая строка (аккаунта в кооперативе нет). */
+	recipient: string,
+	/** Тип получателя. */
+	recipient_type: GraphQLTypes["ExpenseRecipientType"],
+	/** Реквизиты получателя-организации (вводятся вручную). */
+	requisites?: string | undefined | null
 };
 	["CapitalFibLevel"]: {
 	__typename: "CapitalFibLevel",
@@ -47104,7 +47516,7 @@ export type GraphQLTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
-	/** Мера: что измеряем (справочник без целевого значения) */
+	/** Мера кооператива: что измеряем (без целевого значения) */
 ["CapitalMeasure"]: {
 	__typename: "CapitalMeasure",
 	/** Дата создания записи */
@@ -47127,14 +47539,10 @@ export type GraphQLTypes = {
 	series_mode: GraphQLTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: GraphQLTypes["MetricStatus"],
-	/** Категория меры: личное, продукт, контент, кооператив или качество */
-	tag: GraphQLTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
 	unit: string,
-	/** Волна: шаг локального анализа импульса и отката */
-	wave_period: GraphQLTypes["MetricSeriesPeriod"],
 	['...on CapitalMeasure']: Omit<GraphQLTypes["CapitalMeasure"], "...on CapitalMeasure">
 };
 	["CapitalMetricComponentRollup"]: {
@@ -47186,8 +47594,6 @@ export type GraphQLTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Точки ряда */
 	points: Array<GraphQLTypes["CapitalMetricSeriesPoint"]>,
 	/** Режим ряда */
@@ -47236,8 +47642,6 @@ export type GraphQLTypes = {
 	growth: number,
 	/** Метрики в резонансе */
 	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Угол суммы фазоров в радианах */
@@ -47294,8 +47698,6 @@ export type GraphQLTypes = {
 	frames: Array<GraphQLTypes["CapitalMetricSuperpositionFrame"]>,
 	/** Начало окна истории */
 	from: GraphQLTypes["DateTime"],
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
 	/** Конец окна истории */
@@ -47350,8 +47752,6 @@ export type GraphQLTypes = {
 	fib_levels: Array<GraphQLTypes["CapitalFibLevel"]>,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Метка волны на каждой точке ряда */
 	point_labels: Array<GraphQLTypes["WaveLabel"]>,
 	/** Режим ряда, на котором построена волна */
@@ -47436,6 +47836,26 @@ export type GraphQLTypes = {
 	recipient_type: GraphQLTypes["ExpenseRecipientType"],
 	status: GraphQLTypes["ExpenseItemStatus"],
 	['...on CapitalProgramExpenseItem']: Omit<GraphQLTypes["CapitalProgramExpenseItem"], "...on CapitalProgramExpenseItem">
+};
+	["CapitalProgramWallet"]: {
+	__typename: "CapitalProgramWallet",
+	/** Идентификатор соглашения */
+	agreement_id: GraphQLTypes["ID"],
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Уникальный идентификатор кошелька в блокчейне */
+	id: GraphQLTypes["ID"],
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы */
+	program_id: GraphQLTypes["ID"],
+	/** Тип программы */
+	program_type?: GraphQLTypes["ProgramType"] | undefined | null,
+	/** Имя пользователя */
+	username: string,
+	['...on CapitalProgramWallet']: Omit<GraphQLTypes["CapitalProgramWallet"], "...on CapitalProgramWallet">
 };
 	/** Проект в системе CAPITAL с компонентами */
 ["CapitalProject"]: {
@@ -47686,6 +48106,8 @@ export type GraphQLTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё */
+	only_with_artifact_access?: boolean | undefined | null,
 	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
@@ -47925,6 +48347,8 @@ export type GraphQLTypes = {
 	equal_author_bonus: string,
 	/** Наличие права голоса */
 	has_vote: boolean,
+	/** Участник уже отдал свой голос в этом проекте */
+	has_voted: boolean,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Интеллектуальная стоимость сегмента */
@@ -47961,10 +48385,18 @@ export type GraphQLTypes = {
 	last_known_creators_base_pool: string,
 	/** Последняя известная сумма инвестиций в проекте */
 	last_known_invest_pool: string,
+	/** Хеш проекта, в который входит компонент */
+	parent_hash?: string | undefined | null,
+	/** Название проекта, в который входит компонент */
+	parent_title?: string | undefined | null,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
 	/** Хеш проекта */
 	project_hash: string,
+	/** Статус проекта: по нему видно, идёт ли голосование или проект уже на приёмке */
+	project_status?: GraphQLTypes["ProjectStatus"] | undefined | null,
+	/** Название проекта, к которому относится доля участника */
+	project_title?: string | undefined | null,
 	/** Базовый имущественный вклад */
 	property_base: string,
 	/** Предварительная сумма */
@@ -47985,6 +48417,8 @@ export type GraphQLTypes = {
 	value?: string | undefined | null,
 	/** Бонус голосования */
 	voting_bonus: string,
+	/** Голосование по проекту закрыто: все голоса получены */
+	voting_completed: boolean,
 	['...on CapitalSegment']: Omit<GraphQLTypes["CapitalSegment"], "...on CapitalSegment">
 };
 	/** Параметры фильтрации для запросов сегментов CAPITAL */
@@ -47995,6 +48429,8 @@ export type GraphQLTypes = {
 	has_vote?: boolean | undefined | null,
 	/** Фильтр по роли автора */
 	is_author?: boolean | undefined | null,
+	/** Только доли компонентов (true) или только доли проектов верхнего уровня (false) */
+	is_component?: boolean | undefined | null,
 	/** Фильтр по роли участника */
 	is_contributor?: boolean | undefined | null,
 	/** Фильтр по роли координатора */
@@ -48298,7 +48734,7 @@ export type GraphQLTypes = {
 	eta_pessimistic_periods?: number | undefined | null,
 	/** Оптимистичный прогноз ряда */
 	optimistic: Array<number>,
-	/** Горизонт прогноза в периодах */
+	/** Горизонт прогноза в днях */
 	periods_ahead: number,
 	/** Пессимистичный прогноз ряда */
 	pessimistic: Array<number>,
@@ -48880,17 +49316,17 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Хеш меры из централизованного справочника */
-	measure_hash: string,
+	/** Хеш уже заведённой меры кооператива */
+	measure_hash?: string | undefined | null,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Не используется: режим ряда задан в справочнике мер */
+	/** Режим ряда меры: скорость (по умолчанию) или уровень значения */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Не используется: меры только из справочника */
+	/** Название меры — заводится в коллекции кооператива, если такой ещё нет */
 	title?: string | undefined | null,
-	/** Не используется: меры только из справочника */
+	/** Единица измерения — вместе с названием ищет или заводит меру */
 	unit?: string | undefined | null
 };
 	["CreateCustomCategoryInput"]: {
@@ -49103,14 +49539,10 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
-	/** Категория меры; по умолчанию продукт */
-	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string,
-	/** Волна: шаг локального анализа; по умолчанию день */
-	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
+	unit: string
 };
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
@@ -50174,7 +50606,7 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	/** Статус сметы расхода. */
+	/** Состояние служебной записки-сметы */
 ["ExpenseProposalStatus"]: ExpenseProposalStatus;
 	/** Тип получателя платежа. */
 ["ExpenseRecipientType"]: ExpenseRecipientType;
@@ -51005,34 +51437,24 @@ export type GraphQLTypes = {
 	metric_hash: string
 };
 	["GetMetricSeriesInput"]: {
-		/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+		/** Начало окна ряда (включительно). По умолчанию — 30 дней назад */
 	from?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string,
-	/** Период агрегации ряда */
-	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: GraphQLTypes["DateTime"] | undefined | null
 };
 	["GetMetricSuperpositionHistoryInput"]: {
-		/** Период агрегации кадров истории */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Хеш проекта или компонента для истории резонанса */
+		/** Хеш проекта или компонента для истории резонанса */
 	project_hash: string
 };
 	["GetMetricSuperpositionInput"]: {
-		/** Период агрегации для волновой фазы */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+		/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
 	project_hash: string
 };
 	["GetMetricWaveInput"]: {
 		/** Хеш метрики */
-	metric_hash: string,
-	/** Период агрегации ряда для разметки */
-	period: GraphQLTypes["MetricSeriesPeriod"],
-	/** Горизонт прогнозного коридора в периодах */
-	periods_ahead?: number | undefined | null
+	metric_hash: string
 };
 	["GetPaymentMethodsInput"]: {
 		/** Количество элементов на странице */
@@ -53268,6 +53690,8 @@ export type GraphQLTypes = {
 	is_default: boolean,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки: «стекло», «пластиковая бутылка», «корзинка (возвратная)». Пусто у предложений, заведённых до появления поля — тара не названа. */
+	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -53283,6 +53707,8 @@ export type GraphQLTypes = {
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
+	/** Вид упаковки, в которой поставляется товар: «стекло», «пластиковая бутылка», «картонная коробка», «корзинка (возвратная)». Заполняется своими словами. */
+	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
@@ -53322,13 +53748,16 @@ export type GraphQLTypes = {
 	unlimited_flag: boolean,
 	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
 };
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+["MarketplaceOnboardingSource"]: MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
-	/** true — фронт должен показать gate-диалог OnboardingCPPGate; false — пайщик может попасть на стол сразу */
+	/** Нужно ли пайщику подписать оферту ЦПП. Смотреть только вместе с состоянием: false означает «подписи не требуется» лишь когда ЦПП подключена кооперативом */
 	requires_gate: boolean,
-	source: string,
+	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+	source: GraphQLTypes["MarketplaceOnboardingSource"],
 	/** registry_id шаблона оферты ЦПП marketplace в платформенной document factory (Story 1.7). 0 — placeholder, оферта ещё не зарегистрирована. */
 	template_registry_id: number,
 	['...on MarketplaceOnboardingState']: Omit<GraphQLTypes["MarketplaceOnboardingState"], "...on MarketplaceOnboardingState">
@@ -53428,6 +53857,8 @@ export type GraphQLTypes = {
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: GraphQLTypes["DateTime"],
+	/** Цена прибытия единицы на склад — по ней имущество принято у поставщика; null, если склад не запрашивался */
+	warehouse_arrival_price?: string | undefined | null,
 	/** Полки склада пункта выдачи, на которых лежат позиции заказа после раскладки. Пусто — позиции ещё не размещены. Заполняется в лентах выдачи. */
 	warehouse_locations?: Array<string> | undefined | null,
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -54676,8 +55107,6 @@ export type GraphQLTypes = {
 	matrixUsername?: string | undefined | null,
 	['...on MatrixAccountStatusResponseDTO']: Omit<GraphQLTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 };
-	/** Категория меры в справочнике */
-["MeasureCatalogTag"]: MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 	__typename: "Meet",
@@ -54971,8 +55400,6 @@ export type GraphQLTypes = {
 ["MetricDriveDirection"]: MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]: MetricSeriesMode;
-	/** Период агрегации ряда метрики */
-["MetricSeriesPeriod"]: MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]: MetricStatus;
 	["MissingRequisiteField"]: {
@@ -55451,7 +55878,7 @@ export type GraphQLTypes = {
 	chatcoopUpdateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
 	/** Обновить заметку (memo) к транскрипции звонка
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	chatcoopUpdateTranscriptionMemo: GraphQLTypes["CallTranscription"],
 	/** Выполнить шаг онбординга capital (создание предложения повестки)
 
@@ -55969,6 +56396,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	payExpenseItem: GraphQLTypes["Transaction"],
+	/** Отправить удержанный налог на оплату кассиру. Возвращает отправленную сумму
+
+Требуемые роли: chairman.  */
+	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
 
 Требуемые роли: member, chairman.  */
@@ -56115,6 +56546,31 @@ export type GraphQLTypes = {
 	walmoveWallets: GraphQLTypes["Ledger2AdjustmentResult"],
 	['...on Mutation']: Omit<GraphQLTypes["Mutation"], "...on Mutation">
 };
+	/** Причина отсутствия связи с цепью */
+["NodeSyncOutage"]: NodeSyncOutage;
+	/** Насколько узел кооператива отстал от цепи и когда догонит */
+["NodeSyncState"]: {
+	__typename: "NodeSyncState",
+	/** С какой скоростью сокращается отставание, блоков в секунду */
+	catch_up_blocks_per_second?: number | undefined | null,
+	/** Блок, до которого узел прочитал цепь */
+	current_block_num?: number | undefined | null,
+	/** Когда узел в последний раз продвинулся по цепи */
+	cursor_updated_at?: string | undefined | null,
+	/** Сколько секунд осталось до конца догона по текущей скорости */
+	estimated_seconds_remaining?: number | undefined | null,
+	/** Последний блок цепи */
+	head_block_num?: number | undefined | null,
+	/** Сколько блоков осталось прочитать */
+	lag_blocks?: number | undefined | null,
+	/** Что оборвалось, если связи нет */
+	outage?: GraphQLTypes["NodeSyncOutage"] | undefined | null,
+	/** Готов ли узел к работе: у головы цепи, догоняет или связи нет */
+	status: GraphQLTypes["NodeSyncStatus"],
+	['...on NodeSyncState']: Omit<GraphQLTypes["NodeSyncState"], "...on NodeSyncState">
+};
+	/** Состояние синхронизации узла кооператива с цепью */
+["NodeSyncStatus"]: NodeSyncStatus;
 	/** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 ["NonProjectRoomKind"]: NonProjectRoomKind;
 	["Notification"]: {
@@ -56859,6 +57315,11 @@ export type GraphQLTypes = {
 	item_hash: string,
 	/** Хеш сметы расхода (proposal). */
 	proposal_hash: string
+};
+	/** Отправка удержанного налога на оплату кассиру */
+["PayWithheldTaxInput"]: {
+		/** Сумма платежа */
+	amount: number
 };
 	["PaymentDetails"]: {
 	__typename: "PaymentDetails",
@@ -57867,6 +58328,8 @@ export type GraphQLTypes = {
 	getMyCertificate: GraphQLTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
+	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
+	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
 
 Требуемые роли: chairman, member.  */
@@ -57955,6 +58418,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
+	/** История перечислений удержанного налога — от новых к старым
+
+Требуемые роли: chairman.  */
+	getWithheldTaxPayments: GraphQLTypes["WithheldTaxPaymentPage"],
+	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру
+
+Требуемые роли: chairman.  */
+	getWithheldTaxState: GraphQLTypes["WithheldTaxState"],
 	/** Получить решение собрания участка по хэшу (с вопросами повестки)
 
 Требуемые роли: user, member, chairman.  */
@@ -59351,6 +59822,8 @@ export type GraphQLTypes = {
 	__typename: "Subscription",
 	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
+	/** Ход догона цепи узлом кооператива */
+	nodeSyncState: GraphQLTypes["NodeSyncState"],
 	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
 };
 	["SubscriptionStatsDto"]: {
@@ -59445,7 +59918,7 @@ export type GraphQLTypes = {
 	response?: GraphQLTypes["JSON"] | undefined | null,
 	/** Возвращаемые значения после выполнения транзакции */
 	returns?: GraphQLTypes["JSON"] | undefined | null,
-	/** Ревизии транзакции, измененные плагинами в ESR формате */
+	/** Ревизии транзакции, измененные расширениями в ESR формате */
 	revisions?: GraphQLTypes["JSON"] | undefined | null,
 	/** Подписи транзакции */
 	signatures?: GraphQLTypes["JSON"] | undefined | null,
@@ -59632,18 +60105,14 @@ export type GraphQLTypes = {
 	["UpdateMeasureInput"]: {
 		/** Хеш меры */
 	measure_hash: string,
-	/** Не используется: справочник меняется только через миграции */
+	/** Режим ряда: скорость или уровень */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Статус меры: активна или выключена (архив) */
 	status?: GraphQLTypes["MetricStatus"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
+	/** Название меры */
 	title?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	unit?: string | undefined | null,
-	/** Не используется: справочник меняется только через миграции */
-	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 		/** Город */
@@ -59996,6 +60465,70 @@ export type GraphQLTypes = {
 	/** P256DH ключ для шифрования */
 	p256dh: string
 };
+	/** Отправленный на оплату налог — одна заявка бухгалтера кассиру */
+["WithheldTaxPayment"]: {
+	__typename: "WithheldTaxPayment",
+	/** Сумма платежа */
+	amount: string,
+	/** Когда кассир подтвердил перевод */
+	completed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда платёж отправлен кассиру */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хэш заявки: по нему платёж находится в реестре кассира */
+	hash: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Причина отказа, если кассир не заплатил */
+	message?: string | undefined | null,
+	/** Получатель платежа */
+	recipient_name?: string | undefined | null,
+	/** Номер расчётного периода в году: на каждый месяц приходится два */
+	report_period: number,
+	/** Название расчётного периода, например «Август · 1–22» */
+	report_period_label: string,
+	/** Год расчётного периода, в который входит платёж */
+	report_year: number,
+	/** Реквизиты получателя на день отправки платежа */
+	requisite_rows?: Array<GraphQLTypes["WithheldTaxRequisiteRow"]> | undefined | null,
+	/** Состояние платежа в реестре кассира */
+	status: GraphQLTypes["PaymentStatus"],
+	/** Символ валюты */
+	symbol: string,
+	['...on WithheldTaxPayment']: Omit<GraphQLTypes["WithheldTaxPayment"], "...on WithheldTaxPayment">
+};
+	/** Страница истории перечислений удержанного налога */
+["WithheldTaxPaymentPage"]: {
+	__typename: "WithheldTaxPaymentPage",
+	/** Текущая страница */
+	currentPage: number,
+	/** Платежи страницы */
+	items: Array<GraphQLTypes["WithheldTaxPayment"]>,
+	/** Всего платежей */
+	totalCount: number,
+	/** Всего страниц */
+	totalPages: number,
+	['...on WithheldTaxPaymentPage']: Omit<GraphQLTypes["WithheldTaxPaymentPage"], "...on WithheldTaxPaymentPage">
+};
+	/** Строка реквизитов бюджета: название реквизита и его значение */
+["WithheldTaxRequisiteRow"]: {
+	__typename: "WithheldTaxRequisiteRow",
+	/** Название реквизита */
+	label: string,
+	/** Значение реквизита */
+	value: string,
+	['...on WithheldTaxRequisiteRow']: Omit<GraphQLTypes["WithheldTaxRequisiteRow"], "...on WithheldTaxRequisiteRow">
+};
+	/** Удержанный налог: сколько должны бюджету и что уже у кассира */
+["WithheldTaxState"]: {
+	__typename: "WithheldTaxState",
+	/** Доступно к отправке на оплату */
+	available: string,
+	/** Отправлено на оплату и ждёт подтверждения кассиром */
+	in_payment: string,
+	/** Удержано и ещё не перечислено */
+	withheld: string,
+	['...on WithheldTaxState']: Omit<GraphQLTypes["WithheldTaxState"], "...on WithheldTaxState">
+};
 	["WorkingHours"]: {
 	__typename: "WorkingHours",
 	fri?: GraphQLTypes["WorkingHoursDay"] | undefined | null,
@@ -60115,12 +60648,13 @@ export enum BuhotchSignerType {
 	CHAIRMAN = "CHAIRMAN",
 	REPRESENTATIVE = "REPRESENTATIVE"
 }
-/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо). Приоритет: submitted > submitted_externally > draft > not_required > before_registration > overdue > empty. */
+/** Статус ячейки календаря: empty, draft, submitted (реальный XML в архиве), submitted_externally (отметка «сдано сторонне»), overdue, not_required, before_registration (период приходился на даты до регистрации кооператива — сдавать не надо), no_data (за период нечего подавать — выплат не было; статус снимается сам, как только выплата появляется). Приоритет: submitted > submitted_externally > draft > not_required > no_data > before_registration > overdue > empty. */
 export enum CalendarEntryStatus {
 	BEFORE_REGISTRATION = "BEFORE_REGISTRATION",
 	DRAFT = "DRAFT",
 	EMPTY = "EMPTY",
 	NOT_REQUIRED = "NOT_REQUIRED",
+	NO_DATA = "NO_DATA",
 	OVERDUE = "OVERDUE",
 	SUBMITTED = "SUBMITTED",
 	SUBMITTED_EXTERNALLY = "SUBMITTED_EXTERNALLY"
@@ -60244,7 +60778,7 @@ export enum ExpensePlanRecurrence {
 	QUARTERLY = "QUARTERLY",
 	YEARLY = "YEARLY"
 }
-/** Статус сметы расхода. */
+/** Состояние служебной записки-сметы */
 export enum ExpenseProposalStatus {
 	AUTHORIZED = "AUTHORIZED",
 	CLOSED = "CLOSED",
@@ -60487,6 +61021,12 @@ export enum MarketplaceOfferStatus {
 	REJECTED = "REJECTED",
 	WITHDRAWN = "WITHDRAWN"
 }
+/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
+export enum MarketplaceOnboardingSource {
+	AGREEMENT_SIGNED = "AGREEMENT_SIGNED",
+	GATE_REQUIRED = "GATE_REQUIRED",
+	NOT_CONFIGURED = "NOT_CONFIGURED"
+}
 /** Сверка фактической выдачи с заказом: equal — совпало, less — выдано меньше, more — выдано больше с доплатой. */
 export enum MarketplaceOrderIssuanceFactDiffState {
 	EQUAL = "EQUAL",
@@ -60590,14 +61130,6 @@ export enum MarketplaceWriteoffProposalTrigger {
 	CRON = "CRON",
 	MANUAL = "MANUAL"
 }
-/** Категория меры в справочнике */
-export enum MeasureCatalogTag {
-	CONTENT = "CONTENT",
-	COOPERATIVE = "COOPERATIVE",
-	PERSONAL = "PERSONAL",
-	PRODUCT = "PRODUCT",
-	QUALITY = "QUALITY"
-}
 /** Статус процесса выхода пайщика из кооператива */
 export enum MembershipExitStatus {
 	AUTHORIZED = "AUTHORIZED",
@@ -60622,20 +61154,22 @@ export enum MetricSeriesMode {
 	LEVEL = "LEVEL",
 	RATE = "RATE"
 }
-/** Период агрегации ряда метрики */
-export enum MetricSeriesPeriod {
-	DAY = "DAY",
-	HOUR = "HOUR",
-	MINUTE = "MINUTE",
-	MINUTE_5 = "MINUTE_5",
-	MINUTE_15 = "MINUTE_15",
-	MONTH = "MONTH",
-	WEEK = "WEEK"
-}
 /** Статус метрики компонента */
 export enum MetricStatus {
 	ACTIVE = "ACTIVE",
 	ARCHIVED = "ARCHIVED"
+}
+/** Причина отсутствия связи с цепью */
+export enum NodeSyncOutage {
+	CHAIN = "CHAIN",
+	NODE = "NODE",
+	READER = "READER"
+}
+/** Состояние синхронизации узла кооператива с цепью */
+export enum NodeSyncStatus {
+	DISCONNECTED = "DISCONNECTED",
+	LAGGING = "LAGGING",
+	SYNCED = "SYNCED"
 }
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
@@ -60704,6 +61238,7 @@ export enum PaymentType {
 	PAYMENT = "PAYMENT",
 	REGISTRATION = "REGISTRATION",
 	REGISTRATION_REFUND = "REGISTRATION_REFUND",
+	TAX = "TAX",
 	WITHDRAWAL = "WITHDRAWAL"
 }
 export enum ProcessInstanceStatus {
@@ -60774,6 +61309,7 @@ export enum ReportType {
 	PSV = "PSV",
 	RSV = "RSV",
 	UUSN = "UUSN",
+	UV_NDFL = "UV_NDFL",
 	UV_VZNOSY = "UV_VZNOSY"
 }
 /** Тип изображения заявки */
@@ -60987,6 +61523,7 @@ type ZEUS_VARIABLES = {
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
+	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
@@ -61311,6 +61848,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
 	["MarketplaceOfferPackageInput"]: ValueTypes["MarketplaceOfferPackageInput"];
 	["MarketplaceOfferStatus"]: ValueTypes["MarketplaceOfferStatus"];
+	["MarketplaceOnboardingSource"]: ValueTypes["MarketplaceOnboardingSource"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
@@ -61370,7 +61908,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffProtocolDocumentInput"]: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"];
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
-	["MeasureCatalogTag"]: ValueTypes["MeasureCatalogTag"];
 	["MembershipExitApplicationGenerateDocumentInput"]: ValueTypes["MembershipExitApplicationGenerateDocumentInput"];
 	["MembershipExitApplicationSignedDocumentInput"]: ValueTypes["MembershipExitApplicationSignedDocumentInput"];
 	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
@@ -61379,9 +61916,10 @@ type ZEUS_VARIABLES = {
 	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
 	["MetricDriveDirection"]: ValueTypes["MetricDriveDirection"];
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
-	["MetricSeriesPeriod"]: ValueTypes["MetricSeriesPeriod"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
+	["NodeSyncOutage"]: ValueTypes["NodeSyncOutage"];
+	["NodeSyncStatus"]: ValueTypes["NodeSyncStatus"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationChannel"]: ValueTypes["NotificationChannel"];
 	["NotificationDeliveryStatus"]: ValueTypes["NotificationDeliveryStatus"];
@@ -61400,6 +61938,7 @@ type ZEUS_VARIABLES = {
 	["ParticipantApplicationSignedMetaDocumentInput"]: ValueTypes["ParticipantApplicationSignedMetaDocumentInput"];
 	["PassportInput"]: ValueTypes["PassportInput"];
 	["PayExpenseItemInput"]: ValueTypes["PayExpenseItemInput"];
+	["PayWithheldTaxInput"]: ValueTypes["PayWithheldTaxInput"];
 	["PaymentDirection"]: ValueTypes["PaymentDirection"];
 	["PaymentFileKind"]: ValueTypes["PaymentFileKind"];
 	["PaymentFiltersInput"]: ValueTypes["PaymentFiltersInput"];

@@ -56,6 +56,9 @@ export async function useInitAppProcess(router: Router) {
   // Метод startSystemMonitoring сам проверяет SSR, но явная проверка здесь
   // делает код более понятным и предотвращает лишние вызовы
   if (!isServer) {
+    // Состояние узла нужно до первой отрисовки: если он ещё догоняет цепь,
+    // рабочий стол обязан закрыться заглушкой сразу, а не через тик мониторинга.
+    void system.loadNodeSyncState();
     system.startSystemMonitoring();
     // Опрос self-report версии ноды (/version) → тост об обновлении.
     // Заменяет ненадёжный триггер от lifecycle service worker'а.

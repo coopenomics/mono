@@ -261,8 +261,10 @@ static constexpr uint64_t _capital_program_id = 4;
 
 #ifdef IS_TESTNET
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 1; /*!< минимальное количество членов совета (тест) */
+    static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = false; /*!< один пайщик может возглавлять несколько кооперативных участков (тест) */
 #else
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 3; /*!< минимальное количество членов совета (прод) */
+    static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = true; /*!< председатель возглавляет ровно один кооперативный участок (прод) */
 #endif
 
 /**

@@ -1,8 +1,11 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { InnerAccountType } from '@coopenomics/innercoop';
 
-export enum AccountType {
-  individual = 'individual',
-  entrepreneur = 'entrepreneur',
-  organization = 'organization',
-}
-registerEnumType(AccountType, { name: 'AccountType', description: 'Тип аккаунта пользователя в системе' });
+/**
+ * Перечень живёт в контракте `@coopenomics/innercoop`: с ним сверяются
+ * расширения, а ядро регистрирует его в схеме. Здесь он доступен под привычным
+ * ядру именем.
+ */
+export { InnerAccountType as AccountType };
+
+registerEnumType(InnerAccountType, { name: 'AccountType', description: 'Тип аккаунта пользователя в системе' });

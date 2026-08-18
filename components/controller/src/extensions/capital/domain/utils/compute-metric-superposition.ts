@@ -1,11 +1,12 @@
 /**
  * Расчёт резонанса метрик на момент времени T (окно [from, to]).
  * Общий код для «сейчас» и истории кадров scrubber'а.
+ *
+ * Единственный таймфрейм — день: и ряд метрики, и кадры истории.
  */
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../enums/metric-series-period.enum';
 import { MetricDriveDirection } from '../enums/metric-drive-direction.enum';
-import { buildMetricSeries } from './build-metric-series';
+import { buildMetricSeries, defaultSeriesFrom } from './build-metric-series';
 import {
   analyzeWave,
   recentActivityScore,
@@ -26,8 +27,6 @@ export interface SuperpositionMetricInput {
   unit: string;
   target_value: number;
   series_mode: MetricSeriesMode;
-  /** Волна меры — шаг локального 5/3; не UI-scrubber */
-  wave_period: MetricSeriesPeriod;
   plan_start: Date | null;
   deadline: Date | null;
 }
@@ -84,41 +83,30 @@ export function driveOf(
   return MetricDriveDirection.FLAT;
 }
 
-/** Концы бакетов окна [from, to] — метки кадров истории (не дальше `to`). */
-export function listSuperpositionFrameAts(
-  from: Date,
-  to: Date,
-  period: MetricSeriesPeriod
-): Date[] {
+/** Концы дневных бакетов окна [from, to] — метки кадров истории (не дальше `to`). */
+export function listSuperpositionFrameAts(from: Date, to: Date): Date[] {
   const toMs = to.getTime();
   const points = buildMetricSeries([], {
-    period,
     from,
     to,
     target_value: 0,
   });
-  // period_end текущего бакета может быть в будущем относительно `to` —
-  // иначе неделя/месяц дописывают пустые дни «из будущего» и гасят activity.
+  // period_end текущего дня может быть в будущем относительно `to` —
+  // кадр истории отмечаем моментом `to`, а не концом незавершённых суток.
   return points.map((p) => new Date(Math.min(p.period_end.getTime(), toMs)));
 }
 
 /**
  * Резонанс на момент `to`.
- * Ряд каждой меры строится по её `wave_period` (окно lookback от `to`).
- * Аргументы `period`/`from` — для UI-scrubber/совместимости; на фазоры меры не влияют,
- * если у входа задан `wave_period`.
+ * Ряд каждой метрики — дневной, окно lookback отсчитывается от `to`.
  * Вклады с occurred_at > to не учитываются.
  */
 export function computeSuperpositionAt(
   metrics: SuperpositionMetricInput[],
   contributionsByMetric: Map<string, SuperpositionContributionInput[]>,
-  period: MetricSeriesPeriod,
-  from: Date,
   to: Date
 ): SuperpositionAtResult {
   const items: SuperpositionItemResult[] = [];
-  void period;
-  void from;
 
   for (const metric of metrics) {
     const key = metric.metric_hash.toLowerCase();
@@ -128,13 +116,11 @@ export function computeSuperpositionAt(
       return at.getTime() <= to.getTime();
     });
     const fact = contributions.reduce((s, c) => s + c.delta, 0);
-    const wavePeriod = metric.wave_period ?? MetricSeriesPeriod.DAY;
-    const metricFrom = defaultSuperpositionFrom(to, wavePeriod);
+    const metricFrom = defaultSeriesFrom(to);
     const planStart = metric.plan_start ?? metricFrom;
     const points = buildMetricSeries(
       contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at })),
       {
-        period: wavePeriod,
         from: metricFrom,
         to,
         target_value: metric.target_value,
@@ -188,31 +174,7 @@ export function computeSuperpositionAt(
   };
 }
 
-/** Lookback-окно ряда относительно `to` (как в getMetricSuperposition). */
-export function defaultSuperpositionFrom(to: Date, period: MetricSeriesPeriod): Date {
-  const from = new Date(to.getTime());
-  switch (period) {
-    case MetricSeriesPeriod.MINUTE:
-      from.setUTCMinutes(from.getUTCMinutes() - 59);
-      break;
-    case MetricSeriesPeriod.MINUTE_5:
-      from.setUTCMinutes(from.getUTCMinutes() - 5 * 47);
-      break;
-    case MetricSeriesPeriod.MINUTE_15:
-      from.setUTCMinutes(from.getUTCMinutes() - 15 * 31);
-      break;
-    case MetricSeriesPeriod.HOUR:
-      from.setUTCHours(from.getUTCHours() - 47);
-      break;
-    case MetricSeriesPeriod.DAY:
-      from.setUTCDate(from.getUTCDate() - 29);
-      break;
-    case MetricSeriesPeriod.WEEK:
-      from.setUTCDate(from.getUTCDate() - 7 * 11);
-      break;
-    case MetricSeriesPeriod.MONTH:
-      from.setUTCMonth(from.getUTCMonth() - 11);
-      break;
-  }
-  return from;
+/** Lookback-окно дневного ряда относительно `to`. */
+export function defaultSuperpositionFrom(to: Date): Date {
+  return defaultSeriesFrom(to);
 }

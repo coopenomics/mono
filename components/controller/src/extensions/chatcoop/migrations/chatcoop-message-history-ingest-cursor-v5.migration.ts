@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import type {
   ExtensionSchemaMigrationAfterContext,
   IExtensionSchemaMigration,
-} from '~/domain/extension/services/extension-schema-migration.service';
+} from '@coopenomics/extension-kit';
 
 export const chatcoopMessageHistoryIngestCursorV5Migration: IExtensionSchemaMigration<
   Record<string, unknown>,

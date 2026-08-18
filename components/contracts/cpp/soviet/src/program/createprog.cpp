@@ -21,21 +21,24 @@
 
  * @note Авторизация требуется от аккаунта: @p username
  */
-void soviet::createprog(eosio::name coopname, eosio::name username, eosio::name type, std::string title, std::string announce, std::string description, std::string preview, std::string images, eosio::name calculation_type, eosio::asset fixed_membership_contribution, uint64_t membership_percent_fee, bool is_can_coop_spend_share_contributions, std::string meta) { 
-  
+void soviet::createprog(eosio::name coopname, eosio::name username, eosio::name type, std::string title, std::string announce, std::string description, std::string preview, std::string images, eosio::name calculation_type, eosio::asset fixed_membership_contribution, uint64_t membership_percent_fee, bool is_can_coop_spend_share_contributions, std::string meta) {
+
   check_auth_or_fail(_soviet, coopname, username, "createprog"_n);
-  
+
   auto board = get_board_by_type_or_fail(coopname, "soviet"_n);
 
   check_valid_program(type);
-    
+
   auto cooperative = get_cooperative_or_fail(coopname);
-  
-  uint64_t draft_id = get_draft_id(type); // Получение draft_id
-  
+
+  // Шаблон оферты — из реестра ЦПП внутри контракта, параметром не принимается:
+  // программа жёстко связана со своим документом, и кооператив не должен иметь
+  // возможности подставить произвольный.
+  uint64_t draft_id = get_draft_id(type);
+
   if (draft_id > 0)
     get_scoped_draft_by_registry_or_fail(_draft, draft_id);
-  
+
   programs_index programs(_soviet, coopname.value);
   
   auto program_id = get_program_id(type);

@@ -145,6 +145,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // requirement b6: администратор устанавливает единую ставку членского
     // взноса кооператива и видит экономику любого КУ и все заявки на помощь.
     Economy: ['read', 'read:all', 'read:own-KU', 'set-fee', 'use:own'],
+    // requirement b6 (2026-08-13): удержанный с материальной помощи НДФЛ и
+    // его перечисление в бюджет ведёт бухгалтерия кооператива — в матрице
+    // это администратор, отдельной роли бухгалтера в расширении нет.
+    Tax: ['read', 'pay'],
   },
   board_readonly: {
     Warehouse: ['read:all'],

@@ -1,9 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { hasServerSecret } from '@coopenomics/extension-kit';
+import { Inject, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
-import config from '~/config/config';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 
 import { canAccess } from '../access/marketplace-access-matrix';
 import {
@@ -34,7 +34,7 @@ import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 export class MarketplaceRoleGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceRoleGuard.name);
   }
@@ -57,7 +57,11 @@ export class MarketplaceRoleGuard implements CanActivate {
     const gqlContext = ctx.getContext();
     const request = gqlContext.req;
 
-    if (request?.headers?.['server-secret'] === config.server_secret) {
+    // Секрет межсервисного обхода сверяет сам каркас: значение ему передал
+    // composition root, и сюда оно не попадает вовсе. Читать его из конфига
+    // ядра расширению нельзя — это ровно тот секрет, который не должен
+    // разъезжаться по коду.
+    if (hasServerSecret(request?.headers)) {
       return true;
     }
 

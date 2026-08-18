@@ -58,6 +58,7 @@ _Критичные правила и паттерны для AI-агентов 
 ### Language-Specific (TypeScript)
 
 - **Bigint из PostgreSQL приходит как STRING.** Всегда `Number(blockNum) < Number(currentBlockNum)`, никогда не полагаться на `<`/`>` для `bigint`-колонок напрямую.
+- **block_num — разнобой типов в текущей кодовой базе (Story 4.3 audit).** `BaseTypeormEntity` (capital + shared) использует `@Column({ type: 'integer' }) block_num!: number` (PG возвращает number — корректно). Инфраструктурные entity (`ActionEntity`, `DeltaEntity`, `ForkEntity`, `SyncStateEntity`) используют `@Column({ type: 'bigint' }) block_num!: number` — **type-mismatch** (runtime будет string, TS говорит number). `ConsumerDedupEntity` — `bigint` + `string | null` (корректно). Это технический долг (Epic 9 backlog: bigint Transformer). Hot-path везде явно делает `Number()` либо использует TypeORM bind, так что runtime safe. При добавлении нового блокчейн-зеркала — выбрать одно из: (a) `integer` + `number`; (b) `bigint` + Transformer возвращающий `number`; (c) `bigint` + `string` с явным `Number()` в кодe. НЕ `bigint` + declaration `number` без Transformer.
 - **`Object.assign(this, blockchainData)` запрещено** в sync-сущностях — ломает типизацию. Только явное копирование полей.
 - **Lowercase hash полей (`project_hash`, `listing_hash`)** — нормализация **в конструкторе/mapValue**, НЕ в mapper'ах и НЕ повторно в `updateFromBlockchain`.
 - **Discriminated union для write-mutation response:** `{ status: 'applied' | 'pending' | 'failed' | 'conflict' }`. Клиент должен switch на статусе.
@@ -76,6 +77,8 @@ _Критичные правила и паттерны для AI-агентов 
 - `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
 - Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
+- **Контракт «entity с block_num → repo extends BaseBlockchainRepository» (Story 4.3).** Любая `*.typeorm-entity.ts` extends `BaseTypeormEntity` ОБЯЗАНА иметь репозиторий extends `BaseBlockchainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
+- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно через DataSource.transaction). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
@@ -87,14 +90,16 @@ _Критичные правила и паттерны для AI-агентов 
 - `{contract}{Entity}Updated` / `Deleted` / `RolledBack` / `PendingRetry` / `Failed` — **pubsub канал** для GraphQL subscriptions. Per-contract, не global.
 - `entitysynced::{contract}::{table}` — для business-side-effect listeners (Matrix / Notification / и т.п.).
 
-### Composite-Entity (ADR-008) — СТРОГО
+### Composite-Entity (ADR-008) — будущая цель, не сейчас
 
-- Namespaced: `entity.db.X` (DB-поля) / `entity.bc?.Y` (blockchain, nullable) / `entity.derived.Z` (computed getters).
-- **НЕ** писать `entity.X` напрямую — ломает изоляцию.
-- Конструктор `(databaseData, blockchainData?)` — обязан `throw` на sync-key mismatch.
-- `updateFromBlockchain` возвращает **новый экземпляр** (immutable) или мутирует только `this.bc`, `this.block_num`, `this.present` — БЕЗ `Object.assign`.
-- `derived` getter — детерминирован (NO `new Date()` в конструкторе / getter — ломает snapshot tests).
-- Все signed-document поля нормализуются через `AbstractDeltaMapper.normalizeSignedDocuments` на основе `signedDocumentFields: SignedDocField[]` декларативно, НЕ руками в mapper.
+ADR-008 описывает целевой паттерн `entity.db.X` / `entity.bc?.Y` / `entity.derived.Z`, заменяющий
+`Object.assign(this, blockchainData)`. Переход вынесен за пределы MVP-релиза parser2 в отдельный
+sync-arch sanitation-эпик: blast radius на 22 entity + потребители «плоских» полей в resolver'ах
+делают эту миграцию большой и рискованной задачей, несвязанной с заменой транспорта parser1→parser2.
+
+До отдельного эпика — текущий код продолжает использовать flat-namespace + `Object.assign` в
+`updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
+старого.
 
 ### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
 
@@ -138,17 +143,142 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 **Никогда**: `chainPort.submitTx(...)` напрямую в resolver/service — только `pool.submitWithPool`.
 **Никогда**: `chainPort.getX(...)` в read-path — только `repository.findBySyncKey`.
 
-### Cross-extension/core вызовы — только через `@coopenomics/inter` (СТРОГО)
+### `forwardRef` — только с разобранным циклом (СТРОГО)
 
-Расширению (`extensions/<name>/`) **запрещено** напрямую импортировать сервис другого расширения или ядрового модуля (например `Ledger2Service`, сервис другого `extensions/*`). Единственный легитимный путь — контракт (`port` + DI-токен) в пакете `components/inter` (`@coopenomics/inter`).
+**Обёрток `forwardRef` в контроллере нет — ноль. Новая обёртка не добавляется.**
 
-- Порт — plain TS-интерфейс в `components/inter/src/<domain>.port.ts` (без Nest/GraphQL-декораторов, без class-validator) + `export const INTER_<DOMAIN> = Symbol.for('Inter<Domain>')` в `tokens.ts` + экспорт в `index.ts`.
-- Реализация — адаптер в `infrastructure/inter/` **того модуля, который владеет данными** (ядровой — `application/<module>/infrastructure/inter/`, extension'а — `extensions/<name>/infrastructure/inter/`), `implements Inter<Domain>Port`.
-- Биндинг токен→адаптер — только в `src/extensions/inter-communication-bridge.module.ts` (`@Global()`, `useExisting`). Consumer инжектит `@Inject(INTER_<DOMAIN>) private readonly x: Inter<Domain>Port` — про конкретную реализацию не знает.
+Их было полсотни: обёртка, поставленная наугад, выглядит ровно так же, как
+необходимая, и отличить их чтением нельзя, поэтому они и копились. Из полусотни
+реальный цикл обходили семь, и все семь циклов разобраны — ни один не оказался
+неизбежным.
+
+Проверка — гейт:
+
+```bash
+node scripts/analyze-cycles.mjs        # ожидаемый вывод: обёрток 0
+```
+
+Скрипт считает граф по значимым импортам (`import type` компилятор стирает, и
+цикла такой импорт не создаёт) и для каждой обёртки ищет обратный путь от цели
+к владельцу.
+
+Если появился настоящий цикл — разбирать его, а не обходить. Что сработало
+на всех семи:
+
+- **порт отдаёт тот, кому принадлежат сценарии.** Инфраструктура держала
+  адаптер-транзит и ради него импортировала приложение обратно. Порт переехал
+  к владельцу (`useExisting`), адаптер удалён. Канон: `application/gateway/gateway.module.ts`,
+  `application/registration/registration.module.ts`.
+- **реестр вместо инъекции, когда направление обратное** (расширение реализует,
+  ядро вызывает). Инъекция по токену требует, чтобы модуль ядра видел провайдера
+  расширения, а видимость даёт только импорт — то есть цикл. Расширение кладёт
+  себя в реестр само. Канон: `ExtensionGrantsRegistry`,
+  `RegistrationDocumentParametersRegistry`.
+- **подписка живёт у обработчика.** Слушатель события ловил его и пересылал
+  чужим методом, ради чего инжектил владельца логики. Канон:
+  `extensions/capital/application/use-cases/generation.interactor.ts`.
+- **мёртвое просто удаляется**: модуль без экспортов, адаптер-транзит, дубль
+  интерфейса. Половина «циклов» держалась на таком.
+
+### Cross-extension/core вызовы — только через `@coopenomics/innercoop` (СТРОГО)
+
+Расширению (`extensions/<name>/`) **запрещено** напрямую импортировать сервис другого расширения или ядрового модуля (например `Ledger2Service`, сервис другого `extensions/*`). Единственный легитимный путь — контракт (`port` + DI-токен) в пакете `components/innercoop` (`@coopenomics/innercoop`).
+
+- Порт — plain TS-интерфейс `I<Domain>Port` (без Nest/GraphQL-декораторов, без class-validator) в секции пакета по владельцу реализации: `components/innercoop/src/core-ports/<domain>.port.ts`, если провайдер — ядро, и `cross-plugin-ports/<domain>.port.ts`, если провайдер — расширение. Секция `hooks/` — обратное направление (расширение реализует, ядро вызывает); там уже живут параметры оферт для потока вступления и права пайщика на рабочем столе. Ядро инжектит хуки необязательными: расширения может не быть в кооперативе.
+- DI-токен объявляется **в файле своего порта**, не в общем `tokens.ts`: `export const <DOMAIN>_PORT = Symbol.for('Innercoop.CorePort.<Domain>')` (или `Innercoop.CrossPlugin.<Domain>`). Экспорт подхватывается бочкой секции.
+- Реализация — адаптер в `infrastructure/innercoop/` **того модуля, который владеет данными** (ядровой — `application/<module>/infrastructure/innercoop/`, extension'а — `extensions/<name>/infrastructure/innercoop/`), `implements I<Domain>Port`.
+- Биндинг токен→адаптер — только в `src/extensions/innercoop-bridge.module.ts` (`@Global()`, `useExisting`). Consumer инжектит `@Inject(<DOMAIN>_PORT) private readonly x: I<Domain>Port` — про конкретную реализацию не знает.
 - Порт не знает доменных понятий consumer'а (КУ, проект, программа) и не скоупит доступ — авторизацию («вправе ли ЭТОТ пользователь смотреть ЭТИ данные») делает вызывающий resolver/service ДО вызова порта, на своих доменных данных.
-- **Если контракта ещё нет** — не тянуть чужой сервис "на один вызов". Сначала добавить порт в `@coopenomics/inter` (+ `pnpm run build` в `components/inter`), потом адаптер + биндинг, потом consumer.
+- **Порт выносимого расширения возвращает `Promise` и не передаёт объект с методами (ADR-18).** Требование адресное, а не общее: расширение, остающееся в монолите, зовёт ядро внутри процесса, и синхронный метод там работает всегда. Проверяются порты, заявленные расширениями из списка `PORTABLE` в `scripts/check-ports-async.mjs` (сегодня — Стол заказов); гейт входит в `pnpm check`. Синхронная сигнатура чинится сменой возврата и терпит до выноса. **Объект с методами в сигнатуре — не терпит**: по сети его не отдать, ядро не может держать обработчик из чужого процесса, и меняется сам приём, а не тип. Известные места перечислены в скрипте поимённо (долг 487-19); новое роняет проверку.
+- **Если контракта ещё нет** — не тянуть чужой сервис "на один вызов". Сначала добавить порт в `@coopenomics/innercoop` (+ `pnpm run build` в `components/innercoop`), потом адаптер + биндинг, потом consumer.
 
-Канон: `INTER_EXPENSE_CHASSIS`/`expense-chassis.port.ts` (шасси расходов → capital/marketplace/EMP), `INTER_LEDGER2_HISTORY`/`ledger2-history.port.ts` (ядро ledger2 → любой consumer, читающий историю кошелька).
+Канон: `EXPENSE_CHASSIS_PORT`/`cross-plugin-ports/expense-chassis.port.ts` (шасси расходов → capital/marketplace/EMP), `LEDGER2_HISTORY_PORT`/`core-ports/ledger2-history.port.ts` (ядро ledger2 → любой consumer, читающий историю кошелька).
+
+**Имя `inter` больше не используется.** `innercoop` — внутренняя связь в контуре одного кооператива; `intercoop` зарезервировано за федерацией кооператив ↔ кооператив (v4). Пакет авторизации не содержит: права пайщика проверяются на границе API расширения, порт вызывается уже внутри авторизованного use-case.
+
+### Каркас расширения — `@coopenomics/extension-kit`
+
+Второй пакет, ортогональный `innercoop` (INV-007: друг от друга не зависят, контроллер и расширение зависят от обоих). Разделение по вопросу, на который пакет отвечает:
+
+- **`innercoop`** — «как расширение разговаривает с ядром и соседями»: порты, DTO, DI-токены. Зависимостей нет.
+- **`extension-kit`** — «чем нужно быть, чтобы считаться расширением»: `BaseExtensionModule`, `ExtensionDomainEntity` и `LogExtensionDomainEntity`, интерфейсы репозиториев с токенами `EXTENSION_REPOSITORY` / `LOG_EXTENSION_REPOSITORY`, контракт миграции схемы (`IExtensionSchemaMigration`, `ExtensionSchemaMigrationAfterContext`), событие `EXTENSION_APP_TERMINATE_EVENT`, контракт записи реестра (`IRegistryExtension`, `ExtensionAvailability`, `isExtensionAvailable`, `IDesktopConfig`). Peer-зависимости — `@nestjs/common` и `zod`.
+
+**Что осталось в контроллере и почему.** `domain/extension/services/*` и `extension-domain.module.ts` в кит не переехали: они знают о конкретных расширениях — реестр, дефолты конфигов шести расширений, список из двух десятков миграций, `nestApp` из `~/index`. Это composition root, а не переиспользуемый каркас. `ExtensionSchemaMigrationService` дополнительно завязан на `WinstonLoggerService`; он сможет переехать, когда появится `ILoggerPort`.
+
+**Токены — `Symbol.for`, не `Symbol()`.** Расширение и ядро резолвят токен каждый из своей копии пакета, совпасть они обязаны по глобальному реестру символов — иначе DI молча не найдёт провайдера.
+
+**`@Global()` не загружает модуль, а только раздаёт уже загруженный.** Если единственный, кто импортировал глобальный модуль, перестал это делать, модуль выпадает из графа целиком, и его провайдеры исчезают — Nest сообщит об этом уже на старте, компилятор промолчит. Кейс 2026-08-11: `PubSubModule` держал в графе маркетплейс; после перевода подписок на порт модуль пришлось подключить в composition root.
+
+**Пакет не пересобирают одновременно с компиляцией контроллера.** `ts-node` прочитает `dist/**/*.d.ts` на середине записи и выдаст `Cannot find module '@coopenomics/...'` или «нет такого экспорта» в файлах, которых правка не касалась. Сначала сборка пакета, только потом `touch` файла контроллера — иначе полчаса уходит на поиск несуществующей ошибки.
+
+Новое расширение: класс `<X>Extension extends BaseExtensionModule` (импорт из `@coopenomics/extension-kit`), модуль `<X>ExtensionModule`, запись в `AppRegistry` c `extensionClass`. Слова «плагин» в коде и комментариях не используем — сущность называется расширением.
+
+### Что расширение объявляет о себе (СТРОГО)
+
+Запись в `AppRegistry` — это его манифест. Ничто из перечисленного не выводится
+из положения файлов на диске: расширение, установленное пакетом в
+`node_modules`, ни под какой глоб по `src/` не попадёт.
+
+| Поле записи | Файл-декларация | Что сломается без него |
+|---|---|---|
+| `entities` | `<name>/<name>.entities.ts` | таблицы не создадутся, репозитории не поднимутся |
+| `migrations` | `<name>/<name>.migrations.ts` | конфиг останется старой версии |
+| `ports` | `<name>/<name>.ports.ts` | расширение не пройдёт гейт capability |
+| `defaults` | — | расширение не поставится в новом кооперативе |
+
+Все четыре проверяются гейтом `pnpm check:boundaries`:
+
+- **сущность вне декларации** — `check-extension-boundaries.mjs` падает: раньше
+  забывчивость страховал глоб, теперь состав объявляется явно;
+- **порт вне заявки** — тот же скрипт: заявка отвечает на вопрос «что этому
+  расширению позволено просить у кооператива» (ADR-16), и молча взятый порт
+  делает её недостоверной;
+- **выход за границу** — импорт ядра или соседа, включая динамический `require`
+  и относительный путь наверх.
+
+Обязательный порт без реализации в контуре — отказ при запуске расширения с
+названием порта; необязательный — предупреждение. Что кому доступно, смотреть
+в `components/innercoop/PORTS.md` (собирается из кода, руками не править).
+
+Публичный API контракта снят в `components/innercoop/API.md`. Изменили порт —
+пересоберите снимок (`node scripts/check-innercoop-api.mjs`) и посмотрите дифф:
+удалённый экспорт или новый обязательный параметр ломают расширения, которые
+собираются отдельно.
+
+### Доступ к полю объекта: роль ИЛИ принадлежность (`@AuthRoles`) — СТРОГО
+
+Роль в `@AuthRoles` — это капабилити уровня кооператива (`chairman`, `member`,
+`user`). Её недостаточно там, где данные принадлежат самому пайщику:
+председатель кооперативного участка для кооператива — обычный пайщик, и по
+ролям он не прочитал бы даже собственный участок.
+
+Для таких полей объявляется принадлежность — пути внутри самого объекта:
+
+```ts
+const SELF_AT_BRANCH = ['trustee.username', 'trusted[].username'];
+
+@Field(() => [IndividualDTO], { nullable: true, description: '…' })
+@AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+public readonly trusted: IndividualDTO[];
+```
+
+Правила:
+
+- **Путь считается от корня объекта, которому принадлежит поле**; сегмент `[]`
+  разворачивает массив (`trusted[].username`). Совпадение любого значения с
+  именем аккаунта запрашивающего открывает поле.
+- **Поле с `self` обязано быть `nullable`.** При отказе оно пустеет, а не
+  роняет ответ: в списке объектов часть своя, часть чужая, и исключение
+  обнулило бы весь список (`trusted: [Individual!]!` уронил бы весь
+  `getBranches`). Поля без `self` отказывают исключением, как раньше.
+- **Потребитель обязан пережить пустоту**: `branch.trustee?.username`, а не
+  `branch.trustee.username`.
+- **Директива `@auth` объявлена явно** в `graphql.module.ts`
+  (`buildSchemaOptions.directives`). Новый аргумент, не попавший в объявление,
+  graphql-tools молча отбрасывает — условие доступа теряется без единой ошибки.
+- Это тот же принцип, что квалификаторы `:own` / `:own-KU` в матрице доступа
+  расширений: роль отвечает за «такой род данных вообще доступен»,
+  принадлежность — за «эти данные твои».
 
 ### Read-path (ADR-011) — СТРОГО
 
@@ -217,7 +347,8 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 **Paths (жёстко):**
 - Per-contract: `extensions/{contract}/{domain|infrastructure|application}/...`.
-- Kernel: `shared/sync/...`, `shared/decorators/...`, `shared/pubsub/...`, `shared/mappers/...`.
+- Каркас синхронизации: `@coopenomics/extension-kit/sync` (базовые сущность/маппер/репозиторий/синкер, версионирование). Каталога `shared/sync/` больше нет — расширение обязано собираться за пределами монолита, а от классов ядра оно там наследоваться не может.
+- Kernel: `shared/decorators/...`, `shared/pubsub/...`, `shared/mappers/...`.
 - Transport: `infrastructure/blockchain/`, `infrastructure/parser2/`, `infrastructure/redis/`.
 - Cross-cutting domain: `domain/pending-tx/`, `domain/breach/`, `domain/reconciliation/`.
 
@@ -228,7 +359,6 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - `BLOCKCHAIN_RECONCILE_CRON` default `'0 * * * *'`
 - `BLOCKCHAIN_RECONCILE_SAMPLE_SIZE` default 100
 - `BLOCKCHAIN_RECONCILE_TOLERANCE_BLOCKS` default 10
-- `BLOCKCHAIN_FORK_PAUSE_TIMEOUT_MS` default 30000
 - `BLOCKCHAIN_DLQ_MAX_RETRIES` default 5
 - `BLOCKCHAIN_MAX_TX_RETRIES` default 3
 - `BLOCKCHAIN_PENDING_TX_MAX_AGE_SECONDS` default 3600
@@ -253,7 +383,7 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - В `@Field`/`@InputType` всё, что enum в коде, регистрируется через `registerEnumType` и приходит/уходит typed, не `string`.
 
 **Пагинация (жёстко) — стандартный паттерн:**
-- Входные параметры: `PaginationInputDTO` из `~/application/common/dto/pagination.dto.ts` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
+- Входные параметры: `PaginationInputDTO` из `@coopenomics/extension-kit` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
 - Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
 - Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
 - Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.
@@ -281,12 +411,13 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 - `await capitalBlockchainPort.getProject(hash)` в resolver / application — **retire**. Только `repository.findBySyncKey`.
 - RPC fallback "если PG не отдал" — **запрещено**. Если PG null → pending status наверх.
 
-### ❌ Composite-entity anti-patterns
+### ❌ Domain-entity anti-patterns
 
-- `project.matrix_room_id` (flat access) — **запрещено**. Правильно: `project.db.matrix_room_id`.
-- `project.master` (flat access) — **запрещено**. Правильно: `project.bc?.master`.
-- `Object.assign(this, blockchainData)` в update — **запрещено**.
 - Новый `new Date()` в конструкторе или derived-getter — **запрещено** (ломает snapshot-tests).
+- Миграция на namespace `entity.db.X` / `entity.bc?.Y` — целевой паттерн ADR-008, но отложен
+  в отдельный sync-arch sanitation-эпик: текущий код всё ещё использует flat-namespace +
+  `Object.assign(this, blockchainData)` в `updateFromBlockchain`. Не разводить два стандарта
+  частично.
 
 ### ❌ Fork handling anti-patterns
 
@@ -326,7 +457,6 @@ return { tx_hash: tx.tx_hash, status: 'pending' };
 
 ### ⚡ Performance
 
-- `JSON.stringify` на сущностях с nested signed-documents — использовать `json-stable-stringify` для canonical checksum.
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
 - `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).

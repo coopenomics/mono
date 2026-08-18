@@ -1,11 +1,8 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { ContributorDomainEntity } from '../entities/contributor.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
 import { ContributorStatus } from '../enums/contributor-status.enum';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface ContributorRepository extends IBlockchainSyncRepository<ContributorDomainEntity> {
   create(contributor: Omit<ContributorDomainEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<ContributorDomainEntity>;
@@ -18,8 +15,8 @@ export interface ContributorRepository extends IBlockchainSyncRepository<Contrib
   findByStatus(status: string): Promise<ContributorDomainEntity[]>;
   findAllPaginated(
     filter?: ContributorFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ContributorDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ContributorDomainEntity>>;
   /**
    * Поиск contributor по любому из полей: _id, username, contributor_hash
    * Возвращает первого найденного contributor

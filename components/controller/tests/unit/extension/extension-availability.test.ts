@@ -1,4 +1,5 @@
-import { AppRegistry, ExtensionAvailability, isExtensionAvailable } from '~/extensions/extensions.registry';
+import { ExtensionAvailability, isExtensionAvailable } from '@coopenomics/extension-kit';
+import { AppRegistry } from '~/extensions/extensions.registry';
 
 describe('Доступность расширений по сети', () => {
   describe('isExtensionAvailable', () => {

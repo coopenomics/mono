@@ -1,5 +1,5 @@
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { MARKETPLACE_OFFER_AGREEMENT_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import {
   getCandidateAgreementDocument,
@@ -8,13 +8,13 @@ import {
 import { AgreementId } from '~/domain/registration/enum/agreement-id.enum';
 import { DocumentType } from '~/domain/registration/enum/document-type.enum';
 
-function makeDoc(hash: string): ISignedDocumentDomainInterface {
+function makeDoc(hash: string): ISignedDocument {
   return {
     version: '1.0.0',
     hash,
     doc_hash: hash,
     meta_hash: hash,
-    meta: { title: 'test', registry_id: 1, lang: 'ru', generator: 'coopjs' } as ISignedDocumentDomainInterface['meta'],
+    meta: { title: 'test', registry_id: 1, lang: 'ru', generator: 'coopjs' } as ISignedDocument['meta'],
     signatures: [],
   };
 }

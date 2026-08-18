@@ -34,7 +34,7 @@ void ledger2::debit(eosio::name coopname,
                "debit: некорректная сумма");
   eosio::check(amount.symbol == _root_govern_symbol,
                "debit: некорректный символ валюты");
-  eosio::check(memo.size() < 256, "debit: memo > 255");
+  // Длина memo не ограничивается — см. apply.cpp.
 
   accounts2_index accounts(get_self(), coopname.value);
   const eosio::name payer = get_self();

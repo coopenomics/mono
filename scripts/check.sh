@@ -7,7 +7,11 @@
 #     Сюда попадают только правила, которых код УЖЕ придерживается
 #     (нарушений ноль), поэтому включение ничего не ломает и ничего не требует
 #     чинить. Сегодня это архитектурные границы: ядро не знает про расширения,
-#     расширения не ходят друг в друга напрямую — только через inter.
+#     расширения не ходят друг в друга и в ядро напрямую — только через порты
+#     @coopenomics/innercoop (статические импорты ловит eslint, динамические и
+#     относительные пути — check-extension-boundaries.mjs); и
+#     согласованность реестров имён процессов ledger2 между контрактом,
+#     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs).
 #
 #   Ярус B «канон» — только на изменённые файлы, храповиком.
 #     Правила, которым старый код массово не соответствует (сложность, размер
@@ -35,6 +39,7 @@
 # Использование:
 #   pnpm check                      всё
 #   pnpm check:boundaries           только ярус A
+#   pnpm check:ledger2              только реестры процессов ledger2
 #   pnpm check:changed              ярусы B и C
 #   pnpm check:registry             только ярус C
 #   CHECK_BASE=origin/dev pnpm check   с какой веткой сравнивать ярус B
@@ -90,12 +95,32 @@ gate_boundaries_desktop() {
     | node "$GATE" no-restricted-imports
 }
 
+gate_extension_boundaries() {
+  node "$REPO_ROOT/scripts/check-extension-boundaries.mjs"
+}
+
+gate_ports_catalog() {
+  node "$REPO_ROOT/scripts/generate-ports-catalog.mjs" --check
+}
+
+gate_innercoop_api() {
+  node "$REPO_ROOT/scripts/check-innercoop-api.mjs" --check
+}
+
+gate_ports_async() {
+  node "$REPO_ROOT/scripts/check-ports-async.mjs"
+}
+
 gate_changed() {
   bash "$REPO_ROOT/scripts/lint-changed.sh"
 }
 
 gate_registry() {
   node "$REPO_ROOT/scripts/check-registry.mjs"
+}
+
+gate_ledger2_processes() {
+  node "$REPO_ROOT/scripts/check-ledger2-processes.mjs"
 }
 
 gate_unit_tests() {
@@ -105,7 +130,15 @@ gate_unit_tests() {
 case "$MODE" in
   boundaries)
     run_gate "границы: controller" gate_boundaries_controller
+    run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "каталог портов" gate_ports_catalog
+    run_gate "публичный API контракта" gate_innercoop_api
+    run_gate "порты переживут вынос" gate_ports_async
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
+    ;;
+  ledger2)
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
   changed)
     run_gate "канон: изменённые файлы" gate_changed
@@ -116,7 +149,12 @@ case "$MODE" in
     ;;
   all)
     run_gate "границы: controller" gate_boundaries_controller
+    run_gate "границы: расширения (динамика и относительные пути)" gate_extension_boundaries
     run_gate "границы: desktop" gate_boundaries_desktop
+    run_gate "каталог портов" gate_ports_catalog
+    run_gate "публичный API контракта" gate_innercoop_api
+    run_gate "порты переживут вынос" gate_ports_async
+    run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
@@ -127,7 +165,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry)" >&2
+    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2)" >&2
     exit 2
     ;;
 esac

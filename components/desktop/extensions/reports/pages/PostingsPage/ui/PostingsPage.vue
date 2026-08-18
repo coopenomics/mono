@@ -549,7 +549,7 @@ async function enrichFio(rows: ILedger2Posting[]) {
   await Promise.allSettled(
     usernames.map(async (username) => {
       try {
-        const acc = await accountStore.getAccount(username)
+        const acc = await accountStore.fetchAccount(username)
         const pd = acc?.private_account
         if (!pd) return
         let fio = ''

@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -8,7 +8,7 @@ import type { GetDocumentsInputDomainInterface } from '~/domain/document/interfa
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import {
   SIGNED_DOCUMENT_REPOSITORY,
   type SignedDocumentRepository,
@@ -19,10 +19,10 @@ import config from '~/config/config';
 @Injectable()
 export class DocumentInteractor {
   constructor(
-    @Inject(forwardRef(() => DocumentDomainService)) private readonly documentDomainService: DocumentDomainService,
-    @Inject(forwardRef(() => DocumentPackageAggregator))
+    @Inject(DocumentDomainService) private readonly documentDomainService: DocumentDomainService,
+    @Inject(DocumentPackageAggregator)
     private readonly documentPackageAggregator: DocumentPackageAggregator,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
     @Inject(SIGNED_DOCUMENT_REPOSITORY) private readonly signedDocumentRepository: SignedDocumentRepository
   ) {}
 
@@ -100,7 +100,7 @@ export class DocumentInteractor {
    * @returns Агрегат документа или null
    */
   async buildDocumentAggregate(
-    signedDocument: ISignedDocumentDomainInterface | null | undefined
+    signedDocument: ISignedDocument | null | undefined
   ): Promise<DocumentAggregateDomainInterface | null> {
     if (!signedDocument) return null;
 

@@ -1,6 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
 import type { StartVotingDomainInput } from '../../domain/actions/start-voting-domain-input.interface';
 import type { SubmitVoteDomainInput } from '../../domain/actions/submit-vote-domain-input.interface';
 import type { CompleteVotingDomainInput } from '../../domain/actions/complete-voting-domain-input.interface';
@@ -8,14 +7,12 @@ import type { CalculateVotesDomainInput } from '../../domain/actions/calculate-v
 import { VOTE_REPOSITORY, VoteRepository } from '../../domain/repositories/vote.repository';
 import { VoteDomainEntity } from '../../domain/entities/vote.entity';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена для голосования в CAPITAL контракте
@@ -45,7 +42,7 @@ export class VotingInteractor {
   /**
    * Запуск голосования в CAPITAL контракте
    */
-  async startVoting(data: StartVotingDomainInput): Promise<TransactResult> {
+  async startVoting(data: StartVotingDomainInput): Promise<InnerTransactResult> {
     await this.assertProjectBlockchain(data.project_hash, 'запуск голосования');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.startVoting(data);
@@ -54,7 +51,7 @@ export class VotingInteractor {
   /**
    * Голосование в CAPITAL контракте
    */
-  async submitVote(data: SubmitVoteDomainInput): Promise<TransactResult> {
+  async submitVote(data: SubmitVoteDomainInput): Promise<InnerTransactResult> {
     await this.assertProjectBlockchain(data.project_hash, 'голосование');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.submitVote(data);
@@ -63,7 +60,7 @@ export class VotingInteractor {
   /**
    * Завершение голосования в CAPITAL контракте
    */
-  async completeVoting(data: CompleteVotingDomainInput): Promise<TransactResult> {
+  async completeVoting(data: CompleteVotingDomainInput): Promise<InnerTransactResult> {
     await this.assertProjectBlockchain(data.project_hash, 'завершение голосования');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.completeVoting(data);
@@ -100,8 +97,8 @@ export class VotingInteractor {
    */
   async getVotes(
     filter?: VoteFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<VoteDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<VoteDomainEntity>> {
     return await this.voteRepository.findAllPaginated(filter, options);
   }
 

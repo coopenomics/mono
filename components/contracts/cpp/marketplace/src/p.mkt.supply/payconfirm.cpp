@@ -33,6 +33,7 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PAY_SUPPLIER,
+                 processes::marketplace::SUPPLY,
                  o.fact_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_pay_supplier_memo(o.id));
 

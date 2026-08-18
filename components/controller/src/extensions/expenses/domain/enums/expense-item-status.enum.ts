@@ -1,19 +1,14 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { InnerExpenseItemState } from '@coopenomics/innercoop';
 
 /**
- * Доменный статус item-а в СЗ-расходе. Зеркалит `ExpenseDomain::ItemStatus`
- * из `components/contracts/cpp/expense/expense.hpp`.
+ * Перечень живёт в межрасширенческом контракте: с ним сверяются расширения,
+ * заказывающие расход, а шасси остаётся его владельцем и регистрирует перечень
+ * в схеме. Здесь он доступен под привычным шасси именем.
  */
-export enum ExpenseItemStatus {
-  APPROVED = 'APPROVED',
-  PAID = 'PAID',
-  REPORTED = 'REPORTED',
-  RETURNED = 'RETURNED',
-  OVERSPENT = 'OVERSPENT',
-  UNDEFINED = 'UNDEFINED',
-}
+export { InnerExpenseItemState as ExpenseItemStatus };
 
-registerEnumType(ExpenseItemStatus, {
+registerEnumType(InnerExpenseItemState, {
   name: 'ExpenseItemStatus',
   description: 'Статус строки расхода.',
 });

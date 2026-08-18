@@ -1,15 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import {
-  createPaginationResult,
-  PaginationInputDTO,
-  PaginationResult,
-} from '~/application/common/dto/pagination.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { NotificationInboxService } from './notification-inbox.service';
 import {
   InboxNotificationDTO,
@@ -37,7 +29,7 @@ export class NotificationInboxResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getInboxNotifications(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string,
     @Args('pagination') pagination: PaginationInputDTO
   ): Promise<PaginationResult<InboxNotificationDTO>> {
@@ -51,7 +43,7 @@ export class NotificationInboxResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getUnreadNotificationsCount(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string
   ): Promise<UnreadNotificationsCountDTO> {
     const count = await this.inboxService.getUnreadCount(coopname, user.subscriber_id);
@@ -65,7 +57,7 @@ export class NotificationInboxResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async markNotificationRead(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('id') id: string
   ): Promise<InboxNotificationDTO> {
     return this.inboxService.markRead(id, user.subscriber_id);
@@ -78,7 +70,7 @@ export class NotificationInboxResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async markAllNotificationsRead(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string
   ): Promise<UnreadNotificationsCountDTO> {
     await this.inboxService.markAllRead(coopname, user.subscriber_id);

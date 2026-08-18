@@ -8,14 +8,31 @@ title: Предложение поставщика — публикация, м�
 #
 # Статусы предложения: PENDING_MODERATION → ACTIVE | REJECTED,
 # ACTIVE → WITHDRAWN → PENDING_MODERATION (возврат на публикацию).
+#
+# Изображения предложения хранятся через порт файлового хранилища
+# (`FILE_STORAGE_PORT` из `@coopenomics/innercoop/core-ports`, ранее
+# `INTER_FILE_STORAGE` из `@coopenomics/inter`). Переименование 2026-08-09 —
+# только имена, поведение и набор случаев не менялись.
 
 sources:
   backend:
+    # Модель предложения: что поставщик заполняет и что кооператив потом читает.
+    # Форма ответа тут не менее важна, чем сервис: обязательное поле, которого
+    # нет у ранее заведённых предложений, обнуляет каталог целиком.
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-offer.types.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-offer.entity.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-offer.dto.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-offer.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-moderation.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-offer-images.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-offer-counters.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-vitrine.service.ts
+    # Уведомления вокруг модерации: кому уходит заявка и как поставщик узнаёт
+    # результат. Шаблоны писем/пушей живут в пакете уведомлений.
+    - components/controller/src/extensions/marketplace/application/services/marketplace-notification.service.ts
+    - components/notifications/src/workflows/marketplace-offer-on-moderation/**
+    - components/notifications/src/workflows/marketplace-offer-approved/**
+    - components/notifications/src/workflows/marketplace-offer-rejected/**
   ui:
     - components/desktop/src/pages/Marketplace/CreateMarketplaceOffer/**
     - components/desktop/src/pages/Marketplace/OffererMyOffers/**
@@ -153,8 +170,8 @@ cases:
     kind: side
     scenario: Загружено пустое изображение товара (нет содержимого файла)
     expect: отказ, предложение не создаётся и не правится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-images-service.test.ts
+    status: passing
 
   # ── Права и статусы ─────────────────────────────────────────────────────
   - id: mkt.offer.side.14
@@ -229,19 +246,90 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-moderation-access.test.ts
     status: passing
 
+  # Уровень backend, а не ui: после первого одобрения предложение уходит из
+  # очереди модерации, и повторно нажать «Одобрить» в интерфейсе физически
+  # нечем. Защита живёт в сервисе (`requirePending`) и там же проверяется —
+  # второе обращение любым путём, включая прямой вызов API, отбивается 409.
   - id: mkt.offer.side.23
-    level: ui
+    level: backend
     kind: side
     scenario: >
-      Двойной клик по «Одобрить» на одном предложении (две отправки подряд)
+      Повторное одобрение уже одобренного предложения (двойная отправка)
     expect: одобрение применяется один раз, второе обращение отбивается конфликтом
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.24
     level: ui
     kind: side
     scenario: Каталог витрины при отсутствии одобренных предложений
     expect: пустое состояние с пояснением, без ошибок в интерфейсе
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/catalog-empty.mjs
+    status: passing
+
+  # ── Уведомления вокруг модерации ──────────────────────────────────────────
+  # До этого модерация шла молча в обе стороны: администратор не знал о новой
+  # заявке, поставщик — о её судьбе. Оба узнавали, только если сами открывали
+  # стол. Тексты при этом называли модератора председателем, хотя карточки
+  # проверяет администратор (право `Offer:moderate` в роли admin).
+  - id: mkt.offer.side.25
+    level: backend
+    kind: side
+    scenario: Поставщик отправил предложение на модерацию
+    expect: >
+      администратору уходит уведомление с названием имущества, именем поставщика
+      и ссылкой на очередь модерации
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.26
+    level: backend
+    kind: side
+    scenario: Администратор одобрил предложение
+    expect: поставщику уходит уведомление, что предложение опубликовано в каталоге
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.27
+    level: backend
+    kind: side
+    scenario: Администратор отклонил предложение с причиной
+    expect: >
+      поставщику уходит уведомление с причиной отказа — по ней он правит карточку
+      и отправляет её на повторную проверку
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.28
+    level: backend
+    kind: side
+    scenario: >
+      Ранее одобренное предложение возвращают на публикацию (модерация не нужна)
+    expect: >
+      уведомление о модерации НЕ отправляется, поставщик получает только сигнал
+      о публикации — иначе администратора дёргали бы на каждый возврат в каталог
+    test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
+    status: passing
+
+  - id: mkt.offer.break.03
+    level: backend
+    kind: break
+    scenario: В кооперативе не найден аккаунт администратора
+    expect: >
+      уведомление о модерации пропускается с записью в журнал, публикация
+      предложения не срывается
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Предложение заведено до появления вида упаковки — у сохранённой упаковки
+      тары нет
+    expect: >
+      предложение читается, вид упаковки пуст и не выдумывается; каталог и стол
+      поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару
+      поставщик обязан при первой же правке
+    test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    status: passing

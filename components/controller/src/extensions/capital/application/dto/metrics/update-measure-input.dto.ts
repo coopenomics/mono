@@ -1,13 +1,10 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
-import { MeasureCatalogTag } from '../../../domain/enums/measure-catalog-tag.enum';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
-import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../../domain/enums/metric-status.enum';
 
 /**
- * Обновление меры. Состав справочника централизован (миграции).
- * Через API допускается только смена статуса (вкл/выкл).
+ * Правка меры своего кооператива: название, единица, режим ряда, статус.
  */
 @InputType('UpdateMeasureInput')
 export class UpdateMeasureInputDTO {
@@ -24,43 +21,21 @@ export class UpdateMeasureInputDTO {
   @IsEnum(MetricStatus)
   status?: MetricStatus;
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Не используется: справочник меняется только через миграции',
-  })
+  @Field(() => String, { nullable: true, description: 'Название меры' })
   @IsOptional()
   @IsString()
   title?: string;
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Не используется: справочник меняется только через миграции',
-  })
+  @Field(() => String, { nullable: true, description: 'Единица измерения' })
   @IsOptional()
   @IsString()
   unit?: string;
 
   @Field(() => MetricSeriesMode, {
     nullable: true,
-    description: 'Не используется: справочник меняется только через миграции',
+    description: 'Режим ряда: скорость или уровень',
   })
   @IsOptional()
   @IsEnum(MetricSeriesMode)
   series_mode?: MetricSeriesMode;
-
-  @Field(() => MetricSeriesPeriod, {
-    nullable: true,
-    description: 'Не используется: справочник меняется только через миграции',
-  })
-  @IsOptional()
-  @IsEnum(MetricSeriesPeriod)
-  wave_period?: MetricSeriesPeriod;
-
-  @Field(() => MeasureCatalogTag, {
-    nullable: true,
-    description: 'Не используется: справочник меняется только через миграции',
-  })
-  @IsOptional()
-  @IsEnum(MeasureCatalogTag)
-  tag?: MeasureCatalogTag;
 }

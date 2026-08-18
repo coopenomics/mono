@@ -3,12 +3,8 @@ import { SegmentsService } from '../services/segments.service';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { RefreshSegmentInputDTO } from '../dto/segments/refresh-segment-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-
 // Пагинированные результаты
 const paginatedSegmentsResult = createPaginationResult(SegmentOutputDTO, 'PaginatedCapitalSegments');
 

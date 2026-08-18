@@ -336,7 +336,7 @@ function isExpired(value: unknown): boolean {
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
-    body='Склад участка доступен председателю участка и его доверенным лицам.'
+    body='Склад участка доступен оператору участка и его доверенным лицам.'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')

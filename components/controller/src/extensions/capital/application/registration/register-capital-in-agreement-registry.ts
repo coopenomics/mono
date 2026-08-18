@@ -1,6 +1,4 @@
 import { Cooperative } from 'cooptypes';
-import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { AgreementRegistrationPort } from '~/domain/registration/ports/agreement-registration.port';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   BLAGOROST_OFFER_AGREEMENT_ID,
@@ -11,11 +9,14 @@ import {
   GENERATOR_OFFER_AGREEMENT_ID,
 } from '../../constants/capital-agreement-ids';
 import type { IConfig } from '../../capital-extension.module';
+import { type IRegistrationRegistryPort,
+  InnerAccountType,
+} from '@coopenomics/innercoop';
 
 /**
  * Регистрация оферт и программ Capital в платформенном AgreementRegistry.
  *
- * Чистая функция, не имеющая зависимостей от плагина или nest-контейнера:
+ * Чистая функция, не имеющая зависимостей от расширения или nest-контейнера:
  * принимает `port` и `config`, выполняет series of register-вызовов.
  * Это упрощает unit-тестирование (не требует boot всей капитал-graph
  * с @octokit/rest, GitHub-схемами, базой и т.д.).
@@ -34,7 +35,7 @@ import type { IConfig } from '../../capital-extension.module';
  * каждая спека получит собственный резолвер — ядро менять не потребуется.
  */
 export function registerCapitalInAgreementRegistry(
-  port: AgreementRegistrationPort,
+  port: IRegistrationRegistryPort,
   extensionConfig: IConfig,
   resolveDocDataHash?: () => Promise<string | undefined>
 ): boolean {
@@ -86,7 +87,7 @@ export function registerCapitalInAgreementRegistry(
     title: 'Программа Генерация',
     description:
       'Участвовать в производстве Кооперативной Экономики через паевой взнос временем, имуществом или деньгами в конкретные проекты.',
-    applicable_account_types: [AccountType.individual, AccountType.entrepreneur],
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [GENERATOR_OFFER_AGREEMENT_ID],
     order: 1,
     extension_name: CAPITAL_EXTENSION_NAME,
@@ -97,7 +98,7 @@ export function registerCapitalInAgreementRegistry(
     title: 'Программа Благорост',
     description:
       'Участвовать в производстве Кооперативной Экономики через паевой взнос имуществом или денег в систему. Минимальный паевой взнос 100 000 руб в течение 14 дней.',
-    applicable_account_types: [AccountType.individual, AccountType.entrepreneur],
+    applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [BLAGOROST_OFFER_AGREEMENT_ID],
     order: 2,
     extension_name: CAPITAL_EXTENSION_NAME,

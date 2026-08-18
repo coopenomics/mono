@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
-import config from '~/config/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 import type {
-  InterCalendarEventWindow,
-  InterCoopCalendarEventNotificationInput,
-  InterCoopCalendarEventNotificationPort,
-  InterCoopCalendarEventRead,
-} from '@coopenomics/inter';
-import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
+  InnerCalendarEventWindow,
+  InnerCoopCalendarEventNotificationInput,
+  ICoopCalendarEventNotificationPort,
+  InnerCoopCalendarEventRead,
+} from '@coopenomics/innercoop';
+import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatCoopCalendarEventRepository } from '../../domain/repositories/calendar-event.repository';
@@ -15,8 +15,6 @@ import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from '../../domain/repositories/ca
 import type { ChatCoopCalendarIcsSubscriptionRepository } from '../../domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from '../../domain/repositories/calendar-ics-subscription.repository';
 import type { ChatCoopCalendarEventDomainEntity } from '../../domain/entities/calendar-event.entity';
-import { VARS_REPOSITORY, type VarsRepository } from '~/domain/common/repositories/vars.repository';
-
 function sha256Hex(plain: string): string {
   return crypto.createHash('sha256').update(plain, 'utf8').digest('hex');
 }
@@ -79,10 +77,10 @@ export class ChatCoopCalendarApplicationService {
     private readonly events: ChatCoopCalendarEventRepository,
     @Inject(CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY)
     private readonly icsSubs: ChatCoopCalendarIcsSubscriptionRepository,
-    @Inject(VARS_REPOSITORY)
-    private readonly varsRepository: VarsRepository,
-    @Inject(INTER_COOP_CALENDAR_EVENT_NOTIFICATION)
-    private readonly calendarEventNotifications: InterCoopCalendarEventNotificationPort
+    @Inject(COOPERATIVE_VARS_PORT)
+    private readonly cooperativeVars: ICooperativeVarsPort,
+    @Inject(COOP_CALENDAR_EVENT_NOTIFICATION_PORT)
+    private readonly calendarEventNotifications: ICoopCalendarEventNotificationPort
   ) {}
 
   async listPlaintextRoomsForPicker(): Promise<{ matrixRoomId: string; displayLabel: string }[]> {
@@ -97,13 +95,13 @@ export class ChatCoopCalendarApplicationService {
   private async buildCalendarNotificationInput(
     ev: ChatCoopCalendarEventDomainEntity,
     actorUsername: string
-  ): Promise<InterCoopCalendarEventNotificationInput> {
+  ): Promise<InnerCoopCalendarEventNotificationInput> {
     const room = await this.managedRooms.findByMatrixRoomId(ev.matrixRoomId);
     const roomDisplayLabel = room?.displayLabel ?? ev.matrixRoomId;
     const roomKind = room?.kind ?? 'members';
     const projectHash = roomKind === 'capital_project' ? room?.projectHash ?? null : null;
-    const frontendBase = config.frontend_url.replace(/\/$/, '');
-    const eventUrl = `${frontendBase}/#/${config.coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
+    const frontendBase = platformSettings().frontendUrl.replace(/\/$/, '');
+    const eventUrl = `${frontendBase}/#/${platformSettings().coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
     return {
       title: ev.title,
       description: ev.description,
@@ -182,7 +180,7 @@ export class ChatCoopCalendarApplicationService {
     const rawSecret = crypto.randomBytes(32).toString('hex');
     const hash = sha256Hex(rawSecret);
     const sub = await this.icsSubs.rotateSecretForUser(coopUsername, hash);
-    const apiBase = config.backend_url.replace(/\/$/, '');
+    const apiBase = platformSettings().backendUrl.replace(/\/$/, '');
     return `${apiBase}/v1/extensions/chatcoop/calendar/feed.ics?id=${encodeURIComponent(sub.id)}&secret=${encodeURIComponent(rawSecret)}`;
   }
 
@@ -195,11 +193,11 @@ export class ChatCoopCalendarApplicationService {
       return null;
     }
     const all = await this.events.listAll();
-    const coopname = config.coopname;
-    const vars = await this.varsRepository.get();
+    const coopname = platformSettings().coopname;
+    const vars = await this.cooperativeVars.get();
     // Как в Matrix-комнатах и display name: short_abbr + name из MongoDB vars
-    const calendarDisplayName = vars ? `${vars.short_abbr} ${vars.name}` : coopname;
-    const frontendBase = config.frontend_url.replace(/\/$/, '');
+    const calendarDisplayName = vars ? `${vars.shortAbbr} ${vars.name}` : coopname;
+    const frontendBase = platformSettings().frontendUrl.replace(/\/$/, '');
     const lines: string[] = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -239,8 +237,8 @@ export class ChatCoopCalendarApplicationService {
 
   async listEventsForInterPort(
     projectHash: string,
-    window?: InterCalendarEventWindow
-  ): Promise<InterCoopCalendarEventRead[]> {
+    window?: InnerCalendarEventWindow
+  ): Promise<InnerCoopCalendarEventRead[]> {
     const w =
       window !== undefined
         ? { from: new Date(window.fromInclusive), to: new Date(window.toExclusive) }

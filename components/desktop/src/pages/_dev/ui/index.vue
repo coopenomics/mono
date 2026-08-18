@@ -693,6 +693,30 @@
           />
         </div>
 
+        <h3 class="dev-ui__h3" style="margin-top: 20px">
+          Stacked (узкая колонка, диалог)
+        </h3>
+        <div class="dev-ui__grid dev-ui__grid--2">
+          <WalletCard
+            compact
+            stacked
+            icon="card_membership"
+            title="Кошелёк Стола заказов"
+            subtitle="Оплата заказов и возвраты"
+            balance="0,00"
+            symbol="RUB"
+          />
+          <WalletCard
+            compact
+            stacked
+            neutral
+            title="Главный паевой кошелёк"
+            subtitle="Отсюда средства идут на заказ"
+            balance="100 000,00"
+            symbol="RUB"
+          />
+        </div>
+
         <h3 class="dev-ui__h3" style="margin-top: 20px">Состояние loading</h3>
         <div class="dev-ui__grid dev-ui__grid--3">
           <WalletCard

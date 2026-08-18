@@ -5,7 +5,8 @@ import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum'
 
 /**
  * Создание цели по мере на компоненте.
- * Мера только из централизованного справочника (measure_hash).
+ * Меру задают либо текстом (`title` + `unit` — заводится в коллекции
+ * кооператива, если такой ещё нет), либо ссылкой на уже заведённую (`measure_hash`).
  */
 @InputType('CreateComponentMetricInput')
 export class CreateComponentMetricInputDTO {
@@ -20,15 +21,16 @@ export class CreateComponentMetricInputDTO {
   project_hash!: string;
 
   @Field(() => String, {
-    description: 'Хеш меры из централизованного справочника',
+    nullable: true,
+    description: 'Хеш уже заведённой меры кооператива',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  measure_hash!: string;
+  measure_hash?: string;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Не используется: меры только из справочника',
+    description: 'Название меры — заводится в коллекции кооператива, если такой ещё нет',
   })
   @IsOptional()
   @IsString()
@@ -36,7 +38,7 @@ export class CreateComponentMetricInputDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Не используется: меры только из справочника',
+    description: 'Единица измерения — вместе с названием ищет или заводит меру',
   })
   @IsOptional()
   @IsString()
@@ -54,8 +56,7 @@ export class CreateComponentMetricInputDTO {
 
   @Field(() => MetricSeriesMode, {
     nullable: true,
-    description: 'Не используется: режим ряда задан в справочнике мер',
-    defaultValue: MetricSeriesMode.RATE,
+    description: 'Режим ряда меры: скорость (по умолчанию) или уровень значения',
   })
   @IsOptional()
   @IsEnum(MetricSeriesMode)

@@ -1,13 +1,16 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import { randomBytes } from 'crypto';
 
-import { UDATA_REPOSITORY, UdataRepository } from '~/domain/common/repositories/udata.repository';
-import type { MarketplaceUdataParametersPort } from '~/domain/common/ports/marketplace-udata-parameters.port';
+import { USER_DATA_PORT, type IUserDataPort,
+  type IMarketplaceDocumentParametersHook,
+  REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
+  type IRegistrationDocumentParametersRegistryPort,
+} from '@coopenomics/innercoop';
 
 /**
- * Реализация `MarketplaceUdataParametersPort` для расширения marketplace.
+ * Реализация `IMarketplaceDocumentParametersHook` для расширения marketplace.
  *
  * Генерирует и персистит уникальный номер и дату оферты ЦПП «Стол заказов» для
  * пары (coopname, username) в Udata. Эти значения читает фабрика инстанса оферты
@@ -16,12 +19,25 @@ import type { MarketplaceUdataParametersPort } from '~/domain/common/ports/marke
  *
  * Идемпотентность: если номер уже выдан — повторно не генерируем, иначе хэш
  * повторного рендера разойдётся с тем, что подписал пайщик.
+ *
+ * Сам себя кладёт в реестр ядра при запуске, поэтому поток вступления не
+ * импортирует модуль расширений (нет цикла зависимостей).
  */
 @Injectable()
-export class MarketplaceUdataParametersAdapter implements MarketplaceUdataParametersPort {
+export class MarketplaceUdataParametersAdapter
+  implements IMarketplaceDocumentParametersHook, OnModuleInit
+{
   private readonly logger = new Logger(MarketplaceUdataParametersAdapter.name);
 
-  constructor(@Inject(UDATA_REPOSITORY) private readonly udataRepository: UdataRepository) {}
+  constructor(
+    @Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort,
+    @Inject(REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT)
+    private readonly parametersRegistry: IRegistrationDocumentParametersRegistryPort
+  ) {}
+
+  onModuleInit(): void {
+    this.parametersRegistry.registerMarketplaceHook(this);
+  }
 
   private generateDocumentNumber(): string {
     return randomBytes(32).toString('hex').substring(0, 16).toUpperCase();

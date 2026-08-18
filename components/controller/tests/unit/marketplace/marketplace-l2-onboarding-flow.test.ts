@@ -19,20 +19,17 @@
 import { MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingService } from '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service';
 
+import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+
 const PROGRAM_ID = 2;
 const SIGNED_AT = '2026-05-14T15:00:00Z';
 
 /** Запись пайщика из `wallet::users` с подписанными программами. */
-const makeOwner = (programs: any[] = []) =>
+// Подпись программной оферты хранит ядро; расширение спрашивает порт, есть ли
+// она по нужной программе. Нет подписи или она по чужой программе — `null`.
+const makeProgramAgreements = (signature: any) =>
   ({
-    present: true,
-    findProgram: (program_id: number | string) =>
-      programs.find((p) => Number(p.program_id) === Number(program_id)),
-  } as any);
-
-const makeRepo = (owner: any) =>
-  ({
-    findByUsername: jest.fn().mockResolvedValue(owner),
+    findProgramSignature: jest.fn().mockResolvedValue(signature),
   } as any);
 
 const makeLogger = () =>
@@ -51,43 +48,44 @@ const makeSovietPort = (coagreement: any = { program_id: PROGRAM_ID, draft_id: 1
     getCoagreement: jest.fn().mockResolvedValue(coagreement),
   } as any);
 
-const makeWalletPort = () =>
-  ({
-    signProgramAgreement: jest.fn(),
-  } as any);
+import { configurePlatformSettingsForTest } from '../../mocks/platform-settings';
 
 describe('L2 онбординг (Story 1.11) — scenario: подпись через core registration-flow', () => {
+  beforeEach(async () => {
+    await configurePlatformSettingsForTest();
+  });
+
   it('пайщик подписал marketplace_offer при вступлении → marketplace stol открывается без gate', async () => {
-    const repo = makeRepo(makeOwner([{ program_id: PROGRAM_ID, signed_at: SIGNED_AT }]));
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements({ program_id: PROGRAM_ID, signed_at: SIGNED_AT });
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
 
     expect(state.requires_gate).toBe(false);
-    expect(state.source).toBe('agreement_signed');
+    expect(state.source).toBe(MarketplaceOnboardingSource.AGREEMENT_SIGNED);
     expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID);
     expect(state.completed_at).toBe(SIGNED_AT);
   });
 
   it('пайщик НЕ выбрал marketplace при регистрации → L3 gate сработает при первом входе', async () => {
-    const repo = makeRepo(makeOwner([])); // подписи программы нет
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    const repo = makeProgramAgreements(null); // подписи программы нет
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeLogger());
 
     const state = await service.getOnboardingState('bob');
 
     expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.source).toBe(MarketplaceOnboardingSource.GATE_REQUIRED);
   });
 
   it('чужая программа не засчитывается за подпись «Стола заказов»', async () => {
-    // В `programs[]` пайщика лежит подпись другой ЦПП — по program_id она не
-    // совпадает с «Столом заказов», значит gate обязан сработать.
-    const repo = makeRepo(makeOwner([{ program_id: PROGRAM_ID + 1, signed_at: SIGNED_AT }]));
-    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeWalletPort(), makeLogger());
+    // У пайщика подписана другая ЦПП: по «Столу заказов» подписи нет, порт
+    // отвечает `null`, значит gate обязан сработать.
+    const repo = makeProgramAgreements(null);
+    const service = new MarketplaceOnboardingService(repo, makeSovietPort(), makeLogger());
 
     const state = await service.getOnboardingState('alice');
 
     expect(state.requires_gate).toBe(true);
-    expect(state.source).toBe('gate_required');
+    expect(state.source).toBe(MarketplaceOnboardingSource.GATE_REQUIRED);
   });
 });

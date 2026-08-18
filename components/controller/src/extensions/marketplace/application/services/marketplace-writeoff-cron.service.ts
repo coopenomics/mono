@@ -3,8 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThanOrEqual, Repository } from 'typeorm';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import config from '~/config/config';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
 import { MarketplaceInventoryEntity } from '../../infrastructure/entities/marketplace-inventory.entity';
 import { MarketplaceInventoryOnWarehouseStatuses } from '../../domain/entities/marketplace-inventory.types';
@@ -42,14 +42,14 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceWriteoffCronService.name);
   }
 
   onModuleInit(): void {
     this.logger.info(
-      `[WRITEOFF_CRON] планировщик ежемесячных списаний активирован для coopname=${config.coopname}`
+      `[WRITEOFF_CRON] планировщик ежемесячных списаний активирован для coopname=${platformSettings().coopname}`
     );
   }
 
@@ -60,7 +60,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
   async triggerMonthlyCycle(): Promise<void> {
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     if (!coopname) return;
 
     const existingDraft = await this.writeoffService.getOpenDraft(coopname);
