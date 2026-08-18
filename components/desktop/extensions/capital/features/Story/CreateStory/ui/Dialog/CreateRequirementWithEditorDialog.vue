@@ -18,7 +18,6 @@ CreateDialog(
           v-model='formData.title'
           label='Заголовок'
           placeholder='Кратко сформулируйте артефакт'
-          hint='Ctrl+Enter или ⌘+Enter — создать артефакт.'
           autocomplete='off'
           @keydown='handleTitleKeydown'
         )

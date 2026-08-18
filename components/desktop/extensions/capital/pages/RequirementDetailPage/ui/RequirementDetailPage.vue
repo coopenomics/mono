@@ -1,5 +1,6 @@
 <template lang="pug">
-q-page.requirement-detail-page(padding).column.no-wrap
+//- Без prop padding: q-pa на всю страницу давал огромную рамку вокруг артефакта
+q-page.requirement-detail-page.column.no-wrap
   .flex.flex-center.q-pa-lg(v-if='loading')
     q-spinner(color='primary' size='40px')
   .banner.banner--neg.q-ma-md(v-else-if='loadError')

@@ -55,10 +55,12 @@ async function onToggle(): Promise<void> {
 </script>
 
 <style lang="scss" scoped>
-.favorite-star-btn {
+/* Цвет — прямо на иконке: цвет кнопки перебивается канон-стилями q-btn,
+   наследование ненадёжно. Fallback на случай непрогретых токенов. */
+.favorite-star-btn :deep(.q-icon) {
   color: var(--p-ink-3);
 }
-.favorite-star-btn--active {
-  color: var(--p-star);
+.favorite-star-btn--active :deep(.q-icon) {
+  color: var(--p-star, #f59e0b);
 }
 </style>
