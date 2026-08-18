@@ -4,62 +4,64 @@ q-card.column.no-wrap.edit-req-panel(
   :class='{ "edit-req-panel--dialog": variant === "dialog", "edit-req-panel--page": variant === "page" }'
   flat
 )
-  //- Шапка — как у задачи: заголовок-поле с иконкой типа слева; при изменениях
-  //- слева undo, справа save; в покое справа звёздочка избранного (и close в диалоге)
-  .edit-req-panel__head
-    BaseInput.full-width(
+  //- Шапка — тот же паттерн, что ProjectTitleEditor/IssueTitleEditor: outline-textarea
+  //- с иконкой типа в prepend; при изменениях слева undo, справа save; в покое
+  //- справа звёздочка избранного (и close в диалоге)
+  .edit-req-panel__head.q-px-md.q-pt-sm
+    q-input.full-width.capital-title-editor-input(
       v-model='localTitle'
+      label='Артефакт'
+      :readonly='!canEdit'
+      outline
       type='textarea'
       autogrow
-      :rows='1'
-      label='Артефакт'
-      placeholder='Заголовок артефакта'
-      :readonly='!canEdit'
-      :error="canEdit && !titleOk ? 'Заголовок обязателен' : undefined"
+      hide-bottom-space
+      :rules='[(val) => !!val?.trim() || "Заголовок обязателен"]'
     )
       template(#prepend)
-        BaseButton(
+        q-btn(
           v-if='canEdit && hasChanges'
-          variant='ghost'
+          flat
+          round
+          dense
+          color='negative'
+          icon='undo'
           size='sm'
-          icon-only
-          aria-label='Отменить изменения'
-          :disabled='isSaving'
+          :disable='isSaving'
           @click='resetChanges'
         )
-          template(#icon-left)
-            q-icon(name='undo' size='18px')
-            q-tooltip Отменить изменения
+          q-tooltip Отменить изменения
         q-icon(v-else :name='formatIcon' size='24px' color='primary')
       template(#append)
-        BaseButton(
-          v-if='canEdit && hasChanges'
-          variant='primary'
-          size='sm'
-          icon-only
-          aria-label='Сохранить'
-          :loading='isSaving'
-          :disabled='isSaving || !titleOk'
-          @click='handleSave'
-        )
-          template(#icon-left)
-            q-icon(name='save' size='18px')
-            q-tooltip Сохранить
-        FavoriteStarButton(
-          v-else-if='requirement'
-          :target-type='FavoriteTargetType.ARTIFACT'
-          :target-hash='requirement.story_hash'
-        )
-        BaseButton(
-          v-if='variant === "dialog"'
-          variant='ghost'
-          size='sm'
-          icon-only
-          aria-label='Закрыть'
-          @click='handleClose'
-        )
-          template(#icon-left)
-            q-icon(name='close' size='18px')
+        .capital-title-editor-append.column.items-end.justify-center
+          q-btn(
+            v-if='canEdit && hasChanges'
+            round
+            dense
+            color='primary'
+            icon='save'
+            size='sm'
+            :loading='isSaving'
+            :disable='!titleOk'
+            @click='handleSave'
+          )
+            q-tooltip Сохранить изменения
+          .row.items-center.no-wrap(v-else)
+            FavoriteStarButton(
+              v-if='requirement'
+              :target-type='FavoriteTargetType.ARTIFACT'
+              :target-hash='requirement.story_hash'
+            )
+            BaseButton(
+              v-if='variant === "dialog"'
+              variant='ghost'
+              size='sm'
+              icon-only
+              aria-label='Закрыть'
+              @click='handleClose'
+            )
+              template(#icon-left)
+                q-icon(name='close' size='18px')
 
   q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
     template(v-if='requirement && isBpmnFormat')
@@ -107,7 +109,7 @@ import { useEditorViewportMinHeight } from 'src/shared/lib/composables/useEditor
 import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
-import { BaseButton, BaseInput } from 'src/shared/ui/base';
+import { BaseButton } from 'src/shared/ui/base';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
@@ -283,7 +285,17 @@ defineExpose({
 
 .edit-req-panel__head {
   flex-shrink: 0;
-  padding: var(--p-3) var(--p-4) 0;
+}
+
+/* Как в Project/IssueTitleEditor: append по центру высоты поля */
+.capital-title-editor-input :deep(.q-field__append) {
+  align-items: center;
+  align-self: stretch;
+}
+
+.capital-title-editor-append {
+  min-height: 100%;
+  max-width: min(100%, 14rem);
 }
 
 .edit-req-panel__body {

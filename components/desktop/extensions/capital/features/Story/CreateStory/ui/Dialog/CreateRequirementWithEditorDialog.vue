@@ -37,9 +37,6 @@ CreateDialog(
 
       template(v-if="contentFormat === markdownFormat")
         .crf-block
-          .crf-block__head
-            .crf-block__title.text-weight-medium Описание
-            .crf-block__caption Markdown: списки, выделение, ссылки — как в обычной документации.
           .crf-editor-frame
             Editor(
               v-model='formData.description'
@@ -51,14 +48,9 @@ CreateDialog(
 
       template(v-else-if="contentFormat === mermaidFormat")
         .crf-block
-          .crf-block__head
-            .crf-block__title.text-weight-medium Диаграмма Mermaid
-            .crf-block__caption Редактор текста и предпросмотр. Пустое тело при создании заменится минимальным шаблоном на сервере.
-          .crf-editor-frame
-            MermaidStoryEditor(
-              v-model="formData.description"
-              :min-height="240"
-            )
+          .banner.banner--info
+            q-icon.banner__icon(name="info")
+            .banner__body Минимальный шаблон диаграммы подставится автоматически. После нажатия «Создать» откроется редактор Mermaid с предпросмотром.
 
       template(v-else-if="contentFormat === bpmnFormat")
         .crf-block
@@ -91,7 +83,6 @@ import { BaseInput } from 'src/shared/ui/base';
 import { useCreateStory } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
-import { MermaidStoryEditor } from 'app/extensions/capital/features/Story/MermaidStoryEditor';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 
 const props = defineProps<{
@@ -164,12 +155,16 @@ const onFollowUpUpdated = (updated: IStory) => {
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    const isBpmn = contentFormat.value === Zeus.CapitalStoryContentFormat.BPMN;
-    const isDrawio = contentFormat.value === Zeus.CapitalStoryContentFormat.DRAWIO;
+    // Диаграммные форматы создаются с пустым телом — шаблон подставляет сервер,
+    // редактор открывается сразу после создания
+    const isDiagram =
+      contentFormat.value === Zeus.CapitalStoryContentFormat.BPMN ||
+      contentFormat.value === Zeus.CapitalStoryContentFormat.DRAWIO ||
+      contentFormat.value === Zeus.CapitalStoryContentFormat.MERMAID;
     const inputData = {
       coopname: system.info.coopname,
       title: formData.value.title,
-      description: isBpmn || isDrawio ? '' : formData.value.description,
+      description: isDiagram ? '' : formData.value.description,
       content_format: contentFormat.value,
       story_hash: '',
       ...props.filter,
@@ -217,24 +212,6 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-}
-
-.crf-block__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  margin-bottom: var(--p-2);
-}
-
-.crf-block__title {
-  font-size: var(--p-fs-body-sm);
-  line-height: 1.35;
-}
-
-.crf-block__caption {
-  font-size: var(--p-fs-meta);
-  line-height: 1.45;
-  color: var(--p-ink-2);
 }
 
 /* Выбор формата — компактный сегмент-контрол, не полоса на всю ширину */

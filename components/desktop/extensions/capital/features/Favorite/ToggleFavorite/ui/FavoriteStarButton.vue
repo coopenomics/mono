@@ -59,6 +59,6 @@ async function onToggle(): Promise<void> {
   color: var(--p-ink-3);
 }
 .favorite-star-btn--active {
-  color: var(--p-warn);
+  color: var(--p-star);
 }
 </style>
