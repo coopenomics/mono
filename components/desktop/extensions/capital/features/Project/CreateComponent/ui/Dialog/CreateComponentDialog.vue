@@ -31,12 +31,13 @@ CreateDialog(
         :error='titleError'
       )
 
-      BaseInput.create-component-form__description(
+      BaseInput(
         v-model='formData.description'
         label='Описание компонента'
         placeholder='Опишите компонент подробно...'
         type='textarea'
         autogrow
+        :rows='3'
       )
 </template>
 
@@ -163,9 +164,4 @@ defineExpose({
   flex-direction: column;
 }
 
-// Описание сразу открыто на три строки: поле в одну строку не показывает,
-// что сюда ждут развёрнутый текст
-.create-component-form__description :deep(textarea) {
-  min-height: 4.5em;
-}
 </style>

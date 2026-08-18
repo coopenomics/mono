@@ -33,12 +33,13 @@ CreateDialog(
         :error='titleError'
       )
 
-      BaseInput.create-issue-form__description(
+      BaseInput(
         v-model='formData.description'
         label='Описание задачи'
         placeholder='Опишите задачу подробно...'
         type='textarea'
         autogrow
+        :rows='3'
       )
 
       BaseSelect(
@@ -271,9 +272,4 @@ defineExpose({
   margin-top: var(--p-1);
 }
 
-// Описание сразу открыто на три строки: поле в одну строку не показывает,
-// что сюда ждут развёрнутый текст
-.create-issue-form__description :deep(textarea) {
-  min-height: 4.5em;
-}
 </style>
