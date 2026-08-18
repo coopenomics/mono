@@ -9,31 +9,30 @@ CreateDialog(
   @dialog-closed="clear"
 )
   template(#form-fields)
-    q-input(
-      v-model='formData.title',
-      standout="bg-teal text-white"
-      label='Название проекта',
-      :rules='[(val) => notEmpty(val)]',
-      autocomplete='off'
-    )
+    .create-form
+      BaseInput(
+        v-model='formData.title'
+        label='Название проекта'
+        autocomplete='off'
+        required
+        :error='titleError'
+      )
 
-    Editor(
-      v-model='formData.description',
-      label='Описание проекта',
-      placeholder='Опишите проект...',
-      autocomplete='off',
-      :minHeight='200',
-      :padded='false'
-      :show-focus-ring="true"
-    )
+      BaseInput(
+        v-model='formData.description'
+        label='Описание проекта'
+        placeholder='Опишите проект...'
+        type='textarea'
+        autogrow
+      )
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { Editor } from 'src/shared/ui';
+import { BaseInput } from 'src/shared/ui/base';
 import { useCreateProject, type ICreateProjectInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -61,9 +60,11 @@ const formData = ref({
   meta: JSON.stringify({}),
 });
 
-const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
-};
+const titleError = ref('');
+
+watch(() => formData.value.title, (value) => {
+  if (value) titleError.value = '';
+});
 
 const clear = () => {
   formData.value = {
@@ -74,9 +75,13 @@ const clear = () => {
     data: '',
     invite: '',
   };
+  titleError.value = '';
 };
 
 const handleSubmit = async () => {
+  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  if (titleError.value) return;
+
   isSubmitting.value = true;
   try {
     const projectHash = await generateUniqueHash();
@@ -117,3 +122,12 @@ defineExpose({
   clear: () => dialogRef.value?.clear(),
 });
 </script>
+
+<style lang="scss" scoped>
+// Поля идут подряд: канон-обёртки сами резервируют строку под подсказку,
+// дополнительный зазор делает форму разреженной
+.create-form {
+  display: flex;
+  flex-direction: column;
+}
+</style>

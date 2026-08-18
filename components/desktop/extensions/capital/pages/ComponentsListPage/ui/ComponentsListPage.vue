@@ -18,9 +18,6 @@ router-view(v-if='!isListRoot')
     template(#component-content='{ component }')
       IssuesListWidget(
         :project-hash='component.project_hash',
-        :statuses='issueStatuses',
-        :priorities='issuePriorities',
-        :creators='creators',
         :can-manage-issues='!!component.permissions?.can_manage_issues',
         :is-private='component.origin === "local"',
         :compact='true',
@@ -51,11 +48,10 @@ const { filters, sort } = useListPreferences('components');
 // Созданный компонент перечитывает список: строка приходит с бэкенда
 const reloadKey = ref(0);
 
+// Фильтруем сами компоненты: задачи внутри не отсеиваем — для них отдельный
+// раздел «Задачи» со своими фильтрами
 const statuses = computed(() => filters.value.entityStatuses);
 const master = computed(() => filters.value.master);
-const issueStatuses = computed(() => filters.value.issueStatuses);
-const issuePriorities = computed(() => filters.value.issuePriorities);
-const creators = computed(() => filters.value.creators);
 
 // Развёрнутость строк раздела — своя, чтобы не путалась с мастерской
 const COMPONENTS_EXPANDED_KEY = 'capital_components_list_expanded';

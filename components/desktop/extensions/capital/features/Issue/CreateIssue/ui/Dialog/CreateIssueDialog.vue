@@ -259,10 +259,15 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-// Поля формы стоят в колонку с ровным шагом: без него канон-обёртки слипаются
+// Поля идут подряд: канон-обёртки сами резервируют строку под подсказку,
+// дополнительный зазор делает форму разреженной
 .create-issue-form {
   display: flex;
   flex-direction: column;
-  gap: var(--p-2);
+}
+
+// Чекбокс не участвует в резерве подсказки — отбиваем его от полей вручную
+.create-issue-form :deep(.base-checkbox) {
+  margin-top: var(--p-1);
 }
 </style>

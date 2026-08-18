@@ -11,9 +11,6 @@ router-view(v-if='!isWorkshopRoot')
     :key='projectsListKey',
     :expanded='expanded',
     :statuses='projectStatuses',
-    :has-issues-with-statuses='hasIssuesWithStatuses',
-    :has-issues-with-priorities='hasIssuesWithPriorities',
-    :has-issues-with-creators='hasIssuesWithCreators',
     :master='master',
     :sort-by='sort.sortBy',
     :sort-order='sort.sortOrder',
@@ -33,10 +30,6 @@ router-view(v-if='!isWorkshopRoot')
         template(#component-content='{ component }')
           IssuesListWidget(
             :project-hash='component.project_hash',
-            :statuses='componentStatuses',
-            :priorities='componentPriorities',
-            :creators='componentCreators',
-            :master='componentMaster',
             :can-manage-issues='!!component.permissions?.can_manage_issues',
             :compact='true',
             @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
@@ -83,18 +76,10 @@ const projectStore = useProjectStore();
 // Фильтры и сортировка списка — общие с кнопками в шапке, переживают перезагрузку
 const { filters, sort } = useListPreferences('projects');
 
-// Проект показываем, если он сам в нужном статусе и содержит подходящие задачи
+// Фильтруем сами проекты: задачи внутри дерева не отсеиваем, для них есть
+// отдельный раздел «Задачи» со своими фильтрами
 const projectStatuses = computed(() => filters.value.entityStatuses);
-const hasIssuesWithStatuses = computed(() => filters.value.issueStatuses);
-const hasIssuesWithPriorities = computed(() => filters.value.issuePriorities);
-const hasIssuesWithCreators = computed(() => filters.value.creators);
 const master = computed(() => filters.value.master);
-
-// Задачи внутри дерева фильтруются теми же условиями
-const componentStatuses = computed(() => filters.value.issueStatuses);
-const componentPriorities = computed(() => filters.value.issuePriorities);
-const componentCreators = computed(() => filters.value.creators);
-const componentMaster = computed(() => filters.value.master);
 
 const projectsListKey = ref(0);
 

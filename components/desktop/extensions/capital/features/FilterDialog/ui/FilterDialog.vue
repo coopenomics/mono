@@ -1,34 +1,33 @@
 <template lang="pug">
+//- Фильтры применяются сразу, поэтому кнопки «Применить» нет: закрыть можно
+//- крестиком или кликом мимо, выбор уже в силе
 BaseDialog(
   v-model='isOpen'
   :title='dialogTitle'
   size='md'
 )
   .filter-dialog
-    //- Статусы самого проекта / компонента — только в дереве
-    .filter-dialog__field(v-if='isEntityScope')
-      q-select(
-        v-model='entityStatuses',
-        :options='entityStatusOptions',
-        option-value='value',
-        option-label='label',
-        emit-value,
-        map-options,
-        multiple,
-        use-chips,
-        stack-label,
-        :label='isComponentsScope ? "Статусы компонентов" : "Статусы проектов"',
-        outlined,
-        dense
-      )
-
-    //- Мастер проекта / компонента: в дереве это главный фильтр и стоит первым,
-    //- на списке задач — вспомогательный и уезжает вниз (там фильтруют по исполнителю)
+    //- Статусы самого проекта / компонента
     template(v-if='isEntityScope')
+      .filter-dialog__field
+        q-select(
+          v-model='entityStatuses',
+          :options='entityStatusOptions',
+          option-value='value',
+          option-label='label',
+          emit-value,
+          map-options,
+          multiple,
+          use-chips,
+          stack-label,
+          :label='isComponentsScope ? "Статусы компонентов" : "Статусы проектов"',
+          outlined,
+          dense
+        )
+
       .filter-dialog__field
         ContributorSelector(
           v-model='selectedMaster',
-          :project-hash='projectHash',
           :coopname='coopname',
           label='Мастер',
           placeholder='',
@@ -42,68 +41,62 @@ BaseDialog(
           label='Где я мастер'
         )
 
+    //- Список задач: фильтруем по самим задачам, дерево проектов сюда не мешаем
+    template(v-else)
+      .filter-dialog__field
+        q-select(
+          v-model='issueStatuses',
+          :options='issueStatusOptions',
+          option-value='value',
+          option-label='label',
+          emit-value,
+          map-options,
+          multiple,
+          use-chips,
+          stack-label,
+          label='Статусы задач',
+          outlined,
+          dense
+        )
+
+      .filter-dialog__field
+        q-select(
+          v-model='issuePriorities',
+          :options='issuePriorityOptions',
+          option-value='value',
+          option-label='label',
+          emit-value,
+          map-options,
+          multiple,
+          use-chips,
+          stack-label,
+          label='Приоритеты задач',
+          outlined,
+          dense
+        )
+
+      .filter-dialog__field
+        ContributorSelector(
+          v-model='selectedCreator',
+          :project-hash='projectHash',
+          :coopname='coopname',
+          label='Исполнитель',
+          placeholder='',
+          outlined,
+          dense,
+          :multiSelect='false'
+        )
+      .filter-dialog__field
+        BaseCheckbox(
+          v-model='onlyMyIssues'
+          label='Только мои задачи'
+        )
+
       q-separator.filter-dialog__separator
-      .filter-dialog__section-title Задачи внутри
 
-    //- Статусы задач
-    .filter-dialog__field
-      q-select(
-        v-model='issueStatuses',
-        :options='issueStatusOptions',
-        option-value='value',
-        option-label='label',
-        emit-value,
-        map-options,
-        multiple,
-        use-chips,
-        stack-label,
-        label='Статусы задач',
-        outlined,
-        dense
-      )
-
-    //- Приоритеты задач
-    .filter-dialog__field
-      q-select(
-        v-model='issuePriorities',
-        :options='issuePriorityOptions',
-        option-value='value',
-        option-label='label',
-        emit-value,
-        map-options,
-        multiple,
-        use-chips,
-        stack-label,
-        label='Приоритеты задач',
-        outlined,
-        dense
-      )
-
-    //- Исполнитель задач
-    .filter-dialog__field
-      ContributorSelector(
-        v-model='selectedCreator',
-        :project-hash='projectHash',
-        :coopname='coopname',
-        label='Исполнитель',
-        placeholder='',
-        outlined,
-        dense,
-        :multiSelect='false'
-      )
-    .filter-dialog__field
-      BaseCheckbox(
-        v-model='onlyMyIssues'
-        :label='isEntityScope ? "Где я исполнитель" : "Только мои задачи"'
-      )
-
-    //- На списке задач мастер компонента — уточняющий фильтр, после исполнителя
-    template(v-if='!isEntityScope')
-      q-separator.filter-dialog__separator
       .filter-dialog__field
         ContributorSelector(
           v-model='selectedMaster',
-          :project-hash='projectHash',
           :coopname='coopname',
           label='Мастер компонента',
           placeholder='',
@@ -119,7 +112,6 @@ BaseDialog(
 
   template(#footer)
     BaseButton(variant='ghost', @click='handleReset') Сбросить
-    BaseButton(variant='primary', @click='handleSubmit') Применить
 </template>
 
 <script lang="ts" setup>
@@ -165,14 +157,59 @@ const dialogTitle = computed(() => {
   return 'Фильтры проектов';
 });
 
-// Локальное состояние формы — применяется в настройки только по «Применить»
-const entityStatuses = ref<string[]>([]);
-const issueStatuses = ref<string[]>([]);
-const issuePriorities = ref<string[]>([]);
-const selectedMaster = ref<IContributor | null>(null);
-const selectedCreator = ref<IContributor | null>(null);
-const onlyMyMaster = ref(false);
-const onlyMyIssues = ref(false);
+const selfUsername = computed(() => contributorStore.self?.username || '');
+
+/** Участник по имени аккаунта: сохранённый фильтр помнит только username. */
+const contributorByUsername = (username?: string): IContributor | null => {
+  if (!username) return null;
+  if (contributorStore.self?.username === username) return contributorStore.self;
+  return { username } as IContributor;
+};
+
+/** Правка поля сразу уходит в настройки списка — список перечитывается на месте. */
+const patch = (changes: Partial<ICapitalListFilters>) => {
+  setFilters({ ...filters.value, ...changes });
+};
+
+const entityStatuses = computed({
+  get: () => filters.value.entityStatuses,
+  set: (value: string[]) => patch({ entityStatuses: [...value] }),
+});
+
+const issueStatuses = computed({
+  get: () => filters.value.issueStatuses,
+  set: (value: string[]) => patch({ issueStatuses: [...value] }),
+});
+
+const issuePriorities = computed({
+  get: () => filters.value.issuePriorities,
+  set: (value: string[]) => patch({ issuePriorities: [...value] }),
+});
+
+const selectedMaster = computed({
+  get: () => contributorByUsername(filters.value.master),
+  set: (value: IContributor | null) => patch({ master: value?.username || undefined }),
+});
+
+const selectedCreator = computed({
+  get: () => contributorByUsername(filters.value.creators[0]),
+  set: (value: IContributor | null) =>
+    patch({ creators: value?.username ? [value.username] : [] }),
+});
+
+const onlyMyMaster = computed({
+  get: () => !!filters.value.master && filters.value.master === selfUsername.value,
+  set: (value: boolean) =>
+    patch({ master: value ? selfUsername.value || undefined : undefined }),
+});
+
+const onlyMyIssues = computed({
+  get: () =>
+    filters.value.creators.length === 1 &&
+    filters.value.creators[0] === selfUsername.value,
+  set: (value: boolean) =>
+    patch({ creators: value && selfUsername.value ? [selfUsername.value] : [] }),
+});
 
 const entityStatusOptions = computed(() =>
   [
@@ -202,55 +239,25 @@ const issuePriorityOptions = [
   { label: 'Низкий', value: Zeus.IssuePriority.LOW },
 ];
 
-const selfUsername = computed(() => contributorStore.self?.username || '');
-
-/** Участник по имени аккаунта: сохранённый фильтр помнит только username. */
-const contributorByUsername = (username?: string): IContributor | null => {
-  if (!username) return null;
-  if (contributorStore.self?.username === username) return contributorStore.self;
-  return { username } as IContributor;
-};
-
-/** Перечитать форму из сохранённых настроек (при каждом открытии). */
-const syncFromPreferences = () => {
-  const saved = filters.value;
-  entityStatuses.value = [...saved.entityStatuses];
-  issueStatuses.value = [...saved.issueStatuses];
-  issuePriorities.value = [...saved.issuePriorities];
-  selectedMaster.value = contributorByUsername(saved.master);
-  selectedCreator.value = contributorByUsername(saved.creators[0]);
-  onlyMyMaster.value = !!saved.master && saved.master === selfUsername.value;
-  onlyMyIssues.value =
-    saved.creators.length === 1 && saved.creators[0] === selfUsername.value;
-};
-
-// Галочка «я» и выбор участника — две стороны одного значения
-watch(onlyMyMaster, (isSelf) => {
-  if (isSelf) {
-    selectedMaster.value = contributorByUsername(selfUsername.value);
-  } else if (selectedMaster.value?.username === selfUsername.value) {
-    selectedMaster.value = null;
-  }
-});
-
-watch(selectedMaster, (master) => {
-  onlyMyMaster.value = !!master && master.username === selfUsername.value;
-});
-
-watch(onlyMyIssues, (isSelf) => {
-  if (isSelf) {
-    selectedCreator.value = contributorByUsername(selfUsername.value);
-  } else if (selectedCreator.value?.username === selfUsername.value) {
-    selectedCreator.value = null;
-  }
-});
-
-watch(selectedCreator, (creator) => {
-  onlyMyIssues.value = !!creator && creator.username === selfUsername.value;
-});
+// Список задач фильтруется по самим задачам, дерево — по проектам и компонентам.
+// Чужие для scope значения гасим, иначе они молча сужали бы выборку.
+watch(
+  isOpen,
+  (opened) => {
+    if (!opened) return;
+    if (isEntityScope.value && (filters.value.issueStatuses.length
+      || filters.value.issuePriorities.length
+      || filters.value.creators.length)) {
+      patch({ issueStatuses: [], issuePriorities: [], creators: [] });
+    }
+    if (!isEntityScope.value && filters.value.entityStatuses.length) {
+      patch({ entityStatuses: [] });
+    }
+  },
+  { immediate: false },
+);
 
 const openDialog = () => {
-  syncFromPreferences();
   isOpen.value = true;
 };
 
@@ -258,21 +265,8 @@ const closeDialog = () => {
   isOpen.value = false;
 };
 
-const handleSubmit = () => {
-  const next: ICapitalListFilters = {
-    entityStatuses: isEntityScope.value ? [...entityStatuses.value] : [],
-    issueStatuses: [...issueStatuses.value],
-    issuePriorities: [...issuePriorities.value],
-    creators: selectedCreator.value?.username ? [selectedCreator.value.username] : [],
-    master: selectedMaster.value?.username || undefined,
-  };
-  setFilters(next);
-  closeDialog();
-};
-
 const handleReset = () => {
   resetFilters();
-  syncFromPreferences();
   closeDialog();
 };
 
@@ -286,16 +280,10 @@ defineExpose({
 .filter-dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
+  gap: var(--p-2);
 }
 
 .filter-dialog__separator {
   margin-top: var(--p-2);
-}
-
-.filter-dialog__section-title {
-  font-size: var(--p-fs-meta);
-  line-height: var(--p-lh-meta);
-  color: var(--p-ink-3);
 }
 </style>

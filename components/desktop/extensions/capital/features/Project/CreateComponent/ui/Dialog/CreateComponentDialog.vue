@@ -31,15 +31,13 @@ CreateDialog(
         :error='titleError'
       )
 
-      .create-component-form__editor
-        .create-component-form__editor-label Описание компонента
-        Editor(
-          v-model='formData.description',
-          placeholder='Опишите компонент подробно...',
-          autocomplete='off',
-          :minHeight='200',
-          :padded='false'
-        )
+      BaseInput(
+        v-model='formData.description'
+        label='Описание компонента'
+        placeholder='Опишите компонент подробно...'
+        type='textarea'
+        autogrow
+      )
 </template>
 
 <script setup lang="ts">
@@ -47,7 +45,6 @@ import { onMounted, ref, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { Editor } from 'src/shared/ui';
 import { BaseInput, BaseSelect } from 'src/shared/ui/base';
 import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entities/Project/model';
 import { useCreateComponent, useEditableProjects } from '../../model';
@@ -159,19 +156,10 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-// Поля формы стоят в колонку с ровным шагом: без него канон-обёртки слипаются
+// Поля идут подряд: канон-обёртки сами резервируют строку под подсказку,
+// дополнительный зазор делает форму разреженной
 .create-component-form {
   display: flex;
   flex-direction: column;
-  gap: var(--p-2);
-}
-
-// У редактора нет своей метки — ставим её сами, чтобы поле читалось так же,
-// как соседние канон-поля
-.create-component-form__editor-label {
-  font-size: var(--p-fs-meta);
-  line-height: var(--p-lh-meta);
-  color: var(--p-ink-3);
-  margin-bottom: var(--p-1);
 }
 </style>
