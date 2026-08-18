@@ -76,7 +76,10 @@
           v-if='expanded[props.row.project_hash]',
           :key='`${props.row.project_hash}`'
         )
-          q-td.project-row__nested(colspan='100%')
+          //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
+          //- парсится браузером как 100 колонок и при table-layout: fixed
+          //- сжимает строку проекта в ширину первой из них
+          q-td.project-row__nested
             slot(name='project-content', :project='props.row')
 
       // Канон-пустое состояние вместо дефолтного q-table no-data
@@ -298,40 +301,15 @@ watch([() => props.statuses, () => props.priorities, () => props.hasIssuesWithSt
   loadProjects(1, false);
 }, { deep: true });
 
-// Определяем столбцы таблицы
+// Ровно одна колонка: тело рендерит всю строку одной ячейкой (.project-row),
+// хедер скрыт. Больше колонок нельзя — virtual-scroll вставляет первой
+// padding-строку с colspan = числу колонок, и table-layout: fixed сжимает
+// единственную ячейку тела в ширину первой из N колонок
 const columns = [
   {
-    name: 'expand',
+    name: 'row',
     label: '',
-    align: 'center' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'prefix',
-    label: 'Префикс',
     align: 'left' as const,
-    field: 'prefix' as const,
-    sortable: true,
-  },
-  {
-    name: 'name',
-    label: 'Название',
-    align: 'left' as const,
-    field: 'title' as const,
-    sortable: true,
-  },
-  {
-    name: 'master',
-    label: '',
-    align: 'right' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'actions',
-    label: '',
-    align: 'right' as const,
     field: '' as const,
     sortable: false,
   },
@@ -367,8 +345,9 @@ const columns = [
 
 // table-layout: fixed — иначе auto-раскладка считает ширину ячейки по
 // nowrap-контенту вложенных списков задач, таблица распирается шире
-// вьюпорта и на мобильном появляется горизонтальный скролл
-.q-table {
+// вьюпорта и появляется горизонтальный скролл. Обязательно через :deep —
+// <table.q-table> внутри QTable не несёт scoped-атрибут
+.projects-scroll-area :deep(.q-table) {
   table-layout: fixed;
   width: 100%;
 }
@@ -401,53 +380,46 @@ const columns = [
 
 // Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,
 // сами виджеты при одиночном использовании отступа не имеют.
-// Вертикальная линия по оси chevron'а — «горизонт» вложения: без неё
-// раскрытый блок сливается с соседними строками верхнего уровня
+// Раскрытый блок подкрашен целиком — однородный фон вместо линий, как в
+// разделе «Компоненты»: видно, где вложение начинается и где кончается
 .project-row__nested {
-  position: relative;
   padding: 0 0 0 var(--p-7) !important;
   min-width: 0;
+  background: var(--p-surface-2);
 
-  &::before {
-    content: '';
-    position: absolute;
-    left: 13px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--p-line);
+  :deep(.list-surface) {
+    background: transparent;
   }
 
   @media (max-width: 640px) {
     padding-left: var(--p-4) !important;
-
-    &::before {
-      left: 7px;
-    }
   }
 }
 
 // Правая сетка строки — фиксированные колонки, общие для всех уровней
-// дерева (проект/компонент/задача): время | статус-инвестиции | действия
+// дерева (проект/компонент/задача): время | статус | люди. Ширины плотные,
+// по самому широкому контенту колонки — группа читается цельным блоком
+// у правого края, без растянутых пустот
 .row-cells {
   display: flex;
   align-items: center;
+  gap: var(--p-3);
 }
 
 .cell-time {
-  width: 110px;
+  width: 80px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-side {
-  width: 132px;
+  width: 112px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-actions {
-  width: 160px;
+  width: 80px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -484,7 +456,7 @@ const columns = [
   font-size: var(--p-fs-body-sm);
 }
 
-.q-table {
+.projects-scroll-area :deep(.q-table) {
   tr {
     min-height: 48px;
   }

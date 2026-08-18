@@ -15,6 +15,7 @@ export * from './project-utils';
 export * from './formatProjectMeta';
 export * from './registration';
 export * from './composables/useBatchImport';
+export * from './composables/useFormDraft';
 export * from './composables/useCsvParser';
 export * from './mapCapitalLogToActivity';
 export * from './capitalWorkspaceRoutes';

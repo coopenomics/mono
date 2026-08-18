@@ -62,25 +62,30 @@
       .skel.skel--title
       .skel.skel--text(v-for="i in 3", :key="i")
 
-  // Мобильный layout — сайдбар только на «Описание»
+  // Мобильный layout — сайдбар только на «Описание».
+  // no-wrap обязателен: quasar-«column» по умолчанию wrap, и контент, не
+  // влезший в фиксированную высоту оболочки, уезжал во «вторую колонку» вправо
   // page-surface: контент на --p-surface, табы остаются на canvas
-  .page-surface.column.col.flex-1.min-h-0.min-w-0(
+  .page-surface.column.no-wrap.col.flex-1.min-h-0.min-w-0(
     v-else-if="isMobileLayout"
   )
-    .q-px-md(v-if="showSidebar")
-      ProjectTitleEditor(
-        :project="project"
-        @field-change="handleFieldChange"
-        @update:title="handleTitleUpdate"
-      ).full-width
-        template(#prepend-icon)
-          q-icon(name='work', size='24px', color='primary')
-      ProjectSidebarWidget(
-        :project="project"
-        compact-mobile
-        @project-deleted="handleProjectDeleted"
-      )
-    div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
+    //- «Описание»: заголовок, управление и контент прокручиваются одной лентой
+    div.col.min-h-0.overflow-auto.min-w-0(v-if="showSidebar")
+      .q-px-md
+        ProjectTitleEditor(
+          :project="project"
+          @field-change="handleFieldChange"
+          @update:title="handleTitleUpdate"
+        ).full-width
+          template(#prepend-icon)
+            q-icon(name='work', size='24px', color='primary')
+        ProjectSidebarWidget(
+          :project="project"
+          compact-mobile
+          @project-deleted="handleProjectDeleted"
+        )
+      router-view
+    div.col.flex-1.min-h-0.min-w-0.column.no-wrap.overflow-hidden.relative-position(v-else)
       div.col.min-h-0.overflow-auto.min-w-0
         router-view
 

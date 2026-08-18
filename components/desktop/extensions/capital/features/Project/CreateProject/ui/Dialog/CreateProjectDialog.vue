@@ -6,7 +6,7 @@ CreateDialog(
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
-  @dialog-closed="clear"
+  @dialog-closed="resetErrors"
 )
   template(#form-fields)
     .create-form
@@ -34,6 +34,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput } from 'src/shared/ui/base';
+import { useFormDraft } from 'app/extensions/capital/shared/lib';
 import { useCreateProject, type ICreateProjectInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -63,9 +64,21 @@ const formData = ref({
 
 const titleError = ref('');
 
+// Черновик переживает случайное закрытие диалога (клик мимо, Esc);
+// стирается только после успешного создания
+const { clearDraft } = useFormDraft(
+  props.local ? 'project-local' : 'project',
+  { form: formData },
+);
+
 watch(() => formData.value.title, (value) => {
   if (value) titleError.value = '';
 });
+
+// Закрытие без создания не трогает введённое — только сбрасывает ошибки
+const resetErrors = () => {
+  titleError.value = '';
+};
 
 const clear = () => {
   formData.value = {
@@ -106,7 +119,9 @@ const handleSubmit = async () => {
       SuccessAlert('Проект успешно создан');
     }
 
-    // Закрываем диалог после успешного создания
+    // Закрываем диалог после успешного создания; черновик больше не нужен
+    clear();
+    clearDraft();
     dialogRef.value?.clear();
     emit('success');
   } catch (error) {

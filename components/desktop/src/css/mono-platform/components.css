@@ -642,6 +642,26 @@ body {
   flex-shrink: 0;
   background: var(--p-canvas);
 }
+/* Кнопка в полосе табов не переносит подпись на вторую строку */
+.tabbar__actions .q-btn {
+  white-space: nowrap;
+}
+.tabbar__actions .q-btn .q-btn__content {
+  flex-wrap: nowrap;
+}
+/* Мобильный: любые кнопки страницы в полосе табов ужимаются централизованно —
+   место делится с табами, полноразмерная кнопка съедает половину строки */
+@media (max-width: 640px) {
+  .tabbar__actions {
+    padding: 6px var(--p-3);
+    gap: 6px;
+  }
+  .tabbar__actions .q-btn {
+    font-size: 12px;
+    min-height: 28px;
+    padding: 2px 10px;
+  }
+}
 
 /* ---- Avatar -----------------------------------------------------------
    Initials avatar with sizes; supports an img child for photos. Used in
@@ -1609,12 +1629,11 @@ body {
 .topbar__actions .q-btn .q-btn__content {
   flex-wrap: nowrap;
 }
-/* На мобильном заголовок страницы уступает место действиям: от «Проекты»
-   всё равно остаётся пара букв, а кнопка «Назад» продолжает показываться.
-   Условие «действия непусты» — то же, что показывает сам блок .topbar__actions:
-   любой элемент кроме host'а Teleport или телепортированный контент в host'е */
-.topbar--mobile:has(.topbar__actions > :not(.header-actions-host)) .topbar__crumb > *:not(.back-button),
-.topbar--mobile:has(.topbar__actions .header-actions-host:not(:empty)) .topbar__crumb > *:not(.back-button) {
+/* На мобильном крошка/заголовок страницы не показывается вовсе: от «Проекты ›
+   Компонент…» остаётся обрезанный огрызок, наезжающий на правую группу, а
+   ориентир пользователю дают табы и заголовок контента. Кнопка «Назад»
+   продолжает показываться. */
+.topbar--mobile .topbar__crumb > *:not(.back-button) {
   display: none;
 }
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий

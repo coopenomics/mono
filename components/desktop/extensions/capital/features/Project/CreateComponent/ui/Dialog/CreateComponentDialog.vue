@@ -6,7 +6,7 @@ CreateDialog(
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
-  @dialog-closed="clear"
+  @dialog-closed="resetErrors"
 )
   template(#form-fields)
     .create-component-form
@@ -48,6 +48,7 @@ import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput, BaseSelect } from 'src/shared/ui/base';
 import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entities/Project/model';
+import { useFormDraft } from 'app/extensions/capital/shared/lib';
 import { useCreateComponent, useEditableProjects } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -80,6 +81,19 @@ const {
 const selectedProjectHash = ref<string | null>(null);
 const projectError = ref('');
 const titleError = ref('');
+
+// Черновик переживает случайное закрытие диалога (клик мимо, Esc);
+// стирается только после успешного создания
+const { clearDraft } = useFormDraft('component', {
+  form: formData,
+  project: selectedProjectHash,
+});
+
+// Закрытие без создания не трогает введённое — только сбрасывает ошибки
+const resetErrors = () => {
+  projectError.value = '';
+  titleError.value = '';
+};
 
 const clear = () => {
   formData.value = {
@@ -138,7 +152,9 @@ const handleSubmit = async () => {
     });
     SuccessAlert('Компонент успешно создан');
 
-    // Закрываем диалог после успешного создания
+    // Закрываем диалог после успешного создания; черновик больше не нужен
+    clear();
+    clearDraft();
     dialogRef.value?.clear();
     emit('success');
   } catch (error) {

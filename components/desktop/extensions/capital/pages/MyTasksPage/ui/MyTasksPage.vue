@@ -334,7 +334,10 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
-.q-table {
+// Обязательно через :deep — <table.q-table> внутри QTable не несёт
+// scoped-атрибут, без :deep table-layout молча не применяется и длинный
+// nowrap-заголовок распирает страницу в горизонтальный скролл
+:deep(.q-table) {
   table-layout: fixed;
   width: 100%;
 

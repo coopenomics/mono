@@ -93,6 +93,10 @@ const parentLabel = computed(() =>
   padding-right: var(--p-3);
   min-height: 48px;
   border-bottom: 1px solid var(--p-line);
+  // Собственный белый фон: в раскрытом (подкрашенном) блоке проекта серым
+  // остаётся только «пространство» вложения — полоски «Добавить…» и зона
+  // отступа слева, сами строки компонентов читаются как контент
+  background: var(--p-surface);
   transition: background-color 0.15s ease;
 
   &:hover {
@@ -145,26 +149,29 @@ const parentLabel = computed(() =>
 }
 
 // Правая сетка строки — фиксированные колонки, общие для всех уровней
-// дерева (проект/компонент/задача): время | статус-инвестиции | действия
+// дерева (проект/компонент/задача): время | статус | люди. Ширины плотные,
+// по самому широкому контенту колонки — группа читается цельным блоком
+// у правого края, без растянутых пустот
 .row-cells {
   display: flex;
   align-items: center;
+  gap: var(--p-3);
 }
 
 .cell-time {
-  width: 110px;
+  width: 80px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-side {
-  width: 132px;
+  width: 112px;
   display: flex;
   justify-content: flex-end;
 }
 
 .cell-actions {
-  width: 160px;
+  width: 80px;
   display: flex;
   align-items: center;
   justify-content: flex-end;

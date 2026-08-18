@@ -6,7 +6,7 @@ CreateDialog(
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
-  @dialog-closed="clear"
+  @dialog-closed="resetErrors"
 )
   template(#form-fields)
     .create-issue-form
@@ -75,7 +75,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput, BaseSelect, BaseCheckbox } from 'src/shared/ui/base';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel, capitalRouteName } from 'app/extensions/capital/shared/lib';
+import { getIssueStatusLabel, capitalRouteName, useFormDraft } from 'app/extensions/capital/shared/lib';
 import { useCreateIssue, useIssueTargets, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -133,6 +133,19 @@ const selectedComponentHash = ref<string | null>(null);
 
 const titleError = ref('');
 const estimateError = ref('');
+
+// Черновик переживает случайное закрытие диалога (клик мимо, Esc);
+// стирается только после успешного создания
+const { clearDraft } = useFormDraft('issue', {
+  form: formData,
+  component: selectedComponentHash,
+});
+
+// Закрытие без создания не трогает введённое — только сбрасывает ошибки
+const resetErrors = () => {
+  titleError.value = '';
+  estimateError.value = '';
+};
 
 /** Компонент задачи: переданный снаружи либо выбранный в диалоге. */
 const targetProjectHash = computed(
@@ -235,12 +248,16 @@ const handleSubmit = async () => {
       } : undefined
     );
 
+    // Черновик выполнил своё — задача создана
+    clearDraft();
+
     if (createAnother.value) {
       // Очищаем форму для создания следующей задачи
       clearForm();
       // Диалог остается открытым
     } else {
       // Закрываем диалог после успешного создания
+      await clear();
       dialogRef.value?.clear();
       emit('success');
     }
