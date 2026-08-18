@@ -267,3 +267,15 @@ cases:
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
     status: passing
+
+  - id: mkt.onb.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик без допуска в реестр поставщиков открывает стол поставщика —
+      страница подключения с выбором модели и заявкой
+    expect: >
+      членская модель доступна, паевая помечена «Скоро»; заявка уходит
+      председателю, до одобрения разделы стола закрыты
+    test: components/docs-harness/scenarios/marketplace/offerer/supplier-connect.mjs
+    status: passing

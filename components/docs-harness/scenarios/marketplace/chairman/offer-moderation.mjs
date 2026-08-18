@@ -114,6 +114,12 @@ export default async ({ page, shot, expect }) => {
     }
     console.log(`[offer-moderation] approve mutation sent=${approveSent} status=${approveStatus} waitedMs=${waited} totalGraphqlPosts=${allGraphqlPosts}`);
 
+    // Витрина фонового поставщика (фаза 06) до этого момента лежала в
+    // PENDING_MODERATION — ради кадров пустой витрины и списка модерации.
+    // Одобряем её той же властью председателя ДО финального кадра: очередь
+    // на нём обязана быть пустой, а дальше по цепочке каталог — полным.
+  runSeedPhase('06b-approve-catalog', { log: (m) => console.log(`[offer-moderation] ${m}`) });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(2000);
     await cleanViteOverlays(page);
@@ -131,9 +137,4 @@ export default async ({ page, shot, expect }) => {
     );
   }
 
-  // Витрина фонового поставщика (фаза 06) до этого момента лежала в
-  // PENDING_MODERATION — ради кадров пустой витрины и этой самой модерации.
-  // Дальше по цепочке каталог обязан быть полным: одобряем её здесь, той же
-  // властью председателя, что и в кадрах выше.
-  runSeedPhase('06b-approve-catalog', { log: (m) => console.log(`[offer-moderation] ${m}`) });
 };

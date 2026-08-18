@@ -265,7 +265,7 @@ cases:
     scenario: Каталог витрины при отсутствии одобренных предложений
     expect: пустое состояние с пояснением, без ошибок в интерфейсе
     test: components/docs-harness/scenarios/marketplace/orderer/catalog-empty.mjs
-    status: written
+    status: passing
 
   # ── Уведомления вокруг модерации ──────────────────────────────────────────
   # До этого модерация шла молча в обе стороны: администратор не знал о новой
