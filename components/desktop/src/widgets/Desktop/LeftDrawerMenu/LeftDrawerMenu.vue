@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -253,18 +253,40 @@ const userRoleLabel = computed<string>(() =>
   session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
 );
 
-// --- Свёртка кошелька (canon v-model:collapsed) ---------------------------
+// --- Замок кошелька (canon v-model:collapsed) -----------------------------
+//
+// У входа по паролю свёрнутая карточка — это запертый кошелёк, а не «убрал с
+// глаз»: ключ уходит из памяти, и вернуть его можно только PIN-кодом. Поэтому
+// состояние карточки не хранится отдельно — его определяет сам кошелёк, и
+// запирание по простою сворачивает карточку само, без чьей-либо помощи.
+//
+// У прежнего входа по ключу запирать нечего, и замок там остаётся тем же, чем
+// была стрелка: свернуть и развернуть, с запоминанием выбора.
 
 const STORAGE_KEY_USERCARD_COLLAPSED = 'monocoop-left-drawer-usercard-collapsed';
-const userCardCollapsed = ref<boolean>(false);
+const manualCollapsed = ref<boolean>(false);
+
+const userCardCollapsed = computed<boolean>({
+  get: () => (session.isCoopIdSession ? session.walletLocked : manualCollapsed.value),
+  set: (val) => {
+    if (!session.isCoopIdSession) {
+      manualCollapsed.value = val;
+      localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+      return;
+    }
+    if (val) {
+      session.lockWalletNow();
+      return;
+    }
+    // Отказ от ввода PIN оставляет кошелёк запертым — карточка так и не
+    // раскроется, и это верно: раскрытая карточка обещала бы доступ, которого нет.
+    void session.unlockWalletInteractive();
+  },
+});
 
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY_USERCARD_COLLAPSED);
-  if (saved !== null) userCardCollapsed.value = saved === 'true';
-});
-
-watch(userCardCollapsed, (val) => {
-  localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+  if (saved !== null) manualCollapsed.value = saved === 'true';
 });
 
 // --- Триггеры действий ----------------------------------------------------

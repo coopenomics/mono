@@ -34,13 +34,17 @@
       )
         q-icon(name='add')
         | {{ primaryActionLabel ?? 'Пополнить' }}
+    //- Замок, а не стрелка: свёрнутая карточка означает не «спрятал, чтобы не
+    //- мешало», а «ключ убран из памяти». Одно действие делает обе вещи сразу —
+    //- запирает кошелёк и сжимает карточку, — поэтому и значок один.
     button.rail__usercard__collapse(
       type='button',
-      :aria-label="collapsed ? 'Развернуть кошелёк' : 'Свернуть кошелёк'",
-      :aria-expanded='!collapsed',
+      :aria-label="collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк'",
+      :aria-pressed='collapsed',
+      :title="collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк'",
       @click='toggleCollapsed'
     )
-      q-icon(name='expand_more')
+      q-icon(:name="collapsed ? 'lock' : 'lock_open'")
 
 button.rail__signout(
   v-if='showSignout',
@@ -88,17 +92,47 @@ function onBalanceClick(event: MouseEvent): void {
 </script>
 
 <style scoped>
-/* === Chevron rotation ===
-   canon CSS-правило `.rail__usercard__collapse svg { transform: rotate(180deg) }`
-   рассчитано на `<svg>`. Quasar `<q-icon>` рендерит `<i class="q-icon">`,
-   поэтому canon-селектор не срабатывает. Прокидываем поведение через :deep. */
+/* === Значок замка ===
+   canon-правила размера рассчитаны на `<svg>`, а Quasar `<q-icon>` рендерит
+   `<i class="q-icon">` — canon-селектор до него не достаёт. Задаём размер здесь.
+   Поворота больше нет: замок не переворачивается, он меняет форму (lock_open →
+   lock), и подмену видно без движения. */
 .rail__usercard__collapse :deep(.q-icon) {
-  transition: transform var(--p-dur-base, 200ms) var(--p-ease-standard, ease);
-  font-size: 14px;
+  font-size: 15px;
   color: inherit;
+  transition: color var(--p-dur-fast, 120ms) ease;
 }
+/* Запертое состояние — сдержанный акцент: значок заметен, но не тревожит. */
 .rail__usercard.is-collapsed .rail__usercard__collapse :deep(.q-icon) {
-  transform: rotate(180deg);
+  color: var(--p-primary);
+}
+
+/* === Плавное сжатие ===
+   canon прячет баланс и «Пополнить» через `display: none` — карточка схлопывается
+   рывком. Здесь блок сжимается: высота уходит в ноль вместе с прозрачностью.
+   Селекторы те же, что в canon, но scoped-атрибут поднимает их специфичность,
+   поэтому `display: none` перекрывается без `!important`.
+
+   Ограничение высоты фиксированным значением, а не `auto`: анимировать `auto`
+   браузеры не умеют, а баланс с подписями заведомо ниже. */
+.rail__balance,
+.rail__action--primary {
+  overflow: hidden;
+  max-height: 200px;
+  opacity: 1;
+  transition:
+    max-height var(--p-dur-base, 200ms) var(--p-ease-standard, ease),
+    opacity var(--p-dur-fast, 120ms) ease;
+}
+.rail__usercard.is-collapsed .rail__balance,
+.rail__usercard.is-collapsed .rail__action--primary {
+  display: block;
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
 }
 
 /* === Clickable balance ===

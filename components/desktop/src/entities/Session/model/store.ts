@@ -58,6 +58,12 @@ interface ISessionStore {
   cancelPin: () => void;
   /** Разблокировать keystore по PIN после reload (для PIN-гейта). */
   completePinUnlock: (pin: string) => Promise<boolean>;
+  /** Заперт ли keystore CoopID: ключа в памяти нет, подпись потребует PIN. */
+  walletLocked: Ref<boolean>;
+  /** Запереть keystore немедленно, не дожидаясь простоя. */
+  lockWalletNow: () => void;
+  /** Отпереть keystore, спросив PIN, если он установлен. `false` — отказались. */
+  unlockWalletInteractive: () => Promise<boolean>;
   close: () => Promise<void>;
   loadComplete: Ref<boolean>;
   // Добавляю данные текущего пользователя
@@ -110,6 +116,10 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const pinPrompt = ref(false);
   const pinUnlockPending = ref(false);
   const pinError = ref('');
+  // Заперт ли keystore — то же, что `isWalletUnlocked()`, но в виде состояния, за
+  // которым может следить интерфейс. Функция пакета отвечает на вопрос в момент
+  // вызова и о том, что ключ стёрся по простою, никого не уведомляет.
+  const walletLocked = ref(true);
   let pinResolver: ((pin: string | null) => void) | null = null;
 
   const loadPinMarker = async (): Promise<void> => {
@@ -152,11 +162,40 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     if (!coopIdAccount.value) return;
     if (autoLockTimer) clearTimeout(autoLockTimer);
     autoLockTimer = setTimeout(() => {
-      lockWallet();
-      // Ключ уходит из памяти целиком: и из хранилища контура, и из общего стора,
-      // куда он выдан для подписи документов.
-      globalStore.clearSessionKey();
+      lockWalletNow();
     }, AUTO_LOCK_MS);
+  };
+
+  /**
+   * Запереть keystore сразу: ключ уходит из памяти целиком — и из хранилища
+   * контура, и из общего стора, куда он выдан для подписи документов.
+   *
+   * Тем же путём срабатывает и простой, поэтому «заперлось само» и «заперли
+   * руками» неотличимы: одно состояние и один способ вернуться — ввести PIN.
+   */
+  const lockWalletNow = (): void => {
+    if (autoLockTimer) {
+      clearTimeout(autoLockTimer);
+      autoLockTimer = null;
+    }
+    lockWallet();
+    globalStore.clearSessionKey();
+    walletLocked.value = true;
+  };
+
+  /**
+   * Отпереть keystore по требованию пайщика — тем же путём, что и подпись: при
+   * установленном PIN спросит его, при дефолтном отопрёт молча. Отказ от ввода
+   * возвращает `false`, а не бросает: это не сбой, а передумали.
+   */
+  const unlockWalletInteractive = async (): Promise<boolean> => {
+    try {
+      await ensureWalletUnlocked();
+      return true;
+    }
+    catch {
+      return false;
+    }
   };
 
   /**
@@ -205,6 +244,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     }
     // После любой разблокировки ключ снова доступен подписи документов.
     await publishSessionKey();
+    walletLocked.value = false;
     armAutoLock();
   };
 
@@ -280,6 +320,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     // Документы кооператива подписываются ключом из общего стора — выдаём его туда,
     // иначе вход по паролю не даёт подписать ничего.
     await publishSessionKey();
+    walletLocked.value = false;
     armAutoLock();
     return true;
   };
@@ -439,6 +480,9 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     submitSignPin,
     cancelPin,
     completePinUnlock,
+    walletLocked,
+    lockWalletNow,
+    unlockWalletInteractive,
     username,
     displayName,
     close,
