@@ -15,7 +15,7 @@ import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import { AssetUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { AssetUtils } from '@coopenomics/extension-kit';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
 import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
@@ -176,7 +176,9 @@ export class ProgramShareRegistrationService {
         );
         await delay(REGSHARE_TX_GAP_MS);
       } catch (error: unknown) {
-        const message = error instanceof HttpApiError ? error.message : error instanceof Error ? error.message : String(error);
+        // HttpApiError наследует Error, отдельная ветка ничего не добавляла,
+        // а в production-образе ломала компиляцию: типы Nest там не резолвятся
+        const message = error instanceof Error ? error.message : String(error);
         const stack = error instanceof Error ? error.stack : undefined;
         this.logger.warn(
           `regshare не выполнен: coop=${coopname} project=${projectHash} user=${contributor.username}: ${message}`,
