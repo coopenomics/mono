@@ -1,6 +1,8 @@
 <template lang="pug">
 .otp-input(:class='{ "otp-input--error": !!error, "otp-input--disabled": disabled }')
   .otp-input__cells(role='group', :aria-label='`Код подтверждения, ${length} цифр`')
+    //- Одноразовый код не живёт в менеджере паролей — data-атрибуты глушат
+    //- автозаполнение Bitwarden / 1Password / LastPass соответственно.
     input.otp-input__cell(
       v-for='(_, idx) in cells',
       :key='idx',
@@ -8,6 +10,9 @@
       :type="masked ? 'password' : 'text'",
       inputmode='numeric',
       autocomplete='one-time-code',
+      data-bwignore='true',
+      data-1p-ignore='true',
+      data-lpignore='true',
       maxlength='1',
       :value='cells[idx]',
       :disabled='disabled',

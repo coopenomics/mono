@@ -280,6 +280,11 @@ export class LoginTwoFactorService {
       throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'Не удалось отправить код подтверждения на почту.');
     }
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    // Dev-контур: почта на стенде обычно не настроена, а код нужен — печатаем в
+    // консоль. На production НИКОГДА: секрет входа в логах недопустим.
+    if (config.env !== 'production') {
+      this.logger.log(`[dev] email-код входа для ${state.sub}: ${code}`);
+    }
     try {
       await this.notifications.notify({
         coopname: config.coopname,

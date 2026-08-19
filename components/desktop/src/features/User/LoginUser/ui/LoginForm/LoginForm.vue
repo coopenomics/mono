@@ -398,7 +398,13 @@ function backToLogin(): void {
 .login-2fa__field {
   display: flex;
   flex-direction: column;
+  /* Ячейки кода уже кнопки «Подтвердить» — по центру блок смотрится собранным,
+     слева он выглядел прижатым и «не в полную ширину». */
+  align-items: center;
   gap: var(--p-2, 8px);
+}
+.login-2fa__field :deep(.otp-input) {
+  align-items: center;
 }
 .login-2fa__label {
   font-size: var(--p-fs-body-sm);
@@ -406,6 +412,6 @@ function backToLogin(): void {
 }
 .login-2fa__resend {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
 }
 </style>
