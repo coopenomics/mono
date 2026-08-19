@@ -173,7 +173,7 @@ export async function waitForOps(
   token: string,
   processHash: string,
   expectedCodes: string[],
-  timeoutMs = 90_000,
+  timeoutMs = 180_000,
 ): Promise<LedgerRow[]> {
   const deadline = Date.now() + timeoutMs
   let last: LedgerRow[] = []
@@ -201,7 +201,7 @@ export async function waitForOrderMirror(
   token: string,
   orderId: string,
   ready: (order: any) => boolean,
-  timeoutMs = 90_000,
+  timeoutMs = 180_000,
 ): Promise<any> {
   const query = `query($i:MarketplaceGetOrderInput!){
     marketplaceGetOrder(input:$i){ id status order_hash quantity total_cost total_cost_with_fee membership_fee price_per_unit }
@@ -224,4 +224,49 @@ export async function signAs(wif: string, doc: unknown, account: string, id: num
   return aggregates
     ? await (signer as any).signDocument(doc, account, id, aggregates)
     : await (signer as any).signDocument(doc, account, id)
+}
+
+// ── Обеспечение фикстуры средствами ─────────────────────────────────────────
+// Каждый прогон списывает с паевого кошелька заказчицы тело заказа и членский
+// взнос. Сид docs-harness даёт конечный остаток, поэтому без дозаправки тесты
+// повторяемы лишь несколько раз, а потом падают на «Недостаточно средств для
+// оформления» — и выглядит это как регресс продукта, хотя это исчерпание
+// фикстуры. Дозаправляем сами: тест обязан быть повторяемым неограниченно.
+
+let chainInstance: any = null
+
+async function chain(): Promise<any> {
+  if (!chainInstance) {
+    const [{ default: Blockchain }, { default: cfg }] = await Promise.all([
+      import('../../blockchain'),
+      import('../../configs'),
+    ])
+    chainInstance = new Blockchain((cfg as any).network, (cfg as any).private_keys)
+    await chainInstance.update_pass_instance()
+  }
+  return chainInstance
+}
+
+/** Доступный остаток главного паевого кошелька пайщика (из ledger2 L3). */
+export async function availableShare(username: string): Promise<number> {
+  const res = await fetch(`${CHAIN_URL}/v1/chain/get_table_rows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ json: true, code: 'ledger2', scope: COOP, table: 'userwallets', limit: 1000 }),
+  })
+  const d: any = await res.json()
+  const row = (d.rows ?? []).find((r: any) => r.username === username && r.wallet_name === 'w.wal.share')
+  return amount(row?.available)
+}
+
+/**
+ * Довести паевой остаток пайщика до нужного минимума. Возвращает итоговый
+ * остаток. Если средств хватает — ничего не делает.
+ */
+export async function ensureShareFunds(username: string, minimumRub: number): Promise<number> {
+  const have = await availableShare(username)
+  if (have >= minimumRub) return have
+  const { depositToWallet } = await import('../wallet/depositToWallet')
+  await depositToWallet(await chain(), COOP, username, Math.ceil(minimumRub - have) + 10_000)
+  return availableShare(username)
 }

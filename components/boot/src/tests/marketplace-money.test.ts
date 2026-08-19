@@ -36,6 +36,7 @@ import {
   type LedgerRow,
   amount,
   applyOpsOfProcess,
+  ensureShareFunds,
   fromState,
   gqlAs,
   historyOfProcess,
@@ -100,6 +101,12 @@ describe('Стол заказов — денежные места поставк
     offer = candidates.find(o => o.product_name === 'Мёд цветочный') ?? candidates[0]
     expect(offer, `на стенде нет активного предложения ${sidorov.account} с поставкой на КУ «${BRANAME}»`).toBeTruthy()
     unitPrice = amount(offer.price_per_unit)
+
+    // Каждый прогон списывает с паевого заказчицы тело заказа и членский взнос.
+    // Без дозаправки тест повторяем лишь пока не иссякнет остаток из сида, а
+    // потом падает на «Недостаточно средств» — и это выглядит как регресс,
+    // хотя это исчерпание фикстуры. Запас — двукратный от тела заказа.
+    await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2)
   }, 180_000)
 
   it('оформление заказа резервирует тело (o.mkt.lock) и блокирует членский взнос (o.mkt.fee)', async () => {

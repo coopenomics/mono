@@ -31,6 +31,7 @@ import {
   type LedgerRow,
   amount,
   applyOpsOfProcess,
+  ensureShareFunds,
   fromState,
   gqlAs,
   historyOfProcess,
@@ -84,6 +85,10 @@ describe('Стол заказов — денежные места гаранти
 
     const offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
+
+    // См. комментарий в marketplace-money: фикстуру дозаправляем сами, иначе
+    // повторяемость теста упирается в остаток из сида.
+    await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2)
 
     const placed = await placeOrder({
       token: ekaterinaToken, who: ekaterina, offerId: offer.id, quantity: QTY, braname: BRANAME,
