@@ -54,7 +54,7 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     expect(payload.payload.location).toBe('Москва, Россия');
     expect(payload.payload.summary).toBe('Chrome на macOS · Москва, Россия');
     expect(payload.payload.ip).toBe('1.2.3.4');
-    expect(payload.payload.securityUrl).toBe('https://app.test/#/voskhod/user/settings');
+    expect(payload.payload.securityUrl).toBe('https://app.test/voskhod/user/settings');
     expect(typeof payload.payload.time).toBe('string');
   });
 
@@ -65,7 +65,7 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     await service.maybeNotify(input);
 
     expect(notMeTokens.issue).toHaveBeenCalledWith('user-uuid-1');
-    expect(notifications.notify.mock.calls[0][0].payload.notMeUrl).toBe('https://app.test/#/voskhod/security/not-me/not-me-token-abc');
+    expect(notifications.notify.mock.calls[0][0].payload.notMeUrl).toBe('https://app.test/voskhod/security/not-me/not-me-token-abc');
   });
 
   it('bundling NFR10: окно занято (троттл false) → уведомление НЕ шлётся и пользователь не резолвится', async () => {

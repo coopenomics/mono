@@ -57,6 +57,7 @@ import { computed, ref } from 'vue';
 import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
+import { navigateToPath } from 'src/shared/lib/navigation';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
@@ -123,8 +124,7 @@ const submit = async (): Promise<void> => {
     // Сессия CoopID построена, токены и PIN-кэш ключа персистнуты — перезагрузка
     // по каноническому boot-пути сама поднимет сессию (токены из IndexedDB + ключ
     // из PIN-кэша) и доведёт до рабочего стола; переживает F5 (паритет с легаси).
-    window.location.hash = `#/${props.coopname}`;
-    window.location.reload();
+    navigateToPath(`/${props.coopname}`, { reload: true });
   } catch (e: any) {
     errorMessage.value =
       e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';

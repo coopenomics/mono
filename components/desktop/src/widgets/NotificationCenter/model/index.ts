@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { NotificationItem } from 'src/shared/ui/domain/NotificationCenter';
 import { useSystemStore } from 'src/entities/System/model';
 import { NotifyAlert } from 'src/shared/api';
+import { navigateToPath } from 'src/shared/lib/navigation';
 import { api } from '../api';
 import { categoryFromWorkflowId, type IInboxNotification } from './types';
 
@@ -124,9 +125,9 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
         plainText(newest.body),
         undefined,
         // Тост должен не только сообщать, но и вести к действию: у уведомлений
-        // безопасности — сразу к активным сессиям. Роутер в сторе недоступен,
-        // а маршрутизация hash-режимная — переходим сменой hash.
-        link ? { label: 'Открыть', handler: () => { window.location.hash = `#${link}`; } } : undefined,
+        // безопасности — сразу к активным сессиям. Роутер в сторе недоступен —
+        // переходим helper'ом, знающим режим роутера (hash в dev, history в проде).
+        link ? { label: 'Открыть', handler: () => navigateToPath(link) } : undefined,
       );
     }
   }

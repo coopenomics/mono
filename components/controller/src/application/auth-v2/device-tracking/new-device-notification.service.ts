@@ -91,10 +91,11 @@ export class NewDeviceNotificationService {
           summary,
           ip: input.ip ?? 'неизвестен',
           time: new Date().toISOString(),
-          // Роутер desktop работает в hash-режиме; страница «Настройки» несёт
+          // Канонический формат ссылок — путь БЕЗ `#` (прод = history-роутер;
+          // hash-режим dev нормализует App.vue). Страница «Настройки» несёт
           // карточку активных сессий (SessionsCard) — туда и ведём.
-          securityUrl: `${config.frontend_url}/#/${config.coopname}/user/settings`,
-          notMeUrl: `${config.frontend_url}/#/${config.coopname}/security/not-me/${notMeToken}`,
+          securityUrl: `${config.frontend_url}/${config.coopname}/user/settings`,
+          notMeUrl: `${config.frontend_url}/${config.coopname}/security/not-me/${notMeToken}`,
         },
       });
     } catch (e) {

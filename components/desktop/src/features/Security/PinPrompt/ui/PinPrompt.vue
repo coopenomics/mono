@@ -47,6 +47,7 @@ import { useRoute } from 'vue-router';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PinPad } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
+import { navigateToPath } from 'src/shared/lib/navigation';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import { useSystemStore } from 'src/entities/System/model';
 
@@ -105,8 +106,7 @@ async function onSecondary(): Promise<void> {
     await session.close();
     const coopname = system.info.coopname;
     pin.value = '';
-    window.location.hash = `#/${coopname}/auth/signin`;
-    window.location.reload();
+    navigateToPath(`/${coopname}/auth/signin`, { reload: true });
   } else {
     // «Отмена»: подпись не состоится (ensureWalletUnlocked бросит).
     session.cancelPin();
