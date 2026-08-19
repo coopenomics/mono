@@ -98,12 +98,22 @@ stack_wait_infra() {
 # Базы CoopID заводит init-скрипт postgres, и только на ПУСТОМ томе. Если том
 # пережил ребут, а базы в нём нет — authentik не стартует, и без этой проверки
 # причина выясняется долго и неприятно.
+stack_coopid_database_exists() {
+  docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -lqt 2>/dev/null \
+    | cut -d'|' -f1 | grep -qw "$1"
+}
+
 stack_check_coopid_databases() {
   local missing=""
   local db
+  # Ждём каждую базу, а не проверяем разом сразу после pg_isready: готовность
+  # сервера наступает раньше, чем отрабатывает init-скрипт (он выполняется на
+  # временном сервере, доступном через сокет), и проверка успевает увидеть
+  # полусозданный набор баз. Тревога тогда ложная — база появляется секундой
+  # позже. Ждём минуту, и только потом считаем базу отсутствующей.
   for db in authentik_db coop_domain_db; do
-    docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -lqt 2>/dev/null \
-      | cut -d'|' -f1 | grep -qw "$db" || missing="$missing $db"
+    stack_wait_for "база $db" 30 2 stack_coopid_database_exists "$db" >/dev/null 2>&1 \
+      || missing="$missing $db"
   done
   if [ -n "$missing" ]; then
     echo "  ⚠ в postgres нет баз CoopID:$missing"
@@ -119,15 +129,22 @@ stack_wait_authentik() {
     docker compose exec -T authentik-server curl -sf http://localhost:9000/-/health/ready/
 }
 
+# Десять минут, а не две. Контроллер поднимается через ts-node, то есть на
+# старте типизирует весь проект; во время ребута рядом компилируется рабочий
+# стол и переигрывает цепь индексер, и на загруженной машине это укладывается
+# в минуту-полторы только при пустой машине. Прежний порог в 180 с срабатывал
+# как «не поднялся» на исправном стенде, а следом впустую шли миграции.
 stack_wait_coopback() {
-  stack_wait_for "coopback" 90 2 \
+  stack_wait_for "coopback" 300 2 \
     docker compose exec -T coopback curl -sf http://localhost:2998/v1/graphql -X POST \
       -H 'Content-Type: application/json' -d '{"query":"{__typename}"}'
 }
 
-# Рабочий стол — quasar dev, первый прогрев занимает около двух минут.
+# Рабочий стол — quasar dev, первый прогрев занимает около двух минут, а на
+# занятой машине заметно дольше; порог с запасом по той же причине, что у
+# контроллера.
 stack_wait_desktop() {
-  stack_wait_for "рабочий стол" 120 2 \
+  stack_wait_for "рабочий стол" 300 2 \
     docker compose exec -T desktop curl -sf http://localhost:2999/
 }
 
@@ -170,8 +187,16 @@ stack_up_app() {
     docker compose up -d desktop
   fi
   docker compose up -d nginx
-  stack_wait_coopback || true
-  stack_migrate_controller
+  # Миграции гоняем только по живому контроллеру. Раньше они шли безусловно, и
+  # когда контроллер просто не успел подняться, наружу вылезало «миграции не
+  # прошли — CoopID будет падать»: жалоба на следствие, уводящая от причины.
+  if stack_wait_coopback; then
+    stack_migrate_controller
+  else
+    echo "  ⚠ миграции пропущены: контроллер не ответил, гонять их не по чему."
+    echo "    Причина — в его логе: docker compose logs --tail 50 coopback"
+    echo "    Когда поднимется: docker compose exec coopback sh -c 'cd /app/components/controller && pnpm run migration:run'"
+  fi
   stack_wait_desktop || true
 }
 
