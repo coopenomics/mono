@@ -301,9 +301,15 @@ const submit = async (): Promise<void> => {
 async function runLogin(action: () => Promise<void>): Promise<void> {
   loading.value = true;
   const desktops = useDesktopStore();
-  desktops.setWorkspaceChanging(true);
   try {
     await action();
+    // Оверлей смены стола — ТОЛЬКО после успешного входа. Он подменяет собой
+    // router-view (default.vue: WindowLoader v-if / router-view v-else), то есть
+    // размонтирует эту форму: включённый до action, он убивал переключение на шаг
+    // второго фактора — challenge ловил уже мёртвый экземпляр, а при снятии
+    // оверлея монтировалась свежая форма в режиме «login». Пока идёт проверка
+    // пароля, статус показывает кнопка (:loading) — канон «не перекрывать экран».
+    desktops.setWorkspaceChanging(true);
     await finishLogin();
   } catch (e: any) {
     loading.value = false;
