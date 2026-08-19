@@ -26,6 +26,11 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
+import { generateRandomSHA256 } from '../utils/randomHash'
+import { fakeDocument } from './shared/fakeDocument'
+import { waitForProcessNaming } from './shared/processNaming'
+import { processLastDecision } from './soviet/processLastDecision'
+import { bootstrapMember, getUserWallet, minor, programInvest } from './capital/programInvest'
 
 const COOP = 'voskhod'
 const LEDGER2 = 'ledger2'
@@ -106,4 +111,47 @@ describe('ledger2 — имя нитки процесса (contract, живая �
       }),
     ).rejects.toThrow(/Unknown operation code/i)
   }, 60_000)
+
+  it('l2.pnam.side.12: при выходе из кооператива обе консолидации паевых кошельков идут ОДНИМ именем нитки', async () => {
+    // Пайщик с остатками сразу на двух паевых кошельках: минимальный паевой
+    // заводится при регистрации, кошелёк «Благороста» — программным взносом.
+    // Именно на такой паре и проверяется случай: имя нитки не должно зависеть
+    // от того, где лежали остатки.
+    const member = await bootstrapMember(bc, { deposit: 200_000 })
+    await programInvest(bc, member, minor(50_000))
+
+    const minshr = await getUserWallet(bc, member, 'w.reg.minshr')
+    const blago = await getUserWallet(bc, member, 'w.cap.blago')
+    expect(minshr.available, 'предусловие: есть остаток на минимальном паевом').toBeGreaterThan(0)
+    expect(blago.available, 'предусловие: есть остаток в ЦПП «Благорост»').toBeGreaterThan(0)
+
+    const exitHash = generateRandomSHA256()
+    await bc.api.transact({
+      actions: [{
+        account: 'registrator',
+        name: 'exitcoop',
+        authorization: [{ actor: COOP, permission: 'active' }],
+        data: { coopname: COOP, username: member, exit_hash: exitHash, statement: fakeDocument },
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+
+    // Возврат паевого запускает совет: confirmexit требует авторизации soviet.
+    await processLastDecision(bc, COOP)
+
+    const naming = await waitForProcessNaming(exitHash, COOP, ['o.reg.mvmin', 'o.cap.wthcap'])
+
+    // Обе консолидации — под именем нитки ВОЗВРАТА ПАЕВОГО ВЗНОСА. Если бы имя
+    // выводилось из кода операции, у одного хэша выхода оказалось бы два имени
+    // (возврат паевого и вывод из «Благороста»), и какое победит — зависело бы
+    // от того, на каком кошельке у пайщика ненулевой остаток.
+    expect(naming.byOperation['o.reg.mvmin'],
+      'консолидация минимального паевого обязана идти ниткой возврата паевого взноса').toBe('p.wal.wthdrw')
+    expect(naming.byOperation['o.cap.wthcap'],
+      'консолидация «Благороста» обязана идти ТОЙ ЖЕ ниткой, хотя это операция другого контракта',
+    ).toBe('p.wal.wthdrw')
+
+    expect(naming.processType,
+      'у хэша выхода обязано быть ровно одно имя нитки независимо от того, где лежали остатки',
+    ).toBe('p.wal.wthdrw')
+  }, 900_000)
 })

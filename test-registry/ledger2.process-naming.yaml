@@ -216,8 +216,8 @@ cases:
     expect: >
       обе консолидации уходят с именем нитки возврата паевого взноса, то есть
       у хэша выхода одно имя независимо от того, где лежали остатки
-    test: ~
-    status: missing
+    test: components/boot/src/tests/ledger2-process-naming.test.ts
+    status: passing
 
   - id: l2.pnam.break.04
     level: contract
