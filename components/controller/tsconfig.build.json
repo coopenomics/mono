@@ -16,13 +16,15 @@
     "noEmit": false
   },
   "include": ["src/**/*.ts", "migrations/**/*.ts"],
+  // `src/scripts` собирается: оттуда работает CLI миграций, который зовёт
+  // деплой-скрипт внутри контейнера. Корневой `scripts/` — инструменты
+  // разработчика (генерация схемы, копирование ассетов), в образе не нужны.
   "exclude": [
     "node_modules",
     "dist",
     "tests",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
-    "scripts",
-    "src/scripts"
+    "scripts"
   ]
 }

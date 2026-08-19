@@ -76,35 +76,11 @@ RUN lerna run build
 # Все production-сервисы переведены на runtime без devDeps:
 #   cooparser     → `node ./dist/index.cjs`
 #   notifications → `node ./dist/sync/sync-runner.cjs` (entry добавлен в unbuild)
-#   coopback      → `ts-node` + `tsconfig-paths` (оба в deps)
+#   coopback      → `node dist/src/index.js` (сборка пакета в стадии builder;
+#                    `tsconfig-paths` в deps — только резолв алиасов `~/*`)
 #   desktop       → `node dist/ssr/index.js`
 #   boot:remote   → `node /app/components/boot/dist/index.cjs boot:remote`
 RUN CI=true pnpm prune --prod --ignore-scripts
-
-# coopback запускается ts-node'ом, то есть компилирует исходники прямо в
-# контейнере — а prune выше снёс peer-зависимости пакетов extension-kit и
-# innercoop. Сами пакеты остаются, но их .d.ts ссылаются на типы Nest,
-# TypeORM и GraphQL, и без них декларации молча деградируют: DTO, собранные
-# через OmitType/IntersectionType, становятся пустыми, а наследники
-# HttpException теряют поля Error. `skipLibCheck` эти поломки в .d.ts
-# заглушает, поэтому вылезают они не на сборке, а на старте сервиса —
-# TSError валит миграции и деплой откатывается (кейс v2026.8.18-2/v2026.8.19).
-#
-# Возвращаем пакетам ровно те зависимости, что они сами объявили в
-# peerDependencies, ссылкой на экземпляр контроллера — второй копии пакета
-# при этом не появляется, поэтому `instanceof` через границу продолжает
-# работать, а размер образа не растёт.
-RUN for pkg in extension-kit innercoop; do \
-      manifest="/app/components/$pkg/package.json"; \
-      [ -f "$manifest" ] || continue; \
-      mkdir -p "/app/components/$pkg/node_modules"; \
-      for dep in $(node -p "Object.keys(require('$manifest').peerDependencies||{}).join(' ')"); do \
-        src="/app/components/controller/node_modules/$dep"; \
-        [ -e "$src" ] || continue; \
-        mkdir -p "$(dirname "/app/components/$pkg/node_modules/$dep")"; \
-        ln -sfn "$src" "/app/components/$pkg/node_modules/$dep"; \
-      done; \
-    done
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────
 FROM node:22-slim AS runtime
