@@ -16,6 +16,7 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/marketplace-extension.module';
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
+import { SupportExtensionModule, SupportExtension, Schema as SupportSchema, defaultConfig as supportDefaultConfig } from './support/support-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
@@ -24,10 +25,12 @@ import { expensesEntities } from './expenses/expenses.entities';
 import { kuEntities } from './ku/ku.entities';
 import { marketplaceEntities } from './marketplace/marketplace.entities';
 import { reportsEntities } from './reports/reports.entities';
+import { supportEntities } from './support/support.entities';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
 import { powerupMigrations } from './powerup/powerup.migrations';
+import { supportMigrations } from './support/support.migrations';
 
 import { builtinPorts } from './builtin/builtin.ports';
 import { capitalPorts } from './capital/capital.ports';
@@ -40,6 +43,7 @@ import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
 import { reportsPorts } from './reports/reports.ports';
 import { sberpollPorts } from './sberpoll/sberpoll.ports';
+import { supportPorts } from './support/support.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
 
 import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
@@ -407,6 +411,39 @@ export const AppRegistry: INamedExtension = {
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),
     instructions: getInstructionsContent('./marketplace'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  support: {
+    // Решение председателя: стол поддержки встроенный и ставится у каждого
+    // кооператива по умолчанию — по аналогии со столом совета (`soviet`
+    // выше). is_builtin/is_internal/availability/defaults.enabled сверены с
+    // его записью.
+    is_builtin: true,
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    // Решение председателя: имя `support` закреплено за этим столом. Сейчас
+    // оно ещё занято маршрутом внутри расширения `participant`
+    // (`extensions/participant/install.ts:206-207`, путь
+    // `/:coopname/support`) — тот пункт «Поддержка» и его маршрут убираются,
+    // а кнопка вызова чата Chatwoot переезжает на этот стол. Сама эта работа
+    // относится к фазе экранов и в каркас (эту фазу) не входит — здесь
+    // desktops умышленно не заводим.
+    desktops: undefined,
+    title: 'Стол поддержки',
+    description: 'Приложение для обращений пайщика в совет кооператива: происшествия, запросы на обслуживание и обращения в орган управления.',
+    image: '/logo.svg',
+    class: SupportExtensionModule,
+    extensionClass: SupportExtension,
+    entities: supportEntities,
+    migrations: supportMigrations,
+    ports: supportPorts,
+    defaults: { enabled: true, config: supportDefaultConfig },
+    schema: SupportSchema,
+    tags: ['стол', 'обращения'],
+    readme: getReadmeContent('./support'),
+    instructions: getInstructionsContent('./support'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

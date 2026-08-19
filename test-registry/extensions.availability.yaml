@@ -13,6 +13,11 @@ title: Доступность расширений в зависимости о�
 # стало `extensionClass`, классы расширений `<X>Plugin`/`<X>PluginModule` —
 # `<X>Extension`/`<X>ExtensionModule`. Только имена; поведение, набор полей
 # и набор случаев не менялись. Поле внутреннее, в GraphQL не экспонируется.
+#
+# 2026-08-19 (25C-2): каркас расширения «Стол поддержки» добавил в реестр
+# запись `support` с `availability: EVERYWHERE`. Новой логики доступности
+# нет — запись покрывается тем же случаем, что и любое другое расширение,
+# доступное везде (ext.avail.happy.01). Новых кейсов не заводится.
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

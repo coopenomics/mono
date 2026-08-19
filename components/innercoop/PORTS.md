@@ -17,7 +17,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, chairman, chatcoop, ku, marketplace, participant, reports | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, chairman, chatcoop, ku, marketplace, participant, reports, support | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
@@ -29,15 +29,15 @@
 | `DOCUMENT_PORT` | `IDocumentPort` (5)<br><sub>core-ports/document.port.ts</sub> | `DocumentInnercoopAdapter` | capital, chairman, expenses, ku, marketplace | Реестр документов кооператива: сгенерировать документ по шаблону, найти его по хэшу, собрать агрегат вокруг подписанного документа, сохранить приватную часть. |
 | `EXTENSION_CONFIG_PORT` | `IExtensionConfigPort` (1)<br><sub>core-ports/extension-config.port.ts</sub> | `ExtensionConfigInnercoopAdapter` | marketplace | Настройка установленного расширения. |
 | `EXTENSION_DATABASE_PORT` | `IExtensionDatabasePort` (1)<br><sub>core-ports/extension-database.port.ts</sub> | `ExtensionDatabaseInnercoopAdapter` | marketplace | Отдельная база расширения. |
-| `FILE_STORAGE_PORT` | `IFileStoragePort` (1)<br><sub>core-ports/file-storage.port.ts</sub> | — | expenses, marketplace | Универсальное файловое хранилище контура кооператива. |
+| `FILE_STORAGE_PORT` | `IFileStoragePort` (1)<br><sub>core-ports/file-storage.port.ts</sub> | — | expenses, marketplace, support | Универсальное файловое хранилище контура кооператива. |
 | `FREE_DECISION_PORT` | `IFreeDecisionPort` (3)<br><sub>core-ports/free-decision.port.ts</sub> | `FreeDecisionAdapter` | capital, chairman | Свободные решения совета: расширение заводит проект решения, получает его документ и публикует в цепь. |
 | `INTEGRATION_SETTINGS_PORT` | `IIntegrationSettingsPort` (1)<br><sub>core-ports/integration-settings.port.ts</sub> | `IntegrationSettingsInnercoopAdapter` | capital, chatcoop, marketplace | Доступы к внешним службам: мессенджер, распознавание речи, видеосвязь, геокодер, хостинг репозиториев. |
 | `LEDGER2_HISTORY_PORT` | `ILedger2HistoryPort` (2)<br><sub>core-ports/ledger2-history.port.ts</sub> | `Ledger2InnercoopHistoryAdapter` | marketplace, reports | Ledger2 (ядро): read-only контракт истории операций/движений по кошельку из журнала `blockchain_actions`. |
-| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, chairman, chatcoop, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, yookassa | Журналирование контура кооператива. |
+| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, chairman, chatcoop, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, support, yookassa | Журналирование контура кооператива. |
 | `MEET_PORT` | `IMeetPort` (3)<br><sub>core-ports/meet.port.ts</sub> | `MeetDataAdapter` | chairman, participant | Собрания пайщиков: перечислить и получить по идентификатору. |
 | `MESSAGE_CHANNEL_PORT` | `IMessageChannelPort` (2)<br><sub>core-ports/message-channel.port.ts</sub> | `RedisService` | sberpoll, yookassa | Именованный канал сообщений контура кооператива: публикация и подписка. |
 | `MUTATION_LOG_PORT` | `IMutationLogPort` (2)<br><sub>core-ports/mutation-log.port.ts</sub> | `MutationLogInnercoopAdapter` | capital | Журнал изменений: кто, что и когда менял через интерфейс кооператива. |
-| `NOTIFICATION_PORT` | `INotificationPort` (2)<br><sub>core-ports/notification.port.ts</sub> | `NotificationInnercoopAdapter` | chairman, chatcoop, expenses, ku, marketplace, participant | Центр уведомлений: расширение говорит, ЧТО и КОМУ отправить, не зная про каналы, шаблоны и провайдеров. |
+| `NOTIFICATION_PORT` | `INotificationPort` (2)<br><sub>core-ports/notification.port.ts</sub> | `NotificationInnercoopAdapter` | chairman, chatcoop, expenses, ku, marketplace, participant, support | Центр уведомлений: расширение говорит, ЧТО и КОМУ отправить, не зная про каналы, шаблоны и провайдеров. |
 | `ONBOARDING_STEP_REGISTRY_PORT` | `IOnboardingStepRegistryPort` (2)<br><sub>core-ports/onboarding.port.ts</sub> | `OnboardingStepsRegistryService` | capital, chairman, marketplace | Подключение расширения к кооперативу — шаги, которые совет проходит один раз, прежде чем расширением можно пользоваться. |
 | `ORGANIZATION_PORT` | `IOrganizationPort` (2)<br><sub>core-ports/party-card.port.ts</sub> | `OrganizationInnercoopAdapter` | ku, marketplace, qrpay, reports, sberpoll | Карточки сторон — реквизиты организации и данные физического лица. |
 | `INDIVIDUAL_PORT` | `IOrganizationPort` (2)<br><sub>core-ports/party-card.port.ts</sub> | `IndividualInnercoopAdapter` | ku, reports | Карточки сторон — реквизиты организации и данные физического лица. |
@@ -53,7 +53,7 @@
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
-| `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
+| `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, chatcoop, marketplace, support | Справочник пользователей кооператива — учётные имена и роли. |
 | `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports | Ключи подписи, хранимые кооперативом. |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
 | `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | marketplace | Кошельки пайщика. |
