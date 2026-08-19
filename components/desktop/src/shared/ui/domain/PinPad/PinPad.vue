@@ -95,6 +95,15 @@ function backspace(): void {
   if (props.disabled || !value.value.length) return;
   commit(value.value.slice(0, -1));
 }
+
+/** Поставить курсор в ячейку (по умолчанию — в первую). Нужен владельцу
+ *  двухшагового набора: после «придумайте» → «повторите» набор начинается
+ *  заново, а фокус без этого остаётся на последней заполненной ячейке. */
+function focusCell(index = 0): void {
+  cellsRef.value?.focusCell(index);
+}
+
+defineExpose({ focusCell });
 </script>
 
 <style scoped>

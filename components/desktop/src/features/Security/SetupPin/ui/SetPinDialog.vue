@@ -12,6 +12,7 @@ BaseDialog(
       template(v-if='step === "first"') Придумайте PIN-код: от 4 до 6 цифр.
       template(v-else) Повторите PIN-код, чтобы не ошибиться в наборе.
     PinPad(
+      ref='padRef',
       v-model='entry',
       :error='entryError',
       :disabled='saving',
@@ -33,7 +34,7 @@ BaseDialog(
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PinPad } from 'src/shared/ui/domain';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -57,12 +58,22 @@ const open = computed({
   set: (value: boolean) => emit('update:modelValue', value),
 });
 
+const padRef = ref<{ focusCell: (index?: number) => void } | null>(null);
+
 /** Набранное на текущем шаге; первый шаг откладывается в `pin`. */
 const entry = ref('');
 const pin = ref('');
 const step = ref<'first' | 'repeat'>('first');
 const mismatch = ref(false);
 const saving = ref(false);
+
+/** Каждый новый набор начинается с первой ячейки: после шага «придумайте» и
+ *  после несовпадения фокус иначе остаётся на последней заполненной ячейке —
+ *  пайщик набирает заново, а курсор стоит не там. */
+function restartEntry(): void {
+  entry.value = '';
+  void nextTick(() => padRef.value?.focusCell(0));
+}
 
 const isValidPin = computed(() => /^\d{4,6}$/.test(entry.value));
 const canGoNext = computed(() => isValidPin.value);
@@ -89,8 +100,8 @@ function onBack(): void {
     return;
   }
   step.value = 'first';
-  entry.value = '';
   mismatch.value = false;
+  restartEntry();
 }
 
 async function onNext(): Promise<void> {
@@ -98,9 +109,9 @@ async function onNext(): Promise<void> {
 
   if (step.value === 'first') {
     pin.value = entry.value;
-    entry.value = '';
     mismatch.value = false;
     step.value = 'repeat';
+    restartEntry();
     return;
   }
 
@@ -108,9 +119,9 @@ async function onNext(): Promise<void> {
     // Не совпало — начинаем с чистого листа: подсказывать, какой из двух наборов
     // ошибочен, нечем, а угадывать пайщику вслепую утомительно.
     mismatch.value = true;
-    entry.value = '';
     pin.value = '';
     step.value = 'first';
+    restartEntry();
     return;
   }
 
