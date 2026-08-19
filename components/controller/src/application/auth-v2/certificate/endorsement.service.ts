@@ -6,8 +6,8 @@ import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
-import { NOTIFICATION_PORT } from '~/domain/notification/interfaces/notify.port';
-import type { NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import { NOTIFICATION_PORT } from '@coopenomics/innercoop';
+import type { INotificationPort } from '@coopenomics/innercoop';
 import { ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
 import type { AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { CERT_KEY_CRYPTO_PORT } from '~/domain/auth-v2/ports/cert-key-crypto.port';
@@ -94,7 +94,7 @@ export class EndorsementService implements OnApplicationBootstrap {
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     private readonly certKeyService: CertKeyService,
     @Inject(CERT_KEY_CRYPTO_PORT) private readonly crypto: ICertKeyCrypto,
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService,
   ) {}

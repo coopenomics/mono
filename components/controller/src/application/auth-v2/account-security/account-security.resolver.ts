@@ -1,7 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
 import { ClientIp, RefreshTokenHeader } from '~/application/auth/decorators/request-meta.decorator';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { SessionsService } from '../sessions/sessions.service';

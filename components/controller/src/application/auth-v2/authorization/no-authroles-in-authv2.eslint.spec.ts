@@ -6,7 +6,7 @@ import { ESLint } from 'eslint';
  * НЕ трогает legacy `auth/` (там `@AuthRoles` допустим до Phase-3 cleanup). Тест
  * прогоняет реальный конфиг через ESLint Node API — ловит регресс правила.
  */
-const CODE_WITH_AUTHROLES = `import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+const CODE_WITH_AUTHROLES = `import { AuthRoles } from '@coopenomics/extension-kit';
 export class Demo {
   @AuthRoles(['chairman'])
   handle() {

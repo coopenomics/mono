@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
-import { NOTIFICATION_PORT } from '~/domain/notification/interfaces/notify.port';
-import type { NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import { NOTIFICATION_PORT } from '@coopenomics/innercoop';
+import type { INotificationPort } from '@coopenomics/innercoop';
 import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
@@ -29,7 +29,7 @@ export class RecoveryService {
   private readonly logger = new Logger(RecoveryService.name);
 
   constructor(
-    @Inject(NOTIFICATION_PORT) private readonly notifications: NotificationPort,
+    @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     @Inject(RECOVERY_TOKEN_STORE) private readonly tokenStore: IRecoveryTokenStore,
     private readonly strategy: RecoveryStrategyService,

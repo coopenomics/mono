@@ -1,7 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
 import { ClientIp } from '~/application/auth/decorators/request-meta.decorator';
 import type { PendingCriticalAction } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { AuthorizationGuard } from '../authorization/authorization.guard';

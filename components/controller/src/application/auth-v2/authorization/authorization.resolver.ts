@@ -1,7 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
 import { CapabilitySetService } from './capability-set.service';
 import { AuthorizationGuard } from './authorization.guard';
 import { CheckAbility } from './check-ability.decorator';
