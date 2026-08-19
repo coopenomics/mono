@@ -43,6 +43,14 @@
   .left-drawer-menu__hidden-dialogs(aria-hidden='true')
     DepositButton(:micro='true')
     WithdrawButton(:micro='true')
+
+  //- Замок без PIN-кода не запирает ничего, поэтому первое запирание идёт через
+  //- установку PIN — и уже после неё кошелёк запирается.
+  SetPinDialog(
+    v-model='askPinBeforeLock',
+    lead='Чтобы запирать кошелёк, задайте PIN-код: им он и будет отпираться.',
+    @saved='session.lockWalletNow()'
+  )
 </template>
 
 <script setup lang="ts">
@@ -52,6 +60,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
+import { SetPinDialog } from 'src/features/Security/SetupPin';
 import { useSystemStore } from 'src/entities/System/model';
 import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
@@ -265,6 +274,7 @@ const userRoleLabel = computed<string>(() =>
 
 const STORAGE_KEY_USERCARD_COLLAPSED = 'monocoop-left-drawer-usercard-collapsed';
 const manualCollapsed = ref<boolean>(false);
+const askPinBeforeLock = ref<boolean>(false);
 
 const userCardCollapsed = computed<boolean>({
   get: () => (session.isCoopIdSession ? session.walletLocked : manualCollapsed.value),
@@ -275,6 +285,13 @@ const userCardCollapsed = computed<boolean>({
       return;
     }
     if (val) {
+      // PIN не задан — запирать бессмысленно: отпереть смог бы любой, кто сядет
+      // за это устройство, потому что отпирание в таком случае прозрачное.
+      // Поэтому сначала PIN, а запирание — сразу после его установки.
+      if (!session.hasCustomPin) {
+        askPinBeforeLock.value = true;
+        return;
+      }
       session.lockWalletNow();
       return;
     }
