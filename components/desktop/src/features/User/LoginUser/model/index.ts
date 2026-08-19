@@ -1,3 +1,4 @@
+export * from './useLoginStepHeading';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
 import { api } from '../api';

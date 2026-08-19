@@ -1,6 +1,13 @@
 <template>
   <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
+    <!--
+      Почта нужна только на шаге входа. На установке пароля она уже введена и
+      никуда не денется — а оставленная на экране, делала оба шага неотличимыми:
+      человек нажимал «Войти» и видел почти ту же форму, не понимая, что от него
+      теперь хотят другого.
+    -->
     <BaseInput
+      v-if="mode === 'login'"
       v-model="email"
       label="Электронная почта"
       type="email"
@@ -31,9 +38,8 @@
     <!-- Шаг миграции: вошли по ключу — предлагаем задать пароль -->
     <template v-else>
       <BaseBanner variant="info">
-        Придумайте пароль. Ваш ключ доступа будет зашифрован им и сохранён на
-        сервере — держать его у себя больше не нужно. Дальше вход в кооператив
-        только по паролю.
+        Ключ доступа будет зашифрован паролем и сохранён на сервере — держать
+        его у себя больше не нужно. Дальше вход в кооператив только по паролю.
       </BaseBanner>
       <BaseInput
         v-model="newPassword"
@@ -81,6 +87,12 @@ import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
 import { warmUpAuthentik } from '@coopenomics/auth';
 
 const MIN_PASSWORD_LENGTH = 8;
+
+// Шаг формы наружу: заголовок карточки принадлежит не форме, а тому, кто её
+// показывает, — а меняться он обязан вместе с шагом.
+const emit = defineEmits<{
+  'step-change': [step: 'login' | 'migrate'];
+}>();
 
 const router = useRouter();
 const system = useSystemStore();
@@ -201,6 +213,7 @@ const submit = async (): Promise<void> => {
   // иначе переход растянулся бы навсегда и пришлось бы вечно тянуть два контура.
   if (looksLikeWif(secret.value)) {
     mode.value = 'migrate';
+    emit('step-change', 'migrate');
     return;
   }
 
