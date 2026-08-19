@@ -54,6 +54,20 @@ export class CapitalDevelopmentRepositoryGitSyncService {
     return b || 'dev';
   }
 
+  /** Прервать синк и снять курсоры всех веток, если репозиторий больше не привязан ни к одному проекту. */
+  private async releaseOrphanedRepositoryKey(coopname: string, repositoryKey: string, fallbackBranch: string): Promise<void> {
+    this.abortInFlightForRepositoryKey(repositoryKey);
+    const remaining = await this.projectRepository.countByCoopnameAndDevelopmentRepositoryUrl(coopname, repositoryKey);
+    if (remaining !== 0) {
+      return;
+    }
+    const trackedBranches = await this.githubBranchCommitSyncStateRepository.listBranches(coopname, repositoryKey);
+    for (const trackedBranch of trackedBranches.length > 0 ? trackedBranches : [fallbackBranch]) {
+      await this.githubBranchCommitSyncStateRepository.deleteState(coopname, repositoryKey, trackedBranch);
+    }
+    this.logger.log(`Git маркеры: курсоры сняты для ${repositoryKey} (репозиторий больше не привязан к проектам)`);
+  }
+
   /**
    * После изменения URL в проекте: снять курсор с «осиротевшего» репозитория и запустить полный/инкрементальный синк для нового ключа.
    * Не блокирует HTTP: вызывать через void …catch.
@@ -66,17 +80,7 @@ export class CapitalDevelopmentRepositoryGitSyncService {
     const branch = await this.resolveGithubSyncBranch();
 
     if (args.previousNormalizedKey && args.previousNormalizedKey !== args.nextNormalizedKey) {
-      this.abortInFlightForRepositoryKey(args.previousNormalizedKey);
-      const remaining = await this.projectRepository.countByCoopnameAndDevelopmentRepositoryUrl(
-        args.coopname,
-        args.previousNormalizedKey
-      );
-      if (remaining === 0) {
-        await this.githubBranchCommitSyncStateRepository.deleteState(args.coopname, args.previousNormalizedKey, branch);
-        this.logger.log(
-          `Git маркеры: курсор снят для ${args.previousNormalizedKey}@${branch} (репозиторий больше не привязан к проектам)`
-        );
-      }
+      await this.releaseOrphanedRepositoryKey(args.coopname, args.previousNormalizedKey, branch);
     }
 
     if (!args.nextNormalizedKey) {
@@ -104,6 +108,7 @@ export class CapitalDevelopmentRepositoryGitSyncService {
         owner: parsed.owner,
         repo: parsed.repo,
         branch,
+        defaultBranch: branch,
         githubRepositoryKey: args.nextNormalizedKey,
         signal,
       });

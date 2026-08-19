@@ -32,6 +32,10 @@ title: Кто читает документы проекта и его пере�
 # приоритета, в репозитории проектов — setter и фильтр по priority.
 # VIEW_ARTIFACTS / READ_COMMUNICATION и набор случаев этого слайса не менялись.
 
+# Правка 2026-08-19 (capital.git-commit-markers): в generation.service маппинг
+# привязанных Git-коммитов дополнен полями branch / in_default_branch для бейджа
+# ветки. Правила доступа и набор случаев этого слайса не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts

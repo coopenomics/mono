@@ -49,4 +49,12 @@ export class GithubBranchCommitSyncStateTypeormRepository implements GithubBranc
   async deleteState(coopname: string, githubRepository: string, branch: string): Promise<void> {
     await this.repo.delete({ coopname, github_repository: githubRepository, branch });
   }
+
+  async listBranches(coopname: string, githubRepository: string): Promise<string[]> {
+    const rows = await this.repo.find({
+      where: { coopname, github_repository: githubRepository },
+      select: ['branch'],
+    });
+    return rows.map((r) => r.branch);
+  }
 }

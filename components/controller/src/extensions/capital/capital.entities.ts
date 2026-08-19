@@ -21,6 +21,7 @@ import { GithubCommMessageCursorTypeormEntity } from './infrastructure/entities/
 import { GithubCommTranscriptionCursorTypeormEntity } from './infrastructure/entities/github-comm-transcription-cursor.typeorm-entity';
 import { GitHubFileIndexTypeormEntity } from './infrastructure/entities/github-file-index.typeorm-entity';
 import { InvestTypeormEntity } from './infrastructure/entities/invest.typeorm-entity';
+import { IssueLinkedGitCommitShaTypeormEntity } from './infrastructure/entities/issue-linked-git-commit-sha.typeorm-entity';
 import { IssueLinkedGitCommitTypeormEntity } from './infrastructure/entities/issue-linked-git-commit.typeorm-entity';
 import { IssueMetricBindingTypeormEntity } from './infrastructure/entities/issue-metric-binding.typeorm-entity';
 import { IssueTypeormEntity } from './infrastructure/entities/issue.typeorm-entity';
@@ -56,6 +57,7 @@ export const capitalEntities = [
   GithubCommTranscriptionCursorTypeormEntity,
   GitHubFileIndexTypeormEntity,
   InvestTypeormEntity,
+  IssueLinkedGitCommitShaTypeormEntity,
   IssueLinkedGitCommitTypeormEntity,
   IssueMetricBindingTypeormEntity,
   IssueTypeormEntity,

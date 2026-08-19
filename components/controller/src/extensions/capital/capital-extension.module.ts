@@ -41,10 +41,16 @@ export const defaultConfig = {
   onboarding_blagorost_provision_done: false,
   onboarding_blagorost_offer_template_done: false,
   capital_program_doc_data_hash: '',
-  /** Ветка для выборки коммитов (FR3 / PRD); URL репозитория — на проекте/компоненте (PRD §6.2.1). */
+  /** Базовая (каноническая) ветка выборки коммитов (FR3 / PRD); URL репозитория — на проекте/компоненте (PRD §6.2.1). */
   github_sync_branch: 'dev',
   /** Интервал polling GitHub API в минутах (FR2); 0 — периодический опрос отключён. */
   github_sync_poll_interval_minutes: 0,
+  /** Индексировать все ветки репозитория, а не только базовую: коммиты учитываются сразу там, где они появились. */
+  github_sync_all_branches: false,
+  /** Предпросмотр индексации небазовых веток: только отчёт в лог, без записи в БД. */
+  github_sync_all_branches_dry_run: true,
+  /** Glob-фильтр небазовых веток через запятую (например «feat/*,fix/*»); «*» — все ветки. */
+  github_sync_branch_filter: '*',
   /** Строка в БД: либо результат `encrypt()` (тот же SERVER_SECRET, что у vault), либо plaintext при ручной настройке. */
   github_api_token_encrypted: '',
   /** Период сверки баланса Благорост с долёй в проектах и вызова regshare (минуты). 0 — фоновая задача отключена. По умолчанию 1440 мин (24 ч). */
@@ -94,6 +100,35 @@ export const Schema = z.object({
         label: 'Токен GitHub API (read-only)',
         note: 'Токен GitHub API с доступом к репозиториям.',
         password: true,
+      })
+    ),
+  github_sync_all_branches: z
+    .boolean()
+    .default(defaultConfig.github_sync_all_branches)
+    .describe(
+      describeField({
+        label: 'Синхронизировать все ветки',
+        note: 'Индексировать коммиты со всех веток репозитория, а не только с базовой: работа видна и учитывается сразу, не дожидаясь вливания. Переписанные версии уже учтённых коммитов распознаются по содержимому правки и не задваиваются.',
+      })
+    ),
+  github_sync_all_branches_dry_run: z
+    .boolean()
+    .default(defaultConfig.github_sync_all_branches_dry_run)
+    .describe(
+      describeField({
+        label: 'Небазовые ветки — только предпросмотр',
+        note: 'Пока включено, коммиты небазовых веток не записываются, а лишь перечисляются в журнале сервера. Просмотрите отчёт после включения синхронизации всех веток и выключите предпросмотр.',
+      })
+    ),
+  github_sync_branch_filter: z
+    .string()
+    .min(1, 'Фильтр веток не может быть пустым')
+    .default(defaultConfig.github_sync_branch_filter)
+    .describe(
+      describeField({
+        label: 'Фильтр веток',
+        note: 'Какие небазовые ветки индексировать: glob-шаблоны через запятую (например «feat/*,fix/*»). «*» — все ветки.',
+        rules: ['val.length >= 1'],
       })
     ),
   program_share_registration_interval_minutes: z
@@ -321,6 +356,7 @@ import { ProgramShareRegistrationOnProjectDeltaListener } from './application/li
 import { CapitalDevelopmentRepositoryGitSyncService } from './application/services/capital-development-repository-git-sync.service';
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
+import { GitLinkedCommitPatchIdBackfillService } from './application/services/git-linked-commit-patch-id-backfill.service';
 import { IssueLinkedGitCommitTypeormRepository } from './infrastructure/repositories/issue-linked-git-commit.typeorm-repository';
 import { GithubBranchCommitSyncStateTypeormRepository } from './infrastructure/repositories/github-branch-commit-sync-state.typeorm-repository';
 import { ISSUE_LINKED_GIT_COMMIT_REPOSITORY } from './domain/repositories/issue-linked-git-commit.repository';
@@ -483,6 +519,7 @@ export class CapitalExtension extends BaseExtensionModule {
     private readonly githubService: GitHubService,
     private readonly gitService: GitService,
     private readonly capitalDevelopmentRepositoryGitSync: CapitalDevelopmentRepositoryGitSyncService,
+    private readonly gitLinkedCommitPatchIdBackfill: GitLinkedCommitPatchIdBackfillService,
     @Inject(REGISTRATION_REGISTRY_PORT) private readonly agreementRegistrationPort: IRegistrationRegistryPort,
     @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
@@ -663,9 +700,22 @@ export class CapitalExtension extends BaseExtensionModule {
           ? extensionConfig.github_sync_branch.trim()
           : defaultConfig.github_sync_branch
 
+      try {
+        await this.gitLinkedCommitPatchIdBackfill.run(syncBranch)
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        this.logger.error(`Дозаполнение patch_id привязок Git не удалось: ${message}`)
+      }
+
       await this.githubSyncScheduler.startFromExtensionConfig({
         githubSyncBranch: syncBranch,
         pollIntervalMinutes: Number.isFinite(pollMinutes) ? pollMinutes : defaultConfig.github_sync_poll_interval_minutes,
+        syncAllBranches: extensionConfig.github_sync_all_branches === true,
+        allBranchesDryRun: extensionConfig.github_sync_all_branches_dry_run !== false,
+        branchFilter:
+          typeof extensionConfig.github_sync_branch_filter === 'string' && extensionConfig.github_sync_branch_filter.trim()
+            ? extensionConfig.github_sync_branch_filter.trim()
+            : defaultConfig.github_sync_branch_filter,
       })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
@@ -969,6 +1019,7 @@ IssueIdGenerationService,
     ProgramShareRegistrationOnUserWalletDeltaListener,
     ProgramShareRegistrationOnProjectDeltaListener,
     GitCommitMarkersSyncService,
+    GitLinkedCommitPatchIdBackfillService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
       useClass: IssueLinkedGitCommitTypeormRepository,

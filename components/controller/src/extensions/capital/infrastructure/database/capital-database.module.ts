@@ -27,6 +27,7 @@ import { ProcessInstanceTypeormEntity } from '../entities/process-instance.entit
 import { GitHubFileIndexTypeormEntity } from '../entities/github-file-index.typeorm-entity';
 import { GithubBranchCommitSyncStateTypeormEntity } from '../entities/github-branch-commit-sync-state.typeorm-entity';
 import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-commit.typeorm-entity';
+import { IssueLinkedGitCommitShaTypeormEntity } from '../entities/issue-linked-git-commit-sha.typeorm-entity';
 import { GithubCommMessageCursorTypeormEntity } from '../entities/github-comm-message-cursor.typeorm-entity';
 import { GithubCommTranscriptionCursorTypeormEntity } from '../entities/github-comm-transcription-cursor.typeorm-entity';
 import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
@@ -71,6 +72,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       ProcessInstanceTypeormEntity,
       GithubBranchCommitSyncStateTypeormEntity,
       IssueLinkedGitCommitTypeormEntity,
+      IssueLinkedGitCommitShaTypeormEntity,
       ComponentMetricTypeormEntity,
       MeasureTypeormEntity,
       IssueMetricBindingTypeormEntity,

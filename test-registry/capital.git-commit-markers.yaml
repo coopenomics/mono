@@ -1,0 +1,102 @@
+feature: capital.git-commit-markers
+title: Привязка Git-коммитов к задачам — все ветки, дедуп по patch_id
+
+# Коммиты с маркерами [PREFIX-NN][@user] индексируются со всех веток
+# репозитория разработки и учитываются в РИД сразу там, где появились.
+# Строка привязки — логический коммит: повторная встреча того же SHA — no-op,
+# новый SHA с той же правкой (rebase/amend/cherry-pick) распознаётся по
+# patch_id (хэш путей и строк правок без номеров строк и контекста) и
+# добавляется SHA-алиасом, а не второй строкой — одно изменение не может войти
+# в РИД дважды. Достижение коммитом базовой ветки помечает привязку
+# канонической. Небазовые ветки бутстрапятся только коммитами впереди базовой
+# (без выкачивания всей истории); при force-push переиндексация идёт от
+# базовой ветки. Режим dry-run пишет отчёт в лог, не трогая БД и tip.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/services/git-commit-markers-sync.service.ts
+    - components/controller/src/extensions/capital/application/services/git-linked-commit-patch-id-backfill.service.ts
+    - components/controller/src/extensions/capital/application/services/capital-development-repository-git-sync.service.ts
+    - components/controller/src/extensions/capital/application/utils/git-patch-id.ts
+    - components/controller/src/extensions/capital/infrastructure/services/github-sync-scheduler.service.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue-linked-git-commit.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit-sha.typeorm-entity.ts
+    - components/controller/src/extensions/capital/domain/repositories/issue-linked-git-commit.repository.ts
+    - components/controller/src/extensions/capital/domain/repositories/github-branch-commit-sync-state.repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/github-branch-commit-sync-state.typeorm-repository.ts
+    - components/controller/src/extensions/capital/application/dto/generation/issue.dto.ts
+  ui:
+    - components/desktop/extensions/capital/widgets/IssueLinkedGitCommitsWidget/**
+    - components/desktop/extensions/capital/pages/IssueCommitsPage/**
+
+cases:
+  - id: cap.gitmark.happy.01
+    level: backend
+    kind: happy
+    scenario: маркированный коммит фича-ветки индексируется сразу
+    expect: строка создана с patch_id, first_seen_branch = ветка, in_default_branch = false
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.01
+    level: backend
+    kind: side
+    scenario: тот же SHA приходит второй раз (merge фича-ветки в базовую без переписывания)
+    expect: строка не дублируется; привязка помечается канонической (in_default_branch = true)
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.02
+    level: backend
+    kind: side
+    scenario: новый SHA с той же правкой (rebase/amend уже учтённого коммита)
+    expect: SHA-алиас к существующей строке, вторая строка не создаётся, consumed не трогается
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.03
+    level: backend
+    kind: side
+    scenario: merge-коммит с маркерами в сообщении
+    expect: пропускается (FR5), ничего не пишется
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.04
+    level: backend
+    kind: side
+    scenario: dry-run небазовой ветки
+    expect: БД не меняется, tip не сдвигается, отчёт только в лог
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.05
+    level: backend
+    kind: side
+    scenario: первый заход на небазовую ветку
+    expect: индексируются только коммиты впереди базовой (compare), не вся история репозитория
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    status: passing
+
+  - id: cap.gitmark.side.06
+    level: backend
+    kind: side
+    scenario: patch_id стабилен при сдвиге номеров строк, дрейфе контекста и хвостовых пробелах; различает содержимое, файл и знак правки; пустой дифф даёт null (фолбэк на SHA)
+    expect: одинаковая правка — один идентификатор, разная — разные
+    test: components/controller/tests/unit/capital/git-patch-id.test.ts
+    status: passing
+
+  - id: cap.gitmark.break.01
+    level: backend
+    kind: break
+    scenario: squash-merge в базовую ветку (N правок склеены в один дифф)
+    expect: patch_id склейки не совпадает с исходными — защита процессом (в репозитории отключены squash/rebase-merge); поведение зафиксировано в PR
+    status: missing
+
+  - id: cap.gitmark.ui.01
+    level: ui
+    kind: happy
+    scenario: страница «Задачи → Коммиты» показывает коммит фича-ветки с бейджем ветки; после вливания в базовую бейдж исчезает
+    expect: коммит виден сразу после индексации, без дублей после merge
+    status: missing
