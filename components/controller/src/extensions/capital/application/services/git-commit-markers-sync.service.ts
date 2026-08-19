@@ -28,7 +28,6 @@ type SyncContext = {
   defaultBranch: string;
   githubRepositoryKey: string;
   isDefaultBranch: boolean;
-  dryRun: boolean;
   signal?: AbortSignal;
 };
 
@@ -71,8 +70,6 @@ export class GitCommitMarkersSyncService {
     /** Базовая (каноническая) ветка репозитория — из настройки «Ветка GitHub для синхронизации». */
     defaultBranch: string;
     githubRepositoryKey: string;
-    /** Не писать в БД, только отчёт в лог — режим предпросмотра индексации небазовых веток. */
-    dryRun?: boolean;
     signal?: AbortSignal;
   }): Promise<void> {
     const queueKey = `${args.githubRepositoryKey}@${args.branch}`;
@@ -95,7 +92,6 @@ export class GitCommitMarkersSyncService {
     branch: string;
     defaultBranch: string;
     githubRepositoryKey: string;
-    dryRun?: boolean;
     signal?: AbortSignal;
   }): Promise<void> {
     if (!this.githubService.isAvailable()) {
@@ -110,7 +106,6 @@ export class GitCommitMarkersSyncService {
       defaultBranch: args.defaultBranch,
       githubRepositoryKey: args.githubRepositoryKey,
       isDefaultBranch,
-      dryRun: !isDefaultBranch && args.dryRun === true,
       signal: args.signal,
     };
 
@@ -210,19 +205,13 @@ export class GitCommitMarkersSyncService {
   }
 
   private async finishBranchPass(ctx: SyncContext, headSha: string, total: number, processed: number): Promise<void> {
-    if (!ctx.dryRun) {
-      await this.syncStateRepository.setTipSha(ctx.coopname, ctx.githubRepositoryKey, ctx.branch, headSha);
-    }
-    if (total > 0 || !ctx.dryRun) {
-      this.logger.log(
-        `Git маркеры${ctx.dryRun ? ' [dry-run]' : ''}: обработано ${total} коммитов ${ctx.branch} (с маркерами: ${processed}), tip ${
-          ctx.dryRun ? 'не сдвинут' : `обновлён до ${headSha}`
-        }`
-      );
-    }
+    await this.syncStateRepository.setTipSha(ctx.coopname, ctx.githubRepositoryKey, ctx.branch, headSha);
+    this.logger.log(
+      `Git маркеры: обработано ${total} коммитов ${ctx.branch} (с маркерами: ${processed}), tip обновлён до ${headSha}`
+    );
   }
 
-  /** @returns true если коммит имел маркеры и был учтён (новая строка, алиас переписывания или dry-run-отчёт). */
+  /** @returns true если коммит имел маркеры и был учтён (новая строка либо SHA-алиас переписывания). */
   private async ingestSingleCommitIfMarked(ctx: SyncContext, c: CommitRow): Promise<boolean> {
     if (c.parents.length >= 2) {
       this.logger.debug(`Git маркеры: пропуск merge-коммита ${c.sha}`);
@@ -270,14 +259,7 @@ export class GitCommitMarkersSyncService {
       patchId,
     });
     if (rewrite) {
-      await this.linkRewriteAsAlias(ctx, rewrite, c.sha, htmlUrl, target.issueHash);
-      return true;
-    }
-
-    if (ctx.dryRun) {
-      this.logger.log(
-        `Git маркеры [dry-run]: ${c.sha} на ${ctx.branch} — новая привязка к задаче ${target.issueHash} (@${target.username}): ${(c.commit.message || '').split('\n')[0].slice(0, 120)}`
-      );
+      await this.linkRewriteAsAlias(ctx, rewrite, c.sha, htmlUrl);
       return true;
     }
 
@@ -323,15 +305,8 @@ export class GitCommitMarkersSyncService {
     ctx: SyncContext,
     rewrite: IssueLinkedGitCommitRow,
     sha: string,
-    htmlUrl: string,
-    issueHash: string
+    htmlUrl: string
   ): Promise<void> {
-    if (ctx.dryRun) {
-      this.logger.log(
-        `Git маркеры [dry-run]: ${sha} на ${ctx.branch} — переписывание уже учтённого ${rewrite.github_sha} (задача ${issueHash}), добавился бы SHA-алиас`
-      );
-      return;
-    }
     await this.linkedCommitRepository.registerShaAlias({
       linkedCommitId: rewrite.id,
       coopname: ctx.coopname,

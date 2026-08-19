@@ -601,3 +601,19 @@ cases:
       списком долей оставался с прежней стоимостью и прежним статусом
     test: ~
     status: missing
+
+  - id: cap.rid.side.92
+    level: backend
+    kind: side
+    scenario: pushResult с заявлением, сгенерированным от устаревшего result_hash (результат пересобрался после генерации)
+    expect: отказ «Результат изменился после генерации заявления», в цепь ничего не уходит
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.93
+    level: backend
+    kind: side
+    scenario: обновление сегмента, пока результат идёт по приёмке (created/approved/authorized/act1)
+    expect: документ результата не пересобирается, result_hash сохраняется; при pending/declined/act2 пересборка работает
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing

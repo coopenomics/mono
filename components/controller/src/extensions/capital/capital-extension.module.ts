@@ -46,9 +46,7 @@ export const defaultConfig = {
   /** Интервал polling GitHub API в минутах (FR2); 0 — периодический опрос отключён. */
   github_sync_poll_interval_minutes: 0,
   /** Индексировать все ветки репозитория, а не только базовую: коммиты учитываются сразу там, где они появились. */
-  github_sync_all_branches: false,
-  /** Предпросмотр индексации небазовых веток: только отчёт в лог, без записи в БД. */
-  github_sync_all_branches_dry_run: true,
+  github_sync_all_branches: true,
   /** Glob-фильтр небазовых веток через запятую (например «feat/*,fix/*»); «*» — все ветки. */
   github_sync_branch_filter: '*',
   /** Строка в БД: либо результат `encrypt()` (тот же SERVER_SECRET, что у vault), либо plaintext при ручной настройке. */
@@ -109,15 +107,6 @@ export const Schema = z.object({
       describeField({
         label: 'Синхронизировать все ветки',
         note: 'Индексировать коммиты со всех веток репозитория, а не только с базовой: работа видна и учитывается сразу, не дожидаясь вливания. Переписанные версии уже учтённых коммитов распознаются по содержимому правки и не задваиваются.',
-      })
-    ),
-  github_sync_all_branches_dry_run: z
-    .boolean()
-    .default(defaultConfig.github_sync_all_branches_dry_run)
-    .describe(
-      describeField({
-        label: 'Небазовые ветки — только предпросмотр',
-        note: 'Пока включено, коммиты небазовых веток не записываются, а лишь перечисляются в журнале сервера. Просмотрите отчёт после включения синхронизации всех веток и выключите предпросмотр.',
       })
     ),
   github_sync_branch_filter: z
@@ -710,8 +699,7 @@ export class CapitalExtension extends BaseExtensionModule {
       await this.githubSyncScheduler.startFromExtensionConfig({
         githubSyncBranch: syncBranch,
         pollIntervalMinutes: Number.isFinite(pollMinutes) ? pollMinutes : defaultConfig.github_sync_poll_interval_minutes,
-        syncAllBranches: extensionConfig.github_sync_all_branches === true,
-        allBranchesDryRun: extensionConfig.github_sync_all_branches_dry_run !== false,
+        syncAllBranches: extensionConfig.github_sync_all_branches !== false,
         branchFilter:
           typeof extensionConfig.github_sync_branch_filter === 'string' && extensionConfig.github_sync_branch_filter.trim()
             ? extensionConfig.github_sync_branch_filter.trim()

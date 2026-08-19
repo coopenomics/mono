@@ -16,7 +16,6 @@ import { platformSettings } from '@coopenomics/extension-kit';
 type TickOptions = {
   baseBranch: string
   syncAllBranches: boolean
-  allBranchesDryRun: boolean
   branchFilter: string
 }
 
@@ -49,7 +48,6 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
     githubSyncBranch: string
     pollIntervalMinutes: number
     syncAllBranches?: boolean
-    allBranchesDryRun?: boolean
     branchFilter?: string
   }): Promise<void> {
     await this.stop()
@@ -97,13 +95,11 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
   private buildTickOptions(args: {
     githubSyncBranch: string
     syncAllBranches?: boolean
-    allBranchesDryRun?: boolean
     branchFilter?: string
   }): TickOptions {
     return {
       baseBranch: (args.githubSyncBranch || 'dev').trim() || 'dev',
-      syncAllBranches: args.syncAllBranches === true,
-      allBranchesDryRun: args.allBranchesDryRun !== false,
+      syncAllBranches: args.syncAllBranches !== false,
       branchFilter: (args.branchFilter || '*').trim() || '*',
     }
   }
@@ -111,9 +107,7 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
   private logInitConfiguration(options: TickOptions, cronExpression: string): void {
     this.logger.log(
       `Инициализация планировщика маркеров Git-коммитов (cron: ${cronExpression}, базовая ветка ${options.baseBranch}` +
-        (options.syncAllBranches
-          ? `, все ветки по фильтру «${options.branchFilter}»${options.allBranchesDryRun ? ', dry-run' : ''})`
-          : ')')
+        (options.syncAllBranches ? `, все ветки по фильтру «${options.branchFilter}»)` : ')')
     )
   }
 
@@ -135,7 +129,6 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
             branch,
             defaultBranch: options.baseBranch,
             githubRepositoryKey: repositoryKey.key,
-            dryRun: options.allBranchesDryRun,
           })
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error)

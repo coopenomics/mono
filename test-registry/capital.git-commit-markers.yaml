@@ -10,7 +10,7 @@ title: Привязка Git-коммитов к задачам — все вет
 # в РИД дважды. Достижение коммитом базовой ветки помечает привязку
 # канонической. Небазовые ветки бутстрапятся только коммитами впереди базовой
 # (без выкачивания всей истории); при force-push переиндексация идёт от
-# базовой ветки. Режим dry-run пишет отчёт в лог, не трогая БД и tip.
+# базовой ветки.
 
 sources:
   backend:
@@ -60,14 +60,6 @@ cases:
     kind: side
     scenario: merge-коммит с маркерами в сообщении
     expect: пропускается (FR5), ничего не пишется
-    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
-    status: passing
-
-  - id: cap.gitmark.side.04
-    level: backend
-    kind: side
-    scenario: dry-run небазовой ветки
-    expect: БД не меняется, tip не сдвигается, отчёт только в лог
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
     status: passing
 

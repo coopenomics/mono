@@ -65,13 +65,12 @@ function buildService(overrides: {
   return { service, githubService, linkedCommitRepository, syncStateRepository };
 }
 
-const syncArgs = (branch: string, dryRun = false) => ({
+const syncArgs = (branch: string) => ({
   owner: 'coopenomics',
   repo: 'mono',
   branch,
   defaultBranch: 'dev',
   githubRepositoryKey: 'https://github.com/coopenomics/mono',
-  dryRun,
 });
 
 describe('GitCommitMarkersSyncService — мульти-веточный ingest', () => {
@@ -145,19 +144,6 @@ describe('GitCommitMarkersSyncService — мульти-веточный ingest',
 
     expect(linkedCommitRepository.insertLinkedCommit).not.toHaveBeenCalled();
     expect(linkedCommitRepository.registerShaAlias).not.toHaveBeenCalled();
-  });
-
-  it('dry-run небазовой ветки ничего не пишет и не двигает tip', async () => {
-    const commit = commitRow('5'.repeat(40), '[25C-2][@ant] feat: правка');
-    const { service, linkedCommitRepository, syncStateRepository } = buildService({
-      github: { listCommitsBetweenBaseAndHead: jest.fn().mockResolvedValue([commit]) },
-    });
-
-    await service.syncMarkedCommits(syncArgs('feat/x', true));
-
-    expect(linkedCommitRepository.insertLinkedCommit).not.toHaveBeenCalled();
-    expect(linkedCommitRepository.registerShaAlias).not.toHaveBeenCalled();
-    expect(syncStateRepository.setTipSha).not.toHaveBeenCalled();
   });
 
   it('первый заход на небазовую ветку индексирует только коммиты впереди базовой', async () => {
