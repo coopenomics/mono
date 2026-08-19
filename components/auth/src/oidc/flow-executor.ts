@@ -53,6 +53,32 @@ function csrfHeader(): Record<string, string> {
   return match ? { 'X-authentik-CSRF': decodeURIComponent(match[1]) } : {}
 }
 
+/**
+ * Инвариант same-origin, проверенный до выхода в сеть.
+ *
+ * Кросс-доменный запрос сюда не просто «неудобен» — он неисполним: CSRF-куку
+ * authentik читаем через `document.cookie`, а это доступно только своему
+ * источнику. Браузер при этом бракует ответ молча, отдавая `TypeError: Failed
+ * to fetch` — сообщение, по которому неотличимы упавший сервер, закрытый порт и
+ * несовпадение адреса. На практике адрес и расходится: `127.0.0.1:8108` и
+ * `localhost:8108` ведут в один стенд, но для браузера это разные источники.
+ *
+ * Поэтому проверяем заранее и называем причину. В Node (тесты, SSR) `window`
+ * нет — там инварианта не существует, и проверка пропускается.
+ */
+function assertSameOrigin(base: string): void {
+  if (typeof window === 'undefined' || !window.location?.origin)
+    return
+  const here = window.location.origin
+  if (here === base)
+    return
+  throw new AuthV2Error(
+    AuthV2ErrorCode.NetworkError,
+    `Вход настроен на ${base}, а страница открыта по ${here}. Для браузера это разные адреса: `
+    + `куки и ответ входа он не отдаст. Откройте ${base} — вход возможен только с того же адреса.`,
+  )
+}
+
 /** URL шага flow-executor. `query` пуст: flow запускается напрямую (authorize делает client.ts). */
 function flowUrl(base: string, slug: string): string {
   return `${base}/api/v3/flows/executor/${encodeURIComponent(slug)}/?query=${encodeURIComponent('')}`
@@ -123,6 +149,7 @@ async function postChallenge(url: string, body: Record<string, unknown>): Promis
  */
 export async function warmUpFlow(issuer: string, flowSlug?: string): Promise<void> {
   const base = new URL(issuer).origin
+  assertSameOrigin(base)
   await getChallenge(flowUrl(base, flowSlug ?? DEFAULT_AUTHENTICATION_FLOW))
 }
 
@@ -139,6 +166,7 @@ export async function warmUpFlow(issuer: string, flowSlug?: string): Promise<voi
  */
 export async function authenticateWithFlowExecutor(params: FlowExecutorParams): Promise<void> {
   const base = new URL(params.issuer).origin
+  assertSameOrigin(base)
   const url = flowUrl(base, params.flowSlug ?? DEFAULT_AUTHENTICATION_FLOW)
 
   let challenge = await getChallenge(url)
