@@ -212,8 +212,13 @@ export class ProjectTypeormRepository
       .andWhere('p.development_repository_url IS NOT NULL')
       .andWhere("btrim(p.development_repository_url) <> ''")
       .getRawMany<{ url: string }>();
-    const urls = rows.map((r) => (typeof r.url === 'string' ? r.url.trim() : '')).filter((u) => u.length > 0);
-    return [...new Set(urls)];
+    // Типы явные: в production-образе devDeps вырезаны, вывод типов деградирует
+    // до any, и `[...new Set(...)]` компилятор считает unknown[] — ts-node в
+    // контейнере отказывался стартовать.
+    const urls: string[] = rows
+      .map((r: { url: string }) => (typeof r.url === 'string' ? r.url.trim() : ''))
+      .filter((u: string) => u.length > 0);
+    return Array.from(new Set<string>(urls));
   }
 
   async countByCoopnameAndDevelopmentRepositoryUrl(coopname: string, normalizedRepositoryUrl: string): Promise<number> {

@@ -276,3 +276,7 @@ cases:
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
     status: written
+
+# 2026-08-18: в репозитории проектов явно типизирован сбор уникальных адресов
+# репозиториев разработки — в production-образе devDeps вырезаны, вывод типов
+# деградировал и контроллер не стартовал. Поведение выборки прежнее.
