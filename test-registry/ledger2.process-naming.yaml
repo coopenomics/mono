@@ -67,8 +67,8 @@ cases:
       инлайн-вызовом экономики КУ по хэшу заказа.
     expect: >
       зачисление уходит с именем нитки поставки, а не экономики участка
-    test: ~
-    status: missing
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
 
   - id: l2.pnam.side.02
     level: contract
@@ -78,8 +78,8 @@ cases:
       кошелька участка по хэшу заявки на возврат.
     expect: >
       возврат взноса уходит с именем нитки гарантийного возврата
-    test: ~
-    status: missing
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
 
