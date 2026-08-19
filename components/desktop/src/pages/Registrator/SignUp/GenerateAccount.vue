@@ -9,8 +9,7 @@ div
       //- Ключ доступа больше не показывается и не выдаётся на руки: он создаётся
       //- здесь же, шифруется этим паролем и хранится в защищённом хранилище
       //- кооператива. Пайщик знает только пароль — им и входит.
-      p.generate__hint Пароль понадобится для входа в кооператив с любого устройства.
-        | Цифровая подпись создаётся автоматически и хранится в зашифрованном виде — доступ к ней открывает только ваш пароль.
+      p.generate__hint Пароль понадобится для входа в кооператив с любого устройства. Цифровая подпись создаётся автоматически и хранится в зашифрованном виде — доступ к ней открывает только ваш пароль.
 
       BaseInput(
         v-model='password',
@@ -19,15 +18,18 @@ div
         autocomplete='new-password',
         :hint='PASSWORD_POLICY_HINT',
         :error='passwordError',
-        required
+        required,
+        @keydown.enter.prevent='repeatRef?.focus()'
       )
       BaseInput(
+        ref='repeatRef',
         v-model='repeatPassword',
         label='Повторите пароль',
         type='password',
         autocomplete='new-password',
         :error='repeatError',
-        required
+        required,
+        @keydown.enter.prevent='onRepeatEnter'
       )
 
       .generate__actions
@@ -64,6 +66,7 @@ const isLoading = ref(false);
 
 const password = ref('');
 const repeatPassword = ref('');
+const repeatRef = ref<{ focus: () => void } | null>(null);
 
 if (
   !account.value.private_key ||
@@ -143,6 +146,11 @@ const setAccount = async () => {
     isLoading.value = false;
   }
 };
+
+/** Enter во втором поле = «Продолжить»: привычный набор без мыши. */
+function onRepeatEnter(): void {
+  if (canContinue.value && !isLoading.value) void setAccount();
+}
 </script>
 
 <style scoped>

@@ -1,5 +1,6 @@
 <template>
   <q-input
+    ref="qInputRef"
     :outlined="!flat"
     :borderless="flat"
     dense
@@ -52,7 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useId } from 'vue';
+import { computed, ref, useId } from 'vue';
+import type { QInput } from 'quasar';
 import type { BaseInputProps } from './BaseInput.types';
 
 const props = withDefaults(defineProps<BaseInputProps>(), {
@@ -89,6 +91,15 @@ const rowsStyle = computed(() =>
 function onUpdate(value: string | number | null): void {
   emit('update:modelValue', value == null ? '' : String(value));
 }
+
+const qInputRef = ref<QInput | null>(null);
+
+/** Программный фокус — для Enter-навигации между полями формы. */
+function focus(): void {
+  qInputRef.value?.focus();
+}
+
+defineExpose({ focus });
 </script>
 
 <style scoped>
