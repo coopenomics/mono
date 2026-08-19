@@ -22,8 +22,12 @@ BaseCard(
 
     .pin-card__actions
       template(v-if='session.hasCustomPin')
-        BaseButton(variant='secondary', @click='openSet') Сменить PIN
-        BaseButton(variant='ghost', :loading='removing', @click='onRemove') Снять PIN
+        BaseButton(variant='secondary', @click='askCurrentPin("change")') Сменить PIN
+        BaseButton(
+          variant='ghost',
+          :loading='removing',
+          @click='askCurrentPin("remove")'
+        ) Снять PIN
       BaseButton(v-else, variant='primary', @click='openSet')
         template(#icon-left)
           q-icon(name='lock', size='18px')
@@ -33,6 +37,15 @@ BaseCard(
     | PIN-код станет доступен после перехода на вход по паролю.
 
   SetPinDialog(v-model='setOpen')
+
+  //- Сменить или снять PIN, не зная текущего, — то же самое, что обойти защиту:
+  //- любой, кто сел за незапертое устройство, снимал бы его одним нажатием.
+  ConfirmPinDialog(
+    v-model='confirmOpen',
+    :title='pending === "remove" ? "Снятие PIN-кода" : "Смена PIN-кода"',
+    :lead='pending === "remove" ? "Введите текущий PIN-код, чтобы снять защиту." : "Введите текущий PIN-код, чтобы задать новый."',
+    @confirmed='onConfirmed'
+  )
 </template>
 
 <script lang="ts" setup>
@@ -41,17 +54,36 @@ import { BaseBanner, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import SetPinDialog from './SetPinDialog.vue';
+import ConfirmPinDialog from './ConfirmPinDialog.vue';
 
 const session = useSessionStore();
 
 const setOpen = ref(false);
+const confirmOpen = ref(false);
+const pending = ref<'change' | 'remove' | null>(null);
 const removing = ref(false);
 
 function openSet(): void {
   setOpen.value = true;
 }
 
-async function onRemove(): Promise<void> {
+/** Спросить текущий PIN, прежде чем менять или снимать его. */
+function askCurrentPin(action: 'change' | 'remove'): void {
+  pending.value = action;
+  confirmOpen.value = true;
+}
+
+async function onConfirmed(): Promise<void> {
+  const action = pending.value;
+  pending.value = null;
+  if (action === 'change') {
+    openSet();
+    return;
+  }
+  await removePin();
+}
+
+async function removePin(): Promise<void> {
   removing.value = true;
   try {
     await session.removeCustomPin();

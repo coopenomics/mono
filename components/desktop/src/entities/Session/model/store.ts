@@ -65,6 +65,8 @@ interface ISessionStore {
   lockWalletNow: () => void;
   /** Отпереть keystore, спросив PIN, если он установлен. `false` — отказались. */
   unlockWalletInteractive: () => Promise<boolean>;
+  /** Верен ли PIN-код. Нужно там, где PIN подтверждает право менять сам PIN. */
+  verifyPin: (pin: string) => Promise<boolean>;
   close: () => Promise<void>;
   loadComplete: Ref<boolean>;
   // Добавляю данные текущего пользователя
@@ -247,6 +249,22 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     await publishSessionKey();
     walletLocked.value = false;
     armAutoLock();
+  };
+
+  /**
+   * Верен ли PIN-код.
+   *
+   * Проверка и есть разблокировка: локальный кэш ключа зашифрован самим PIN-ом,
+   * и единственный способ убедиться в верности — попробовать им расшифровать.
+   * Отдельного «пароля от PIN-кода» в этой модели нет и быть не может.
+   */
+  const verifyPin = async (pin: string): Promise<boolean> => {
+    const wallet = await unlockWithPin({ pin, storage: coopStorage() }).catch(() => null);
+    if (!wallet) return false;
+    await publishSessionKey();
+    walletLocked.value = false;
+    armAutoLock();
+    return true;
   };
 
   /** Установить/сменить кастомный PIN: перешифровать RAM-ключ под новым PIN + маркер. */
@@ -493,6 +511,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     walletLocked,
     lockWalletNow,
     unlockWalletInteractive,
+    verifyPin,
     username,
     displayName,
     close,
