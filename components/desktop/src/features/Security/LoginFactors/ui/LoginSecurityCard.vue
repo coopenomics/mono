@@ -66,7 +66,8 @@ BaseCard(
   BaseDialog(v-model='codeOpen', :title='codeDialogTitle', size='sm')
     .lf__code-dialog
       p.lf__row-hint {{ codeDialogHint }}
-      OtpInput(v-model='confirmCode', :length='6', :error='confirmError')
+      //- Шестая цифра подтверждает сама — тянуться к кнопке не нужно.
+      OtpInput(v-model='confirmCode', :length='6', :error='confirmError', @complete='onConfirmCode')
     template(#footer)
       BaseButton(variant='secondary', :disabled='saving', @click='codeOpen = false') Отмена
       BaseButton(
@@ -151,7 +152,7 @@ async function onToggleEmail(target: boolean): Promise<void> {
 }
 
 async function onConfirmCode(): Promise<void> {
-  if (!factors.value || confirmCode.value.length !== 6) return;
+  if (!factors.value || confirmCode.value.length !== 6 || saving.value) return;
   saving.value = true;
   confirmError.value = '';
   try {

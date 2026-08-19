@@ -46,7 +46,10 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createInAppStep(
       'security-event-notification',
       'Событие безопасности',
-      '{{payload.event}} ({{payload.ip}}). Это вы?'
+      // Без сырого IP (в docker-сети он бессмыслен) и с понятным действием:
+      // нажатие на уведомление ведёт в настройки безопасности (deep-link по
+      // payload.securityUrl собирает фронт) — там сессии и смена пароля.
+      '{{payload.event}}. Если это сделали не вы — откройте настройки безопасности, завершите сессии и смените пароль.'
     ),
   ])
   .build();

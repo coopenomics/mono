@@ -9,6 +9,17 @@ import {
   SECURITY_EVENT_TITLES,
   SecurityEventKind,
 } from '~/domain/auth-v2/security-events/security-event.types';
+import { isPrivateIp } from '../device-tracking/device-description.util';
+
+/**
+ * IP для письма человеческим языком: IPv4-in-IPv6 префикс срезается, приватные
+ * адреса (docker-мост, LAN) читателю ничего не говорят — пишем «локальная сеть».
+ */
+function humanIp(ip: string | null): string {
+  const bare = (ip ?? '').replace(/^::ffff:/i, '').trim();
+  if (!bare) return 'неизвестен';
+  return isPrivateIp(bare) ? 'локальная сеть' : bare;
+}
 
 export interface SecurityEventNotificationInput {
   /** subject_id пайщика (user.id) — для резолва получателя. */
@@ -68,9 +79,11 @@ export class SecurityEventNotificationService {
         },
         payload: {
           event: SECURITY_EVENT_TITLES[input.kind],
-          ip: input.ip ?? 'неизвестен',
+          ip: humanIp(input.ip),
           time: new Date().toISOString(),
-          securityUrl: `${config.frontend_url}/settings/security`,
+          // Канонический формат ссылок — путь БЕЗ `#` (прод = history-роутер).
+          // Страница настроек несёт сессии и смену пароля — туда и ведём.
+          securityUrl: `${config.frontend_url}/${config.coopname}/user/settings`,
         },
       });
     } catch (e) {

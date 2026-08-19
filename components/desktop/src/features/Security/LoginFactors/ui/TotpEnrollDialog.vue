@@ -17,7 +17,8 @@ BaseDialog(v-model='visible', title='Подключение приложения
         code.totp-enroll__secret-value {{ challenge.secret }}
       .totp-enroll__code
         span.totp-enroll__secret-label Код из приложения
-        OtpInput(v-model='code', :length='6', :error='codeError')
+        //- Шестая цифра подтверждает сама — тянуться к кнопке не нужно.
+        OtpInput(v-model='code', :length='6', :error='codeError', @complete='onActivate')
 
   template(#footer)
     BaseButton(variant='secondary', :disabled='activating', @click='visible = false') Отмена
@@ -80,7 +81,7 @@ watch(visible, async (open) => {
 });
 
 async function onActivate(): Promise<void> {
-  if (!challenge.value || code.value.length !== 6) return;
+  if (!challenge.value || code.value.length !== 6 || activating.value) return;
   activating.value = true;
   codeError.value = '';
   try {
