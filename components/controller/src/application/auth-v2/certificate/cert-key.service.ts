@@ -44,6 +44,22 @@ export class CertKeyService implements OnApplicationBootstrap {
   /** Разобранный ключ подписи; кэшируется на жизнь процесса (перевыпуск сбрасывает). */
   private signingKey: KeyObject | null = null;
 
+  /**
+   * Идущие публикации ключей заверения — по одной на аккаунт.
+   *
+   * Право заверения доводят до цепи два хука старта: этот сервис и
+   * `EndorsementService`, которому ключи нужны прежде, чем выпускать заверение.
+   * Nest запускает хуки провайдеров одного модуля разом, поэтому оба видят «ключа
+   * в цепи нет» и отправляют ОДНУ И ТУ ЖЕ `updateauth`. Одинаковые данные в одну
+   * секунду дают одинаковый идентификатор транзакции, и цепь отвергает вторую как
+   * повторную — а вместе с ней и всё, что за ней стояло.
+   *
+   * Кейс 2026-08-19: на этом обрывалась сборка цепочки доверия — якорь так и не
+   * заверял кооператив, и в кабинете удостоверение значилось неподтверждённым.
+   * Гонка недетерминированная, поэтому воспроизводилась не каждый запуск.
+   */
+  private readonly publishing = new Map<string, Promise<unknown>>();
+
   constructor(
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vault: VaultDomainService,
@@ -76,6 +92,10 @@ export class CertKeyService implements OnApplicationBootstrap {
    * Идемпотентно: при совпадении не делает ни одной записи в цепь.
    */
   async ensurePublished(): Promise<{ published: boolean; publicKey: string }> {
+    return this.once(config.coopname, () => this.publishOwn());
+  }
+
+  private async publishOwn(): Promise<{ published: boolean; publicKey: string }> {
     const coopname = config.coopname;
     const wif = (await this.loadStoredKey()) ?? (await this.issueAndStore());
     const publicKey = this.crypto.publicKeyOf(wif);
@@ -85,7 +105,7 @@ export class CertKeyService implements OnApplicationBootstrap {
       return { published: false, publicKey };
     }
 
-    await this.blockchainPort.publishCertPermission(coopname, publicKey);
+    await this.publishCertKey(coopname, publicKey);
     this.logger.log(`Опубликовано право заверения кооператива ${coopname}`, 'CertKeyService');
     return { published: true, publicKey };
   }
@@ -105,6 +125,10 @@ export class CertKeyService implements OnApplicationBootstrap {
    * кооператив себя уже не подтвердит.
    */
   async ensureAnchorPublished(): Promise<{ published: boolean; publicKey?: string }> {
+    return this.once(TRUST_ANCHOR_ACCOUNT, () => this.publishAnchor());
+  }
+
+  private async publishAnchor(): Promise<{ published: boolean; publicKey?: string }> {
     if (config.coopname !== TRUST_ANCHOR_STEWARD) return { published: false };
 
     const account = await this.blockchainPort.getAccount(TRUST_ANCHOR_ACCOUNT);
@@ -132,9 +156,43 @@ export class CertKeyService implements OnApplicationBootstrap {
 
     // Подписывает кооператив своим ключом; полномочие указывается от имени АНО —
     // цепь принимает подпись по переданным правам.
-    await this.blockchainPort.publishCertPermission(TRUST_ANCHOR_ACCOUNT, publicKey, config.coopname);
+    await this.publishCertKey(TRUST_ANCHOR_ACCOUNT, publicKey, config.coopname);
     this.logger.log(`Опубликовано право заверения якоря ${TRUST_ANCHOR_ACCOUNT}`, 'CertKeyService');
     return { published: true, publicKey };
+  }
+
+  /**
+   * Одна публикация на аккаунт: вызов, пришедший, пока предыдущий не закончился,
+   * получает его же результат и в цепь ничего не шлёт. См. `publishing`.
+   */
+  private once<T>(account: string, run: () => Promise<T>): Promise<T> {
+    const started = this.publishing.get(account) as Promise<T> | undefined;
+    if (started) return started;
+
+    const running = run().finally(() => this.publishing.delete(account));
+    this.publishing.set(account, running);
+    return running;
+  }
+
+  /**
+   * Публикует ключ и мирится с тем, что его мог опубликовать кто-то ещё.
+   *
+   * Общий промис снимает гонку внутри процесса, но не между ними: экземпляров
+   * контроллера может быть несколько, и вторая точно такая же `updateauth`
+   * отвергается цепью как повторная. Публиковалось-то ровно то, что нужно,
+   * поэтому перечитываем цепь: совпал ключ — считаем дело сделанным, не совпал —
+   * это настоящий сбой, и о нём надо знать.
+   */
+  private async publishCertKey(account: string, publicKey: string, signer?: string): Promise<void> {
+    try {
+      await this.blockchainPort.publishCertPermission(account, publicKey, signer);
+    }
+    catch (e) {
+      const onChain = await this.blockchainPort.getCertPublicKey(account);
+      if (!onChain || this.crypto.normalizePublicKey(onChain) !== this.crypto.normalizePublicKey(publicKey))
+        throw e;
+      this.logger.log(`Право заверения ${account} уже опубликовано — повторная запись не нужна`, 'CertKeyService');
+    }
   }
 
   /**
