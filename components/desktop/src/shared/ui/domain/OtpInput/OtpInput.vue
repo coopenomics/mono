@@ -5,7 +5,7 @@
       v-for='(_, idx) in cells',
       :key='idx',
       :ref='(el) => setRef(idx, el)',
-      type='text',
+      :type="masked ? 'password' : 'text'",
       inputmode='numeric',
       autocomplete='one-time-code',
       maxlength='1',
@@ -30,6 +30,7 @@ const props = withDefaults(defineProps<OtpInputProps>(), {
   length: 6,
   disabled: false,
   autofocus: false,
+  masked: false,
 });
 
 const emit = defineEmits<{
@@ -127,6 +128,18 @@ function onFocus(event: FocusEvent): void {
   const input = event.target as HTMLInputElement;
   input.select();
 }
+
+/**
+ * Поставить курсор в нужную ячейку снаружи. Нужно тому, кто вводит значение не с
+ * клавиатуры — экранной клавиатуре PinPad: без этого после нажатия кнопки курсор
+ * оставался бы там, где был, и продолжить набор с физической клавиатуры не вышло бы.
+ */
+function focusCell(index = 0): void {
+  const idx = Math.min(Math.max(index, 0), props.length - 1);
+  refs.value[idx]?.focus();
+}
+
+defineExpose({ focusCell });
 </script>
 
 <style scoped>

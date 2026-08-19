@@ -10,16 +10,21 @@ BaseDialog(
   .pin-prompt
     p.pin-prompt__hint(v-if='isUnlock')
       | Кабинет защищён PIN-кодом. Введите его, чтобы продолжить работу на этом устройстве.
+    //- Запереться кошелёк мог и сам по простою, и по нажатию замка — для
+    //- вводящего это одно и то же: ключа в памяти нет, вернуть его нечем, кроме
+    //- PIN-кода. Поэтому причину не называем, называем состояние.
     p.pin-prompt__hint(v-else)
-      | Сессия была заблокирована по бездействию. Введите PIN-код, чтобы подписать операцию.
+      | Кошелёк заперт: ключ убран из памяти. Введите PIN-код, чтобы им воспользоваться.
 
-    BaseInput(
+    //- Ввод — ячейками с экранной клавиатурой: с телефона PIN набирают пальцем,
+    //- за столом привычнее клавиши, и работает то и другое. Полный набор (шесть
+    //- цифр) отправляется сам — тянуться к кнопке после последней цифры незачем.
+    PinPad(
       v-model='pin',
-      label='PIN-код',
-      type='password',
-      autocomplete='off',
       :error='session.pinError',
-      @keyup.enter='onSubmit'
+      :disabled='submitting',
+      autofocus,
+      @complete='onSubmit'
     )
 
   template(#footer)
@@ -31,14 +36,15 @@ BaseDialog(
     BaseButton(
       variant='primary',
       :loading='submitting',
-      :disabled='!pin',
+      :disabled='!canSubmit',
       @click='onSubmit'
     ) Подтвердить
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { PinPad } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import { useSystemStore } from 'src/entities/System/model';
@@ -49,6 +55,10 @@ const system = useSystemStore();
 const pin = ref('');
 const submitting = ref(false);
 
+// Кнопка ждёт четырёх цифр: PIN-коды бывают от четырёх до шести, и коротким
+// тоже надо давать подтвердить — сам по себе набор отправляется только на шести.
+const canSubmit = computed(() => /^\d{4,6}$/.test(pin.value));
+
 const isUnlock = computed(() => session.pinUnlockPending);
 // Диалог виден при любом из двух триггеров; закрытие — только через действия.
 const visible = computed({
@@ -57,7 +67,7 @@ const visible = computed({
 });
 
 async function onSubmit(): Promise<void> {
-  if (!pin.value) return;
+  if (!canSubmit.value || submitting.value) return;
   submitting.value = true;
   try {
     if (isUnlock.value) {
