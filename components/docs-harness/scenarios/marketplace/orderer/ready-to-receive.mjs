@@ -113,7 +113,7 @@ export default async ({ page, shot, expect }) => {
         // размера членского взноса, и хардкод ломается при любой правке
         // сценария оформления. Проверяем, что карточка заказа на месте и
         // сумма вообще показана.
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
         await expect(p.locator('text=СУММА').first()).toBeVisible({ timeout: 20000 });
       },
     },

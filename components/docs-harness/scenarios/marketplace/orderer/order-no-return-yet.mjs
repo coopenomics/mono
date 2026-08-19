@@ -55,7 +55,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
 
-  await page.getByText('Берёзовый сок').first().click({ force: true });
+  await page.getByText('Яблочный сок').first().click({ force: true });
   // Ждём саму карточку заказа (хронология есть у неё всегда), а не блок
   // возврата: до выдачи его на странице нет вовсе.
   await page.locator('text=Хронология').first().waitFor({ state: 'visible', timeout: 60000 });

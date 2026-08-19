@@ -61,7 +61,7 @@ export default async ({ page, shot, expect, context }) => {
     'Реестр всех заказов кооператива с текущими статусами. Фильтры по стадиям повторяют жизненный цикл заказа: ожидает сборки партии, ждёт акцепта поставщика, в работе, получен. Открыв заказ, председатель видит документы, операции и проводки процесса.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

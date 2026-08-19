@@ -77,7 +77,7 @@ export default async ({ page, shot, expect }) => {
         // иначе пустота означала бы отсутствие прав, а не разграничение партий.
         await expect(p.locator('text=Вы не оператор кооперативного участка')).toHaveCount(0);
         // Товар из чужой партии в ленте не появляется.
-        await expect(p.locator('text=Берёзовый сок')).toHaveCount(0);
+        await expect(p.locator('text=Яблочный сок')).toHaveCount(0);
       },
     },
   );

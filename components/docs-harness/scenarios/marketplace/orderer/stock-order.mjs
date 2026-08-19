@@ -143,7 +143,7 @@ export default async ({ page, shot, expect }) => {
       expect: async (p) => {
         // Заказ обязан появиться: пустой список означал бы, что оформление
         // молча отбилось сервером.
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

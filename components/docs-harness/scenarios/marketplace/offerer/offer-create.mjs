@@ -21,7 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
-export const OFFER_TITLE = 'Берёзовый сок';
+export const OFFER_TITLE = 'Яблочный сок';
 
 export const meta = {
   title: 'Стол поставщика — создание предложения',
@@ -79,7 +79,7 @@ export default async ({ page, shot, expect }) => {
   await category.click();
   await page.locator('.q-field:has-text("Описание") textarea, .q-field:has-text("Описание") input')
     .first()
-    .fill('Свежий берёзовый сок весеннего сбора. Собран в берёзовой роще кооператива, хранить в холодильнике.');
+    .fill('Яблочный сок прямого отжима из яблок кооперативного сада. Без сахара и консервантов, хранить в холодильнике.');
   await page.waitForTimeout(500);
 
   await shot(

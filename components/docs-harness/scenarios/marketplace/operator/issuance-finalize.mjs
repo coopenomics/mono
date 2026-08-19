@@ -61,7 +61,7 @@ export default async ({ page, shot, expect }) => {
     'История заказов участка: что прошло через пункт выдачи. Выданный заказ остаётся здесь с итоговым составом и суммой — по нему видно, что именно получил пайщик.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

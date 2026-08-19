@@ -60,7 +60,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
 
-  await page.getByText('Берёзовый сок').first().click({ force: true });
+  await page.getByText('Яблочный сок').first().click({ force: true });
   await page.waitForSelector('text=Факт выдачи', { timeout: 30000 });
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
