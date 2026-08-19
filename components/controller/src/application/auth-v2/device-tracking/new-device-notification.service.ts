@@ -9,6 +9,7 @@ import { NEW_DEVICE_NOTIFICATION_THROTTLE } from '~/domain/auth-v2/ports/new-dev
 import type { INewDeviceNotificationThrottle } from '~/domain/auth-v2/ports/new-device-notification-throttle.port';
 import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import type { INotMeTokenStore } from '~/domain/auth-v2/ports/not-me-token-store.port';
+import { describeUserAgent, resolveIpLocation } from './device-description.util';
 
 export interface NewDeviceNotificationInput {
   /** subject_id пайщика (user.id) — для резолва получателя и троттла. */
@@ -69,6 +70,12 @@ export class NewDeviceNotificationService {
       // POST /coop/security/not-me/:token и отзывает все сессии без входа.
       const notMeToken = await this.notMeTokens.issue(input.subjectId);
 
+      // Витрина вместо сырья: UA сводится к «Chrome на macOS», к публичному IP
+      // best-effort подтягивается гео (сбой/таймаут — просто без геометки).
+      const device = describeUserAgent(input.userAgent);
+      const location = await resolveIpLocation(input.ip);
+      const summary = location ? `${device} · ${location}` : device;
+
       await this.notifications.notify({
         coopname: config.coopname,
         workflowId: Workflows.NewDeviceLogin.id,
@@ -79,11 +86,15 @@ export class NewDeviceNotificationService {
           username: user.username,
         },
         payload: {
-          device: input.userAgent ?? 'неизвестное устройство',
+          device,
+          location: location ?? '',
+          summary,
           ip: input.ip ?? 'неизвестен',
           time: new Date().toISOString(),
-          securityUrl: `${config.frontend_url}/settings/security`,
-          notMeUrl: `${config.frontend_url}/security/not-me/${notMeToken}`,
+          // Роутер desktop работает в hash-режиме; страница «Настройки» несёт
+          // карточку активных сессий (SessionsCard) — туда и ведём.
+          securityUrl: `${config.frontend_url}/#/${config.coopname}/user/settings`,
+          notMeUrl: `${config.frontend_url}/#/${config.coopname}/security/not-me/${notMeToken}`,
         },
       });
     } catch (e) {

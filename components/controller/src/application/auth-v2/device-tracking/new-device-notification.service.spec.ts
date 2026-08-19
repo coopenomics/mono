@@ -5,6 +5,11 @@ jest.mock('~/config/config', () => ({
 jest.mock('@coopenomics/notifications', () => ({
   Workflows: { NewDeviceLogin: { id: 'vhod-s-novogo-ustroystva' } },
 }));
+// Гео — внешний сервис: в unit-тестах сеть запрещена, подставляем управляемые значения.
+jest.mock('./device-description.util', () => ({
+  describeUserAgent: jest.fn((ua: string | null) => (ua ? 'Chrome на macOS' : 'неизвестное устройство')),
+  resolveIpLocation: jest.fn(async (ip: string | null) => (ip ? 'Москва, Россия' : null)),
+}));
 
 import { NewDeviceNotificationService } from './new-device-notification.service';
 
@@ -45,9 +50,11 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     expect(payload.workflowId).toBe('vhod-s-novogo-ustroystva');
     expect(payload.coopname).toBe('voskhod');
     expect(payload.to).toEqual({ subscriberId: 'sub-1', email: 'ant@coop.test', username: 'ant' });
-    expect(payload.payload.device).toBe('Chrome/120');
+    expect(payload.payload.device).toBe('Chrome на macOS');
+    expect(payload.payload.location).toBe('Москва, Россия');
+    expect(payload.payload.summary).toBe('Chrome на macOS · Москва, Россия');
     expect(payload.payload.ip).toBe('1.2.3.4');
-    expect(payload.payload.securityUrl).toBe('https://app.test/settings/security');
+    expect(payload.payload.securityUrl).toBe('https://app.test/#/voskhod/user/settings');
     expect(typeof payload.payload.time).toBe('string');
   });
 
@@ -58,7 +65,7 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     await service.maybeNotify(input);
 
     expect(notMeTokens.issue).toHaveBeenCalledWith('user-uuid-1');
-    expect(notifications.notify.mock.calls[0][0].payload.notMeUrl).toBe('https://app.test/security/not-me/not-me-token-abc');
+    expect(notifications.notify.mock.calls[0][0].payload.notMeUrl).toBe('https://app.test/#/voskhod/security/not-me/not-me-token-abc');
   });
 
   it('bundling NFR10: окно занято (троттл false) → уведомление НЕ шлётся и пользователь не резолвится', async () => {

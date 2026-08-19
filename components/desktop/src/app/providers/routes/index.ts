@@ -12,6 +12,7 @@ import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
 import { RecoverRequestPage, RecoverConfirmPage } from 'src/pages/Registrator/Recover/ui';
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
+import { NotMePage } from 'src/pages/Security/NotMe';
 import { PrivacyPage } from 'src/pages/Privacy';
 import { TermsPage } from 'src/pages/Terms';
 import { defineComponent, h } from 'vue';
@@ -108,6 +109,22 @@ const baseRoutes: RouteRecordRaw[] = [
           icon: 'key',
           widget: {
             title: 'Восстановление доступа',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Landing one-click «Это не я» из письма о входе с нового устройства
+        // (Story 3.10): без входа отзывает все сессии по одноразовому токену.
+        path: ':coopname/security/not-me/:token',
+        name: 'notMe',
+        component: NotMePage,
+        children: [],
+        meta: {
+          title: 'Защита аккаунта',
+          icon: 'security',
+          widget: {
+            title: 'Защита аккаунта',
             hideHeader: true,
           },
         },

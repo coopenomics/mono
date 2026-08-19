@@ -6,8 +6,12 @@ import { slugify } from '../../utils';
 
 // Схема для new-device-login воркфлоу (CoopID Story 3.9)
 export const newDeviceLoginPayloadSchema = z.object({
-  /** Устройство входа (User-Agent либо «неизвестное устройство»). */
+  /** Устройство входа человеческим языком («Chrome на macOS»), не сырой User-Agent. */
   device: z.string(),
+  /** Гео входа («Москва, Россия» / «локальная сеть») либо пустая строка, если не определено. */
+  location: z.string(),
+  /** Готовая сводка для короткого текста: «Chrome на macOS · Москва, Россия». */
+  summary: z.string(),
   /** IP-адрес входа. */
   ip: z.string(),
   /** Время входа (ISO-8601). */
@@ -37,7 +41,7 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
       'new-device-login-email',
       'Новый вход в ваш аккаунт',
       'Зафиксирован вход в ваш аккаунт с устройства, которое ранее не использовалось:<br><br>' +
-      '<strong>Устройство:</strong> {{payload.device}}<br>' +
+      '<strong>Устройство:</strong> {{payload.summary}}<br>' +
       '<strong>IP-адрес:</strong> {{payload.ip}}<br>' +
       '<strong>Время:</strong> {{payload.time}}<br><br>' +
       'Если это были вы — ничего делать не нужно.<br>' +
@@ -49,7 +53,9 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createInAppStep(
       'new-device-login-notification',
       'Новый вход в ваш аккаунт',
-      'Вход с нового устройства ({{payload.device}}, {{payload.ip}}). Это вы?'
+      // Коротко и по-человечески: «Chrome на macOS · Москва». Нажатие на
+      // уведомление ведёт к активным сессиям (deep-link собирает фронт по payload).
+      'Вход с нового устройства: {{payload.summary}}. Если это не вы — завершите сессии в настройках безопасности.'
     ),
   ])
   .build();

@@ -34,7 +34,20 @@ function plainText(s: string | null | undefined): string {
     .trim();
 }
 
-function toItem(n: IInboxNotification): NotificationItem {
+/**
+ * Deep-link уведомления — внутренний маршрут, куда ведёт нажатие. Уведомления
+ * безопасности («вход с нового устройства») несут в payload `securityUrl` — по
+ * этому маркеру ведём на страницу настроек: там карточка активных сессий с
+ * кнопками завершения. Абсолютный URL из payload не используем — навигация
+ * внутри приложения идёт роутером, а не перезагрузкой.
+ */
+function linkFromNotification(n: IInboxNotification, coopname: string): string | undefined {
+  const p = (n.payload ?? null) as Record<string, unknown> | null;
+  if (p && typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  return undefined;
+}
+
+function toItem(n: IInboxNotification, coopname: string): NotificationItem {
   return {
     id: n.id,
     category: categoryFromWorkflowId(n.workflowId),
@@ -42,6 +55,7 @@ function toItem(n: IInboxNotification): NotificationItem {
     description: plainText(n.body),
     date: n.createdAt as string,
     read: n.isRead,
+    link: linkFromNotification(n, coopname),
   };
 }
 
@@ -61,7 +75,9 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
    */
   let primed = false;
 
-  const items = computed<NotificationItem[]>(() => notifications.value.map(toItem));
+  const items = computed<NotificationItem[]>(() =>
+    notifications.value.map((n) => toItem(n, coopname())),
+  );
   const hasMore = computed(() => currentPage.value < totalPages.value);
 
   function coopname(): string {
@@ -101,7 +117,18 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     const newest = notifications.value.find((n) => !n.isRead);
     // Тело шарится с email-шаблонами и несёт HTML — тост рендерит текстом,
     // поэтому прогоняем через тот же plainText, что и лента (см. toItem).
-    if (newest) NotifyAlert(plainText(newest.title), plainText(newest.body));
+    if (newest) {
+      const link = linkFromNotification(newest, coopname());
+      NotifyAlert(
+        plainText(newest.title),
+        plainText(newest.body),
+        undefined,
+        // Тост должен не только сообщать, но и вести к действию: у уведомлений
+        // безопасности — сразу к активным сессиям. Роутер в сторе недоступен,
+        // а маршрутизация hash-режимная — переходим сменой hash.
+        link ? { label: 'Открыть', handler: () => { window.location.hash = `#${link}`; } } : undefined,
+      );
+    }
   }
 
   async function markRead(id: string): Promise<void> {
