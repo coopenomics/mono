@@ -20,12 +20,21 @@
           outline
           color='grey-7'
         ) Учтён в взносе
+        BaseChip(
+          v-if='row.branch && !row.in_default_branch'
+          variant='warn'
+          size='sm'
+        )
+          q-icon.q-mr-xs(name='call_split' size='14px')
+          | {{ row.branch }}
+          q-tooltip Коммит ещё не дошёл до базовой ветки репозитория
       .linked-git-commit-card__meta.text-caption.text-grey-6.q-mt-xs {{ formatCommitted(row.committed_at) }}
       pre.linked-git-commit-card__message(v-if='row.commit_message') {{ row.commit_message }}
 </template>
 
 <script lang="ts" setup>
 import type { Zeus } from '@coopenomics/sdk';
+import { BaseChip } from 'src/shared/ui/base';
 
 type CapitalIssueLinkedGitCommit = Zeus.ModelTypes['CapitalIssueLinkedGitCommit'];
 

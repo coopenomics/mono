@@ -13,6 +13,7 @@
 
 import { Classes } from '@coopenomics/sdk';
 import { ResultSubmissionService } from '~/extensions/capital/application/services/result-submission.service';
+import { ResultStatus } from '~/extensions/capital/domain/enums/result-status.enum';
 
 function makeLoggerStub() {
   return {
@@ -666,6 +667,41 @@ describe('ResultSubmissionService', () => {
       await expect(
         service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
       ).rejects.toThrow('Имя пользователя не найдено в результате');
+    });
+  });
+  describe('неизменность хэша результата в приёмке', () => {
+    it('pushResult отказывает, если результат пересобрался после генерации заявления', async () => {
+      const { service } = makeService({
+        generatedDocument: { doc_hash: 'doc-hash-1', meta: { result_hash: 'stale-hash' } },
+      });
+      await expect(service.pushResult(pushDto(), alice)).rejects.toThrow(
+        'Результат изменился после генерации заявления'
+      );
+    });
+
+    it('pushResult проходит, когда заявление сгенерировано от текущего result_hash', async () => {
+      const { service, resultSubmissionInteractor } = makeService({
+        generatedDocument: { doc_hash: 'doc-hash-1', meta: { result_hash: 'rh' } },
+      });
+      await service.pushResult(pushDto(), alice);
+      expect(resultSubmissionInteractor.pushResult).toHaveBeenCalled();
+    });
+
+    it('generateResultData не пересобирает документ, пока результат идёт по приёмке', async () => {
+      const inFlight = { result_hash: 'rh', data: 'payload', status: ResultStatus.CREATED };
+      const { service, resultRepository, projectRepository } = makeService({ result: inFlight });
+      const returned = await service.generateResultData('ph', 'alice');
+      expect(returned).toBe(inFlight);
+      expect(resultRepository.update).not.toHaveBeenCalled();
+      expect(resultRepository.create).not.toHaveBeenCalled();
+      expect(projectRepository.findByHash).not.toHaveBeenCalled();
+    });
+
+    it('generateResultData пересобирает документ, пока результат не отправлен в цепь', async () => {
+      const pending = { result_hash: 'rh', data: 'payload', status: ResultStatus.PENDING };
+      const { service, resultRepository } = makeService({ result: pending });
+      await service.generateResultData('ph', 'alice');
+      expect(resultRepository.update).toHaveBeenCalled();
     });
   });
 });

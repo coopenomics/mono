@@ -3632,11 +3632,15 @@ export type ValueTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: AliasType<{
+	/** Ветка, на которой коммит появился впервые */
+	branch?:boolean | `@${string}`,
 	commit_message?:boolean | `@${string}`,
 	committed_at?:boolean | `@${string}`,
 	consumed?:boolean | `@${string}`,
 	github_sha?:boolean | `@${string}`,
 	html_url?:boolean | `@${string}`,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalIssueLinkedGitCommit']?: Omit<ValueTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
@@ -18035,11 +18039,15 @@ export type ResolverInputTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: AliasType<{
+	/** Ветка, на которой коммит появился впервые */
+	branch?:boolean | `@${string}`,
 	commit_message?:boolean | `@${string}`,
 	committed_at?:boolean | `@${string}`,
 	consumed?:boolean | `@${string}`,
 	github_sha?:boolean | `@${string}`,
 	html_url?:boolean | `@${string}`,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -32043,11 +32051,15 @@ export type ModelTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: {
-		commit_message: string,
+		/** Ветка, на которой коммит появился впервые */
+	branch?: string | undefined | null,
+	commit_message: string,
 	committed_at: ModelTypes["DateTime"],
 	consumed: boolean,
 	github_sha: string,
 	html_url: string,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch: boolean,
 	username: string
 };
 	/** Привязка задачи к метрике с плановым вкладом */
@@ -46822,11 +46834,15 @@ export type GraphQLTypes = {
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: {
 	__typename: "CapitalIssueLinkedGitCommit",
+	/** Ветка, на которой коммит появился впервые */
+	branch?: string | undefined | null,
 	commit_message: string,
 	committed_at: GraphQLTypes["DateTime"],
 	consumed: boolean,
 	github_sha: string,
 	html_url: string,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch: boolean,
 	username: string,
 	['...on CapitalIssueLinkedGitCommit']: Omit<GraphQLTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 };

@@ -27,6 +27,12 @@ export class IssueLinkedGitCommitSummaryDTO {
   /** Полный текст сообщения коммита (маркеры PRD / формат) */
   @Field(() => String)
   commit_message!: string;
+
+  @Field(() => String, { nullable: true, description: 'Ветка, на которой коммит появился впервые' })
+  branch!: string | null;
+
+  @Field(() => Boolean, { description: 'Коммит уже дошёл до базовой ветки репозитория' })
+  in_default_branch!: boolean;
 }
 
 /**
