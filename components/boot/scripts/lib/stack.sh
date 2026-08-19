@@ -124,13 +124,6 @@ stack_check_coopid_databases() {
   echo "  ✅ базы CoopID на месте"
 }
 
-stack_wait_authentik() {
-  stack_wait_for "authentik" 90 2 \
-    docker compose exec -T authentik-server curl -sf http://localhost:9000/-/health/ready/
-}
-
-
-
 # ── Подъём ───────────────────────────────────────────────────────────────────
 
 stack_up_infra() {
@@ -151,7 +144,12 @@ stack_up_authentik() {
 
   echo "▸ Поднимаем authentik..."
   docker compose up -d $STACK_AUTH_SERVICES
-  stack_wait_authentik || true
+  # Готовности не ждём. Authentik на чистом томе прогоняет собственные миграции
+  # и здоровым становится через минуты, а в скрипте от него не зависит ничего:
+  # boot разговаривает с цепью, контроллеру он нужен уже в работе. Ожидание
+  # здесь только держало человека у экрана — ровно то, ради чего убраны
+  # ожидания контроллера и рабочего стола.
+  echo "  authentik прогревается в фоне"
 }
 
 stack_up_app() {
@@ -179,7 +177,6 @@ stack_up_app() {
   echo "  контроллер и рабочий стол прогреваются в фоне"
   echo "    смотреть: docker compose logs -f coopback"
 }
-
 
 # ── Итог ─────────────────────────────────────────────────────────────────────
 
