@@ -13,7 +13,9 @@ import type { ProjectFilterInputDTO } from '../../application/dto/property_manag
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
 import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.
@@ -152,6 +154,11 @@ export class ProjectTypeormRepository
     await this.repository.update({ project_hash: h }, { development_repository_url: url });
   }
 
+  async setPriority(projectHash: string, priority: ProjectPriority): Promise<void> {
+    const h = projectHash.toLowerCase();
+    await this.repository.update({ project_hash: h }, { priority });
+  }
+
   async updateLocalContent(
     projectHash: string,
     fields: {
@@ -205,8 +212,13 @@ export class ProjectTypeormRepository
       .andWhere('p.development_repository_url IS NOT NULL')
       .andWhere("btrim(p.development_repository_url) <> ''")
       .getRawMany<{ url: string }>();
-    const urls = rows.map((r) => (typeof r.url === 'string' ? r.url.trim() : '')).filter((u) => u.length > 0);
-    return [...new Set(urls)];
+    // Типы явные: в production-образе devDeps вырезаны, вывод типов деградирует
+    // до any, и `[...new Set(...)]` компилятор считает unknown[] — ts-node в
+    // контейнере отказывался стартовать.
+    const urls: string[] = rows
+      .map((r: { url: string }) => (typeof r.url === 'string' ? r.url.trim() : ''))
+      .filter((u: string) => u.length > 0);
+    return Array.from(new Set<string>(urls));
   }
 
   async countByCoopnameAndDevelopmentRepositoryUrl(coopname: string, normalizedRepositoryUrl: string): Promise<number> {
@@ -414,6 +426,9 @@ export class ProjectTypeormRepository
     if (filter?.statuses?.length) {
       where.status = In(filter.statuses);
     }
+    if (filter?.priorities?.length) {
+      where.priority = In(filter.priorities);
+    }
     if (filter?.project_hash) {
       where.project_hash = filter.project_hash;
     }
@@ -522,6 +537,9 @@ export class ProjectTypeormRepository
     if (filter?.statuses?.length) {
       queryBuilder = queryBuilder.andWhere('p.status IN (:...statuses)', { statuses: filter.statuses });
     }
+    if (filter?.priorities?.length) {
+      queryBuilder = queryBuilder.andWhere('p.priority IN (:...priorities)', { priorities: filter.priorities });
+    }
     if (filter?.project_hash) {
       queryBuilder = queryBuilder.andWhere('p.project_hash = :project_hash', { project_hash: filter.project_hash });
     }
@@ -611,11 +629,11 @@ export class ProjectTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`p.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('p._created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `p.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);

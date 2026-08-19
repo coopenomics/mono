@@ -7,12 +7,9 @@ span.entity-id-badge__pill(
   span.entity-id-badge__prefix(v-if="$slots.prefix")
     slot(name="prefix")
   span.entity-id-badge__label {{ displayLabel }}
-  q-icon.entity-id-badge__copy(
-    v-if="copyOnClick"
-    name="content_copy"
-    size="13px"
-  )
-    q-tooltip Скопировать
+  //- Отдельной кнопки копирования нет: копирует клик по самому ID,
+  //- иконка только занимала место в плотных строках списков
+  q-tooltip(v-if="copyOnClick") Скопировать
 </template>
 
 <script lang="ts" setup>
@@ -116,13 +113,6 @@ const onActivate = async (e: MouseEvent) => {
   min-width: 0;
 }
 
-.entity-id-badge__copy {
-  color: var(--p-ink-3);
-  flex-shrink: 0;
-}
-.entity-id-badge__pill:hover .entity-id-badge__copy {
-  color: var(--p-primary);
-}
 
 // Плоский вариант для плотных строк (Linear-style ID)
 .entity-id-badge__pill--flat {
@@ -133,15 +123,6 @@ const onActivate = async (e: MouseEvent) => {
   &:hover {
     background: transparent;
     color: var(--p-ink-1);
-  }
-
-  .entity-id-badge__copy {
-    opacity: 0;
-    transition: opacity var(--p-dur-fast, 120ms) ease;
-  }
-
-  &:hover .entity-id-badge__copy {
-    opacity: 1;
   }
 }
 </style>

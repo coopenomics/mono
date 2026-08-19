@@ -19,7 +19,7 @@ q-select(
 import { ref, watch, computed, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
-import { getIssuePriorityLabel } from 'app/extensions/capital/shared/lib'
+import { ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib'
 import { useUpdateIssue } from '../../model'
 import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
 
@@ -53,13 +53,8 @@ const { debounceSave } = useUpdateIssue()
 // Текущий выбранный приоритет
 const selectedPriority = ref<Zeus.IssuePriority>(props.modelValue)
 
-// Опции для выбора приоритета
-const priorityOptions = [
-  { value: Zeus.IssuePriority.LOW, label: getIssuePriorityLabel(Zeus.IssuePriority.LOW) },
-  { value: Zeus.IssuePriority.MEDIUM, label: getIssuePriorityLabel(Zeus.IssuePriority.MEDIUM) },
-  { value: Zeus.IssuePriority.HIGH, label: getIssuePriorityLabel(Zeus.IssuePriority.HIGH) },
-  { value: Zeus.IssuePriority.URGENT, label: getIssuePriorityLabel(Zeus.IssuePriority.URGENT) },
-]
+// Опции для выбора приоритета — единый список, от срочного к низкому
+const priorityOptions = ISSUE_PRIORITY_OPTIONS
 
 // Обработчик изменения приоритета
 const handlePriorityChange = async (newPriority: Zeus.IssuePriority) => {

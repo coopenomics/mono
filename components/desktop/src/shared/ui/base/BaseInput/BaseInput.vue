@@ -26,6 +26,7 @@
     :name="name"
     :for="resolvedId"
     :input-class="mono ? 'base-input__native--mono' : undefined"
+    :input-style="rowsStyle"
     :class="['base-input', { 'base-input--flat': flat }]"
     @update:model-value="onUpdate"
     @clear="$emit('clear')"
@@ -75,6 +76,15 @@ const emit = defineEmits<{
 
 const autoId = useId();
 const resolvedId = computed(() => props.id ?? `base-input-${autoId}`);
+
+/**
+ * Стартовая высота многострочного поля. Ставим min-height, а не height:
+ * при autogrow Quasar пишет height в inline-стиль каждой правкой, и height
+ * отсюда был бы затёрт.
+ */
+const rowsStyle = computed(() =>
+  props.rows ? { minHeight: `${props.rows * 1.5}em` } : undefined,
+);
 
 function onUpdate(value: string | number | null): void {
   emit('update:modelValue', value == null ? '' : String(value));

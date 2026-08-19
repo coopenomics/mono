@@ -21,6 +21,8 @@ export type IProjectDomainInterfaceDatabaseData = IBaseDatabaseData & {
   matrix_component_announcement_events?: IProjectMatrixComponentAnnouncementEvent[];
   /** URL репозитория разработки (GitHub), только БД — PRD §6.2.1 / эпик 6. */
   development_repository_url?: string | null;
+  /** Приоритет проекта/компонента (только БД, в блокчейн не пишется). */
+  priority?: string;
   /** blockchain | local */
   origin?: string;
   /** Владелец LOCAL-проекта */

@@ -2,6 +2,7 @@ import { InputType, Field } from '@nestjs/graphql';
 import { ProjectStatus } from '../../../domain/enums/project-status.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
+import { ProjectPriority } from '../../../domain/enums/project-priority.enum';
 
 /**
  * Input DTO для фильтрации проектов
@@ -27,6 +28,12 @@ export class ProjectFilterInputDTO {
     description: 'Фильтр по статусам проектов',
   })
   statuses?: ProjectStatus[];
+
+  @Field(() => [ProjectPriority], {
+    nullable: true,
+    description: 'Фильтр по приоритетам проектов или компонентов',
+  })
+  priorities?: ProjectPriority[];
 
   @Field(() => String, {
     nullable: true,

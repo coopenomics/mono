@@ -30,11 +30,11 @@ router-view(v-if='!isRoot')
         template(#no-data)
           .list-empty
             q-icon(name='inbox', size='20px')
-            span Нет задач, где вы исполнитель
+            span {{ hasActiveFilters ? 'Нет задач по фильтрам' : 'Нет доступных задач' }}
 
       .list-empty(v-else-if='!loading')
         q-icon(name='inbox', size='20px')
-        span Нет задач, где вы исполнитель
+        span {{ hasActiveFilters ? 'Нет задач по фильтрам' : 'Нет доступных задач' }}
 
   //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
   MoveIssueButton(
@@ -48,18 +48,24 @@ router-view(v-if='!isRoot')
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { FailAlert } from 'src/shared/api';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue';
+import { CreateIssueHeaderButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import type { IIssue, IGetIssuesInput } from 'app/extensions/capital/entities/Issue/model';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import IssueListRow from 'app/extensions/capital/widgets/IssuesListWidget/ui/IssueListRow.vue';
+import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
+import { useHeaderActions } from 'src/shared/hooks';
+import { useListPreferences } from 'app/extensions/capital/shared/lib';
+
+type IIssuesFilter = NonNullable<IGetIssuesInput['filter']>;
 
 const router = useRouter();
 const route = useRoute();
@@ -68,6 +74,9 @@ const session = useSessionStore();
 const projectStore = useProjectStore();
 
 const isRoot = computed(() => route.name === 'capital-my-tasks');
+
+// Фильтры и сортировка списка задач — общие с кнопками в шапке
+const { filters, sort, hasActiveFilters } = useListPreferences('issues');
 
 const loading = ref(false);
 const items = ref<IIssue[]>([]);
@@ -140,26 +149,43 @@ function isPrivateIssue(issue: IIssue): boolean {
 }
 
 async function reload() {
-  if (!username.value || !isRoot.value) return;
+  if (!isRoot.value) return;
   loading.value = true;
   try {
+    // Показываем все доступные задачи; «только мои» — обычный фильтр в шапке.
+    // Что именно доступно, решает backend: совет видит всё, пайщик — свою
+    // работу и проекты с допуском.
+    const filter: IIssuesFilter = {
+      coopname: info.coopname,
+    };
+
+    if (filters.value.issueStatuses.length) {
+      filter.statuses = filters.value.issueStatuses as IIssuesFilter['statuses'];
+    }
+    if (filters.value.issuePriorities.length) {
+      filter.priorities = filters.value.issuePriorities as IIssuesFilter['priorities'];
+    }
+    if (filters.value.creators.length) {
+      filter.creators = filters.value.creators;
+    }
+    if (filters.value.master) {
+      filter.master = filters.value.master;
+    }
+
     const result = await IssueApi.loadIssues({
-      filter: {
-        coopname: info.coopname,
-        creators: [username.value],
-      },
+      filter,
       options: {
         page: 1,
         limit: 100,
-        sortBy: '_created_at',
-        sortOrder: 'DESC',
+        sortBy: sort.value.sortBy,
+        sortOrder: sort.value.sortOrder,
       },
     });
     items.value = result?.items ?? [];
     await resolveContexts(items.value);
   } catch (error) {
     console.error(error);
-    FailAlert('Не удалось загрузить мои задачи');
+    FailAlert('Не удалось загрузить задачи');
   } finally {
     loading.value = false;
   }
@@ -216,9 +242,42 @@ function onAssigned() {
   void reload();
 }
 
+// Кнопки фильтров и сортировки живут в шапке — как на списках проектов и компонентов
+const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
+
+function registerListHeaderActions(): void {
+  // Задача создаётся без компонента — привязать её можно потом, кликом по
+  // подписи «Без компонента» в строке списка
+  registerHeaderAction({
+    id: 'capital-issues-create',
+    component: CreateIssueHeaderButton,
+    props: {
+      onActionCompleted: () => {
+        void reload();
+      },
+    },
+    order: 1,
+  });
+  registerHeaderAction({
+    id: 'capital-issues-filter',
+    component: FilterDialogWithButton,
+    props: { scope: 'issues' },
+    order: 2,
+  });
+  registerHeaderAction({
+    id: 'capital-issues-sort',
+    component: SortMenuButton,
+    props: { scope: 'issues' },
+    order: 3,
+  });
+}
+
 watch(isRoot, (root) => {
   if (root) {
+    registerListHeaderActions();
     void reload();
+  } else {
+    clearActions();
   }
 });
 
@@ -228,10 +287,22 @@ watch(username, () => {
   }
 });
 
-onMounted(() => {
+// Смена фильтров или сортировки перечитывает список
+watch([filters, sort], () => {
   if (isRoot.value) {
     void reload();
   }
+}, { deep: true });
+
+onMounted(() => {
+  if (isRoot.value) {
+    registerListHeaderActions();
+    void reload();
+  }
+});
+
+onBeforeUnmount(() => {
+  clearActions();
 });
 </script>
 
@@ -263,7 +334,10 @@ onMounted(() => {
   padding: 0;
 }
 
-.q-table {
+// Обязательно через :deep — <table.q-table> внутри QTable не несёт
+// scoped-атрибут, без :deep table-layout молча не применяется и длинный
+// nowrap-заголовок распирает страницу в горизонтальный скролл
+:deep(.q-table) {
   table-layout: fixed;
   width: 100%;
 

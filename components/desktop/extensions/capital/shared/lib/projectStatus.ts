@@ -88,3 +88,35 @@ export const getProjectStatusDotColor = (status: string) => {
       return 'grey-6';
   }
 };
+
+/**
+ * Вариант BaseChip для статуса проекта/компонента (инлайн-чип в строках списков)
+ */
+export const getProjectStatusChipVariant = (status: string) => {
+  switch (status) {
+    case Zeus.ProjectStatus.PENDING:
+      return 'warn' as const;
+    case Zeus.ProjectStatus.ACTIVE:
+      return 'pos' as const;
+    case Zeus.ProjectStatus.VOTING:
+      return 'accent' as const;
+    case Zeus.ProjectStatus.RESULT:
+      return 'info' as const;
+    case Zeus.ProjectStatus.FINALIZED:
+      return 'pos' as const;
+    default:
+      return 'neutral' as const;
+  }
+};
+
+/**
+ * Единый список статусов проекта для инлайн-меню и селектов.
+ * «Отменён» не предлагаем: прекращение проекта — это его удаление.
+ */
+export const PROJECT_STATUS_OPTIONS = [
+  Zeus.ProjectStatus.PENDING,
+  Zeus.ProjectStatus.ACTIVE,
+  Zeus.ProjectStatus.VOTING,
+  Zeus.ProjectStatus.RESULT,
+  Zeus.ProjectStatus.FINALIZED,
+].map((value) => ({ value, label: getProjectStatusLabel(value) }));

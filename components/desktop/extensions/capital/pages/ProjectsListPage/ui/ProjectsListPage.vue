@@ -3,25 +3,27 @@
 //- (подсветка «Кооперативные проекты» в рейле через matched по name projects-list).
 router-view(v-if='!isWorkshopRoot')
 .projects-list-page(v-else)
-  //- Панель фильтров (ProjectsFilterPanel) намеренно скрыта со страницы —
-  //- фильтрами пока не пользуемся; виджет остаётся в проекте на будущее
+  //- Фильтры живут кнопкой в шапке (FilterDialogWithButton), отдельной
+  //- панели на странице нет
 
   // Виджет списка проектов
   ProjectsListWidget(
     :key='projectsListKey',
     :expanded='expanded',
-    :has-issues-with-statuses='hasIssuesWithStatuses',
-    :has-issues-with-priorities='hasIssuesWithPriorities',
-    :has-issues-with-creators='hasIssuesWithCreators',
+    :statuses='projectStatuses',
+    :priorities='projectPriorities',
     :master='master',
+    :sort-by='sort.sortBy',
+    :sort-order='sort.sortOrder',
     @toggle-expand='handleProjectToggleExpand',
     @data-loaded='handleProjectsDataLoaded',
     @open-project='handleOpenProject'
     @pagination-changed='handlePaginationChanged'
   )
     template(#project-content='{ project }')
+      //- Компоненты приходят вложенными без ORDER BY — сортируем тем же полем локально
       ComponentsListWidget(
-        :components='project.components',
+        :components='sortCapitalList(project.components, sort.sortBy, sort.sortOrder)',
         :project='project',
         :expanded='expandedComponents',
         @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
@@ -30,12 +32,10 @@ router-view(v-if='!isWorkshopRoot')
         template(#component-content='{ component }')
           IssuesListWidget(
             :project-hash='component.project_hash',
-            :statuses='componentStatuses',
-            :priorities='componentPriorities',
-            :creators='componentCreators',
-            :master='componentMaster',
             :can-manage-issues='!!component.permissions?.can_manage_issues',
             :compact='true',
+            :sort-by='sort.sortBy',
+            :sort-order='sort.sortOrder',
             @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
           )
 
@@ -48,6 +48,8 @@ import { useRouter, useRoute } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Project/CreateProject';
+import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
+import { useListPreferences, sortCapitalList } from 'app/extensions/capital/shared/lib';
 import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -73,20 +75,16 @@ useCapitalFabHotkeys(
   { enabled: capitalFabHotkeysEnabled },
 );
 
-// Используем store для фильтров
 const projectStore = useProjectStore();
 
-// Вычисляемые свойства для фильтров
-const hasIssuesWithStatuses = computed(() => projectStore.projectFilters.statuses);
-const hasIssuesWithPriorities = computed(() => projectStore.projectFilters.priorities);
-const hasIssuesWithCreators = computed(() => projectStore.projectFilters.creators);
-const master = computed(() => projectStore.projectFilters.master);
+// Фильтры и сортировка списка — общие с кнопками в шапке, переживают перезагрузку
+const { filters, sort } = useListPreferences('projects');
 
-// Для компонентов используем те же фильтры
-const componentStatuses = computed(() => projectStore.projectFilters.statuses);
-const componentPriorities = computed(() => projectStore.projectFilters.priorities);
-const componentCreators = computed(() => projectStore.projectFilters.creators);
-const componentMaster = computed(() => projectStore.projectFilters.master);
+// Фильтруем сами проекты: задачи внутри дерева не отсеиваем, для них есть
+// отдельный раздел «Задачи» со своими фильтрами
+const projectStatuses = computed(() => filters.value.entityStatuses);
+const projectPriorities = computed(() => filters.value.entityPriorities);
+const master = computed(() => filters.value.master);
 
 const projectsListKey = ref(0);
 
@@ -169,6 +167,19 @@ onBeforeMount(() => {
 });
 
 function registerListHeaderActions(): void {
+  registerHeaderAction({
+    id: 'capital-projects-filter',
+    component: FilterDialogWithButton,
+    props: { scope: 'projects' },
+    order: 2,
+  });
+  registerHeaderAction({
+    id: 'capital-projects-sort',
+    component: SortMenuButton,
+    props: { scope: 'projects' },
+    order: 3,
+  });
+
   if (!(session.isChairman || session.isMember)) return;
   registerHeaderAction({
     id: 'capital-projects-create',
@@ -200,7 +211,7 @@ watch(isWorkshopRoot, (isRoot) => {
 });
 
 // Следим за изменениями фильтров и обновляем список
-watch(() => projectStore.projectFilters, () => {
+watch([filters, sort], () => {
   if (!isWorkshopRoot.value) return;
   projectsListKey.value++;
 }, { deep: true });

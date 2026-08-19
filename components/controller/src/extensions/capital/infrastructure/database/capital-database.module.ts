@@ -16,6 +16,7 @@ import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
+import { FavoriteTypeormEntity } from '../entities/favorite.typeorm-entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
@@ -56,6 +57,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       DebtTypeormEntity,
       ResultTypeormEntity,
       ExpenseTypeormEntity,
+      FavoriteTypeormEntity,
       CommitTypeormEntity,
       StateTypeormEntity,
       TimeEntryEntity,

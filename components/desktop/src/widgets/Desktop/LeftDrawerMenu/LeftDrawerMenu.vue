@@ -64,6 +64,7 @@ import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
+import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
@@ -77,6 +78,7 @@ const { info } = systemStore;
 const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
 const palette = useCommandPaletteStore();
+const { subItemsFor } = useMenuSubItemsReader();
 
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
@@ -141,10 +143,12 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
 const railItems = computed<RailItem[]>(() =>
   filteredRoutes.value.map((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
+    const children = subItemsFor(String(r.name));
     return {
       key: String(r.name),
       label: meta.title ?? String(r.name),
       icon: meta.icon,
+      ...(children.length ? { children } : {}),
     };
   }),
 );
@@ -167,7 +171,12 @@ const activeKey = computed<string | undefined>(() => {
 
 function onSelect(item: RailItem): void {
   const route = filteredRoutes.value.find((r) => String(r.name) === item.key);
-  if (!route) return;
+  if (!route) {
+    // Суб-пункт (например, избранное): переход делает его router-link,
+    // здесь остаётся только закрыть drawer на мобильном.
+    if (item.route) desktop.closeLeftDrawerOnMobile();
+    return;
+  }
   const meta = (route.meta ?? {}) as MenuMeta;
   if (meta.action) {
     actionsStore.executeAction(meta.action);

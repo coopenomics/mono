@@ -39,6 +39,7 @@ export * as GetIssueMetricBindings from './getIssueMetricBindings'
 export * as GetIssueLogs from './getIssueLogs'
 
 export * as GetIssues from './getIssues'
+export * as GetFavorites from './getFavorites'
 
 export * as GetMetricContributions from './getMetricContributions'
 

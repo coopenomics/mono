@@ -10,6 +10,7 @@ import type { StoryStatus } from '../../domain/enums/story-status.enum';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class StoryTypeormRepository implements StoryRepository {
@@ -224,11 +225,11 @@ export class StoryTypeormRepository implements StoryRepository {
     const totalCount = await queryBuilder.getCount();
 
     // Получаем записи с пагинацией
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`s.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('s.sort_order', 'ASC');
-    }
+    const sortColumn = resolveSortColumn(this.storyTypeormRepository, validatedOptions.sortBy, 'sort_order');
+    queryBuilder = queryBuilder.orderBy(
+      `s.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'ASC'
+    );
 
     const entities = await queryBuilder.skip(offset).take(limit).getMany();
 

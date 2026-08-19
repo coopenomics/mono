@@ -14,6 +14,7 @@ import { FinalizeProjectInputDTO } from '../dto/project_management/finalize-proj
 import { GetProjectInputDTO } from '../dto/project_management/get-project-input.dto';
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
+import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
@@ -125,6 +126,21 @@ export class ProjectManagementResolver {
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.setPlan(data, currentUser);
     return result;
+  }
+
+  /**
+   * Установка приоритета проекта/компонента (только БД, без блокчейна).
+   */
+  @Mutation(() => ProjectOutputDTO, {
+    name: 'capitalSetProjectPriority',
+    description: 'Установка приоритета проекта или компонента (хранится только в базе данных)',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async setCapitalProjectPriority(
+    @Args('data', { type: () => SetCapitalProjectPriorityInputDTO }) data: SetCapitalProjectPriorityInputDTO,
+    @CurrentUser() currentUser?: IMonoAccount
+  ): Promise<ProjectOutputDTO> {
+    return await this.projectManagementService.setProjectPriority(data, currentUser);
   }
 
   /**

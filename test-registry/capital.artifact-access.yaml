@@ -21,6 +21,17 @@ title: Кто читает документы проекта и его пере�
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 2026-08-17 (раздел «Компоненты», фильтры и сортировка): в репозиториях
+# задач, проектов и артефактов имя поля сортировки перестало подставляться в
+# ORDER BY как есть — оно сверяется с колонками сущности (capital.list-filters-sort).
+# Правила доступа и набор случаев не менялись.
+
+# Правка 2026-08-18 (приоритеты, capital.priorities): в permissions-сервисах
+# появились расчёт can_set_priority проекта/компонента и председательский
+# override приоритета задач; в project-management добавлена офчейн-мутация
+# приоритета, в репозитории проектов — setter и фильтр по priority.
+# VIEW_ARTIFACTS / READ_COMMUNICATION и набор случаев этого слайса не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -265,3 +276,7 @@ cases:
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
     status: written
+
+# 2026-08-18: в репозитории проектов явно типизирован сбор уникальных адресов
+# репозиториев разработки — в production-образе devDeps вырезаны, вывод типов
+# деградировал и контроллер не стартовал. Поведение выборки прежнее.

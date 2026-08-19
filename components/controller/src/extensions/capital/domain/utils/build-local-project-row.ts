@@ -1,4 +1,5 @@
 import { ProjectOrigin } from '../enums/project-origin.enum';
+import { ProjectPriority } from '../enums/project-priority.enum';
 import { ProjectStatus } from '../enums/project-status.enum';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
 import {
@@ -59,6 +60,7 @@ export function buildLocalProjectRow(input: CreateLocalProjectPayload) {
     matrix_room_id: null,
     matrix_component_announcement_events: null,
     development_repository_url: null,
+    priority: ProjectPriority.MEDIUM,
     present: true,
     origin: ProjectOrigin.LOCAL,
     local_owner: input.master,

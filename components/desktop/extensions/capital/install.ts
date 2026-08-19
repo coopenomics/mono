@@ -2,7 +2,7 @@ import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
-import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage } from './pages';
+import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage, ArtifactsListPage } from './pages';
 import { CapitalBase } from './pages/CapitalBase';
 import { ProjectsListPage } from './pages/ProjectsListPage';
 import { ProjectPage } from './pages/ProjectPage';
@@ -38,10 +38,13 @@ import { ComponentHistoryPage } from './pages/ComponentHistoryPage';
 import { ActivityFeedPage } from './pages/ActivityFeedPage';
 import { registerCapitalDecisionHandlers } from './app/extensions';
 import { registerExpenseWallet } from 'src/shared/lib/expense-wallets';
+import { ComponentsListPage } from './pages/ComponentsListPage';
 import {
   buildProjectTreeChildren,
   COOP_PROJECT_TREE_NAMES,
   MY_PROJECT_TREE_NAMES,
+  COMPONENTS_TREE_NAMES,
+  COMPONENTS_TREE_OPTIONS,
 } from './routes/projectTreeChildren';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -92,6 +95,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     MY_PROJECT_TREE_NAMES,
   );
 
+  const componentsTreeChildren = buildProjectTreeChildren(
+    projectTreePages,
+    COMPONENTS_TREE_NAMES,
+    COMPONENTS_TREE_OPTIONS,
+  );
+
   return [{
     workspace: 'capital',
     extension_name: 'capital',
@@ -108,8 +117,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         path: '/:coopname/capital',
         name: 'capital',
         component: markRaw(CapitalBase),
-        // Порядок рейла — по процессу работы:
-        // профиль → личная работа → кооперативный цикл → админ → лента
+        // Порядок рейла — сверху вниз по укрупнению работы: профиль →
+        // проекты → компоненты → задачи → коммиты → результаты → приглашения →
+        // участники → деньги → лента
         children: [
           {
             path: 'wallet',
@@ -151,6 +161,50 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               hidden: true,
             },
             children: myProjectTreeChildren,
+          },
+          {
+            path: 'tracker',
+            name: 'tracker',
+            component: markRaw(TrackerPage),
+            meta: {
+              title: 'Время',
+              icon: 'fa-solid fa-clock',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: true,
+            },
+            children: [],
+          },
+          {
+            path: 'projects',
+            name: 'projects-list',
+            component: markRaw(ProjectsListPage),
+            meta: {
+              title: 'Проекты',
+              icon: 'fa-solid fa-list',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: false,
+            },
+            children: coopProjectTreeChildren,
+          },
+          {
+            // Тот же список, что и внутри проекта, но без первого уровня:
+            // все компоненты кооператива подряд, у каждого — свои задачи
+            path: 'components',
+            name: 'components-list',
+            component: markRaw(ComponentsListPage),
+            meta: {
+              title: 'Компоненты',
+              icon: 'account_tree',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: false,
+            },
+            children: componentsTreeChildren,
           },
           {
             path: 'my-tasks',
@@ -239,45 +293,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             ],
           },
           {
-            path: 'tracker',
-            name: 'tracker',
-            component: markRaw(TrackerPage),
+            path: 'artifacts',
+            name: 'artifacts-list',
+            component: markRaw(ArtifactsListPage),
             meta: {
-              title: 'Время',
-              icon: 'fa-solid fa-clock',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-              hidden: true,
-            },
-            children: [],
-          },
-          {
-            path: 'projects',
-            name: 'projects-list',
-            component: markRaw(ProjectsListPage),
-            meta: {
-              title: 'Проекты',
-              icon: 'fa-solid fa-list',
-              roles: [],
-              agreements: agreementsBase,
-              requiresAuth: true,
-              hidden: false,
-            },
-            children: coopProjectTreeChildren,
-          },
-          {
-            path: 'invitations',
-            name: 'my-invitations',
-            component: markRaw(InvitationsPage),
-            meta: {
-              title: 'Приглашения',
-              icon: 'fa-solid fa-envelope-open-text',
+              title: 'Артефакты',
+              icon: 'article',
               roles: [],
               agreements: agreementsBase,
               requiresAuth: true,
             },
-            children: [],
           },
           {
             path: 'commits',
@@ -350,6 +375,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 },
               },
             ],
+          },
+          {
+            path: 'invitations',
+            name: 'my-invitations',
+            component: markRaw(InvitationsPage),
+            meta: {
+              title: 'Приглашения',
+              icon: 'fa-solid fa-envelope-open-text',
+              roles: [],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
           },
           {
             path: 'contributors',

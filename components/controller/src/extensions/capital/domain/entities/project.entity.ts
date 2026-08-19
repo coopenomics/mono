@@ -1,4 +1,5 @@
 import { ProjectStatus } from '../enums/project-status.enum';
+import { ProjectPriority } from '../enums/project-priority.enum';
 import { ProjectOrigin } from '../enums/project-origin.enum';
 import type {
   IProjectDomainInterfaceDatabaseData,
@@ -37,6 +38,8 @@ export class ProjectDomainEntity
   public matrix_component_announcement_events?: IProjectMatrixComponentAnnouncementEvent[];
   /** URL репозитория разработки (только БД). */
   public development_repository_url: string | null;
+  /** Приоритет проекта/компонента (только БД). */
+  public priority: ProjectPriority;
   /** blockchain — кооперативный; local — персональный */
   public origin: ProjectOrigin;
   /** Владелец персонального проекта */
@@ -87,6 +90,9 @@ export class ProjectDomainEntity
       databaseData.development_repository_url !== undefined && databaseData.development_repository_url !== null
         ? databaseData.development_repository_url.trim() || null
         : null;
+    this.priority = Object.values(ProjectPriority).includes(databaseData.priority as ProjectPriority)
+      ? (databaseData.priority as ProjectPriority)
+      : ProjectPriority.MEDIUM;
     this.origin =
       (databaseData.origin as ProjectOrigin) === ProjectOrigin.LOCAL
         ? ProjectOrigin.LOCAL
