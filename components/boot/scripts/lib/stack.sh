@@ -129,24 +129,7 @@ stack_wait_authentik() {
     docker compose exec -T authentik-server curl -sf http://localhost:9000/-/health/ready/
 }
 
-# Десять минут, а не две. Контроллер поднимается через ts-node, то есть на
-# старте типизирует весь проект; во время ребута рядом компилируется рабочий
-# стол и переигрывает цепь индексер, и на загруженной машине это укладывается
-# в минуту-полторы только при пустой машине. Прежний порог в 180 с срабатывал
-# как «не поднялся» на исправном стенде, а следом впустую шли миграции.
-stack_wait_coopback() {
-  stack_wait_for "coopback" 300 2 \
-    docker compose exec -T coopback curl -sf http://localhost:2998/v1/graphql -X POST \
-      -H 'Content-Type: application/json' -d '{"query":"{__typename}"}'
-}
 
-# Рабочий стол — quasar dev, первый прогрев занимает около двух минут, а на
-# занятой машине заметно дольше; порог с запасом по той же причине, что у
-# контроллера.
-stack_wait_desktop() {
-  stack_wait_for "рабочий стол" 300 2 \
-    docker compose exec -T desktop curl -sf http://localhost:2999/
-}
 
 # ── Подъём ───────────────────────────────────────────────────────────────────
 
@@ -187,34 +170,16 @@ stack_up_app() {
     docker compose up -d desktop
   fi
   docker compose up -d nginx
-  # Миграции гоняем только по живому контроллеру. Раньше они шли безусловно, и
-  # когда контроллер просто не успел подняться, наружу вылезало «миграции не
-  # прошли — CoopID будет падать»: жалоба на следствие, уводящая от причины.
-  if stack_wait_coopback; then
-    stack_migrate_controller
-  else
-    echo "  ⚠ миграции пропущены: контроллер не ответил, гонять их не по чему."
-    echo "    Причина — в его логе: docker compose logs --tail 50 coopback"
-    echo "    Когда поднимется: docker compose exec coopback sh -c 'cd /app/components/controller && pnpm run migration:run'"
-  fi
-  stack_wait_desktop || true
+  # Контроллер и рабочий стол дальше прогреваются сами, и скрипт их не караулит.
+  # Оба поднимаются через компиляцию (ts-node типизирует проект, quasar собирает
+  # маршруты) и на занятой машине занимают минуты — караулить их значило держать
+  # человека у экрана ради строчки «готов». Свои миграции контроллер теперь
+  # накатывает сам при старте (AUTO_MIGRATE в компоузе), отдельный заход по
+  # живому контейнеру не нужен.
+  echo "  контроллер и рабочий стол прогреваются в фоне"
+  echo "    смотреть: docker compose logs -f coopback"
 }
 
-# Миграции контроллера на старте НЕ выполняются — их гоняет отдельный cli.
-# Без них база coop_domain_db остаётся пустой, и CoopID молча ломается по частям:
-# пароль в authentik ставится, а сохранить зашифрованный ключ и записать аудит
-# уже некуда — «relation "vaults" does not exist», HTTP 500 на ровном месте.
-# Поэтому прогоняем их как часть подъёма: стенд обязан подниматься целиком.
-# Идемпотентно — применённые миграции пропускаются.
-stack_migrate_controller() {
-  echo "▸ Прогоняем миграции контроллера..."
-  if docker compose exec -T coopback sh -c 'cd /app/components/controller && pnpm run migration:run' >/dev/null 2>&1; then
-    echo "  ✅ миграции применены"
-  else
-    echo "  ⚠ миграции не прошли — CoopID будет падать на сохранении ключа."
-    echo "    Посмотреть: docker compose exec coopback sh -c 'cd /app/components/controller && pnpm run migration:status'"
-  fi
-}
 
 # ── Итог ─────────────────────────────────────────────────────────────────────
 

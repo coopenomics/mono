@@ -183,6 +183,21 @@ const envVarsSchema = z.object({
    * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
    * кооператив) данные могут копиться годами — отключить кроном.
    */
+  /**
+   * Прогонять непринятые миграции самому при старте, не дожидаясь отдельной
+   * команды. Нужно стендам: там база каждый раз создаётся с нуля, и без
+   * миграций нет схемы CoopID (coop_domain_db) — сохранить ключ и записать
+   * аудит некуда. Раньше это делал скрипт подъёма отдельным заходом и ради
+   * этого караулил готовность контроллера, растягивая ребут.
+   *
+   * По умолчанию выключено: на проде миграции раскатывает релиз осознанно,
+   * и самовольный прогон при каждом рестарте там недопустим. Включается явно
+   * (`AUTO_MIGRATE=true` в окружении стенда).
+   */
+  AUTO_MIGRATE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED: z
     .string()
     .default('true')
@@ -366,6 +381,7 @@ if (!envVars.success) {
 export default {
   env: envVars.data.NODE_ENV,
   log_level: envVars.data.LOG_LEVEL ?? (envVars.data.NODE_ENV === 'development' ? 'debug' : 'info'),
+  auto_migrate: envVars.data.AUTO_MIGRATE,
   backend_url: envVars.data.BACKEND_URL,
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
