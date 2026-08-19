@@ -20,6 +20,7 @@
       RailUserCard(
         v-if='walletReady',
         v-model:collapsed='userCardCollapsed',
+        :lockable='walletLockable',
         :name='userName',
         :role='userRoleLabel',
         :balance='walletBalance',
@@ -44,13 +45,6 @@
     DepositButton(:micro='true')
     WithdrawButton(:micro='true')
 
-  //- Замок без PIN-кода не запирает ничего, поэтому первое запирание идёт через
-  //- установку PIN — и уже после неё кошелёк запирается.
-  SetPinDialog(
-    v-model='askPinBeforeLock',
-    lead='Чтобы запирать кошелёк, задайте PIN-код: им он и будет отпираться.',
-    @saved='session.lockWalletNow()'
-  )
 </template>
 
 <script setup lang="ts">
@@ -60,7 +54,6 @@ import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
-import { SetPinDialog } from 'src/features/Security/SetupPin';
 import { useSystemStore } from 'src/entities/System/model';
 import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
@@ -262,36 +255,33 @@ const userRoleLabel = computed<string>(() =>
   session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
 );
 
-// --- Замок кошелька (canon v-model:collapsed) -----------------------------
+// --- Свёртка кошелька: замок или стрелка ----------------------------------
 //
-// У входа по паролю свёрнутая карточка — это запертый кошелёк, а не «убрал с
-// глаз»: ключ уходит из памяти, и вернуть его можно только PIN-кодом. Поэтому
-// состояние карточки не хранится отдельно — его определяет сам кошелёк, и
-// запирание по простою сворачивает карточку само, без чьей-либо помощи.
+// Запирать кошелёк есть смысл только при заданном PIN-коде: без него отпирание
+// прозрачно — ключ поднимается из локального кэша, ничего не спрашивая, — и
+// замок обещал бы защиту, которой нет. Поэтому:
 //
-// У прежнего входа по ключу запирать нечего, и замок там остаётся тем же, чем
-// была стрелка: свернуть и развернуть, с запоминанием выбора.
+//   PIN задан — свёртка и есть запирание. Состояние карточки не хранится
+//   отдельно, его определяет сам кошелёк, и запирание по простою сворачивает
+//   карточку само, без чьей-либо помощи.
+//
+//   PIN не задан (или вход прежний, по ключу) — свёртка остаётся тем, чем была:
+//   спрятать и показать баланс, с запоминанием выбора и без единого вопроса.
 
 const STORAGE_KEY_USERCARD_COLLAPSED = 'monocoop-left-drawer-usercard-collapsed';
 const manualCollapsed = ref<boolean>(false);
-const askPinBeforeLock = ref<boolean>(false);
+
+const walletLockable = computed<boolean>(() => session.isCoopIdSession && session.hasCustomPin);
 
 const userCardCollapsed = computed<boolean>({
-  get: () => (session.isCoopIdSession ? session.walletLocked : manualCollapsed.value),
+  get: () => (walletLockable.value ? session.walletLocked : manualCollapsed.value),
   set: (val) => {
-    if (!session.isCoopIdSession) {
+    if (!walletLockable.value) {
       manualCollapsed.value = val;
       localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
       return;
     }
     if (val) {
-      // PIN не задан — запирать бессмысленно: отпереть смог бы любой, кто сядет
-      // за это устройство, потому что отпирание в таком случае прозрачное.
-      // Поэтому сначала PIN, а запирание — сразу после его установки.
-      if (!session.hasCustomPin) {
-        askPinBeforeLock.value = true;
-        return;
-      }
       session.lockWalletNow();
       return;
     }

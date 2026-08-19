@@ -34,17 +34,20 @@
       )
         q-icon(name='add')
         | {{ primaryActionLabel ?? 'Пополнить' }}
-    //- Замок, а не стрелка: свёрнутая карточка означает не «спрятал, чтобы не
-    //- мешало», а «ключ убран из памяти». Одно действие делает обе вещи сразу —
-    //- запирает кошелёк и сжимает карточку, — поэтому и значок один.
+    //- Замок вместо стрелки — только когда свёртка и правда запирает кошелёк
+    //- (`lockable`): тогда одно действие делает обе вещи сразу — убирает ключ из
+    //- памяти и сжимает карточку. Без заданного PIN запирать нечего, и кнопка
+    //- остаётся обычной стрелкой: замок там обещал бы защиту, которой нет.
     button.rail__usercard__collapse(
       type='button',
-      :aria-label="collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк'",
-      :aria-pressed='collapsed',
-      :title="collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк'",
+      :class='{ "is-lock": lockable }',
+      :aria-label='toggleLabel',
+      :aria-pressed='lockable ? collapsed : undefined',
+      :aria-expanded='lockable ? undefined : !collapsed',
+      :title='toggleLabel',
       @click='toggleCollapsed'
     )
-      q-icon(:name="collapsed ? 'lock' : 'lock_open'")
+      q-icon(:name="lockable ? (collapsed ? 'lock' : 'lock_open') : 'expand_more'")
 
 button.rail__signout(
   v-if='showSignout',
@@ -62,6 +65,7 @@ import type { RailUserCardProps } from './RailUserCard.types';
 const props = withDefaults(defineProps<RailUserCardProps>(), {
   collapsed: false,
   showSignout: false,
+  lockable: false,
 });
 
 const emit = defineEmits<{
@@ -79,6 +83,11 @@ const initials = computed(() => {
 const hasBalance = computed(
   () => props.balance !== undefined && props.balance !== null && props.balance !== '',
 );
+
+const toggleLabel = computed(() => {
+  if (props.lockable) return props.collapsed ? 'Разблокировать кошелёк' : 'Заблокировать кошелёк';
+  return props.collapsed ? 'Развернуть кошелёк' : 'Свернуть кошелёк';
+});
 
 const isBalanceClickable = computed(() => !!props.balanceRoute);
 const balanceTag = computed(() => (props.balanceRoute ? 'router-link' : 'div'));
@@ -104,11 +113,19 @@ function onBalanceClick(event: MouseEvent): void {
    lock), и подмену видно без движения. */
 .rail__usercard__collapse :deep(.q-icon) {
   font-size: 16px;
-  /* Строчный интерлиньяж выше самого глифа, и в низкой строке замок обрезало
+  /* Строчный интерлиньяж выше самого глифа, и в низкой строке знак обрезало
      снизу. Единица приравнивает высоту строки к размеру знака. */
   line-height: 1;
   color: inherit;
-  transition: color var(--p-dur-fast, 120ms) ease;
+  transition:
+    color var(--p-dur-fast, 120ms) ease,
+    transform var(--p-dur-base, 200ms) var(--p-ease-standard, ease);
+}
+
+/* Стрелка переворачивается, показывая, куда раскроется карточка. Замок вместо
+   этого меняет форму (lock_open → lock), и вертеть его незачем. */
+.rail__usercard.is-collapsed .rail__usercard__collapse:not(.is-lock) :deep(.q-icon) {
+  transform: rotate(180deg);
 }
 
 /* Рамку фокуса показываем только при переходе с клавиатуры: после клика мышью
@@ -128,8 +145,9 @@ function onBalanceClick(event: MouseEvent): void {
   height: 34px;
   padding: 0;
 }
-/* Запертое состояние — сдержанный акцент: значок заметен, но не тревожит. */
-.rail__usercard.is-collapsed .rail__usercard__collapse :deep(.q-icon) {
+/* Запертое состояние — сдержанный акцент: значок заметен, но не тревожит.
+   Свёрнутая без замка карточка ничего не запирает, и подсвечивать там нечего. */
+.rail__usercard.is-collapsed .rail__usercard__collapse.is-lock :deep(.q-icon) {
   color: var(--p-primary);
 }
 
