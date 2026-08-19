@@ -7,18 +7,16 @@ import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
-import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
-import type { ISessionMetadataStore } from '~/domain/auth-v2/ports/session-metadata.port';
 import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import type { IChainManifestsCache } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import { DegradedAuthReason } from '~/domain/auth-v2/degraded/degraded-auth.types';
 import { isActivePermissionFinalized } from '~/domain/auth-v2/chain/chain-finality';
-import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
-import { CertificateService } from '../certificate/certificate.service';
-import { DeviceTrackingService } from '../device-tracking/device-tracking.service';
 import { AuthMetricsService } from '../metrics/auth-metrics.service';
+import { LoginTwoFactorService } from '../login-2fa/login-two-factor.service';
+import type { SecondFactorChallengeResult } from '../login-2fa/login-two-factor.service';
+import { SessionIssueService } from './session-issue.service';
 
 /** Окно свежести метки времени против head_block_time, сек (epic AC Story 1.7). */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -45,6 +43,13 @@ export interface VerifyTimestampResult {
   degraded?: boolean;
   degraded_reason?: DegradedAuthReason;
 }
+
+/**
+ * Исход verify: либо готовые токены (факторы 2FA-входа не включены), либо
+ * challenge второго фактора — токены выдаст `POST /coop/verify/2fa/confirm`
+ * после прохождения всех факторов.
+ */
+export type VerifyTimestampOutcome = VerifyTimestampResult | SecondFactorChallengeResult;
 
 /** Псевдо-аккаунт для сверки ключа из кэша через blockchainPort.hasActiveKey. */
 interface ActiveKeyAccount {
@@ -95,13 +100,11 @@ export class VerifyTimestampService {
     @Inject(REDIS_PORT) private readonly redis: RedisPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    private readonly tokens: TokenApplicationService,
     private readonly audit: AuditService,
-    private readonly certificate: CertificateService,
-    private readonly deviceTracking: DeviceTrackingService,
-    @Inject(SESSION_METADATA_PORT) private readonly sessionMetadata: ISessionMetadataStore,
     @Inject(CHAIN_MANIFESTS_CACHE) private readonly chainManifests: IChainManifestsCache,
     private readonly metrics: AuthMetricsService,
+    private readonly loginTwoFactor: LoginTwoFactorService,
+    private readonly sessionIssue: SessionIssueService,
   ) {}
 
   /**
@@ -111,11 +114,13 @@ export class VerifyTimestampService {
    * не бросает), поведение `verifyInternal` не меняют — та же ошибка пробрасывается
    * без изменений.
    */
-  async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
+  async verify(input: VerifyTimestampInput): Promise<VerifyTimestampOutcome> {
     this.metrics.loginAttempt();
     try {
       const result = await this.verifyInternal(input);
-      this.metrics.loginSuccess();
+      // Challenge второго фактора — вход ещё не состоялся: успех посчитает
+      // LoginTwoFactorService после прохождения всех факторов.
+      if (!('second_factor_required' in result)) this.metrics.loginSuccess();
       return result;
     } catch (e) {
       if (e instanceof AuthV2Error) this.metrics.loginError(e.code);
@@ -123,7 +128,7 @@ export class VerifyTimestampService {
     }
   }
 
-  private async verifyInternal(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
+  private async verifyInternal(input: VerifyTimestampInput): Promise<VerifyTimestampOutcome> {
     // 1. binding_token: подпись (HS256, shared secret 1.6) + exp + sub/jti.
     const secret = config.authV2.sessionBindingSecret;
     if (!secret) throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'AUTH_V2_SESSION_BINDING_SECRET не сконфигурирован');
@@ -238,50 +243,30 @@ export class VerifyTimestampService {
       await this.safeAudit({ event: 'coopid.auth.degraded', subjectId: sub, actor: sub, result: 'degraded', context: { reason: degradedReason }, ip: input.ip });
     }
 
-    // успех → выпуск токенов платформенным механизмом (id_token/certificate — Story 1.8).
-    const pair = await this.tokens.generateAuthTokens(user.id);
+    // Гейт второго фактора входа (2FA-логин): пароль и ключ доказаны, но если у
+    // пайщика включены факторы — токены НЕ выпускаются. Клиент получает challenge
+    // и завершает вход через POST /coop/verify/2fa/confirm.
+    const challenge = await this.loginTwoFactor.maybeBeginChallenge({
+      user,
+      sub,
+      ip: input.ip ?? null,
+      userAgent: input.userAgent ?? null,
+      acceptLanguage: input.acceptLanguage ?? null,
+      degraded,
+      degradedReason,
+    });
+    if (challenge) return challenge;
 
-    // participant_certificate (Story 1.8) — best-effort: сбой выпуска не валит логин.
-    let participant_certificate: string | undefined;
-    try {
-      participant_certificate = await this.certificate.issueForUsername(sub);
-    } catch (e) {
-      this.logger.warn(`participant_certificate не выпущен на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
-    }
-
-    await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, actor: sub, result: 'success', ip: input.ip });
-
-    // Device tracking (Story 3.8) — best-effort: сбой не валит выданный вход.
-    try {
-      await this.deviceTracking.recordLogin({
-        subjectId: user.id,
-        username: sub,
-        ip: input.ip ?? null,
-        userAgent: input.userAgent ?? null,
-        acceptLanguage: input.acceptLanguage ?? null,
-      });
-    } catch (e) {
-      this.logger.warn(`device tracking не записан на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
-    }
-
-    // Метаданные сессии (Story 3.7) — best-effort: сбой side-store не валит выданный вход.
-    // Привязаны к выпущенному refresh-токену → видны/отзываемы в «Активных сессиях».
-    try {
-      await this.sessionMetadata.record(pair.refresh.token, {
-        ip: input.ip ?? null,
-        device: input.userAgent ?? null,
-        createdAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      this.logger.warn(`session metadata не записаны на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
-    }
-
-    return {
-      access_token: pair.access.token,
-      refresh_token: pair.refresh.token,
-      participant_certificate,
-      ...(degraded ? { degraded: true, degraded_reason: degradedReason } : {}),
-    };
+    // успех → финализация входа (токены, сертификат, device tracking) — SessionIssueService.
+    return this.sessionIssue.issue({
+      userId: user.id,
+      sub,
+      ip: input.ip ?? null,
+      userAgent: input.userAgent ?? null,
+      acceptLanguage: input.acceptLanguage ?? null,
+      degraded,
+      degradedReason,
+    });
   }
 
   /** Аудит не должен валить успешный вход (coop_domain_db недоступен → degraded-лог, не 500). */

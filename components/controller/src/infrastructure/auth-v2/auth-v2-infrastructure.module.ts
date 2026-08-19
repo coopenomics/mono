@@ -17,6 +17,8 @@ import { CAPABILITY_SETS_REPOSITORY } from '~/domain/auth-v2/ports/capability-se
 import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER } from '~/domain/auth-v2/ports/force-recovery-consent.port';
 import { KEY_REVOCATION_REPOSITORY } from '~/domain/auth-v2/ports/key-revocation.port';
+import { LOGIN_FACTORS_REPOSITORY } from '~/domain/auth-v2/ports/login-factors.port';
+import { LOGIN_CHALLENGE_STORE } from '~/domain/auth-v2/ports/login-challenge-store.port';
 import { AUTHENTIK_ADMIN_PORT } from '~/domain/auth-v2/ports/authentik-admin.port';
 import { CERT_KEY_CRYPTO_PORT } from '~/domain/auth-v2/ports/cert-key-crypto.port';
 import { CertKeyCryptoAdapter } from './cert-key-crypto.adapter';
@@ -45,6 +47,8 @@ import { RedisCriticalActionNotifier } from './redis-critical-action.notifier';
 import { RedisForceRecoveryConsentStore } from './redis-force-recovery-consent.store';
 import { RedisForceRecoveryConsentNotifier } from './redis-force-recovery-consent.notifier';
 import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repository';
+import { PostgresLoginFactorsRepository } from './postgres-login-factors.repository';
+import { RedisLoginChallengeStore } from './redis-login-challenge.store';
 
 /** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код + recovery-стратегия + known-devices + метаданные сессий. */
 @Module({
@@ -72,9 +76,11 @@ import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repos
     { provide: FORCE_RECOVERY_CONSENT_STORE, useClass: RedisForceRecoveryConsentStore },
     { provide: FORCE_RECOVERY_CONSENT_NOTIFIER, useClass: RedisForceRecoveryConsentNotifier },
     { provide: KEY_REVOCATION_REPOSITORY, useClass: PostgresKeyRevocationRepository },
+    { provide: LOGIN_FACTORS_REPOSITORY, useClass: PostgresLoginFactorsRepository },
+    { provide: LOGIN_CHALLENGE_STORE, useClass: RedisLoginChallengeStore },
     { provide: AUTHENTIK_ADMIN_PORT, useClass: AuthentikAdminAdapter },
     { provide: CERT_KEY_CRYPTO_PORT, useClass: CertKeyCryptoAdapter },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
 })
 export class AuthV2InfrastructureModule {}

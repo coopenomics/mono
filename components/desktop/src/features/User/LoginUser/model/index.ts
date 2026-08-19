@@ -7,7 +7,13 @@ import { useRegistratorStore } from 'src/entities/Registrator';
 import type { ITokens } from 'src/shared/lib/types/user';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Zeus } from '@coopenomics/sdk';
-import { configureTokenStorage, login as coopidLogin, migrate } from '@coopenomics/auth';
+import {
+  configureTokenStorage,
+  confirmLoginFactor,
+  login as coopidLogin,
+  migrate,
+  type LoginFactorKind,
+} from '@coopenomics/auth';
 import { env } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
 import { createCoopIdStorage } from 'src/entities/Session/lib/coopidStorage';
@@ -135,6 +141,15 @@ export function useLoginUser() {
     const storage = createCoopIdStorage(systemStore.info.coopname);
     configureTokenStorage(storage);
     await coopidLogin({ issuer: env.COOPID_ISSUER, email, password });
+    await establishSessionAfterCoopIdLogin();
+  }
+
+  /**
+   * Общий хвост CoopID-входа: построить сессию поверх keystore и прогреть кошелёк.
+   * Используется и обычным входом по паролю, и завершением 2FA-подтверждения —
+   * токены к этому моменту уже лежат в сконфигурированном хранилище.
+   */
+  async function establishSessionAfterCoopIdLogin(): Promise<void> {
     const ok = await session.establishCoopIdSession({ persistPin: true });
     if (!ok) {
       throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
@@ -148,9 +163,27 @@ export function useLoginUser() {
     await run();
   }
 
+  /**
+   * Подтвердить фактор 2FA-входа. `login()` уже доказал пароль и ключ (кошелёк
+   * разблокирован), но сервер удержал токены — коды доводят вход до конца.
+   * Финальный фактор возвращает `{done: true}` с уже построенной сессией.
+   */
+  async function confirmLoginSecondFactor(
+    challengeToken: string,
+    code: string,
+  ): Promise<{ done: boolean; nextFactor?: LoginFactorKind }> {
+    const result = await confirmLoginFactor({ challengeToken, code });
+    if (result.done) {
+      await establishSessionAfterCoopIdLogin();
+      return { done: true };
+    }
+    return { done: false, nextFactor: result.nextFactor };
+  }
+
   return {
     login,
     migrateAndLogin,
     loginWithPassword,
+    confirmLoginSecondFactor,
   };
 }

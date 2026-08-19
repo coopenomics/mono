@@ -18,6 +18,8 @@ export enum AuthV2ErrorCode {
   InsufficientVerification = 'insufficient_verification',
   /** Ротация ключа недоступна: пайщик ещё не принят (кандидат) — регистрация не завершена. */
   RotationUnavailable = 'rotation_unavailable',
+  /** Challenge второго фактора входа неизвестен или истёк — вход начинается заново. */
+  LoginChallengeExpired = 'login_challenge_expired',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */

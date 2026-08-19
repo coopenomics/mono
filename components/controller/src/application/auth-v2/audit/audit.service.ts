@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
 
-export type AuditResult = 'success' | 'failure' | 'degraded';
+export type AuditResult = 'success' | 'failure' | 'degraded' | 'pending';
 
 export interface AuditRecord {
   event: string;

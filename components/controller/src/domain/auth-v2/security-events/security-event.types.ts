@@ -11,6 +11,7 @@ export enum SecurityEventKind {
   RecoveryStrategyChanged = 'recovery_strategy_changed',
   PasswordChanged = 'password_changed',
   KeyRotated = 'key_rotated',
+  LoginFactorsChanged = 'login_factors_changed',
 }
 
 /** Человекочитаемый заголовок события для тела уведомления. */
@@ -20,4 +21,5 @@ export const SECURITY_EVENT_TITLES: Record<SecurityEventKind, string> = {
   [SecurityEventKind.RecoveryStrategyChanged]: 'Изменён способ восстановления доступа',
   [SecurityEventKind.PasswordChanged]: 'Изменён пароль',
   [SecurityEventKind.KeyRotated]: 'Перевыпущен ключ доступа',
+  [SecurityEventKind.LoginFactorsChanged]: 'Изменены настройки подтверждения входа',
 };

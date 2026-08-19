@@ -2358,6 +2358,9 @@ export const AllTypesProps: Record<string,any> = {
 		setBranchPrivate:{
 			data:"SetBranchPrivateInput"
 		},
+		setLoginFactors:{
+			data:"SetLoginFactorsInput"
+		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
 		},
@@ -3347,6 +3350,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetIssueMetricBindingsInput:{
 		bindings:"IssueMetricBindingItemInput"
+	},
+	SetLoginFactorsInput:{
+
 	},
 	SetMasterInput:{
 
@@ -5512,6 +5518,12 @@ export const ReturnTypes: Record<string,any> = {
 		chartOfAccounts:"ChartOfAccountsItem",
 		coopname:"String"
 	},
+	LoginFactors:{
+		email_available:"Boolean",
+		email_enabled:"Boolean",
+		totp_enabled:"Boolean",
+		totp_enrolled:"Boolean"
+	},
 	MarketplaceAid:{
 		amount:"String",
 		braname:"String",
@@ -6906,6 +6918,7 @@ export const ReturnTypes: Record<string,any> = {
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
 		setBranchPrivate:"Branch",
+		setLoginFactors:"LoginFactors",
 		setPaymentStatus:"GatewayPayment",
 		setRecoveryStrategy:"Boolean",
 		setWif:"Boolean",
@@ -7583,6 +7596,7 @@ export const ReturnTypes: Record<string,any> = {
 		getLedger2Postings:"Ledger2PostingsResponse",
 		getLedger2Wallets:"Ledger2Wallet",
 		getLedgerHistory:"LedgerHistoryResponse",
+		getLoginFactors:"LoginFactors",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
 		getMyAccess:"ParticipantAccess",

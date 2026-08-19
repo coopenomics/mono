@@ -8410,6 +8410,18 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["LoginFactors"]: AliasType<{
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available?:boolean | `@${string}`,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled?:boolean | `@${string}`,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on LoginFactors']?: Omit<ValueTypes["LoginFactors"], "...on LoginFactors">
+}>;
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string | Variable<any, string>,
@@ -12072,7 +12084,7 @@ resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean
 	resetRegistration?:ValueTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-	/** Завершить все сессии пайщика */
+	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ValueTypes["RevokeCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ValueTypes["RevokeParticipantKeyInput"] | Variable<any, string>},ValueTypes["RevokeKeyResult"]],
@@ -12083,6 +12095,7 @@ saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, s
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
+setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ValueTypes["SetRecoveryStrategyInput"] | Variable<any, string>},boolean | `@${string}`],
 setWif?: [{	data: ValueTypes["SetWifInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -13674,6 +13687,8 @@ getLedger2History?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<an
 getLedger2Postings?: [{	input: ValueTypes["GetLedger2PostingsInput"] | Variable<any, string>},ValueTypes["Ledger2PostingsResponse"]],
 getLedger2Wallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ValueTypes["GetLedgerHistoryInput"] | Variable<any, string>},ValueTypes["LedgerHistoryResponse"]],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors?:ValueTypes["LoginFactors"],
 getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
@@ -14732,6 +14747,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	bindings: Array<ValueTypes["IssueMetricBindingItemInput"]> | Variable<any, string>,
 	/** Хеш задачи */
 	issue_hash: string | Variable<any, string>
+};
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null | Variable<any, string>,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean | Variable<any, string>,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean | Variable<any, string>
 };
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
@@ -22949,6 +22972,17 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["LoginFactors"]: AliasType<{
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available?:boolean | `@${string}`,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled?:boolean | `@${string}`,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -26500,7 +26534,7 @@ resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`]
 	resetRegistration?:ResolverInputTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},ResolverInputTypes["Transaction"]],
-	/** Завершить все сессии пайщика */
+	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ResolverInputTypes["RevokeCapabilitySetInput"]},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ResolverInputTypes["RevokeParticipantKeyInput"]},ResolverInputTypes["RevokeKeyResult"]],
@@ -26511,6 +26545,7 @@ saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},Resolver
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
+setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
 setRecoveryStrategy?: [{	data: ResolverInputTypes["SetRecoveryStrategyInput"]},boolean | `@${string}`],
 setWif?: [{	data: ResolverInputTypes["SetWifInput"]},boolean | `@${string}`],
@@ -28033,6 +28068,8 @@ getLedger2History?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},Reso
 getLedger2Postings?: [{	input: ResolverInputTypes["GetLedger2PostingsInput"]},ResolverInputTypes["Ledger2PostingsResponse"]],
 getLedger2Wallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ResolverInputTypes["GetLedgerHistoryInput"]},ResolverInputTypes["LedgerHistoryResponse"]],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors?:ResolverInputTypes["LoginFactors"],
 getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
 	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
@@ -29065,6 +29102,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	bindings: Array<ResolverInputTypes["IssueMetricBindingItemInput"]>,
 	/** Хеш задачи */
 	issue_hash: string
+};
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
 };
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
@@ -37053,6 +37098,16 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["LoginFactors"]: {
+		/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available: boolean,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled: boolean
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -41138,7 +41193,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: ModelTypes["Transaction"],
-	/** Завершить все сессии пайщика */
+	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions: ModelTypes["RevokedSessionsResult"],
 	/** Отозвать у пайщика набор возможностей (управляет председатель) */
 	revokeCapabilitySet: boolean,
@@ -41166,6 +41221,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	setBranchPrivate: ModelTypes["Branch"],
+	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
+	setLoginFactors: ModelTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
@@ -42848,6 +42905,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	getLedgerHistory: ModelTypes["LedgerHistoryResponse"],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors: ModelTypes["LoginFactors"],
 	/** Получить данные собрания по хешу
 
 Требуемые роли: chairman, member, user.  */
@@ -44014,6 +44073,14 @@ export type ModelTypes = {
 	bindings: Array<ModelTypes["IssueMetricBindingItemInput"]>,
 	/** Хеш задачи */
 	issue_hash: string
+};
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
 };
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
@@ -52332,6 +52399,18 @@ export type GraphQLTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["LoginFactors"]: {
+	__typename: "LoginFactors",
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available: boolean,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled: boolean,
+	['...on LoginFactors']: Omit<GraphQLTypes["LoginFactors"], "...on LoginFactors">
+};
 	["LoginInput"]: {
 		/** Электронная почта */
 	email: string,
@@ -56691,7 +56770,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: GraphQLTypes["Transaction"],
-	/** Завершить все сессии пайщика */
+	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions: GraphQLTypes["RevokedSessionsResult"],
 	/** Отозвать у пайщика набор возможностей (управляет председатель) */
 	revokeCapabilitySet: boolean,
@@ -56719,6 +56798,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	setBranchPrivate: GraphQLTypes["Branch"],
+	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
+	setLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
@@ -58567,6 +58648,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	getLedgerHistory: GraphQLTypes["LedgerHistoryResponse"],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Получить данные собрания по хешу
 
 Требуемые роли: chairman, member, user.  */
@@ -59794,6 +59877,14 @@ export type GraphQLTypes = {
 	bindings: Array<GraphQLTypes["IssueMetricBindingItemInput"]>,
 	/** Хеш задачи */
 	issue_hash: string
+};
+	["SetLoginFactorsInput"]: {
+		/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
 };
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
@@ -62308,6 +62399,7 @@ type ZEUS_VARIABLES = {
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
+	["SetLoginFactorsInput"]: ValueTypes["SetLoginFactorsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];

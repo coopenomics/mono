@@ -3,6 +3,9 @@
   //- Переход «ключ → пароль» в активной сессии (Story 11.6, in-session).
   PasswordCard
 
+  //- Подтверждение входа (2FA): код из приложения и/или на почту.
+  LoginSecurityCard
+
   //- Безопасность входа: активные сессии и устройства (Story 3.7).
   SessionsCard
 
@@ -12,6 +15,7 @@
 
 <script lang="ts" setup>
 import { SessionsCard } from 'src/features/Security/ManageSessions';
+import { LoginSecurityCard } from 'src/features/Security/LoginFactors';
 import { PinCard } from 'src/features/Security/SetupPin';
 import { PasswordCard } from 'src/features/Security/SetPassword';
 </script>

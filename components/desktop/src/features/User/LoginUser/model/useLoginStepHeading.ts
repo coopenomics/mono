@@ -1,6 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 
-export type LoginStep = 'login' | 'migrate';
+export type LoginStep = 'login' | 'migrate' | 'twofactor';
 
 interface LoginStepHeading {
   /** Текущий шаг формы; переключается обработчиком `step-change` у LoginForm. */
@@ -24,10 +24,16 @@ interface LoginStepHeading {
 export function useLoginStepHeading(login: { title: string; subtitle?: string }): LoginStepHeading {
   const step = ref<LoginStep>('login');
 
-  const title = computed(() => (step.value === 'migrate' ? 'Придумайте пароль' : login.title));
-  const subtitle = computed(() =>
-    step.value === 'migrate' ? 'Вход по ключу доступа больше не понадобится' : login.subtitle,
-  );
+  const title = computed(() => {
+    if (step.value === 'migrate') return 'Придумайте пароль';
+    if (step.value === 'twofactor') return 'Подтвердите вход';
+    return login.title;
+  });
+  const subtitle = computed(() => {
+    if (step.value === 'migrate') return 'Вход по ключу доступа больше не понадобится';
+    if (step.value === 'twofactor') return 'Пароль принят — остался код подтверждения';
+    return login.subtitle;
+  });
 
   return { step, title, subtitle };
 }

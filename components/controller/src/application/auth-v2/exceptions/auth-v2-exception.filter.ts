@@ -49,6 +49,8 @@ const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   [AuthV2ErrorCode.SessionBindingReused]: HttpStatus.UNAUTHORIZED,
   [AuthV2ErrorCode.SessionBindingExpired]: HttpStatus.UNAUTHORIZED,
   [AuthV2ErrorCode.ChainVerificationFailed]: HttpStatus.UNAUTHORIZED,
+  // 401: challenge второго фактора входа истёк/неизвестен — вход начинается заново.
+  [AuthV2ErrorCode.LoginChallengeExpired]: HttpStatus.UNAUTHORIZED,
   // 403: уровень верификации пайщика ниже требуемого правилом действия (Story 4.2) —
   // «доступ запрещён по уровню доверия», пайщик аутентифицирован (не 401).
   [AuthV2ErrorCode.InsufficientVerification]: HttpStatus.FORBIDDEN,

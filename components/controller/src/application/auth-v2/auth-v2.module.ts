@@ -54,6 +54,10 @@ import { KeyRevocationService } from './key-revocation/key-revocation.service';
 import { CapabilitySetService } from './authorization/capability-set.service';
 import { AuthorizationResolver } from './authorization/authorization.resolver';
 import { AccountSecurityResolver } from './account-security/account-security.resolver';
+import { SessionIssueService } from './verify-timestamp/session-issue.service';
+import { LoginTwoFactorService } from './login-2fa/login-two-factor.service';
+import { LoginFactorsService } from './login-2fa/login-factors.service';
+import { LoginTwoFactorController } from './login-2fa/login-two-factor.controller';
 import { CriticalActionsResolver } from './critical-actions/critical-actions.resolver';
 
 /**
@@ -67,14 +71,14 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
   // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
   // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController, LoginTwoFactorController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, CertKeyService, EndorsementService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, SessionIssueService, LoginTwoFactorService, LoginFactorsService, CertificateService, CertSettingsService, CertKeyService, EndorsementService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.
     { provide: RECOVERY_FINALIZATION_PORT, useExisting: RecoveryFinalizationService },
   ],
-  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertKeyService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
+  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, LoginTwoFactorService, CertificateService, CertKeyService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
 })
 export class AuthV2Module {}

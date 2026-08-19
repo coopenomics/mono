@@ -7,11 +7,14 @@ import { SessionsService } from '../sessions/sessions.service';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 import { RecoveryStrategyService } from '../recovery/recovery-strategy.service';
 import { SecurityIncidentService } from '../security/security-incident.service';
+import { LoginFactorsService } from '../login-2fa/login-factors.service';
 import {
   AccountSessionDTO,
+  LoginFactorsDTO,
   ReportNotMeInputDTO,
   RevokeSessionInputDTO,
   RevokedSessionsResultDTO,
+  SetLoginFactorsInputDTO,
   SetRecoveryStrategyInputDTO,
   TwoFactorCodeInputDTO,
   TwoFactorEnrollmentDTO,
@@ -42,6 +45,7 @@ export class AccountSecurityResolver {
     private readonly twoFactor: TwoFactorService,
     private readonly recoveryStrategy: RecoveryStrategyService,
     private readonly incidents: SecurityIncidentService,
+    private readonly loginFactors: LoginFactorsService,
   ) {}
 
   @Query(() => [AccountSessionDTO], {
@@ -134,6 +138,8 @@ export class AccountSecurityResolver {
     @ClientIp() ip: string | null,
   ): Promise<boolean> {
     await this.twoFactor.disable(user.id, data.code, ip);
+    // Секрета больше нет — TOTP-фактор входа гасится вместе с ним.
+    await this.loginFactors.onTotpUnenrolled(user.id);
     return true;
   }
 
@@ -149,6 +155,28 @@ export class AccountSecurityResolver {
   ): Promise<boolean> {
     await this.recoveryStrategy.setStrategy(user.id, data.strategy, data.code, ip);
     return true;
+  }
+
+  @Query(() => LoginFactorsDTO, {
+    name: 'getLoginFactors',
+    description: 'Настройки подтверждения входа (2FA): какие коды запрашиваются при входе',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async getLoginFactors(@CurrentUser() user: ICurrentUser): Promise<LoginFactorsDTO> {
+    return this.loginFactors.get(user.id);
+  }
+
+  @Mutation(() => LoginFactorsDTO, {
+    name: 'setLoginFactors',
+    description: 'Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код)',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async setLoginFactors(
+    @Args('data', { type: () => SetLoginFactorsInputDTO }) data: SetLoginFactorsInputDTO,
+    @CurrentUser() user: ICurrentUser,
+    @ClientIp() ip: string | null,
+  ): Promise<LoginFactorsDTO> {
+    return this.loginFactors.set(user.id, data, ip);
   }
 
   @Mutation(() => RevokedSessionsResultDTO, {

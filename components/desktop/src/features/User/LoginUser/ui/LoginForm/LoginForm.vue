@@ -35,6 +35,36 @@
       </BaseButton>
     </template>
 
+    <!-- Шаг 2FA: пароль и ключ приняты, сервер ждёт код второго фактора -->
+    <template v-else-if="mode === 'twofactor'">
+      <div class="login-2fa__field">
+        <span class="login-2fa__label">{{ currentFactorLabel }}</span>
+        <OtpInput v-model="otp" :length="6" :error="otpError" @complete="confirmFactor" />
+      </div>
+      <div v-if="currentFactor === 'email'" class="login-2fa__resend">
+        <BaseButton
+          variant="ghost"
+          size="sm"
+          :disabled="resendCooldown > 0 || loading"
+          @click="resendEmail"
+        >
+          {{ resendCooldown > 0 ? `Отправить код повторно (${resendCooldown} с)` : 'Отправить код повторно' }}
+        </BaseButton>
+      </div>
+      <BaseButton
+        type="submit"
+        variant="primary"
+        block
+        :loading="loading"
+        :disabled="otp.length !== 6"
+      >
+        Подтвердить
+      </BaseButton>
+      <BaseButton variant="secondary" block :disabled="loading" @click="backToLogin">
+        Назад ко входу
+      </BaseButton>
+    </template>
+
     <!-- Шаг миграции: вошли по ключу — предлагаем задать пароль -->
     <template v-else>
       <BaseBanner variant="info">
@@ -73,7 +103,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LocalStorage } from 'quasar';
 import { useSessionStore } from 'src/entities/Session';
@@ -85,27 +115,69 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { env, updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
 import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
-import { PASSWORD_POLICY_HINT, passwordPolicyErrors, warmUpAuthentik } from '@coopenomics/auth';
+import { OtpInput } from 'src/shared/ui/domain/OtpInput';
+import {
+  AuthV2Error,
+  AuthV2ErrorCode,
+  PASSWORD_POLICY_HINT,
+  passwordPolicyErrors,
+  resendLoginEmailCode,
+  warmUpAuthentik,
+  type LoginFactorKind,
+} from '@coopenomics/auth';
 
 // Шаг формы наружу: заголовок карточки принадлежит не форме, а тому, кто её
 // показывает, — а меняться он обязан вместе с шагом.
 const emit = defineEmits<{
-  'step-change': [step: 'login' | 'migrate'];
+  'step-change': [step: 'login' | 'migrate' | 'twofactor'];
 }>();
 
 const router = useRouter();
 const system = useSystemStore();
 const session = useSessionStore();
 const { showDialog } = useNotificationPermissionDialog();
-const { migrateAndLogin, loginWithPassword } = useLoginUser();
+const { migrateAndLogin, loginWithPassword, confirmLoginSecondFactor } = useLoginUser();
 
 const email = ref('');
 const secret = ref('');
-const mode = ref<'login' | 'migrate'>('login');
+const mode = ref<'login' | 'migrate' | 'twofactor'>('login');
 const newPassword = ref('');
 const repeatPassword = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
+
+// 2FA-вход: challenge выдан сервером ПОСЛЕ проверки пароля и ключа — токены
+// удержаны до подтверждения кодами. Факторы проходятся по очереди.
+const challenge = ref<{ token: string; factors: LoginFactorKind[]; index: number } | null>(null);
+const otp = ref('');
+const otpError = ref('');
+const resendCooldown = ref(0);
+let resendTimer: ReturnType<typeof setInterval> | null = null;
+
+const currentFactor = computed<LoginFactorKind | null>(
+  () => challenge.value?.factors[challenge.value.index] ?? null,
+);
+const currentFactorLabel = computed(() =>
+  currentFactor.value === 'email'
+    ? 'Код из письма, отправленного на вашу почту'
+    : 'Код из приложения-аутентификатора',
+);
+
+function startResendCooldown(): void {
+  resendCooldown.value = 60;
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = setInterval(() => {
+    resendCooldown.value -= 1;
+    if (resendCooldown.value <= 0 && resendTimer) {
+      clearInterval(resendTimer);
+      resendTimer = null;
+    }
+  }, 1000);
+}
+
+onUnmounted(() => {
+  if (resendTimer) clearInterval(resendTimer);
+});
 
 // Пока пайщик заполняет форму, открываем flow authentik и тянем метаданные OIDC.
 // Оба запроса всё равно нужны при входе, но первое обращение к authentik заметно
@@ -189,6 +261,12 @@ async function finishLogin(): Promise<void> {
 const submit = async (): Promise<void> => {
   errorMessage.value = '';
 
+  // Шаг 2FA: подтвердить код текущего фактора.
+  if (mode.value === 'twofactor') {
+    await confirmFactor();
+    return;
+  }
+
   // Шаг миграции: задать пароль действующему пайщику и войти.
   if (mode.value === 'migrate') {
     if (!canMigrate.value) return;
@@ -228,12 +306,100 @@ async function runLogin(action: () => Promise<void>): Promise<void> {
     await action();
     await finishLogin();
   } catch (e: any) {
-    console.error(e);
     loading.value = false;
     desktops.setWorkspaceChanging(false);
+
+    // Не ошибка, а следующая ступень: сервер удержал токены до кода второго
+    // фактора. Challenge приходит в details типизированной ошибки SDK.
+    if (e instanceof AuthV2Error && e.code === AuthV2ErrorCode.SecondFactorRequired) {
+      const details = (e.details ?? {}) as { challenge_token?: string; factors?: LoginFactorKind[] };
+      if (details.challenge_token && details.factors?.length) {
+        challenge.value = { token: details.challenge_token, factors: details.factors, index: 0 };
+        otp.value = '';
+        otpError.value = '';
+        mode.value = 'twofactor';
+        emit('step-change', 'twofactor');
+        // Email-код первым фактором сервер уже отправил — сразу заводим отсчёт повтора.
+        if (details.factors[0] === 'email') startResendCooldown();
+        return;
+      }
+    }
+
+    console.error(e);
     errorMessage.value =
       e?.message || 'Не удалось выполнить вход. Проверьте данные и попробуйте снова.';
     FailAlert(e);
   }
 }
+
+/** Подтвердить код текущего фактора; финальный фактор достраивает сессию и ведёт в кабинет. */
+async function confirmFactor(): Promise<void> {
+  if (!challenge.value || otp.value.length !== 6 || loading.value) return;
+  loading.value = true;
+  otpError.value = '';
+  const desktops = useDesktopStore();
+  try {
+    const result = await confirmLoginSecondFactor(challenge.value.token, otp.value);
+    if (result.done) {
+      desktops.setWorkspaceChanging(true);
+      challenge.value = null;
+      await finishLogin();
+      return;
+    }
+    // Фактор пройден, очередь следующего (email-код сервер отправил только сейчас).
+    challenge.value = { ...challenge.value, index: challenge.value.index + 1 };
+    otp.value = '';
+    if (result.nextFactor === 'email') startResendCooldown();
+    loading.value = false;
+  } catch (e: any) {
+    loading.value = false;
+    if (e instanceof AuthV2Error && e.code === AuthV2ErrorCode.InvalidTwoFactorCode) {
+      otpError.value = e.message;
+      otp.value = '';
+      return;
+    }
+    // Challenge истёк или сожжён перебором — начинаем вход заново.
+    backToLogin();
+    errorMessage.value =
+      e?.message || 'Подтверждение входа не удалось. Войдите заново.';
+    FailAlert(e);
+  }
+}
+
+/** Повторно отправить email-код текущего challenge (сервер троттлит раз в минуту). */
+async function resendEmail(): Promise<void> {
+  if (!challenge.value || resendCooldown.value > 0) return;
+  try {
+    await resendLoginEmailCode(challenge.value.token);
+    startResendCooldown();
+  } catch (e) {
+    FailAlert(e);
+  }
+}
+
+/** Назад ко входу: challenge бросаем (истечёт сам), пароль вводится заново. */
+function backToLogin(): void {
+  challenge.value = null;
+  otp.value = '';
+  otpError.value = '';
+  secret.value = '';
+  mode.value = 'login';
+  emit('step-change', 'login');
+}
 </script>
+
+<style scoped>
+.login-2fa__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+}
+.login-2fa__label {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+}
+.login-2fa__resend {
+  display: flex;
+  justify-content: flex-start;
+}
+</style>

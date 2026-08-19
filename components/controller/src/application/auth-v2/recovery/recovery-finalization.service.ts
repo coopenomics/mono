@@ -12,6 +12,7 @@ import type {
 } from '~/domain/auth-v2/ports/recovery-finalization.port';
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
+import { LoginTwoFactorService } from '../login-2fa/login-two-factor.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { VaultService } from '../vault/vault.service';
 
@@ -53,6 +54,7 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
     private readonly sessions: SessionsService,
     private readonly audit: AuditService,
     private readonly securityEvents: SecurityEventNotificationService,
+    private readonly loginTwoFactor: LoginTwoFactorService,
   ) {}
 
   async finalize(input: RecoveryFinalizationInput): Promise<void> {
@@ -96,6 +98,18 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
 
     // 4. Отозвать все старые сессии — доступ по старому ключу прекращается.
     const { revoked } = await this.sessions.revokeAll(input.subjectId, ip);
+
+    // 4.5. Grace 2FA-входа (single-use, 5 минут): восстановление уже доказало и
+    // почту (magic-link), и TOTP — первый вход новым паролем не спрашивает коды
+    // повторно. Только для самостоятельного recovery; принудительное (председателем)
+    // грейс не выдаёт. Best-effort: сбой Redis не валит завершённую ротацию.
+    if (trigger === 'recovery') {
+      try {
+        await this.loginTwoFactor.grantGrace(input.subjectId);
+      } catch (e) {
+        this.logger.warn(`grace 2FA-входа не выдан для ${input.username}: ${e instanceof Error ? e.message : e}`);
+      }
+    }
 
     // 5. Аудит ротации (Story 8.4). pubkey'и публичны — не секрет.
     await this.audit.record({

@@ -19,6 +19,7 @@ import { workflow as newInitialPaymentRequestWorkflow } from './new-initial-paym
 import { workflow as newDepositPaymentRequestWorkflow } from './new-deposit-payment-request';
 import { workflow as resetKeyWorkflow } from './reset-key';
 import { workflow as newDeviceLoginWorkflow } from './new-device-login';
+import { workflow as loginEmailCodeWorkflow } from './login-email-code';
 import { workflow as securityEventWorkflow } from './security-event';
 import { workflow as inviteWorkflow } from './invite';
 import { workflow as emailVerificationWorkflow } from './email-verification';
@@ -78,6 +79,7 @@ export * as NewInitialPaymentRequest from './new-initial-payment-request';
 export * as NewDepositPaymentRequest from './new-deposit-payment-request';
 export * as ResetKey from './reset-key';
 export * as NewDeviceLogin from './new-device-login';
+export * as LoginEmailCode from './login-email-code';
 export * as SecurityEvent from './security-event';
 export * as Invite from './invite';
 export * as EmailVerification from './email-verification';
@@ -134,6 +136,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   newDepositPaymentRequestWorkflow,
   resetKeyWorkflow,
   newDeviceLoginWorkflow,
+  loginEmailCodeWorkflow,
   securityEventWorkflow,
   inviteWorkflow,
   emailVerificationWorkflow,

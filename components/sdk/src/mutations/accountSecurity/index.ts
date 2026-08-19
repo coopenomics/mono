@@ -16,5 +16,8 @@ export * as RevokeAllSessions from './revokeAllSessions'
 /** Завершить конкретную сессию пайщика */
 export * as RevokeSession from './revokeSession'
 
+/** Изменить настройки подтверждения входа (2FA) */
+export * as SetLoginFactors from './setLoginFactors'
+
 /** Сменить стратегию восстановления */
 export * as SetRecoveryStrategy from './setRecoveryStrategy'

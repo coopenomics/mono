@@ -46,6 +46,7 @@ function setup() {
   const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 3 }) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
+  const loginTwoFactor = { grantGrace: jest.fn().mockResolvedValue(undefined) };
   const service = new RecoveryFinalizationService(
     chain as never,
     authentikAdmin as never,
@@ -54,8 +55,9 @@ function setup() {
     sessions as never,
     audit as never,
     securityEvents as never,
+    loginTwoFactor as never,
   );
-  return { service, chain, authentikAdmin, users, vault, sessions, audit, securityEvents };
+  return { service, chain, authentikAdmin, users, vault, sessions, audit, securityEvents, loginTwoFactor };
 }
 
 describe('RecoveryFinalizationService (Story 3.3)', () => {

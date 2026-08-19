@@ -14,7 +14,7 @@ import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { VerifyTimestampService } from './verify-timestamp.service';
-import type { VerifyTimestampResult } from './verify-timestamp.service';
+import type { VerifyTimestampOutcome } from './verify-timestamp.service';
 
 const BINDING_COOKIE_NAME = 'coop_session_binding';
 
@@ -43,7 +43,7 @@ export class VerifyTimestampController {
   @UseGuards(AuthRateLimitGuard)
   // per-IP: аккаунт зашит в подписанном binding_token, до хендлера не извлекаем.
   @AuthRateLimit({ ip: LOGIN_IP_RULE })
-  async verifyTimestamp(@Body() body: VerifyTimestampBody, @Req() req: Request): Promise<VerifyTimestampResult> {
+  async verifyTimestamp(@Body() body: VerifyTimestampBody, @Req() req: Request): Promise<VerifyTimestampOutcome> {
     const signature = body?.signature;
     const timestamp = body?.timestamp;
     const bindingToken = body?.binding_token ?? this.readBindingCookie(req);

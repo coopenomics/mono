@@ -23,6 +23,10 @@ export enum AuthV2ErrorCode {
   InsufficientVerification = 'insufficient_verification',
   /** Ротация ключа недоступна: пайщик ещё не принят (кандидат) — регистрация не завершена. */
   RotationUnavailable = 'rotation_unavailable',
+  /** Вход требует второго подтверждения (2FA): сервер выдал challenge вместо токенов. */
+  SecondFactorRequired = 'second_factor_required',
+  /** Challenge второго фактора входа неизвестен или истёк — вход начинается заново. */
+  LoginChallengeExpired = 'login_challenge_expired',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -36,11 +40,17 @@ export enum AuthV2ErrorCode {
  */
 export class AuthV2Error extends Error {
   readonly code: AuthV2ErrorCode
+  /**
+   * Машинные детали ошибки (например, challenge второго фактора у
+   * `SecondFactorRequired`). В UI-тексты не попадают.
+   */
+  readonly details?: Record<string, unknown>
 
-  constructor(code: AuthV2ErrorCode, description: string) {
+  constructor(code: AuthV2ErrorCode, description: string, details?: Record<string, unknown>) {
     super(description)
     this.name = 'AuthV2Error'
     this.code = code
+    this.details = details
   }
 
   toJSON(): { error: AuthV2ErrorCode, error_description: string } {
@@ -189,6 +199,17 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     action: 'retry',
     // технический код для авто-повтора без ротации; до экрана в норме не доходит.
     keepSession: true,
+  },
+  [AuthV2ErrorCode.SecondFactorRequired]: {
+    message: 'Требуется подтверждение входа: введите код второго фактора.',
+    action: 'retry',
+    // не ошибка, а следующая ступень входа — сессия ещё строится.
+    keepSession: true,
+  },
+  [AuthV2ErrorCode.LoginChallengeExpired]: {
+    message: 'Время на подтверждение входа истекло. Войдите заново.',
+    action: 'retry',
+    keepSession: false,
   },
   [AuthV2ErrorCode.NetworkError]: {
     message: 'Нет связи с кооперативом. Проверьте интернет.',

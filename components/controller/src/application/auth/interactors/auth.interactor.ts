@@ -15,6 +15,7 @@ import config from '~/config/config';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { Workflows } from '@coopenomics/notifications';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { LoginTwoFactorService } from '~/application/auth-v2/login-2fa/login-two-factor.service';
 
 @Injectable()
 export class AuthInteractor {
@@ -26,11 +27,21 @@ export class AuthInteractor {
     private readonly authDomainService: AuthDomainService,
     private readonly tokenApplicationService: TokenApplicationService,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService
+    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
+    private readonly loginTwoFactor: LoginTwoFactorService
   ) {}
 
   async login(data: LoginInputDomainInterface): Promise<RegisteredAccountDomainInterface> {
     const user = await this.authDomainService.loginUserWithSignature(data.email, data.now, data.signature);
+
+    // 2FA-гейт: легаси-вход по подписи не умеет второй фактор, а выпуск токенов
+    // мимо него обесценил бы защиту (пароль → расшифровка ключа → подпись).
+    // Пайщик с включённым подтверждением входа входит только новым контуром.
+    if (await this.loginTwoFactor.hasEnabledFactorSettings(user.id)) {
+      throw new UnauthorizedException(
+        'Для аккаунта включено подтверждение входа (2FA) — вход по подписи недоступен, войдите по паролю.'
+      );
+    }
 
     const tokens = await this.tokenApplicationService.generateAuthTokens(user.id);
     const account = await this.accountDomainService.getAccount(user.username);

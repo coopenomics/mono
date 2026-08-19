@@ -3,6 +3,7 @@ import { SignJWT } from 'jose';
 import config from '~/config/config';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { canonicalTimestampMessage, VerifyTimestampService } from './verify-timestamp.service';
+import { SessionIssueService } from './session-issue.service';
 
 const KEY = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3';
 const ACCOUNT = 'ant';
@@ -97,19 +98,28 @@ function makeService(overrides: {
     put: jest.fn().mockResolvedValue(undefined),
   };
   const metrics = { loginAttempt: jest.fn(), loginSuccess: jest.fn(), loginError: jest.fn() };
-  const service = new VerifyTimestampService(
-    redis as any,
-    blockchain as any,
-    user as any,
+  // Факторы 2FA-входа по умолчанию выключены — verify выпускает токены сразу.
+  const loginTwoFactor = { maybeBeginChallenge: jest.fn().mockResolvedValue(null) };
+  // Финализация — настоящий SessionIssueService поверх тех же моков: спеки проверяют
+  // сквозной результат (токены, сертификат, device tracking) как раньше.
+  const sessionIssue = new SessionIssueService(
     tokens as any,
     audit as any,
     certificate as any,
     deviceTracking as any,
     sessionMetadata as any,
+  );
+  const service = new VerifyTimestampService(
+    redis as any,
+    blockchain as any,
+    user as any,
+    audit as any,
     chainManifests as any,
     metrics as any,
+    loginTwoFactor as any,
+    sessionIssue,
   );
-  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata, chainManifests, metrics };
+  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata, chainManifests, metrics, loginTwoFactor };
 }
 
 beforeEach(() => {

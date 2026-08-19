@@ -82,6 +82,35 @@ export class SetRecoveryStrategyInputDTO {
   code!: string;
 }
 
+/** Настройки подтверждения входа (двухфакторная аутентификация при входе). */
+@ObjectType('LoginFactors')
+export class LoginFactorsDTO {
+  @Field(() => Boolean, { description: 'Приложение-аутентификатор подключено (можно включить код при входе)' })
+  totp_enrolled!: boolean;
+
+  @Field(() => Boolean, { description: 'Запрашивать код из приложения-аутентификатора при входе' })
+  totp_enabled!: boolean;
+
+  @Field(() => Boolean, { description: 'Почта подтверждена (можно включить код на почту при входе)' })
+  email_available!: boolean;
+
+  @Field(() => Boolean, { description: 'Запрашивать одноразовый код на почту при входе' })
+  email_enabled!: boolean;
+}
+
+/** Вход на изменение настроек подтверждения входа. */
+@InputType('SetLoginFactorsInput')
+export class SetLoginFactorsInputDTO {
+  @Field(() => Boolean, { description: 'Запрашивать код из приложения-аутентификатора при входе' })
+  totp_enabled!: boolean;
+
+  @Field(() => Boolean, { description: 'Запрашивать одноразовый код на почту при входе' })
+  email_enabled!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Код из приложения-аутентификатора (обязателен при изменении фактора приложения)' })
+  code?: string | null;
+}
+
 /** Вход на сигнал «Это не я» из настроек ЛК. */
 @InputType('ReportNotMeInput')
 export class ReportNotMeInputDTO {

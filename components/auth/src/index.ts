@@ -37,9 +37,9 @@ export type { MigrateParams, MigrateResult } from './migration'
 
 export { canonicalMigrationMessage, migrate } from './migration'
 export { isPasswordPolicyOk, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT, passwordPolicyErrors } from './password-policy'
-export type { FlowExecutorParams, HandshakeResult, LoginParams, LoginResult, LogoutParams, SessionTokens } from './oidc'
+export type { ConfirmLoginFactorParams, ConfirmLoginFactorResult, FlowExecutorParams, HandshakeResult, LoginFactorKind, LoginParams, LoginResult, LogoutParams, SecondFactorChallenge, SessionTokens } from './oidc'
 
-export { authenticateWithFlowExecutor, clearSession, configureCoopId, configureOidc, configureTokenStorage, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, restoreSession, warmUpAuthentik } from './oidc'
+export { authenticateWithFlowExecutor, clearSession, configureCoopId, configureOidc, configureTokenStorage, confirmLoginFactor, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, resendLoginEmailCode, restoreSession, warmUpAuthentik } from './oidc'
 export type { SignDocumentParams, TimestampSignature } from './signing'
 
 export { canonicalTimestampMessage, signChainDigest, signDocument, signTimestamp } from './signing'

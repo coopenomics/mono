@@ -35,6 +35,16 @@ interface VerifyResponse {
   degraded_reason?: string
 }
 
+/** Вид фактора подтверждения входа (2FA-логин). Порядок в массиве = порядок прохождения. */
+export type LoginFactorKind = 'totp' | 'email'
+
+/** Challenge второго фактора: сервер удержал токены до подтверждения кодами. */
+export interface SecondFactorChallenge {
+  second_factor_required: true
+  challenge_token: string
+  factors: LoginFactorKind[]
+}
+
 /** Извлечь AuthV2Error из тела ответа контроллера (OAuth2-формат { error, error_description }). */
 async function authErrorFromResponse(res: Response, fallback: AuthV2ErrorCode, fallbackMsg: string): Promise<AuthV2Error> {
   const body = (await res.json().catch(() => null)) as { error?: string, error_description?: string } | null
@@ -86,7 +96,19 @@ export async function performTimestampHandshake(apiUrl: string): Promise<Handsha
   if (!verifyRes.ok)
     throw await authErrorFromResponse(verifyRes, AuthV2ErrorCode.ChainVerificationFailed, `verify вернул HTTP ${verifyRes.status}`)
 
-  const v = (await verifyRes.json()) as VerifyResponse
+  const v = (await verifyRes.json()) as VerifyResponse | SecondFactorChallenge
+
+  // 2FA-вход: пароль и ключ доказаны, но у пайщика включены факторы — сервер удержал
+  // токены и выдал challenge. Наверх уходит типизированная ошибка с challenge в details:
+  // UI показывает шаг кода и завершает вход через `confirmLoginFactor` (two-factor.ts).
+  if ('second_factor_required' in v) {
+    throw new AuthV2Error(
+      AuthV2ErrorCode.SecondFactorRequired,
+      'Требуется подтверждение входа вторым фактором',
+      { challenge_token: v.challenge_token, factors: v.factors },
+    )
+  }
+
   setSession(base, { accessToken: v.access_token, refreshToken: v.refresh_token })
 
   return {
