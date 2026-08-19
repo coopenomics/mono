@@ -43,6 +43,7 @@ BaseDialog(
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PinPad } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
@@ -60,9 +61,16 @@ const submitting = ref(false);
 const canSubmit = computed(() => /^\d{4,6}$/.test(pin.value));
 
 const isUnlock = computed(() => session.pinUnlockPending);
+
+// На страницах входа диалог не показываем. Он перекрывает собой форму, а приходят
+// туда как раз затем, чтобы войти заново — предлагать там PIN-код значит держать
+// человека в том же круге, из которого он выбирается.
+const route = useRoute();
+const onAuthRoute = computed(() => route.path.includes('/auth/'));
+
 // Диалог виден при любом из двух триггеров; закрытие — только через действия.
 const visible = computed({
-  get: () => session.pinPrompt || session.pinUnlockPending,
+  get: () => !onAuthRoute.value && (session.pinPrompt || session.pinUnlockPending),
   set: () => undefined,
 });
 

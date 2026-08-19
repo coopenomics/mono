@@ -38,7 +38,7 @@ export type { MigrateParams } from './migration'
 export { canonicalMigrationMessage, migrate } from './migration'
 export type { FlowExecutorParams, HandshakeResult, LoginParams, LoginResult, LogoutParams, SessionTokens } from './oidc'
 
-export { authenticateWithFlowExecutor, configureCoopId, configureOidc, configureTokenStorage, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, restoreSession, warmUpAuthentik } from './oidc'
+export { authenticateWithFlowExecutor, clearSession, configureCoopId, configureOidc, configureTokenStorage, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover, restoreSession, warmUpAuthentik } from './oidc'
 export type { SignDocumentParams, TimestampSignature } from './signing'
 
 export { canonicalTimestampMessage, signChainDigest, signDocument, signTimestamp } from './signing'

@@ -5,6 +5,7 @@ import { Session } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import {
   clearPinCache,
+  clearSession,
   configureTokenStorage,
   getWallet,
   isWalletUnlocked,
@@ -338,14 +339,23 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     session.value = undefined;
     currentUserAccount.value = undefined;
     if (autoLockTimer) clearTimeout(autoLockTimer);
-    // CoopID-контур: затереть RAM-ключ, локальный PIN-кэш и маркер («забыть устройство»).
-    if (coopIdAccount.value) {
-      lockWallet();
-      const storage = coopStorage();
-      await clearPinCache(storage).catch(() => undefined);
-      await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
-      coopIdAccount.value = '';
-    }
+
+    // «Забыть устройство» целиком: ключ из памяти, PIN-кэш, маркер и токены.
+    //
+    // Чистим безусловно, а не только при построенной сессии. На PIN-гейте после
+    // перезагрузки сессии ещё нет — есть только токены и запертый keystore, — и
+    // при прежнем условии «Войти заново» не стирал ничего: следующая загрузка
+    // упиралась в тот же гейт, а под ним лежала форма входа, до которой было не
+    // добраться. Выйти из кабинета становилось нельзя вовсе.
+    //
+    // Токены затираем тоже: с ними одними гейт поднимется снова, даже без ключа.
+    lockWallet();
+    const storage = coopStorage();
+    await clearPinCache(storage).catch(() => undefined);
+    await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
+    clearSession();
+    coopIdAccount.value = '';
+    walletLocked.value = true;
     hasCustomPin.value = false;
     pinUnlockPending.value = false;
     pinPrompt.value = false;
