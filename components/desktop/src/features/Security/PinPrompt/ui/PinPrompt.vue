@@ -90,10 +90,14 @@ async function onSubmit(): Promise<void> {
 async function onSecondary(): Promise<void> {
   if (isUnlock.value) {
     // «Войти заново»: забыть устройство и вернуться на вход.
+    //
+    // Именно на страницу входа, а не на корень кооператива: с корня пайщика ещё
+    // надо провести до формы, а он сюда попал как раз потому, что войти не смог.
+    // Перезагрузка обязательна — она же и очищает состояние закрытой сессии.
     await session.close();
     const coopname = system.info.coopname;
     pin.value = '';
-    window.location.hash = `#/${coopname}`;
+    window.location.hash = `#/${coopname}/auth/signin`;
     window.location.reload();
   } else {
     // «Отмена»: подпись не состоится (ensureWalletUnlocked бросит).
