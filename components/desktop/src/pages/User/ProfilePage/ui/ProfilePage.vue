@@ -14,7 +14,19 @@
         //- Строки удостоверения оформлены одинаково, как везде на странице: слева
         //- подпись, справа значение. Раньше цепочка и уровень были самодельными
         //- блоками и выбивались из общего строя.
-        template(v-if='certificate')
+        //- Пока удостоверение едет с сервера, на его месте стоит каркас той же
+        //- формы. Раньше здесь на секунду появлялось «Удостоверение ещё не
+        //- выпущено» — пайщик успевал прочитать, что удостоверения у него нет,
+        //- и только потом оно возникало.
+        template(v-if='certLoading')
+          DataRow(label='Цепочка подписей')
+            template(#value-override)
+              q-skeleton(type='QChip', width='180px')
+          DataRow(label='Уровень верификации')
+            template(#value-override)
+              q-skeleton(type='QChip', width='96px')
+
+        template(v-else-if='certificate')
           DataRow(label='Цепочка подписей')
             template(#value-override)
               .cert__chain-cell
@@ -37,7 +49,11 @@
                 ) {{ label }}
 
       //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
-      .cert__qr(v-if='certificate')
+      .cert__qr(v-if='certLoading')
+        q-skeleton(type='rect', width='112px', height='112px')
+        q-skeleton(type='text', width='88px')
+
+      .cert__qr(v-else-if='certificate')
         CertificateQr(:jws='certificate.jws', :size='112')
         BaseButton(variant='ghost', size='sm', @click='openQr')
           template(#icon-left)
@@ -49,7 +65,7 @@
     //- на входе и требует ключей заверения кооператива; если их нет, войти можно,
     //- а удостоверения не будет.
     EmptyState(
-      v-if='!certificate',
+      v-if='!certLoading && !certificate',
       title='Удостоверение ещё не выпущено',
       body='Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.'
     )
@@ -204,6 +220,10 @@ const system = useSystemStore();
 
 // ── Криптографическое удостоверение пайщика (CoopID, Story 1.9) ──
 const certificate = ref<ParticipantCertificate | null>(null);
+// Отдельно от `certificate`: пустое удостоверение и ещё не приехавшее — разные
+// состояния, и путать их нельзя. Пока запрос в пути, показываем каркас, а не
+// «удостоверения нет».
+const certLoading = ref(true);
 
 onMounted(async () => {
   // Best-effort: отсутствие удостоверения (старый контур входа / сбой) не должно
@@ -212,6 +232,8 @@ onMounted(async () => {
     certificate.value = await fetchParticipantCertificate();
   } catch {
     certificate.value = null;
+  } finally {
+    certLoading.value = false;
   }
 });
 
