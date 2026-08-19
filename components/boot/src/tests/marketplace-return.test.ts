@@ -248,6 +248,32 @@ describe('Стол заказов — денежные места гаранти
     expect(d.process.process_type, 'у хэша заявки на возврат одно имя нитки').toBe('p.mkt.return')
   }, 300_000)
 
+  it('l2.pnam.side.13: обоснование проводки длиннее 255 байт проходит и сохраняется целиком', async () => {
+    // Обоснования пишутся человеческим языком, а кириллица занимает по два
+    // байта на символ — любой предел по длине отсекал бы осмысленные
+    // формулировки, поэтому ledger2 длину memo не ограничивает. Самое длинное
+    // обоснование канона — нога возврата взноса: она называет и заявление, и
+    // исходный заказ, и обе стороны транзита.
+    const rows = await historyOfProcess(chairmanToken, requestHash)
+    const retfee = rows.find(r => r.action === 'apply' && r.operationCode === 'o.brn.retfee')
+    expect(retfee, 'нога возврата взноса обязана быть в нитке').toBeTruthy()
+
+    const memo = retfee!.memo ?? ''
+    const bytes = Buffer.byteLength(memo, 'utf8')
+    expect(bytes, 'обоснование этой проводки штатно длиннее 255 байт — иначе случай не проверяем').toBeGreaterThan(255)
+
+    // Целиком — значит без обрезки ни в цепи, ни в parser2, ни в журнале
+    // контроллера: текст обязан быть законченным предложением, а не оборванным
+    // на границе буфера.
+    expect(memo.endsWith('…'), 'memo не должно приходить обрезанным многоточием').toBe(false)
+    expect(memo, `обоснование обязано доезжать целиком, пришло ${bytes} байт: «${memo}»`)
+      .toMatch(/из общего кошелька кооперативного участка$/)
+
+    // И длина не режется по границе байта: строка обязана быть валидным UTF-8
+    // без «хвоста» — round-trip через Buffer совпадает с исходной.
+    expect(Buffer.from(memo, 'utf8').toString('utf8')).toBe(memo)
+  }, 300_000)
+
   it('возврат — compensating forward: нитка исходной поставки не переписывается', async () => {
     const supply = await applyOpsOfProcess(chairmanToken, orderHash)
 

@@ -44,8 +44,8 @@ cases:
     expect: >
       операция проходит, и в данных экшена рядом с кодом операции стоит
       переданное имя нитки
-    test: ~
-    status: missing
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
 
   - id: l2.pnam.break.01
     level: contract
@@ -56,8 +56,8 @@ cases:
     expect: >
       операция отклоняется с текстом «Unknown process type», а не уходит в
       историю с процессом без названия
-    test: ~
-    status: missing
+    test: components/boot/src/tests/ledger2-process-naming.test.ts
+    status: passing
 
   - id: l2.pnam.side.01
     level: contract
@@ -259,8 +259,8 @@ cases:
     expect: >
       операция проходит, memo сохраняется целиком; отказа по длине нет ни в
       одной точке ledger2
-    test: ~
-    status: missing
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
 
 # 2026-08-18: заведён процесс `p.sov.tax` (перечисление удержанного налога) —
 # операция `o.sov.taxpay` уехала из контракта участков в контракт кооператива
