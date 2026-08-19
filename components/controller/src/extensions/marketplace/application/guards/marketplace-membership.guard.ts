@@ -50,11 +50,18 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // composition root, и сюда оно не попадает вовсе. Читать его из конфига
     // ядра расширению нельзя — это ровно тот секрет, который не должен
     // разъезжаться по коду.
-    if (hasServerSecret(request?.headers)) {
+    const user = request?.user as { username?: string; role?: string; status?: string } | undefined;
+
+    // Межсервисный обход по `server-secret` пропускает гвард без проверки
+    // членства — но ТОЛЬКО когда запрос действительно фоновый, то есть без
+    // пользователя. Если пользователь в запросе есть, обход не должен
+    // обрывать гвард на полпути: `currentMember` остался бы незаполненным, и
+    // резолвер с `@CurrentMarketplaceMember()` падал бы невнятным
+    // «MarketplaceMembershipGuard не отработал — currentMember отсутствует
+    // в context» вместо того, чтобы отработать от лица этого пользователя.
+    if (hasServerSecret(request?.headers) && !user?.username) {
       return true;
     }
-
-    const user = request?.user as { username?: string; role?: string; status?: string } | undefined;
 
     if (!user?.username) {
       throw new UnauthorizedException('Требуется авторизованный пользователь');
