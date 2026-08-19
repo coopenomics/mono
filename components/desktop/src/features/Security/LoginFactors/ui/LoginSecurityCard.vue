@@ -84,6 +84,7 @@ import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { api } from '../api';
 import type { ILoginFactors } from '../model';
+import TotpEnrollDialog from './TotpEnrollDialog.vue';
 
 const loading = ref(true);
 const saving = ref(false);
