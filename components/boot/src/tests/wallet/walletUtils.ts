@@ -63,6 +63,18 @@ export async function getUserProgramWalletAmount(blockchain: any, coopname: stri
   return wallet ? `${(parseFloat(wallet.available) + parseFloat(wallet.blocked)).toFixed(4)} RUB` : '0.0000 RUB'
 }
 
+/**
+ * Кооперативный агрегат программы: строка программы плюс её балансы.
+ *
+ * Балансы берутся из `ledger2::wallets` (scope=coopname, id = имя кошелька), а
+ * НЕ из полей `available`/`blocked` строки `soviet::programs`: те остались от
+ * прежней модели и стоят нулями. Пока хелпер читал их, каждый ассерт на
+ * прирост кошелька программы сравнивал ноль с ожидаемой суммой.
+ *
+ * Соответствие «программа → кошельки» — из реестра cooptypes, как и в
+ * getUserProgramWallet; у программы может быть несколько кошельков (ЦК =
+ * паевой + членский), тогда балансы складываются.
+ */
 export async function getCoopProgramWallet(blockchain: any, coopname: string, program_id: number) {
   const program = await blockchain.getTableRows(
     SovietContract.contractName.production,
@@ -73,7 +85,30 @@ export async function getCoopProgramWallet(blockchain: any, coopname: string, pr
     program_id.toString(),
   )
 
-  return program[0]
+  const row = program[0]
+  if (!row) return row
+
+  const walletNames = Ledger2.LEDGER2_USER_SHARED_PROGRAM_MAPPING
+    .filter((m: any) => m.required_program_id === program_id)
+    .map((m: any) => m.wallet_name as string)
+
+  if (walletNames.length === 0) return row
+
+  const wallets = await blockchain.getTableRows(_ledger2Contract, coopname, 'wallets', 100) as Array<{
+    id: string
+    available: string
+    blocked: string
+  }>
+
+  const mine = wallets.filter(w => walletNames.includes(w.id))
+  const sum = (field: 'available' | 'blocked') =>
+    mine.reduce((acc, w) => acc + Number.parseFloat(String(w[field]).split(' ')[0]), 0)
+
+  return {
+    ...row,
+    available: `${sum('available').toFixed(4)} RUB`,
+    blocked: `${sum('blocked').toFixed(4)} RUB`,
+  }
 }
 
 /**
