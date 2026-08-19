@@ -124,8 +124,11 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
         password: config.postgres.password,
         database: config.postgres.database,
         entities: [
-          'src/infrastructure/**/entities/*entity.{ts,js}',
-          'src/shared/**/entities/*entity.{ts,js}',
+          // Глоб от каталога самого модуля, а не от места запуска: в контейнере
+          // выполняется сборка (`dist/src/...`), и путь «src/...» не нашёл бы
+          // ни одной таблицы
+          path.join(__dirname, '../../..', 'infrastructure/**/entities/*entity.{ts,js}'),
+          path.join(__dirname, '../../..', 'shared/**/entities/*entity.{ts,js}'),
           // Таблица версий приехала из `src/shared/sync/entities/` в
           // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
           // глоб по `src/` её больше не находит. Классом — находит; DataSource

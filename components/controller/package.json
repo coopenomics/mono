@@ -18,7 +18,7 @@
   "scripts": {
     "deploy-testnet": "git checkout testnet && git merge main && git push origin testnet && git checkout main",
     "deploy-production": "git checkout production && git merge testnet && git push origin production && git checkout main",
-    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "start": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js",
     "dev": "nodemon --watch src --watch migrations --ext ts,js,env --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
     "test": "jest -i",
     "test:integration": "echo 'Integration tests run via @coopenomics/boot' && exit 0",
@@ -37,7 +37,7 @@
     "migration:rollback-latest": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts rollback-latest",
     "migration:status": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts status",
     "migration:list": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts list",
-    "migrate": "ts-node -r tsconfig-paths/register src/index.ts --migrate",
+    "migrate": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate",
     "prettier:fix": "prettier --write **/*.js",
     "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
     "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
@@ -48,7 +48,8 @@
     "typecheck": "tsc --noEmit",
     "docs": "spectaql spectaql-config.yml",
     "generate-client": "node ./scripts/generate-client.cjs",
-    "generate-schema": "ts-node -r ./scripts/register-schema-gen-env.cjs -r tsconfig-paths/register scripts/generate-schema.ts"
+    "generate-schema": "ts-node -r ./scripts/register-schema-gen-env.cjs -r tsconfig-paths/register scripts/generate-schema.ts",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-build-assets.cjs"
   },
   "keywords": [
     "node",

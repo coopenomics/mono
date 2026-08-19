@@ -1,0 +1,28 @@
+{
+  // Сборка того, что уезжает в контейнер. Отдельный файл от tsconfig.json,
+  // потому что базовый описывает ещё и тесты со скриптами: их компилировать
+  // незачем, а часть из них тянет devDependencies, которых в образе нет.
+  //
+  // rootDir — корень пакета, поэтому в dist попадают и `src/`, и `migrations/`:
+  // менеджер миграций читает каталог с диска, и он обязан лежать рядом с кодом.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "sourceMap": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts", "migrations/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "scripts",
+    "src/scripts"
+  ]
+}
