@@ -16,6 +16,8 @@ export enum AuthV2ErrorCode {
   InvalidRecoveryToken = 'invalid_recovery_token',
   InvalidOfflineCode = 'invalid_offline_code',
   InsufficientVerification = 'insufficient_verification',
+  /** Ротация ключа недоступна: пайщик ещё не принят (кандидат) — регистрация не завершена. */
+  RotationUnavailable = 'rotation_unavailable',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */

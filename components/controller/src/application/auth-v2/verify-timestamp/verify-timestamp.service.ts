@@ -184,6 +184,23 @@ export class VerifyTimestampService {
       liveReadOk = false;
     }
 
+    // Кандидат (регистрация не завершена): аккаунта в цепи ещё нет — владение
+    // ключом сверяется с `public_key` его учётки, зафиксированным при регистрации
+    // (паттерн легаси-`loginUserWithSignature`). Финализация и manifest-кэш
+    // неприменимы: on-chain состояния не существует. Для принятого пайщика ветка
+    // не срабатывает никогда (`is_registered=true`) — обойти finalized-only gate
+    // через неё нельзя.
+    const user = await this.userDomainService.getUserByUsername(sub);
+    const candidatePath = !liveAccount && !user.is_registered;
+    if (candidatePath) {
+      const candidateOk =
+        !!user.public_key && this.blockchainPort.hasActiveKey(manifestToAccount([user.public_key]), recoveredKey);
+      if (!candidateOk) {
+        await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'candidate_key_mismatch' }, ip: input.ip });
+        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
+      }
+    }
+
     // finalized-only gate (Story 9.6): живому head-снимку доверяем только если смена
     // active-permission уже необратима (last_updated не новее границы LIB). Иначе
     // (как и при недоступном узле) сверяем ключ против финализированного кэша.
@@ -195,7 +212,9 @@ export class VerifyTimestampService {
         blockIntervalMs: config.blockchain.blockIntervalMs,
       });
 
-    if (liveReadOk && liveFinalized) {
+    if (candidatePath) {
+      // владение уже доказано против public_key учётки — chain-ветки неприменимы.
+    } else if (liveReadOk && liveFinalized) {
       if (!liveAccount || !this.blockchainPort.hasActiveKey(liveAccount, recoveredKey)) {
         await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
         throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
@@ -220,7 +239,6 @@ export class VerifyTimestampService {
     }
 
     // успех → выпуск токенов платформенным механизмом (id_token/certificate — Story 1.8).
-    const user = await this.userDomainService.getUserByUsername(sub);
     const pair = await this.tokens.generateAuthTokens(user.id);
 
     // participant_certificate (Story 1.8) — best-effort: сбой выпуска не валит логин.

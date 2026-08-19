@@ -27,7 +27,7 @@ BaseCard(
         label='Новый пароль',
         type='password',
         autocomplete='new-password',
-        :hint='`Минимум ${MIN_PASSWORD_LENGTH} символов`',
+        :hint='PASSWORD_POLICY_HINT',
         :error='passwordError'
       )
       BaseInput(
@@ -54,9 +54,8 @@ import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/sha
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
+import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useSetPassword } from '../model';
-
-const MIN_PASSWORD_LENGTH = 8;
 
 const session = useSessionStore();
 const globalStore = useGlobalStore();
@@ -77,10 +76,10 @@ const showOffer = computed(
   () => !!globalStore.username && !session.isCoopIdSession && !alreadyMigrated.value,
 );
 
-const isValidPassword = computed(() => password.value.length >= MIN_PASSWORD_LENGTH);
+const isValidPassword = computed(() => passwordPolicyErrors(password.value).length === 0);
 const passwordsMatch = computed(() => !!repeat.value && repeat.value === password.value);
 const passwordError = computed(() =>
-  password.value && !isValidPassword.value ? `Минимум ${MIN_PASSWORD_LENGTH} символов` : '',
+  password.value ? passwordPolicyErrors(password.value).join(', ') : '',
 );
 const repeatError = computed(() =>
   repeat.value && !passwordsMatch.value ? 'Пароли не совпадают' : '',

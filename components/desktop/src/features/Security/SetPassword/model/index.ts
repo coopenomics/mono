@@ -9,6 +9,10 @@ import { useSessionStore } from 'src/entities/Session';
  * профиля, доказываем владение и ставим пароль в server-vault через SDK `migrate()`.
  * Приватный ключ на сервер не уходит — только шифр. Сессию НЕ переустанавливаем
  * (она и так активна); пароль заработает на следующем входе.
+ *
+ * `migrate()` при этом РОТИРУЕТ ключ: старый (который пайщик хранил у себя)
+ * гаснет on-chain, в vault ложится новый. Текущая сессия продолжает подписывать —
+ * для этого кладём новый ключ в keystore вместо погашенного.
  */
 export function useSetPassword() {
   const globalStore = useGlobalStore();
@@ -20,7 +24,10 @@ export function useSetPassword() {
       throw new Error('Не удалось определить email для установки пароля.');
     }
     const privateKey = await globalStore.ensureSigningKey();
-    await migrate({ email, privateKey, newPassword });
+    const result = await migrate({ email, privateKey, newPassword });
+    if (result.rotated) {
+      await globalStore.setWif(result.username, result.privateKey);
+    }
     LocalStorage.set(`coopid:migrated:${email}`, true);
   }
 

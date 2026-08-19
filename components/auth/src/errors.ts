@@ -21,6 +21,8 @@ export enum AuthV2ErrorCode {
   InvalidRecoveryToken = 'invalid_recovery_token',
   InvalidOfflineCode = 'invalid_offline_code',
   InsufficientVerification = 'insufficient_verification',
+  /** Ротация ключа недоступна: пайщик ещё не принят (кандидат) — регистрация не завершена. */
+  RotationUnavailable = 'rotation_unavailable',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -101,7 +103,7 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     keepSession: false,
   },
   [AuthV2ErrorCode.WeakPassword]: {
-    message: 'Пароль слишком простой. Используйте не менее 12 символов и не повторяйте типичные сочетания.',
+    message: 'Пароль слишком простой. Нужно минимум 8 символов, хотя бы одна цифра и один спецсимвол.',
     action: 'retry',
     keepSession: false,
   },
@@ -180,6 +182,12 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     message: 'Недостаточный уровень верификации для этого действия. Обратитесь в кооператив.',
     action: 'contact_support',
     // авторизационное ограничение по уровню доверия — сессия валидна, не разлогиниваем.
+    keepSession: true,
+  },
+  [AuthV2ErrorCode.RotationUnavailable]: {
+    message: 'Смена ключа доступна после завершения регистрации.',
+    action: 'retry',
+    // технический код для авто-повтора без ротации; до экрана в норме не доходит.
     keepSession: true,
   },
   [AuthV2ErrorCode.NetworkError]: {

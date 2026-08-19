@@ -23,7 +23,7 @@
         label="Новый пароль"
         type="password"
         autocomplete="new-password"
-        :hint="`Минимум ${MIN_PASSWORD_LENGTH} символов`"
+        :hint="PASSWORD_POLICY_HINT"
         :error="passwordError"
         required
       />
@@ -54,6 +54,7 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
+import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -66,8 +67,6 @@ const props = defineProps<{
   /** Coopname кооператива — для возврата на вход после успеха. */
   coopname: string;
 }>();
-
-const MIN_PASSWORD_LENGTH = 8;
 
 const { confirmRecovery } = useRecoverAccess();
 const { emailIsValid } = useCreateUser();
@@ -82,7 +81,7 @@ const errorMessage = ref('');
 const isValidEmail = computed(() => emailIsValid(email.value));
 const isValidTotp = computed(() => totp.value.length === 6);
 const isValidPassword = computed(
-  () => newPassword.value.length >= MIN_PASSWORD_LENGTH,
+  () => passwordPolicyErrors(newPassword.value).length === 0,
 );
 const passwordsMatch = computed(
   () => !!repeatPassword.value && repeatPassword.value === newPassword.value,
@@ -95,9 +94,7 @@ const totpError = computed(() =>
   totp.value && !isValidTotp.value ? 'Код состоит из 6 цифр' : '',
 );
 const passwordError = computed(() =>
-  newPassword.value && !isValidPassword.value
-    ? `Минимум ${MIN_PASSWORD_LENGTH} символов`
-    : '',
+  newPassword.value ? passwordPolicyErrors(newPassword.value).join(', ') : '',
 );
 const repeatError = computed(() =>
   repeatPassword.value && !passwordsMatch.value ? 'Пароли не совпадают' : '',

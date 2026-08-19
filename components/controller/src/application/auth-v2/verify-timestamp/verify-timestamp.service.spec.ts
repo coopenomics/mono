@@ -39,6 +39,10 @@ function makeService(overrides: {
   accountLastUpdated?: string;
   /** Результат кворумного чтения ключей (Story 9.7). */
   quorum?: { agreed: boolean; keys: string[]; samples: Array<{ url: string; keys: string[] }> };
+  /** Аккаунта в цепи нет (кандидат: getAccount → null, не ошибка). */
+  getAccountNull?: boolean;
+  /** Учётка пайщика (кандидатский путь: is_registered=false + public_key). */
+  userRecord?: Record<string, unknown>;
 }) {
   const redis = {
     consumeSingleUse: overrides.consume ?? jest.fn().mockResolvedValue(ACCOUNT),
@@ -52,6 +56,8 @@ function makeService(overrides: {
       : jest.fn().mockResolvedValue(overrides.info ?? { head_block_time: overrides.headBlockTime ?? TS }),
     getAccount: overrides.getAccountThrows
       ? jest.fn().mockRejectedValue(new Error('down'))
+      : overrides.getAccountNull
+      ? jest.fn().mockResolvedValue(null)
       : jest.fn().mockResolvedValue({
           account_name: ACCOUNT,
           permissions: [
@@ -71,7 +77,11 @@ function makeService(overrides: {
       .fn()
       .mockResolvedValue(overrides.quorum ?? { agreed: true, keys: [PUB], samples: [{ url: 'rpc-1', keys: [PUB] }] }),
   };
-  const user = { getUserByUsername: jest.fn().mockResolvedValue({ id: 'user-uuid-1' }) };
+  const user = {
+    getUserByUsername: jest
+      .fn()
+      .mockResolvedValue(overrides.userRecord ?? { id: 'user-uuid-1', is_registered: true, public_key: '' }),
+  };
   const tokens = {
     generateAuthTokens: jest.fn().mockResolvedValue({
       access: { token: 'access-jwt', expires: new Date() },
@@ -410,5 +420,53 @@ describe('VerifyTimestampService.verify', () => {
       expect.objectContaining({ event: 'coopid.chain.divergent_rpc', result: 'failure' }),
     );
     expect(chainManifests.put).not.toHaveBeenCalled();
+  });
+});
+
+describe('кандидат (регистрации в цепи ещё нет): сверка с public_key учётки', () => {
+  it('аккаунт в цепи отсутствует, ключ совпал с учёткой → вход без degraded', async () => {
+    const { service, blockchain, audit } = makeService({
+      getAccountNull: true,
+      userRecord: { id: 'user-uuid-2', is_registered: false, public_key: PUB },
+    });
+    const token = await makeToken(ACCOUNT, 'jti-cand');
+    const signature = signCanonical(TS, 'jti-cand', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
+    expect(res).not.toHaveProperty('degraded');
+    // manifest-кэш в кандидатском пути не участвует
+    expect(blockchain.readActiveKeysQuorum).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ result: 'success' }));
+  });
+
+  it('ключ не совпал с учёткой → ChainVerificationFailed', async () => {
+    const { service, metrics } = makeService({
+      getAccountNull: true,
+      hasActiveKey: false,
+      userRecord: { id: 'user-uuid-2', is_registered: false, public_key: 'PUB_K1_other' },
+    });
+    const token = await makeToken(ACCOUNT, 'jti-cand2');
+    const signature = signCanonical(TS, 'jti-cand2', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.ChainVerificationFailed,
+    });
+    expect(metrics.loginSuccess).not.toHaveBeenCalled();
+  });
+
+  it('ПРИНЯТЫЙ пайщик без аккаунта в цепи НЕ пускается кандидатским путём (нет обхода finalized-gate)', async () => {
+    // is_registered=true + отсутствие аккаунта → старое поведение: degraded-фолбэк на кэш, кэша нет → отказ
+    const { service } = makeService({
+      getAccountNull: true,
+      userRecord: { id: 'user-uuid-1', is_registered: true, public_key: PUB },
+    });
+    const token = await makeToken(ACCOUNT, 'jti-reg');
+    const signature = signCanonical(TS, 'jti-reg', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.CooposDegraded,
+    });
   });
 });

@@ -8,6 +8,7 @@ import { RECOVERY_FINALIZATION_PORT } from '~/domain/auth-v2/ports/recovery-fina
 import type { IRecoveryFinalization } from '~/domain/auth-v2/ports/recovery-finalization.port';
 import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuditService } from '../audit/audit.service';
+import { passwordPolicyErrors } from '../password-policy';
 
 /** Вход confirm: токен magic-link + второй фактор (TOTP) + новый ключевой материал. */
 export interface RecoveryConfirmInput {
@@ -55,6 +56,11 @@ export class RecoveryConfirmService {
    * username нужен — его и отдаём здесь, без отдельного whoami-by-token эндпоинта.
    */
   async confirm(input: RecoveryConfirmInput, ip: string | null): Promise<{ username: string }> {
+    // 0. Парольная политика — ДО потребления токена: слабый пароль не сжигает ссылку.
+    const policyErrors = passwordPolicyErrors(input.newPassword ?? '');
+    if (policyErrors.length > 0)
+      throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, `Пароль слишком простой: ${policyErrors.join(', ').toLowerCase()}`);
+
     // 1. Неразрушающее чтение: кому принадлежит токен (без потребления).
     const payload = await this.tokenStore.peek(input.token);
     if (!payload) throw this.invalidToken();

@@ -40,6 +40,9 @@ const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   [AuthV2ErrorCode.InvalidCredentials]: HttpStatus.BAD_REQUEST,
   // 400: пароль не проходит требования стойкости (Story 11.4 / FR58).
   [AuthV2ErrorCode.WeakPassword]: HttpStatus.BAD_REQUEST,
+  // 409: ротация ключа недоступна кандидату (регистрация не завершена) —
+  // клиент по этому коду прозрачно повторяет миграцию без ротации.
+  [AuthV2ErrorCode.RotationUnavailable]: HttpStatus.CONFLICT,
   [AuthV2ErrorCode.VaultDecryptionFailed]: HttpStatus.BAD_REQUEST,
   // 401: провал второго этапа аутентификации (владение ключом не доказано).
   [AuthV2ErrorCode.TimestampTooOld]: HttpStatus.UNAUTHORIZED,

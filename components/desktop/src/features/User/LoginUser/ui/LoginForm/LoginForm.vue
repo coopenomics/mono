@@ -38,15 +38,16 @@
     <!-- Шаг миграции: вошли по ключу — предлагаем задать пароль -->
     <template v-else>
       <BaseBanner variant="info">
-        Ключ доступа будет зашифрован паролем и сохранён на сервере — держать
-        его у себя больше не нужно. Дальше вход в кооператив только по паролю.
+        Взамен введённого ключа будет выпущен новый — он хранится в зашифрованном
+        виде, и открывает его только ваш пароль. Старый ключ перестанет
+        действовать, хранить его больше не нужно. Дальше вход — только по паролю.
       </BaseBanner>
       <BaseInput
         v-model="newPassword"
         label="Новый пароль"
         type="password"
         autocomplete="new-password"
-        :hint="`Минимум ${MIN_PASSWORD_LENGTH} символов`"
+        :hint="PASSWORD_POLICY_HINT"
         :error="passwordError"
         required
       />
@@ -84,9 +85,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { env, updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
 import { looksLikeWif } from 'src/shared/lib/utils/looksLikeWif';
-import { warmUpAuthentik } from '@coopenomics/auth';
-
-const MIN_PASSWORD_LENGTH = 8;
+import { PASSWORD_POLICY_HINT, passwordPolicyErrors, warmUpAuthentik } from '@coopenomics/auth';
 
 // Шаг формы наружу: заголовок карточки принадлежит не форме, а тому, кто её
 // показывает, — а меняться он обязан вместе с шагом.
@@ -116,9 +115,7 @@ onMounted(() => {
 });
 
 const passwordError = computed(() =>
-  newPassword.value && newPassword.value.length < MIN_PASSWORD_LENGTH
-    ? `Минимум ${MIN_PASSWORD_LENGTH} символов`
-    : '',
+  newPassword.value ? passwordPolicyErrors(newPassword.value).join(', ') : '',
 );
 const repeatError = computed(() =>
   repeatPassword.value && repeatPassword.value !== newPassword.value
@@ -127,7 +124,7 @@ const repeatError = computed(() =>
 );
 const canMigrate = computed(
   () =>
-    newPassword.value.length >= MIN_PASSWORD_LENGTH &&
+    passwordPolicyErrors(newPassword.value).length === 0 &&
     repeatPassword.value === newPassword.value,
 );
 
