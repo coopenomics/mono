@@ -83,7 +83,12 @@ const hasBalance = computed(
 const isBalanceClickable = computed(() => !!props.balanceRoute);
 const balanceTag = computed(() => (props.balanceRoute ? 'router-link' : 'div'));
 
-function toggleCollapsed(): void {
+function toggleCollapsed(event: MouseEvent): void {
+  // Диалог PIN-кода при закрытии возвращает фокус тому, кто его вызвал, и на
+  // замке оставалась рамка фокуса. Убираем её сразу — но только когда нажали
+  // мышью: `detail === 0` означает Enter или пробел с клавиатуры, и там фокус
+  // терять нельзя, иначе человек потеряет место, откуда продолжать.
+  if (event.detail > 0) (event.currentTarget as HTMLElement | null)?.blur();
   emit('update:collapsed', !props.collapsed);
 }
 function onBalanceClick(event: MouseEvent): void {
@@ -98,9 +103,30 @@ function onBalanceClick(event: MouseEvent): void {
    Поворота больше нет: замок не переворачивается, он меняет форму (lock_open →
    lock), и подмену видно без движения. */
 .rail__usercard__collapse :deep(.q-icon) {
-  font-size: 15px;
+  font-size: 16px;
+  /* Строчный интерлиньяж выше самого глифа, и в низкой строке замок обрезало
+     снизу. Единица приравнивает высоту строки к размеру знака. */
+  line-height: 1;
   color: inherit;
   transition: color var(--p-dur-fast, 120ms) ease;
+}
+
+/* Рамку фокуса показываем только при переходе с клавиатуры: после клика мышью
+   она читалась как «кнопка залипла». */
+.rail__usercard__collapse:focus:not(:focus-visible) {
+  outline: none;
+}
+.rail__usercard__collapse:focus-visible {
+  outline: 2px solid var(--p-primary);
+  outline-offset: -2px;
+}
+
+/* Свёрнутая строка: canon отводит ей 26px, чего знаку не хватает — низ замка
+   срезала граница карточки (у неё `overflow: hidden`). Даём строке высоту под
+   знак целиком. */
+.rail__usercard.is-collapsed .rail__usercard__collapse {
+  height: 34px;
+  padding: 0;
 }
 /* Запертое состояние — сдержанный акцент: значок заметен, но не тревожит. */
 .rail__usercard.is-collapsed .rail__usercard__collapse :deep(.q-icon) {
@@ -133,6 +159,16 @@ function onBalanceClick(event: MouseEvent): void {
   padding-bottom: 0;
   border-top-width: 0;
   border-bottom-width: 0;
+}
+/* Схлопнутая по высоте кнопка «Пополнить» продолжала занимать свою долю ширины,
+   и замок стоял не в середине строки, а в середине остатка. Убираем её из
+   раскладки целиком — строка достаётся замку. */
+.rail__usercard.is-collapsed .rail__action--primary {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* === Clickable balance ===
