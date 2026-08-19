@@ -251,6 +251,10 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     armAutoLock();
   };
 
+  // Подпись документов берёт ключ из общего стора и о запертом кошельке не знает.
+  // Отдаём туда отпирание: заперто — спросит PIN, а не уронит подпись.
+  globalStore.setUnlockProvider(() => ensureWalletUnlocked());
+
   /**
    * Верен ли PIN-код.
    *

@@ -5,6 +5,7 @@ import { client } from 'src/shared/api/client';
 import { useGlobalStore } from 'src/shared/store';
 import { BaseBadge, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm, type MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
 import { useMarketplaceRealtime, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
@@ -162,9 +163,8 @@ function bump(offer: CoopStockOffer, sign: 1 | -1): void {
 }
 
 async function sendProposal(): Promise<void> {
-  const wifKey = globalStore.wif?.toString();
+  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
   if (!wifKey) {
-    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
     return;
   }
   sending.value = true;

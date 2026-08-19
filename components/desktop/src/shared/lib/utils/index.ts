@@ -22,3 +22,4 @@ export * from './schema';
 export * from './looksLikeWif';
 export * from './fileToBase64';
 export * from './marketplaceOfferImages';
+export * from './signingKey';

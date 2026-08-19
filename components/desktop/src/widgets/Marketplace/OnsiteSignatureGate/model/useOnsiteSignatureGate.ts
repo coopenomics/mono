@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   listAplReceptionsAsSupplier,
@@ -130,10 +131,8 @@ async function refresh(source = 'ручной'): Promise<void> {
 }
 
 async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
-  const global = useGlobalStore();
-  const wif = global.wif?.toString();
+  const wif = await signingKeyOrAlert('Не удалось получить ключ поставщика для подписи');
   if (!wif) {
-    FailAlert(new Error('Приватный ключ поставщика не найден. Войдите в кооператив.'));
     return;
   }
   signingKey.value = group.key;
@@ -165,12 +164,11 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
  * выдаётся сразу. Никакого отдельного «Принять»: принятие = подпись акта.
  */
 async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
-  const global = useGlobalStore();
-  const wifKey = global.wif?.toString();
+  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
   if (!wifKey) {
-    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив заново.'));
     return;
   }
+  const global = useGlobalStore();
   signingKey.value = task.id;
   try {
     const payload = await getStockProposalSignablePayloads(task.id);

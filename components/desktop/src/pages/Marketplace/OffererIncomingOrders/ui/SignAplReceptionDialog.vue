@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
@@ -34,7 +34,6 @@ const emit = defineEmits<{
   (e: 'signed'): void;
 }>();
 
-const globalStore = useGlobalStore();
 const signing = ref(false);
 const done = ref(0);
 const previewHtml = ref<string>('');
@@ -119,11 +118,8 @@ async function loadPreview(): Promise<void> {
 async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
-  const wif = globalStore.wif?.toString();
-  if (!wif) {
-    FailAlert(new Error('Приватный ключ поставщика не найден. Войдите в кооператив.'));
-    return;
-  }
+  const wif = await signingKeyOrAlert('Не удалось получить ключ поставщика для подписи');
+  if (!wif) return;
 
   signing.value = true;
   done.value = 0;

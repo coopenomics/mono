@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import {
   Avatar,
   BaseBadge,
@@ -628,11 +629,8 @@ async function loadPreview(): Promise<void> {
 async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
-  const wif = globalStore.wif?.toString();
-  if (!wif) {
-    FailAlert(new Error('Приватный ключ оператора не найден. Войдите в кооператив.'));
-    return;
-  }
+  const wif = await signingKeyOrAlert('Не удалось получить ключ оператора для подписи');
+  if (!wif) return;
 
   signing.value = true;
   done.value = 0;

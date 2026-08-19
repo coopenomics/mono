@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { BaseButton, BaseCard, BaseInput } from 'src/shared/ui/base';
 import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
@@ -170,11 +171,8 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Заявление ещё формируется, подождите.'));
     return;
   }
-  const wifKey = globalStore.wif?.toString();
-  if (!wifKey) {
-    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив заново.'));
-    return;
-  }
+  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
+  if (!wifKey) return;
 
   submitting.value = true;
   try {

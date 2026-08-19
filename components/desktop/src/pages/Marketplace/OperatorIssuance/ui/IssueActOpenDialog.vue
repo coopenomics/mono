@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { BaseButton, BaseBadge, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
@@ -376,11 +377,8 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Фактическое количество и цена должны быть больше нуля по всем позициям.'));
     return;
   }
-  const wifKey = globalStore.wif?.toString();
-  if (!wifKey) {
-    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
-    return;
-  }
+  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
+  if (!wifKey) return;
   if (!recipientAccount.value || !issueBraname.value) {
     FailAlert(new Error('Не определён получатель или пункт выдачи.'));
     return;

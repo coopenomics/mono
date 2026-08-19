@@ -19,6 +19,14 @@ interface IGlobalStore {
   setWif: (newUsername: string, key: string) => Promise<void>;
   useSessionKey: (account: string, key: string) => void;
   clearSessionKey: () => void;
+  /**
+   * Ключ для подписи, с отпиранием кошелька по необходимости. Единственный
+   * правильный способ добраться до ключа: `wif` напрямую не знает, что кошелёк
+   * заперт, и подпись падала бы вместо запроса PIN-кода.
+   */
+  ensureSigningKey: () => Promise<string>;
+  /** Регистрирует отпирание кошелька (ставит контур CoopID при инициализации). */
+  setUnlockProvider: (provider: (() => Promise<void>) | null) => void;
   setTokens: (newTokens: ITokens) => Promise<void>;
   logout: () => Promise<void>;
   init: () => void;
@@ -131,6 +139,33 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
   /** Убирает ключ из памяти, не трогая браузерное хранилище (авто-лок, запирание). */
   const clearSessionKey = () => {
     wif.value = undefined;
+  };
+
+  /**
+   * Отпирание кошелька, зарегистрированное контуром CoopID.
+   *
+   * Инъекция, а не прямой вызов: этот стор лежит слоем ниже сессии и знать о ней
+   * не должен. Тем же приёмом сюда приходит и источник access-токена.
+   */
+  let unlockProvider: (() => Promise<void>) | null = null;
+  const setUnlockProvider = (provider: (() => Promise<void>) | null) => {
+    unlockProvider = provider;
+  };
+
+  /**
+   * Ключ для подписи; если кошелёк заперт — сначала отпирает его.
+   *
+   * Подпись документов (повестка совета, заявления, акты) собирается классом SDK,
+   * который берёт ключ строкой. Раньше её брали прямо из `wif`, и запертый кошелёк
+   * ронял подпись с «Приватный ключ не установлен» вместо того, чтобы спросить
+   * PIN-код. Отпирание попутно продлевает получасовой отсчёт — как и любая другая
+   * подпись.
+   */
+  const ensureSigningKey = async (): Promise<string> => {
+    if (wif.value) return wif.value.toString();
+    if (unlockProvider) await unlockProvider();
+    if (!wif.value) throw new Error('Приватный ключ не установлен');
+    return wif.value.toString();
   };
 
   const setTokens = async (newTokens: ITokens) => {
@@ -283,6 +318,8 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     setWif,
     useSessionKey,
     clearSessionKey,
+    ensureSigningKey,
+    setUnlockProvider,
     setTokens,
     logout,
     signDigest,

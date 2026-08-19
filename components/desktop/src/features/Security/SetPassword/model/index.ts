@@ -16,10 +16,10 @@ export function useSetPassword() {
 
   async function setPassword(newPassword: string): Promise<void> {
     const email = session.providerAccount?.email;
-    const privateKey = globalStore.wif?.toString();
-    if (!email || !privateKey) {
-      throw new Error('Не удалось определить ключ доступа или email для установки пароля.');
+    if (!email) {
+      throw new Error('Не удалось определить email для установки пароля.');
     }
+    const privateKey = await globalStore.ensureSigningKey();
     await migrate({ email, privateKey, newPassword });
     LocalStorage.set(`coopid:migrated:${email}`, true);
   }
