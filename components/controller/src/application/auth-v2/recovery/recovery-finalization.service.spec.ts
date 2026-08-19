@@ -38,8 +38,10 @@ function setup() {
   };
   const authentikAdmin = {
     findUserPk: jest.fn().mockResolvedValue(42),
+    ensureUser: jest.fn().mockResolvedValue(77),
     setPassword: jest.fn().mockResolvedValue(undefined),
   };
+  const users = { getUserByUsername: jest.fn().mockResolvedValue({ username: 'ant', email: 'ant@coop.test' }) };
   const vault = { store: jest.fn().mockResolvedValue(undefined) };
   const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 3 }) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -47,12 +49,13 @@ function setup() {
   const service = new RecoveryFinalizationService(
     chain as never,
     authentikAdmin as never,
+    users as never,
     vault as never,
     sessions as never,
     audit as never,
     securityEvents as never,
   );
-  return { service, chain, authentikAdmin, vault, sessions, audit, securityEvents };
+  return { service, chain, authentikAdmin, users, vault, sessions, audit, securityEvents };
 }
 
 describe('RecoveryFinalizationService (Story 3.3)', () => {
@@ -111,15 +114,17 @@ describe('RecoveryFinalizationService (Story 3.3)', () => {
     );
   });
 
-  it('нет учётки authentik (findUserPk=null) → throw, vault и changekey не трогаются', async () => {
-    const { service, chain, authentikAdmin, vault } = setup();
+  it('нет учётки authentik (легаси-пайщик без пароля) → ensureUser по email и штатная финализация', async () => {
+    const { service, chain, authentikAdmin, users, vault } = setup();
     authentikAdmin.findUserPk.mockResolvedValueOnce(null);
 
-    await expect(service.finalize(INPUT)).rejects.toThrow();
+    await service.finalize(INPUT);
 
-    expect(authentikAdmin.setPassword).not.toHaveBeenCalled();
-    expect(vault.store).not.toHaveBeenCalled();
-    expect(chain.changeKey).not.toHaveBeenCalled();
+    expect(users.getUserByUsername).toHaveBeenCalledWith('ant');
+    expect(authentikAdmin.ensureUser).toHaveBeenCalledWith({ username: 'ant', email: 'ant@coop.test', name: 'ant' });
+    expect(authentikAdmin.setPassword).toHaveBeenCalledWith(77, 'pw');
+    expect(vault.store).toHaveBeenCalled();
+    expect(chain.changeKey).toHaveBeenCalled();
   });
 
   it('сбой setPassword (IdP недоступен) → vault и changekey не трогаются (откат на старые креды)', async () => {

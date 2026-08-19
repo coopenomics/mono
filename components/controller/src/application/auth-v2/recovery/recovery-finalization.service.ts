@@ -3,6 +3,8 @@ import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { AUTHENTIK_ADMIN_PORT } from '~/domain/auth-v2/ports/authentik-admin.port';
 import type { IAuthentikAdminPort } from '~/domain/auth-v2/ports/authentik-admin.port';
+import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
+import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import type {
   IRecoveryFinalization,
@@ -46,6 +48,7 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
   constructor(
     @Inject(BLOCKCHAIN_PORT) private readonly chain: BlockchainPort,
     @Inject(AUTHENTIK_ADMIN_PORT) private readonly authentikAdmin: IAuthentikAdminPort,
+    @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     private readonly vault: VaultService,
     private readonly sessions: SessionsService,
     private readonly audit: AuditService,
@@ -62,12 +65,16 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
     // 1. Новый пароль в authentik — ПЕРВЫМ (Story 12.1). Запись во внешний IdP — самый
     //    вероятный сбой; если падает здесь, vault и цепь ещё не тронуты → откат на старые
     //    креды, чистый повтор восстановления (см. JSDoc про порядок). Пароль не логируется.
-    const userPk = await this.authentikAdmin.findUserPk(input.username);
+    //
+    //    Учётки может ещё НЕ БЫТЬ: пайщик легаси-контура (вход по ключу, пароль не
+    //    задавал) вправе включить TOTP из настроек — TOTP хранится у controller'а,
+    //    а не в authentik, поэтому «TOTP есть ⇒ учётка есть» не выполняется. Для
+    //    такого пайщика восстановление и есть переход на пароль — заводим учётку
+    //    тем же ensureUser, что и миграция (email — из его пользовательской записи).
+    let userPk = await this.authentikAdmin.findUserPk(input.username);
     if (userPk === null) {
-      // Недостижимо в норме: recovery требует включённого TOTP (Story 3.6), а TOTP —
-      // authenticator authentik, значит учётка существует. Если нет — рассинхрон состояния;
-      // молча не создаём (нет email-контекста для ensureUser), сигналим инвариант.
-      throw new Error(`recovery.finalize: учётка authentik для ${input.username} не найдена`);
+      const user = await this.users.getUserByUsername(input.username);
+      userPk = await this.authentikAdmin.ensureUser({ username: input.username, email: user.email, name: input.username });
     }
     await this.authentikAdmin.setPassword(userPk, input.newPassword);
 

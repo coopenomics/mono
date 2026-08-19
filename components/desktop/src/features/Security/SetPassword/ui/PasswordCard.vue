@@ -13,9 +13,19 @@ BaseCard(
           q-icon(name='password', size='18px')
         | Задать пароль
 
-  .pwd__done(v-else)
-    q-icon.pwd__done-ico(name='check_circle', size='20px')
-    span Вход по паролю настроен.
+  template(v-else)
+    .pwd__done
+      q-icon.pwd__done-ico(name='check_circle', size='20px')
+      span Вход по паролю настроен.
+    .pwd__actions
+      BaseButton(variant='secondary', @click='changeOpen = true')
+        template(#icon-left)
+          q-icon(name='password', size='18px')
+        | Сменить пароль
+
+  //- Смена при известном старом пароле: старый проверяется расшифровкой vault'а,
+  //- дальше — конвейер миграции (новый пароль + перевыпуск ключа + отзыв сессий).
+  ChangePasswordDialog(v-model='changeOpen')
 
   BaseDialog(v-model='open', title='Установка пароля', size='sm')
     .pwd__form
@@ -55,6 +65,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
 import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
+import { ChangePasswordDialog } from 'src/features/Security/ChangePassword';
 import { useSetPassword } from '../model';
 
 const session = useSessionStore();
@@ -62,6 +73,7 @@ const globalStore = useGlobalStore();
 const { setPassword } = useSetPassword();
 
 const open = ref(false);
+const changeOpen = ref(false);
 const password = ref('');
 const repeat = ref('');
 const saving = ref(false);

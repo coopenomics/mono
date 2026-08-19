@@ -66,10 +66,10 @@ export class RecoveryService {
       RECOVERY_TOKEN_TTL_SEC,
     );
 
-    // Coopname-scoped путь как у остальных auth-ссылок десктопа (ср. invite:
-    // `${frontend_url}/${coopname}/auth/invite`) — magic-link открывается в контуре
-    // конкретного кооператива; десктопный роут — `:coopname/auth/recover/:token`.
-    const resetUrl = `${config.frontend_url}/${config.coopname}/auth/recover/${token}`;
+    // Coopname-scoped путь как у остальных auth-ссылок десктопа; роутер desktop
+    // работает в hash-режиме, поэтому путь идёт после `#/` — без него статика
+    // отдаёт корень, роутер не видит маршрута и токен из ссылки теряется.
+    const resetUrl = `${config.frontend_url}/#/${config.coopname}/auth/recover/${token}`;
     await this.notifications.notify({
       coopname: config.coopname,
       workflowId: Workflows.ResetKey.id,
