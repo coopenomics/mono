@@ -123,8 +123,12 @@ const GROUPS = [
       // Строго ПЕРЕД открытием выдачи: сверяет пересчёт денег при правке
       // количества и цены и уходит без подписи, оставляя заказ нетронутым.
       'marketplace/operator/issuance-correction',
-      'marketplace/operator/issuance-open',
+      // Лента выдачи и отказ по произвольному коду снимаются, пока заказ ещё
+      // в очереди «Готов к выдаче»: после «Подписать и отправить пайщику»
+      // лента пустеет, и кадры выходят бессодержательными.
       'marketplace/operator/issuance',
+      'marketplace/operator/issuance-no-code',
+      'marketplace/operator/issuance-open',
       'marketplace/orderer/ready-to-receive',
       'marketplace/orderer/receive-code',
       'marketplace/operator/issuance-finalize',
@@ -187,10 +191,6 @@ const GROUPS = [
       'marketplace/chairman/offers-registry',
       'marketplace/chairman/economy',
       'marketplace/operator/orders-history',
-      // Проверяет отказ на произвольный код и состояние не меняет, но стоять
-      // в середине выдачи не может: там на столе висит модалка подписи акта
-      // от предыдущего шага, и клик по кнопке стола не проходит.
-      'marketplace/operator/issuance-no-code',
     ],
   },
 ];

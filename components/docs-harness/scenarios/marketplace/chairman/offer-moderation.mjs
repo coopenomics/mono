@@ -13,7 +13,7 @@ import { runSeedPhase } from '../../../lib/fixtures.mjs';
  * превращается в дату окончания гарантии на выдаче, так что задним числом его
  * не поднять. С нулём вся ветка гарантийного возврата на стенде недостижима.
  */
-const WARRANTY_DAYS = 30;
+const WARRANTY_DAYS = 3;
 
 export const meta = {
   mode: 'docs',

@@ -204,10 +204,10 @@ nav:
       - Приёмка партии: new/marketplace/operator/reception-flow.md
       - Склад участка: new/marketplace/operator/warehouse.md
       - Боксы и типы боксов: new/marketplace/operator/containers.md
-      - Остатки: new/marketplace/operator/stock.md
-      - Списание на участке: new/marketplace/operator/writeoffs.md
       - Выдача заказов: new/marketplace/operator/issuance.md
+      - Остатки: new/marketplace/operator/stock.md
       - Гарантийные возвраты: new/marketplace/operator/returns.md
+      - Списание на участке: new/marketplace/operator/writeoffs.md
       - Экономика участка: new/marketplace/operator/economy.md
       - История заказов: new/marketplace/operator/orders-history.md
     - Стол администратора:
@@ -220,6 +220,7 @@ nav:
       - Доступные категории: new/marketplace/admin/categories.md
       - Пункты выдачи заказов: new/marketplace/admin/issuance-points.md
       - Списания скоропорта: new/marketplace/admin/writeoffs.md
+    - Заключение: new/marketplace/conclusion.md
 
   - Благорост:
     - Адаптация: new/blagorost/adaptation.md

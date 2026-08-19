@@ -138,6 +138,43 @@ export default async ({ page, shot, expect }) => {
     .allInnerTexts()
     .then((cells) => cells.map(parseMoney).filter((n) => Number.isFinite(n)));
 
+  // ── Вкладка «Плановые расходы»: план + служебная записка ──
+  await page.locator('.q-tab:has-text("Плановые расходы"), [role="tab"]:has-text("Плановые расходы"), button:has-text("Плановые расходы")').first().click();
+  await page.waitForTimeout(1500);
+  await shot(
+    page,
+    '01b-expense-plans',
+    'Вкладка «Плановые расходы»: сюда заносятся известные траты участка — электроэнергия, аренда, хозяйственные нужды — разовые, ежемесячные или квартальные. Членские взносы в первую очередь резервируются под этот план: распределить между операторами можно только свободный остаток сверх него.',
+  );
+
+  const addPlanBtn = page.locator('button:has-text("Добавить")').first();
+  if (await addPlanBtn.count()) {
+    await addPlanBtn.click();
+    await page.waitForTimeout(1000);
+    if (await page.locator('.q-dialog').count()) {
+      await shot(
+        page,
+        '01c-add-plan-dialog',
+        'Добавление плановой траты: назначение, сумма и периодичность. Оплата пойдёт через служебную записку: председатель участка подаёт её нажатием кнопки, совет утверждает, кассир оплачивает по реквизитам и прикладывает подтверждающий документ.',
+      );
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(600);
+    }
+  }
+
+  // ── Вкладка «Мои средства»: персональный кошелёк оператора ──
+  await page.locator('.q-tab:has-text("Мои средства"), [role="tab"]:has-text("Мои средства"), button:has-text("Мои средства")').first().click();
+  await page.waitForTimeout(1500);
+  await shot(
+    page,
+    '05b-personal-funds',
+    'Вкладка «Мои средства»: персональный кошелёк оператора с распределёнными средствами. «Получить» делит сумму на два пути: перевод в кошелёк Стола заказов — тратить на собственные заказы внутри системы — либо материальная помощь: заявление уходит в совет, после решения кассир выплачивает на реквизиты за вычетом НДФЛ 13% (кооператив — налоговый агент).',
+  );
+
+  // Возврат на вкладку распределения для прежних кадров.
+  await page.locator('.q-tab:has-text("Распределение"), [role="tab"]:has-text("Распределение"), button:has-text("Распределение")').first().click();
+  await page.waitForTimeout(1500);
+
   await shot(
     page,
     '02-distribution-grid',
