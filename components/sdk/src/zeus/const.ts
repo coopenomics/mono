@@ -7250,6 +7250,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ParticipantVerification:{
 		attested_by:"String",
+		attested_in:"String",
 		source:"ParticipantVerificationSource",
 		status:"ParticipantVerificationStatus",
 		type:"ParticipantVerificationType",

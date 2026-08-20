@@ -48,7 +48,7 @@ q-table.participants-table(
             ) {{ level.short }}
               q-tooltip {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
           BaseBadge(v-else, variant='neutral') Не верифицирован
-            q-tooltip Личность не подтверждена: верификация проводится на кооперативном участке при предъявлении паспорта
+            q-tooltip Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок
 
     q-tr.q-virtual-scroll--with-prev.no-hover(
       no-hover,
@@ -59,15 +59,19 @@ q-table.participants-table(
       q-td.no-hover(colspan='100%' style="padding: 0px !important;")
         ParticipantDetails(
           :participant='props.row',
-          @update='(newData) => onUpdate(props.row, newData)'
+          :naming='naming',
+          @update='(newData) => onUpdate(props.row, newData)',
+          @verification-changed='emit("verification-changed")'
         )
 
   template(#item='props')
     ParticipantCard(
       :participant='props.row',
       :expanded='expanded.get(props.row.username)',
+      :naming='naming',
       @toggle-expand='() => onToggleExpand(props.row.username)',
-      @update='onUpdate'
+      @update='onUpdate',
+      @verification-changed='emit("verification-changed")'
     )
 </template>
 
@@ -79,7 +83,7 @@ import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { getAccountStatusBadge } from 'src/entities/Account';
-import { participantVerificationView } from 'src/shared/lib/verification';
+import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
 import {
   type IAccount,
   type IIndividualData,
@@ -88,14 +92,17 @@ import {
 } from 'src/entities/Account/types';
 
 // Props
-defineProps<{
+const props = defineProps<{
   accounts: IAccount[];
   loading: boolean;
+  /** Как называть верификатора и участок в подписи уровня. */
+  naming?: VerificationNaming;
 }>();
 
 // Emits
 const emit = defineEmits<{
   (e: 'toggle-expand', id: string): void;
+  (e: 'verification-changed'): void;
   (
     e: 'update',
     account: IAccount,
@@ -154,7 +161,7 @@ const columns: any[] = [
 ];
 
 // Уровни верификации пайщика (единый маппинг из @coopenomics/auth).
-const verificationView = (row: IAccount) => participantVerificationView(row);
+const verificationView = (row: IAccount) => participantVerificationView(row, props.naming);
 
 // Форматирование даты
 const formatDate = (date?: string) =>

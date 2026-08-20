@@ -24,9 +24,11 @@ inline bool is_known_verification_procedure(eosio::name procedure) {
 }
 
 /**
- * @brief Процедуры, которые вправе подтверждать кооперативный участок
- * (председатель участка или его доверенное лицо) при личной явке пайщика.
+ * @brief Процедуры, которые подтверждаются личной сверкой документа:
+ * пайщик является лично, а факт фиксирует уполномоченное лицо кооператива —
+ * председатель кооперативного участка (или его доверенное лицо) либо
+ * председатель совета кооператива.
  */
-inline bool is_branch_verification_procedure(eosio::name procedure) {
+inline bool is_personal_verification_procedure(eosio::name procedure) {
   return procedure == "passport"_n;
 }

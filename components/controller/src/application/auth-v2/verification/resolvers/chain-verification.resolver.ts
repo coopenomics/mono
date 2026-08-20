@@ -14,11 +14,21 @@ import { chainTimeToUtcIso } from '../chain-time.util';
 /**
  * Уровни, подтверждённые он-чейн записями верификации
  * (`registrator::accounts.verifications`). Записи появляются действием
- * `registrator::verifyacc` — председатель кооперативного участка или его
- * доверенное лицо лично сверяет личность пайщика с паспортом. Процедура
+ * `registrator::verifyacc` — личность сверяет с паспортом председатель
+ * кооперативного участка (или его доверенное лицо) либо совет кооператива.
+ * Процедура
  * записи отображается в тип верификации по реестру `CHAIN_PROCEDURE_TO_TYPE`;
  * незнакомые процедуры (например, legacy `online`) уровня не дают.
  */
+/**
+ * Контекст проведения записан контрактом в `notice` как `coopname/braname`:
+ * участок — когда braname указан, совет кооператива — когда пусто.
+ */
+function branchFromNotice(notice?: string): string {
+  const separator = (notice ?? '').indexOf('/');
+  return separator === -1 ? '' : notice!.slice(separator + 1);
+}
+
 @Injectable()
 export class ChainVerificationResolver implements IVerificationSourceResolver {
   constructor(
@@ -35,12 +45,14 @@ export class ChainVerificationResolver implements IVerificationSourceResolver {
       const type = CHAIN_PROCEDURE_TO_TYPE[verification.procedure as VerificationProcedure];
       if (!type) continue;
 
+      const branch = branchFromNotice(verification.notice);
       entries.push({
         type,
         status: VerificationStatus.Verified,
-        source: VerificationSource.BranchAttestation,
+        source: branch ? VerificationSource.BranchAttestation : VerificationSource.CouncilAttestation,
         verified_at: chainTimeToUtcIso(verification.created_at),
         attested_by: verification.verificator,
+        ...(branch ? { attested_in: branch } : {}),
       });
     }
     return entries;

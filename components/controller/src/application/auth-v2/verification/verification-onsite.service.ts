@@ -8,11 +8,12 @@ import { VerificationProcedure, type VerificationTypeEntry } from '~/domain/auth
 import { VerificationTypesService } from './verification-types.service';
 
 /**
- * Верификация личности пайщика на кооперативном участке (уровень `passport_onsite`).
- * Верификатор — председатель участка или его доверенное лицо — лично сверяет
- * личность пайщика с паспортом; факт пишется он-чейн действием `registrator::verifyacc`
- * от имени верификатора (контракт сам проверяет полномочия по таблице участка).
- * Отзыв (`registrator::unverifyacc`) — председатель кооператива.
+ * Верификация личности пайщика при личной явке (уровень `passport_onsite`).
+ * Личность сверяет с паспортом либо кооперативный участок (председатель участка
+ * или его доверенное лицо — тогда указан участок), либо совет кооператива
+ * (председатель совета — тогда участок не указывается). Факт пишется он-чейн
+ * действием `registrator::verifyacc` от имени верификатора; полномочия проверяет
+ * контракт. Отзыв (`registrator::unverifyacc`) — председатель кооператива.
  */
 @Injectable()
 export class VerificationOnsiteService {
@@ -21,8 +22,11 @@ export class VerificationOnsiteService {
     private readonly verificationTypesService: VerificationTypesService,
   ) {}
 
-  /** Провести верификацию по паспорту; возвращает актуальные уровни пайщика. */
-  async verifyOnsite(verificator: string, username: string, braname: string): Promise<VerificationTypeEntry[]> {
+  /**
+   * Провести верификацию по паспорту; возвращает актуальные уровни пайщика.
+   * Пустой `braname` означает, что личность сверил совет кооператива.
+   */
+  async verifyOnsite(verificator: string, username: string, braname = ''): Promise<VerificationTypeEntry[]> {
     await this.accountBlockchainPort.verifyAccount({
       coopname: config.coopname,
       braname,

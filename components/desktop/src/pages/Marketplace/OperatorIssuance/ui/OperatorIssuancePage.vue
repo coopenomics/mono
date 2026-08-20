@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { AccountBadge, PageHint, VerificationConfirmDialog } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
@@ -499,24 +499,14 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 
   //- Верификация личности получателя (единожды): без неё сервер не откроет
   //- выдачу. Оператор сверяет данные пайщика с паспортом и подтверждает.
-  BaseDialog(v-model='verifyDialogOpen', title='Проверка личности', size='sm')
-    .issuance__verify
-      .issuance__resolve-account(v-if='pickupOrdererName') {{ pickupOrdererName }}
-      AccountBadge(:username='pickupAccount')
-      .issuance__verify-hint
-        | Получатель ещё не проходил верификацию личности. Попросите паспорт и
-        | сверьте фамилию, имя и отчество с данными выше. Подтверждение делается
-        | один раз — дальше пайщик приходит без документа.
-      .issuance__verify-actions
-        BaseButton(variant='ghost', :disable='verifyLoading', @click='verifyDialogOpen = false') Отмена
-        BaseButton(
-          variant='primary',
-          :loading='verifyLoading',
-          @click='confirmPickupVerification'
-        )
-          template(#icon-left)
-            q-icon(name='how_to_reg', size='16px')
-          | Личность подтверждена
+  VerificationConfirmDialog(
+    v-model='verifyDialogOpen',
+    :full-name='pickupOrdererName',
+    :username='pickupAccount',
+    hint='Получатель ещё не проходил верификацию личности. Попросите паспорт и сверьте фамилию, имя и отчество с данными выше. Подтверждение делается один раз — дальше пайщик приходит без документа.',
+    :loading='verifyLoading',
+    @confirm='confirmPickupVerification'
+  )
 
   //- Резолв кода получения, когда открывать нечего: позиции ждут подтверждения
   //- пайщика либо заказов нет — оператор может предложить докладку со склада.

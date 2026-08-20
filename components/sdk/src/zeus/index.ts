@@ -12869,6 +12869,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["ParticipantVerification"]: AliasType<{
 	/** Кто провёл верификацию (аккаунт) */
 	attested_by?:boolean | `@${string}`,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?:boolean | `@${string}`,
 	/** Кто подтвердил */
 	source?:boolean | `@${string}`,
 	/** Статус подтверждения */
@@ -15607,10 +15609,10 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** Токен верификации email */
 	token: string | Variable<any, string>
 };
-	/** Верификация личности пайщика на кооперативном участке по паспорту */
+	/** Верификация личности пайщика по паспорту при личной явке */
 ["VerifyParticipantOnsiteInput"]: {
-	/** Кооперативный участок, где проводится верификация */
-	braname: string | Variable<any, string>,
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null | Variable<any, string>,
 	/** Имя аккаунта пайщика */
 	username: string | Variable<any, string>
 };
@@ -27316,6 +27318,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["ParticipantVerification"]: AliasType<{
 	/** Кто провёл верификацию (аккаунт) */
 	attested_by?:boolean | `@${string}`,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?:boolean | `@${string}`,
 	/** Кто подтвердил */
 	source?:boolean | `@${string}`,
 	/** Статус подтверждения */
@@ -29980,10 +29984,10 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** Токен верификации email */
 	token: string
 };
-	/** Верификация личности пайщика на кооперативном участке по паспорту */
+	/** Верификация личности пайщика по паспорту при личной явке */
 ["VerifyParticipantOnsiteInput"]: {
-	/** Кооперативный участок, где проводится верификация */
-	braname: string,
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
 	/** Имя аккаунта пайщика */
 	username: string
 };
@@ -41370,7 +41374,7 @@ export type ModelTypes = {
 	uploadPaymentProof: ModelTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
-	/** Подтвердить личность пайщика по паспорту на кооперативном участке */
+	/** Подтвердить личность пайщика по паспорту при личной явке */
 	verifyParticipantOnsite: Array<ModelTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
@@ -42035,6 +42039,8 @@ export type ModelTypes = {
 ["ParticipantVerification"]: {
 		/** Кто провёл верификацию (аккаунт) */
 	attested_by?: string | undefined | null,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?: string | undefined | null,
 	/** Кто подтвердил */
 	source: ModelTypes["ParticipantVerificationSource"],
 	/** Статус подтверждения */
@@ -44958,10 +44964,10 @@ export type ModelTypes = {
 	/** Токен верификации email */
 	token: string
 };
-	/** Верификация личности пайщика на кооперативном участке по паспорту */
+	/** Верификация личности пайщика по паспорту при личной явке */
 ["VerifyParticipantOnsiteInput"]: {
-	/** Кооперативный участок, где проводится верификация */
-	braname: string,
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
 	/** Имя аккаунта пайщика */
 	username: string
 };
@@ -56983,7 +56989,7 @@ export type GraphQLTypes = {
 	uploadPaymentProof: GraphQLTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
-	/** Подтвердить личность пайщика по паспорту на кооперативном участке */
+	/** Подтвердить личность пайщика по паспорту при личной явке */
 	verifyParticipantOnsite: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
@@ -57739,6 +57745,8 @@ export type GraphQLTypes = {
 	__typename: "ParticipantVerification",
 	/** Кто провёл верификацию (аккаунт) */
 	attested_by?: string | undefined | null,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?: string | undefined | null,
 	/** Кто подтвердил */
 	source: GraphQLTypes["ParticipantVerificationSource"],
 	/** Статус подтверждения */
@@ -60854,10 +60862,10 @@ export type GraphQLTypes = {
 		/** Токен верификации email */
 	token: string
 };
-	/** Верификация личности пайщика на кооперативном участке по паспорту */
+	/** Верификация личности пайщика по паспорту при личной явке */
 ["VerifyParticipantOnsiteInput"]: {
-		/** Кооперативный участок, где проводится верификация */
-	braname: string,
+		/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
 	/** Имя аккаунта пайщика */
 	username: string
 };
@@ -61720,7 +61728,8 @@ export enum OrganizationType {
 /** Кто подтвердил уровень верификации */
 export enum ParticipantVerificationSource {
 	BranchAttestation = "BranchAttestation",
-	CooperativeDecision = "CooperativeDecision"
+	CooperativeDecision = "CooperativeDecision",
+	CouncilAttestation = "CouncilAttestation"
 }
 /** Статус подтверждения уровня верификации */
 export enum ParticipantVerificationStatus {

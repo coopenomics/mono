@@ -9,15 +9,20 @@ q-page.participants-page
     ParticipantsTable(
       :accounts='filteredAccounts',
       :loading='onLoading',
+      :naming='verificationNaming',
       @toggle-expand='toggleExpand',
-      @update='update'
+      @update='update',
+      @verification-changed='loadParticipants'
     )
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
-import { participantVerificationView } from 'src/shared/lib/verification';
+import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
+import { useBranchStore } from 'src/entities/Branch/model';
+import { useSystemStore } from 'src/entities/System/model';
+import { getName } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
@@ -33,7 +38,26 @@ import {
 } from 'src/entities/Account/types';
 
 const accountStore = useAccountStore();
+const branchStore = useBranchStore();
+const systemStore = useSystemStore();
 const onLoading = ref(false);
+
+// Подписи уровней верификации — человеческими именами: кто сверил личность
+// и на каком участке. Служебные account-id и имена участков в цепи остаются
+// запасным вариантом, когда человеческого имени нет.
+const verificationNaming = computed((): VerificationNaming => {
+  const names = new Map(accountStore.accounts.items.map((account) => [account.username, getName(account)]));
+  const branches = new Map(
+    branchStore.publicBranches.map((branch) => [
+      branch.braname,
+      branch.short_name || branch.full_name || branch.braname,
+    ]),
+  );
+  return {
+    attestorName: (username: string) => names.get(username) || '',
+    branchName: (braname: string) => branches.get(braname) || '',
+  };
+});
 
 // Фильтр по уровню верификации: совету важно видеть, кого ещё предстоит
 // верифицировать на кооперативных участках (без базового уровня — нужен паспорт).
@@ -91,6 +115,11 @@ const loadParticipants = async () => {
     await accountStore.getAccounts({
       options: { page: 1, limit: 1000, sortOrder: 'DESC' },
     });
+    // Названия участков нужны только для подписи «где сверили» — грузим их
+    // один раз и не роняем реестр, если участков в кооперативе нет.
+    if (!branchStore.publicBranches.length) {
+      await branchStore.loadPublicBranches({ coopname: systemStore.info.coopname }).catch(() => undefined);
+    }
   } catch (e: any) {
     FailAlert(e);
   } finally {

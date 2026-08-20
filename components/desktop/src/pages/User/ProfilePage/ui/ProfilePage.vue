@@ -210,7 +210,8 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
-import { decodeTrustChain, verificationTypeLabel, verificationTypeShortLabel } from '@coopenomics/auth';
+import { decodeTrustChain } from '@coopenomics/auth';
+import { verificationLevelView } from 'src/shared/lib/verification';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -281,21 +282,14 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
-// Уровни верификации из claim (Story 4.3): короткий лейбл в чипе, полное
-// описание в тултипе, дата подтверждения и автор проверки — рядом. Словари
-// лейблов — единые из @coopenomics/auth (дубль в UI запрещён).
+// Уровни верификации из удостоверения: короткий лейбл в чипе, полное описание
+// в тултипе, дата подтверждения и автор проверки — рядом. Маппинг общий с
+// реестром пайщиков (`verificationLevelView`), дубль в UI запрещён.
 const verificationEntries = computed(() =>
-  (certificate.value?.verification_types ?? []).map((e) => ({
-    type: e.type,
-    label: verificationTypeShortLabel(e.type),
-    title: verificationTypeLabel(e.type),
-    hint: [
-      e.verified_at ? `с ${formatDate(e.verified_at)}` : '',
-      e.attested_by ? `подтвердил ${e.attested_by}` : '',
-    ]
-      .filter(Boolean)
-      .join(' · '),
-  })),
+  (certificate.value?.verification_types ?? []).map((e) => {
+    const level = verificationLevelView(e);
+    return { type: level.type, label: level.short, title: level.label, hint: level.hint };
+  }),
 );
 
 

@@ -15,7 +15,7 @@
 {
   check_auth_or_fail(_registrator, coopname, chairman, "unverifyacc"_n);
 
-  eosio::check(is_branch_verification_procedure(procedure), "Отзыв доступен только для верификаций, проведённых кооперативным участком");
+  eosio::check(is_personal_verification_procedure(procedure), "Отзыв доступен только для верификаций, проведённых при личной явке");
 
   accounts_index accounts(_registrator, _registrator.value);
   auto account = accounts.find(username.value);

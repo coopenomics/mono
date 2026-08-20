@@ -18,6 +18,7 @@ export {
   verificationTypeShortLabel,
   CHAIN_PROCEDURE_TO_TYPE,
   deriveVerificationTypes,
+  branchFromNotice,
 } from './certificate'
 
 export type { KeyValidityWindow, VerifyDocumentParams, VerifyDocumentReason, VerifyDocumentResult, VerifyOfflineOptions, VerifyOfflineReason, VerifyOfflineResult } from './chain'

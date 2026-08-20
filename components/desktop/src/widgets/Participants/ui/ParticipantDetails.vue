@@ -11,7 +11,11 @@
         span.t-sm.t-muted(v-if='level.hint') {{ level.hint }}
     .participant-details__verification-row(v-else)
       BaseBadge(variant='neutral') Не верифицирован
-      span.t-sm.t-muted Верификация проводится на кооперативном участке при предъявлении паспорта
+      span.t-sm.t-muted Личность подтверждает председатель совета или кооперативный участок при предъявлении паспорта
+    VerifyIdentityActions(
+      :participant='participant',
+      @changed='emit("verification-changed")'
+    )
 
   EditableIndividualCard(
     v-if="individualParticipantData"
@@ -33,7 +37,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
-import { participantVerificationView } from 'src/shared/lib/verification'
+import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification'
+import { VerifyIdentityActions } from 'src/features/User/VerifyIdentity'
 import { EditableEntrepreneurCard } from 'src/shared/ui/EditableEntrepreneurCard'
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard'
 import { EditableOrganizationCard } from 'src/shared/ui/EditableOrganizationCard'
@@ -48,11 +53,14 @@ import {
 // Props
 const props = defineProps<{
   participant: IAccount
+  /** Как называть верификатора и участок в подписи уровня. */
+  naming?: VerificationNaming
 }>()
 
 // Emits
 const emit = defineEmits<{
   (e: 'update', newData: IIndividualData | IOrganizationData | IEntrepreneurData): void
+  (e: 'verification-changed'): void
 }>()
 
 const individualParticipantData = computed((): IIndividualData | null => {
@@ -74,7 +82,7 @@ const organizationParticipantData = computed((): IOrganizationData | null => {
 })
 
 // Уровни верификации пайщика — единый маппинг из @coopenomics/auth.
-const verificationLevels = computed(() => participantVerificationView(props.participant))
+const verificationLevels = computed(() => participantVerificationView(props.participant, props.naming))
 
 // События
 const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurData) => {

@@ -1,5 +1,5 @@
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
   VerificationSource,
   VerificationStatus,
@@ -37,10 +37,16 @@ export class ParticipantVerificationDTO {
 
   @Field(() => String, { nullable: true, description: 'Кто провёл верификацию (аккаунт)' })
   attested_by?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Кооперативный участок, где сверена личность; пусто — сверял совет кооператива',
+  })
+  attested_in?: string;
 }
 
 @InputType('VerifyParticipantOnsiteInput', {
-  description: 'Верификация личности пайщика на кооперативном участке по паспорту',
+  description: 'Верификация личности пайщика по паспорту при личной явке',
 })
 export class VerifyParticipantOnsiteInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пайщика' })
@@ -48,10 +54,13 @@ export class VerifyParticipantOnsiteInputDTO {
   @IsNotEmpty()
   username!: string;
 
-  @Field(() => String, { description: 'Кооперативный участок, где проводится верификация' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива',
+  })
   @IsString()
-  @IsNotEmpty()
-  braname!: string;
+  @IsOptional()
+  braname?: string;
 }
 
 @InputType('UnverifyParticipantInput', {

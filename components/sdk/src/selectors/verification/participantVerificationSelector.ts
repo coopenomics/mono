@@ -7,4 +7,5 @@ export const participantVerificationSelector = Selector('ParticipantVerification
   source: true,
   verified_at: true,
   attested_by: true,
+  attested_in: true,
 })

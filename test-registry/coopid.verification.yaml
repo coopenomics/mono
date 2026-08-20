@@ -4,9 +4,11 @@ title: Верификация личности пайщика (уровни на
 # Задача 105-28 (проект 13, компонент CoopID). Уровни верификации — независимые
 # факты-подтверждения: начальный (coop_baseline) выводится из принятого членства,
 # базовый (passport_onsite) пишется он-чейн действием registrator::verifyacc —
-# председатель кооперативного участка или его доверенное лицо лично сверяет
-# личность пайщика с паспортом. Отзыв — registrator::unverifyacc, председатель
-# кооператива, только по записям своего кооператива (контекст в notice).
+# личность с паспортом лично сверяет либо кооперативный участок (председатель
+# участка или доверенное лицо, участок указан), либо совет кооператива
+# (участок не указан). Контекст сверки контракт пишет в notice как
+# «кооператив/участок». Отзыв — registrator::unverifyacc, председатель
+# кооператива, только по записям своего кооператива.
 #
 # Требуемые уровни для действий задаёт таблица verification_rules (per-coop);
 # правило выдачи имущества (marketplace.issue_property → passport_onsite)
@@ -27,6 +29,8 @@ sources:
   ui:
     - components/desktop/src/shared/lib/verification/**
     - components/desktop/src/widgets/Participants/**
+    - components/desktop/src/features/User/VerifyIdentity/**
+    - components/desktop/src/shared/ui/domain/VerificationConfirmDialog/**
     - components/desktop/src/pages/Marketplace/OperatorIssuance/**
     - components/desktop/src/widgets/Marketplace/HandoffCode/**
 
@@ -77,6 +81,26 @@ cases:
     test: ~
     status: missing
 
+  - id: cid.ver.happy.06
+    level: contract
+    kind: happy
+    scenario: >
+      председатель совета проводит верификацию из реестра пайщиков (verifyacc
+      без указания участка)
+    expect: >
+      запись верификации появляется с председателем как верификатором и
+      контекстом «кооператив/» — без участка
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.09
+    level: contract
+    kind: side
+    scenario: verifyacc без участка вызывает пайщик, не входящий в совет и не имеющий права на действие
+    expect: отказ — недостаточно прав доступа к действию
+    test: ~
+    status: missing
+
   # ── Уровень backend ───────────────────────────────────────────────────────
 
   - id: cid.ver.happy.02
@@ -123,6 +147,16 @@ cases:
     test: components/auth/test/certificate.test.ts
     status: passing
 
+  - id: cid.ver.happy.07
+    level: backend
+    kind: happy
+    scenario: запись верификации без участка в контексте (сверял совет кооператива)
+    expect: >
+      уровень получает источник «сверка советом», участок пустой; с участком —
+      источник «сверка на участке» и имя участка рядом
+    test: components/auth/test/certificate.test.ts
+    status: passing
+
   # ── Уровень UI ────────────────────────────────────────────────────────────
 
   - id: cid.ver.happy.04
@@ -132,6 +166,27 @@ cases:
       реестр пайщиков: колонка «Верификация» показывает уровни чипами, фильтр
       отбирает пайщиков без базового уровня
     expect: чипы уровней в строке, блок фактов в раскрытых деталях, фильтр работает
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.06.ui
+    level: ui
+    kind: happy
+    scenario: >
+      председатель совета из реестра пайщиков подтверждает личность пайщика по
+      паспорту и затем отзывает подтверждение
+    expect: >
+      в деталях пайщика есть «Подтвердить личность» с диалогом сверки; после
+      подтверждения уровень «Базовый» с подписью «подтвердил <ФИО>, совет
+      кооператива», кнопка сменяется на «Отозвать верификацию»
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.10
+    level: ui
+    kind: side
+    scenario: реестр пайщиков открывает пайщик, не являющийся председателем совета
+    expect: кнопок управления верификацией нет; сервер отказывает и при прямом вызове
     test: ~
     status: missing
 

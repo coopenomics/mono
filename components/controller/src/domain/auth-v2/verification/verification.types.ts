@@ -24,6 +24,8 @@ export enum VerificationSource {
   CooperativeDecision = 'cooperative_decision',
   /** Личная сверка на кооперативном участке (председатель участка или доверенное лицо). */
   BranchAttestation = 'branch_attestation',
+  /** Личная сверка советом кооператива (председатель совета или сотрудник с правом). */
+  CouncilAttestation = 'council_attestation',
 }
 
 /**
@@ -50,6 +52,8 @@ export interface VerificationTypeEntry {
   verified_at: string;
   /** Кто провёл верификацию (аккаунт), если подтверждение персональное. */
   attested_by?: string;
+  /** Кооперативный участок, где проведена сверка; пусто — сверял совет кооператива. */
+  attested_in?: string;
 }
 
 /**

@@ -36,6 +36,8 @@ export interface VerificationTypeClaim {
   source: string
   /** Кто провёл верификацию (аккаунт) — у персональных подтверждений. */
   attested_by?: string
+  /** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива. */
+  attested_in?: string
 }
 
 /** Claims participant_certificate (зеркало payload контроллера, Story 1.8). */
@@ -74,6 +76,7 @@ function normalizeVerificationTypes(raw: unknown): VerificationTypeClaim[] {
       verified_at: String(e.verified_at ?? ''),
       source: String(e.source ?? ''),
       ...(typeof e.attested_by === 'string' && e.attested_by ? { attested_by: e.attested_by } : {}),
+      ...(typeof e.attested_in === 'string' && e.attested_in ? { attested_in: e.attested_in } : {}),
     }))
 }
 
@@ -89,7 +92,7 @@ export const CERTIFICATE_EXPIRING_WINDOW_MS = 60 * 60 * 1000
  */
 export const VERIFICATION_TYPE_LABELS: Record<string, string> = {
   coop_baseline: 'Начальный: подтверждён кооперативом',
-  passport_onsite: 'Базовый: личность сверена с паспортом на кооперативном участке',
+  passport_onsite: 'Базовый: личность сверена с паспортом',
 }
 
 /** Описание типа верификации; неизвестный — отдаём как есть (forward-compat). */
@@ -127,6 +130,15 @@ export const CHAIN_PROCEDURE_TO_TYPE: Record<string, string> = {
 }
 
 /**
+ * Контекст проведения верификации контракт пишет в `notice` как `coopname/braname`:
+ * участок — когда braname указан, совет кооператива — когда пусто.
+ */
+export function branchFromNotice(notice?: string): string {
+  const separator = (notice ?? '').indexOf('/')
+  return separator === -1 ? '' : (notice ?? '').slice(separator + 1)
+}
+
+/**
  * Вывести уровни верификации пайщика из данных аккаунта (единый маппинг для
  * реестра пайщиков, ЛК и считывателя — чтобы клиенты не дублировали логику ядра):
  * `coop_baseline` — из принятого членства (`participant_account.status === 'accepted'`),
@@ -152,11 +164,13 @@ export function deriveVerificationTypes(input: {
     const type = CHAIN_PROCEDURE_TO_TYPE[record.procedure]
     if (!type || entries.some(e => e.type === type))
       continue
+    const branch = branchFromNotice(record.notice)
     entries.push({
       type,
       verified_at: record.created_at ?? '',
-      source: 'branch_attestation',
+      source: branch ? 'branch_attestation' : 'council_attestation',
       attested_by: record.verificator,
+      ...(branch ? { attested_in: branch } : {}),
     })
   }
 

@@ -131,8 +131,8 @@ describe('verificationTypeLabel', () => {
     expect(verificationTypeLabel('coop_baseline')).toBe('Начальный: подтверждён кооперативом')
   })
 
-  it('базовый уровень (паспорт на кооперативном участке) имеет своё название', () => {
-    expect(verificationTypeLabel('passport_onsite')).toBe('Базовый: личность сверена с паспортом на кооперативном участке')
+  it('базовый уровень (сверка паспорта) имеет своё название', () => {
+    expect(verificationTypeLabel('passport_onsite')).toBe('Базовый: личность сверена с паспортом')
   })
   it('неизвестный тип → возвращается как есть', () => {
     expect(verificationTypeLabel('future_kyc_x')).toBe('future_kyc_x')
@@ -161,6 +161,21 @@ describe('deriveVerificationTypes', () => {
     expect(types.map(t => t.type)).toEqual(['coop_baseline', 'passport_onsite'])
     expect(types[1].attested_by).toBe('trustee1')
     expect(types[1].source).toBe('branch_attestation')
+    expect(types[1].attested_in).toBe('bra1')
+  })
+
+  it('запись без участка означает сверку советом кооператива', () => {
+    const types = deriveVerificationTypes({
+      participant_account: { status: 'accepted', created_at: '2026-01-01T00:00:00' },
+      user_account: {
+        verifications: [
+          { verificator: 'ant', is_verified: true, procedure: 'passport', created_at: '2026-02-02T00:00:00', notice: 'voskhod/' },
+        ],
+      },
+    })
+    expect(types[1].source).toBe('council_attestation')
+    expect(types[1].attested_by).toBe('ant')
+    expect(types[1].attested_in).toBeUndefined()
   })
 
   it('отозванные и незнакомые процедуры уровня не дают', () => {

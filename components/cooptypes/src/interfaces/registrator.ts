@@ -285,6 +285,7 @@ export interface IVerificate {
 
 export interface IVerifyacc {
   coopname: IName
+  /** Кооперативный участок, где проведена сверка; пусто, если верифицирует совет кооператива. */
   braname: IName
   verificator: IName
   username: IName
