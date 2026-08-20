@@ -9,7 +9,7 @@
 // Прежняя версия требовала ручного ввода «ID кооперативного участка выдачи» —
 // такого шага больше нет, участок берётся из контекста стола.
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,7 +36,6 @@ const ISSUE_QUANTITY = 8;
 
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи заказа',
-  docPath: 'new/marketplace/operator/issuance-open.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-open',
   role: 'user',
   mode: 'docs',

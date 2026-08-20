@@ -29,8 +29,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Подключение пайщика к Столу заказов (L3)',
-  docPath: 'new/marketplace/onboarding/extension-gate.md',
-  assetsDir: 'assets/new/marketplace/onboarding/extension-gate',
+  docPath: 'new/marketplace/orderer/connect.md',
+  assetsDir: 'assets/new/marketplace/orderer/connect',
   role: 'user',
   mode: 'docs',
   // Конкретный пайщик определяется в рантайме — см. freshGateFixture().

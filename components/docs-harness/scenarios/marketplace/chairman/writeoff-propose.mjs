@@ -13,8 +13,8 @@ import { cleanViteOverlays, env, loginAsChairman, dismissOnboardingDialogs } fro
 
 export const meta = {
   title: 'Стол председателя — списание скоропорта',
-  docPath: 'new/marketplace/chairman/writeoff-propose.md',
-  assetsDir: 'assets/new/marketplace/chairman/writeoff-propose',
+  docPath: 'new/marketplace/admin/writeoffs.md',
+  assetsDir: 'assets/new/marketplace/admin/writeoffs',
   role: 'chairman',
   mode: 'docs',
   feature: 'marketplace.writeoff',

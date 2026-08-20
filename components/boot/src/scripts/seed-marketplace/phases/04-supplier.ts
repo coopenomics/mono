@@ -30,7 +30,7 @@ const log = (...a: unknown[]) => console.error('[seed-marketplace:04]', ...a)
 const COOPNAME = 'voskhod'
 const CHAIRMAN = 'ant'
 const CHAIRMAN_EMAIL = 'ivanov@example.com'
-const SUPPLIERS = ['ivanpetrov']
+const SUPPLIERS = ['ivanpetrov', 'sidorov'] // sidorov — фоновый поставщик витрины (фаза 06)
 
 export async function phase04(): Promise<void> {
   const blockchain = new Blockchain(config.network, config.private_keys)

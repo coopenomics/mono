@@ -133,10 +133,10 @@ async function checkStack() {
     180,
   );
   const parserUp = () => {
-    const r = spawnSync('docker', ['compose', 'ps', 'cooparser', '--format', 'json'], { cwd: REPO_ROOT, encoding: 'utf8' });
+    const r = spawnSync('docker', ['compose', 'ps', 'parser2', '--format', 'json'], { cwd: REPO_ROOT, encoding: 'utf8' });
     return r.status === 0 && /"State":"running"/.test(r.stdout);
   };
-  await ensureService('parser', parserUp, 'cooparser', 60);
+  await ensureService('parser', parserUp, 'parser2', 60);
   ok('chain, controller, parser живы');
 }
 

@@ -9,7 +9,7 @@
 // Прежняя версия требовала ручного ввода «ID кооперативного участка выдачи» —
 // такого шага больше нет, участок берётся из контекста стола.
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 import fs from 'node:fs';
@@ -25,7 +25,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — история выдач участка',
-  docPath: 'new/marketplace/operator/issuance-finalize.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-finalize',
   role: 'user',
   mode: 'docs',
@@ -62,7 +61,7 @@ export default async ({ page, shot, expect }) => {
     'История заказов участка: что прошло через пункт выдачи. Выданный заказ остаётся здесь с итоговым составом и суммой — по нему видно, что именно получил пайщик.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

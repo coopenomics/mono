@@ -31,7 +31,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Доступные категории — выключенная категория недоступна поставщику',
-  docPath: 'new/marketplace/chairman/category-disabled-in-offer-form.md',
   assetsDir: 'assets/new/marketplace/chairman/category-disabled-in-offer-form',
   role: 'chairman',
   mode: 'docs',

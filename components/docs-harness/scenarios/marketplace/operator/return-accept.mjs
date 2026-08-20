@@ -13,7 +13,7 @@
 // обезличенным остатком кооператива. Этот остаток потом и становится
 // кандидатом на списание.
 //
-// Фикстура: chairkrg — председатель КУ Красногорск, к нему привязан заказ.
+// Фикстура: chairkrg — председатель Красногорск, к нему привязан заказ.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,7 +37,6 @@ const INSPECTION_RESULT =
 
 export const meta = {
   title: 'Стол ПВЗ — приём возвращаемого имущества',
-  docPath: 'new/marketplace/operator/return-accept.md',
   assetsDir: 'assets/new/marketplace/operator/return-accept',
   role: 'user',
   mode: 'docs',

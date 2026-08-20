@@ -19,8 +19,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол поставщика — подготовка отгрузки',
-  docPath: 'new/marketplace/offerer/shipment-prep.md',
-  assetsDir: 'assets/new/marketplace/offerer/shipment-prep',
+  docPath: 'new/marketplace/offerer/shipment.md',
+  assetsDir: 'assets/new/marketplace/offerer/shipment',
   role: 'user',
   mode: 'docs',
   fixture: 'ivanpetrov',

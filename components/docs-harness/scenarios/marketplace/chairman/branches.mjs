@@ -10,8 +10,8 @@ import { loginAsChairman, dismissOnboardingDialogs, pickBranchIfAsked } from '..
 
 export const meta = {
   title: 'Сеть ПВЗ: реестр кооперативных участков',
-  docPath: 'new/marketplace/chairman/branches.md',
-  assetsDir: 'assets/new/marketplace/chairman/branches',
+  docPath: 'new/marketplace/admin/issuance-points.md',
+  assetsDir: 'assets/new/marketplace/admin/issuance-points',
   role: 'chairman',
 };
 
@@ -36,23 +36,43 @@ export default async ({ page, context, shot, expect, env }) => {
   await page.waitForTimeout(500);
   await shot(page, '02-dialog-empty', 'Диалог «Создать кооперативный участок»: пустая форма с обязательными полями — председатель участка, наименование, телефон, фактический адрес, email и документ-основание (решение совета).');
 
-  // 3. Заполнить демо-полями (новый КУ Подольск — не сохраняем, только показываем UX)
+  // 3. Заполнить демо-полями (новый КУ Подольск — не сохраняем, только показываем UX).
+  // Автокомплит ищет по ФИО из реестра пайщиков, поэтому вводим фамилию —
+  // ввод ника отдавал «Ничего не найдено» и кадр выходил пустым.
   const trusteeField = page.locator('label:has-text("Председатель участка")').locator('input').first();
   await trusteeField.click();
-  await trusteeField.fill('chairkrg');
-  await page.locator('.q-menu .q-item:has-text("chairkrg")').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-  // Для демо-кадра достаточно показать как выпадает autocomplete; не выбираем чтобы не сабмитить
+  await trusteeField.type('Зайцева', { delay: 60 });
+  const suggestion = page.locator('.q-menu .q-item:has-text("Зайцева")').first();
+  await suggestion.waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForTimeout(400);
-  await shot(page, '03-autocomplete-chairman', 'Поле «Председатель участка» — поиск пайщика-председателя через автокомплит: при вводе ника появляется выпадающий список с результатами из реестра пайщиков. Это та же логика, что и в любой форме выбора пайщика по платформе.');
+  await shot(page, '03-autocomplete-chairman', 'Поле «Председатель участка» — поиск по фамилии в реестре пайщиков: подсказка показывает ФИО и аккаунт. Председателем добавляемого участка назначается любой пайщик кооператива.');
+
+  // Выбираем пайщика и наполняем остальные поля — форма в кадре должна быть
+  // рабочей, а не пустой. Сабмита не будет: диалог закроется Escape.
+  await suggestion.click();
+  await page.waitForTimeout(400);
+  const fillField = async (label, value) => {
+    const inp = page.locator(`label:has-text("${label}")`).locator('input').first();
+    await inp.click();
+    await inp.fill(value);
+    await page.waitForTimeout(200);
+  };
+  await fillField('Наименование участка', 'Подольск');
+  await fillField('Номер телефона участка', '+7 (999) 123-04-04');
+  await fillField('Фактический адрес участка', 'Московская область, г. Подольск, Революционный проспект, д. 18');
+  await fillField('Email-адрес участка', 'pdl@voskhod.coop');
+  await fillField('Председатель действует на основании', 'решение собрания совета №СС-2 от 15 августа 2026 г');
+  await page.waitForTimeout(400);
+  await shot(page, '03b-form-filled', 'Заполненная форма добавления участка: председатель выбран из реестра пайщиков, указаны наименование, контакты и документ-основание — решение совета, которым участок создан юридически.');
 
   // 4. Закрываем диалог без сабмита (КУ уже on-chain из installExtraData)
   await page.keyboard.press('Escape');
   await page.locator('text=Создать кооперативный участок').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(600);
 
-  // 5. Развернуть КУ Красногорск — детали с реквизитами, председатель, доверенные лица
-  const krgRow = page.locator('tr:has-text("КУ Красногорск")').first();
+  // 5. Развернуть Красногорск — детали с реквизитами, председатель, доверенные лица
+  const krgRow = page.locator('tr:has-text("Красногорск")').first();
   await krgRow.locator('button, .q-btn').first().click().catch(() => {});
   await page.waitForTimeout(900);
-  await shot(page, '04-branch-details', 'Развёрнутая карточка КУ Красногорск: реквизиты участка, председатель Иванов Пётр Сергеевич (chairkrg), доверенные лица — Петров Михаил Андреевич (trustedkrg) и Кузнецов Александр Владимирович (opkrg). Доверенные имеют расширенные права на участке (приёмка, выдача, маркировка).');
+  await shot(page, '04-branch-details', 'Развёрнутая карточка Красногорск: реквизиты участка, председатель Иванов Пётр Сергеевич (chairkrg), доверенные лица — Петров Михаил Андреевич (trustedkrg) и Кузнецов Александр Владимирович (opkrg). Доверенные имеют расширенные права на участке (приёмка, выдача, маркировка).');
 };

@@ -195,10 +195,13 @@ export async function seedMarketplaceKuDetails(coopname = 'voskhod') {
     sat: { open: '10:00', close: '16:00', breaks: [] as Array<{ start: string, end: string }> },
   }
 
+  // Координаты статичные, как и все фикстуры стенда: геокодинг контроллера —
+  // fire-and-forget сервисного слоя, прямой INSERT его не запускает, и карта
+  // ПВЗ оставалась с «Координаты не определены» до ручного retryKUGeocode.
   const KU = [
-    { braname: 'krg', address: 'Московская область, г. Красногорск, ул. Заводская, д. 1', phone: '+79991230101', email: 'krg@voskhod.coop' },
-    { braname: 'odn', address: 'Московская область, г. Одинцово, ул. Центральная, д. 12', phone: '+79991230202', email: 'odn@voskhod.coop' },
-    { braname: 'myt', address: 'Московская область, г. Мытищи, Олимпийский проспект, д. 5', phone: '+79991230303', email: 'myt@voskhod.coop' },
+    { braname: 'krg', address: 'Московская область, г. Красногорск, ул. Заводская, д. 1', lat: 55.8204, lng: 37.3298, phone: '+79991230101', email: 'krg@voskhod.coop' },
+    { braname: 'odn', address: 'Московская область, г. Одинцово, ул. Центральная, д. 12', lat: 55.6789, lng: 37.2773, phone: '+79991230202', email: 'odn@voskhod.coop' },
+    { braname: 'myt', address: 'Московская область, г. Мытищи, Олимпийский проспект, д. 5', lat: 55.9116, lng: 37.7343, phone: '+79991230303', email: 'myt@voskhod.coop' },
   ]
 
   try {
@@ -220,10 +223,13 @@ export async function seedMarketplaceKuDetails(coopname = 'voskhod') {
       await client.query(`
         INSERT INTO marketplace_ku_details
           (coopname, core_braname, geocoded_address,
-           working_hours_json, status, geocode_status, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'ACTIVE', 'PENDING', now(), now())
-        ON CONFLICT (coopname, core_braname) DO NOTHING
-      `, [coopname, ku.braname, ku.address, JSON.stringify(workingHours)])
+           working_hours_json, status, geocode_status, lat, lng, geocoded_at, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, 'ACTIVE', 'OK', $5, $6, now(), now(), now())
+        ON CONFLICT (coopname, core_braname) DO UPDATE
+          SET lat = EXCLUDED.lat, lng = EXCLUDED.lng,
+              geocode_status = 'OK', geocoded_at = now(), updated_at = now()
+          WHERE marketplace_ku_details.lat IS NULL
+      `, [coopname, ku.braname, ku.address, JSON.stringify(workingHours), ku.lat, ku.lng])
     }
 
     console.log(`Засеяно ${KU.length} ПВЗ (krg/odn/myt, ACTIVE) в marketplace_ku_details для ${coopname}`)

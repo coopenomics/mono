@@ -28,8 +28,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'L3 онбординг пайщика — gate ЦПП «Стол заказов»',
-  docPath: 'new/marketplace/onboarding/member-pick-cpp.md',
-  assetsDir: 'assets/new/marketplace/onboarding/member-pick-cpp',
+  docPath: 'new/marketplace/connection/member-pick-cpp.md',
+  assetsDir: 'assets/new/marketplace/connection/member-pick-cpp',
   role: 'user',
 };
 

@@ -14,8 +14,8 @@ import { loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Доступные категории кооператива',
-  docPath: 'new/marketplace/chairman/category-whitelist.md',
-  assetsDir: 'assets/new/marketplace/chairman/category-whitelist',
+  docPath: 'new/marketplace/admin/categories.md',
+  assetsDir: 'assets/new/marketplace/admin/categories',
   role: 'chairman',
   mode: 'docs',
   feature: 'marketplace.categories',

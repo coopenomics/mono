@@ -38,10 +38,18 @@ const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
 
 const GROUPS = [
   {
-    name: 'L1 — кооператив подключает Стол заказов',
+    // Префикс «L0» — контракт с раннером: эта группа прогоняется ДО глобальных
+    // prepare-фаз, на девственном стенде. Только так процесс подключения ЦПП
+    // снимается живым, а не «уже подключено».
+    name: 'L0 — подключение кооператива (до подготовки стенда)',
     scenarios: [
       'marketplace/onboarding/install-market',
       'marketplace/onboarding/coop-accept-cpp',
+    ],
+  },
+  {
+    name: 'L1 — кооператив подключает Стол заказов',
+    scenarios: [
       'marketplace/chairman/branches',
       'marketplace/chairman/category-whitelist',
       // Обратная сторона белого списка — форма поставщика. Стоит до подачи
@@ -87,6 +95,7 @@ const GROUPS = [
     scenarios: [
       'marketplace/offerer/incoming-orders',
       'marketplace/offerer/shipment-prep',
+      'marketplace/offerer/ship-party',
     ],
   },
   {
@@ -95,10 +104,16 @@ const GROUPS = [
       'marketplace/operator/incoming-shipments',
       // Сразу следом: та же партия глазами председателя соседнего участка.
       'marketplace/operator/incoming-shipments-foreign',
+      // Боксы заводятся ДО приёмки: шаг «Оприходование» закрывающей подписи
+      // должен показывать раскладку в тару, а не «тара не заведена».
+      'marketplace/operator/containers',
       'marketplace/operator/apl-reception-create',
       'marketplace/offerer/apl-reception-sign',
       'marketplace/operator/apl-reception-chairman-sign',
       'marketplace/operator/inventory-label',
+      // Сетка склада (Эпик 19) снимается, пока склад полон — после выдачи
+      // раскладывать нечего. Боксы заведены выше, до приёмки.
+      'marketplace/operator/warehouse-cells',
       'marketplace/operator/warehouse',
     ],
   },
@@ -108,9 +123,14 @@ const GROUPS = [
       // Строго ПЕРЕД открытием выдачи: сверяет пересчёт денег при правке
       // количества и цены и уходит без подписи, оставляя заказ нетронутым.
       'marketplace/operator/issuance-correction',
-      'marketplace/operator/issuance-open',
+      // Лента выдачи и отказ по произвольному коду снимаются, пока заказ ещё
+      // в очереди «Готов к выдаче»: после «Подписать и отправить пайщику»
+      // лента пустеет, и кадры выходят бессодержательными.
       'marketplace/operator/issuance',
+      'marketplace/operator/issuance-no-code',
+      'marketplace/operator/issuance-open',
       'marketplace/orderer/ready-to-receive',
+      'marketplace/orderer/receive-code',
       'marketplace/operator/issuance-finalize',
     ],
   },
@@ -167,10 +187,10 @@ const GROUPS = [
       'marketplace/board/payouts-readonly',
       'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
-      // Проверяет отказ на произвольный код и состояние не меняет, но стоять
-      // в середине выдачи не может: там на столе висит модалка подписи акта
-      // от предыдущего шага, и клик по кнопке стола не проходит.
-      'marketplace/operator/issuance-no-code',
+      'marketplace/chairman/suppliers-registry',
+      'marketplace/chairman/offers-registry',
+      'marketplace/chairman/economy',
+      'marketplace/operator/orders-history',
     ],
   },
 ];
@@ -257,6 +277,12 @@ if (REBOOT) {
   // WIF прежних пайщиков на новой цепи невалидны. Файлы сносим здесь, а не
   // после прогона: иначе первый же логин уйдёт в «неверный ключ доступа»,
   // и причина будет выглядеть как поломка интерфейса.
+  // После пересоздания цепи parser2 может остаться на SHiP-стриме старой:
+  // «блоков нет 60 с — чтение остановилось», таблицы цепи в PG пустеют, и
+  // первая же prepare-фаза падает на «Информация о кооперативе не обнаружена».
+  // Профилактический рестарт заставляет его переподключиться к новой цепи.
+  console.log('▸ рестарт parser2 (SHiP-стрим новой цепи)...');
+  spawnSync('docker', ['compose', 'restart', 'parser2'], { cwd: REPO_ROOT, stdio: 'inherit' });
   const stateDir = path.join(HARNESS_ROOT, 'state/participants');
   for (const f of fs.existsSync(stateDir) ? fs.readdirSync(stateDir) : []) {
     if (f.endsWith('.json')) fs.rmSync(path.join(stateDir, f));
@@ -331,6 +357,21 @@ if (needed.size) {
 // Фазы, заявленные сценариями в meta.prepare (принятие ЦПП советом и т.п.).
 // Идемпотентны, поэтому гоняем их до прогона все разом: доготавливать стенд
 // в середине сюиты — значит мешать шум подготовки с результатом сценария.
+// Группы с префиксом «L0» снимают девственный стенд (процесс подключения ЦПП)
+// и обязаны пройти ДО глобальных prepare-фаз — их сценарии сами доводят
+// состояние через runSeedPhase. Остальной план ждёт полной подготовки.
+const preparePlan = plan.filter((p) => p.group.startsWith('L0'));
+plan = plan.filter((p) => !p.group.startsWith('L0'));
+
+const started = Date.now();
+const results = [];
+let currentGroup = null;
+
+if (preparePlan.length) {
+  console.log('\n▸ L0: девственный стенд — до подготовки');
+  for (const item of preparePlan) runScenarioItem(item);
+}
+
 const prepareSpecs = await collectPrepare(plan.map((p) => p.scenario));
 if (prepareSpecs.length) {
   console.log(`\n▸ подготовка стенда: ${prepareSpecs.join(', ')}`);
@@ -343,11 +384,9 @@ if (prepareSpecs.length) {
 }
 
 // ── Прогон ─────────────────────────────────────────────────────────────────
-const started = Date.now();
-const results = [];
-let currentGroup = null;
-
-for (const item of plan) {
+// Тело прогона одного сценария вынесено в функцию: L0-план зовёт её ДО
+// глобальных prepare-фаз (hoisting function declaration это позволяет).
+function runScenarioItem(item) {
   if (item.group !== currentGroup) {
     currentGroup = item.group;
     console.log(`\n══ ${currentGroup}`);
@@ -375,6 +414,8 @@ for (const item of plan) {
     durationSec: sec,
   });
 }
+
+for (const item of plan) runScenarioItem(item);
 
 // ── Сводка ─────────────────────────────────────────────────────────────────
 const passed = results.filter((r) => r.status === 'passed');

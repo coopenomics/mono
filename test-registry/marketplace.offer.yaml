@@ -277,8 +277,7 @@ cases:
     kind: side
     scenario: Поставщик отправил предложение на модерацию
     expect: >
-      администратору уходит уведомление с названием имущества, именем поставщика
-      и ссылкой на очередь модерации
+      администратору уходит уведомление с названием имущества, именем поставщика и ссылкой на очередь модерации
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
     status: passing
 
@@ -295,8 +294,7 @@ cases:
     kind: side
     scenario: Администратор отклонил предложение с причиной
     expect: >
-      поставщику уходит уведомление с причиной отказа — по ней он правит карточку
-      и отправляет её на повторную проверку
+      поставщику уходит уведомление с причиной отказа — по ней он правит карточку и отправляет её на повторную проверку
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
     status: passing
 
@@ -306,8 +304,7 @@ cases:
     scenario: >
       Ранее одобренное предложение возвращают на публикацию (модерация не нужна)
     expect: >
-      уведомление о модерации НЕ отправляется, поставщик получает только сигнал
-      о публикации — иначе администратора дёргали бы на каждый возврат в каталог
+      уведомление о модерации НЕ отправляется, поставщик получает только сигнал о публикации — иначе администратора дёргали бы на каждый возврат в каталог
     test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
     status: passing
 
@@ -316,8 +313,7 @@ cases:
     kind: break
     scenario: В кооперативе не найден аккаунт администратора
     expect: >
-      уведомление о модерации пропускается с записью в журнал, публикация
-      предложения не срывается
+      уведомление о модерации пропускается с записью в журнал, публикация предложения не срывается
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
     status: passing
 
@@ -325,11 +321,28 @@ cases:
     level: backend
     kind: break
     scenario: >
-      Предложение заведено до появления вида упаковки — у сохранённой упаковки
-      тары нет
+      Предложение заведено до появления вида упаковки — у сохранённой упаковки тары нет
     expect: >
-      предложение читается, вид упаковки пуст и не выдумывается; каталог и стол
-      поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару
-      поставщик обязан при первой же правке
+      предложение читается, вид упаковки пуст и не выдумывается; каталог и стол поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару поставщик обязан при первой же правке
     test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    status: passing
+
+  - id: mkt.offer.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр поставщиков — в нём все допущенные к публикации пайщики
+    expect: >
+      реестр непуст, допущенные фазой 04/06 поставщики видны; отсюда одобряются заявки и добавляются поставщики напрямую
+    test: components/docs-harness/scenarios/marketplace/chairman/suppliers-registry.mjs
+    status: passing
+
+  - id: mkt.offer.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр предложений — все предложения кооператива во всех статусах
+    expect: >
+      опубликованные позиции витрины видны в реестре; карточка предложения открывается в режиме просмотра
+    test: components/docs-harness/scenarios/marketplace/chairman/offers-registry.mjs
     status: passing

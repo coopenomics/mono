@@ -33,7 +33,6 @@ const VOTE_SETTLE_MS = 6000;
 
 export const meta = {
   title: 'Повестка совета — утверждение списания',
-  docPath: 'new/marketplace/chairman/writeoff-authorize.md',
   assetsDir: 'assets/new/marketplace/chairman/writeoff-authorize',
   role: 'chairman',
   mode: 'docs',

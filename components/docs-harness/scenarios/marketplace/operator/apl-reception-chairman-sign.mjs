@@ -12,7 +12,7 @@
 // Прежняя версия сценария требовала ручного ввода «ID кооперативного участка»
 // — такого шага больше нет: активный участок берётся из контекста стола.
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — оператор КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — оператор Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +26,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — закрывающая подпись приёмки',
-  docPath: 'new/marketplace/operator/apl-reception-chairman-sign.md',
   assetsDir: 'assets/new/marketplace/operator/apl-reception-chairman-sign',
   role: 'user',
   mode: 'docs',
@@ -82,7 +81,21 @@ export default async ({ page, shot, expect }) => {
   );
 
   // Кнопка подтверждения — в подвале диалога, а не на карточке под ним.
-  await page.locator('button:has-text("Подписать")').last().click();
+  // При включённом адресном хранении (Эпик 19) диалог двухшаговый:
+  // «Сверка» → «Продолжить» → «Оприходование» → «Подписать и оприходовать».
+  // Без адресного хранения шаг один, и кнопка называется просто «Подписать».
+  const nextBtn = page.locator('.q-dialog button:has-text("Продолжить")').last();
+  if (await nextBtn.count()) {
+    await nextBtn.click();
+    await page.waitForTimeout(2000);
+    await cleanViteOverlays(page);
+    await shot(
+      page,
+      '02b-posting-step',
+      'Шаг «Оприходование»: принятое имущество можно сразу разложить по местам — в бокс или ячейку склада. Указание места не обязательно: неразложенное останется в колонке «Поступило» стола раскладки, откуда его можно разместить позже.',
+    );
+  }
+  await page.locator('.q-dialog button:has-text("Подписать")').last().click();
   await page.waitForTimeout(10000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);

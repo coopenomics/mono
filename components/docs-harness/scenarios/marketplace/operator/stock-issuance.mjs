@@ -5,7 +5,7 @@
 // момент оформления. Выдаётся оно сразу, а разница между ценой прибытия и
 // ценой перепредложения выбывает прочим расходом (уценка).
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,8 +21,8 @@ const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ordere
 
 export const meta = {
   title: 'Стол ПВЗ — выдача заказа из остатка второму пайщику',
-  docPath: 'new/marketplace/operator/stock-issuance.md',
-  assetsDir: 'assets/new/marketplace/operator/stock-issuance',
+  docPath: 'new/marketplace/operator/stock.md',
+  assetsDir: 'assets/new/marketplace/operator/stock',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',
