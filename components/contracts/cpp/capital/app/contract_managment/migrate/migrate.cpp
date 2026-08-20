@@ -1,3 +1,4 @@
+#include "../../../domain/core/gamification/gamification.hpp"
 /**
  * @brief Миграция контракта capital — восстановление инварианта сумм голосования
  *        у проекта, поставленного на голосование до исправления расчёта.
@@ -30,8 +31,65 @@
  *
  * @note Авторизация требуется от аккаунта: @p _capital
  */
+/**
+ * @brief Пересчёт уровней по исправленной шкале.
+ *
+ * Прежнее начисление считалось один раз от требования стартового уровня, а
+ * накопленная энергия делилась на сотню линейно — коэффициент роста при
+ * перескоке не применялся вовсе. Из-за этого один крупный вклад поднимал на
+ * кратно большее число уровней: при базе 10 000 ₽ и коэффициенте 1.5 взнос в
+ * миллион давал сотню уровней вместо десяти.
+ *
+ * Пересчёт прогоняет накопленные вклады участника через исправленную шкалу с
+ * нуля: сумма расходуется последовательно, требование каждого пройденного
+ * уровня списывается по своей — уже большей — величине. Идемпотентно: повторный
+ * прогон приводит к тому же значению и не пишет, если оно уже верное.
+ */
+static void recalculate_levels(eosio::name coopname) {
+  auto state = Capital::State::get_global_state(coopname);
+  const auto& config = state.config;
+
+  Capital::contributor_index contributors(_capital, coopname.value);
+
+  for (auto itr = contributors.begin(); itr != contributors.end(); ++itr) {
+    // Накопленные вклады по всем ролям: ровно то, за что начислялись уровни.
+    const int64_t total_minor =
+        itr->contributed_as_investor.amount +
+        itr->contributed_as_creator.amount +
+        itr->contributed_as_author.amount +
+        itr->contributed_as_coordinator.amount +
+        itr->contributed_as_contributor.amount +
+        itr->contributed_as_propertor.amount;
+
+    // Шкала считается С НУЛЯ: прежние level/energy получены по сломанной
+    // формуле и опорой служить не могут.
+    const auto progress = Capital::Gamification::apply_contribution_to_levels(
+        static_cast<double>(total_minor), 1, 0.0, config);
+
+    const uint32_t new_level = progress.level;
+    const double new_energy = progress.energy;
+
+    // Пишем только при расхождении: иначе повторный прогон миграции жёг бы
+    // RAM-платежи и историю действий без изменения состояния.
+    const bool same_level = itr->level == new_level;
+    const bool same_energy = std::fabs(itr->energy - new_energy) < 1e-9;
+    if (same_level && same_energy) {
+      continue;
+    }
+
+    contributors.modify(itr, _capital, [&](auto &c) {
+      c.level = new_level;
+      c.energy = new_energy;
+    });
+  }
+}
+
 void capital::migrate() {
   require_auth(_capital);
+
+  // Уровни пересчитываются у всех участников кооператива: сломанная формула
+  // начисления действовала на всех, кто вносил вклады.
+  recalculate_levels("voskhod"_n);
 
   // Проект «Системный логотип v1»: пул 8128.8320 RUB на 3 голосующих, остаток
   // от деления — 2, поэтому equal был записан на 0.0001 RUB больше нужного.
