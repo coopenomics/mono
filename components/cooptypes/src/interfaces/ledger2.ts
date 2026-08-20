@@ -98,7 +98,7 @@ export interface IMigrate3 {
 export interface IApply {
   coopname: IName
   initiator: IName
-  action_code: IName
+  operation_code: IName
   /** Имя нитки процесса (`p.<contract>.<noun>`) — его называет контракт-инициатор. */
   process_type: IName
   amount: IAsset
@@ -166,9 +166,9 @@ export type IProcessType =
   | 'cap.debt'
   // Акт 2 результат — один процесс с двумя эффектами (share-вклад результата
   // в паевой и погашение займа из стоимости результата). Под одним process_hash
-  // emit'ятся два apply с разными action_code (cap.act2shr + cap.act2ln), но
+  // emit'ятся два apply с разными operation_code (cap.act2shr + cap.act2ln), но
   // это ОДИН тип процесса. UI показывает оба эффекта раздельно внутри одной
-  // карточки — discriminator = action.data.action_code.
+  // карточки — discriminator = action.data.operation_code.
   | 'cap.act2res'
   | 'cap.act2prp'
   | 'mkt.offereq'

@@ -41,9 +41,8 @@ void capital::createpinv(name coopname, name username, checksum256 invest_hash, 
   // ролям сегмента). Без этого вызова уровень/энергия не растут при прямой
   // инвестиции в Благорост.
   {
-    auto config = Capital::State::get_global_state(coopname).config;
-    double energy_gain = Capital::Gamification::calculate_energy_gain(amount, contributor -> level, config);
-    Capital::Gamification::add_energy_and_check_levelup(coopname, contributor -> id, energy_gain);
+    Capital::Gamification::add_contribution_and_check_levelup(
+        coopname, contributor -> id, static_cast<double>(amount.amount));
   }
 
   // ledger2: TRANSFER w.wal.share → w.cap.blago (без бухпроводки — оба счёта 80).
