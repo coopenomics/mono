@@ -96,6 +96,15 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
       public_key: input.newPublicKey,
     });
 
+    // 3.5. Зеркало ключа в users — как у легаси resetKey: по нему сверяются
+    //      кандидаты и форензика. Best-effort: цепь и vault уже закоммичены,
+    //      сбой локального зеркала не должен валить завершённое восстановление.
+    try {
+      await this.users.updateUserById(input.subjectId, { public_key: input.newPublicKey });
+    } catch (e) {
+      this.logger.warn(`users.public_key не обновлён после ротации ${input.username}: ${e instanceof Error ? e.message : e}`);
+    }
+
     // 4. Отозвать все старые сессии — доступ по старому ключу прекращается.
     const { revoked } = await this.sessions.revokeAll(input.subjectId, ip);
 

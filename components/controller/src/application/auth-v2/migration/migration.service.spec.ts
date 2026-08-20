@@ -22,7 +22,10 @@ describe('MigrationService', () => {
       hasActiveKey: jest.fn().mockReturnValue(true),
       changeKey: jest.fn().mockResolvedValue(undefined),
     };
-    const userDomainService = { getUserByEmail: jest.fn().mockResolvedValue(user) };
+    const userDomainService = {
+      getUserByEmail: jest.fn().mockResolvedValue(user),
+      updateUserById: jest.fn().mockResolvedValue(undefined),
+    };
     const authentikAdmin = { ensureUser: jest.fn().mockResolvedValue(42), setPassword: jest.fn().mockResolvedValue(undefined) };
     const vault = { store: jest.fn().mockResolvedValue(undefined) };
     const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 2 }) };
@@ -75,6 +78,26 @@ describe('MigrationService', () => {
     expect(sessions.revokeAll).toHaveBeenCalledWith('uid-1', null);
     expect(calls).toEqual(['vault', 'changekey', 'revoke']);
     expect(result).toEqual({ username: 'ant', rotated: true });
+  });
+
+  it('ротация обновляет зеркало users.public_key (как легаси resetKey)', async () => {
+    const { service, userDomainService } = deps();
+    await service.migrate({ ...input, newPublicKey: NEW_KEY, vaultBlob: BLOB });
+    expect(userDomainService.updateUserById).toHaveBeenCalledWith('uid-1', { public_key: NEW_KEY });
+  });
+
+  it('сбой зеркала users.public_key не валит удавшуюся ротацию (цепь и vault уже закоммичены)', async () => {
+    const { service, userDomainService, sessions } = deps();
+    userDomainService.updateUserById.mockRejectedValue(new Error('pg down'));
+    const result = await service.migrate({ ...input, newPublicKey: NEW_KEY, vaultBlob: BLOB });
+    expect(result).toEqual({ username: 'ant', rotated: true });
+    expect(sessions.revokeAll).toHaveBeenCalled();
+  });
+
+  it('без ротации зеркало users.public_key не трогается', async () => {
+    const { service, userDomainService } = deps();
+    await service.migrate({ ...input });
+    expect(userDomainService.updateUserById).not.toHaveBeenCalled();
   });
 
   it('ротация без vault-блоба отвергается до любых записей', async () => {

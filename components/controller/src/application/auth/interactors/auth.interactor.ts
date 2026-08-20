@@ -16,6 +16,7 @@ import { NotificationSenderService } from '~/application/notification/services/n
 import { Workflows } from '@coopenomics/notifications';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { LoginTwoFactorService } from '~/application/auth-v2/login-2fa/login-two-factor.service';
+import { VaultService } from '~/application/auth-v2/vault/vault.service';
 
 @Injectable()
 export class AuthInteractor {
@@ -28,11 +29,24 @@ export class AuthInteractor {
     private readonly tokenApplicationService: TokenApplicationService,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    private readonly loginTwoFactor: LoginTwoFactorService
+    private readonly loginTwoFactor: LoginTwoFactorService,
+    private readonly vault: VaultService
   ) {}
 
   async login(data: LoginInputDomainInterface): Promise<RegisteredAccountDomainInterface> {
     const user = await this.authDomainService.loginUserWithSignature(data.email, data.now, data.signature);
+
+    // Гейт миграции: пайщик с установленным паролем (vault-блоб существует)
+    // входит только новым контуром. Иначе «вход только по паролю» держался бы
+    // лишь на UI: ключ из vault (или старого keystore) открывал бы обход всей
+    // цепочки пароль → 2FA. Не мигрировавшие аккаунты (SDK-интеграции, EMP)
+    // этим гейтом не задеваются — у них строки vault нет.
+    const migrated = await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username });
+    if (migrated) {
+      throw new UnauthorizedException(
+        'Для аккаунта установлен пароль — вход по подписи ключа отключён, войдите по email и паролю.'
+      );
+    }
 
     // 2FA-гейт: легаси-вход по подписи не умеет второй фактор, а выпуск токенов
     // мимо него обесценил бы защиту (пароль → расшифровка ключа → подпись).

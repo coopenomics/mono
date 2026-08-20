@@ -3577,6 +3577,7 @@ export const ReturnTypes: Record<string,any> = {
 	Account:{
 		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
+		has_password:"Boolean",
 		participant_account:"ParticipantAccount",
 		private_account:"PrivateAccount",
 		provider_account:"MonoAccount",

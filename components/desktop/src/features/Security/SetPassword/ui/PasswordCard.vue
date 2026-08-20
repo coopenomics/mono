@@ -6,14 +6,14 @@ BaseCard(
   template(v-if='showOffer')
     BaseBanner(variant='info')
       | Сейчас вы входите по ключу доступа. Задайте пароль — входить станет проще,
-      | а ключ останется запасным способом восстановления.
+      | а доступ восстанавливается по почте даже при утере ключа.
     .pwd__actions
       BaseButton(variant='primary', @click='open = true')
         template(#icon-left)
           q-icon(name='password', size='18px')
         | Задать пароль
 
-  template(v-else)
+  template(v-else-if='passwordReady')
     .pwd__done
       q-icon.pwd__done-ico(name='check_circle', size='20px')
       span Вход по паролю настроен.
@@ -23,6 +23,10 @@ BaseCard(
           q-icon(name='password', size='18px')
         | Сменить пароль
 
+  //- Аккаунт ещё грузится — состояние пароля неизвестно, каркас вместо ответа.
+  template(v-else)
+    q-skeleton(type='text', width='60%')
+
   //- Смена при известном старом пароле: старый проверяется расшифровкой vault'а,
   //- дальше — конвейер миграции (новый пароль + перевыпуск ключа + отзыв сессий).
   ChangePasswordDialog(v-model='changeOpen')
@@ -30,8 +34,8 @@ BaseCard(
   BaseDialog(v-model='open', title='Установка пароля', size='sm')
     .pwd__form
       BaseBanner(variant='info')
-        | Пароль шифрует ваш ключ доступа. Запишите его отдельно — без пароля и без
-        | ключа доступ восстанавливается только через процедуру восстановления.
+        | Пароль шифрует ваш ключ доступа. После установки вход в систему —
+        | только по email и паролю; текущая сессия продолжит работать.
       BaseInput(
         v-model='password',
         label='Новый пароль',
@@ -59,54 +63,50 @@ BaseCard(
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import { LocalStorage } from 'quasar';
+import { useRoute, useRouter } from 'vue-router';
 import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
-import { useGlobalStore } from 'src/shared/store';
-import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
+import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { ChangePasswordDialog } from 'src/features/Security/ChangePassword';
-import { useSetPassword } from '../model';
+import { useLogoutUser } from 'src/features/User/Logout';
+import { PasswordSetReloginFailedError, useNewPasswordForm, useSetPassword } from '../model';
 
 const session = useSessionStore();
-const globalStore = useGlobalStore();
+const route = useRoute();
+const router = useRouter();
 const { setPassword } = useSetPassword();
+const { logout } = useLogoutUser();
 
 const open = ref(false);
 const changeOpen = ref(false);
-const password = ref('');
-const repeat = ref('');
+const { password, repeat, passwordError, repeatError, isValid } = useNewPasswordForm();
 const saving = ref(false);
-const justMigrated = ref(false);
 
-const email = computed(() => session.providerAccount?.email ?? '');
-const alreadyMigrated = computed(
-  () => justMigrated.value || LocalStorage.getItem(`coopid:migrated:${email.value}`) === true,
-);
-// Предлагаем пароль только тем, кто вошёл по ключу (легаси) и ещё не мигрировал.
-const showOffer = computed(
-  () => !!globalStore.username && !session.isCoopIdSession && !alreadyMigrated.value,
-);
-
-const isValidPassword = computed(() => passwordPolicyErrors(password.value).length === 0);
-const passwordsMatch = computed(() => !!repeat.value && repeat.value === password.value);
-const passwordError = computed(() =>
-  password.value ? passwordPolicyErrors(password.value).join(', ') : '',
-);
-const repeatError = computed(() =>
-  repeat.value && !passwordsMatch.value ? 'Пароли не совпадают' : '',
-);
-const isValid = computed(() => isValidPassword.value && passwordsMatch.value);
+// Признак пароля — серверный (Account.has_password): локальные отметки врали бы
+// на других устройствах. CoopID-сессия сама по себе означает вход по паролю.
+const hasPassword = computed(() => session.currentUserAccount?.has_password);
+const passwordReady = computed(() => session.isCoopIdSession || hasPassword.value === true);
+const showOffer = computed(() => !session.isCoopIdSession && hasPassword.value === false);
 
 async function onSave(): Promise<void> {
   if (!isValid.value) return;
   saving.value = true;
   try {
     await setPassword(password.value);
-    justMigrated.value = true;
-    SuccessAlert('Пароль установлен. В следующий раз войдите по паролю.');
+    SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
     open.value = false;
   } catch (e) {
+    if (e instanceof PasswordSetReloginFailedError) {
+      // Пароль УЖЕ установлен (и ключ ротирован) — не пугаем «ошибкой», а ведём
+      // на форму входа: она умеет и коды подтверждения, и повтор пароля.
+      open.value = false;
+      SuccessAlert('Пароль установлен. Войдите с ним заново.');
+      const coopname = route.params.coopname;
+      await logout();
+      void router.push({ name: 'signin', params: { coopname } });
+      return;
+    }
     FailAlert(e);
   } finally {
     saving.value = false;

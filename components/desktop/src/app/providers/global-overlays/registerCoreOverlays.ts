@@ -4,6 +4,7 @@ import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
 import { NotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { ExitOverlay } from 'src/features/Membership/ExitFromCoop';
 import { PinPrompt } from 'src/features/Security/PinPrompt';
+import { MigrationOfferDialog } from 'src/features/Security/SetPassword';
 import { NodeSyncOverlay } from 'src/entities/System/ui/NodeSyncOverlay';
 
 /**
@@ -24,5 +25,7 @@ export function registerCoreOverlays(): void {
   registerGlobalOverlay('core:exit-overlay', ExitOverlay);
   // CoopID: запрос PIN при подписи после простоя и после перезагрузки.
   registerGlobalOverlay('core:pin-prompt', PinPrompt);
+  // CoopID: мягкое предложение перейти на вход по паролю пайщику без пароля.
+  registerGlobalOverlay('core:migration-offer', MigrationOfferDialog);
   registerGlobalOverlay('core:node-sync-overlay', NodeSyncOverlay);
 }

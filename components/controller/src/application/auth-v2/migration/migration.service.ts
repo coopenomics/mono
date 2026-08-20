@@ -184,6 +184,16 @@ export class MigrationService {
         public_key: input.newPublicKey as string,
       });
 
+      // 7.5. зеркало ключа в users — как у легаси resetKey: по нему сверяются
+      //      кандидаты и форензика. Best-effort: цепь и vault уже закоммичены,
+      //      сбой локального зеркала не должен превращать удавшуюся ротацию в
+      //      ошибку клиенту (он решил бы, что миграция не прошла).
+      try {
+        await this.userDomainService.updateUserById(user.id, { public_key: input.newPublicKey as string });
+      } catch (e) {
+        this.logger.warn(`users.public_key не обновлён после ротации ${user.username}: ${e instanceof Error ? e.message : e}`);
+      }
+
       // 8. отозвать старые сессии — доступ, полученный старым ключом, прекращается.
       const { revoked } = await this.sessions.revokeAll(user.id, input.ip ?? null);
 

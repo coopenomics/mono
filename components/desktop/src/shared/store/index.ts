@@ -28,6 +28,14 @@ interface IGlobalStore {
   /** Регистрирует отпирание кошелька (ставит контур CoopID при инициализации). */
   setUnlockProvider: (provider: (() => Promise<void>) | null) => void;
   setTokens: (newTokens: ITokens) => Promise<void>;
+  /**
+   * Стирает легаси-креды (ключ/токены в IndexedDB), НЕ трогая ключ сессии в
+   * памяти. Для перехода «ключ → пароль» в активной сессии: CoopID-сессия уже
+   * установлена и подписывает ключом из памяти, а легаси-артефакты обязаны
+   * исчезнуть — иначе `session.init()` после перезагрузки предпочтёт их и
+   * соберёт легаси-сессию поверх отозванных сервером токенов.
+   */
+  clearLegacyCredentials: () => Promise<void>;
   logout: () => Promise<void>;
   init: () => void;
   signDigest: (digest: string) => IMessageSignature;
@@ -179,14 +187,18 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     tokens.value = newTokens;
   };
 
-  const logout = async () => {
-    username.value = '';
-    wif.value = undefined;
+  const clearLegacyCredentials = async () => {
     hasCreditials.value = false;
     tokens.value = undefined;
     await setToIndexedDB(info.coopname, 'store', 'encryptedKey', '');
     await setToIndexedDB(info.coopname, 'store', 'encryptedUsername', '');
     await setToIndexedDB(info.coopname, 'store', 'encryptedTokens', '');
+  };
+
+  const logout = async () => {
+    username.value = '';
+    wif.value = undefined;
+    await clearLegacyCredentials();
     // Сбрасываем активный workspace из localStorage
     localStorage.removeItem('monocoop-active-workspace');
   };
@@ -318,6 +330,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     setWif,
     useSessionKey,
     clearSessionKey,
+    clearLegacyCredentials,
     ensureSigningKey,
     setUnlockProvider,
     setTokens,

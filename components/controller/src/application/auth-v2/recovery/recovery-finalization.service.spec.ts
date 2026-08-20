@@ -41,7 +41,10 @@ function setup() {
     ensureUser: jest.fn().mockResolvedValue(77),
     setPassword: jest.fn().mockResolvedValue(undefined),
   };
-  const users = { getUserByUsername: jest.fn().mockResolvedValue({ username: 'ant', email: 'ant@coop.test' }) };
+  const users = {
+    getUserByUsername: jest.fn().mockResolvedValue({ username: 'ant', email: 'ant@coop.test' }),
+    updateUserById: jest.fn().mockResolvedValue(undefined),
+  };
   const vault = { store: jest.fn().mockResolvedValue(undefined) };
   const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 3 }) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -101,6 +104,18 @@ describe('RecoveryFinalizationService (Story 3.3)', () => {
       kind: SecurityEventKind.KeyRotated,
       ip: '1.2.3.4',
     });
+  });
+
+  it('ротация обновляет зеркало users.public_key; его сбой не валит финализацию', async () => {
+    const { service, users, sessions } = setup();
+    await service.finalize(INPUT);
+    expect(users.updateUserById).toHaveBeenCalledWith('u1', { public_key: 'PUB_K1_NEW' });
+
+    const failing = setup();
+    failing.users.updateUserById.mockRejectedValue(new Error('pg down'));
+    await failing.service.finalize(INPUT);
+    expect(failing.sessions.revokeAll).toHaveBeenCalled();
+    expect(sessions.revokeAll).toHaveBeenCalled();
   });
 
   it('инвариант порядка: setPassword (внешний IdP) ДО vault.store ДО on-chain changekey', async () => {
