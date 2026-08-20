@@ -7,6 +7,23 @@ import { SupportTicketMessageDomainEntity } from '../../domain/entities/support-
 import { SupportTicketMessageTypeormEntity } from '../entities/support-ticket-message.typeorm-entity';
 import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.mapper';
 
+/**
+ * Поля записи ленты, по которым разрешена сортировка.
+ *
+ * `authorUsername` намеренно не включён: лента читается и автором обращения,
+ * и оператором в одном и том же вызове (метод один на обе стороны, в отличие
+ * от тикетов, где findByAuthor/findByAssignee/findByStatuses разведены по
+ * сторонам) — а сортировка по автору продуктовой ценности не даёт, лента и
+ * так хронологическая. Понадобится сортировка по автору оператору — вопрос,
+ * который стоит решать вместе с тем, прячет ли DTO-слой личность оператора
+ * от пайщика в самих сообщениях (сейчас этого слоя ещё нет).
+ */
+const MESSAGE_SORT_FIELDS: ReadonlyArray<keyof SupportTicketMessageDomainEntity> = [
+  'authorRole',
+  'systemEvent',
+  'createdAt',
+];
+
 @Injectable()
 export class SupportTicketMessageTypeormRepository implements SupportTicketMessageRepository {
   constructor(
@@ -14,6 +31,11 @@ export class SupportTicketMessageTypeormRepository implements SupportTicketMessa
     private readonly repository: Repository<SupportTicketMessageTypeormEntity>
   ) {}
 
+  // Пишет только запись ленты. Обновление ticket.lastMessageAt на каждую
+  // запись — включая системные (например, автозакрытие) — не входит в этот
+  // метод и не может быть выведено из него: связку "append сюда + update
+  // ticket.lastMessageAt" обязан держать вызывающий сервисный слой на каждом
+  // пути, который сюда пишет.
   async append(
     data: Omit<SupportTicketMessageDomainEntity, 'id' | 'createdAt'>
   ): Promise<SupportTicketMessageDomainEntity> {
@@ -34,6 +56,13 @@ export class SupportTicketMessageTypeormRepository implements SupportTicketMessa
     const validated = options
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortOrder: 'ASC' as const };
+
+    if (validated.sortBy && !MESSAGE_SORT_FIELDS.includes(validated.sortBy as keyof SupportTicketMessageDomainEntity)) {
+      throw new Error(
+        `Сортировка ленты по полю "${validated.sortBy}" не поддерживается. Допустимые поля: ${MESSAGE_SORT_FIELDS.join(', ')}`
+      );
+    }
+
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const order = validated.sortBy ? { [validated.sortBy]: validated.sortOrder } : { createdAt: 'ASC' as const };
 
