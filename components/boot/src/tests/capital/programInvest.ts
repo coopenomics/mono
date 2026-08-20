@@ -76,19 +76,49 @@ export function amountForOneLevel(level: number, cfg: CapitalConfig): number {
 }
 
 /**
- * Модель перехода уровней контракта: начисление добавляется к накопленной
- * энергии, а затем ЦЕЛАЯ часть сотен превращается в уровни, остаток —
- * `fmod(energy, 100)`.
+ * Модель начисления контракта: вклад расходуется ПОСЛЕДОВАТЕЛЬНО по уровням,
+ * и требование каждого пройденного списывается по своей — уже большей —
+ * величине.
  *
- * Модель нужна, потому что участник стартует с ненулевой энергией: сравнивать
- * «уровень вырос на три» в лоб нельзя — накопленный остаток может добросить
- * ещё один переход, и такой ассерт зелёный только на пустом участнике.
+ * Так и устроен контракт после исправления. Прежде начисление считалось один
+ * раз от требования стартового уровня, а накопленная энергия делилась на сотню
+ * линейно: коэффициент роста при перескоке не применялся, и один крупный вклад
+ * поднимал на кратно большее число уровней (взнос в миллион при базе 10 000 ₽
+ * давал сотню уровней вместо десяти).
+ *
+ * Модель нужна ещё и потому, что участник стартует с ненулевой энергией:
+ * сравнивать «уровень вырос на три» в лоб нельзя — накопленный остаток может
+ * добросить ещё один переход.
  */
-export function applyEnergy(energyBefore: number, gain: number): { levelsGained: number, energyAfter: number } {
-  const total = energyBefore + gain
-  if (total < 100) return { levelsGained: 0, energyAfter: total }
-  const levelsGained = Math.trunc(total / 100)
-  return { levelsGained, energyAfter: total - levelsGained * 100 }
+export function applyContribution(
+  amountMinor: number,
+  startLevel: number,
+  startEnergy: number,
+  cfg: CapitalConfig,
+): { level: number, energy: number, levelsGained: number } {
+  let level = startLevel
+  let energy = startEnergy
+
+  if (amountMinor <= 0) return { level, energy, levelsGained: 0 }
+
+  let remaining = amountMinor * cfg.energy_gain_coefficient
+
+  for (let steps = 0; steps < 1_000_000; steps++) {
+    const requirement = levelRequirement(level, cfg)
+    if (requirement <= 0) break
+
+    const needed = (100 - energy) / 100 * requirement
+    if (remaining < needed) {
+      energy += remaining / requirement * 100
+      return { level, energy, levelsGained: level - startLevel }
+    }
+
+    remaining -= needed
+    level += 1
+    energy = 0
+  }
+
+  return { level, energy, levelsGained: level - startLevel }
 }
 
 export async function getContributor(bc: any, username: string): Promise<any | undefined> {
