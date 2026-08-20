@@ -136,6 +136,9 @@ importers:
 
   components/blago-cli:
     dependencies:
+      '@coopenomics/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
