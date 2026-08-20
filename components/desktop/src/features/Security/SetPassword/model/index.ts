@@ -13,19 +13,6 @@ import { useLoginUser } from 'src/features/User/LoginUser';
 export const migrationOfferDismissed = ref(false);
 
 /**
- * Перевход не удался, но пароль УЖЕ установлен (и ключ ротирован) — UI обязан
- * не пугать «ошибкой установки», а отправить пайщика на форму входа по паролю.
- * Типичный случай — заранее включённое подтверждение входа (2FA): авто-перевход
- * не умеет спрашивать коды, их спрашивает форма входа.
- */
-export class PasswordSetReloginFailedError extends Error {
-  constructor(public readonly cause: unknown) {
-    super('Пароль установлен, но автоматический перевход не удался');
-    this.name = 'PasswordSetReloginFailedError';
-  }
-}
-
-/**
  * Переход «ключ → пароль» в активной легаси-сессии (Story 11.6, in-session):
  * пайщик уже вошёл по ключу; берём ключ из keystore (`globalStore.wif`) и email из
  * профиля, доказываем владение и ставим пароль в server-vault через SDK `migrate()`.
@@ -55,12 +42,9 @@ export function useSetPassword() {
     const privateKey = await globalStore.ensureSigningKey();
     await migrate({ email, privateKey, newPassword });
     await globalStore.clearLegacyCredentials();
-    try {
-      // Автоматический перевход: новые токены + CoopID-сессия, без выброса на вход.
-      await loginWithPassword(email, newPassword);
-    } catch (e) {
-      throw new PasswordSetReloginFailedError(e);
-    }
+    // Автоматический перевход: новые токены + CoopID-сессия, без выброса на вход.
+    // 2FA здесь не встретится: факторы включаются только после установки пароля.
+    await loginWithPassword(email, newPassword);
   }
 
   return { setPassword };

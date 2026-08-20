@@ -63,20 +63,15 @@ BaseCard(
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { ChangePasswordDialog } from 'src/features/Security/ChangePassword';
-import { useLogoutUser } from 'src/features/User/Logout';
-import { PasswordSetReloginFailedError, useNewPasswordForm, useSetPassword } from '../model';
+import { useNewPasswordForm, useSetPassword } from '../model';
 
 const session = useSessionStore();
-const route = useRoute();
-const router = useRouter();
 const { setPassword } = useSetPassword();
-const { logout } = useLogoutUser();
 
 const open = ref(false);
 const changeOpen = ref(false);
@@ -97,16 +92,6 @@ async function onSave(): Promise<void> {
     SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
     open.value = false;
   } catch (e) {
-    if (e instanceof PasswordSetReloginFailedError) {
-      // Пароль УЖЕ установлен (и ключ ротирован) — не пугаем «ошибкой», а ведём
-      // на форму входа: она умеет и коды подтверждения, и повтор пароля.
-      open.value = false;
-      SuccessAlert('Пароль установлен. Войдите с ним заново.');
-      const coopname = route.params.coopname;
-      await logout();
-      void router.push({ name: 'signin', params: { coopname } });
-      return;
-    }
     FailAlert(e);
   } finally {
     saving.value = false;
