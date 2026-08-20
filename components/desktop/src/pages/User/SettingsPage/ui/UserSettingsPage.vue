@@ -11,11 +11,18 @@
 
   //- PIN-код устройства (уточнённая модель Эпика 7).
   PinCard
+
+  //- Опасная зона — в самом конце, за чертой: необратимое действие не должно
+  //- стоять в одном ряду с бытовыми настройками (паттерн «danger zone»).
+  q-separator.settings-page__danger-line
+
+  ExitDangerCard
 </template>
 
 <script lang="ts" setup>
 import { SessionsCard } from 'src/features/Security/ManageSessions';
 import { LoginSecurityCard } from 'src/features/Security/LoginFactors';
+import { ExitDangerCard } from 'src/features/Membership/ExitFromCoop';
 import { PinCard } from 'src/features/Security/SetupPin';
 import { PasswordCard } from 'src/features/Security/SetPassword';
 </script>
@@ -29,6 +36,11 @@ import { PasswordCard } from 'src/features/Security/SetPassword';
      (см. ProfilePage, PaymentsPage, PersonnelPage) — иначе экран выглядит
      зажатым в колонку слева, а справа остаётся пустое поле. */
   padding: var(--p-6, 24px);
+}
+
+/* Черта перед опасной зоной — заметный отступ сверху и снизу, сама линия каноном. */
+.settings-page__danger-line {
+  margin: var(--p-4) 0;
 }
 
 @media (max-width: 768px) {

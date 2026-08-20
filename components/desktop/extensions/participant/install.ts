@@ -1,6 +1,5 @@
 import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { WalletPage } from 'src/pages/User/WalletPage';
-import { MembershipExitPage } from 'src/pages/User/MembershipExitPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
 import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
@@ -72,23 +71,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'profile',
             name: 'profile',
             component: markRaw(ProfilePage),
-            children: [],
-          },
-          {
-            // Страница была написана, но в стол пайщика её забыли завести — на
-            // столе её просто не существовало. Здесь живут пароль, активные
-            // сессии, устройства и PIN-код: место рядом с удостоверением.
-            meta: {
-              title: 'Настройки',
-              // Material-иконка: канон запрещает FontAwesome в новых правках,
-              // соседние fa-* — легаси и меняются попутно при их правке.
-              icon: 'settings',
-              roles: [],
-              agreements: agreementsBase,
-            },
-            path: 'settings',
-            name: 'user-settings',
-            component: markRaw(UserSettingsPage),
             children: [],
           },
           {
@@ -200,17 +182,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
-            // Предпоследний пункт: выйти из кооператива (не путать с «Выйти из
-            // кабинета» в RailUserCard). Иконка group_remove — не logout.
+            // Предпоследний пункт (перед «Поддержкой»): пароль, 2FA, активные
+            // сессии, PIN-код. Здесь же, в опасной зоне внизу страницы, живёт
+            // выход из кооператива — отдельного пункта меню у него больше нет.
             meta: {
-              title: 'Выйти из кооператива',
-              icon: 'group_remove',
+              title: 'Настройки',
+              // Material-иконка: канон запрещает FontAwesome в новых правках,
+              // соседние fa-* — легаси и меняются попутно при их правке.
+              icon: 'settings',
               roles: [],
-              requiresAuth: true,
+              agreements: agreementsBase,
             },
-            path: 'membership-exit',
-            name: 'membership-exit',
-            component: markRaw(MembershipExitPage),
+            path: 'settings',
+            name: 'user-settings',
+            component: markRaw(UserSettingsPage),
             children: [],
           },
           {
