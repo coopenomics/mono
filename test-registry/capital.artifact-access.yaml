@@ -21,21 +21,6 @@ title: Кто читает документы проекта и его пере�
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
-# Правка 2026-08-17 (раздел «Компоненты», фильтры и сортировка): в репозиториях
-# задач, проектов и артефактов имя поля сортировки перестало подставляться в
-# ORDER BY как есть — оно сверяется с колонками сущности (capital.list-filters-sort).
-# Правила доступа и набор случаев не менялись.
-
-# Правка 2026-08-18 (приоритеты, capital.priorities): в permissions-сервисах
-# появились расчёт can_set_priority проекта/компонента и председательский
-# override приоритета задач; в project-management добавлена офчейн-мутация
-# приоритета, в репозитории проектов — setter и фильтр по priority.
-# VIEW_ARTIFACTS / READ_COMMUNICATION и набор случаев этого слайса не менялись.
-
-# Правка 2026-08-19 (capital.git-commit-markers): в generation.service маппинг
-# привязанных Git-коммитов дополнен полями branch / in_default_branch для бейджа
-# ветки. Правила доступа и набор случаев этого слайса не менялись.
-
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -199,16 +184,16 @@ cases:
     expect: >
       отказ — доступ проверяется по комнате и её проекту, а не по тому, что
       комната названа в запросе
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    status: passing
 
   - id: cap.access.break.06
     level: backend
     kind: break
     scenario: пайщик запрашивает комнаты пайщиков, совета или секретаря
     expect: пустой список — эти комнаты к проектам не привязаны и читаются только советом
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    status: passing
 
   - id: cap.access.break.07
     level: backend
@@ -280,7 +265,3 @@ cases:
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
     status: passing
-
-# 2026-08-18: в репозитории проектов явно типизирован сбор уникальных адресов
-# репозиториев разработки — в production-образе devDeps вырезаны, вывод типов
-# деградировал и контроллер не стартовал. Поведение выборки прежнее.

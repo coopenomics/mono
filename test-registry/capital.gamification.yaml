@@ -36,8 +36,8 @@ cases:
     expect: >
       начисляется ровно 100 энергии — участник переходит на второй уровень,
       остаток энергии обнуляется
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.break.01
     level: contract
@@ -51,8 +51,8 @@ cases:
       формуле, поэтому пайщик вносит ровно столько, сколько показано, и не
       видит никакого движения. Проверять на паре «сумма из подсказки →
       уровень вырос»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.01
     level: contract
@@ -61,16 +61,16 @@ cases:
     expect: >
       уровень растёт сразу на несколько ступеней, остаток энергии — дробная
       часть сверх последнего перехода
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.02
     level: contract
     kind: side
     scenario: нулевая или отрицательная сумма вклада
     expect: энергия не начисляется, уровень не меняется
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.03
     level: contract
@@ -81,16 +81,16 @@ cases:
     expect: >
       начисление меньше, чем на первом, ровно во столько раз, во сколько
       выросло требование
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.04
     level: contract
     kind: side
     scenario: инвестиция участника, у которого нет кошелька в программе
     expect: отказ до начисления энергии
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.08
     level: contract
@@ -101,8 +101,8 @@ cases:
     expect: >
       энергия и уровень начисляются так же, как одобренному: статус договора
       в формулу не входит
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-gamification.test.ts
+    status: passing
 
   - id: cap.gam.side.07
     level: contract
