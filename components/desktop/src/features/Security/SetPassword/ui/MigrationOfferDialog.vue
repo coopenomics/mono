@@ -2,7 +2,15 @@
 //- Мягкая миграция «ключ → пароль»: небольшой ЗАКРЫВАЕМЫЙ диалог при загрузке
 //- рабочего стола для пайщика, вошедшего по ключу и ещё без пароля. Не блокирует
 //- работу: «Позже» (или крестик) убирает его до следующей перезагрузки страницы.
-BaseDialog(v-model='visible', title='Удостоверение пайщика', size='sm')
+//- :close-on-route-change='false' обязателен: диалог поднимается во время
+//- загрузки, и стартовый редирект на дефолтный стол иначе закрывает его молча,
+//- а закрытие трактуется как «Позже» — пайщик оффера просто не увидит.
+BaseDialog(
+  v-model='visible',
+  title='Удостоверение пайщика',
+  size='sm',
+  :close-on-route-change='false'
+)
   .migration-offer(v-if='step === "intro"')
     BaseBanner(variant='info')
       | Здравствуйте! Система вводит удостоверение пайщика — вход по email и паролю.
@@ -67,10 +75,12 @@ const { password, repeat, passwordError, repeatError, isValid, reset } = useNewP
 
 // Показ — по серверному признаку (Account.has_password), только принятым
 // пайщикам (кандидат в потоке регистрации живёт по своим правилам) и только в
-// легаси-сессии: CoopID-сессия и означает вход по паролю.
+// легаси-сессии: CoopID-сессия и означает вход по паролю. loadComplete — чтобы
+// не подниматься посреди инициализации и стартовых редиректов кабинета.
 const shouldShow = computed(
   () =>
     session.isAuth &&
+    session.loadComplete &&
     !session.isCoopIdSession &&
     session.isRegistrationComplete &&
     session.currentUserAccount?.has_password === false,
