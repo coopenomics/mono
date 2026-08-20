@@ -32,13 +32,29 @@ namespace Capital::Gamification {
    */
   inline void update_energy_with_decay(eosio::name coopname, uint64_t contributor_id);
 
+  /** Результат разнесения вклада по уровням. */
+  struct LevelProgress {
+    uint32_t level;   ///< уровень после начисления
+    double energy;    ///< остаток энергии на достигнутом уровне (0..100)
+  };
+
   /**
-   * @brief Добавляет энергию участнику и проверяет переход на новый уровень
+   * @brief Разносит вклад по уровням, списывая требование каждого пройденного
+   * @param amount_minor Сумма вклада в минорных единицах
+   * @param start_level Уровень до начисления
+   * @param start_energy Накопленная энергия на этом уровне (0..100)
+   * @param config Конфигурация контракта с параметрами геймификации
+   */
+  inline LevelProgress apply_contribution_to_levels(double amount_minor, uint32_t start_level,
+                                                    double start_energy, const Capital::config& config);
+
+  /**
+   * @brief Начисляет вклад участнику и проверяет переход на новые уровни
    * @param coopname Имя кооператива
    * @param contributor_id ID участника
-   * @param energy_gain Прирост энергии
+   * @param amount_minor Сумма вклада в минорных единицах
    */
-  inline void add_energy_and_check_levelup(eosio::name coopname, uint64_t contributor_id, double energy_gain);
+  inline void add_contribution_and_check_levelup(eosio::name coopname, uint64_t contributor_id, double amount_minor);
 
   /**
    * @brief Обновляет геймификацию (уровень и энергию) на основе вкладов из сегмента

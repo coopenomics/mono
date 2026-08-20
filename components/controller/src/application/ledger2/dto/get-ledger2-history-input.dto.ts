@@ -8,6 +8,7 @@ import {
   IsIn,
   IsArray,
   IsDate,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -60,10 +61,17 @@ export class GetLedger2HistoryInputDTO {
   @MaxLength(64)
   username?: string;
 
-  @Field(() => String, { nullable: true, description: 'process_hash для выборки всех действий одной операции' })
+  @Field(() => String, { nullable: true, description: 'process_hash (hex-64) для выборки всех действий одной операции' })
   @IsOptional()
   @IsString()
   @MaxLength(66)
+  // Пустая строка и мусор прежде проходили как «фильтра нет»: выборка молча
+  // разворачивалась на ВЕСЬ журнал кооператива, и вызывающий получал чужие
+  // проводки, считая их ниткой своего процесса. Отсутствие фильтра теперь
+  // выражается только отсутствием поля.
+  @Matches(/^[0-9a-fA-F]{64}$/, {
+    message: 'process_hash должен быть hex-строкой длиной 64 символа',
+  })
   processHash?: string;
 
   @Field(() => String, {

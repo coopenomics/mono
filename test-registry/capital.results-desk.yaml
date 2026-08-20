@@ -434,6 +434,6 @@ cases:
       ПРОЕКТУ ролью не ограничен: на нём стоят рабочие виджеты (голосование,
       состав участников, подача результата) и они нужны любому участнику
       проекта. Решение владельца, зафиксировано 2026-08-20
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/segments-role.test.ts
+    status: passing
 
