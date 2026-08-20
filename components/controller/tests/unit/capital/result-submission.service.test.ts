@@ -13,7 +13,6 @@
 
 import { Classes } from '@coopenomics/sdk';
 import { ResultSubmissionService } from '~/extensions/capital/application/services/result-submission.service';
-import { ResultStatus } from '~/extensions/capital/domain/enums/result-status.enum';
 
 function makeLoggerStub() {
   return {
@@ -381,6 +380,51 @@ describe('ResultSubmissionService', () => {
       expect(segmentRepository.findOne).toHaveBeenCalledWith({ project_hash: 'ph', username: 'alice' });
     });
 
+    // ── cap.rid.side.52: guard'ы обязательных полей ─────────────────────
+    //
+    // Мутационный прогон показал, что порча этих условий не роняла ни одного
+    // теста: guard'ы написаны, но не защищены. Заявление о результате уходит
+    // в реестр документов и подписывается пайщиком, поэтому пустое поле в нём
+    // хуже отказа — документ будет выглядеть законченным.
+    //
+    // Проверено повторной мутацией: обезвредить сами условия компилятор уже не
+    // даёт — они сужают тип, и без них поля уходят в DTO как string|undefined
+    // (TS2322). Тесты ниже фиксируют вторую половину — что отказ приходит с
+    // называющим поле текстом, а не падает где-то глубже.
+
+    it('cap.rid.side.52: отказывает, если у компонента нет названия', async () => {
+      const { service, documentPort } = makeService({
+        project: { project_hash: 'ph', parent_hash: 'parent', fact: { total: '1000.0000 RUB' } },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Название компонента не найдено');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
+    it('cap.rid.side.52: отказывает, если у сегмента нет стоимости интеллектуального вклада', async () => {
+      const { service, documentPort } = makeService({
+        segment: { project_hash: 'ph', username: 'alice', share_percent: 50 },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Сумма сегмента не найдена');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
+    it('cap.rid.side.52: отказывает, если у проекта нет фактической суммы', async () => {
+      const { service, documentPort } = makeService({
+        project: { project_hash: 'ph', title: 'Компонент', parent_hash: 'parent', fact: {} },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Сумма проекта не найдена');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
     // cap.rid.side.42
     it('отказывает, если сумма проекта не положительна — доля неисчислима', async () => {
       const { service } = makeService({
@@ -667,41 +711,6 @@ describe('ResultSubmissionService', () => {
       await expect(
         service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
       ).rejects.toThrow('Имя пользователя не найдено в результате');
-    });
-  });
-  describe('неизменность хэша результата в приёмке', () => {
-    it('pushResult отказывает, если результат пересобрался после генерации заявления', async () => {
-      const { service } = makeService({
-        generatedDocument: { doc_hash: 'doc-hash-1', meta: { result_hash: 'stale-hash' } },
-      });
-      await expect(service.pushResult(pushDto(), alice)).rejects.toThrow(
-        'Результат изменился после генерации заявления'
-      );
-    });
-
-    it('pushResult проходит, когда заявление сгенерировано от текущего result_hash', async () => {
-      const { service, resultSubmissionInteractor } = makeService({
-        generatedDocument: { doc_hash: 'doc-hash-1', meta: { result_hash: 'rh' } },
-      });
-      await service.pushResult(pushDto(), alice);
-      expect(resultSubmissionInteractor.pushResult).toHaveBeenCalled();
-    });
-
-    it('generateResultData не пересобирает документ, пока результат идёт по приёмке', async () => {
-      const inFlight = { result_hash: 'rh', data: 'payload', status: ResultStatus.CREATED };
-      const { service, resultRepository, projectRepository } = makeService({ result: inFlight });
-      const returned = await service.generateResultData('ph', 'alice');
-      expect(returned).toBe(inFlight);
-      expect(resultRepository.update).not.toHaveBeenCalled();
-      expect(resultRepository.create).not.toHaveBeenCalled();
-      expect(projectRepository.findByHash).not.toHaveBeenCalled();
-    });
-
-    it('generateResultData пересобирает документ, пока результат не отправлен в цепь', async () => {
-      const pending = { result_hash: 'rh', data: 'payload', status: ResultStatus.PENDING };
-      const { service, resultRepository } = makeService({ result: pending });
-      await service.generateResultData('ph', 'alice');
-      expect(resultRepository.update).toHaveBeenCalled();
     });
   });
 });

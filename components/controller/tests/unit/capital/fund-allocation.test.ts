@@ -138,3 +138,161 @@ describe('InvestsManagementService.allocateFunds', () => {
     expect(investsManagementInteractor.allocateFunds).not.toHaveBeenCalled();
   });
 });
+
+// ── Возврат средств из компонента в программу ───────────────────────────────
+//
+// Контракт проверяет границу возврата сам, но интерфейсу нужно показать
+// председателю потолок ДО отправки транзакции. Ошибка здесь дороже обычной:
+// подсказанная сумма, которую контракт отклонит, выглядит как поломка
+// кнопки. Поэтому расчёт предела вынесен в чистую функцию и проверяется на
+// слепках, а не через порт.
+
+function makeDeallocInteractor(o: { project?: any, segments?: any[] } = {}) {
+  const project =
+    'project' in o
+      ? o.project
+      : { project_hash: 'ph', origin: ProjectOrigin.BLOCKCHAIN, status: 'active', fact: {} };
+
+  const capitalBlockchainPort = {
+    deallocateFunds: jest.fn(async () => ({ transaction_id: 'tx-2' })),
+  } as any;
+
+  const projectRepository = { findByHash: jest.fn(async () => project) } as any;
+  const segmentRepository = {
+    findAllByProjectHash: jest.fn(async () => o.segments ?? []),
+  } as any;
+
+  const interactor = new InvestsManagementInteractor(
+    capitalBlockchainPort,
+    {} as any, // investRepository
+    {} as any, // appendixRepository
+    {} as any, // contributorRepository
+    projectRepository,
+    segmentRepository,
+    {} as any, // domainToBlockchainUtils
+    {} as any, // investSyncService
+    makeLoggerStub()
+  );
+
+  return { interactor, capitalBlockchainPort, projectRepository, segmentRepository };
+}
+
+const deallocInput = (overrides: Record<string, any> = {}) =>
+  ({ coopname: 'coop', project_hash: 'PH', amount: '1000.0000 RUB', ...overrides }) as any;
+
+describe('InvestsManagementInteractor.deallocateFunds', () => {
+  it('cap.dealloc.side.10: отклоняет персональный проект пайщика до обращения к цепи', async () => {
+    const { interactor, capitalBlockchainPort } = makeDeallocInteractor({
+      project: { project_hash: 'ph', origin: ProjectOrigin.LOCAL, status: 'active', fact: {} },
+    });
+
+    await expect(interactor.deallocateFunds(deallocInput())).rejects.toThrow();
+    expect(capitalBlockchainPort.deallocateFunds).not.toHaveBeenCalled();
+  });
+});
+
+describe('InvestsManagementService.deallocateFunds', () => {
+  function makeService() {
+    const investsManagementInteractor = { deallocateFunds: jest.fn(async () => ({ transaction_id: 'tx-2' })) } as any;
+    const service = new InvestsManagementService(investsManagementInteractor, {} as any);
+    return { service, investsManagementInteractor };
+  }
+
+  it('пропускает сумму в валюте кооператива', async () => {
+    const { service, investsManagementInteractor } = makeService();
+    await service.deallocateFunds(deallocInput());
+    expect(investsManagementInteractor.deallocateFunds).toHaveBeenCalled();
+  });
+
+  it('cap.dealloc.side.11: отклоняет сумму в чужой валюте до доменного слоя', async () => {
+    const { service, investsManagementInteractor } = makeService();
+    await expect(service.deallocateFunds(deallocInput({ amount: '1000.0000 USD' }))).rejects.toThrow();
+    expect(investsManagementInteractor.deallocateFunds).not.toHaveBeenCalled();
+  });
+});
+
+describe('InvestsManagementInteractor.getDeallocationLimit', () => {
+  it('cap.dealloc.happy.02: отдаёт предел и его составляющие в валюте кооператива', async () => {
+    const { interactor } = makeDeallocInteractor({
+      project: {
+        project_hash: 'ph',
+        origin: ProjectOrigin.BLOCKCHAIN,
+        status: 'active',
+        fact: {
+          program_invest_pool: '30000.0000 RUB',
+          invest_pool: '50000.0000 RUB',
+          total_received_investments: '50000.0000 RUB',
+          total_used_for_compensation: '5000.0000 RUB',
+          used_expense_pool: '5000.0000 RUB',
+        },
+      },
+    });
+
+    const limit = await interactor.getDeallocationLimit(deallocInput());
+
+    // Потолок — минимум из трёх границ: программные средства проекта (30 000),
+    // неизрасходованное (50 000 − 5 000 − 5 000 = 40 000) и остаток после
+    // удержания под ссуды (ссуд нет, поэтому весь инвестпул).
+    expect(limit.program_invest_pool).toBe(30000);
+    expect(limit.unspent).toBe(40000);
+    expect(limit.outstanding_debt).toBe(0);
+    expect(limit.max_amount).toBe(30000);
+    expect(limit.is_allowed_by_status).toBe(true);
+    expect(limit.symbol).toBe('RUB');
+  });
+
+  it('cap.dealloc.side.09: на проекте в голосовании потолок нулевой, а признак разрешённости отрицательный', async () => {
+    const { interactor } = makeDeallocInteractor({
+      project: {
+        project_hash: 'ph',
+        origin: ProjectOrigin.BLOCKCHAIN,
+        status: 'voting',
+        fact: {
+          program_invest_pool: '30000.0000 RUB',
+          invest_pool: '30000.0000 RUB',
+          total_received_investments: '30000.0000 RUB',
+        },
+      },
+    });
+
+    const limit = await interactor.getDeallocationLimit(deallocInput());
+
+    // Интерфейсу есть что показать вместо пустого поля: составляющие остаются
+    // видимыми, нулём становится только сам потолок.
+    expect(limit.max_amount).toBe(0);
+    expect(limit.is_allowed_by_status).toBe(false);
+    expect(limit.program_invest_pool).toBe(30000);
+  });
+
+  it('cap.dealloc.side.13: потолок считается по самому «дорогому» заёмщику, а не по сумме долгов', async () => {
+    const { interactor } = makeDeallocInteractor({
+      project: {
+        project_hash: 'ph',
+        origin: ProjectOrigin.BLOCKCHAIN,
+        status: 'active',
+        fact: {
+          program_invest_pool: '100000.0000 RUB',
+          invest_pool: '100000.0000 RUB',
+          total_received_investments: '100000.0000 RUB',
+          creators_base_pool: '10000.0000 RUB',
+          authors_base_pool: '0.0000 RUB',
+          coordinators_base_pool: '0.0000 RUB',
+        },
+      },
+      segments: [
+        // Доля долга к трудовой базе: 1000/10000 = 0.1
+        { debt_amount: '1000.0000 RUB', creator_base: '10000.0000 RUB' },
+        // А здесь 900/1000 = 0.9 — по этому заёмщику и считается граница
+        { debt_amount: '900.0000 RUB', creator_base: '1000.0000 RUB' },
+      ],
+    });
+
+    const limit = await interactor.getDeallocationLimit(deallocInput());
+
+    // Удержать нужно workCosts × maxRatio = 10 000 × 0.9 = 9 000, поэтому
+    // вернуть можно 100 000 − 9 000. Если бы считали по СУММЕ долгов (1 900),
+    // потолок вышел бы выше, и контракт отклонил бы подсказанную сумму.
+    expect(limit.outstanding_debt).toBe(1900);
+    expect(limit.max_amount).toBe(91000);
+  });
+});

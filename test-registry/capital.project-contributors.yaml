@@ -21,13 +21,6 @@ title: Список участников проекта и компонента
 #
 # Тот же источник долей читает стол «Результаты» — но по участнику, а не по
 # проекту, и с контекстом проекта в строке (test-registry/capital.results-desk.yaml).
-# Правка 2026-08-17: в репозитории сегментов имя поля сортировки сверяется с
-# колонками сущности перед подстановкой в ORDER BY (capital.list-filters-sort).
-# Правка 2026-08-18 (приоритеты, capital.priorities): в интеракторе управления
-# проектами добавлен офчейн-setter приоритета проекта/компонента. Логика долей
-# участников и набор случаев этого слайса не менялись.
-# Правила выдачи допуска и набор случаев не менялись.
-
 sources:
   contract:
     - components/contracts/cpp/capital/app/project_managment/add_author/**
@@ -57,32 +50,32 @@ cases:
     expect: >
       участнику заводится доля с авторским признаком; если доля у него уже
       была — признак добавляется к существующей, вторая доля не создаётся
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-project-contributors.test.ts
+    status: passing
 
   - id: cap.contrib.side.01
     level: contract
     kind: side
     scenario: добавление соавтором того, кто уже числится соавтором проекта
     expect: отказ «Пользователь уже является автором проекта»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-project-contributors.test.ts
+    status: passing
 
   - id: cap.contrib.side.02
     level: contract
     kind: side
     scenario: добавление соавтором того, кто не допущен к работам по проекту
     expect: отказ — соавтором можно назначить только участника проекта
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-project-contributors.test.ts
+    status: passing
 
   - id: cap.contrib.side.03
     level: contract
     kind: side
     scenario: добавление соавтора сверх предельного количества соавторов
     expect: отказ «Превышено максимальное количество соавторов в проекте»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-project-contributors.test.ts
+    status: passing
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
 

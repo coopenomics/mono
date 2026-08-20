@@ -375,8 +375,8 @@ cases:
       каждая доля приходит с названием компонента, названием проекта, статусом
       проекта и признаком отданного голоса — строку списка можно построить
       одним запросом
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    status: passing
 
   - id: cap.resdesk.side.09
     level: backend
@@ -385,8 +385,8 @@ cases:
     expect: >
       название проекта заполнено, название и хэш родителя пустые — по ним
       и отличается компонент от проекта верхнего уровня
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    status: passing
 
   - id: cap.resdesk.side.10
     level: backend
@@ -406,8 +406,8 @@ cases:
     expect: >
       признак голоса приходит отрицательным, а не пустым: поле обязательное,
       и пустое значение уронило бы ответ целиком
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    status: passing
 
   - id: cap.resdesk.side.16
     level: backend

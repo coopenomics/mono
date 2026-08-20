@@ -42,8 +42,8 @@ cases:
       кошелёк программы, пул программы вырос на ту же сумму, накопительный
       показатель инвестора увеличен, заявление зафиксировано в реестре
       документов
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.01
     level: contract
@@ -56,8 +56,8 @@ cases:
       взнос проходит наравне с одобренным договором. Прежде операция
       отклонялась с «Договор УХД с пайщиком не активен», и пайщик не мог внести
       средства, пока председатель не дошёл до одобрения
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.02
     level: contract
@@ -66,8 +66,8 @@ cases:
       Пайщик, импортированный с балансом и не завершивший регистрацию
       (статус импорта).
     expect: взнос проходит — статус импорта операции не мешает
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.03
     level: contract
@@ -76,32 +76,32 @@ cases:
     expect: >
       отказ «Исполнитель не подписывал договор УХД» — снятие требования
       одобрения не снимает требования самой подписи
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.04
     level: contract
     kind: side
     scenario: Пайщик не подписывал оферту программы «Благорост»
     expect: отказ «У пайщика нет кошелька в программе благороста»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.05
     level: contract
     kind: side
     scenario: Сумма взноса превышает доступный остаток главного кошелька
     expect: отказ, ни средства, ни пул программы не двигаются
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.06
     level: contract
     kind: side
     scenario: Нулевая, отрицательная сумма или чужая валюта
     expect: отказ на проверке суммы
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.side.07
     level: contract
@@ -112,8 +112,8 @@ cases:
       неодобренным договором.
     expect: >
       все три отклоняются. Послабление касается только взноса в программу
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   - id: cap.pinv.break.01
     level: contract
@@ -121,9 +121,8 @@ cases:
     scenario: >
       Повторная отправка того же заявления (двойной клик, повтор транзакции).
     expect: второй взнос не проходит — заявление уже зафиксировано в реестре
-    test: ~
-    status: missing
-    decision_needed: true
+    test: components/boot/src/tests/capital-program-invest.test.ts
+    status: passing
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
 

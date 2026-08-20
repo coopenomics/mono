@@ -30,12 +30,6 @@ title: Направление средств программы в проект 
 # изменилась только строка импорта — состав guard'ов на операциях, правила
 # доступа и набор случаев прежние.
 
-# Правка 2026-08-18 (приоритеты, capital.priorities): в фиче UpdateProjectStatus
-# добавлен инлайн-чип смены статуса проекта/компонента в строках списков
-# (ProjectStatusChip) — те же мутации start/stop/voting/complete/finalize и то же
-# право can_change_project_status, что у селекта в сайдбаре. Движение средств
-# при смене статуса и набор случаев этого слайса не менялись.
-
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/allocate/**
@@ -73,32 +67,32 @@ cases:
       Свободный остаток программы уменьшается на сумму; у проекта растут бюджет
       расходов (в пределах разрыва до планового) и инвестиционный пул;
       пересчитываются коэффициенты возврата и использования.
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.05
     level: contract
     kind: side
     scenario: направление суммы больше свободного остатка программы
     expect: отказ «Недостаточно средств в глобальном пуле инвестиций»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.06
     level: contract
     kind: side
     scenario: направление средств в несуществующий проект
     expect: отказ «Проект с указанным хэшем не найден»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.07
     level: contract
     kind: side
     scenario: направление средств вызывает не кооператив
     expect: отказ по авторизации — действие требует ключ кооператива
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.08
     level: contract
@@ -108,8 +102,8 @@ cases:
       планового значения
     expect: >
       вся сумма уходит в инвестиционный пул, бюджет расходов не превышает план
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.happy.03
     level: contract
@@ -120,8 +114,8 @@ cases:
     expect: >
       неизрасходованный остаток возвращается в свободные средства программы
       трекинговым действием, проект переходит в статус «финализирован»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.alloc.happy.04
     level: contract
@@ -132,8 +126,8 @@ cases:
     expect: >
       весь неизрасходованный остаток возвращается в свободные средства
       программы, и только затем запись проекта удаляется
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.09
     level: contract
@@ -145,8 +139,8 @@ cases:
       возврат не отправляется вовсе; свободные средства программы не меняются,
       проект удаляется. Отправка нулевой суммы была бы отклонена самим
       действием возврата и уронила бы удаление
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.10
     level: contract
@@ -158,8 +152,8 @@ cases:
       возврат проходит: проект в нём необязателен, хэш служит только меткой.
       Прежде возврат требовал существующий проект — при удалении это уронило бы
       всю операцию, и удалить проект с бюджетом было бы нельзя
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.side.11
     level: contract
@@ -186,8 +180,8 @@ cases:
       пересчитывает коэффициенты. Прежний вариант был неисполним: обе функции
       расчёта коэффициента использования ограничивают его сотней, поэтому
       условие возврата никогда не выполнялось
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.happy.01
     level: contract
@@ -200,8 +194,8 @@ cases:
       программный и инвестиционный пулы и общая сумма полученных средств;
       коэффициент возврата пересчитывается вниз, поэтому доступные участникам
       суммы уменьшаются пропорционально
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.01
     level: contract
@@ -210,8 +204,8 @@ cases:
     expect: >
       отказ «Деаллокация доступна только в статусе 'pending' или 'active'» —
       с началом голосования суммы уже участвуют в расчёте результата
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.dealloc.side.02
     level: contract
@@ -222,8 +216,8 @@ cases:
     expect: >
       отказ с указанием доступной суммы: вернуть можно только то, что проект
       не израсходовал
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.03
     level: contract
@@ -248,24 +242,24 @@ cases:
     expect: >
       отказ: возвращаются только программные средства, инвестиции пайщиков
       лично им не возвращаются
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.05
     level: contract
     kind: side
     scenario: возврат из проекта, в который средства не направлялись
     expect: отказ «В проекте нет средств, доступных к возврату»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.06
     level: contract
     kind: side
     scenario: возврат средств вызывает не кооператив
     expect: отказ по авторизации — действие требует ключ кооператива
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.07
     level: contract
@@ -275,20 +269,8 @@ cases:
     expect: >
       обновление проходит, доступная сумма пересчитывается от уменьшенного
       пула и остаётся не меньше его долга
-    test: ~
-    status: missing
-
-  - id: cap.dealloc.side.08
-    level: contract
-    kind: side
-    scenario: >
-      Миграция контракта на проде: у проектов, записанных до появления поля
-      суммы непогашенных ссуд, оно приходит пустым.
-    expect: >
-      миграция обходит проекты каждого кооператива и восстанавливает поле
-      суммированием долгов по сегментам; повторный прогон ничего не меняет
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-fund-allocation.test.ts
+    status: passing
 
   - id: cap.alloc.happy.02
     level: backend
@@ -478,8 +460,8 @@ cases:
     expect: >
       возвращается максимальная сумма и её составляющие — направлено в компонент,
       не израсходовано, удерживается под ссуды — в валюте кооператива
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.09
     level: backend
@@ -488,24 +470,24 @@ cases:
     expect: >
       максимум равен нулю, признак разрешённости по статусу отрицательный —
       интерфейсу есть что показать вместо пустого поля
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.10
     level: backend
     kind: side
     scenario: возврат средств из персонального проекта пайщика
     expect: отказ до обращения к цепи — операция только для кооперативных проектов
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.11
     level: backend
     kind: side
     scenario: сумма возврата указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
 
   - id: cap.dealloc.side.12
     level: backend
@@ -524,8 +506,8 @@ cases:
     expect: >
       предел считается по нему, а не по сумме долгов: иначе интерфейс предложил бы
       сумму, которую контракт отклонит
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
 
   # ── Возврат средств: UI ───────────────────────────────────────────────────
 
