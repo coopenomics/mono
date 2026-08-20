@@ -9,6 +9,8 @@ function setup(overrides: {
   enrolled?: boolean;
   codeValid?: boolean;
   emailVerified?: boolean;
+  /** Пароль установлен (vault-блоб существует). По умолчанию true — мигрирован. */
+  hasPassword?: boolean;
 } = {}) {
   const repo = {
     get: jest.fn().mockResolvedValue(
@@ -33,14 +35,18 @@ function setup(overrides: {
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
+  const vault = {
+    retrieve: jest.fn().mockResolvedValue((overrides.hasPassword ?? true) ? { ciphertext: 'x' } : null),
+  };
   const service = new LoginFactorsService(
     repo as any,
     twoFactor as any,
     users as any,
     audit as any,
     securityEvents as any,
+    vault as any,
   );
-  return { service, repo, twoFactor, users, audit, securityEvents };
+  return { service, repo, twoFactor, users, audit, securityEvents, vault };
 }
 
 describe('LoginFactorsService (настройки 2FA-входа)', () => {
@@ -52,6 +58,20 @@ describe('LoginFactorsService (настройки 2FA-входа)', () => {
       email_available: false,
       email_enabled: false,
     });
+  });
+
+  it('set: включение фактора без установленного пароля → InsufficientVerification (легаси-вход не ломаем)', async () => {
+    const { service, repo } = setup({ hasPassword: false });
+    await expect(service.set(SUBJECT, { totp_enabled: false, email_enabled: true }, null)).rejects.toMatchObject({
+      code: AuthV2ErrorCode.InsufficientVerification,
+    });
+    expect(repo.set).not.toHaveBeenCalled();
+  });
+
+  it('set: ВЫКЛЮЧЕНИЕ факторов без пароля не гейтится (выключать можно всегда)', async () => {
+    const { service, repo } = setup({ hasPassword: false, record: { totpEnabled: false, emailEnabled: true } });
+    await service.set(SUBJECT, { totp_enabled: false, email_enabled: false }, null);
+    expect(repo.set).toHaveBeenCalledWith({ subjectId: SUBJECT, totpEnabled: false, emailEnabled: false });
   });
 
   it('set: включение TOTP-фактора без кода → InvalidTwoFactorCode', async () => {

@@ -3,10 +3,13 @@ BaseCard(
   title='Подтверждение входа',
   subtitle='Дополнительный код при входе по паролю — даже зная пароль, войти без него нельзя.'
 )
-  template(v-if='loading')
-    .lf__loading
-      q-spinner(size='20px')
-      span Загружаем настройки…
+  //- Факторы — надстройка над входом по паролю: без него их некуда спрашивать
+  //- (сервер включение тоже отвергает). Гейт — как у PIN-кода ниже по странице.
+  BaseBanner(v-if='!passwordReady', variant='info')
+    | Подтверждение входа станет доступно после установки пароля.
+
+  template(v-else-if='loading')
+    q-skeleton(type='text', width='60%')
 
   template(v-else-if='factors')
     .lf__row
@@ -80,12 +83,21 @@ BaseCard(
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { BaseButton, BaseCard, BaseDialog } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseCard, BaseDialog } from 'src/shared/ui/base';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useSessionStore } from 'src/entities/Session';
 import { api } from '../api';
 import type { ILoginFactors } from '../model';
 import TotpEnrollDialog from './TotpEnrollDialog.vue';
+
+const session = useSessionStore();
+
+// Тот же серверный признак, что у карточки пароля: CoopID-сессия = вход по
+// паролю уже случился; иначе смотрим Account.has_password.
+const passwordReady = computed(
+  () => session.isCoopIdSession || session.currentUserAccount?.has_password === true,
+);
 
 const loading = ref(true);
 const saving = ref(false);

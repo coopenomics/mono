@@ -9,6 +9,7 @@ import type { ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port'
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
+import { VaultService } from '../vault/vault.service';
 
 export interface LoginFactorsView {
   /** TOTP-секрет подключён (enrollment подтверждён) — фактор можно включить. */
@@ -45,6 +46,7 @@ export class LoginFactorsService {
     @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     private readonly audit: AuditService,
     private readonly securityEvents: SecurityEventNotificationService,
+    private readonly vault: VaultService,
   ) {}
 
   async get(subjectId: string): Promise<LoginFactorsView> {
@@ -62,6 +64,23 @@ export class LoginFactorsService {
   }
 
   async set(subjectId: string, input: SetLoginFactorsInput, ip: string | null): Promise<LoginFactorsView> {
+    // Факторы входа — надстройка над входом по паролю: без пароля (vault-блоба)
+    // их некуда спрашивать, а включённая настройка закрыла бы легаси-вход по
+    // подписи гейтом hasEnabledFactorSettings и кривила путь пайщика при входе.
+    // Выключение (false/false) не гейтим — выключать можно всегда.
+    if (input.totp_enabled || input.email_enabled) {
+      const user = await this.users.findUserById(subjectId);
+      const blob = user?.username
+        ? await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username })
+        : null;
+      if (!blob) {
+        throw new AuthV2Error(
+          AuthV2ErrorCode.InsufficientVerification,
+          'Подтверждение входа станет доступно после установки пароля.',
+        );
+      }
+    }
+
     const current = await this.repo.get(subjectId);
     const totpChanged = (current?.totpEnabled ?? false) !== input.totp_enabled;
 
