@@ -118,6 +118,22 @@ export async function authenticateWithAuthentik(params: { issuer: string, email:
   await authenticateWithFlowExecutor({ issuer: params.issuer, email: params.email, password: params.password, flowSlug: params.flowSlug })
   // Грант FR29: code+PKCE поверх уже установленной сессии, без интерактивного UI.
   const um = userManager(params.issuer)
+
+  // Прежде сохранённого пайщика убираем ДО тихого запроса.
+  //
+  // Тихий запрос задуман как продление уже идущей сессии, поэтому библиотека
+  // сверяет, что вернулся тот же человек, что лежит в хранилище вкладки, и при
+  // расхождении сообщает `login_required` — будто входа не было вовсе. Но здесь
+  // тихий запрос стоит сразу за вводом пароля: кто вошёл, только что решил сам
+  // пайщик, и сверяться со старой записью не с чем — она осталась от прошлого
+  // входа. Расхождение возникает на ровном месте в двух обычных случаях: на
+  // одном устройстве входят по очереди разные пайщики, и после переустановки
+  // кооператива тот же пайщик заводится заново (учётная запись новая, хотя имя
+  // прежнее). Тогда вход падал с «login_required», хотя пароль верный и
+  // удостоверение уже выдано — лечилось только закрытием вкладки.
+  await um.removeUser().catch(() => undefined)
+  await um.clearStaleState().catch(() => undefined)
+
   let user: User | null
   try {
     user = await um.signinSilent()
