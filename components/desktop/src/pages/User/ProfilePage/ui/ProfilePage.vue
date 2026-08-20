@@ -39,14 +39,13 @@
                       size='16px'
                     )
                 .cert__warn(v-if='!isEndorsed') Удостоверение не утверждено АНО
-          DataRow(v-if='verificationLabels.length', label='Уровень верификации')
+          DataRow(v-if='verificationEntries.length', label='Уровень верификации')
             template(#value-override)
-              .cert__chips
-                BaseChip(
-                  v-for='(label, i) in verificationLabels',
-                  :key='i',
-                  variant='info'
-                ) {{ label }}
+              .cert__verifications
+                .cert__verification(v-for='entry in verificationEntries', :key='entry.type')
+                  BaseChip(variant='info') {{ entry.label }}
+                    q-tooltip {{ entry.title }}
+                  span.t-sm.t-muted(v-if='entry.hint') {{ entry.hint }}
 
       //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
       .cert__qr(v-if='certLoading')
@@ -211,7 +210,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
-import { decodeTrustChain } from '@coopenomics/auth';
+import { decodeTrustChain, verificationTypeLabel, verificationTypeShortLabel } from '@coopenomics/auth';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -282,16 +281,21 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
-// Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).
-// Уровни верификации: сейчас есть только базовый — членство подтверждено самим
-// кооперативом. Дальше добавятся уровни, подтверждённые документами.
-const VERIFICATION_LABELS: Record<string, string> = {
-  coop_baseline: 'Базовый',
-};
-// Структурная форма claim (Story 4.3): отображаем лейбл по типу; verified_at/source —
-// в UI пока не выводим (отдельная verstka-история).
-const verificationLabels = computed(() =>
-  (certificate.value?.verification_types ?? []).map((e) => VERIFICATION_LABELS[e.type] ?? e.type),
+// Уровни верификации из claim (Story 4.3): короткий лейбл в чипе, полное
+// описание в тултипе, дата подтверждения и автор проверки — рядом. Словари
+// лейблов — единые из @coopenomics/auth (дубль в UI запрещён).
+const verificationEntries = computed(() =>
+  (certificate.value?.verification_types ?? []).map((e) => ({
+    type: e.type,
+    label: verificationTypeShortLabel(e.type),
+    title: verificationTypeLabel(e.type),
+    hint: [
+      e.verified_at ? `с ${formatDate(e.verified_at)}` : '',
+      e.attested_by ? `подтвердил ${e.attested_by}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  })),
 );
 
 
@@ -550,6 +554,19 @@ const getRepresentativeName = (representative: any) => {
 }
 /* Значения-чипы в строках: цепочка подписей и уровень верификации выровнены по
    правому краю так же, как обычные значения соседних строк. */
+.cert__verifications {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.cert__verification {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-wrap: wrap;
+}
+
 .cert__chips {
   display: flex;
   align-items: center;

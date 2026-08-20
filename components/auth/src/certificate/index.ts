@@ -34,6 +34,8 @@ export interface VerificationTypeClaim {
   type: string
   verified_at: string
   source: string
+  /** Кто провёл верификацию (аккаунт) — у персональных подтверждений. */
+  attested_by?: string
 }
 
 /** Claims participant_certificate (зеркало payload контроллера, Story 1.8). */
@@ -71,6 +73,7 @@ function normalizeVerificationTypes(raw: unknown): VerificationTypeClaim[] {
       type: String(e.type),
       verified_at: String(e.verified_at ?? ''),
       source: String(e.source ?? ''),
+      ...(typeof e.attested_by === 'string' && e.attested_by ? { attested_by: e.attested_by } : {}),
     }))
 }
 
@@ -79,14 +82,85 @@ export type CertificateStatus = 'active' | 'expiring' | 'expired'
 /** Окно «истекает» до exp (24ч по умолчанию у сертификата; здесь — последний час). */
 export const CERTIFICATE_EXPIRING_WINDOW_MS = 60 * 60 * 1000
 
-/** Человекочитаемые описания типов верификации (claim `verification_types`). */
+/**
+ * Человекочитаемые названия уровней верификации (claim `verification_types`).
+ * Лестница уровней: начальный (принят кооперативом) → базовый (паспорт сверен
+ * на кооперативном участке) → усиленный (внешний KYC, будущее).
+ */
 export const VERIFICATION_TYPE_LABELS: Record<string, string> = {
-  coop_baseline: 'Базовое подтверждение кооперативом',
+  coop_baseline: 'Начальный: подтверждён кооперативом',
+  passport_onsite: 'Базовый: личность сверена с паспортом на кооперативном участке',
 }
 
 /** Описание типа верификации; неизвестный — отдаём как есть (forward-compat). */
 export function verificationTypeLabel(type: string): string {
   return VERIFICATION_TYPE_LABELS[type] ?? type
+}
+
+/** Короткие названия уровней — для чипов в таблицах и карточках. */
+export const VERIFICATION_TYPE_SHORT_LABELS: Record<string, string> = {
+  coop_baseline: 'Начальный',
+  passport_onsite: 'Базовый',
+}
+
+/** Короткое название уровня; неизвестный — отдаём как есть (forward-compat). */
+export function verificationTypeShortLabel(type: string): string {
+  return VERIFICATION_TYPE_SHORT_LABELS[type] ?? type
+}
+
+/**
+ * Он-чейн запись верификации аккаунта (`registrator::accounts.verifications`),
+ * как она приходит с цепи через GraphQL поле `user_account.verifications`.
+ */
+export interface ChainVerificationRecord {
+  verificator: string
+  is_verified: boolean
+  procedure: string
+  created_at: string
+  last_update?: string
+  notice?: string
+}
+
+/** Он-чейн процедуры, дающие уровень верификации (расширяемый реестр). */
+export const CHAIN_PROCEDURE_TO_TYPE: Record<string, string> = {
+  passport: 'passport_onsite',
+}
+
+/**
+ * Вывести уровни верификации пайщика из данных аккаунта (единый маппинг для
+ * реестра пайщиков, ЛК и считывателя — чтобы клиенты не дублировали логику ядра):
+ * `coop_baseline` — из принятого членства (`participant_account.status === 'accepted'`),
+ * документные уровни — из он-чейн записей (`user_account.verifications`).
+ */
+export function deriveVerificationTypes(input: {
+  participant_account?: { status?: string | null, created_at?: string | null } | null
+  user_account?: { verifications?: ChainVerificationRecord[] | null } | null
+}): VerificationTypeClaim[] {
+  const entries: VerificationTypeClaim[] = []
+
+  if (input.participant_account?.status === 'accepted') {
+    entries.push({
+      type: 'coop_baseline',
+      verified_at: input.participant_account.created_at ?? '',
+      source: 'cooperative_decision',
+    })
+  }
+
+  for (const record of input.user_account?.verifications ?? []) {
+    if (!record?.is_verified)
+      continue
+    const type = CHAIN_PROCEDURE_TO_TYPE[record.procedure]
+    if (!type || entries.some(e => e.type === type))
+      continue
+    entries.push({
+      type,
+      verified_at: record.created_at ?? '',
+      source: 'branch_attestation',
+      attested_by: record.verificator,
+    })
+  }
+
+  return entries
 }
 
 /**

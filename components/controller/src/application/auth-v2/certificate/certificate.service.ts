@@ -90,6 +90,9 @@ export class CertificateService {
         type: entry.type,
         verified_at: entry.verified_at,
         source: entry.source,
+        // Кто провёл персональную верификацию (например, на кооперативном участке).
+        // Поле опускается у деривативных уровней — экономия байт под лимит 5 КБ.
+        ...(entry.attested_by ? { attested_by: entry.attested_by } : {}),
       })),
       identification: identification ?? null,
       claim_schema_version: CURRENT_SCHEMA_VERSION,

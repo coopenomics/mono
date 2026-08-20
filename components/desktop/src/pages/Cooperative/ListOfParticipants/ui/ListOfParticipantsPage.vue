@@ -1,8 +1,13 @@
 <template lang="pug">
 q-page.participants-page
   .participants-page__card
+    FilterBar.q-mb-md(
+      hide-search,
+      :filters='verificationFilterDefs',
+      v-model='filterValues'
+    )
     ParticipantsTable(
-      :accounts='accountStore.accounts.items',
+      :accounts='filteredAccounts',
       :loading='onLoading',
       @toggle-expand='toggleExpand',
       @update='update'
@@ -10,7 +15,9 @@ q-page.participants-page
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
+import { participantVerificationView } from 'src/shared/lib/verification';
 import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
@@ -27,6 +34,35 @@ import {
 
 const accountStore = useAccountStore();
 const onLoading = ref(false);
+
+// Фильтр по уровню верификации: совету важно видеть, кого ещё предстоит
+// верифицировать на кооперативных участках (без базового уровня — нужен паспорт).
+const verificationFilterDefs: FilterDefinition[] = [
+  {
+    key: 'verification',
+    label: 'Верификация',
+    type: 'select',
+    options: [
+      { label: 'Все', value: '' },
+      { label: 'Без базовой — нужен паспорт', value: 'no_passport' },
+      { label: 'С базовой — паспорт проверен', value: 'passport' },
+      { label: 'Не верифицированные', value: 'none' },
+    ],
+  },
+];
+const filterValues = ref<FilterValues>({});
+const filteredAccounts = computed(() => {
+  const selected = filterValues.value.verification;
+  const items = accountStore.accounts.items;
+  if (!selected) return items;
+  return items.filter((account) => {
+    const types = participantVerificationView(account).map((level) => level.type);
+    if (selected === 'no_passport') return !types.includes('passport_onsite');
+    if (selected === 'passport') return types.includes('passport_onsite');
+    if (selected === 'none') return types.length === 0;
+    return true;
+  });
+});
 const expanded = reactive(new Map<string, boolean>());
 
 // Инжектим кнопку добавления пользователя в заголовок

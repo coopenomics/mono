@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 254.
+Всего экспортов: 258.
 
 ## ACCOUNT_PORT
 
@@ -1743,6 +1743,21 @@
 - `available?: string`
 - `blocked?: string`
 
+## InnerVerificationCheck
+
+`interface` · core-ports
+
+- `passed: boolean`
+- `missing: string[]`
+
+## InnerVerificationEntry
+
+`interface` · core-ports
+
+- `type: string`
+- `verified_at: string`
+- `attested_by?: string`
+
 ## INotificationPort
 
 `interface` · core-ports
@@ -1972,6 +1987,13 @@
 `interface` · core-ports
 
 - `getWif(username: string, permission?: InnerKeyPermission): Promise<string | null>`
+
+## IVerificationPort
+
+`interface` · core-ports
+
+- `getVerificationTypes(username: string): Promise<InnerVerificationEntry[]>`
+- `checkRequired(username: string, actionCode: string): Promise<InnerVerificationCheck>`
 
 ## LEDGER2_HISTORY_PORT
 
@@ -2247,3 +2269,9 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Vault')`
+
+## VERIFICATION_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.Verification')`

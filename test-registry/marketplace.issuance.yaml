@@ -12,6 +12,14 @@ title: Выдача заказа на пункте выдачи — открыт
 # расширение не должно знать, чем именно пишется лог. Сменились только тип
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
+# Правка 2026-08-20 (верификация личности, 105-28): открытие выдачи получило
+# гейт верификации получателя — сервер отказывает до подписи акта, если у
+# получателя нет уровня passport_onsite (правило marketplace.issue_property в
+# verification_rules). Лента выдач несёт вердикт (orderer_verification_passed),
+# страница оператора блокирует открытие диалогом «Проверка личности».
+# Случаи гейта — в test-registry/coopid.verification.yaml (cid.ver.side.07,
+# cid.ver.happy.05); набор случаев этого слайса не менялся.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts

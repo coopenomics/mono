@@ -5524,7 +5524,7 @@ export type ValueTypes = {
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ValueTypes["Verification"],
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeOperatorAccount']?: Omit<ValueTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
@@ -10154,6 +10154,8 @@ export type ValueTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -12108,6 +12110,7 @@ startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string
 submitExpenseReport?: [{	data: ValueTypes["SubmitExpenseReportInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
+unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
@@ -12117,6 +12120,7 @@ updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes
 uploadExpenseFile?: [{	data: ValueTypes["UploadExpenseFileInput"] | Variable<any, string>},ValueTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ValueTypes["UploadPaymentProofInput"] | Variable<any, string>},ValueTypes["PaymentFile"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
+verifyParticipantOnsite?: [{	data: ValueTypes["VerifyParticipantOnsiteInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},ValueTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`,
@@ -12861,6 +12865,27 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ParticipantCertificate']?: Omit<ValueTypes["ParticipantCertificate"], "...on ParticipantCertificate">
 }>;
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: AliasType<{
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?:boolean | `@${string}`,
+	/** Кто подтвердил */
+	source?:boolean | `@${string}`,
+	/** Статус подтверждения */
+	status?:boolean | `@${string}`,
+	/** Уровень верификации */
+	type?:boolean | `@${string}`,
+	/** Момент подтверждения */
+	verified_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantVerification']?: Omit<ValueTypes["ParticipantVerification"], "...on ParticipantVerification">
+}>;
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -15194,6 +15219,11 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 		__typename?: boolean | `@${string}`,
 	['...on UnreadNotificationsCount']?: Omit<ValueTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 }>;
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ValueTypes["UpdateOrganizationDataInput"] | undefined | null | Variable<any, string>,
@@ -15476,7 +15506,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ValueTypes["Verification"],
 		__typename?: boolean | `@${string}`,
 	['...on UserAccount']?: Omit<ValueTypes["UserAccount"], "...on UserAccount">
@@ -15576,6 +15606,13 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string | Variable<any, string>
+};
+	/** Верификация личности пайщика на кооперативном участке по паспорту */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится верификация */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -20149,7 +20186,7 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ResolverInputTypes["Verification"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -24667,6 +24704,8 @@ export type ResolverInputTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -26560,6 +26599,7 @@ startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@$
 submitExpenseReport?: [{	data: ResolverInputTypes["SubmitExpenseReportInput"]},ResolverInputTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
+unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
 updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
@@ -26569,6 +26609,7 @@ updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["System
 uploadExpenseFile?: [{	data: ResolverInputTypes["UploadExpenseFileInput"]},ResolverInputTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ResolverInputTypes["UploadPaymentProofInput"]},ResolverInputTypes["PaymentFile"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
+verifyParticipantOnsite?: [{	data: ResolverInputTypes["VerifyParticipantOnsiteInput"]},ResolverInputTypes["ParticipantVerification"]],
 voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
@@ -27271,6 +27312,26 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	participant_certificate?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: AliasType<{
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?:boolean | `@${string}`,
+	/** Кто подтвердил */
+	source?:boolean | `@${string}`,
+	/** Статус подтверждения */
+	status?:boolean | `@${string}`,
+	/** Уровень верификации */
+	type?:boolean | `@${string}`,
+	/** Момент подтверждения */
+	verified_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -29534,6 +29595,11 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	count?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ResolverInputTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -29816,7 +29882,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ResolverInputTypes["Verification"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -29913,6 +29979,13 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика на кооперативном участке по паспорту */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится верификация */
+	braname: string,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -34362,7 +34435,7 @@ export type ModelTypes = {
 	type: string,
 	/** Имя аккаунта кооператива */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<ModelTypes["Verification"]>
 };
 	["CooperativeProgram"]: {
@@ -38714,6 +38787,8 @@ export type ModelTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?: boolean | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
@@ -41261,6 +41336,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
+	/** Отозвать верификацию личности пайщика */
+	unverifyParticipant: Array<ModelTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -41293,6 +41370,8 @@ export type ModelTypes = {
 	uploadPaymentProof: ModelTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
+	/** Подтвердить личность пайщика по паспорту на кооперативном участке */
+	verifyParticipantOnsite: Array<ModelTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -41952,6 +42031,22 @@ export type ModelTypes = {
 		/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
 	participant_certificate: string
 };
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: {
+		/** Кто провёл верификацию (аккаунт) */
+	attested_by?: string | undefined | null,
+	/** Кто подтвердил */
+	source: ModelTypes["ParticipantVerificationSource"],
+	/** Статус подтверждения */
+	status: ModelTypes["ParticipantVerificationStatus"],
+	/** Уровень верификации */
+	type: ModelTypes["ParticipantVerificationType"],
+	/** Момент подтверждения */
+	verified_at: string
+};
+	["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: {
 		/** Код подразделения */
 	code: string,
@@ -44488,6 +44583,11 @@ export type ModelTypes = {
 		/** Число непрочитанных уведомлений */
 	count: number
 };
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ModelTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -44770,7 +44870,7 @@ export type ModelTypes = {
 	type: string,
 	/** Имя аккаунта */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<ModelTypes["Verification"]>
 };
 	/** Объединение сертификатов пользователей (сокращенная информация) */
@@ -44857,6 +44957,13 @@ export type ModelTypes = {
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика на кооперативном участке по паспорту */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится верификация */
+	braname: string,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -49520,7 +49627,7 @@ export type GraphQLTypes = {
 	type: string,
 	/** Имя аккаунта кооператива */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<GraphQLTypes["Verification"]>,
 	['...on CooperativeOperatorAccount']: Omit<GraphQLTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
 };
@@ -54151,6 +54258,8 @@ export type GraphQLTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?: boolean | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
@@ -56840,6 +56949,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
+	/** Отозвать верификацию личности пайщика */
+	unverifyParticipant: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -56872,6 +56983,8 @@ export type GraphQLTypes = {
 	uploadPaymentProof: GraphQLTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
+	/** Подтвердить личность пайщика по паспорту на кооперативном участке */
+	verifyParticipantOnsite: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -57621,6 +57734,27 @@ export type GraphQLTypes = {
 	participant_certificate: string,
 	['...on ParticipantCertificate']: Omit<GraphQLTypes["ParticipantCertificate"], "...on ParticipantCertificate">
 };
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: {
+	__typename: "ParticipantVerification",
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?: string | undefined | null,
+	/** Кто подтвердил */
+	source: GraphQLTypes["ParticipantVerificationSource"],
+	/** Статус подтверждения */
+	status: GraphQLTypes["ParticipantVerificationStatus"],
+	/** Уровень верификации */
+	type: GraphQLTypes["ParticipantVerificationType"],
+	/** Момент подтверждения */
+	verified_at: string,
+	['...on ParticipantVerification']: Omit<GraphQLTypes["ParticipantVerification"], "...on ParticipantVerification">
+};
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]: ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]: ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]: ParticipantVerificationType;
 	["Passport"]: {
 	__typename: "Passport",
 	/** Код подразделения */
@@ -60331,6 +60465,11 @@ export type GraphQLTypes = {
 	count: number,
 	['...on UnreadNotificationsCount']: Omit<GraphQLTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 };
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+		/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 		/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: GraphQLTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -60614,7 +60753,7 @@ export type GraphQLTypes = {
 	type: string,
 	/** Имя аккаунта */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<GraphQLTypes["Verification"]>,
 	['...on UserAccount']: Omit<GraphQLTypes["UserAccount"], "...on UserAccount">
 };
@@ -60714,6 +60853,13 @@ export type GraphQLTypes = {
 	["VerifyEmailInputDTO"]: {
 		/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика на кооперативном участке по паспорту */
+["VerifyParticipantOnsiteInput"]: {
+		/** Кооперативный участок, где проводится верификация */
+	braname: string,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 		/** Сумма голосов */
@@ -61571,6 +61717,20 @@ export enum OrganizationType {
 	PRODCOOP = "PRODCOOP",
 	ZAO = "ZAO"
 }
+/** Кто подтвердил уровень верификации */
+export enum ParticipantVerificationSource {
+	BranchAttestation = "BranchAttestation",
+	CooperativeDecision = "CooperativeDecision"
+}
+/** Статус подтверждения уровня верификации */
+export enum ParticipantVerificationStatus {
+	Verified = "Verified"
+}
+/** Уровень верификации пайщика */
+export enum ParticipantVerificationType {
+	CoopBaseline = "CoopBaseline",
+	PassportOnsite = "PassportOnsite"
+}
 /** Направление платежа */
 export enum PaymentDirection {
 	INCOMING = "INCOMING",
@@ -62311,6 +62471,9 @@ type ZEUS_VARIABLES = {
 	["ParticipantApplicationGenerateDocumentInput"]: ValueTypes["ParticipantApplicationGenerateDocumentInput"];
 	["ParticipantApplicationSignedDocumentInput"]: ValueTypes["ParticipantApplicationSignedDocumentInput"];
 	["ParticipantApplicationSignedMetaDocumentInput"]: ValueTypes["ParticipantApplicationSignedMetaDocumentInput"];
+	["ParticipantVerificationSource"]: ValueTypes["ParticipantVerificationSource"];
+	["ParticipantVerificationStatus"]: ValueTypes["ParticipantVerificationStatus"];
+	["ParticipantVerificationType"]: ValueTypes["ParticipantVerificationType"];
 	["PassportInput"]: ValueTypes["PassportInput"];
 	["PayExpenseItemInput"]: ValueTypes["PayExpenseItemInput"];
 	["PayWithheldTaxInput"]: ValueTypes["PayWithheldTaxInput"];
@@ -62436,6 +62599,7 @@ type ZEUS_VARIABLES = {
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];
 	["TwoFactorCodeInput"]: ValueTypes["TwoFactorCodeInput"];
 	["UninstallExtensionInput"]: ValueTypes["UninstallExtensionInput"];
+	["UnverifyParticipantInput"]: ValueTypes["UnverifyParticipantInput"];
 	["Update"]: ValueTypes["Update"];
 	["UpdateAccountInput"]: ValueTypes["UpdateAccountInput"];
 	["UpdateBankAccountInput"]: ValueTypes["UpdateBankAccountInput"];
@@ -62457,6 +62621,7 @@ type ZEUS_VARIABLES = {
 	["ValidateAttributeValuesInput"]: ValueTypes["ValidateAttributeValuesInput"];
 	["VarsInput"]: ValueTypes["VarsInput"];
 	["VerifyEmailInputDTO"]: ValueTypes["VerifyEmailInputDTO"];
+	["VerifyParticipantOnsiteInput"]: ValueTypes["VerifyParticipantOnsiteInput"];
 	["VoteDistributionInput"]: ValueTypes["VoteDistributionInput"];
 	["VoteFilter"]: ValueTypes["VoteFilter"];
 	["VoteItemInput"]: ValueTypes["VoteItemInput"];

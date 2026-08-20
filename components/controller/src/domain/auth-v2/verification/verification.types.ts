@@ -7,8 +7,10 @@
 
 /** Тип верификации пайщика. */
 export enum VerificationType {
-  /** Базовое подтверждение членства — у каждого принятого пайщика. */
+  /** Начальный уровень: подтверждение членства — у каждого принятого пайщика. */
   CoopBaseline = 'coop_baseline',
+  /** Базовый уровень: личность сверена с паспортом на кооперативном участке. */
+  PassportOnsite = 'passport_onsite',
 }
 
 /** Статус подтверждения типа верификации. */
@@ -20,7 +22,24 @@ export enum VerificationStatus {
 export enum VerificationSource {
   /** Решение кооператива о приёме (on-chain запись участника). */
   CooperativeDecision = 'cooperative_decision',
+  /** Личная сверка на кооперативном участке (председатель участка или доверенное лицо). */
+  BranchAttestation = 'branch_attestation',
 }
+
+/**
+ * Он-чейн процедура верификации (`registrator::accounts.verifications[].procedure`).
+ * Каждой процедуре, дающей уровень, соответствует тип верификации —
+ * связка задаётся реестром `CHAIN_PROCEDURE_TO_TYPE`.
+ */
+export enum VerificationProcedure {
+  /** Паспорт проверен лично на кооперативном участке. */
+  Passport = 'passport',
+}
+
+/** Реестр соответствия он-чейн процедур типам верификации (расширяемый). */
+export const CHAIN_PROCEDURE_TO_TYPE: Readonly<Record<VerificationProcedure, VerificationType>> = {
+  [VerificationProcedure.Passport]: VerificationType.PassportOnsite,
+};
 
 /** Подтверждённый тип верификации пайщика. */
 export interface VerificationTypeEntry {
@@ -29,6 +48,8 @@ export interface VerificationTypeEntry {
   source: VerificationSource;
   /** Момент подтверждения, ISO-8601 (UTC). Для `coop_baseline` — дата приёма в кооператив. */
   verified_at: string;
+  /** Кто провёл верификацию (аккаунт), если подтверждение персональное. */
+  attested_by?: string;
 }
 
 /**

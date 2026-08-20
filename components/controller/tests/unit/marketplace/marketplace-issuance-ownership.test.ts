@@ -88,6 +88,7 @@ function buildService() {
     chainPort,
     assetConfig,
     { generateDocument: jest.fn().mockResolvedValue({ hash: 'doc-hash' }), buildDocumentAggregate: jest.fn() } as any,
+    { checkRequired: jest.fn().mockResolvedValue({ passed: true, missing: [] }), getVerificationTypes: jest.fn().mockResolvedValue([]) } as any,
     { emit: jest.fn() } as any,
     { setContext: jest.fn(), debug: jest.fn(), log: jest.fn(), error: jest.fn(), warn: jest.fn() } as any
   );

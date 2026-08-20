@@ -2391,6 +2391,9 @@ export const AllTypesProps: Record<string,any> = {
 		uninstallExtension:{
 			data:"UninstallExtensionInput"
 		},
+		unverifyParticipant:{
+			data:"UnverifyParticipantInput"
+		},
 		updateAccount:{
 			data:"UpdateAccountInput"
 		},
@@ -2417,6 +2420,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
+		},
+		verifyParticipantOnsite:{
+			data:"VerifyParticipantOnsiteInput"
 		},
 		voteOnAnnualGeneralMeet:{
 			data:"VoteOnAnnualGeneralMeetInput"
@@ -2467,6 +2473,9 @@ export const AllTypesProps: Record<string,any> = {
 	ParticipantApplicationSignedMetaDocumentInput:{
 
 	},
+	ParticipantVerificationSource: "enum" as const,
+	ParticipantVerificationStatus: "enum" as const,
+	ParticipantVerificationType: "enum" as const,
 	PassportInput:{
 
 	},
@@ -3444,6 +3453,9 @@ export const AllTypesProps: Record<string,any> = {
 	UninstallExtensionInput:{
 
 	},
+	UnverifyParticipantInput:{
+
+	},
 	Update:{
 		organization_data:"UpdateOrganizationDataInput",
 		vars:"VarsInput"
@@ -3520,6 +3532,9 @@ export const AllTypesProps: Record<string,any> = {
 		wallet_agreement:"AgreementInput"
 	},
 	VerifyEmailInputDTO:{
+
+	},
+	VerifyParticipantOnsiteInput:{
 
 	},
 	VoteDistributionInput:{
@@ -6025,6 +6040,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_account:"String",
 		orderer_name:"String",
 		orderer_signed_at:"DateTime",
+		orderer_verification_passed:"Boolean",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",
@@ -6930,6 +6946,7 @@ export const ReturnTypes: Record<string,any> = {
 		submitExpenseReport:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
+		unverifyParticipant:"ParticipantVerification",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
 		updateExtension:"Extension",
@@ -6939,6 +6956,7 @@ export const ReturnTypes: Record<string,any> = {
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
+		verifyParticipantOnsite:"ParticipantVerification",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
 	},
@@ -7229,6 +7247,13 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ParticipantCertificate:{
 		participant_certificate:"String"
+	},
+	ParticipantVerification:{
+		attested_by:"String",
+		source:"ParticipantVerificationSource",
+		status:"ParticipantVerificationStatus",
+		type:"ParticipantVerificationType",
+		verified_at:"String"
 	},
 	Passport:{
 		code:"String",

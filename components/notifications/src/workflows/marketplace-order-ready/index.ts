@@ -11,6 +11,8 @@ export const marketplaceOrderReadyPayloadSchema = z.object({
   coopname: z.string(),
   order_id: z.string(),
   deepLinkUrl: z.string().optional(),
+  /** Напоминание о паспорте для неверифицированного получателя; пусто, если верифицирован. */
+  passportReminder: z.string().optional(),
 });
 
 export type IPayload = z.infer<typeof marketplaceOrderReadyPayloadSchema>;
@@ -31,17 +33,17 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createEmailStep(
       'marketplace-order-ready-email',
       'Ваш заказ готов к получению на КУ {{payload.kuName}}',
-      'Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.<br><br>Подробности заказа: {{payload.deepLinkUrl}}'
+      'Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}'
     ),
     createInAppStep(
       'marketplace-order-ready-notification',
       'Заказ готов к получению',
-      'Ваш заказ на КУ {{payload.kuName}} ждёт получения — приходите на пункт выдачи.'
+      'Ваш заказ на КУ {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.passportReminder}}'
     ),
     createPushStep(
       'marketplace-order-ready-push',
       'Заказ готов к получению',
-      'Ваш заказ на КУ {{payload.kuName}} ждёт вас на пункте выдачи.'
+      'Ваш заказ на КУ {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.passportReminder}}'
     ),
   ])
   .build();

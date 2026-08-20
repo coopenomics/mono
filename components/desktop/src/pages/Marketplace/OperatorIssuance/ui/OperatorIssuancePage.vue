@@ -21,6 +21,7 @@ import {
 import {
   announceOrderReady,
   listIssuancesByBraname,
+  verifyParticipantOnsite,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
@@ -253,9 +254,44 @@ const pickupToIssueCount = computed(
   () => pickupOrders.value.filter((o) => o.status === 'ACCEPTED_TO_COOP').length,
 );
 
+// Верификация личности получателя (105-28): без базового уровня (паспорт
+// сверен на КУ) сервер не откроет выдачу. Вердикт приезжает с лентой
+// (`orderer_verification_passed`); перед открытием выдачи оператор один раз
+// сверяет паспорт и подтверждает личность — дальше пайщик ходит без документа.
+const verifyDialogOpen = ref(false);
+const verifyLoading = ref(false);
+const pickupNeedsVerification = computed(() =>
+  pickupOrders.value.some((o) => o.orderer_verification_passed === false),
+);
+const pickupOrdererName = computed(
+  () => pickupOrders.value.find((o) => o.orderer_name)?.orderer_name ?? '',
+);
+
+async function confirmPickupVerification(): Promise<void> {
+  verifyLoading.value = true;
+  try {
+    await verifyParticipantOnsite({
+      username: pickupAccount.value,
+      braname: braname.value,
+    });
+    SuccessAlert('Личность подтверждена — выдача разблокирована');
+    verifyDialogOpen.value = false;
+    await load();
+    startOpen(pickupOrders.value);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    verifyLoading.value = false;
+  }
+}
+
 // Из QR-резолва: открыть выдачу разом по всем готовым позициям пайщика.
 function startPickupIssuance(): void {
   pickupDialogOpen.value = false;
+  if (pickupNeedsVerification.value) {
+    verifyDialogOpen.value = true;
+    return;
+  }
   startOpen(pickupOrders.value);
 }
 
@@ -308,7 +344,11 @@ async function resolvePickup(): Promise<void> {
   for (let attempt = 0; attempt <= PICKUP_RESOLVE_RETRIES; attempt += 1) {
     if (!loading.value) await load();
     if (pickupToIssueCount.value > 0) {
-      startOpen(pickupOrders.value);
+      if (pickupNeedsVerification.value) {
+        verifyDialogOpen.value = true;
+      } else {
+        startOpen(pickupOrders.value);
+      }
       return;
     }
     if (attempt < PICKUP_RESOLVE_RETRIES) await wait(PICKUP_RESOLVE_DELAY_MS);
@@ -456,6 +496,27 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   )
 
   ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', @scanned='onQrScanned')
+
+  //- Верификация личности получателя (единожды): без неё сервер не откроет
+  //- выдачу. Оператор сверяет данные пайщика с паспортом и подтверждает.
+  BaseDialog(v-model='verifyDialogOpen', title='Проверка личности', size='sm')
+    .issuance__verify
+      .issuance__resolve-account(v-if='pickupOrdererName') {{ pickupOrdererName }}
+      AccountBadge(:username='pickupAccount')
+      .issuance__verify-hint
+        | Получатель ещё не проходил верификацию личности. Попросите паспорт и
+        | сверьте фамилию, имя и отчество с данными выше. Подтверждение делается
+        | один раз — дальше пайщик приходит без документа.
+      .issuance__verify-actions
+        BaseButton(variant='ghost', :disable='verifyLoading', @click='verifyDialogOpen = false') Отмена
+        BaseButton(
+          variant='primary',
+          :loading='verifyLoading',
+          @click='confirmPickupVerification'
+        )
+          template(#icon-left)
+            q-icon(name='how_to_reg', size='16px')
+          | Личность подтверждена
 
   //- Резолв кода получения, когда открывать нечего: позиции ждут подтверждения
   //- пайщика либо заказов нет — оператор может предложить докладку со склада.
@@ -611,6 +672,27 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     display: flex;
     flex-direction: column;
     gap: var(--p-3, 12px);
+  }
+
+  &__verify {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    align-items: flex-start;
+  }
+
+  &__verify-hint {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__verify-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    width: 100%;
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__resolve-account {

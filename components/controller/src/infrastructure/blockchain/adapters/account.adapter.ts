@@ -231,6 +231,37 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     });
   }
 
+  // Верификация личности пайщика на кооперативном участке: подписывает верификатор
+  // (председатель участка или доверенное лицо) собственным ключом из vault.
+  async verifyAccount(data: RegistratorContract.Actions.VerifyAccount.IVerifyAccount): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(data.verificator);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.verificator, wif);
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.VerifyAccount.actionName,
+      authorization: [{ actor: data.verificator, permission: 'active' }],
+      data,
+    });
+  }
+
+  // Отзыв верификации личности: подписывает председатель кооператива.
+  async unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(data.chairman);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.chairman, wif);
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.UnverifyAccount.actionName,
+      authorization: [{ actor: data.chairman, permission: 'active' }],
+      data,
+    });
+  }
+
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 

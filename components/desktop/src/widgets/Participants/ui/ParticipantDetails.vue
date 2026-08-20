@@ -2,6 +2,17 @@
 //- Развёрнутая строка пайщика — только его данные.
 //- Документы пайщика живут в отдельном «Реестре документов», здесь не дублируются.
 .participant-details
+  .participant-details__verification
+    .participant-details__verification-title.t-sm.t-muted Верификация личности
+    template(v-if='verificationLevels.length')
+      .participant-details__verification-row(v-for='level in verificationLevels', :key='level.type')
+        BaseBadge(variant='info') {{ level.short }}
+        span {{ level.label }}
+        span.t-sm.t-muted(v-if='level.hint') {{ level.hint }}
+    .participant-details__verification-row(v-else)
+      BaseBadge(variant='neutral') Не верифицирован
+      span.t-sm.t-muted Верификация проводится на кооперативном участке при предъявлении паспорта
+
   EditableIndividualCard(
     v-if="individualParticipantData"
     :participantData="individualParticipantData"
@@ -21,6 +32,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import { participantVerificationView } from 'src/shared/lib/verification'
 import { EditableEntrepreneurCard } from 'src/shared/ui/EditableEntrepreneurCard'
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard'
 import { EditableOrganizationCard } from 'src/shared/ui/EditableOrganizationCard'
@@ -60,6 +73,9 @@ const organizationParticipantData = computed((): IOrganizationData | null => {
   return pa.organization_data ?? null
 })
 
+// Уровни верификации пайщика — единый маппинг из @coopenomics/auth.
+const verificationLevels = computed(() => participantVerificationView(props.participant))
+
 // События
 const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurData) => {
   emit('update', newData)
@@ -71,6 +87,22 @@ const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurDa
 .participant-details {
   padding: var(--p-5, 20px) var(--p-6, 24px);
   background: var(--p-surface-2);
+}
+
+.participant-details__verification {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  margin-bottom: var(--p-4);
+  padding-bottom: var(--p-4);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.participant-details__verification-row {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-wrap: wrap;
 }
 
 /* Форму держим читаемой шириной, не растягиваем на весь экран */

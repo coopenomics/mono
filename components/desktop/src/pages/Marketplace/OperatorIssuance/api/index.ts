@@ -190,3 +190,17 @@ export async function declineStockProposal(proposal_id: string): Promise<Marketp
 export async function cancelStockOrder(data: CancelStockOrderInput): Promise<void> {
   await client.Mutation(Mutations.Marketplace.CancelStockOrder.mutation, { variables: { data } });
 }
+
+/** Верификация личности получателя на кооперативном участке: строго из SDK (IInput['data']). */
+export type VerifyParticipantOnsiteInput = Mutations.Verification.VerifyParticipantOnsite.IInput['data'];
+
+/**
+ * Оператор (председатель КУ или доверенное лицо) сверил личность пайщика с
+ * паспортом и подтверждает её в системе. Полномочия проверяет контракт
+ * (`registrator::verifyacc`); после подтверждения выдача разблокируется.
+ */
+export async function verifyParticipantOnsite(data: VerifyParticipantOnsiteInput): Promise<void> {
+  await client.Mutation(Mutations.Verification.VerifyParticipantOnsite.mutation, {
+    variables: { data },
+  });
+}

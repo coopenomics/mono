@@ -4,6 +4,17 @@
 export * as VerificateAccount from './verificateAccount'
 
 /**
+ * Действие верификации личности пайщика на кооперативном участке
+ * (председателем участка или его доверенным лицом, по паспорту).
+ */
+export * as VerifyAccount from './verifyAccount'
+
+/**
+ * Действие отзыва верификации личности пайщика председателем кооператива.
+ */
+export * as UnverifyAccount from './unverifyAccount'
+
+/**
  * Действие отклонения регистрации кандидата советом (отказ в приёме).
  */
 export * as DeclineRegistration from './declineRegistration'

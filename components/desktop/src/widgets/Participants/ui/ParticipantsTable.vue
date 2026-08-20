@@ -38,6 +38,18 @@ q-table.participants-table(
         .participants-table__status
           BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
 
+      q-td
+        .participants-table__verification
+          template(v-if='verificationView(props.row).length')
+            BaseBadge(
+              v-for='level in verificationView(props.row)',
+              :key='level.type',
+              variant='info'
+            ) {{ level.short }}
+              q-tooltip {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
+          BaseBadge(v-else, variant='neutral') Не верифицирован
+            q-tooltip Личность не подтверждена: верификация проводится на кооперативном участке при предъявлении паспорта
+
     q-tr.q-virtual-scroll--with-prev.no-hover(
       no-hover,
       v-if='expanded.get(props.row.username)',
@@ -67,6 +79,7 @@ import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { getAccountStatusBadge } from 'src/entities/Account';
+import { participantVerificationView } from 'src/shared/lib/verification';
 import {
   type IAccount,
   type IIndividualData,
@@ -132,7 +145,16 @@ const columns: any[] = [
     field: 'status',
     sortable: true,
   },
+  {
+    name: 'verification',
+    align: 'left',
+    label: 'Верификация',
+    field: 'verification',
+  },
 ];
+
+// Уровни верификации пайщика (единый маппинг из @coopenomics/auth).
+const verificationView = (row: IAccount) => participantVerificationView(row);
 
 // Форматирование даты
 const formatDate = (date?: string) =>
@@ -166,6 +188,13 @@ const onUpdate = (
   display: flex;
   align-items: center;
   gap: var(--p-2, 8px);
+}
+
+.participants-table__verification {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  flex-wrap: wrap;
 }
 
 /* Грид-режим (мобайл): карточки во всю ширину. Вертикальный отступ задаёт

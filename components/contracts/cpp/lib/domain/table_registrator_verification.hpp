@@ -14,3 +14,19 @@ struct verification {
   eosio::time_point_sec last_update;
   std::string notice;
 };
+
+/**
+ * @brief Процедуры верификации личности, известные системе.
+ * Список расширяется по мере появления новых сервисов верификации.
+ */
+inline bool is_known_verification_procedure(eosio::name procedure) {
+  return procedure == "online"_n || procedure == "passport"_n;
+}
+
+/**
+ * @brief Процедуры, которые вправе подтверждать кооперативный участок
+ * (председатель участка или его доверенное лицо) при личной явке пайщика.
+ */
+inline bool is_branch_verification_procedure(eosio::name procedure) {
+  return procedure == "passport"_n;
+}
