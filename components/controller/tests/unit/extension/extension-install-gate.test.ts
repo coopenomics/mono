@@ -54,3 +54,31 @@ describe('ExtensionDomainListingService.assertInstallable', () => {
     expect(() => service.assertInstallable('nonexistent')).toThrow('не найдено в реестре');
   });
 });
+
+describe('ext.avail.side.04: закрытие расширения в реестре и уже установленное приложение', () => {
+  let service: ExtensionDomainListingService;
+
+  beforeEach(() => {
+    service = new ExtensionDomainListingService({} as any);
+  });
+
+  // Решение владельца: закрытие расширения в реестре НЕ останавливает уже
+  // установленное — оно продолжает работать. Останавливается оно только при
+  // удалении. Гейт доступности сторожит ровно установку, и ничего больше.
+  it('гейт доступности запрещает установку, но это единственное, что он решает', () => {
+    chainConfig.is_mainnet = true;
+
+    // На основной сети Стол заказов закрыт — поставить его нельзя.
+    expect(() => service.assertInstallable('market')).toThrow();
+
+    // Никакого «остановить уже установленное» в этом гейте нет: он не знает
+    // ни про установленные приложения, ни про их признак «включено».
+    expect(typeof (service as any).assertInstallable).toBe('function');
+  });
+
+  it('на открытом контуре то же расширение ставится', () => {
+    chainConfig.is_mainnet = false;
+
+    expect(() => service.assertInstallable('market')).not.toThrow();
+  });
+});

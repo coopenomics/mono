@@ -13,6 +13,9 @@ title: Выдача заказа на пункте выдачи — открыт
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
 sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/signiss2.cpp
+    - components/contracts/cpp/branch/src/accrue.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
   ui:
@@ -135,4 +138,87 @@ cases:
     expect: >
       выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
     test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
+    status: passing
+
+  # ── Контрактный уровень: денежные места выдачи (задача 598-51) ────────────
+
+  - id: mkt.iss.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Оператор подписывает акт выдачи и кладёт его в бандл, пайщица
+      контрподписывает — связка signiss1+signiss2 уходит на цепь.
+    expect: >
+      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 86 / Кт 10), а не
+      по цене продажи
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Выдано меньше заказанного (три единицы из четырёх).
+    expect: >
+      невыданный остаток резерва возвращается заказчице на членский «Стола
+      заказов» (o.mkt.unlock) ровно на разницу заказа и факта
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Недовыдача закрыта; сводим резерв заказа.
+    expect: >
+      выданное и разблокированное вместе закрывают весь резерв — резерв не
+      уходит дважды и не зависает частью
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Членский взнос пересчитывается по факту выдачи, факт меньше заказа.
+    expect: >
+      неиспользованная часть взноса возвращается заказчице (o.mkt.refund)
+      пропорционально факту — той же пропорцией, что применяется при
+      гарантийном возврате
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.33
+    level: contract
+    kind: side
+    scenario: >
+      Фактический взнос зачисляется экономике кооперативного участка
+      инлайн-вызовом при финализации.
+    expect: >
+      участку уходит взнос, приходящийся на фактически выданное (o.brn.common,
+      разрез — имя участка), и физически он уходит с пула взносов «Стола
+      заказов» на общий кошелёк участка
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.34
+    level: contract
+    kind: side
+    scenario: >
+      Выдача закрыта; сводим членский взнос.
+    expect: >
+      зачисленное участку плюс возвращённое пайщице ровно равны сумме,
+      заблокированной при оформлении — взнос не раздваивается
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.35
+    level: contract
+    kind: side
+    scenario: >
+      Заказ прошёл весь путь от оформления до получения.
+    expect: >
+      в нитке заказа нет посторонних денежных кодов — ровно семь ожидаемых
+      проводок и ни одной лишней
+    test: components/boot/src/tests/marketplace-money.test.ts
     status: passing

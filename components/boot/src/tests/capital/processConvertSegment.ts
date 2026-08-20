@@ -1,7 +1,6 @@
 import { expect } from 'vitest'
 import { CapitalContract } from 'cooptypes'
 import { getTotalRamUsage } from '../../utils/getTotalRamUsage'
-import { generateRandomSHA256 } from '../../utils/randomHash'
 import { fakeDocument } from '../shared/fakeDocument'
 import type Blockchain from '../../blockchain'
 import { getCoopProgramWallet, getUserProgramWallet } from '../wallet/walletUtils'
@@ -29,8 +28,7 @@ export async function processConvertSegment(
   capitalAmount: string,
   projectAmount: string,
 ) {
-  const convertHash = generateRandomSHA256()
-  console.log(`\n🔹 Начало процесса конвертации сегмента: ${convertHash}`)
+  console.log(`\n🔹 Начало процесса конвертации сегмента: ${username} / ${projectHash.slice(0, 10)}`)
 
   // Получаем сегмент до конвертации
   const segmentBefore = await getSegment(blockchain, coopname, projectHash, username)
@@ -51,14 +49,41 @@ export async function processConvertSegment(
   console.log('  ▶ Проект до конвертации: ', projectBefore)
 
   // 1. Конвертируем сегмент
+  //
+  // convertsegm принимает result_hash — хэш ВНЕСЁННОГО результата, а не
+  // свежесгенерированный хэш конвертации: контракт по нему сверяет проект,
+  // пайщика и статус act2. Хэш находим сами, чтобы не менять сигнатуру
+  // хелпера и все его вызовы.
+  const resultRows = await blockchain.getTableRows(
+    CapitalContract.contractName.production,
+    coopname,
+    'results',
+    1000,
+  ) as Array<{ project_hash: string, username: string, status: string, result_hash: string }>
+
+  const resultRow = resultRows.find(
+    r => r.project_hash === projectHash && r.username === username && r.status === 'act2',
+  )
+  expect(
+    resultRow,
+    `для ${username} по проекту ${projectHash} нет результата в статусе act2 — `
+    + 'конвертация возможна только после signact2',
+  ).toBeDefined()
+
   const convertSegmentData: CapitalContract.Actions.ConvertSegment.IConvertSegment = {
     coopname,
     username,
     project_hash: projectHash,
-    convert_hash: convertHash,
+    result_hash: resultRow!.result_hash,
     wallet_amount: walletAmount,
     capital_amount: capitalAmount,
-    convert_statement: fakeDocument,
+    // Заявление о конвертации обязано нести подпись САМОГО участника.
+    // fakeDocument — общий мутабельный объект, его signer переписывают другие
+    // хелперы (processApprove ставит туда 'ant'), поэтому берём копию.
+    convert_statement: {
+      ...fakeDocument,
+      signatures: [{ ...fakeDocument.signatures[0], signer: username }],
+    },
   }
 
   console.log(`\n🚀 Отправка транзакции ConvertSegment для ${username}`)
@@ -85,7 +110,7 @@ export async function processConvertSegment(
 
   getTotalRamUsage(convertResult)
   expect(convertResult.transaction_id).toBeDefined()
-  console.log('✅ Сегмент конвертирован:', convertHash)
+  console.log('✅ Сегмент конвертирован по результату:', resultRow!.result_hash)
 
   // Получаем сегмент после конвертации (должен быть удален)
   const segmentAfter = await getSegment(blockchain, coopname, projectHash, username)
@@ -160,7 +185,7 @@ export async function processConvertSegment(
   console.log(`\n✅ Процесс конвертации сегмента завершен успешно!`)
 
   return {
-    convertHash,
+    resultHash: resultRow!.result_hash,
     segmentBefore,
     segmentAfter,
     mainWalletBefore,

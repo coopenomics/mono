@@ -15,6 +15,9 @@ title: Гарантийный возврат имущества — заявле
 # только имена, поведение и набор случаев не менялись.
 
 sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.return/accretrn.cpp
+    - components/contracts/cpp/branch/src/retfee.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-return*.ts
   ui:
@@ -165,4 +168,68 @@ cases:
     expect: >
       отказ с конкретным сообщением; допустимая граница (ровно предел) проходит
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: passing
+
+  # ── Контрактный уровень: денежные места гарантийного возврата (598-51) ────
+
+  - id: mkt.ret.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица подаёт заявление на возврат полученного заказа в течение
+      гарантийного срока.
+    expect: >
+      заявка получает СОБСТВЕННЫЙ хэш нитки, отличный от хэша заказа, и
+      фиксирует полную сумму к возврату — стоимость имущества плюс
+      приходящийся на него членский взнос
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
+
+  - id: mkt.ret.happy.31
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель участка принимает возврат на очном осмотре второй подписью
+      на заявлении пайщицы.
+    expect: >
+      одной транзакцией проходят ТРИ ноги — o.mkt.return (имущество и средства
+      заказчице), o.brn.retfee (участок возвращает долю взноса в пул) и
+      o.mkt.refund (пул доводит её до членского кошелька заказчицы)
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
+
+  - id: mkt.ret.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Возврат принят; смотрим бухгалтерские проводки.
+    expect: >
+      возвращённое имущество ложится Дт 10 (снова на складе), обязательство
+      перед пайщицей — Кт 86
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
+
+  - id: mkt.ret.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Взнос возвращается транзитом через пул: прямой перевод с кошелька
+      участка на кошелёк пайщика невозможен — walletop держит один username на
+      обе стороны.
+    expect: >
+      транзит даёт ровно два кошельковых хода и НИ ОДНОЙ бухпроводки: деньги не
+      покидают целевое финансирование, а перекладываются внутри счёта 86
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
+
+  - id: mkt.ret.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Возврат оформлен как compensating forward, а не как откат исходной
+      выдачи.
+    expect: >
+      исходная o.mkt.consum в журнале не модифицируется, и проводки возврата не
+      попадают в нитку поставки — у возврата своя нитка
+    test: components/boot/src/tests/marketplace-return.test.ts
     status: passing
