@@ -39,7 +39,14 @@
     <template v-else-if="mode === 'twofactor'">
       <div class="login-2fa__field">
         <span class="login-2fa__label">{{ currentFactorLabel }}</span>
-        <OtpInput v-model="otp" :length="6" :error="otpError" @complete="confirmFactor" />
+        <OtpInput
+          ref="otpRef"
+          v-model="otp"
+          :length="6"
+          :error="otpError"
+          autofocus
+          @complete="confirmFactor"
+        />
       </div>
       <div v-if="currentFactor === 'email'" class="login-2fa__resend">
         <BaseButton
@@ -103,7 +110,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LocalStorage } from 'quasar';
 import { useSessionStore } from 'src/entities/Session';
@@ -151,6 +158,13 @@ const errorMessage = ref('');
 const challenge = ref<{ token: string; factors: LoginFactorKind[]; index: number } | null>(null);
 const otp = ref('');
 const otpError = ref('');
+const otpRef = ref<InstanceType<typeof OtpInput> | null>(null);
+
+/** Вернуть курсор в первую ячейку — после смены фактора и после неверного кода. */
+function restartOtpEntry(): void {
+  otp.value = '';
+  void nextTick(() => otpRef.value?.focusCell(0));
+}
 const resendCooldown = ref(0);
 let resendTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -354,14 +368,14 @@ async function confirmFactor(): Promise<void> {
     }
     // Фактор пройден, очередь следующего (email-код сервер отправил только сейчас).
     challenge.value = { ...challenge.value, index: challenge.value.index + 1 };
-    otp.value = '';
+    restartOtpEntry();
     if (result.nextFactor === 'email') startResendCooldown();
     loading.value = false;
   } catch (e: any) {
     loading.value = false;
     if (e instanceof AuthV2Error && e.code === AuthV2ErrorCode.InvalidTwoFactorCode) {
       otpError.value = e.message;
-      otp.value = '';
+      restartOtpEntry();
       return;
     }
     // Challenge истёк или сожжён перебором — начинаем вход заново.
