@@ -12,26 +12,7 @@ BaseDialog(
   :close-on-route-change='false'
 )
   .migration-offer(v-if='step === "intro"')
-    .migration-offer__hero
-      q-icon(name='verified_user', size='28px')
-    p.migration-offer__lead
-      | Кооператив переходит на новую систему идентификации —
-      | цифровое удостоверение пайщика.
-    ul.migration-offer__points
-      li
-        q-icon(name='lock', size='18px')
-        span
-          | Для защиты ваших средств, документов и персональных данных
-          | рекомендуем установить пароль: вход в систему будет по email и паролю.
-      li
-        q-icon(name='key_off', size='18px')
-        span
-          | Ключ доступа, выданный при регистрации, после установки пароля
-          | больше не потребуется.
-      li
-        q-icon(name='schedule', size='18px')
-        span
-          | Установка займёт меньше минуты — выходить из системы не придётся.
+    MigrationExplainer
 
   .migration-offer(v-else)
     BaseInput(
@@ -79,6 +60,7 @@ import {
   useNewPasswordForm,
   useSetPassword,
 } from '../model';
+import MigrationExplainer from './MigrationExplainer.vue';
 
 const session = useSessionStore();
 const { setPassword } = useSetPassword();
@@ -133,49 +115,5 @@ async function onSetPassword(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-}
-
-/* Иконка-«герб» удостоверения: мягкий круг в акцентном тоне, по центру. */
-.migration-offer__hero {
-  align-self: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--p-r-pill);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--p-primary-soft);
-  color: var(--p-primary);
-}
-
-.migration-offer__lead {
-  margin: 0;
-  text-align: center;
-  font-size: var(--p-fs-body);
-  line-height: var(--p-lh-body);
-  font-weight: 600;
-  color: var(--p-ink);
-}
-
-.migration-offer__points {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-.migration-offer__points li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--p-2);
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-2);
-}
-.migration-offer__points li .q-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--p-ink-3);
 }
 </style>

@@ -72,13 +72,10 @@
       </BaseButton>
     </template>
 
-    <!-- Шаг миграции: вошли по ключу — предлагаем задать пароль -->
+    <!-- Шаг миграции: вошли по ключу — обязательная установка пароля.
+         Объяснение — общее с оверлеем мягкой миграции, история одна. -->
     <template v-else>
-      <BaseBanner variant="info">
-        Взамен введённого ключа будет выпущен новый — он хранится в зашифрованном
-        виде, и открывает его только ваш пароль. Старый ключ перестанет
-        действовать, хранить его больше не нужно. Дальше вход — только по паролю.
-      </BaseBanner>
+      <MigrationExplainer :in-session="false" />
       <BaseInput
         v-model="newPassword"
         label="Новый пароль"
@@ -117,7 +114,8 @@ import { useSessionStore } from 'src/entities/Session';
 import { useLoginUser } from 'src/features/User/LoginUser';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { FailAlert } from 'src/shared/api';
-import { BaseBanner, BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
+import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
+import { MigrationExplainer } from 'src/features/Security/SetPassword';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { env, updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
