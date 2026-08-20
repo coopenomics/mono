@@ -255,6 +255,13 @@ export const AllTypesProps: Record<string,any> = {
 		mechanics:"ExpenseMechanics",
 		recipient_type:"ExpenseRecipientType"
 	},
+	CapitalFavoriteInput:{
+		target_type:"CapitalFavoriteTargetType"
+	},
+	CapitalFavoriteTargetType: "enum" as const,
+	CapitalFavoritesFilter:{
+
+	},
 	CapitalGetOpenTimerInput:{
 
 	},
@@ -280,6 +287,7 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalProjectFilter:{
 		has_issues_with_priorities:"IssuePriority",
 		has_issues_with_statuses:"IssueStatus",
+		priorities:"ProjectPriority",
 		statuses:"ProjectStatus"
 	},
 	CapitalResumeTimerInput:{
@@ -1396,6 +1404,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
+		capitalAddFavorite:{
+			data:"CapitalFavoriteInput"
+		},
 		capitalAddWorklog:{
 			data:"CapitalAddWorklogInput"
 		},
@@ -1625,6 +1636,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
 		},
+		capitalRemoveFavorite:{
+			data:"CapitalFavoriteInput"
+		},
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
 		},
@@ -1642,6 +1656,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalSetProjectDevelopmentRepositoryUrl:{
 			data:"SetCapitalProjectDevelopmentRepositoryUrlInput"
+		},
+		capitalSetProjectPriority:{
+			data:"SetCapitalProjectPriorityInput"
 		},
 		capitalSignActAsChairman:{
 			data:"SignActAsChairmanInput"
@@ -2464,6 +2481,7 @@ export const AllTypesProps: Record<string,any> = {
 	ProjectGenerationContractGenerateDocumentInput:{
 
 	},
+	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
@@ -2527,6 +2545,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalExpenses:{
 			filter:"ExpenseFilter",
 			options:"PaginationInput"
+		},
+		capitalFavorites:{
+			filter:"CapitalFavoritesFilter"
 		},
 		capitalGetOpenTimer:{
 			data:"CapitalGetOpenTimerInput"
@@ -3247,6 +3268,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetCapitalProjectDevelopmentRepositoryUrlInput:{
 
 	},
+	SetCapitalProjectPriorityInput:{
+		priority:"ProjectPriority"
+	},
 	SetConfigInput:{
 		config:"ConfigInput"
 	},
@@ -3641,6 +3665,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4024,6 +4049,15 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ExpenseStatus",
 		username:"String"
 	},
+	CapitalFavorite:{
+		coopname:"String",
+		created_at:"DateTime",
+		parent_hash:"String",
+		target_hash:"String",
+		target_type:"CapitalFavoriteTargetType",
+		title:"String",
+		username:"String"
+	},
 	CapitalFibLevel:{
 		ratio:"Float",
 		value:"Float"
@@ -4079,11 +4113,13 @@ export const ReturnTypes: Record<string,any> = {
 		hours:"Float"
 	},
 	CapitalIssueLinkedGitCommit:{
+		branch:"String",
 		commit_message:"String",
 		committed_at:"DateTime",
 		consumed:"Boolean",
 		github_sha:"String",
 		html_url:"String",
+		in_default_branch:"Boolean",
 		username:"String"
 	},
 	CapitalIssueMetricBinding:{
@@ -4340,6 +4376,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4374,6 +4411,7 @@ export const ReturnTypes: Record<string,any> = {
 		plan:"CapitalProjectPlanPool",
 		prefix:"String",
 		present:"Boolean",
+		priority:"ProjectPriority",
 		project_hash:"String",
 		status:"ProjectStatus",
 		title:"String",
@@ -4433,6 +4471,7 @@ export const ReturnTypes: Record<string,any> = {
 		can_manage_issues:"Boolean",
 		can_set_master:"Boolean",
 		can_set_plan:"Boolean",
+		can_set_priority:"Boolean",
 		can_view_artifacts:"Boolean",
 		has_clearance:"Boolean",
 		has_parent_clearance:"Boolean",
@@ -6442,6 +6481,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorizeDecision:"Transaction",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
+		capitalAddFavorite:"CapitalFavorite",
 		capitalAddWorklog:"CapitalTimeEntry",
 		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
@@ -6511,12 +6551,14 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalRemoveFavorite:"CapitalFavorite",
 		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
+		capitalSetProjectPriority:"CapitalProject",
 		capitalSignActAsChairman:"CapitalSegment",
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",
@@ -7298,6 +7340,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
+		capitalFavorites:"CapitalFavorite",
 		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",

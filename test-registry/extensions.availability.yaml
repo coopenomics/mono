@@ -28,7 +28,7 @@ cases:
     expect: >
       расширение отдаётся как доступное и ставится без отказа
     test: components/controller/tests/unit/extension/extension-availability.test.ts
-    status: written
+    status: passing
 
   - id: ext.avail.side.01
     level: backend
@@ -39,7 +39,7 @@ cases:
       расширение отдаётся как недоступное — карточка не кликабельна, рабочий
       стол расширения в состав столов не попадает
     test: components/controller/tests/unit/extension/extension-availability.test.ts
-    status: written
+    status: passing
 
   - id: ext.avail.side.02
     level: backend
@@ -49,7 +49,7 @@ cases:
     expect: >
       расширение доступно к установке
     test: components/controller/tests/unit/extension/extension-availability.test.ts
-    status: written
+    status: passing
 
   - id: ext.avail.side.03
     level: backend
@@ -59,7 +59,7 @@ cases:
     expect: >
       расширение остаётся недоступным — тестовый контур не является послаблением
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
-    status: written
+    status: passing
 
   - id: ext.avail.break.01
     level: backend
@@ -70,7 +70,7 @@ cases:
     expect: >
       сервер отказывает в установке; скрытая карточка не является защитой
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
-    status: written
+    status: passing
 
   - id: ext.avail.break.02
     level: backend
@@ -80,7 +80,7 @@ cases:
     expect: >
       сервер отказывает с сообщением о ненайденном приложении
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
-    status: written
+    status: passing
 
   # Открытые вопросы, требующие решения человека:
   #
@@ -95,10 +95,9 @@ cases:
       Расширение было установлено, когда оно было открыто, после чего в реестре
       его закрыли для этой сети.
     expect: >
-      решение не принято: сейчас расширение продолжает работать (запуск смотрит
-      только на признак «включено»), но пропадает из списка установленных и из
-      состава рабочих столов. Нужно решить, останавливать ли его принудительно —
-      до этого тест не пишется, чтобы не закрепить случайное поведение
-    decision_needed: true
-    test: ~
-    status: missing
+      уже установленное расширение продолжает работать: закрытие в реестре
+      сторожит только УСТАНОВКУ. Останавливается расширение лишь при удалении.
+      Решение владельца, зафиксировано 2026-08-20
+    test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    status: passing
+

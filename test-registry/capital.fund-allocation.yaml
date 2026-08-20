@@ -30,6 +30,12 @@ title: Направление средств программы в проект 
 # изменилась только строка импорта — состав guard'ов на операциях, правила
 # доступа и набор случаев прежние.
 
+# Правка 2026-08-18 (приоритеты, capital.priorities): в фиче UpdateProjectStatus
+# добавлен инлайн-чип смены статуса проекта/компонента в строках списков
+# (ProjectStatusChip) — те же мутации start/stop/voting/complete/finalize и то же
+# право can_change_project_status, что у селекта в сайдбаре. Движение средств
+# при смене статуса и набор случаев этого слайса не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/allocate/**

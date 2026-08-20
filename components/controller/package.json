@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.8.16",
+  "version": "2026.8.19-3",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "bin": "bin/createNodejsApp.js",
@@ -18,7 +18,7 @@
   "scripts": {
     "deploy-testnet": "git checkout testnet && git merge main && git push origin testnet && git checkout main",
     "deploy-production": "git checkout production && git merge testnet && git push origin production && git checkout main",
-    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "start": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js",
     "dev": "nodemon --watch src --watch migrations --ext ts,js,env --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
     "test": "jest -i",
     "test:integration": "echo 'Integration tests run via @coopenomics/boot' && exit 0",
@@ -31,13 +31,13 @@
     "prettier": "prettier --check **/*.js",
     "analyze:modules": "ts-node -r tsconfig-paths/register scripts/analyze-modules.ts",
     "migration:generate": "ts-node -r tsconfig-paths/register src/scripts/generate-migration.ts",
-    "migration:run": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts run",
-    "migration:run-specific": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts run-specific",
-    "migration:rollback": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts rollback",
-    "migration:rollback-latest": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts rollback-latest",
-    "migration:status": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts status",
-    "migration:list": "ts-node -r tsconfig-paths/register src/scripts/migration-cli.ts list",
-    "migrate": "ts-node -r tsconfig-paths/register src/index.ts --migrate",
+    "migration:run": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js run",
+    "migration:run-specific": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js run-specific",
+    "migration:rollback": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js rollback",
+    "migration:rollback-latest": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js rollback-latest",
+    "migration:status": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js status",
+    "migration:list": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/scripts/migration-cli.js list",
+    "migrate": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate",
     "prettier:fix": "prettier --write **/*.js",
     "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
     "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
@@ -48,7 +48,8 @@
     "typecheck": "tsc --noEmit",
     "docs": "spectaql spectaql-config.yml",
     "generate-client": "node ./scripts/generate-client.cjs",
-    "generate-schema": "ts-node -r ./scripts/register-schema-gen-env.cjs -r tsconfig-paths/register scripts/generate-schema.ts"
+    "generate-schema": "ts-node -r ./scripts/register-schema-gen-env.cjs -r tsconfig-paths/register scripts/generate-schema.ts",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-build-assets.cjs"
   },
   "keywords": [
     "node",
@@ -73,8 +74,8 @@
   "dependencies": {
     "@a2seven/yoo-checkout": "^1.1.4",
     "@aws-sdk/client-s3": "^3.1035.0",
-    "@coopenomics/factory": "workspace:*",
     "@coopenomics/extension-kit": "workspace:*",
+    "@coopenomics/factory": "workspace:*",
     "@coopenomics/innercoop": "workspace:*",
     "@coopenomics/jurisdictions": "workspace:*",
     "@coopenomics/notifications": "workspace:*",

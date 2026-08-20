@@ -338,11 +338,16 @@ export class IssuePermissionsService {
     issueCreators: string[] | undefined,
     userRole?: string
   ): Promise<void> {
+    // Председатель управляет приоритетами всех кооперативных задач
+    if (userRole === 'chairman') {
+      return;
+    }
+
     // Определяем набор ролей пользователя
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.SET_PRIORITY)) {
-      throw new Error('Только мастер проекта может устанавливать приоритет на задачи');
+      throw new Error('Только председатель или мастер проекта может устанавливать приоритет на задачи');
     }
   }
 

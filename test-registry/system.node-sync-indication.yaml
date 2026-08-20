@@ -36,7 +36,7 @@ cases:
     expect: >
       узел считается рабочим, отставание нулевое, состояние уходит подписчикам
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.01
     level: backend
@@ -46,7 +46,7 @@ cases:
     expect: >
       узел объявляется догоняющим — рабочий стол закрывается заглушкой
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.02
     level: backend
@@ -56,7 +56,7 @@ cases:
     expect: >
       состояние остаётся рабочим — заглушка от дрожания не появляется
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.03
     level: backend
@@ -67,7 +67,7 @@ cases:
     expect: >
       заглушка держится, пока узел не продержится у головы положенные тики
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.04
     level: backend
@@ -77,7 +77,7 @@ cases:
     expect: >
       отсчёт здоровых тиков начинается заново
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.05
     level: backend
@@ -89,7 +89,7 @@ cases:
       оценка времени считается по сокращению отставания, а не по темпу чтения —
       иначе она вдвое оптимистичнее правды
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.06
     level: backend
@@ -99,7 +99,7 @@ cases:
     expect: >
       оценка времени не выдаётся вовсе — обещать нечего
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.break.01
     level: backend
@@ -109,7 +109,7 @@ cases:
     expect: >
       состояние — «связи нет» с причиной «не отвечает цепь», а не мнимый догон
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.break.02
     level: backend
@@ -119,7 +119,7 @@ cases:
     expect: >
       состояние — «связи нет» с причиной «чтение цепи остановлено»
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.break.03
     level: backend
@@ -130,7 +130,7 @@ cases:
       состояние — «связи нет»: неподвижная позиция это остановка, а не медленный
       догон
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.break.04
     level: backend
@@ -141,7 +141,7 @@ cases:
       отсчёт здоровых тиков и скорость догона начинаются заново — счётчики до
       паузы к состоянию после неё отношения не имеют
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.07
     level: backend
@@ -151,7 +151,7 @@ cases:
     expect: >
       в канал подписчикам ничего не уходит — поток не превращается в шум
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.side.08
     level: backend
@@ -161,7 +161,7 @@ cases:
     expect: >
       подписчики получают обновление
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.break.05
     level: backend
@@ -172,7 +172,7 @@ cases:
       пересчёт не роняет планировщик, прошлое состояние сохраняется, сбой
       попадает в журнал
     test: components/controller/tests/unit/system/node-sync-health.test.ts
-    status: written
+    status: passing
 
   - id: sync.ind.ui.01
     level: ui

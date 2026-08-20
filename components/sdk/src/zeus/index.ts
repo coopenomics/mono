@@ -1937,6 +1937,8 @@ export type ValueTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -3433,6 +3435,45 @@ export type ValueTypes = {
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null | Variable<any, string>
 };
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: AliasType<{
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Когда добавлено в избранное */
+	created_at?:boolean | `@${string}`,
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?:boolean | `@${string}`,
+	/** Хеш сущности */
+	target_hash?:boolean | `@${string}`,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type?:boolean | `@${string}`,
+	/** Актуальное наименование сущности */
+	title?:boolean | `@${string}`,
+	/** Имя пользователя — владельца избранного */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalFavorite']?: Omit<ValueTypes["CapitalFavorite"], "...on CapitalFavorite">
+}>;
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш сущности */
+	target_hash: string | Variable<any, string>,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ValueTypes["CapitalFavoriteTargetType"] | Variable<any, string>,
+	/** Имя пользователя — владельца избранного */
+	username: string | Variable<any, string>
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя — владельца избранного */
+	username: string | Variable<any, string>
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -3591,11 +3632,15 @@ export type ValueTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: AliasType<{
+	/** Ветка, на которой коммит появился впервые */
+	branch?:boolean | `@${string}`,
 	commit_message?:boolean | `@${string}`,
 	committed_at?:boolean | `@${string}`,
 	consumed?:boolean | `@${string}`,
 	github_sha?:boolean | `@${string}`,
 	html_url?:boolean | `@${string}`,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalIssueLinkedGitCommit']?: Omit<ValueTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
@@ -4113,6 +4158,8 @@ export type ValueTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -4182,6 +4229,8 @@ export type ValueTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -4308,6 +4357,8 @@ export type ValueTypes = {
 	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null | Variable<any, string>,
+	/** Фильтр по приоритетам проектов или компонентов */
+	priorities?: Array<ValueTypes["ProjectPriority"]> | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу проекта */
 	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по статусам проектов */
@@ -4337,6 +4388,8 @@ export type ValueTypes = {
 	can_set_master?:boolean | `@${string}`,
 	/** Может ли устанавливать план проекта */
 	can_set_plan?:boolean | `@${string}`,
+	/** Может ли устанавливать приоритет проекта или компонента */
+	can_set_priority?:boolean | `@${string}`,
 	/** Может ли просматривать артефакты (требования) проекта/компонента */
 	can_view_artifacts?:boolean | `@${string}`,
 	/** Имеет ли подтвержденное приложение для проекта */
@@ -11596,6 +11649,7 @@ archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -11665,12 +11719,14 @@ capitalPushResult?: [{	data: ValueTypes["PushResultInput"] | Variable<any, strin
 capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalRemoveFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ValueTypes["SetMasterInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetPlan?: [{	data: ValueTypes["SetPlanInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalSetProjectPriority?: [{	data: ValueTypes["SetCapitalProjectPriorityInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSignActAsChairman?: [{	data: ValueTypes["SignActAsChairmanInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ValueTypes["SignActAsContributorInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ValueTypes["StartProcessInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -13232,6 +13288,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null | Variable<any, string>
 };
+	/** Приоритет проекта или компонента в системе CAPITAL */
+["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: AliasType<{
@@ -13320,6 +13378,7 @@ capitalDebt?: [{	data: ValueTypes["GetDebtInput"] | Variable<any, string>},Value
 capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ValueTypes["ExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalFavorites?: [{	filter: ValueTypes["CapitalFavoritesFilter"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -14421,6 +14480,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null | Variable<any, string>,
+	/** Хэш проекта или компонента */
+	project_hash: string | Variable<any, string>
+};
+	["SetCapitalProjectPriorityInput"]: {
+	/** Новый приоритет проекта или компонента */
+	priority: ValueTypes["ProjectPriority"] | Variable<any, string>,
 	/** Хэш проекта или компонента */
 	project_hash: string | Variable<any, string>
 };
@@ -16310,6 +16375,8 @@ export type ResolverInputTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -17780,6 +17847,44 @@ export type ResolverInputTypes = {
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
 };
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: AliasType<{
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Когда добавлено в избранное */
+	created_at?:boolean | `@${string}`,
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?:boolean | `@${string}`,
+	/** Хеш сущности */
+	target_hash?:boolean | `@${string}`,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type?:boolean | `@${string}`,
+	/** Актуальное наименование сущности */
+	title?:boolean | `@${string}`,
+	/** Имя пользователя — владельца избранного */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ResolverInputTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
 	["CapitalFibLevel"]: AliasType<{
 	/** Фибо-коэффициент */
 	ratio?:boolean | `@${string}`,
@@ -17934,11 +18039,15 @@ export type ResolverInputTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: AliasType<{
+	/** Ветка, на которой коммит появился впервые */
+	branch?:boolean | `@${string}`,
 	commit_message?:boolean | `@${string}`,
 	committed_at?:boolean | `@${string}`,
 	consumed?:boolean | `@${string}`,
 	github_sha?:boolean | `@${string}`,
 	html_url?:boolean | `@${string}`,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -18437,6 +18546,8 @@ export type ResolverInputTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -18505,6 +18616,8 @@ export type ResolverInputTypes = {
 	prefix?:boolean | `@${string}`,
 	/** Флаг присутствия записи в блокчейне */
 	present?:boolean | `@${string}`,
+	/** Приоритет проекта или компонента */
+	priority?:boolean | `@${string}`,
 	/** Хеш проекта */
 	project_hash?:boolean | `@${string}`,
 	/** Статус проекта */
@@ -18627,6 +18740,8 @@ export type ResolverInputTypes = {
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
+	/** Фильтр по приоритетам проектов или компонентов */
+	priorities?: Array<ResolverInputTypes["ProjectPriority"]> | undefined | null,
 	/** Фильтр по хешу проекта */
 	project_hash?: string | undefined | null,
 	/** Фильтр по статусам проектов */
@@ -18656,6 +18771,8 @@ export type ResolverInputTypes = {
 	can_set_master?:boolean | `@${string}`,
 	/** Может ли устанавливать план проекта */
 	can_set_plan?:boolean | `@${string}`,
+	/** Может ли устанавливать приоритет проекта или компонента */
+	can_set_priority?:boolean | `@${string}`,
 	/** Может ли просматривать артефакты (требования) проекта/компонента */
 	can_view_artifacts?:boolean | `@${string}`,
 	/** Имеет ли подтвержденное приложение для проекта */
@@ -25717,6 +25834,7 @@ archiveProductCard?: [{	id: string},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
+capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -25786,12 +25904,14 @@ capitalPushResult?: [{	data: ResolverInputTypes["PushResultInput"]},ResolverInpu
 capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},ResolverInputTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalRemoveFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ResolverInputTypes["SetMasterInput"]},ResolverInputTypes["Transaction"]],
 capitalSetPlan?: [{	data: ResolverInputTypes["SetPlanInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ResolverInputTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"]},ResolverInputTypes["CapitalProject"]],
+capitalSetProjectPriority?: [{	data: ResolverInputTypes["SetCapitalProjectPriorityInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSignActAsChairman?: [{	data: ResolverInputTypes["SignActAsChairmanInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ResolverInputTypes["SignActAsContributorInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ResolverInputTypes["StartProcessInput"]},ResolverInputTypes["ProcessInstance"]],
@@ -27289,6 +27409,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	/** Приоритет проекта или компонента в системе CAPITAL */
+["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: AliasType<{
@@ -27375,6 +27497,7 @@ capitalDebt?: [{	data: ResolverInputTypes["GetDebtInput"]},ResolverInputTypes["C
 capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ResolverInputTypes["ExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalFavorites?: [{	filter: ResolverInputTypes["CapitalFavoritesFilter"]},ResolverInputTypes["CapitalFavorite"]],
 capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string},ResolverInputTypes["ProcessInstance"]],
@@ -28452,6 +28575,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null,
+	/** Хэш проекта или компонента */
+	project_hash: string
+};
+	["SetCapitalProjectPriorityInput"]: {
+	/** Новый приоритет проекта или компонента */
+	priority: ResolverInputTypes["ProjectPriority"],
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
@@ -30292,6 +30421,8 @@ export type ModelTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: ModelTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -31734,6 +31865,42 @@ export type ModelTypes = {
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
 };
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Когда добавлено в избранное */
+	created_at: ModelTypes["DateTime"],
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?: string | undefined | null,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ModelTypes["CapitalFavoriteTargetType"],
+	/** Актуальное наименование сущности */
+	title: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: ModelTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	["CapitalFavoriteTargetType"]:CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
 	["CapitalFibLevel"]: {
 		/** Фибо-коэффициент */
 	ratio: number,
@@ -31884,11 +32051,15 @@ export type ModelTypes = {
 };
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: {
-		commit_message: string,
+		/** Ветка, на которой коммит появился впервые */
+	branch?: string | undefined | null,
+	commit_message: string,
 	committed_at: ModelTypes["DateTime"],
 	consumed: boolean,
 	github_sha: string,
 	html_url: string,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch: boolean,
 	username: string
 };
 	/** Привязка задачи к метрике с плановым вкладом */
@@ -32368,6 +32539,8 @@ export type ModelTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: ModelTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -32435,6 +32608,8 @@ export type ModelTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: ModelTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -32553,6 +32728,8 @@ export type ModelTypes = {
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
+	/** Фильтр по приоритетам проектов или компонентов */
+	priorities?: Array<ModelTypes["ProjectPriority"]> | undefined | null,
 	/** Фильтр по хешу проекта */
 	project_hash?: string | undefined | null,
 	/** Фильтр по статусам проектов */
@@ -32582,6 +32759,8 @@ export type ModelTypes = {
 	can_set_master: boolean,
 	/** Может ли устанавливать план проекта */
 	can_set_plan: boolean,
+	/** Может ли устанавливать приоритет проекта или компонента */
+	can_set_priority: boolean,
 	/** Может ли просматривать артефакты (требования) проекта/компонента */
 	can_view_artifacts: boolean,
 	/** Имеет ли подтвержденное приложение для проекта */
@@ -39391,6 +39570,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
+	/** Добавить сущность в личное избранное
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddFavorite: Array<ModelTypes["CapitalFavorite"]>,
 	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
 
 Требуемые роли: chairman, member, user.  */
@@ -39667,6 +39850,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: ModelTypes["Transaction"],
+	/** Убрать сущность из личного избранного
+
+Требуемые роли: chairman, member, user.  */
+	capitalRemoveFavorite: Array<ModelTypes["CapitalFavorite"]>,
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -39687,6 +39874,8 @@ export type ModelTypes = {
 	capitalSetPlan: ModelTypes["CapitalProject"],
 	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
 	capitalSetProjectDevelopmentRepositoryUrl: ModelTypes["CapitalProject"],
+	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
+	capitalSetProjectPriority: ModelTypes["CapitalProject"],
 	/** Подписание акта о вкладе результатов председателем
 
 Требуемые роли: chairman.  */
@@ -41599,6 +41788,7 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	["ProjectPriority"]:ProjectPriority;
 	["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: {
 		/** Дата создания */
@@ -41710,6 +41900,10 @@ export type ModelTypes = {
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Список избранного пользователя с актуальными наименованиями
+
+Требуемые роли: chairman, member, user.  */
+	capitalFavorites: Array<ModelTypes["CapitalFavorite"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -43095,6 +43289,12 @@ export type ModelTypes = {
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null,
+	/** Хэш проекта или компонента */
+	project_hash: string
+};
+	["SetCapitalProjectPriorityInput"]: {
+	/** Новый приоритет проекта или компонента */
+	priority: ModelTypes["ProjectPriority"],
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
@@ -44939,6 +45139,8 @@ export type GraphQLTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: GraphQLTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -46434,6 +46636,45 @@ export type GraphQLTypes = {
 	/** Реквизиты получателя-организации (вводятся вручную). */
 	requisites?: string | undefined | null
 };
+	/** Запись избранного с актуальным наименованием сущности */
+["CapitalFavorite"]: {
+	__typename: "CapitalFavorite",
+	/** Имя кооператива */
+	coopname: string,
+	/** Когда добавлено в избранное */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хеш родителя: у компонента — проект, у задачи и артефакта — владелец */
+	parent_hash?: string | undefined | null,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: GraphQLTypes["CapitalFavoriteTargetType"],
+	/** Актуальное наименование сущности */
+	title: string,
+	/** Имя пользователя — владельца избранного */
+	username: string,
+	['...on CapitalFavorite']: Omit<GraphQLTypes["CapitalFavorite"], "...on CapitalFavorite">
+};
+	/** Добавление или удаление сущности в избранном пользователя */
+["CapitalFavoriteInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Хеш сущности */
+	target_hash: string,
+	/** Тип сущности: проект, компонент, задача или артефакт */
+	target_type: GraphQLTypes["CapitalFavoriteTargetType"],
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
+	/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+["CapitalFavoriteTargetType"]: CapitalFavoriteTargetType;
+	/** Фильтр списка избранного */
+["CapitalFavoritesFilter"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя — владельца избранного */
+	username: string
+};
 	["CapitalFibLevel"]: {
 	__typename: "CapitalFibLevel",
 	/** Фибо-коэффициент */
@@ -46593,11 +46834,15 @@ export type GraphQLTypes = {
 	/** Индексированный Git-коммит, привязанный к задаче (PRD 78 / маркеры в сообщении) */
 ["CapitalIssueLinkedGitCommit"]: {
 	__typename: "CapitalIssueLinkedGitCommit",
+	/** Ветка, на которой коммит появился впервые */
+	branch?: string | undefined | null,
 	commit_message: string,
 	committed_at: GraphQLTypes["DateTime"],
 	consumed: boolean,
 	github_sha: string,
 	html_url: string,
+	/** Коммит уже дошёл до базовой ветки репозитория */
+	in_default_branch: boolean,
 	username: string,
 	['...on CapitalIssueLinkedGitCommit']: Omit<GraphQLTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 };
@@ -47115,6 +47360,8 @@ export type GraphQLTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: GraphQLTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -47184,6 +47431,8 @@ export type GraphQLTypes = {
 	prefix: string,
 	/** Флаг присутствия записи в блокчейне */
 	present: boolean,
+	/** Приоритет проекта или компонента */
+	priority: GraphQLTypes["ProjectPriority"],
 	/** Хеш проекта */
 	project_hash: string,
 	/** Статус проекта */
@@ -47309,6 +47558,8 @@ export type GraphQLTypes = {
 	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
+	/** Фильтр по приоритетам проектов или компонентов */
+	priorities?: Array<GraphQLTypes["ProjectPriority"]> | undefined | null,
 	/** Фильтр по хешу проекта */
 	project_hash?: string | undefined | null,
 	/** Фильтр по статусам проектов */
@@ -47339,6 +47590,8 @@ export type GraphQLTypes = {
 	can_set_master: boolean,
 	/** Может ли устанавливать план проекта */
 	can_set_plan: boolean,
+	/** Может ли устанавливать приоритет проекта или компонента */
+	can_set_priority: boolean,
 	/** Может ли просматривать артефакты (требования) проекта/компонента */
 	can_view_artifacts: boolean,
 	/** Имеет ли подтвержденное приложение для проекта */
@@ -54619,6 +54872,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
+	/** Добавить сущность в личное избранное
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
 
 Требуемые роли: chairman, member, user.  */
@@ -54895,6 +55152,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: GraphQLTypes["Transaction"],
+	/** Убрать сущность из личного избранного
+
+Требуемые роли: chairman, member, user.  */
+	capitalRemoveFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -54915,6 +55176,8 @@ export type GraphQLTypes = {
 	capitalSetPlan: GraphQLTypes["CapitalProject"],
 	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
 	capitalSetProjectDevelopmentRepositoryUrl: GraphQLTypes["CapitalProject"],
+	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
+	capitalSetProjectPriority: GraphQLTypes["CapitalProject"],
 	/** Подписание акта о вкладе результатов председателем
 
 Требуемые роли: chairman.  */
@@ -56980,6 +57243,8 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	/** Приоритет проекта или компонента в системе CAPITAL */
+["ProjectPriority"]: ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]: ProjectStatus;
 	["ProviderSubscription"]: {
@@ -57097,6 +57362,10 @@ export type GraphQLTypes = {
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Список избранного пользователя с актуальными наименованиями
+
+Требуемые роли: chairman, member, user.  */
+	capitalFavorites: Array<GraphQLTypes["CapitalFavorite"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -58541,6 +58810,12 @@ export type GraphQLTypes = {
 	/** Хэш проекта или компонента */
 	project_hash: string
 };
+	["SetCapitalProjectPriorityInput"]: {
+		/** Новый приоритет проекта или компонента */
+	priority: GraphQLTypes["ProjectPriority"],
+	/** Хэш проекта или компонента */
+	project_hash: string
+};
 	["SetConfigInput"]: {
 		/** Конфигурация контракта */
 	config: GraphQLTypes["ConfigInput"],
@@ -59663,6 +59938,13 @@ export enum CandidateStatus {
 	PENDING = "PENDING",
 	REGISTERED = "REGISTERED"
 }
+/** Тип сущности в избранном: проект, компонент, задача или артефакт */
+export enum CapitalFavoriteTargetType {
+	ARTIFACT = "ARTIFACT",
+	COMPONENT = "COMPONENT",
+	ISSUE = "ISSUE",
+	PROJECT = "PROJECT"
+}
 export enum CapitalOnboardingStep {
 	blagorost_offer_template = "blagorost_offer_template",
 	blagorost_program = "blagorost_program",
@@ -60261,6 +60543,13 @@ export enum ProgramType {
 	MAIN = "MAIN",
 	MARKETPLACE = "MARKETPLACE"
 }
+/** Приоритет проекта или компонента в системе CAPITAL */
+export enum ProjectPriority {
+	HIGH = "HIGH",
+	LOW = "LOW",
+	MEDIUM = "MEDIUM",
+	URGENT = "URGENT"
+}
 /** Статусы проекта в системе CAPITAL */
 export enum ProjectStatus {
 	ACTIVE = "ACTIVE",
@@ -60496,6 +60785,9 @@ type ZEUS_VARIABLES = {
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
 	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
+	["CapitalFavoriteInput"]: ValueTypes["CapitalFavoriteInput"];
+	["CapitalFavoriteTargetType"]: ValueTypes["CapitalFavoriteTargetType"];
+	["CapitalFavoritesFilter"]: ValueTypes["CapitalFavoritesFilter"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
@@ -60932,6 +61224,7 @@ type ZEUS_VARIABLES = {
 	["ProjectFreeDecisionSignedDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedDocumentInput"];
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedMetaDocumentInput"];
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
+	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
@@ -60990,6 +61283,7 @@ type ZEUS_VARIABLES = {
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
 	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
+	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];

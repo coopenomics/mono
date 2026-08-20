@@ -17,6 +17,9 @@ title: Поставка — сборка партии поставщиком, п
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
 sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/signchair.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception*.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-shipment*.ts
@@ -224,4 +227,81 @@ cases:
     expect: >
       QR партии отображается после подготовки отгрузки; сканирование открывает приёмку именно этой партии
     test: components/docs-harness/scenarios/marketplace/offerer/ship-party.mjs
+    status: passing
+
+  # ── Контрактный уровень: денежные места поставки (задача 598-51) ──────────
+  # Проводки ассертятся по нитке процесса: `getLedger2History` фильтруется
+  # хэшем заказа, поэтому проверяется ровно та нитка, которую породила
+  # проверяемая цепочка, а не «счётчик операций вырос».
+
+  - id: mkt.supply.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ: подписывает Заявление о конвертации паевого
+      взноса по позиции корзины, заказ уходит на цепь.
+    expect: >
+      резервируется тело заказа (o.mkt.lock) ровно на количество × цену
+      предложения, проводка ложится Дт 80 / Кт 86, разрез — заказчица
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.happy.31
+    level: contract
+    kind: happy
+    scenario: >
+      Тем же оформлением блокируется членский взнос по единой ставке
+      кооператива.
+    expect: >
+      o.mkt.fee уходит на сумму, зафиксированную в заказе, СВЕРХ тела: пайщица
+      платит тело плюс взнос, а не взнос внутри тела
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.happy.32
+    level: contract
+    kind: happy
+    scenario: >
+      Поставщик привозит имущество на пункт выдачи, оператор оформляет
+      экспресс-приёмку, поставщик и председатель участка подписывают акт.
+    expect: >
+      закрывающая подпись приходует имущество по ЦЕНЕ ПРИБЫТИЯ (o.mkt.purch,
+      Дт 10 / Кт 86) — по фактически принятому количеству и фактической цене,
+      а не по цене заказа
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Приёмка оформлена; смотрим, перед кем у кооператива возникло
+      обязательство.
+    expect: >
+      разрез проводки приёмки — ПОСТАВЩИК, а не заказчица: имущество принято у
+      поставщика, и Кт 86 — обязательство перед ним
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Акт приёмки подписан обеими сторонами, деньги поставщику ещё не
+      переводились.
+    expect: >
+      в нитке заказа НЕТ o.mkt.payout — выплата поставщику отдельное ленивое
+      действие кассира после подтверждения банковского перевода
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Заказ оформлен, дельта доехала до журнала бэкенда.
+    expect: >
+      зеркало заказа сходится с цепью по телу и по членскому взносу — пайщица
+      видит в кабинете ту же сумму, которую у неё реально заблокировали
+    test: components/boot/src/tests/marketplace-money.test.ts
     status: passing

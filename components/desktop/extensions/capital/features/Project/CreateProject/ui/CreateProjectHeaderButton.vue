@@ -2,6 +2,7 @@
 div
   BaseButton(
     variant='primary',
+    :size='isMobile ? "sm" : "md"',
     aria-label='Создать проект',
     @click='dialogRef?.openDialog()'
   )
@@ -19,6 +20,7 @@ div
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { BaseButton } from 'src/shared/ui/base';
+import { useWindowSize } from 'src/shared/hooks';
 import { CreateProjectDialog } from './Dialog';
 
 const props = defineProps<{
@@ -36,6 +38,7 @@ const emit = defineEmits<{
   actionCompleted: [];
 }>();
 
+const { isMobile } = useWindowSize();
 const dialogRef = ref();
 
 const handleSuccess = () => {

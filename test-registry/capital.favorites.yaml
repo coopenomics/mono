@@ -1,0 +1,89 @@
+feature: capital.favorites
+title: Личное избранное — проекты, компоненты, задачи, артефакты
+
+# Пайщик помечает звёздочкой проекты, компоненты, задачи (и в перспективе
+# артефакты); избранное хранится офчейн на бэкенде по (кооператив, пользователь,
+# тип, хеш) и показывается звёздочками в списках/шапках и суб-пунктами левого
+# меню под «Проекты» / «Компоненты» / «Задачи».
+#
+# Правила: избранное строго личное — чужое не читает и не правит даже
+# председатель; добавление идёт только на существующую цель; повторное
+# добавление идемпотентно (уникальный индекс + upsert); выдача join'ом берёт
+# живое наименование цели и отфильтровывает записи удалённых сущностей.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/favorites.resolver.ts
+    - components/controller/src/extensions/capital/application/services/favorites.service.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/favorite.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/favorite.typeorm-entity.ts
+    - components/controller/src/extensions/capital/domain/repositories/favorite.repository.ts
+    - components/controller/src/extensions/capital/domain/enums/favorite-target-type.enum.ts
+  ui:
+    - components/desktop/extensions/capital/entities/Favorite/**
+    - components/desktop/extensions/capital/features/Favorite/**
+    - components/desktop/extensions/capital/pages/ArtifactsListPage/**
+    - components/desktop/src/shared/hooks/useMenuSubItems.ts
+
+cases:
+  - id: cap.fav.happy.01
+    level: backend
+    kind: happy
+    scenario: пользователь добавляет существующий проект в избранное
+    expect: запись создана, ответ содержит обновлённый список с живым наименованием
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.01
+    level: backend
+    kind: side
+    scenario: добавление цели, которой нет ни в одной таблице (опечатка/удалена)
+    expect: BadRequest, запись не создаётся
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.02
+    level: backend
+    kind: side
+    scenario: повторное добавление той же четвёрки (двойной клик)
+    expect: идемпотентно — дубль гасится уникальным индексом (insert orIgnore)
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.03
+    level: backend
+    kind: side
+    scenario: снятие звёздочки с уже удалённой сущности
+    expect: удаление проходит без проверки существования цели
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.break.01
+    level: backend
+    kind: break
+    scenario: председатель запрашивает или правит избранное другого пайщика
+    expect: отказ «Избранное доступно только своему владельцу», сервис не вызывается
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.04
+    level: backend
+    kind: side
+    scenario: в избранном есть запись, чья цель удалена из своей таблицы
+    expect: выдача отфильтровывает её (join не нашёл цели), список не падает
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.ui.01
+    level: ui
+    kind: happy
+    scenario: звёздочка в строке списка и в шапке сущности добавляет/снимает избранное, суб-пункт появляется/исчезает в меню под своим разделом
+    expect: состояние синхронно во всех трёх точках без перезагрузки
+    status: missing
+
+  - id: cap.fav.ui.02
+    level: ui
+    kind: happy
+    scenario: страница «Артефакты» показывает только доступные пайщику артефакты (границы допуска считает бэкенд), звёздочка помечает артефакт и он появляется в меню под «Артефакты»
+    expect: чужие артефакты в списке не видны; избранный артефакт — суб-пунктом в левой панели
+    status: missing

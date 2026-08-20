@@ -26,11 +26,21 @@ type PageMap = {
   ProjectRequirementsPage: Component;
 };
 
-/** Префиксы имён: coop → project/component/component-issue; my → my-project/... */
+/** Префиксы имён: coop → project/component/component-issue; my → my-project/…; cmp → cmp-component/… */
 export type ProjectTreeNamePrefix = {
-  project: 'project' | 'my-project';
-  component: 'component' | 'my-component';
-  issue: 'component-issue' | 'my-component-issue';
+  project: 'project' | 'my-project' | 'cmp-project';
+  component: 'component' | 'my-component' | 'cmp-component';
+  issue: 'component-issue' | 'my-component-issue' | 'cmp-component-issue';
+};
+
+/** Какие ветки дерева строить и по каким путям (раздел «Компоненты» начинается с компонента). */
+export type ProjectTreeOptions = {
+  paths?: {
+    issue?: string;
+    component?: string;
+    project?: string;
+  };
+  include?: Array<'issue' | 'component' | 'project'>;
 };
 
 const hiddenMeta = {
@@ -47,12 +57,20 @@ const hiddenMeta = {
 export function buildProjectTreeChildren(
   pages: PageMap,
   names: ProjectTreeNamePrefix,
+  options?: ProjectTreeOptions,
 ) {
   const { project: P, component: C, issue: I } = names;
+  const paths = {
+    issue: options?.paths?.issue ?? 'components/:project_hash/:issue_hash',
+    component: options?.paths?.component ?? 'components/:project_hash',
+    project: options?.paths?.project ?? ':project_hash',
+  };
+  const include = options?.include ?? ['issue', 'component', 'project'];
 
-  return [
+  const branches = [
     {
-      path: 'components/:project_hash/:issue_hash',
+      branch: 'issue' as const,
+      path: paths.issue,
       name: I,
       component: markRaw(pages.IssuePage),
       meta: { title: 'Задача компонента', icon: 'task', ...hiddenMeta },
@@ -89,7 +107,8 @@ export function buildProjectTreeChildren(
       ],
     },
     {
-      path: 'components/:project_hash',
+      branch: 'component' as const,
+      path: paths.component,
       name: `${C}-base`,
       component: markRaw(pages.ComponentPage),
       meta: { title: 'Компонент', icon: 'account_tree', ...hiddenMeta },
@@ -156,7 +175,8 @@ export function buildProjectTreeChildren(
       ],
     },
     {
-      path: ':project_hash',
+      branch: 'project' as const,
+      path: paths.project,
       name: `${P}-base`,
       component: markRaw(pages.ProjectPage),
       meta: { title: 'Проект', icon: 'account_tree', ...hiddenMeta },
@@ -211,6 +231,10 @@ export function buildProjectTreeChildren(
       ],
     },
   ];
+
+  return branches
+    .filter((route) => include.includes(route.branch))
+    .map(({ branch: _branch, ...route }) => route);
 }
 
 export const COOP_PROJECT_TREE_NAMES: ProjectTreeNamePrefix = {
@@ -223,4 +247,23 @@ export const MY_PROJECT_TREE_NAMES: ProjectTreeNamePrefix = {
   project: 'my-project',
   component: 'my-component',
   issue: 'my-component-issue',
+};
+
+/**
+ * Раздел «Компоненты» — то же дерево, но начинается с компонента:
+ * первого уровня проектов в нём нет, поэтому и ветка проекта не строится
+ * (по приписке проекта уходим в мастерскую).
+ */
+export const COMPONENTS_TREE_NAMES: ProjectTreeNamePrefix = {
+  project: 'cmp-project',
+  component: 'cmp-component',
+  issue: 'cmp-component-issue',
+};
+
+export const COMPONENTS_TREE_OPTIONS: ProjectTreeOptions = {
+  paths: {
+    issue: ':project_hash/:issue_hash',
+    component: ':project_hash',
+  },
+  include: ['issue', 'component'],
 };

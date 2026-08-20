@@ -9,6 +9,7 @@ import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/t
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../../domain/interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 /**
  * TypeORM реализация репозитория записей времени
@@ -225,8 +226,8 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
     // Применяем сортировку
     if (options?.sortBy) {
-      const sortOrder = options.sortOrder || 'DESC';
-      query.orderBy(`te.${options.sortBy}`, sortOrder);
+      const sortColumn = resolveSortColumn(this.repository, options.sortBy, 'date');
+      query.orderBy(`te.${sortColumn}`, options.sortOrder || 'DESC');
     } else {
       query.orderBy('te.date', 'DESC').addOrderBy('te._created_at', 'DESC');
     }

@@ -1,9 +1,24 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import path from 'path';
+import fs from 'fs';
 import { PLACEHOLDER_ENV_DEFAULTS } from './placeholder-env';
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// Файл настроек лежит в корне пакета, а глубина текущего файла зависит от
+// режима запуска: в исходниках это `src/config`, в сборке — `dist/src/config`.
+// Поэтому поднимаемся вверх, пока не найдём .env, и не привязываемся к числу
+// уровней
+const envPath = (() => {
+  let dir = __dirname;
+  for (let depth = 0; depth < 5; depth += 1) {
+    const candidate = path.join(dir, '.env');
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  return path.join(__dirname, '../../.env');
+})();
+
+dotenv.config({ path: envPath });
 
 /** Устанавливается через `scripts/register-schema-gen-env.cjs` (-r) перед запуском generate-schema */
 const isSchemaGeneration = process.env.CONTROLLER_SCHEMA_GEN === '1';

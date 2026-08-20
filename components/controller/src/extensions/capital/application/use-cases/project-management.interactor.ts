@@ -14,6 +14,7 @@ import type { StartProjectDomainInput } from '../../domain/actions/start-project
 import type { StopProjectDomainInput } from '../../domain/actions/stop-project-domain-input.interface';
 import type { IFinalizeProjectDomainInput } from '../../domain/actions/finalize-project-domain-input.interface';
 import type { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
+import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
@@ -410,6 +411,23 @@ export class ProjectManagementInteractor {
    */
   async getProjectWithRelations(projectHash: string): Promise<ProjectDomainEntity | null> {
     return await this.projectRepository.findByIdWithAllRelations(projectHash);
+  }
+
+  /**
+   * Локальное поле приоритета проекта/компонента (не блокчейн).
+   */
+  async setPriority(projectHash: string, priority: ProjectPriority): Promise<ProjectDomainEntity> {
+    const h = projectHash.trim().toLowerCase();
+    const existing = await this.projectRepository.findByHash(h);
+    if (!existing) {
+      throw new Error(`Проект с хэшем ${h} не найден`);
+    }
+    await this.projectRepository.setPriority(h, priority);
+    const updated = await this.projectRepository.findByHash(h);
+    if (!updated) {
+      throw new Error(`Не удалось перечитать проект ${h} после сохранения приоритета`);
+    }
+    return updated;
   }
 
   /**

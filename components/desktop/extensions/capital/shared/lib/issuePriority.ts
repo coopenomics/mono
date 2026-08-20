@@ -51,3 +51,32 @@ export const getIssuePriorityLabel = (priority: string) => {
       return priority;
   }
 };
+
+/**
+ * Вариант BaseChip для приоритета (значения проектов и задач совпадают)
+ */
+export const getIssuePriorityChipVariant = (priority: string) => {
+  switch (priority) {
+    case Zeus.IssuePriority.URGENT:
+      return 'neg' as const;
+    case Zeus.IssuePriority.HIGH:
+      return 'warn' as const;
+    case Zeus.IssuePriority.MEDIUM:
+      return 'info' as const;
+    case Zeus.IssuePriority.LOW:
+      return 'pos' as const;
+    default:
+      return 'neutral' as const;
+  }
+};
+
+/**
+ * Единый список опций приоритета для меню и селектов — от срочного к низкому.
+ * Значения общие для задач, проектов и компонентов.
+ */
+export const ISSUE_PRIORITY_OPTIONS = [
+  Zeus.IssuePriority.URGENT,
+  Zeus.IssuePriority.HIGH,
+  Zeus.IssuePriority.MEDIUM,
+  Zeus.IssuePriority.LOW,
+].map((value) => ({ value, label: getIssuePriorityLabel(value) }));

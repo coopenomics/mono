@@ -11,6 +11,7 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class CommitTypeormRepository
@@ -183,11 +184,11 @@ export class CommitTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`c.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('c.created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `c.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);

@@ -195,7 +195,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   {
     "human_name": "Удержанный НДФЛ к перечислению",
     "kind": "COOPERATIVE",
-    "name": "w.brn.ndfl",
+    "name": "w.sov.ndfl",
   },
 ]
 `;

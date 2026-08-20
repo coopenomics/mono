@@ -21,6 +21,7 @@ import { PaginationInputDTO, PaginationResult,
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
+import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
@@ -170,6 +171,28 @@ export class ProjectManagementService {
    */
   async deleteProject(data: DeleteProjectInputDTO): Promise<InnerTransactResult> {
     return await this.projectManagementInteractor.deleteProject(data);
+  }
+
+  /**
+   * Установка приоритета проекта/компонента (локально в БД, без блокчейна).
+   * Право считает canSetProjectPriority: проект — председатель,
+   * компонент — председатель или мастер родительского проекта.
+   */
+  async setProjectPriority(
+    data: SetCapitalProjectPriorityInputDTO,
+    currentUser?: IMonoAccount
+  ): Promise<ProjectOutputDTO> {
+    const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
+    if (!project) {
+      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+    }
+    const preview = await this.projectMapperService.mapToDTO(project, currentUser);
+    if (!preview.permissions.can_set_priority) {
+      throw new Error('Недостаточно прав для изменения приоритета проекта или компонента');
+    }
+
+    const updated = await this.projectManagementInteractor.setPriority(project.project_hash, data.priority);
+    return await this.projectMapperService.mapToDTO(updated, currentUser);
   }
 
   /**

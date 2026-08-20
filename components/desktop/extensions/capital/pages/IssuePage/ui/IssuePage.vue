@@ -24,35 +24,41 @@
       .skel.skel--title
       .skel.skel--text(v-for="i in 3", :key="i")
 
-  .page-surface.column.col.flex-1.min-h-0.min-w-0(
+  // Мобильный layout. no-wrap обязателен: quasar-«column» по умолчанию wrap,
+  // и контент, не влезший в фиксированную высоту оболочки, уезжал во
+  // «вторую колонку» вправо
+  .page-surface.column.no-wrap.col.flex-1.min-h-0.min-w-0(
     v-else-if="isMobileLayout"
   )
-    .q-px-md.q-pb-sm(v-if="showSidebar")
-      IssueTitleEditor(
-        :issue="issue"
-        @field-change="handleFieldChange"
-        @update:title="handleTitleUpdate"
-      ).full-width
-        template(#prepend-icon)
-          q-icon(name="task", size="24px", color="primary")
-        template(#hint)
-          ProjectPathWidget(v-if="parentProject", :project="parentProject")
-      IssueSidebarWidget(
-        :issue="issue"
-        :permissions="issue.permissions"
-        :project-hash="projectHash"
-        :parent-project-hash="parentProjectHash"
-        compact-mobile
-        @update:status="handleStatusUpdate"
-        @update:priority="handlePriorityUpdate"
-        @update:estimate="handleEstimateUpdate"
-        @update:labels="handleLabelsUpdate"
-        @creators-set="handleCreatorsSet"
-        @issue-updated="handleIssueUpdated"
-        @issue-deleted="handleIssueDeleted"
-        @issue-moved="handleIssueMoved"
-      )
-    div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
+    //- Заголовок, управление и контент прокручиваются одной лентой
+    div.col.min-h-0.overflow-auto.min-w-0(v-if="showSidebar")
+      .q-px-md.q-pb-sm
+        IssueTitleEditor(
+          :issue="issue"
+          @field-change="handleFieldChange"
+          @update:title="handleTitleUpdate"
+        ).full-width
+          template(#prepend-icon)
+            q-icon(name="task", size="24px", color="primary")
+          template(#hint)
+            ProjectPathWidget(v-if="parentProject", :project="parentProject")
+        IssueSidebarWidget(
+          :issue="issue"
+          :permissions="issue.permissions"
+          :project-hash="projectHash"
+          :parent-project-hash="parentProjectHash"
+          compact-mobile
+          @update:status="handleStatusUpdate"
+          @update:priority="handlePriorityUpdate"
+          @update:estimate="handleEstimateUpdate"
+          @update:labels="handleLabelsUpdate"
+          @creators-set="handleCreatorsSet"
+          @issue-updated="handleIssueUpdated"
+          @issue-deleted="handleIssueDeleted"
+          @issue-moved="handleIssueMoved"
+        )
+      router-view
+    div.col.flex-1.min-h-0.min-w-0.column.no-wrap.overflow-hidden.relative-position(v-else)
       div.col.min-h-0.overflow-auto.min-w-0
         router-view
 

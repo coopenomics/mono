@@ -104,6 +104,30 @@ export class GitHubService {
   }
 
   /**
+   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   */
+  async listBranches(owner: string, repo: string): Promise<string[]> {
+    const octokit = this.octokit;
+    if (!octokit) throw new Error('GitHub API недоступен');
+
+    const names: string[] = [];
+    let page = 1;
+    const perPage = 100;
+    for (;;) {
+      const rows = await this.withGithubRetry(async () => {
+        const { data } = await octokit.repos.listBranches({ owner, repo, per_page: perPage, page });
+        return data;
+      });
+      names.push(...rows.map((b) => b.name));
+      if (rows.length < perPage) {
+        break;
+      }
+      page += 1;
+    }
+    return names;
+  }
+
+  /**
    * Получить содержимое файла
    */
   async getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<string> {

@@ -125,10 +125,15 @@ jobs:
       # controller'а (components/controller/Dockerfile) — включая системный
       # шрифт Arial: он влияет на вёрстку PDF, а base64-встраивание в html
       # намеренно не используется.
+      # timeout-minutes и ретраи — из практики: шаг штатно занимает пару минут,
+      # но зеркала apt на раннере периодически залипают, и прогон висел по
+      # 20–40 минут вместо того, чтобы упасть и быть перезапущенным (кейс
+      # 2026-08-19, три залипания за ночь).
       - name: WeasyPrint и шрифт Arial (как в образе controller)
+        timeout-minutes: 8
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
             python3-venv \
             libpango-1.0-0 \
             libpangoft2-1.0-0 \
@@ -139,7 +144,7 @@ jobs:
             libcairo2 \
             fontconfig
           sudo python3 -m venv /venv
-          sudo /venv/bin/pip install --no-cache-dir WeasyPrint==67
+          sudo /venv/bin/pip install --no-cache-dir --retries 3 --timeout 60 WeasyPrint==67
           sudo install -D components/controller/assets/fonts/arial.ttf \
             /usr/share/fonts/truetype/arial/arial.ttf
           sudo fc-cache -f

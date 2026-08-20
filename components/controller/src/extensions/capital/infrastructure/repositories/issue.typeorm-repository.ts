@@ -11,6 +11,7 @@ import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {
@@ -331,11 +332,11 @@ export class IssueTypeormRepository implements IssueRepository {
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`i.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('i._created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.issueTypeormRepository, validatedOptions.sortBy, '_created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `i.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);

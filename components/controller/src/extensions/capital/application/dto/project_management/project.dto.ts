@@ -1,5 +1,6 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ProjectStatus } from '../../../domain/enums/project-status.enum';
+import { ProjectPriority } from '../../../domain/enums/project-priority.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ProjectPermissionsOutputDTO } from './project-permissions.dto';
 
@@ -457,6 +458,11 @@ export class BaseProjectOutputDTO extends BaseOutputDTO {
     description: 'Статус проекта',
   })
   status!: ProjectStatus;
+
+  @Field(() => ProjectPriority, {
+    description: 'Приоритет проекта или компонента',
+  })
+  priority!: ProjectPriority;
 
   @Field(() => String, {
     description: 'Хеш проекта',

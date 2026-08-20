@@ -1,5 +1,6 @@
 import { Entity, Column, Index, OneToMany } from 'typeorm';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
+import { ProjectPriority } from '../../domain/enums/project-priority.enum';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import { IssueTypeormEntity } from './issue.typeorm-entity';
@@ -12,6 +13,7 @@ export const EntityName = 'capital_projects';
 @Index(`idx_${EntityName}_hash`, ['project_hash'])
 @Index(`idx_${EntityName}_coopname`, ['coopname'])
 @Index(`idx_${EntityName}_status`, ['status'])
+@Index(`idx_${EntityName}_priority`, ['priority'])
 export class ProjectTypeormEntity extends BaseTypeormEntity {
   static getTableName(): string {
     return EntityName;
@@ -87,6 +89,15 @@ export class ProjectTypeormEntity extends BaseTypeormEntity {
     default: ProjectStatus.PENDING,
   })
   status!: ProjectStatus;
+
+  /** Приоритет проекта/компонента (только БД, в блокчейн не пишется). */
+  @Column({
+    type: 'enum',
+    enum: ProjectPriority,
+    enumName: 'capital_project_priority',
+    default: ProjectPriority.MEDIUM,
+  })
+  priority!: ProjectPriority;
 
   @Column({ type: 'varchar', length: 3 })
   prefix!: string;
