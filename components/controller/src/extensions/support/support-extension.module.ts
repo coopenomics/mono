@@ -7,10 +7,17 @@ import {
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { SupportDatabaseModule } from './infrastructure/database/support-database.module';
+import { SUPPORT_TICKET_REPOSITORY } from './domain/repositories/support-ticket.repository';
+import { SUPPORT_TICKET_MESSAGE_REPOSITORY } from './domain/repositories/support-ticket-message.repository';
+import { SUPPORT_TICKET_ATTACHMENT_REPOSITORY } from './domain/repositories/support-ticket-attachment.repository';
+import { SupportTicketTypeormRepository } from './infrastructure/repositories/support-ticket.typeorm-repository';
+import { SupportTicketMessageTypeormRepository } from './infrastructure/repositories/support-ticket-message.typeorm-repository';
+import { SupportTicketAttachmentTypeormRepository } from './infrastructure/repositories/support-ticket-attachment.typeorm-repository';
 
 /**
- * Каркас первой фазы: обращение, лента переписки и вложения появятся в
- * следующих фазах и своих переключателей в конфиге расширения не потребуют.
+ * Обращение, лента переписки и вложения не заводят своих переключателей в
+ * конфиге расширения — конфигурировать здесь пока нечего.
  */
 export const Schema = z.object({});
 export const defaultConfig = {};
@@ -41,7 +48,23 @@ export class SupportExtension extends BaseExtensionModule {
 }
 
 @Module({
-  providers: [SupportExtension],
+  imports: [SupportDatabaseModule],
+  providers: [
+    SupportExtension,
+    // Репозитории
+    {
+      provide: SUPPORT_TICKET_REPOSITORY,
+      useClass: SupportTicketTypeormRepository,
+    },
+    {
+      provide: SUPPORT_TICKET_MESSAGE_REPOSITORY,
+      useClass: SupportTicketMessageTypeormRepository,
+    },
+    {
+      provide: SUPPORT_TICKET_ATTACHMENT_REPOSITORY,
+      useClass: SupportTicketAttachmentTypeormRepository,
+    },
+  ],
   exports: [SupportExtension],
 })
 export class SupportExtensionModule {

@@ -6,8 +6,13 @@
  * пакетом в `node_modules`, под него не попадает — таблицы не создаются,
  * репозитории не поднимаются, расширение не стартует. Поэтому состав
  * объявляется здесь и попадает в подключение через запись реестра.
- *
- * Каркас первой фазы: обращение, сообщения и вложения ещё не заведены —
- * список пуст осознанно, не по забывчивости.
  */
-export const supportEntities = [];
+import { SupportTicketTypeormEntity } from './infrastructure/entities/support-ticket.typeorm-entity';
+import { SupportTicketMessageTypeormEntity } from './infrastructure/entities/support-ticket-message.typeorm-entity';
+import { SupportTicketAttachmentTypeormEntity } from './infrastructure/entities/support-ticket-attachment.typeorm-entity';
+
+export const supportEntities = [
+  SupportTicketTypeormEntity,
+  SupportTicketMessageTypeormEntity,
+  SupportTicketAttachmentTypeormEntity,
+];
