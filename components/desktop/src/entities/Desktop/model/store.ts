@@ -54,8 +54,15 @@ export const useDesktopStore = defineStore(namespace, () => {
   // Имеет приоритет над route.meta.title. Не персистентно.
   const pageTitleOverride = ref<string | null>(null);
 
+  // Для кого загружен стол ('' — гостем). Гранты считает бэкенд по JWT, так что
+  // стол, загруженный до восстановления сессии, для пайщика недействителен —
+  // навигационный гард сверяет это поле с session.username и перезагружает.
+  const loadedForUsername = ref<string | undefined>();
+
   async function loadDesktop(): Promise<void> {
+    const requester = useSessionStore().username || '';
     const newDesktop = await api.getDesktop();
+    loadedForUsername.value = requester;
 
     // Если уже есть расширения, мерджим маршруты
     if (currentDesktop.value && currentDesktop.value.workspaces) {
@@ -580,6 +587,7 @@ export const useDesktopStore = defineStore(namespace, () => {
 
   return {
     currentDesktop,
+    loadedForUsername,
     isWorkspaceChanging,
     leftDrawerOpen,
     loadDesktop,
