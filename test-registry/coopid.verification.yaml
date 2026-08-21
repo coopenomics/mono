@@ -30,6 +30,7 @@ sources:
     - components/desktop/src/shared/lib/verification/**
     - components/desktop/src/widgets/Participants/**
     - components/desktop/src/features/User/VerifyIdentity/**
+    - components/desktop/src/shared/lib/utils/dates/formatDocumentDate.ts
     - components/desktop/src/shared/ui/domain/VerificationConfirmDialog/**
     - components/desktop/src/pages/Marketplace/OperatorIssuance/**
     - components/desktop/src/widgets/Marketplace/HandoffCode/**
@@ -179,6 +180,28 @@ cases:
       в деталях пайщика есть «Подтвердить личность» с диалогом сверки; после
       подтверждения уровень «Базовый» с подписью «подтвердил <ФИО>, совет
       кооператива», кнопка сменяется на «Отозвать верификацию»
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.08
+    level: ui
+    kind: happy
+    scenario: диалог сверки личности у физлица
+    expect: >
+      показаны все данные, проверяемые по паспорту: ФИО, дата рождения, серия и
+      номер, кем и когда выдан, код подразделения, адрес регистрации — даты в
+      виде ДД.ММ.ГГГГ
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.11
+    level: ui
+    kind: side
+    scenario: диалог сверки у ИП и у организации — паспортных данных в кооперативе нет
+    expect: >
+      показано то, что есть (дата рождения и адрес у ИП; представитель,
+      должность, основание полномочий и реквизиты у организации), а подсказка
+      обещает сверку с документом, а не с паспортом; пустые поля не выводятся
     test: ~
     status: missing
 

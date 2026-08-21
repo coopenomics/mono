@@ -1,3 +1,5 @@
+import type { BaseDialogSize } from 'src/shared/ui/base/BaseDialog';
+
 /** Диалог сверки личности пайщика с документом перед подтверждением. */
 export interface VerificationConfirmDialogProps {
   /** Открыт ли диалог. */
@@ -14,4 +16,6 @@ export interface VerificationConfirmDialogProps {
   confirmLabel?: string;
   /** Идёт подтверждение — кнопки заблокированы. */
   loading?: boolean;
+  /** Ширина окна: данных для сверки бывает много. */
+  size?: BaseDialogSize;
 }

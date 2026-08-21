@@ -95,7 +95,7 @@
     DataRow(
       v-if='hasBirthdate',
       label='Дата рождения',
-      :value='formatDate(getBirthdate())'
+      :value='formatDocumentDate(getBirthdate())'
     )
     DataRow(
       v-if='currentProfile.full_address',
@@ -120,7 +120,7 @@
       DataRow(label='Серия и номер паспорта', :value='passportSeriesNumber')
       DataRow(
         label='Дата выдачи',
-        :value='formatDate(individualProfile.passport.issued_at)'
+        :value='formatDocumentDate(individualProfile.passport.issued_at)'
       )
       DataRow(label='Код подразделения', :value='individualProfile.passport.code')
       DataRow(
@@ -212,6 +212,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
 import { decodeTrustChain } from '@coopenomics/auth';
 import { verificationLevelView } from 'src/shared/lib/verification';
+import { formatDocumentDate } from 'src/shared/lib/utils/dates';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -479,13 +480,6 @@ const getBirthdate = () => {
     return entrepreneurProfile.value.birthdate;
   }
   return undefined;
-};
-
-// Утилиты для форматирования
-const formatDate = (dateString: string | undefined) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU');
 };
 
 const getOrganizationType = (type: string | undefined) => {

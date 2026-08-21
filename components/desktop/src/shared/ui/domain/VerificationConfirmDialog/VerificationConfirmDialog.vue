@@ -4,7 +4,7 @@
 BaseDialog(
   :model-value='modelValue',
   :title='title',
-  size='sm',
+  :size='size',
   @update:model-value='(value) => emit("update:modelValue", value)'
 )
   .verify-confirm
@@ -39,6 +39,7 @@ withDefaults(defineProps<VerificationConfirmDialogProps>(), {
   title: 'Проверка личности',
   confirmLabel: 'Личность подтверждена',
   loading: false,
+  size: 'sm',
 });
 
 const emit = defineEmits<{
