@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/jurisdictions",
   "type": "module",
-  "version": "2026.8.19-3",
+  "version": "2026.8.21",
   "description": "Страновые справочники: реквизиты бюджета, налоговые константы и сроки — данные, действующие с конкретной даты",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",
