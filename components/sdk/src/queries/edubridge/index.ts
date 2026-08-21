@@ -16,3 +16,15 @@ export * as MyLearners from './myLearners'
 export * as MyEnrollments from './myEnrollments'
 /** Сумма взноса и хватает ли паевого */
 export * as Quote from './quote'
+/** Мой договор участия в хозяйственной деятельности */
+export * as MyContract from './myContract'
+/** Мои назначения */
+export * as MyAssignments from './myAssignments'
+/** Мои взносы результатами работы */
+export * as MyContributions from './myContributions'
+/** Мой расчёт */
+export * as MySettlement from './mySettlement'
+/** Назначения преподавателей кооператива */
+export * as Assignments from './assignments'
+/** Взносы РИД всех преподавателей */
+export * as Contributions from './contributions'

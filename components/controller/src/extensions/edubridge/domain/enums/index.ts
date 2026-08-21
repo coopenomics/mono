@@ -91,7 +91,11 @@ export enum EduRidType {
 
 export enum EduContributionStatus {
   DRAFT = 'draft',
+  /** Заявление подписано, взнос в цепи, проект решения у совета. */
   SUBMITTED = 'submitted',
+  /** Совет принял решение — ждём подпись преподавателя на акте приёма-передачи. */
+  COUNCIL_APPROVED = 'council_approved',
+  /** Акт подписан, проводка сделана, право требования в кошельке. */
   ACCEPTED = 'accepted',
   DECLINED = 'declined',
 }

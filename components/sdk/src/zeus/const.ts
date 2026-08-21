@@ -590,9 +590,17 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduAccessCarrier: "enum" as const,
 	EduAccessState: "enum" as const,
+	EduAssignmentInput:{
+
+	},
+	EduAssignmentStatus: "enum" as const,
 	EduCatalogFilterInput:{
 
 	},
+	EduContributionDraftInput:{
+		rid_type:"EduRidType"
+	},
+	EduContributionStatus: "enum" as const,
 	EduCourseDirection: "enum" as const,
 	EduCourseInput:{
 		carrier:"EduAccessCarrier",
@@ -601,6 +609,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduCourseStatus: "enum" as const,
 	EduCoursesFilterInput:{
 		status:"EduCourseStatus"
+	},
+	EduDeclineContributionInput:{
+
 	},
 	EduEnrollmentPeriod: "enum" as const,
 	EduEnrollmentStatus: "enum" as const,
@@ -613,12 +624,25 @@ export const AllTypesProps: Record<string,any> = {
 		period:"EduEnrollmentPeriod"
 	},
 	EduRecipientType: "enum" as const,
+	EduRidType: "enum" as const,
 	EduSetCourseStatusInput:{
 		status:"EduCourseStatus"
+	},
+	EduSignActInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignAnnexInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignContractInput:{
+		document:"SignedDigitalDocumentInput"
 	},
 	EduSignOfferInput:{
 		document:"SignedDigitalDocumentInput",
 		kind:"EduOfferKind"
+	},
+	EduSubmitContributionInput:{
+		document:"SignedDigitalDocumentInput"
 	},
 	EduSubscribeInput:{
 		document:"SignedDigitalDocumentInput",
@@ -1871,20 +1895,50 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeAddLearner:{
 			data:"EduLearnerInput"
 		},
+		edubridgeCloseAssignment:{
+
+		},
 		edubridgeConvertStatement:{
 			data:"EduQuoteInput"
+		},
+		edubridgeCreateAssignment:{
+			data:"EduAssignmentInput"
 		},
 		edubridgeCreateCourse:{
 			data:"EduCourseInput"
 		},
+		edubridgeDeclineContribution:{
+			data:"EduDeclineContributionInput"
+		},
+		edubridgeDraftContribution:{
+			data:"EduContributionDraftInput"
+		},
 		edubridgeRemoveLearner:{
+
+		},
+		edubridgeRidAct:{
+
+		},
+		edubridgeRidStatement:{
 
 		},
 		edubridgeSetCourseStatus:{
 			data:"EduSetCourseStatusInput"
 		},
+		edubridgeSignAct:{
+			data:"EduSignActInput"
+		},
+		edubridgeSignAnnex:{
+			data:"EduSignAnnexInput"
+		},
+		edubridgeSignContract:{
+			data:"EduSignContractInput"
+		},
 		edubridgeSignOffer:{
 			input:"EduSignOfferInput"
+		},
+		edubridgeSubmitContribution:{
+			data:"EduSubmitContributionInput"
 		},
 		edubridgeSubscribe:{
 			data:"EduSubscribeInput"
@@ -5033,6 +5087,19 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	EduAssignment:{
+		annex_hash:"String",
+		course_id:"ID",
+		course_title:"String",
+		created_at:"DateTime",
+		expected_result:"String",
+		id:"ID",
+		period_from:"String",
+		period_to:"String",
+		schedule:"String",
+		status:"EduAssignmentStatus",
+		teacher_username:"String"
+	},
 	EduCatalogCourse:{
 		description:"String",
 		fee_month:"String",
@@ -5048,6 +5115,24 @@ export const ReturnTypes: Record<string,any> = {
 	EduCatalogSubject:{
 		grades:"String",
 		subject:"String"
+	},
+	EduContribution:{
+		act_hash:"String",
+		amount:"String",
+		assignment_id:"ID",
+		council_decision_id:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decision_hash:"String",
+		decline_reason:"String",
+		description:"String",
+		id:"ID",
+		links:"String",
+		rid_hash:"String",
+		rid_type:"EduRidType",
+		statement_hash:"String",
+		status:"EduContributionStatus",
+		teacher_username:"String"
 	},
 	EduConvertStatement:{
 		binary:"String",
@@ -5113,6 +5198,16 @@ export const ReturnTypes: Record<string,any> = {
 		paid_until:"DateTime",
 		shortfall:"String",
 		sub_hash:"String"
+	},
+	EduTeacherContract:{
+		contract_hash:"String",
+		contract_number:"String",
+		signed_at:"DateTime"
+	},
+	EduTeacherSettlement:{
+		accepted_total:"String",
+		available:"String",
+		last_accepted_at:"DateTime"
 	},
 	Entrepreneur:{
 		birthdate:"String",
@@ -6784,11 +6879,21 @@ export const ReturnTypes: Record<string,any> = {
 		deleteTrustedAccount:"Branch",
 		editBranch:"Branch",
 		edubridgeAddLearner:"EduLearner",
+		edubridgeCloseAssignment:"EduAssignment",
 		edubridgeConvertStatement:"EduConvertStatement",
+		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
+		edubridgeDeclineContribution:"EduContribution",
+		edubridgeDraftContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
+		edubridgeRidAct:"EduConvertStatement",
+		edubridgeRidStatement:"EduConvertStatement",
 		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeSignAct:"EduContribution",
+		edubridgeSignAnnex:"EduAssignment",
+		edubridgeSignContract:"EduTeacherContract",
 		edubridgeSignOffer:"EduOnboardingState",
+		edubridgeSubmitContribution:"EduContribution",
 		edubridgeSubscribe:"EduEnrollment",
 		edubridgeUpdateCourse:"EduCourse",
 		edubridgeUpdateLearner:"EduLearner",
@@ -7580,13 +7685,19 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		edubridgeAssignments:"EduAssignment",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
 		edubridgeCatalogSubjects:"EduCatalogSubject",
+		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeMyAssignments:"EduAssignment",
+		edubridgeMyContract:"EduTeacherContract",
+		edubridgeMyContributions:"EduContribution",
 		edubridgeMyEnrollments:"EduEnrollment",
 		edubridgeMyLearners:"EduLearner",
+		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgeQuote:"EduQuote",
 		expenseFile:"ExpenseFile",

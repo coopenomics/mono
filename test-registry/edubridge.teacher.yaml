@@ -1,0 +1,66 @@
+feature: edubridge.teacher
+title: Образовательный мост — договор УХД, назначения, взнос РИД, решение совета, расчёт
+
+# E8 (задача 7DD-9). Преподаватель после оферты подписывает ДУХД (3006) — без
+# него ни назначения не активировать, ни взнос не подать. Назначение
+# активируется подписью приложения 3007. Взнос: заявление 3008 → submitrid →
+# проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
+# → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
+# протоколом 3009 (Дт 04 / Кт 80, ISSUE в главный паевой кошелёк). Отклонение —
+# declinerid с причиной. Расчёт: сумма принятых и доступное в кошельке;
+# возврат — штатным механизмом платформы.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-teacher.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-teacher.repository.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/TeacherAssignmentsPage/**
+    - components/desktop/extensions/edubridge/features/Teacher/**
+
+cases:
+  - id: edu.teach.break.01
+    level: backend
+    kind: break
+    scenario: Взнос без подписанного ДУХД; назначение без подписанного приложения.
+    expect: BadRequest с подсказкой, что подписать.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.01
+    level: backend
+    kind: happy
+    scenario: Подача взноса РИД.
+    expect: submitrid в цепь, проект решения совета опубликован, правило отслеживания с rid_hash, статус SUBMITTED.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.02
+    level: backend
+    kind: happy
+    scenario: Совет принял решение; преподаватель подписал акт.
+    expect: COUNCIL_APPROVED с номером решения → acceptrid с протоколом 3009 и актом → ACCEPTED; акт до решения недоступен; чужие решения игнорируются.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.03
+    level: backend
+    kind: happy
+    scenario: Отклонение взноса.
+    expect: declinerid, DECLINED, причина сохранена.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.04
+    level: backend
+    kind: happy
+    scenario: Расчёт преподавателя.
+    expect: Сумма принятых взносов и доступное в главном кошельке.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.01
+    level: backend
+    kind: side
+    scenario: Председатель присоединяет подпись к акту по хэшу после acceptrid.
+    expect: Документ в реестре получает вторую подпись; проводка не повторяется.
+    test: ~
+    status: missing
+    decision_needed: true

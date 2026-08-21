@@ -50,6 +50,14 @@ export class EdubridgeContributionEntity {
   @Column({ type: 'text', nullable: true })
   public decline_reason!: string | null;
 
+  /** Хеш проекта решения совета (правило отслеживания ядра). */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public council_project_hash!: string | null;
+
+  /** Номер решения совета, когда принято. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public council_decision_id!: string | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   public decided_at!: Date | null;
 

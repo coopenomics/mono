@@ -16,3 +16,23 @@ export * as RemoveLearner from './removeLearner'
 export * as ConvertStatement from './convertStatement'
 /** Получить доступ: конвертация и подписка */
 export * as Subscribe from './subscribe'
+/** Подписать договор участия в хозяйственной деятельности */
+export * as SignContract from './signContract'
+/** Подписать приложение к договору по курсу */
+export * as SignAnnex from './signAnnex'
+/** Подготовить взнос РИД */
+export * as DraftContribution from './draftContribution'
+/** Заявление о паевом взносе РИД для подписи */
+export * as RidStatement from './ridStatement'
+/** Подать взнос РИД */
+export * as SubmitContribution from './submitContribution'
+/** Акт приёма-передачи для подписи */
+export * as RidAct from './ridAct'
+/** Подписать акт приёма-передачи */
+export * as SignAct from './signAct'
+/** Назначить преподавателю курс */
+export * as CreateAssignment from './createAssignment'
+/** Закрыть назначение */
+export * as CloseAssignment from './closeAssignment'
+/** Отклонить взнос РИД */
+export * as DeclineContribution from './declineContribution'

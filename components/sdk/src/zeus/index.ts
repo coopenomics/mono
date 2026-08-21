@@ -6411,6 +6411,46 @@ export type ValueTypes = {
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]:EduAccessState;
+	["EduAssignment"]: AliasType<{
+	/** Хеш подписанного приложения к договору */
+	annex_hash?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Ожидаемый результат */
+	expected_result?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Период сдачи — начало */
+	period_from?:boolean | `@${string}`,
+	/** Период сдачи — конец */
+	period_to?:boolean | `@${string}`,
+	/** Расписание */
+	schedule?:boolean | `@${string}`,
+	/** Состояние назначения */
+	status?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduAssignment']?: Omit<ValueTypes["EduAssignment"], "...on EduAssignment">
+}>;
+	["EduAssignmentInput"]: {
+	/** Курс */
+	course_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Ожидаемый результат */
+	expected_result?: string | undefined | null | Variable<any, string>,
+	/** Период сдачи — начало (YYYY-MM-DD) */
+	period_from: string | Variable<any, string>,
+	/** Период сдачи — конец (YYYY-MM-DD) */
+	period_to: string | Variable<any, string>,
+	/** Расписание */
+	schedule?: string | undefined | null | Variable<any, string>,
+	/** Преподаватель (учётное имя) */
+	teacher_username: string | Variable<any, string>
+};
+	/** Состояние назначения преподавателя */
+["EduAssignmentStatus"]:EduAssignmentStatus;
 	["EduCatalogCourse"]: AliasType<{
 	/** Описание курса */
 	description?:boolean | `@${string}`,
@@ -6449,6 +6489,51 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduCatalogSubject']?: Omit<ValueTypes["EduCatalogSubject"], "...on EduCatalogSubject">
 }>;
+	["EduContribution"]: AliasType<{
+	act_hash?:boolean | `@${string}`,
+	/** Сумма паевого взноса */
+	amount?:boolean | `@${string}`,
+	/** Назначение */
+	assignment_id?:boolean | `@${string}`,
+	/** Номер решения совета */
+	council_decision_id?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Дата решения */
+	decided_at?:boolean | `@${string}`,
+	decision_hash?:boolean | `@${string}`,
+	/** Причина отклонения */
+	decline_reason?:boolean | `@${string}`,
+	/** Описание результата */
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Ссылки на внешние хранилища */
+	links?:boolean | `@${string}`,
+	/** Ключ взноса в цепи */
+	rid_hash?:boolean | `@${string}`,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type?:boolean | `@${string}`,
+	statement_hash?:boolean | `@${string}`,
+	/** Состояние */
+	status?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduContribution']?: Omit<ValueTypes["EduContribution"], "...on EduContribution">
+}>;
+	["EduContributionDraftInput"]: {
+	/** Сумма паевого взноса («5000.0000 RUB») */
+	amount: string | Variable<any, string>,
+	/** Назначение */
+	assignment_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Описание */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Ссылки на внешние хранилища */
+	links: Array<string> | Variable<any, string>,
+	/** Тип результата */
+	rid_type: ValueTypes["EduRidType"] | Variable<any, string>
+};
+	/** Состояние взноса результатами работы */
+["EduContributionStatus"]:EduContributionStatus;
 	["EduConvertStatement"]: AliasType<{
 	/** PDF в base64 */
 	binary?:boolean | `@${string}`,
@@ -6540,6 +6625,12 @@ export type ValueTypes = {
 	status?: ValueTypes["EduCourseStatus"] | undefined | null | Variable<any, string>,
 	/** Предмет */
 	subject?: string | undefined | null | Variable<any, string>
+};
+	["EduDeclineContributionInput"]: {
+	/** Взнос */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Причина */
+	reason: string | Variable<any, string>
 };
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
@@ -6647,17 +6738,43 @@ export type ValueTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	/** Тип результата интеллектуальной деятельности */
+["EduRidType"]:EduRidType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
 	/** Новое состояние */
 	status: ValueTypes["EduCourseStatus"] | Variable<any, string>
 };
+	["EduSignActInput"]: {
+	/** Взнос */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанный преподавателем акт приёма-передачи (3010) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	["EduSignAnnexInput"]: {
+	/** Назначение */
+	assignment_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанное приложение к договору (3007) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	["EduSignContractInput"]: {
+	/** Номер договора из подписанного экземпляра */
+	contract_number: string | Variable<any, string>,
+	/** Подписанный договор участия в хозяйственной деятельности (3006) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Какая оферта подписывается */
 	kind: ValueTypes["EduOfferKind"] | Variable<any, string>
+};
+	["EduSubmitContributionInput"]: {
+	/** Взнос (черновик) */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанное заявление о паевом взносе РИД (3008) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -6669,6 +6786,26 @@ export type ValueTypes = {
 	/** Период */
 	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
 };
+	["EduTeacherContract"]: AliasType<{
+	/** Хеш договора участия в хозяйственной деятельности */
+	contract_hash?:boolean | `@${string}`,
+	/** Номер договора */
+	contract_number?:boolean | `@${string}`,
+	/** Подписан */
+	signed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduTeacherContract']?: Omit<ValueTypes["EduTeacherContract"], "...on EduTeacherContract">
+}>;
+	["EduTeacherSettlement"]: AliasType<{
+	/** Принято советом взносов РИД на сумму */
+	accepted_total?:boolean | `@${string}`,
+	/** Доступно в главном паевом кошельке (право требования) */
+	available?:boolean | `@${string}`,
+	/** Дата последнего принятого взноса */
+	last_accepted_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduTeacherSettlement']?: Omit<ValueTypes["EduTeacherSettlement"], "...on EduTeacherSettlement">
+}>;
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
 	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
@@ -12091,11 +12228,21 @@ deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
+edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeDraftContribution?: [{	data: ValueTypes["EduContributionDraftInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeSignAnnex?: [{	data: ValueTypes["EduSignAnnexInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
+edubridgeSignContract?: [{	data: ValueTypes["EduSignContractInput"] | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
+edubridgeSubmitContribution?: [{	data: ValueTypes["EduSubmitContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ValueTypes["EduUpdateLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
@@ -13781,16 +13928,28 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+	/** Назначения преподавателей кооператива */
+	edubridgeAssignments?:ValueTypes["EduAssignment"],
 edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
+	/** Взносы РИД всех преподавателей */
+	edubridgeContributions?:ValueTypes["EduContribution"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Мои назначения */
+	edubridgeMyAssignments?:ValueTypes["EduAssignment"],
+	/** Мой договор участия в хозяйственной деятельности */
+	edubridgeMyContract?:ValueTypes["EduTeacherContract"],
+	/** Мои взносы результатами работы */
+	edubridgeMyContributions?:ValueTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ValueTypes["EduEnrollment"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ValueTypes["EduLearner"],
+	/** Мой расчёт: принятые взносы и доступное к возврату */
+	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
@@ -21100,6 +21259,45 @@ export type ResolverInputTypes = {
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]:EduAccessState;
+	["EduAssignment"]: AliasType<{
+	/** Хеш подписанного приложения к договору */
+	annex_hash?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Ожидаемый результат */
+	expected_result?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Период сдачи — начало */
+	period_from?:boolean | `@${string}`,
+	/** Период сдачи — конец */
+	period_to?:boolean | `@${string}`,
+	/** Расписание */
+	schedule?:boolean | `@${string}`,
+	/** Состояние назначения */
+	status?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduAssignmentInput"]: {
+	/** Курс */
+	course_id: ResolverInputTypes["ID"],
+	/** Ожидаемый результат */
+	expected_result?: string | undefined | null,
+	/** Период сдачи — начало (YYYY-MM-DD) */
+	period_from: string,
+	/** Период сдачи — конец (YYYY-MM-DD) */
+	period_to: string,
+	/** Расписание */
+	schedule?: string | undefined | null,
+	/** Преподаватель (учётное имя) */
+	teacher_username: string
+};
+	/** Состояние назначения преподавателя */
+["EduAssignmentStatus"]:EduAssignmentStatus;
 	["EduCatalogCourse"]: AliasType<{
 	/** Описание курса */
 	description?:boolean | `@${string}`,
@@ -21136,6 +21334,50 @@ export type ResolverInputTypes = {
 	subject?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduContribution"]: AliasType<{
+	act_hash?:boolean | `@${string}`,
+	/** Сумма паевого взноса */
+	amount?:boolean | `@${string}`,
+	/** Назначение */
+	assignment_id?:boolean | `@${string}`,
+	/** Номер решения совета */
+	council_decision_id?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Дата решения */
+	decided_at?:boolean | `@${string}`,
+	decision_hash?:boolean | `@${string}`,
+	/** Причина отклонения */
+	decline_reason?:boolean | `@${string}`,
+	/** Описание результата */
+	description?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Ссылки на внешние хранилища */
+	links?:boolean | `@${string}`,
+	/** Ключ взноса в цепи */
+	rid_hash?:boolean | `@${string}`,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type?:boolean | `@${string}`,
+	statement_hash?:boolean | `@${string}`,
+	/** Состояние */
+	status?:boolean | `@${string}`,
+	/** Преподаватель */
+	teacher_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduContributionDraftInput"]: {
+	/** Сумма паевого взноса («5000.0000 RUB») */
+	amount: string,
+	/** Назначение */
+	assignment_id: ResolverInputTypes["ID"],
+	/** Описание */
+	description?: string | undefined | null,
+	/** Ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Тип результата */
+	rid_type: ResolverInputTypes["EduRidType"]
+};
+	/** Состояние взноса результатами работы */
+["EduContributionStatus"]:EduContributionStatus;
 	["EduConvertStatement"]: AliasType<{
 	/** PDF в base64 */
 	binary?:boolean | `@${string}`,
@@ -21225,6 +21467,12 @@ export type ResolverInputTypes = {
 	status?: ResolverInputTypes["EduCourseStatus"] | undefined | null,
 	/** Предмет */
 	subject?: string | undefined | null
+};
+	["EduDeclineContributionInput"]: {
+	/** Взнос */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Причина */
+	reason: string
 };
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
@@ -21327,17 +21575,43 @@ export type ResolverInputTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	/** Тип результата интеллектуальной деятельности */
+["EduRidType"]:EduRidType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
 	/** Новое состояние */
 	status: ResolverInputTypes["EduCourseStatus"]
 };
+	["EduSignActInput"]: {
+	/** Взнос */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Подписанный преподавателем акт приёма-передачи (3010) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignAnnexInput"]: {
+	/** Назначение */
+	assignment_id: ResolverInputTypes["ID"],
+	/** Подписанное приложение к договору (3007) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignContractInput"]: {
+	/** Номер договора из подписанного экземпляра */
+	contract_number: string,
+	/** Подписанный договор участия в хозяйственной деятельности (3006) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: ResolverInputTypes["EduOfferKind"]
+};
+	["EduSubmitContributionInput"]: {
+	/** Взнос (черновик) */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Подписанное заявление о паевом взносе РИД (3008) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -21349,6 +21623,24 @@ export type ResolverInputTypes = {
 	/** Период */
 	period: ResolverInputTypes["EduEnrollmentPeriod"]
 };
+	["EduTeacherContract"]: AliasType<{
+	/** Хеш договора участия в хозяйственной деятельности */
+	contract_hash?:boolean | `@${string}`,
+	/** Номер договора */
+	contract_number?:boolean | `@${string}`,
+	/** Подписан */
+	signed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduTeacherSettlement"]: AliasType<{
+	/** Принято советом взносов РИД на сумму */
+	accepted_total?:boolean | `@${string}`,
+	/** Доступно в главном паевом кошельке (право требования) */
+	available?:boolean | `@${string}`,
+	/** Дата последнего принятого взноса */
+	last_accepted_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
 	carrier: ResolverInputTypes["EduAccessCarrier"],
@@ -26617,11 +26909,21 @@ deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
+edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeDraftContribution?: [{	data: ResolverInputTypes["EduContributionDraftInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeSignAnnex?: [{	data: ResolverInputTypes["EduSignAnnexInput"]},ResolverInputTypes["EduAssignment"]],
+edubridgeSignContract?: [{	data: ResolverInputTypes["EduSignContractInput"]},ResolverInputTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
+edubridgeSubmitContribution?: [{	data: ResolverInputTypes["EduSubmitContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ResolverInputTypes["EduUpdateLearnerInput"]},ResolverInputTypes["EduLearner"]],
@@ -28239,16 +28541,28 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+	/** Назначения преподавателей кооператива */
+	edubridgeAssignments?:ResolverInputTypes["EduAssignment"],
 edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
+	/** Взносы РИД всех преподавателей */
+	edubridgeContributions?:ResolverInputTypes["EduContribution"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Мои назначения */
+	edubridgeMyAssignments?:ResolverInputTypes["EduAssignment"],
+	/** Мой договор участия в хозяйственной деятельности */
+	edubridgeMyContract?:ResolverInputTypes["EduTeacherContract"],
+	/** Мои взносы результатами работы */
+	edubridgeMyContributions?:ResolverInputTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ResolverInputTypes["EduEnrollment"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ResolverInputTypes["EduLearner"],
+	/** Мой расчёт: принятые взносы и доступное к возврату */
+	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
@@ -35374,6 +35688,43 @@ export type ModelTypes = {
 };
 	["EduAccessCarrier"]:EduAccessCarrier;
 	["EduAccessState"]:EduAccessState;
+	["EduAssignment"]: {
+		/** Хеш подписанного приложения к договору */
+	annex_hash?: string | undefined | null,
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	created_at: ModelTypes["DateTime"],
+	/** Ожидаемый результат */
+	expected_result: string,
+	id: ModelTypes["ID"],
+	/** Период сдачи — начало */
+	period_from: string,
+	/** Период сдачи — конец */
+	period_to: string,
+	/** Расписание */
+	schedule: string,
+	/** Состояние назначения */
+	status: ModelTypes["EduAssignmentStatus"],
+	/** Преподаватель */
+	teacher_username: string
+};
+	["EduAssignmentInput"]: {
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Ожидаемый результат */
+	expected_result?: string | undefined | null,
+	/** Период сдачи — начало (YYYY-MM-DD) */
+	period_from: string,
+	/** Период сдачи — конец (YYYY-MM-DD) */
+	period_to: string,
+	/** Расписание */
+	schedule?: string | undefined | null,
+	/** Преподаватель (учётное имя) */
+	teacher_username: string
+};
+	["EduAssignmentStatus"]:EduAssignmentStatus;
 	["EduCatalogCourse"]: {
 		/** Описание курса */
 	description: string,
@@ -35408,6 +35759,48 @@ export type ModelTypes = {
 	/** Предмет */
 	subject: string
 };
+	["EduContribution"]: {
+		act_hash?: string | undefined | null,
+	/** Сумма паевого взноса */
+	amount: string,
+	/** Назначение */
+	assignment_id: ModelTypes["ID"],
+	/** Номер решения совета */
+	council_decision_id?: string | undefined | null,
+	created_at: ModelTypes["DateTime"],
+	/** Дата решения */
+	decided_at?: ModelTypes["DateTime"] | undefined | null,
+	decision_hash?: string | undefined | null,
+	/** Причина отклонения */
+	decline_reason?: string | undefined | null,
+	/** Описание результата */
+	description: string,
+	id: ModelTypes["ID"],
+	/** Ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Ключ взноса в цепи */
+	rid_hash: string,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type: ModelTypes["EduRidType"],
+	statement_hash?: string | undefined | null,
+	/** Состояние */
+	status: ModelTypes["EduContributionStatus"],
+	/** Преподаватель */
+	teacher_username: string
+};
+	["EduContributionDraftInput"]: {
+	/** Сумма паевого взноса («5000.0000 RUB») */
+	amount: string,
+	/** Назначение */
+	assignment_id: ModelTypes["ID"],
+	/** Описание */
+	description?: string | undefined | null,
+	/** Ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Тип результата */
+	rid_type: ModelTypes["EduRidType"]
+};
+	["EduContributionStatus"]:EduContributionStatus;
 	["EduConvertStatement"]: {
 		/** PDF в base64 */
 	binary: string,
@@ -35493,6 +35886,12 @@ export type ModelTypes = {
 	status?: ModelTypes["EduCourseStatus"] | undefined | null,
 	/** Предмет */
 	subject?: string | undefined | null
+};
+	["EduDeclineContributionInput"]: {
+	/** Взнос */
+	contribution_id: ModelTypes["ID"],
+	/** Причина */
+	reason: string
 };
 	["EduEnrollment"]: {
 		/** Состояние доступа на площадке */
@@ -35585,17 +35984,42 @@ export type ModelTypes = {
 	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduRecipientType"]:EduRecipientType;
+	["EduRidType"]:EduRidType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	/** Новое состояние */
 	status: ModelTypes["EduCourseStatus"]
 };
+	["EduSignActInput"]: {
+	/** Взнос */
+	contribution_id: ModelTypes["ID"],
+	/** Подписанный преподавателем акт приёма-передачи (3010) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignAnnexInput"]: {
+	/** Назначение */
+	assignment_id: ModelTypes["ID"],
+	/** Подписанное приложение к договору (3007) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignContractInput"]: {
+	/** Номер договора из подписанного экземпляра */
+	contract_number: string,
+	/** Подписанный договор участия в хозяйственной деятельности (3006) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
+};
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
 	document: ModelTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: ModelTypes["EduOfferKind"]
+};
+	["EduSubmitContributionInput"]: {
+	/** Взнос (черновик) */
+	contribution_id: ModelTypes["ID"],
+	/** Подписанное заявление о паевом взносе РИД (3008) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -35606,6 +36030,22 @@ export type ModelTypes = {
 	learner_id: ModelTypes["ID"],
 	/** Период */
 	period: ModelTypes["EduEnrollmentPeriod"]
+};
+	["EduTeacherContract"]: {
+		/** Хеш договора участия в хозяйственной деятельности */
+	contract_hash: string,
+	/** Номер договора */
+	contract_number: string,
+	/** Подписан */
+	signed_at: ModelTypes["DateTime"]
+};
+	["EduTeacherSettlement"]: {
+		/** Принято советом взносов РИД на сумму */
+	accepted_total: string,
+	/** Доступно в главном паевом кошельке (право требования) */
+	available: string,
+	/** Дата последнего принятого взноса */
+	last_accepted_at?: ModelTypes["DateTime"] | undefined | null
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -41058,16 +41498,36 @@ export type ModelTypes = {
 	editBranch: ModelTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: ModelTypes["EduLearner"],
+	/** Закрыть назначение */
+	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: ModelTypes["EduConvertStatement"],
+	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
+	edubridgeCreateAssignment: ModelTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
+	/** Отклонить взнос РИД с причиной */
+	edubridgeDeclineContribution: ModelTypes["EduContribution"],
+	/** Подготовить взнос РИД (черновик) */
+	edubridgeDraftContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
+	edubridgeRidAct: ModelTypes["EduConvertStatement"],
+	/** Сформировать заявление о паевом взносе РИД для подписи */
+	edubridgeRidStatement: ModelTypes["EduConvertStatement"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
+	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
+	edubridgeSignAct: ModelTypes["EduContribution"],
+	/** Подписать приложение к договору по курсу */
+	edubridgeSignAnnex: ModelTypes["EduAssignment"],
+	/** Подписать договор участия в хозяйственной деятельности */
+	edubridgeSignContract: ModelTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: ModelTypes["EduOnboardingState"],
+	/** Подать взнос РИД: заявление в цепь и проект решения совету */
+	edubridgeSubmitContribution: ModelTypes["EduContribution"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: ModelTypes["EduEnrollment"],
 	/** Изменить курс */
@@ -43072,20 +43532,32 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Назначения преподавателей кооператива */
+	edubridgeAssignments: Array<ModelTypes["EduAssignment"]>,
 	/** Каталог опубликованных курсов */
 	edubridgeCatalog: ModelTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */
 	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects: Array<ModelTypes["EduCatalogSubject"]>,
+	/** Взносы РИД всех преподавателей */
+	edubridgeContributions: Array<ModelTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: ModelTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
+	/** Мои назначения */
+	edubridgeMyAssignments: Array<ModelTypes["EduAssignment"]>,
+	/** Мой договор участия в хозяйственной деятельности */
+	edubridgeMyContract?: ModelTypes["EduTeacherContract"] | undefined | null,
+	/** Мои взносы результатами работы */
+	edubridgeMyContributions: Array<ModelTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<ModelTypes["EduEnrollment"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<ModelTypes["EduLearner"]>,
+	/** Мой расчёт: принятые взносы и доступное к возврату */
+	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
 	/** Сумма взноса за период и хватает ли паевого */
@@ -50634,6 +51106,46 @@ export type GraphQLTypes = {
 ["EduAccessCarrier"]: EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]: EduAccessState;
+	["EduAssignment"]: {
+	__typename: "EduAssignment",
+	/** Хеш подписанного приложения к договору */
+	annex_hash?: string | undefined | null,
+	/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	created_at: GraphQLTypes["DateTime"],
+	/** Ожидаемый результат */
+	expected_result: string,
+	id: GraphQLTypes["ID"],
+	/** Период сдачи — начало */
+	period_from: string,
+	/** Период сдачи — конец */
+	period_to: string,
+	/** Расписание */
+	schedule: string,
+	/** Состояние назначения */
+	status: GraphQLTypes["EduAssignmentStatus"],
+	/** Преподаватель */
+	teacher_username: string,
+	['...on EduAssignment']: Omit<GraphQLTypes["EduAssignment"], "...on EduAssignment">
+};
+	["EduAssignmentInput"]: {
+		/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Ожидаемый результат */
+	expected_result?: string | undefined | null,
+	/** Период сдачи — начало (YYYY-MM-DD) */
+	period_from: string,
+	/** Период сдачи — конец (YYYY-MM-DD) */
+	period_to: string,
+	/** Расписание */
+	schedule?: string | undefined | null,
+	/** Преподаватель (учётное имя) */
+	teacher_username: string
+};
+	/** Состояние назначения преподавателя */
+["EduAssignmentStatus"]: EduAssignmentStatus;
 	["EduCatalogCourse"]: {
 	__typename: "EduCatalogCourse",
 	/** Описание курса */
@@ -50672,6 +51184,51 @@ export type GraphQLTypes = {
 	subject: string,
 	['...on EduCatalogSubject']: Omit<GraphQLTypes["EduCatalogSubject"], "...on EduCatalogSubject">
 };
+	["EduContribution"]: {
+	__typename: "EduContribution",
+	act_hash?: string | undefined | null,
+	/** Сумма паевого взноса */
+	amount: string,
+	/** Назначение */
+	assignment_id: GraphQLTypes["ID"],
+	/** Номер решения совета */
+	council_decision_id?: string | undefined | null,
+	created_at: GraphQLTypes["DateTime"],
+	/** Дата решения */
+	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
+	decision_hash?: string | undefined | null,
+	/** Причина отклонения */
+	decline_reason?: string | undefined | null,
+	/** Описание результата */
+	description: string,
+	id: GraphQLTypes["ID"],
+	/** Ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Ключ взноса в цепи */
+	rid_hash: string,
+	/** Тип результата интеллектуальной деятельности */
+	rid_type: GraphQLTypes["EduRidType"],
+	statement_hash?: string | undefined | null,
+	/** Состояние */
+	status: GraphQLTypes["EduContributionStatus"],
+	/** Преподаватель */
+	teacher_username: string,
+	['...on EduContribution']: Omit<GraphQLTypes["EduContribution"], "...on EduContribution">
+};
+	["EduContributionDraftInput"]: {
+		/** Сумма паевого взноса («5000.0000 RUB») */
+	amount: string,
+	/** Назначение */
+	assignment_id: GraphQLTypes["ID"],
+	/** Описание */
+	description?: string | undefined | null,
+	/** Ссылки на внешние хранилища */
+	links: Array<string>,
+	/** Тип результата */
+	rid_type: GraphQLTypes["EduRidType"]
+};
+	/** Состояние взноса результатами работы */
+["EduContributionStatus"]: EduContributionStatus;
 	["EduConvertStatement"]: {
 	__typename: "EduConvertStatement",
 	/** PDF в base64 */
@@ -50763,6 +51320,12 @@ export type GraphQLTypes = {
 	status?: GraphQLTypes["EduCourseStatus"] | undefined | null,
 	/** Предмет */
 	subject?: string | undefined | null
+};
+	["EduDeclineContributionInput"]: {
+		/** Взнос */
+	contribution_id: GraphQLTypes["ID"],
+	/** Причина */
+	reason: string
 };
 	["EduEnrollment"]: {
 	__typename: "EduEnrollment",
@@ -50870,17 +51433,43 @@ export type GraphQLTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]: EduRecipientType;
+	/** Тип результата интеллектуальной деятельности */
+["EduRidType"]: EduRidType;
 	["EduSetCourseStatusInput"]: {
 		/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	/** Новое состояние */
 	status: GraphQLTypes["EduCourseStatus"]
 };
+	["EduSignActInput"]: {
+		/** Взнос */
+	contribution_id: GraphQLTypes["ID"],
+	/** Подписанный преподавателем акт приёма-передачи (3010) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignAnnexInput"]: {
+		/** Назначение */
+	assignment_id: GraphQLTypes["ID"],
+	/** Подписанное приложение к договору (3007) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	["EduSignContractInput"]: {
+		/** Номер договора из подписанного экземпляра */
+	contract_number: string,
+	/** Подписанный договор участия в хозяйственной деятельности (3006) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	["EduSignOfferInput"]: {
 		/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
 	document: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: GraphQLTypes["EduOfferKind"]
+};
+	["EduSubmitContributionInput"]: {
+		/** Взнос (черновик) */
+	contribution_id: GraphQLTypes["ID"],
+	/** Подписанное заявление о паевом взносе РИД (3008) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["EduSubscribeInput"]: {
 		/** Курс */
@@ -50891,6 +51480,26 @@ export type GraphQLTypes = {
 	learner_id: GraphQLTypes["ID"],
 	/** Период */
 	period: GraphQLTypes["EduEnrollmentPeriod"]
+};
+	["EduTeacherContract"]: {
+	__typename: "EduTeacherContract",
+	/** Хеш договора участия в хозяйственной деятельности */
+	contract_hash: string,
+	/** Номер договора */
+	contract_number: string,
+	/** Подписан */
+	signed_at: GraphQLTypes["DateTime"],
+	['...on EduTeacherContract']: Omit<GraphQLTypes["EduTeacherContract"], "...on EduTeacherContract">
+};
+	["EduTeacherSettlement"]: {
+	__typename: "EduTeacherSettlement",
+	/** Принято советом взносов РИД на сумму */
+	accepted_total: string,
+	/** Доступно в главном паевом кошельке (право требования) */
+	available: string,
+	/** Дата последнего принятого взноса */
+	last_accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on EduTeacherSettlement']: Omit<GraphQLTypes["EduTeacherSettlement"], "...on EduTeacherSettlement">
 };
 	["EduUpdateCourseInput"]: {
 		/** Носитель доступа */
@@ -56720,16 +57329,36 @@ export type GraphQLTypes = {
 	editBranch: GraphQLTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
+	/** Закрыть назначение */
+	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: GraphQLTypes["EduConvertStatement"],
+	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
+	edubridgeCreateAssignment: GraphQLTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
+	/** Отклонить взнос РИД с причиной */
+	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
+	/** Подготовить взнос РИД (черновик) */
+	edubridgeDraftContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
+	edubridgeRidAct: GraphQLTypes["EduConvertStatement"],
+	/** Сформировать заявление о паевом взносе РИД для подписи */
+	edubridgeRidStatement: GraphQLTypes["EduConvertStatement"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
+	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
+	edubridgeSignAct: GraphQLTypes["EduContribution"],
+	/** Подписать приложение к договору по курсу */
+	edubridgeSignAnnex: GraphQLTypes["EduAssignment"],
+	/** Подписать договор участия в хозяйственной деятельности */
+	edubridgeSignContract: GraphQLTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: GraphQLTypes["EduOnboardingState"],
+	/** Подать взнос РИД: заявление в цепь и проект решения совету */
+	edubridgeSubmitContribution: GraphQLTypes["EduContribution"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: GraphQLTypes["EduEnrollment"],
 	/** Изменить курс */
@@ -58898,20 +59527,32 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Назначения преподавателей кооператива */
+	edubridgeAssignments: Array<GraphQLTypes["EduAssignment"]>,
 	/** Каталог опубликованных курсов */
 	edubridgeCatalog: GraphQLTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */
 	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects: Array<GraphQLTypes["EduCatalogSubject"]>,
+	/** Взносы РИД всех преподавателей */
+	edubridgeContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: GraphQLTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
+	/** Мои назначения */
+	edubridgeMyAssignments: Array<GraphQLTypes["EduAssignment"]>,
+	/** Мой договор участия в хозяйственной деятельности */
+	edubridgeMyContract?: GraphQLTypes["EduTeacherContract"] | undefined | null,
+	/** Мои взносы результатами работы */
+	edubridgeMyContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<GraphQLTypes["EduEnrollment"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<GraphQLTypes["EduLearner"]>,
+	/** Мой расчёт: принятые взносы и доступное к возврату */
+	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
 	/** Сумма взноса за период и хватает ли паевого */
@@ -61419,6 +62060,20 @@ export enum EduAccessState {
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"
 }
+/** Состояние назначения преподавателя */
+export enum EduAssignmentStatus {
+	ACTIVE = "ACTIVE",
+	CLOSED = "CLOSED",
+	DRAFT = "DRAFT"
+}
+/** Состояние взноса результатами работы */
+export enum EduContributionStatus {
+	ACCEPTED = "ACCEPTED",
+	COUNCIL_APPROVED = "COUNCIL_APPROVED",
+	DECLINED = "DECLINED",
+	DRAFT = "DRAFT",
+	SUBMITTED = "SUBMITTED"
+}
 /** Тип направления курса (внутренний признак) */
 export enum EduCourseDirection {
 	CLOSED_COMMUNITY = "CLOSED_COMMUNITY",
@@ -61459,6 +62114,14 @@ export enum EduRecipientType {
 	EMAIL = "EMAIL",
 	ONSITE = "ONSITE",
 	TELEGRAM = "TELEGRAM"
+}
+/** Тип результата интеллектуальной деятельности */
+export enum EduRidType {
+	ASSESSMENT_MATERIAL = "ASSESSMENT_MATERIAL",
+	COURSE_PROGRAM = "COURSE_PROGRAM",
+	LESSON_RECORDING = "LESSON_RECORDING",
+	METHODICAL_MATERIAL = "METHODICAL_MATERIAL",
+	OTHER = "OTHER"
 }
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
@@ -62340,11 +63003,16 @@ type ZEUS_VARIABLES = {
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EduAccessCarrier"]: ValueTypes["EduAccessCarrier"];
 	["EduAccessState"]: ValueTypes["EduAccessState"];
+	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
+	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
+	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
+	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
+	["EduDeclineContributionInput"]: ValueTypes["EduDeclineContributionInput"];
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
@@ -62352,8 +63020,13 @@ type ZEUS_VARIABLES = {
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
+	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
+	["EduSignActInput"]: ValueTypes["EduSignActInput"];
+	["EduSignAnnexInput"]: ValueTypes["EduSignAnnexInput"];
+	["EduSignContractInput"]: ValueTypes["EduSignContractInput"];
 	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
+	["EduSubmitContributionInput"]: ValueTypes["EduSubmitContributionInput"];
 	["EduSubscribeInput"]: ValueTypes["EduSubscribeInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];

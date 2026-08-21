@@ -12,6 +12,7 @@ import { EdubridgeConnectorBindingRepository } from '../infrastructure/repositor
 import { EdubridgeCourseRepository } from '../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeTeacherRepository } from '../infrastructure/repositories/edubridge-teacher.repository';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
 import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-grants.provider';
@@ -32,6 +33,8 @@ import { EdubridgeAccessOutboxService } from './services/edubridge-access-outbox
 import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
 import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
 import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
+import { EdubridgeTeacherResolver } from './resolvers/edubridge-teacher.resolver';
+import { EdubridgeTeacherService } from './services/edubridge-teacher.service';
 import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.service';
 import { EdubridgeLearnerService } from './services/edubridge-learner.service';
 import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
@@ -54,6 +57,7 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeLearnerRepository,
     EdubridgeEnrollmentRepository,
     EdubridgeAccessTaskRepository,
+    EdubridgeTeacherRepository,
     EdubridgeConnectorBindingRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
     // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
@@ -73,6 +77,7 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeLearnerService,
     EdubridgeEnrollmentService,
     EdubridgeAccessOutboxService,
+    EdubridgeTeacherService,
     // Воркеры и слушатели
     EdubridgeOutboxWorker,
     EdubridgeExpiryWorker,
@@ -84,6 +89,7 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeCourseAdminResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,
+    EdubridgeTeacherResolver,
   ],
   exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService],
 })
