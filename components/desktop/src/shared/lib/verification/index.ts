@@ -136,45 +136,61 @@ export interface VerificationIdentityFact {
   wide?: boolean;
 }
 
+/** Форматирование даты документа — приходит от вызывающего слоя. */
+type DateFormatter = (value?: string | null) => string;
+
+/** Организация: сверяют полномочия представителя и реквизиты юрлица. */
+function organizationFacts(identity: VerificationIdentity): VerificationIdentityFact[] {
+  return [
+    { label: 'Представитель', value: identity.representative_name ?? '', wide: true },
+    { label: 'Должность', value: identity.representative_position ?? '' },
+    { label: 'Действует на основании', value: identity.representative_based_on ?? '', wide: true },
+    { label: 'ИНН', value: identity.inn ?? '' },
+    { label: 'ОГРН', value: identity.ogrn ?? '' },
+    { label: 'Юридический адрес', value: identity.full_address ?? '', wide: true },
+  ];
+}
+
+/** ИП: паспорта в кооперативе нет, сверяют лицо и регистрационные данные. */
+function entrepreneurFacts(identity: VerificationIdentity, formatDate: DateFormatter): VerificationIdentityFact[] {
+  return [
+    { label: 'Дата рождения', value: formatDate(identity.birthdate) },
+    { label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true },
+    { label: 'ИНН', value: identity.inn ?? '' },
+    { label: 'ОГРНИП', value: identity.ogrn ?? '' },
+  ];
+}
+
+/** Физлицо: паспорт проверяют целиком, иначе сверка сводится к двум цифрам. */
+function individualFacts(identity: VerificationIdentity, formatDate: DateFormatter): VerificationIdentityFact[] {
+  const passport = [identity.passport_series ?? '', identity.passport_number ?? ''].join(' ').trim();
+  return [
+    { label: 'Дата рождения', value: formatDate(identity.birthdate) },
+    { label: 'Серия и номер', value: passport },
+    { label: 'Кем выдан', value: identity.passport_issued_by ?? '', wide: true },
+    { label: 'Дата выдачи', value: formatDate(identity.passport_issued_at) },
+    { label: 'Код подразделения', value: identity.passport_code ?? '' },
+    { label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true },
+  ];
+}
+
 /**
- * Что показать на экране сверки личности. Паспорт проверяют целиком — ФИО,
- * дата рождения, серия и номер, кем и когда выдан, код подразделения, адрес
- * регистрации, — иначе «сверка» сводится к взгляду на две цифры. У ИП и
- * организаций паспорта в кооперативе нет: показываем то, по чему сверяют
- * личность и полномочия. Пустые поля не выводим.
+ * Что показать на экране сверки личности. Набор полей зависит от типа пайщика:
+ * у физлица сверяют весь паспорт и адрес регистрации, у ИП и организации
+ * паспорта в кооперативе нет — сверяют личность и полномочия. Пустые поля не
+ * выводим: пустая строка на экране сверки читается как «данных нет», а не как
+ * «поле не заполнено».
  */
 export function verificationIdentityFacts(
   identity: VerificationIdentity,
-  formatDate: (value?: string | null) => string,
+  formatDate: DateFormatter,
 ): VerificationIdentityFact[] {
-  const facts: VerificationIdentityFact[] = [];
-
-  if (identity.type === 'organization') {
-    facts.push({ label: 'Представитель', value: identity.representative_name ?? '', wide: true });
-    facts.push({ label: 'Должность', value: identity.representative_position ?? '' });
-    facts.push({ label: 'Действует на основании', value: identity.representative_based_on ?? '', wide: true });
-    facts.push({ label: 'ИНН', value: identity.inn ?? '' });
-    facts.push({ label: 'ОГРН', value: identity.ogrn ?? '' });
-    facts.push({ label: 'Юридический адрес', value: identity.full_address ?? '', wide: true });
-    return facts.filter((fact) => fact.value);
-  }
-
-  facts.push({ label: 'Дата рождения', value: formatDate(identity.birthdate) });
-
-  if (identity.type === 'entrepreneur') {
-    facts.push({ label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true });
-    facts.push({ label: 'ИНН', value: identity.inn ?? '' });
-    facts.push({ label: 'ОГРНИП', value: identity.ogrn ?? '' });
-    return facts.filter((fact) => fact.value);
-  }
-
-  const series = identity.passport_series ?? '';
-  const number = identity.passport_number ?? '';
-  if (series || number) facts.push({ label: 'Серия и номер', value: `${series} ${number}`.trim() });
-  facts.push({ label: 'Кем выдан', value: identity.passport_issued_by ?? '', wide: true });
-  facts.push({ label: 'Дата выдачи', value: formatDate(identity.passport_issued_at) });
-  facts.push({ label: 'Код подразделения', value: identity.passport_code ?? '' });
-  facts.push({ label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true });
+  const facts =
+    identity.type === 'organization'
+      ? organizationFacts(identity)
+      : identity.type === 'entrepreneur'
+        ? entrepreneurFacts(identity, formatDate)
+        : individualFacts(identity, formatDate);
   return facts.filter((fact) => fact.value);
 }
 

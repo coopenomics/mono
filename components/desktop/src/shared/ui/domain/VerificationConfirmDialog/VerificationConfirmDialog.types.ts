@@ -16,6 +16,8 @@ export interface VerificationConfirmDialogProps {
   confirmLabel?: string;
   /** Идёт подтверждение — кнопки заблокированы. */
   loading?: boolean;
+  /** Подтверждать пока нельзя: не хватает того, без чего сверка не считается. */
+  confirmDisabled?: boolean;
   /** Ширина окна: данных для сверки бывает много. */
   size?: BaseDialogSize;
 }

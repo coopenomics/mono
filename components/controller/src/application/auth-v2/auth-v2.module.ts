@@ -35,6 +35,9 @@ import { ChainVerificationResolver } from './verification/resolvers/chain-verifi
 import { VerificationOnsiteService } from './verification/verification-onsite.service';
 import { VerificationAuthorityService } from './verification/verification-authority.service';
 import { VerificationIdentityService } from './verification/verification-identity.service';
+import { VerificationReviewService } from './verification/verification-review.service';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { VerificationResolver } from './verification/verification.resolver';
 import { VERIFICATION_SOURCE_RESOLVERS } from '~/domain/auth-v2/ports/verification-source.port';
 import { LogoutService } from './logout/logout.service';
@@ -80,7 +83,9 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController, LoginTwoFactorController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, SessionIssueService, LoginTwoFactorService, LoginFactorsService, CertificateService, CertSettingsService, CertKeyService, EndorsementService, BaselineVerificationResolver, ChainVerificationResolver, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, VerificationOnsiteService, VerificationAuthorityService, VerificationIdentityService, VerificationResolver, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
+    // Снимки сверки личности (coopid:verification) — бакет по @UseBucket.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [VerificationReviewService]),
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, SessionIssueService, LoginTwoFactorService, LoginFactorsService, CertificateService, CertSettingsService, CertKeyService, EndorsementService, BaselineVerificationResolver, ChainVerificationResolver, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, VerificationOnsiteService, VerificationAuthorityService, VerificationIdentityService, VerificationReviewService, VerificationResolver, LogoutService, RefreshService, MigrationService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.

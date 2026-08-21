@@ -1,0 +1,226 @@
+feature: coopid.verification-review
+title: Фотофиксация сверки личности и проверка верификаций советом
+
+# Задача 105-29 (проект 13, компонент CoopID). Личность сверяет кооперативный
+# участок: оператор смотрит паспорт и снимает фотографии сверки. Уровень
+# выдаётся сразу — иначе пайщик не заберёт заказ, пока не проснётся совет.
+# Снятое ложится в журнал со статусом «на проверке», председатель совета
+# утверждает либо отклоняет; отклонение отзывает верификацию с цепи, и выдача
+# снова закрыта.
+#
+# Снимки временные: решение совета их удаляет. Кооперативу нужен факт («перед
+# оператором стоял тот, кто зарегистрирован»), а не копии чужих паспортов —
+# задача узкая, а хранение документов создаёт риск утечки без пользы.
+#
+# Журнал ведёт кооператив, а не цепь: вектор verifications хранит только
+# текущее состояние, а отзыв запись стирает, поэтому истории в цепи нет и она
+# начинается с внедрения.
+
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/verification/verification-review.service.ts
+    - components/controller/src/domain/auth-v2/verification/verification-review.types.ts
+    - components/controller/src/domain/auth-v2/verification/constants/verification-bucket.ts
+    - components/controller/src/domain/auth-v2/ports/verification-review.port.ts
+    - components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.ts
+    - components/controller/migrations/V2.5.4__coopid_verification_reviews.ts
+  ui:
+    - components/desktop/src/widgets/Verifications/**
+    - components/desktop/src/shared/lib/utils/readFileForUpload.ts
+    - components/desktop/src/shared/ui/domain/FileUploader/**
+
+cases:
+  # ── Приём снимков ─────────────────────────────────────────────────────────
+
+  - id: cid.vrev.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      оператор участка подтверждает личность и прикладывает снимок сверки
+    expect: >
+      снимок ложится в хранилище кооператива, запись журнала заводится со
+      статусом «на проверке», уровень на цепи выдан сразу
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.01
+    level: backend
+    kind: break
+    scenario: сверка на участке отправлена без единого снимка
+    expect: отказ — совету потом не по чему решать
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.02
+    level: backend
+    kind: break
+    scenario: у файла не сходится контрольная сумма либо заявленный размер
+    expect: >
+      отказ ДО записи в цепь — узнать о битом файле после verifyacc поздно,
+      уровень уже выдан и его пришлось бы отзывать отдельным действием
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.03
+    level: backend
+    kind: break
+    scenario: к одной сверке приложено больше пяти снимков
+    expect: отказ с указанием предела
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.side.01
+    level: backend
+    kind: side
+    scenario: личность сверяет сам совет кооператива (участок не указан)
+    expect: >
+      снимки не требуются, запись сразу утверждённая — совет и есть
+      проверяющая сторона и себя не проверяет
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.04
+    level: backend
+    kind: break
+    scenario: файл больше десяти мегабайт либо не изображение
+    expect: >
+      бакет coopid:verification отклоняет по maxBytes и allowedMime, запись
+      журнала не заводится
+    test: ~
+    status: missing
+
+  # ── Решение совета ────────────────────────────────────────────────────────
+
+  - id: cid.vrev.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель совета утверждает сверку
+    expect: >
+      снимки удалены из хранилища, статус «подтверждена», цепь не тронута —
+      уровень там уже есть
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель совета отклоняет сверку с указанием причины
+    expect: >
+      верификация отозвана с цепи (unverifyacc), снимки удалены, статус
+      «отклонена», причина сохранена
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.05
+    level: backend
+    kind: break
+    scenario: решение принимается повторно по уже закрытой сверке
+    expect: отказ, состояние не переписывается
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.06
+    level: backend
+    kind: break
+    scenario: журнал, снимки или решение запрашивает не председатель совета
+    expect: >
+      отказ на каждом из четырёх входов; оператор участка проверяемая сторона
+      и своих снимков после отправки уже не видит
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.break.07
+    level: backend
+    kind: break
+    scenario: запрошены снимки сверки, по которой решение уже принято
+    expect: отказ — снимков больше нет, они удалены вместе с решением
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.side.02
+    level: backend
+    kind: side
+    scenario: выдача снимков председателю
+    expect: пишется в аудит — смотреть чужой паспорт молча нельзя
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.side.03
+    level: backend
+    kind: side
+    scenario: хранилище не отвечает при удалении снимков после решения
+    expect: >
+      решение всё равно закрывается — иначе сверка зависнет в очереди совета;
+      осиротевший объект удалится следующей попыткой
+    test: ~
+    status: missing
+
+  # ── Журнал ────────────────────────────────────────────────────────────────
+
+  - id: cid.vrev.happy.04
+    level: backend
+    kind: happy
+    scenario: председатель отзывает верификацию пайщика из реестра
+    expect: >
+      последняя запись журнала отмечается отозванной с автором и причиной —
+      цепь истории не хранит, отзыв стирает запись подтверждения
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  - id: cid.vrev.side.04
+    level: backend
+    kind: side
+    scenario: отзыв по пайщику, чья сверка уже отклонена или отозвана
+    expect: журнал не переписывается повторно
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    status: passing
+
+  # ── Интерфейс ─────────────────────────────────────────────────────────────
+
+  - id: cid.vrev.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      оператор участка сверяет личность: снимает пайщика с паспортом камерой
+      устройства и подтверждает
+    expect: >
+      кнопка подтверждения недоступна, пока нет ни одного снимка; после
+      подтверждения выдача открыта, а сверка ушла на проверку совета
+    test: ~
+    status: missing
+
+  - id: cid.vrev.happy.06
+    level: ui
+    kind: happy
+    scenario: председатель открывает вкладку «Верификации» реестра пайщиков
+    expect: >
+      журнал показывает пайщика, место сверки, кто сверял, когда и состояние;
+      сверки на проверке вынесены счётчиком наверх
+    test: ~
+    status: missing
+
+  - id: cid.vrev.side.05
+    level: ui
+    kind: side
+    scenario: реестр пайщиков открывает пайщик, не являющийся председателем совета
+    expect: вкладки «Верификации» нет; сервер отказывает и при прямом запросе
+    test: ~
+    status: missing
+
+  - id: cid.vrev.side.06
+    level: ui
+    kind: side
+    scenario: председатель открывает окно проверки сверки
+    expect: >
+      снимки показаны плиткой и открываются по клику; отклонение недоступно,
+      пока не указана причина
+    test: ~
+    status: missing
+
+  - id: cid.vrev.side.07
+    level: ui
+    kind: side
+    scenario: журнал открыт в кооперативе, где сверок ещё не проводили
+    expect: пустое состояние объясняет, что история ведётся с внедрения
+    test: ~
+    status: missing

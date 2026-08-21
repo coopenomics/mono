@@ -18,6 +18,7 @@
       ref='inputRef',
       type='file',
       :accept='accept',
+      :capture='capture',
       :multiple='multiple',
       :disabled='disabled',
       @change='onPick'

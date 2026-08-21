@@ -1,11 +1,12 @@
-import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { InnerAccountType } from '@coopenomics/innercoop';
 import {
   VerificationSource,
   VerificationStatus,
   VerificationType,
 } from '~/domain/auth-v2/verification/verification.types';
+import { VerificationReviewStatus } from '~/domain/auth-v2/verification/verification-review.types';
 
 registerEnumType(VerificationType, {
   name: 'ParticipantVerificationType',
@@ -46,6 +47,33 @@ export class ParticipantVerificationDTO {
   attested_in?: string;
 }
 
+@InputType('VerificationPhotoInput', { description: 'Снимок сверки личности' })
+export class VerificationPhotoInputDTO {
+  @Field(() => String, { description: 'Содержимое файла в base64' })
+  @IsString()
+  @IsNotEmpty()
+  content_base64!: string;
+
+  @Field(() => String, { description: 'MIME-тип снимка' })
+  @IsString()
+  @IsNotEmpty()
+  mime_type!: string;
+
+  @Field(() => Int, { description: 'Размер файла в байтах' })
+  @IsInt()
+  size_bytes!: number;
+
+  @Field(() => String, { description: 'SHA-256 содержимого в hex' })
+  @IsString()
+  @IsNotEmpty()
+  checksum_sha256!: string;
+
+  @Field(() => String, { nullable: true, description: 'Исходное имя файла' })
+  @IsString()
+  @IsOptional()
+  original_filename?: string;
+}
+
 @InputType('VerifyParticipantOnsiteInput', {
   description: 'Верификация личности пайщика по паспорту при личной явке',
 })
@@ -62,6 +90,13 @@ export class VerifyParticipantOnsiteInputDTO {
   @IsString()
   @IsOptional()
   braname?: string;
+
+  @Field(() => [VerificationPhotoInputDTO], {
+    nullable: true,
+    description: 'Снимки сверки: пайщик, разворот паспорта, пайщик с паспортом. На участке обязательны',
+  })
+  @IsOptional()
+  photos?: VerificationPhotoInputDTO[];
 }
 
 @InputType('UnverifyParticipantInput', {
@@ -140,4 +175,111 @@ export class ParticipantIdentityForVerificationInputDTO {
   @IsString()
   @IsOptional()
   braname?: string;
+}
+
+registerEnumType(VerificationReviewStatus, {
+  name: 'VerificationReviewStatus',
+  description: 'Состояние проверки сверки личности советом кооператива',
+});
+
+@ObjectType('VerificationReviewPhoto', { description: 'Ссылка на снимок сверки, действительна несколько минут' })
+export class VerificationReviewPhotoDTO {
+  @Field(() => String, { description: 'Ключ объекта в хранилище кооператива' })
+  storage_key!: string;
+
+  @Field(() => String, { description: 'MIME-тип снимка' })
+  mime_type!: string;
+
+  @Field(() => Int, { description: 'Размер файла в байтах' })
+  size_bytes!: number;
+
+  @Field(() => String, { description: 'Короткоживущая ссылка на снимок' })
+  read_url!: string;
+}
+
+@ObjectType('VerificationReview', { description: 'Запись журнала верификаций: одна сверка личности и её судьба' })
+export class VerificationReviewDTO {
+  @Field(() => String, { description: 'Идентификатор записи' })
+  id!: string;
+
+  @Field(() => String, { description: 'Пайщик, чью личность сверяли' })
+  username!: string;
+
+  @Field(() => String, { description: 'Процедура сверки' })
+  procedure!: string;
+
+  @Field(() => String, { description: 'Участок, где сверяли; пусто — сверял совет кооператива' })
+  braname!: string;
+
+  @Field(() => String, { description: 'Кто сверил личность' })
+  verificator!: string;
+
+  @Field(() => VerificationReviewStatus, { description: 'Состояние проверки' })
+  status!: VerificationReviewStatus;
+
+  @Field(() => Int, { description: 'Сколько снимков приложено; после решения совета — ноль' })
+  photos_count!: number;
+
+  @Field(() => String, { description: 'Момент сверки' })
+  created_at!: string;
+
+  @Field(() => String, { nullable: true, description: 'Кто вынес решение' })
+  decided_by?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Момент решения' })
+  decided_at?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Причина отклонения или отзыва' })
+  decision_reason?: string | null;
+}
+
+@InputType('VerificationReviewsInput', { description: 'Отбор записей журнала верификаций' })
+export class VerificationReviewsInputDTO {
+  @Field(() => VerificationReviewStatus, { nullable: true, description: 'Только записи в этом состоянии' })
+  @IsOptional()
+  status?: VerificationReviewStatus;
+
+  @Field(() => String, { nullable: true, description: 'Только по этому пайщику' })
+  @IsString()
+  @IsOptional()
+  username?: string;
+
+  @Field(() => String, { nullable: true, description: 'Только по этому кооперативному участку' })
+  @IsString()
+  @IsOptional()
+  braname?: string;
+
+  @Field(() => Int, { nullable: true, description: 'Сколько записей вернуть (не больше 200)' })
+  @IsInt()
+  @IsOptional()
+  limit?: number;
+}
+
+@InputType('ApproveVerificationInput', { description: 'Утверждение сверки личности советом' })
+export class ApproveVerificationInputDTO {
+  @Field(() => String, { description: 'Идентификатор записи журнала' })
+  @IsString()
+  @IsNotEmpty()
+  review_id!: string;
+}
+
+@InputType('RejectVerificationInput', { description: 'Отклонение сверки личности советом' })
+export class RejectVerificationInputDTO {
+  @Field(() => String, { description: 'Идентификатор записи журнала' })
+  @IsString()
+  @IsNotEmpty()
+  review_id!: string;
+
+  @Field(() => String, { description: 'Причина отклонения — её увидит участок' })
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+}
+
+@InputType('VerificationReviewPhotosInput', { description: 'Запрос снимков сверки для проверки советом' })
+export class VerificationReviewPhotosInputDTO {
+  @Field(() => String, { description: 'Идентификатор записи журнала' })
+  @IsString()
+  @IsNotEmpty()
+  review_id!: string;
 }

@@ -54,4 +54,15 @@ export class VerificationAuthorityService {
       throw new ForbiddenException('Отзывать верификацию личности вправе председатель совета');
     }
   }
+
+  /**
+   * Проверка сверок, проведённых на участках: журнал, снимки, утверждение и
+   * отклонение. Оператор участка сюда не заходит — он проверяемая сторона, и
+   * снимки после отправки ему уже не показываются.
+   */
+  assertMayReview(actor: VerificationActor): void {
+    if (actor.role !== CHAIRMAN_ROLE) {
+      throw new ForbiddenException('Проверять сверку личности вправе председатель совета');
+    }
+  }
 }

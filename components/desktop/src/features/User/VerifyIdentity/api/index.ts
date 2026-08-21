@@ -7,6 +7,7 @@ export type IParticipantIdentityInput =
   Queries.Verification.ParticipantIdentityForVerification.IInput['data'];
 export type IParticipantIdentity =
   Queries.Verification.ParticipantIdentityForVerification.IOutput[typeof Queries.Verification.ParticipantIdentityForVerification.name];
+export type IVerificationPhotoInput = NonNullable<IVerifyParticipantInput['photos']>[number];
 
 /**
  * Данные пайщика для сверки с документом. Сервер отдаёт их только тому, кто
@@ -24,6 +25,7 @@ async function getIdentityForVerification(data: IParticipantIdentityInput): Prom
  * Подтвердить личность пайщика по паспорту при личной явке. Полномочия
  * проверяет контракт: с указанным участком — председатель участка или его
  * доверенное лицо, без участка — председатель совета кооператива.
+ * Со снимками сверки запись уходит на проверку совета.
  */
 async function verifyParticipant(data: IVerifyParticipantInput): Promise<void> {
   await client.Mutation(Mutations.Verification.VerifyParticipantOnsite.mutation, {

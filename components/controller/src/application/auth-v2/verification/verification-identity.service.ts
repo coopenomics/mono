@@ -9,6 +9,11 @@ import { VerificationTypesService } from './verification-types.service';
 import { VerificationAuthorityService, type VerificationActor } from './verification-authority.service';
 import type { ParticipantIdentityForVerificationDTO } from './dto/verification.dto';
 
+/** ФИО одной строкой; отсутствующие части просто пропускаем. */
+function fullName(data: { last_name?: string; first_name?: string; middle_name?: string }): string {
+  return [data.last_name, data.first_name, data.middle_name].filter(Boolean).join(' ');
+}
+
 /**
  * Персональные данные пайщика для сверки с документом.
  *
@@ -61,51 +66,57 @@ export class VerificationIdentityService {
     const type = privateAccount?.type as InnerAccountType | undefined;
 
     if (type === InnerAccountType.individual) {
-      const data = privateAccount.individual_data ?? {};
-      const passport = data.passport ?? {};
-      return {
-        username,
-        type: InnerAccountType.individual,
-        full_name: [data.last_name, data.first_name, data.middle_name].filter(Boolean).join(' '),
-        birthdate: data.birthdate ?? null,
-        passport_series: passport.series != null ? String(passport.series) : null,
-        passport_number: passport.number != null ? String(passport.number) : null,
-        passport_issued_by: passport.issued_by ?? null,
-        passport_issued_at: passport.issued_at ?? null,
-        passport_code: passport.code ?? null,
-        full_address: data.full_address ?? null,
-      };
+      return this.buildIndividual(username, privateAccount.individual_data ?? {});
     }
-
     if (type === InnerAccountType.entrepreneur) {
-      const data = privateAccount.entrepreneur_data ?? {};
-      return {
-        username,
-        type: InnerAccountType.entrepreneur,
-        full_name: [data.last_name, data.first_name, data.middle_name].filter(Boolean).join(' '),
-        birthdate: data.birthdate ?? null,
-        full_address: data.full_address ?? null,
-        inn: data.details?.inn ?? null,
-        ogrn: data.details?.ogrn ?? null,
-      };
+      return this.buildEntrepreneur(username, privateAccount.entrepreneur_data ?? {});
     }
-
     if (type === InnerAccountType.organization) {
-      const data = privateAccount.organization_data ?? {};
-      const rep = data.represented_by ?? {};
-      return {
-        username,
-        type: InnerAccountType.organization,
-        full_name: data.short_name || data.full_name || username,
-        full_address: data.full_address ?? null,
-        inn: data.details?.inn ?? null,
-        ogrn: data.details?.ogrn ?? null,
-        representative_name: [rep.last_name, rep.first_name, rep.middle_name].filter(Boolean).join(' ') || null,
-        representative_position: rep.position ?? null,
-        representative_based_on: rep.based_on ?? null,
-      };
+      return this.buildOrganization(username, privateAccount.organization_data ?? {});
     }
-
     throw new NotFoundException('У пайщика не заполнены данные для сверки личности');
+  }
+
+  private buildIndividual(username: string, data: any): ParticipantIdentityForVerificationDTO {
+    const passport = data.passport ?? {};
+    return {
+      username,
+      type: InnerAccountType.individual,
+      full_name: fullName(data),
+      birthdate: data.birthdate ?? null,
+      passport_series: passport.series != null ? String(passport.series) : null,
+      passport_number: passport.number != null ? String(passport.number) : null,
+      passport_issued_by: passport.issued_by ?? null,
+      passport_issued_at: passport.issued_at ?? null,
+      passport_code: passport.code ?? null,
+      full_address: data.full_address ?? null,
+    };
+  }
+
+  private buildEntrepreneur(username: string, data: any): ParticipantIdentityForVerificationDTO {
+    return {
+      username,
+      type: InnerAccountType.entrepreneur,
+      full_name: fullName(data),
+      birthdate: data.birthdate ?? null,
+      full_address: data.full_address ?? null,
+      inn: data.details?.inn ?? null,
+      ogrn: data.details?.ogrn ?? null,
+    };
+  }
+
+  private buildOrganization(username: string, data: any): ParticipantIdentityForVerificationDTO {
+    const rep = data.represented_by ?? {};
+    return {
+      username,
+      type: InnerAccountType.organization,
+      full_name: data.short_name || data.full_name || username,
+      full_address: data.full_address ?? null,
+      inn: data.details?.inn ?? null,
+      ogrn: data.details?.ogrn ?? null,
+      representative_name: fullName(rep) || null,
+      representative_position: rep.position ?? null,
+      representative_based_on: rep.based_on ?? null,
+    };
   }
 }

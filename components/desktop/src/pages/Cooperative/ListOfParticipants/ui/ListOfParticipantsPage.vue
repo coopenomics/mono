@@ -1,6 +1,8 @@
 <template lang="pug">
 q-page.participants-page
-  .participants-page__card
+  PageTabs.q-mb-md(:tabs='tabs', :active-key='activeTab', @select='(tab) => (activeTab = tab.key)')
+
+  .participants-page__card(v-if='activeTab === "participants"')
     FilterBar.q-mb-md(
       hide-search,
       :filters='verificationFilterDefs',
@@ -12,8 +14,15 @@ q-page.participants-page
       :naming='verificationNaming',
       @toggle-expand='toggleExpand',
       @update='update',
-      @verification-changed='loadParticipants'
+      @verification-changed='onVerificationChanged'
     )
+
+  VerificationsJournal(
+    v-else,
+    ref='journalRef',
+    :naming='verificationNaming',
+    @changed='loadParticipants'
+  )
 </template>
 
 <script setup lang="ts">
@@ -25,9 +34,12 @@ import { useSystemStore } from 'src/entities/System/model';
 import { getName } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
+import { useSessionStore } from 'src/entities/Session';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
 import { ImportParticipantsButton } from 'src/features/User/ImportParticipants';
 import { ParticipantsTable } from 'src/widgets/Participants';
+import { VerificationsJournal } from 'src/widgets/Verifications';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
 import { useHeaderActions } from 'src/shared/hooks';
 import {
   AccountTypes,
@@ -38,6 +50,7 @@ import {
 } from 'src/entities/Account/types';
 
 const accountStore = useAccountStore();
+const session = useSessionStore();
 const branchStore = useBranchStore();
 const systemStore = useSystemStore();
 const onLoading = ref(false);
@@ -88,6 +101,24 @@ const filteredAccounts = computed(() => {
   });
 });
 const expanded = reactive(new Map<string, boolean>());
+
+// Вторая вкладка — журнал верификаций: что, когда и кем сверено. Совету он
+// нужен как рабочая очередь: сверки с участков ждут его решения.
+const activeTab = ref('participants');
+const journalRef = ref<InstanceType<typeof VerificationsJournal> | null>(null);
+// Журнал верификаций читает и решает только председатель совета — остальным
+// сервер откажет, и вкладка была бы кнопкой в никуда.
+const tabs = computed((): PageTab[] => [
+  { key: 'participants', label: 'Пайщики', count: accountStore.accounts.items.length },
+  ...(session.isChairman ? [{ key: 'verifications', label: 'Верификации' }] : []),
+]);
+
+// Сверка из реестра сразу попадает в журнал — перечитываем оба списка, чтобы
+// вкладки не расходились.
+const onVerificationChanged = async () => {
+  await loadParticipants();
+  await journalRef.value?.reload();
+};
 
 // Инжектим кнопку добавления пользователя в заголовок
 const { registerAction } = useHeaderActions();

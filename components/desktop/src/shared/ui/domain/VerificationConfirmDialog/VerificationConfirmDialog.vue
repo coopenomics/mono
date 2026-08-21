@@ -23,7 +23,12 @@ BaseDialog(
         :disabled='loading',
         @click='emit("update:modelValue", false)'
       ) Отмена
-      BaseButton(variant='primary', :loading='loading', @click='emit("confirm")')
+      BaseButton(
+        variant='primary',
+        :loading='loading',
+        :disabled='confirmDisabled',
+        @click='emit("confirm")'
+      )
         template(#icon-left)
           q-icon(name='how_to_reg', size='16px')
         | {{ confirmLabel }}
@@ -39,6 +44,7 @@ withDefaults(defineProps<VerificationConfirmDialogProps>(), {
   title: 'Проверка личности',
   confirmLabel: 'Личность подтверждена',
   loading: false,
+  confirmDisabled: false,
   size: 'sm',
 });
 

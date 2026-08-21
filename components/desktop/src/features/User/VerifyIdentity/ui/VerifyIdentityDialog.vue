@@ -9,6 +9,7 @@ VerificationConfirmDialog(
   :hint='hint',
   size='md',
   :loading='verifying',
+  :confirm-disabled='!canConfirm',
   @update:model-value='(value) => emit("update:modelValue", value)',
   @confirm='onConfirm'
 )
@@ -24,16 +25,40 @@ VerificationConfirmDialog(
       :value='fact.value',
       :align='fact.wide ? "vertical" : "horizontal"'
     )
+
+  //- Фотофиксация нужна там, где сверку потом проверяет совет — на участке.
+  //- Совет сверяет сам и себя не проверяет, поэтому снимки у него не просим.
+  .verify-dialog__photos(v-if='braname')
+    .verify-dialog__photos-title Фотографии сверки
+    FileUploader(
+      v-model='photos',
+      accept='image/*',
+      capture='environment',
+      multiple,
+      :max-files='PHOTOS_MAX',
+      :max-size='PHOTO_MAX_BYTES',
+      :disabled='verifying',
+      title='Снимите пайщика с паспортом',
+      hint='Пайщик держит раскрытый паспорт у лица. Снимки хранятся до решения совета и затем удаляются',
+      @error='onPhotoError'
+    )
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { DataRow, VerificationConfirmDialog } from 'src/shared/ui/domain';
+import { DataRow, FileUploader, VerificationConfirmDialog } from 'src/shared/ui/domain';
+import type { FileUploaderError } from 'src/shared/ui/domain/FileUploader';
 import { FailAlert } from 'src/shared/api';
 import { formatDocumentDate } from 'src/shared/lib/utils/dates';
+import { readFileForUpload } from 'src/shared/lib/utils';
 import { verificationHint, verificationIdentityFacts } from 'src/shared/lib/verification';
 import { api, type IParticipantIdentity } from '../api';
 import { useVerifyIdentity } from '../model';
+
+/** Столько снимков принимает сервер за одну сверку. */
+const PHOTOS_MAX = 5;
+/** Предел на снимок — тот же, что у бакета `coopid:verification`. */
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 
 const props = defineProps<{
   modelValue: boolean;
@@ -53,12 +78,17 @@ const emit = defineEmits<{
 const { verify, loading: verifying } = useVerifyIdentity();
 const identity = ref<IParticipantIdentity | null>(null);
 const loadingIdentity = ref(false);
+const photos = ref<File[]>([]);
 
 const facts = computed(() =>
   identity.value ? verificationIdentityFacts(identity.value, formatDocumentDate) : [],
 );
 
 const hint = computed(() => verificationHint(identity.value?.type ?? ''));
+
+// На участке без снимка подтверждать нечего: совету потом не по чему решать,
+// а сервер такую сверку и не примет.
+const canConfirm = computed(() => !props.braname || photos.value.length > 0);
 
 // Данные грузим на открытие окна и забываем на закрытие: они нужны ровно на
 // время сверки. Отказ сервера (личность уже подтверждена, нет полномочий)
@@ -68,6 +98,7 @@ watch(
   async (open) => {
     if (!open) {
       identity.value = null;
+      photos.value = [];
       return;
     }
     loadingIdentity.value = true;
@@ -85,8 +116,13 @@ watch(
   },
 );
 
+const onPhotoError = (error: FileUploaderError) => {
+  FailAlert(error.message);
+};
+
 const onConfirm = async () => {
-  if (await verify(props.username, props.braname)) {
+  const attachments = await Promise.all(photos.value.map((file) => readFileForUpload(file)));
+  if (await verify(props.username, props.braname, attachments)) {
     emit('update:modelValue', false);
     emit('verified');
   }
@@ -98,5 +134,18 @@ const onConfirm = async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-1, 4px);
+}
+
+.verify-dialog__photos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+  margin-top: var(--p-3, 12px);
+}
+
+.verify-dialog__photos-title {
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  color: var(--p-ink);
 }
 </style>
