@@ -39,6 +39,19 @@ export interface IMarketplaceDocumentParametersHook {
 }
 
 /**
+ * Параметры оферт любой программы по её ключу — общий путь для новых
+ * расширений. Ядро, собирая документы вступления по выбранной программе,
+ * ищет хук по `programKey` и зовёт его до генерации: расширение пишет в Udata
+ * персональные номер и дату, которые потом читает фабрика документа.
+ * Именованные хуки выше остаются для Благороста и Стола заказов.
+ */
+export interface IProgramOfferParametersHook {
+  /** Ключ программы из `ProgramKey`, за документы которой отвечает хук. */
+  readonly programKey: string;
+  generateOfferParameters(coopname: string, username: string): Promise<void>;
+}
+
+/**
  * Реестр хуков. Расширение кладёт свою реализацию сюда при запуске, а вызывает
  * её ядро, когда собирает документы вступления.
  *
@@ -53,6 +66,8 @@ export interface IRegistrationDocumentParametersRegistryPort {
   registerProgramHook(hook: IProgramDocumentParametersHook): void;
   /** Оферта Стола заказов. */
   registerMarketplaceHook(hook: IMarketplaceDocumentParametersHook): void;
+  /** Оферты программы по ключу — для всех последующих расширений. */
+  registerProgramOfferHook(hook: IProgramOfferParametersHook): void;
 }
 
 export const REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT = Symbol.for('Innercoop.CorePort.RegistrationDocumentParametersRegistry');

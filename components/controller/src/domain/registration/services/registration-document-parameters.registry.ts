@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   IMarketplaceDocumentParametersHook,
   IProgramDocumentParametersHook,
+  IProgramOfferParametersHook,
   IRegistrationDocumentParametersRegistryPort,
 } from '@coopenomics/innercoop';
 
@@ -19,6 +20,7 @@ export class RegistrationDocumentParametersRegistry
 {
   private programHook?: IProgramDocumentParametersHook;
   private marketplaceHook?: IMarketplaceDocumentParametersHook;
+  private readonly programOfferHooks = new Map<string, IProgramOfferParametersHook>();
 
   registerProgramHook(hook: IProgramDocumentParametersHook): void {
     this.programHook = hook;
@@ -26,6 +28,15 @@ export class RegistrationDocumentParametersRegistry
 
   registerMarketplaceHook(hook: IMarketplaceDocumentParametersHook): void {
     this.marketplaceHook = hook;
+  }
+
+  registerProgramOfferHook(hook: IProgramOfferParametersHook): void {
+    this.programOfferHooks.set(hook.programKey, hook);
+  }
+
+  /** Хук оферт программы по ключу или `undefined`, если расширение не установлено. */
+  programOfferParameters(programKey: string): IProgramOfferParametersHook | undefined {
+    return this.programOfferHooks.get(programKey);
   }
 
   /** Хук программных оферт или `undefined`, если расширение не установлено. */

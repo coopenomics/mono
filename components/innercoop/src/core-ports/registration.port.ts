@@ -24,6 +24,8 @@ export enum ProgramKey {
   MARKETPLACE = 'MARKETPLACE',
   /** Образование — обучение на площадках кооператива, членские взносы за курсы. */
   EDUCATION = 'EDUCATION',
+  /** Преподавание — участие в хозяйственной деятельности образовательного кооператива. */
+  EDUCATION_TEACHING = 'EDUCATION_TEACHING',
   /** Программа не определена. */
   UNDEFINED = 'UNDEFINED',
 }
