@@ -82,6 +82,8 @@ static constexpr eosio::name _result_action = "result"_n;
 //program_types
 static constexpr eosio::name _wallet_program = "wallet"_n; ///< Главный Кошелёк
 static constexpr eosio::name _marketplace_program = "marketplace"_n; ///< Кошелёк программы "Маркетплейс"
+static constexpr eosio::name _eduparent_program = "eduparent"_n;     ///< ЦПП «Образование» — оферта родителя-слушателя
+static constexpr eosio::name _eduteacher_program = "eduteacher"_n;   ///< ЦПП «Образование» — оферта преподавателя
 
 static constexpr eosio::name _source_program = "generator"_n; ///< Кошелёк для генерации по договору УХД
 static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк программы "Благорост"
@@ -130,6 +132,8 @@ static constexpr uint64_t _wallet_program_id = 1;
 static constexpr uint64_t _marketplace_program_id = 2;
 static constexpr uint64_t _source_program_id = 3;
 static constexpr uint64_t _capital_program_id = 4;
+static constexpr uint64_t _eduparent_program_id = 5;
+static constexpr uint64_t _eduteacher_program_id = 6;
 
 
 

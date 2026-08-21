@@ -74,7 +74,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
-  { wallet_name: "w.edu.member", required_program_id: 0, program_label: null },
+  { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
 ] as const
 
 /**

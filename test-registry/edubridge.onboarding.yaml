@@ -1,0 +1,56 @@
+feature: edubridge.onboarding
+title: Образовательный мост — подключение ЦПП советом, вступление по офертам, роли
+
+# E5 (задача 7DD-6). L1: четыре решения совета (положение 3000, шаблоны оферт
+# 3001/3003, шаблон ДУХД 3005) через платформенный онбординг → coopAcceptance.
+# L2: две программы в витрине вступления — «Обучение» (EDUCATION, оферта 3002,
+# тип eduparent, program_id 5) и «Преподавание» (EDUCATION_TEACHING, оферта
+# 3004, тип eduteacher, program_id 6). Роль = подписанная программная оферта.
+# Параметры оферт (номер/дата) — в Udata общим хуком по ключу программы.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/programs.hpp
+  backend:
+    - components/controller/src/extensions/edubridge/application/onboarding/**
+    - components/controller/src/extensions/edubridge/application/registration/**
+    - components/controller/src/extensions/edubridge/application/membership/edubridge-role-facts.adapter.ts
+    - components/controller/src/extensions/edubridge/edubridge-extension.module.ts
+    - components/controller/src/extensions/edubridge/constants/edubridge-agreement-ids.ts
+
+cases:
+  - id: edu.onb.happy.01
+    level: backend
+    kind: happy
+    scenario: Регистрация витрины вступления.
+    expect: Две оферты (3002, 3004; agreement_type ≤ 12 символов, не дефолтные) и две программы с правильными agreement_ids.
+    test: components/controller/tests/unit/edubridge/registration.test.ts
+    status: passing
+  - id: edu.onb.happy.02
+    level: backend
+    kind: happy
+    scenario: Факты ролей по подписям программ и таблице администраторов.
+    expect: learner/teacher/admin по источникам; программы не открыты → false; сбой порта → false + предупреждение.
+    test: components/controller/tests/unit/edubridge/registration.test.ts
+    status: passing
+  - id: edu.onb.happy.03
+    level: backend
+    kind: happy
+    scenario: Совет принял все четыре решения онбординга.
+    expect: coopAcceptance.accepted=true, оферты и программы зарегистрированы в витрине; до этого — не зарегистрированы.
+    test: ~
+    status: missing
+  - id: edu.onb.happy.04
+    level: contract
+    kind: happy
+    scenario: soviet::createprog типов eduparent/eduteacher.
+    expect: program_id 5/6, draft_id 3002/3004; конвертация в w.edu.member требует подписи программы 5.
+    test: ~
+    status: missing
+  - id: edu.onb.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик, вступивший по программе «Обучение», позже подписывает оферту преподавателя со стола.
+    expect: Обе роли суммируются, столы обоих видны.
+    test: ~
+    status: missing

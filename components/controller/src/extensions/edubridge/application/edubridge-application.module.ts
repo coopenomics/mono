@@ -6,7 +6,8 @@ import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-gran
 import { EdubridgeAccessGuard } from './guards/edubridge-access.guard';
 import { EdubridgeMembershipService } from './membership/edubridge-membership.service';
 import { EDUBRIDGE_ROLE_FACTS_PORT } from './membership/edubridge-role-facts.port';
-import { EdubridgeRoleFactsStub } from './membership/edubridge-role-facts.stub';
+import { EdubridgeRoleFactsAdapter } from './membership/edubridge-role-facts.adapter';
+import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-parameters.adapter';
 import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
@@ -17,7 +18,8 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
   imports: [EdubridgeDatabaseModule],
   providers: [
     EdubridgeConfigHolder,
-    { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsStub },
+    { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },
+    EdubridgeUdataParametersAdapter,
     EdubridgeMembershipService,
     EdubridgeAccessGuard,
     EdubridgeDesktopGrantsProvider,

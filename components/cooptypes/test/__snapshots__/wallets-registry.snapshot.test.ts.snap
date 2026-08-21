@@ -63,8 +63,8 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.reg.pend",
   },
   {
-    "program_label": null,
-    "required_program_id": 0,
+    "program_label": "Образование",
+    "required_program_id": 5,
     "wallet_name": "w.edu.member",
   },
 ]

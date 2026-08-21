@@ -278,7 +278,7 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED
   { ledger2_wallets::BRANCH_COMMON,          0 /* w.brn.common — L3-разрез по braname КУ (не по пайщику), без проверки */ },
   { ledger2_wallets::ADVANCE_HOLD,           0 /* w.exp.adv — подотчёт пайщика по СЗ; программа-источник проверена контрактом expense, повторная gate не нужна */ },
   { ledger2_wallets::REGISTRATION_PENDING,   0 /* w.reg.pend — кандидат ещё не член, соглашения нет, без проверки */ },
-  { ledger2_wallets::EDU_MEMBER_FEE,         0 /* w.edu.member — ЦПП «Образование» не зарегистрирована в program_map (две оферты: родителя 3002 и преподавателя 3004); подпись оферты сверяет приложение перед конвертацией, без проверки */ },
+  { ledger2_wallets::EDU_MEMBER_FEE,         5 /* Образование */ }, // w.edu.member — членский взнос по ЦПП «Образование»: конвертация только при подписанной оферте родителя-слушателя (program_id 5, draft 3002)
 }};
 
 /**

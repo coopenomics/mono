@@ -102,6 +102,23 @@ export interface IVars {
     protocol_number: string
     protocol_day_month_year: string
   }
+  // Образование
+  education_provision?: { // Положение о ЦПП «ОБРАЗОВАНИЕ»
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_parent_offer_template?: { // Шаблон оферты родителя-слушателя
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_teacher_offer_template?: { // Шаблон оферты преподавателя
+    protocol_number: string
+    protocol_day_month_year: string
+  }
+  education_contract_template?: { // Шаблон договора участия в хозяйственной деятельности (образование)
+    protocol_number: string
+    protocol_day_month_year: string
+  }
 
 }
 
