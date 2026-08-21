@@ -135,6 +135,10 @@ export default {
       code_permissions_to: ['marketplace'],
     },
     {
+      name: 'edubridge',
+      code_permissions_to: ['edubridge'],
+    },
+    {
       name: 'draft',
       code_permissions_to: ['draft'],
     },

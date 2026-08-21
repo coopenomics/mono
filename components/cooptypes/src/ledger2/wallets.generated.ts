@@ -30,6 +30,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED" },
   { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED" },
   { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED" },
+  { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -73,6 +74,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
+  { wallet_name: "w.edu.member", required_program_id: 0, program_label: null },
 ] as const
 
 /**

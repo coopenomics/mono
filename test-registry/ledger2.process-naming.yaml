@@ -18,6 +18,9 @@ title: Имя нитки процесса ledger2
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# 2026-08-21: добавлены процессы p.edu.access / p.edu.rid контракта edubridge
+# («Образовательный мост», 7DD-4) с операциями o.edu.conv / o.edu.rid и кошельком
+# w.edu.member; локатор — edusubs.sub_hash / edurids.rid_hash. Гейт check:ledger2 зелёный.
 sources:
   contract:
     - components/contracts/cpp/lib/core/ledger2/processes.hpp

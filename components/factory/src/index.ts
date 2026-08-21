@@ -246,6 +246,20 @@ export class Generator implements IGenerator {
       [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
       [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
       [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
+
+      // Edubridge — ЦПП «Образование»
+      [Actions.EducationProgramTemplate.Template.registry_id]: new Actions.EducationProgramTemplate.Factory(this.storage), // 3000 — Положение ЦПП
+      [Actions.EducationParentOfferTemplate.Template.registry_id]: new Actions.EducationParentOfferTemplate.Factory(this.storage), // 3001
+      [Actions.EducationParentOffer.Template.registry_id]: new Actions.EducationParentOffer.Factory(this.storage), // 3002
+      [Actions.EducationTeacherOfferTemplate.Template.registry_id]: new Actions.EducationTeacherOfferTemplate.Factory(this.storage), // 3003
+      [Actions.EducationTeacherOffer.Template.registry_id]: new Actions.EducationTeacherOffer.Factory(this.storage), // 3004
+      [Actions.EducationParticipationContractTemplate.Template.registry_id]: new Actions.EducationParticipationContractTemplate.Factory(this.storage), // 3005
+      [Actions.EducationParticipationContract.Template.registry_id]: new Actions.EducationParticipationContract.Factory(this.storage), // 3006
+      [Actions.EducationCourseAnnex.Template.registry_id]: new Actions.EducationCourseAnnex.Factory(this.storage), // 3007
+      [Actions.EducationRidStatement.Template.registry_id]: new Actions.EducationRidStatement.Factory(this.storage), // 3008
+      [Actions.EducationRidDecision.Template.registry_id]: new Actions.EducationRidDecision.Factory(this.storage), // 3009
+      [Actions.EducationRidAct.Template.registry_id]: new Actions.EducationRidAct.Factory(this.storage), // 3010 — двухподписный акт
+      [Actions.EducationConvertStatement.Template.registry_id]: new Actions.EducationConvertStatement.Factory(this.storage), // 3011
     }
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы

@@ -243,6 +243,20 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Членский взнос «Стола заказов» из внесённых средств' },
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
+  // Членский взнос за доступ к курсу вносится только конвертацией паевого по
+  // Заявлению (зеркало o.mkt.conv); РИД преподавателя принимается в паевой
+  // фонд по решению совета и акту (эталон — o.cap.import, Dr 04 / Cr 80).
+  { code: 'o.edu.conv',    process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'CONVERT_TO_EDU_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.edu.member',
+    debit: 80, credit: 86,
+    human_name: 'Конвертация паевого в членский взнос по ЦПП «Образование»' },
+
+  { code: 'o.edu.rid',     process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'ACCEPT_EDU_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share',
+    debit: 4, credit: 80,
+    human_name: 'Приём результата интеллектуальной деятельности преподавателя в паевой фонд' },
+
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',

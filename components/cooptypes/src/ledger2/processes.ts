@@ -51,6 +51,10 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.brn.aid',      contract: 'branch',       name: 'AID',         human_name: 'Материальная помощь доверенного кооперативного участка' },
   { type: 'p.brn.spend',    contract: 'branch',       name: 'SPEND',       human_name: 'Оплата расхода кооперативного участка' },
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
+  { type: 'p.edu.access',   contract: 'edubridge',    name: 'ACCESS',      human_name: 'Доступ к курсу по ЦПП «Образование»' },
+  { type: 'p.edu.rid',      contract: 'edubridge',    name: 'RID',         human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
+
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },
   { type: 'p.sov.tax',      contract: 'soviet',       name: 'TAX',         human_name: 'Перечисление удержанного налога в бюджет' },

@@ -1,0 +1,85 @@
+feature: edubridge.contract
+title: Образовательный мост — контракт edubridge, документы 3000–3011, проводки
+
+# E3 (задача 7DD-4). Конвертация паевого в членский по заявлению (o.edu.conv,
+# зеркало marketplace::convert), подписки (opensub/extendsub/expiresub — только
+# ключом кооператива, запись живёт в RAM пока активна), взнос РИД
+# (submitrid → решение совета → acceptrid/declinerid; o.edu.rid Дт 04 / Кт 80,
+# ISSUE в главный паевой кошелёк преподавателя). Документы 3000–3011 — рыбы.
+
+sources:
+  contract:
+    - components/contracts/cpp/edubridge/**
+    - components/contracts/cpp/lib/domain/table_edubridge_*.hpp
+    - components/contracts/cpp/lib/core/edubridge/**
+  backend:
+    - components/cooptypes/src/contracts/edubridge/**
+    - components/cooptypes/src/interfaces/edubridge.ts
+    - components/cooptypes/src/cooperative/registry/30*/**
+    - components/factory/src/Templates/30*.ts
+    - components/factory/src/Actions/30*.ts
+
+cases:
+  - id: edu.contract.happy.01
+    level: contract
+    kind: happy
+    scenario: Пайщик с достаточным паевым подписал заявление о конвертации; кооператив вызывает convert.
+    expect: TRANSFER w.wal.share → w.edu.member на сумму, проводка o.edu.conv, документ в реестре.
+    test: ~
+    status: missing
+  - id: edu.contract.break.01
+    level: contract
+    kind: break
+    scenario: convert с суммой больше available на w.wal.share.
+    expect: assert «Недостаточно паевых средств».
+    test: ~
+    status: missing
+  - id: edu.contract.break.02
+    level: contract
+    kind: break
+    scenario: convert с заявлением без подписи пайщика.
+    expect: assert «Не найдена подпись от обязательного подписанта».
+    test: ~
+    status: missing
+  - id: edu.contract.happy.02
+    level: contract
+    kind: happy
+    scenario: opensub → extendsub → expiresub по одному sub_hash.
+    expect: запись появляется, paid_until растёт, после expiresub записи нет.
+    test: ~
+    status: missing
+  - id: edu.contract.side.01
+    level: contract
+    kind: side
+    scenario: opensub с уже занятым sub_hash; extendsub с paid_until не больше прежнего.
+    expect: оба отклонены assert'ом.
+    test: ~
+    status: missing
+  - id: edu.contract.happy.03
+    level: contract
+    kind: happy
+    scenario: submitrid → acceptrid с протоколом и актом, подписанным преподавателем.
+    expect: ISSUE amount в w.wal.share преподавателя, проводка o.edu.rid, запись edurids стёрта, оба документа в реестре пакетом rid_hash.
+    test: ~
+    status: missing
+  - id: edu.contract.break.03
+    level: contract
+    kind: break
+    scenario: acceptrid с актом без подписи преподавателя.
+    expect: assert подписи; средства не выпущены.
+    test: ~
+    status: missing
+  - id: edu.contract.happy.04
+    level: contract
+    kind: happy
+    scenario: declinerid с протоколом.
+    expect: запись стёрта, проводок нет, протокол в реестре.
+    test: ~
+    status: missing
+  - id: edu.contract.happy.05
+    level: backend
+    kind: happy
+    scenario: Фабрика рендерит каждый из 12 документов 3000–3011 на exampleData.
+    expect: PDF генерируется, AJV-схема проходит, registry_id совпадает с cooptypes.
+    test: ~
+    status: missing

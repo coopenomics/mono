@@ -59,6 +59,7 @@ add_contract_build(gateway)
 add_contract_build(marketplace)
 add_contract_build(apps)
 add_contract_build(expense)
+add_contract_build(edubridge)
 add_contract_build(system)
 
 # Опции для тестов

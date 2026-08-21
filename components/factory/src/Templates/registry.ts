@@ -96,6 +96,18 @@ import * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement
 import * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
+import * as EducationProgramTemplate from './3000.EducationProgramTemplate'
+import * as EducationParentOfferTemplate from './3001.EducationParentOfferTemplate'
+import * as EducationParentOffer from './3002.EducationParentOffer'
+import * as EducationTeacherOfferTemplate from './3003.EducationTeacherOfferTemplate'
+import * as EducationTeacherOffer from './3004.EducationTeacherOffer'
+import * as EducationParticipationContractTemplate from './3005.EducationParticipationContractTemplate'
+import * as EducationParticipationContract from './3006.EducationParticipationContract'
+import * as EducationCourseAnnex from './3007.EducationCourseAnnex'
+import * as EducationRidStatement from './3008.EducationRidStatement'
+import * as EducationRidDecision from './3009.EducationRidDecision'
+import * as EducationRidAct from './3010.EducationRidAct'
+import * as EducationConvertStatement from './3011.EducationConvertStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -182,4 +194,16 @@ export const Registry = {
   1112: BranchFinancialAidProtocol,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
+  3000: EducationProgramTemplate,
+  3001: EducationParentOfferTemplate,
+  3002: EducationParentOffer,
+  3003: EducationTeacherOfferTemplate,
+  3004: EducationTeacherOffer,
+  3005: EducationParticipationContractTemplate,
+  3006: EducationParticipationContract,
+  3007: EducationCourseAnnex,
+  3008: EducationRidStatement,
+  3009: EducationRidDecision,
+  3010: EducationRidAct,
+  3011: EducationConvertStatement,
 }

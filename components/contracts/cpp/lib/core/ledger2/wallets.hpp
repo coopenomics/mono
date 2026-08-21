@@ -75,6 +75,9 @@ struct ledger2_wallets {
   static constexpr eosio::name SUPPLIER_PAYMENTS      = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink PAYOUT, COOPERATIVE)
   static constexpr eosio::name MARKETPLACE_FEE_POOL   = "w.mkt.fee"_n;     ///< Резерв членских взносов «Стола заказов» под заказы (COOPERATIVE-пул, по образцу w.wal.wpend — per-Order разрез держит поле Order.membership_fee). TRANSFER w.wal.share → w.mkt.fee на createorder/stockorder (Дт 80 / Кт 86, o.mkt.fee); возврат неиспользованной части на w.mkt.member (o.mkt.refund, без проводки); при финализации заказа 100% факта взноса зачисляется в общий кошелёк КУ (branch::accrue → o.brn.common).
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
+  static constexpr eosio::name EDU_MEMBER_FEE        = "w.edu.member"_n;  ///< ЦПП «Образование» — членский взнос пайщика за доступ к курсу (USER_SHARED, счёт 86). Пополняется конвертацией паевого по заявлению (o.edu.conv, Дт 80 / Кт 86); расход на доступ к курсу фиксируется подпиской (opensub/extendsub) без отдельной операции по кошельку.
+
   // branch — экономика кооперативного участка (requirement b6 «Экономика КУ», раунд 5: приоритет общего кошелька)
   static constexpr eosio::name BRANCH_PERSONAL        = "w.brn.person"_n;  ///< Персональный кошелёк доверенного/председателя КУ (USER_SHARED по доверенному, счёт 86). Пополняется ручным распределением председателя КУ из общего кошелька (o.brn.release + o.brn.person); расходуется на материальную помощь (o.brn.aid) или переводом в членский кошелёк «Стола заказов» (o.brn.conv).
   static constexpr eosio::name BRANCH_COMMON          = "w.brn.common"_n;  ///< Общий кошелёк членских взносов кооперативного участка (USER_SHARED с разрезом по braname КУ, счёт 86). Принимает 100% членского взноса при финализации заказа (o.brn.common); далее — ручное распределение доверенным (o.brn.release), оплата расходов КУ (o.brn.spend), закупка впрок. Плановый резерв расходов (30 дней) контролирует бэкенд.
@@ -115,8 +118,8 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
-  // USER_SHARED (11) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
+inline constexpr std::array<Ledger2WalletMeta, 27> LEDGER2_WALLET_REGISTRY = {{
+  // USER_SHARED (12) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
   { ledger2_wallets::CK_MEMBER,             "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
@@ -128,6 +131,7 @@ inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::BRANCH_COMMON,         "Общий кошелёк членских взносов кооперативного участка",     WalletKind::USER_SHARED },
   { ledger2_wallets::ADVANCE_HOLD,          "Подотчётные средства пайщика",                             WalletKind::USER_SHARED },
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
+  { ledger2_wallets::EDU_MEMBER_FEE,        "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", WalletKind::USER_SHARED },
 
   // COOPERATIVE (14) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
@@ -261,7 +265,7 @@ struct Ledger2WalletProgramMapping {
   uint64_t    required_program_id; // 0 = исключение (без проверки)
 };
 
-inline constexpr std::array<Ledger2WalletProgramMapping, 12> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
+inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
   { ledger2_wallets::MIN_SHARE_FUND,         0 /* w.reg.minshr — без проверки */    },
   { ledger2_wallets::SHARE_FUND_PAY,         1 /* ЦК */                              },
   { ledger2_wallets::CK_MEMBER,              1 /* ЦК */                              },
@@ -274,6 +278,7 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 12> LEDGER2_USER_SHARED
   { ledger2_wallets::BRANCH_COMMON,          0 /* w.brn.common — L3-разрез по braname КУ (не по пайщику), без проверки */ },
   { ledger2_wallets::ADVANCE_HOLD,           0 /* w.exp.adv — подотчёт пайщика по СЗ; программа-источник проверена контрактом expense, повторная gate не нужна */ },
   { ledger2_wallets::REGISTRATION_PENDING,   0 /* w.reg.pend — кандидат ещё не член, соглашения нет, без проверки */ },
+  { ledger2_wallets::EDU_MEMBER_FEE,         0 /* w.edu.member — ЦПП «Образование» не зарегистрирована в program_map (две оферты: родителя 3002 и преподавателя 3004); подпись оферты сверяет приложение перед конвертацией, без проверки */ },
 }};
 
 /**

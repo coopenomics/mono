@@ -62,6 +62,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "required_program_id": 0,
     "wallet_name": "w.reg.pend",
   },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.edu.member",
+  },
 ]
 `;
 
@@ -121,6 +126,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Регистрационный взнос в ожидании решения совета",
     "kind": "USER_SHARED",
     "name": "w.reg.pend",
+  },
+  {
+    "human_name": "ЦПП «Образование» — членский взнос пайщика за доступ к курсу",
+    "kind": "USER_SHARED",
+    "name": "w.edu.member",
   },
   {
     "human_name": "ЦПП «Генератор» — единый кошелёк программы",

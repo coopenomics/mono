@@ -172,6 +172,15 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
+  // edubridge — ЦПП «Образование». Две entity-таблицы из
+  // contracts/cpp/lib/domain/table_edubridge_*.hpp:
+  //   - `edusubs.sub_hash` — подписка на курс (конвертация членского взноса
+  //     o.edu.conv + opensub/extendsub; запись стирается на expiresub).
+  //   - `edurids.rid_hash` — заявление преподавателя о паевом взносе РИД
+  //     (живёт до решения совета; acceptrid/declinerid стирают запись).
+  'p.edu.access': [{ code: 'edubridge', table: 'edusubs', field: 'sub_hash' }],
+  'p.edu.rid':    [{ code: 'edubridge', table: 'edurids', field: 'rid_hash' }],
+
   // requirement b6 «Экономика КУ».
   // p.brn.fees — распределение членских взносов КУ: ручное распределение
   // председателем (branch::distribute, round_hash) и перевод персональных

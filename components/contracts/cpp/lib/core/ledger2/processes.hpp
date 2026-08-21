@@ -88,6 +88,12 @@ namespace processes {
     inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
   }
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
+  namespace edubridge {
+    inline constexpr eosio::name ACCESS    = "p.edu.access"_n;   ///< Доступ к курсу: конвертация паевого в членский взнос программы (o.edu.conv) + подписка (opensub/extendsub/expiresub без движений). Анкер процесса — sub_hash.
+    inline constexpr eosio::name RID       = "p.edu.rid"_n;      ///< Паевой взнос преподавателя результатом интеллектуальной деятельности: заявление → решение совета → акт (o.edu.rid, одноактовый по средствам). Анкер процесса — rid_hash.
+  }
+
   // soviet
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
@@ -129,6 +135,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
+  edubridge::ACCESS,     edubridge::RID,
   soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,

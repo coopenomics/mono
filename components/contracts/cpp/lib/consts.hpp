@@ -154,6 +154,7 @@ static constexpr uint64_t _capital_program_id = 4;
 #define LEDGER "ledger"
 #define LEDGER2 "ledger2"
 #define APPS "apps"
+#define EDUBRIDGE "edubridge"
 
 
 /**
@@ -179,6 +180,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
     static constexpr eosio::name _apps = "apps"_n;
+    static constexpr eosio::name _edubridge = "edubridge"_n;
     static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
@@ -209,7 +211,8 @@ static constexpr uint64_t _capital_program_id = 4;
         "ledger2"_n,
         "capital"_n,
         "apps"_n,
-        "expense"_n
+        "expense"_n,
+        "edubridge"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

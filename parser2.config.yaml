@@ -55,6 +55,7 @@ publish:
     - ledger2
     - marketplace
     - expense
+    - edubridge
 
 xtrim:
   # Обрезка стрима по самому старому неподтверждённому pending всех групп.

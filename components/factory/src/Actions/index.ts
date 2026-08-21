@@ -109,3 +109,17 @@ export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement
 export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+
+// Edubridge — ЦПП «Образование»
+export * as EducationProgramTemplate from './3000.EducationProgramTemplate'
+export * as EducationParentOfferTemplate from './3001.EducationParentOfferTemplate'
+export * as EducationParentOffer from './3002.EducationParentOffer'
+export * as EducationTeacherOfferTemplate from './3003.EducationTeacherOfferTemplate'
+export * as EducationTeacherOffer from './3004.EducationTeacherOffer'
+export * as EducationParticipationContractTemplate from './3005.EducationParticipationContractTemplate'
+export * as EducationParticipationContract from './3006.EducationParticipationContract'
+export * as EducationCourseAnnex from './3007.EducationCourseAnnex'
+export * as EducationRidStatement from './3008.EducationRidStatement'
+export * as EducationRidDecision from './3009.EducationRidDecision'
+export * as EducationRidAct from './3010.EducationRidAct'
+export * as EducationConvertStatement from './3011.EducationConvertStatement'

@@ -35,6 +35,7 @@ export const subscribedContracts: string[] = [
   'ledger2',
   'marketplace',
   'expense',
+  'edubridge',
 ]
 
 // Автоматически генерируем действия для всех контрактов из списка

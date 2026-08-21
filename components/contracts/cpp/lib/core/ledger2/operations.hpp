@@ -108,6 +108,12 @@ namespace operations {
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, без Dr/Cr — оба кошелька на 86). Транзит: удержанная половина тела заказа кладётся в пул членских взносов, откуда вместе с удержанной половиной взноса единым o.brn.common (Branch::accrue) зачисляется в общий кошелёк КУ. Прямой TRANSFER w.mkt.order[пайщик] → w.brn.common[braname] невозможен — walletop держит один username на обе стороны. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
   }
 
+  // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
+  namespace edubridge {
+    inline constexpr eosio::name CONVERT_TO_EDU_MEMBER = "o.edu.conv"_n;  ///< Конвертация паевого взноса в членский взнос ЦПП «Образование» по заявлению пайщика (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало o.mkt.conv: единственный путь паевой→членский в программе.
+    inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в паевой фонд по решению совета и акту (ISSUE → w.wal.share, Dr 04 / Cr 80). Эталон — o.cap.import; возврат — штатным createwthd.
+  }
+
   // branch — экономика кооперативного участка (requirement b6).
   namespace branch {
     inline constexpr eosio::name DISTRIBUTE_PERSONAL = "o.brn.person"_n;  ///< Распределение доверенному/председателю КУ при ручном распределении председателем (TRANSFER w.brn.pool → w.brn.person, без Dr/Cr — внутри 86). Доля = вес/Σвесов из реестра весов branch::weights; вторая нога двухходовки после o.brn.release.
@@ -485,6 +491,24 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
     0, 0,
     "Членский взнос «Стола заказов» из внесённых средств" },
+
+  // 12e. p.edu.access: Конвертация паевого в членский взнос ЦПП «Образование»
+  //      (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало 12a²
+  //      (o.mkt.conv): членский взнос за доступ к курсу вносится только по
+  //      Заявлению о конвертации, автоматического списания с паевого нет.
+  { operations::edubridge::CONVERT_TO_EDU_MEMBER, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::EDU_MEMBER_FEE,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Конвертация паевого в членский взнос по ЦПП «Образование»" },
+
+  // 12f. p.edu.rid: Приём РИД преподавателя в паевой фонд (ISSUE → w.wal.share,
+  //      Dr 04 / Cr 80). Эталон — o.cap.import (РИД как НМА, поэтому Dr 04).
+  //      Средства ложатся в главный паевой кошелёк преподавателя как право
+  //      требования; возврат — штатным механизмом платформы (createwthd).
+  { operations::edubridge::ACCEPT_EDU_RID, processes::edubridge::RID, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
+    "Приём результата интеллектуальной деятельности преподавателя в паевой фонд" },
 
   // 13a. p.brn.fees: Зачисление 100% членского взноса в общий кошелёк КУ
   //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname).

@@ -82,6 +82,11 @@
 #include "table_marketplace_return_requests.hpp"
 #include "table_marketplace_writeoff_proposals.hpp"
 
+// edubridge (ЦПП «Образование», приложение «Образовательный мост») —
+// anchor-таблицы процессов p.edu.access (подписки) и p.edu.rid (РИД).
+#include "table_edubridge_subscriptions.hpp"
+#include "table_edubridge_rids.hpp"
+
 // apps (каталог приложений)
 #include "table_apps_packages.hpp"
 #include "table_apps_releases.hpp"
