@@ -6,7 +6,9 @@ import type { LoginFactorsService } from '../login-2fa/login-factors.service';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { AccountSecurityResolver } from './account-security.resolver';
 
-const USER = { id: 'u1', username: 'payer1', role: 'user' };
+// session_id — идентификатор текущей сессии из JWT: по нему список помечает
+// current, а «завершить все» щадит ту, из которой пришёл запрос.
+const USER = { id: 'u1', username: 'payer1', role: 'user', session_id: 's1' };
 const IP = '203.0.113.7';
 
 function build() {
@@ -55,7 +57,7 @@ describe('AccountSecurityResolver', () => {
   it('getSessions маппит сессии в snake_case и передаёт refresh-токен текущей сессии', async () => {
     const { resolver, sessions } = build();
     const out = await resolver.getSessions(USER, 'rt-current');
-    expect(sessions.list).toHaveBeenCalledWith('u1', 'rt-current');
+    expect(sessions.list).toHaveBeenCalledWith('u1', 'rt-current', 's1');
     expect(out).toEqual([
       {
         id: 's1',
@@ -85,7 +87,8 @@ describe('AccountSecurityResolver', () => {
   it('revokeAllSessions возвращает число завершённых', async () => {
     const { resolver, sessions } = build();
     const out = await resolver.revokeAllSessions(USER, IP);
-    expect(sessions.revokeAll).toHaveBeenCalledWith('u1', IP);
+    // Третьим аргументом идёт текущая сессия — её revokeAll не трогает.
+    expect(sessions.revokeAll).toHaveBeenCalledWith('u1', IP, 's1');
     expect(out).toEqual({ revoked: 3 });
   });
 
