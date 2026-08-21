@@ -62,11 +62,14 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // членом без ролей.
     const bypass = hasServerSecret(request?.headers);
 
-    if (!bypass && !user?.username) {
-      throw new UnauthorizedException('Требуется авторизованный пользователь');
-    }
-
-    if (bypass && !user?.username) {
+    // Обе ветки «пользователя в запросе нет» разбираются в одном условии: так
+    // TypeScript сужает `user` до заполненного, а `username` — до строки для
+    // всего кода ниже (два раздельных `if` он в сужение не складывает).
+    const username = user?.username;
+    if (!user || !username) {
+      if (!bypass) {
+        throw new UnauthorizedException('Требуется авторизованный пользователь');
+      }
       const serviceMember: IMarketplaceCurrentMember = {
         username: '',
         core_roles: [],
@@ -88,8 +91,8 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // (MarketplaceSupplierRegistryService / MarketplaceKuChairmanService),
     // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.
     const [isOfferer, isKuChairman] = await Promise.all([
-      this.supplierRegistry.isOfferer(platformSettings().coopname, user.username),
-      this.kuChairmanService.isKuChairman(platformSettings().coopname, user.username),
+      this.supplierRegistry.isOfferer(platformSettings().coopname, username),
+      this.kuChairmanService.isKuChairman(platformSettings().coopname, username),
     ]);
     const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {
       isOfferer,
@@ -97,7 +100,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
     });
 
     const currentMember: IMarketplaceCurrentMember = {
-      username: user.username,
+      username,
       core_roles: coreRoles,
       marketplace_roles: marketplaceRoles,
     };
