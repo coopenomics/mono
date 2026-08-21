@@ -18,6 +18,8 @@ sources:
   ui:
     - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
     - components/desktop/extensions/edubridge/features/Subscribe/**
+    - components/desktop/extensions/edubridge/widgets/LearnerForm/**
+    - components/desktop/extensions/edubridge/entities/Learner/**
 
 cases:
   - id: edu.enr.happy.01
@@ -67,5 +69,12 @@ cases:
     kind: break
     scenario: Пайщик правит чужого обучающегося / удаляет обучающегося с активной подпиской.
     expect: Forbidden / BadRequest.
+    test: ~
+    status: missing
+  - id: edu.enr.happy.04
+    level: ui
+    kind: happy
+    scenario: Пайщик добавляет обучающегося, нажимает «Получить доступ», видит котировку; при нехватке — ссылка на пополнение; при достатке — подписывает заявление.
+    expect: После подписи строка подписки появляется в таблице со статусом «Действует» и доступом «Выдаётся».
     test: ~
     status: missing
