@@ -45,7 +45,6 @@
                 .cert__verification(v-for='entry in verificationEntries', :key='entry.type')
                   BaseChip(variant='info') {{ entry.label }}
                     q-tooltip {{ entry.title }}
-                  span.t-sm.t-muted(v-if='entry.hint') {{ entry.hint }}
 
       //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
       .cert__qr(v-if='certLoading')
@@ -283,13 +282,15 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
-// Уровни верификации из удостоверения: короткий лейбл в чипе, полное описание
-// в тултипе, дата подтверждения и автор проверки — рядом. Маппинг общий с
-// реестром пайщиков (`verificationLevelView`), дубль в UI запрещён.
+// Уровни верификации в удостоверении: короткий лейбл в чипе, полное описание в
+// тултипе. Кто и когда подтвердил — пайщику не показываем: своё удостоверение он
+// и так предъявляет как есть, а служебные подробности проверки его не касаются.
+// Совету они нужны — там подпись уровня показана в реестре пайщиков.
+// Словари лейблов общие (`verificationLevelView`), дубль в UI запрещён.
 const verificationEntries = computed(() =>
   (certificate.value?.verification_types ?? []).map((e) => {
     const level = verificationLevelView(e);
-    return { type: level.type, label: level.short, title: level.label, hint: level.hint };
+    return { type: level.type, label: level.short, title: level.label };
   }),
 );
 
