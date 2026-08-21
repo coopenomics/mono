@@ -3,9 +3,15 @@ import { backoffMinutes, EdubridgeAccessOutboxService, OUTBOX_MAX_ATTEMPTS } fro
 import { EduAccessCarrier, EduAccessState, EduAccessTaskKind, EduAccessTaskStatus } from '~/extensions/edubridge/domain/enums';
 import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT } from '~/extensions/edubridge/application/events/edubridge.events';
 
+let environment = 'production';
+jest.mock('@coopenomics/extension-kit', () => ({
+  ...jest.requireActual('@coopenomics/extension-kit'),
+  platformSettings: () => ({ coopname: 'voskhod', environment }),
+}));
+
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 
-function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?: Date | null } = {}) {
+function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?: Date | null; dryRun?: boolean } = {}) {
   const task = {
     id: 'T1', coopname: 'voskhod', enrollment_id: 'E1', kind: EduAccessTaskKind.GRANT, carrier: EduAccessCarrier.SKILLSPACE,
     trigger_trx: 'TRX', status: EduAccessTaskStatus.RUNNING, attempts: 0, next_attempt_at: new Date(), recipient_override: null, ...opts.task,
@@ -26,7 +32,8 @@ function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?:
   };
   const connectors = { get: jest.fn(() => connector) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, logger, events);
+  const config = { load: async () => ({ connectors: { dry_run: opts.dryRun ?? false } }), get: () => ({ connectors: { dry_run: opts.dryRun ?? false } }) } as any;
+  const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, config, logger, events);
   return { service, task, enrollment, tasks, connector, events, bindings };
 }
 
@@ -37,6 +44,24 @@ describe('backoffMinutes', () => {
 });
 
 describe('EdubridgeAccessOutboxService.processDue', () => {
+  beforeEach(() => { environment = 'production'; });
+
+  it('dry_run: запрос на площадку не отправляется, задача done с пометкой dry-run', async () => {
+    const { service, task, connector } = make({ dryRun: true, checkedAt: new Date() });
+    await service.processDue('voskhod');
+    expect(connector.grant).not.toHaveBeenCalled();
+    expect(task.status).toBe(EduAccessTaskStatus.DONE);
+    expect(task.last_result).toBe('dry-run');
+  });
+
+  it('вне production запись на площадки запрещена даже при dry_run=false', async () => {
+    environment = 'development';
+    const { service, connector, task } = make({ dryRun: false, checkedAt: new Date() });
+    await service.processDue('voskhod');
+    expect(connector.grant).not.toHaveBeenCalled();
+    expect(task.last_result).toBe('dry-run');
+  });
+
   it('успех: задача done, доступ GRANTED, событие granted, площадке ушёл только контакт', async () => {
     const { service, task, enrollment, connector, events } = make();
     await service.processDue('voskhod');

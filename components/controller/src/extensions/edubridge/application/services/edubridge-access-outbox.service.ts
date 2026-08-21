@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   EduAccessCarrier,
@@ -17,6 +18,7 @@ import { EdubridgeConnectorBindingRepository } from '../../infrastructure/reposi
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import {
   EDUBRIDGE_ACCESS_GRANTED_EVENT,
   EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT,
@@ -27,6 +29,11 @@ import {
 export const OUTBOX_MAX_ATTEMPTS = 10;
 /** Размер пачки воркера. */
 export const OUTBOX_BATCH = 20;
+/** Пишущие вызовы к площадкам разрешены только на рабочем контуре кооператива. */
+export function isProductionEnvironment(): boolean {
+  return platformSettings().environment === 'production';
+}
+
 /** Как долго верить сверке курса с площадкой. */
 export const CHECK_TTL_MS = 60 * 60_000;
 
@@ -59,6 +66,7 @@ export class EdubridgeAccessOutboxService {
     private readonly courses: EdubridgeCourseRepository,
     private readonly bindings: EdubridgeConnectorBindingRepository,
     private readonly connectors: AccessCarrierRegistry,
+    private readonly config: EdubridgeConfigHolder,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
   ) {
@@ -125,6 +133,12 @@ export class EdubridgeAccessOutboxService {
       course_ref: course.external_ref,
       enrollment_id: enrollment.id,
     };
+    // Режим «без записи»: боевые площадки от стендов и обкатки защищены — ничего не шлём.
+    if ((await this.config.load()).connectors.dry_run || !isProductionEnvironment()) {
+      this.logger.warn(`[EDU.OUTBOX] dry-run: ${task.kind} для подписки ${enrollment.id} на ${task.carrier} НЕ отправлен (course_ref=${course.external_ref})`);
+      return this.done(task, enrollment, { code: 'ok', message: 'dry-run: запрос на площадку не отправлялся' }, 'dry-run');
+    }
+
     const result = task.kind === EduAccessTaskKind.GRANT ? await connector.grant(request) : await connector.revoke(request);
     await this.bindings.touch(task.coopname, task.carrier, result);
 
@@ -133,10 +147,10 @@ export class EdubridgeAccessOutboxService {
     return this.fail(task, result);
   }
 
-  private async done(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
+  private async done(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult, resultLabel?: string): Promise<void> {
     task.status = EduAccessTaskStatus.DONE;
     task.attempts += 1;
-    task.last_result = result.code;
+    task.last_result = resultLabel ?? result.code;
     task.last_error = null;
     task.done_at = new Date();
     await this.tasks.save(task);

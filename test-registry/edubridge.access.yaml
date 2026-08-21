@@ -11,9 +11,14 @@ title: Образовательный мост — выдача и отзыв д
 # уведомление; exitcoop — досрочный отзыв всех подписок пайщика.
 #
 # Коннекторы по официальной документации: GetCourse — getcourse.ru/help/api;
-# Skillspace — открытый API school-настроек (help.skillspace.ru/api):
-# /api/open/v1/course/student-invite, /course/:id/student-remove. Живая
-# проверка — на тестовых аккаунтах владельца.
+# Skillspace — документация API школы (раздел «Настройки школы — API»):
+# /api/open/v1/course/student-invite, /course/:id/student-remove,
+# /school/course/list, /school/group/list, /course/structure.
+#
+# ЗАЩИТА БОЕВЫХ КУРСОВ: connectors.dry_run (по умолчанию true) и любой
+# контур кроме production — пишущие вызовы к площадкам не отправляются
+# вовсе, задачи помечаются «dry-run». Ключ школы владельца на стендах не
+# хранится; чтение реестров (course/list, group/list) безопасно.
 
 sources:
   backend:
@@ -107,7 +112,22 @@ cases:
   - id: edu.access.break.01
     level: backend
     kind: break
-    scenario: Живые ответы Skillspace/GetCourse на тестовых аккаунтах владельца.
-    expect: Коды и тексты ответов совпадают с ожиданиями; у Skillspace подтверждён формат courses[ID]=GROUP по документации в настройках школы.
+    scenario: Пишущие вызовы к площадкам на стенде или при dry_run.
+    expect: Не отправляются ни при каких условиях (environment !== production ИЛИ dry_run) — задача done с last_result «dry-run».
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.happy.05
+    level: backend
+    kind: happy
+    scenario: Skillspace check сверяет курс и группу по реестрам школы (course/list, group/list).
+    expect: Название курса возвращается для обнаружения переименования; чужая группа/неизвестный курс → found=false; 401 → unavailable.
+    test: components/controller/tests/unit/edubridge/connectors.test.ts
+    status: passing
+  - id: edu.access.side.08
+    level: backend
+    kind: side
+    scenario: Живой ключ школы Skillspace владельца — проверка только чтением (course/list, group/list выполнены 2026-08-21: 31 курс, ~100 групп).
+    expect: Пишущие методы (student-invite/remove) с боевым ключом не вызываются до явного разрешения владельца на тестовом курсе/группе.
     test: ~
     status: missing
+    decision_needed: true

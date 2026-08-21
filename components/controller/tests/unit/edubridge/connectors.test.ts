@@ -35,6 +35,20 @@ describe('SkillspaceConnector', () => {
     expect(fetchMock.mock.calls[1]![0]).toBe('https://skillspace.ru/api/open/v1/course/777/student-remove');
   });
 
+  it('check: курс и группа сверяются по реестрам школы — название курса, принадлежность группы', async () => {
+    const c = new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' }));
+    fetchMock.mockReturnValueOnce(ok([{ id: '777', name: '7 КЛАСС АЛГЕБРА' }]));
+    fetchMock.mockReturnValueOnce(ok([{ id: '12', courseId: '777', name: 'гр. 1' }]));
+    const r = await c.check('voskhod', '777:12');
+    expect(r).toEqual({ found: true, title: '7 КЛАСС АЛГЕБРА' });
+    expect(fetchMock.mock.calls[0]![0]).toBe('https://skillspace.ru/api/open/v1/school/course/list?token=TOK');
+    fetchMock.mockReturnValueOnce(ok([{ id: '777', name: 'X' }]));
+    fetchMock.mockReturnValueOnce(ok([{ id: '12', courseId: '999', name: 'гр. 1' }]));
+    expect((await c.check('voskhod', '777:12')).found).toBe(false);
+    fetchMock.mockReturnValueOnce(status(401));
+    expect((await c.check('voskhod', '777')).unavailable).toBe(true);
+  });
+
   it('без ключа — fatal NOT_CONFIGURED, сети не касаемся', async () => {
     const r = await new SkillspaceConnector(cfg({})).grant(req);
     expect(r.error_code).toBe('NOT_CONFIGURED');
