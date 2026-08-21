@@ -2473,6 +2473,9 @@ export const AllTypesProps: Record<string,any> = {
 	ParticipantApplicationSignedMetaDocumentInput:{
 
 	},
+	ParticipantIdentityForVerificationInput:{
+
+	},
 	ParticipantVerificationSource: "enum" as const,
 	ParticipantVerificationStatus: "enum" as const,
 	ParticipantVerificationType: "enum" as const,
@@ -3153,6 +3156,9 @@ export const AllTypesProps: Record<string,any> = {
 		membershipExitReturnPreview:{
 
 		},
+		participantIdentityForVerification:{
+			data:"ParticipantIdentityForVerificationInput"
+		},
 		paymentFile:{
 
 		},
@@ -3585,6 +3591,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -7248,6 +7258,23 @@ export const ReturnTypes: Record<string,any> = {
 	ParticipantCertificate:{
 		participant_certificate:"String"
 	},
+	ParticipantIdentityForVerification:{
+		birthdate:"String",
+		full_address:"String",
+		full_name:"String",
+		inn:"String",
+		ogrn:"String",
+		passport_code:"String",
+		passport_issued_at:"String",
+		passport_issued_by:"String",
+		passport_number:"String",
+		passport_series:"String",
+		representative_based_on:"String",
+		representative_name:"String",
+		representative_position:"String",
+		type:"AccountType",
+		username:"String"
+	},
 	ParticipantVerification:{
 		attested_by:"String",
 		attested_in:"String",
@@ -7760,6 +7787,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		membershipExit:"MembershipExit",
 		membershipExitReturnPreview:"MembershipExitReturnPreview",
+		participantIdentityForVerification:"ParticipantIdentityForVerification",
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",

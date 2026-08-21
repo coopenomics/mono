@@ -5,7 +5,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { AccountBadge, PageHint, VerificationConfirmDialog } from 'src/shared/ui/domain';
+import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
@@ -21,7 +22,6 @@ import {
 import {
   announceOrderReady,
   listIssuancesByBraname,
-  verifyParticipantOnsite,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
@@ -259,7 +259,6 @@ const pickupToIssueCount = computed(
 // (`orderer_verification_passed`); перед открытием выдачи оператор один раз
 // сверяет паспорт и подтверждает личность — дальше пайщик ходит без документа.
 const verifyDialogOpen = ref(false);
-const verifyLoading = ref(false);
 const pickupNeedsVerification = computed(() =>
   pickupOrders.value.some((o) => o.orderer_verification_passed === false),
 );
@@ -267,21 +266,14 @@ const pickupOrdererName = computed(
   () => pickupOrders.value.find((o) => o.orderer_name)?.orderer_name ?? '',
 );
 
-async function confirmPickupVerification(): Promise<void> {
-  verifyLoading.value = true;
+// Личность подтверждена — перечитываем ленту (заказы получателя больше не
+// заблокированы) и открываем выдачу, ради которой сверка и затевалась.
+async function onPickupVerified(): Promise<void> {
   try {
-    await verifyParticipantOnsite({
-      username: pickupAccount.value,
-      braname: braname.value,
-    });
-    SuccessAlert('Личность подтверждена — выдача разблокирована');
-    verifyDialogOpen.value = false;
     await load();
     startOpen(pickupOrders.value);
   } catch (e) {
     FailAlert(e);
-  } finally {
-    verifyLoading.value = false;
   }
 }
 
@@ -498,14 +490,14 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', @scanned='onQrScanned')
 
   //- Верификация личности получателя (единожды): без неё сервер не откроет
-  //- выдачу. Оператор сверяет данные пайщика с паспортом и подтверждает.
-  VerificationConfirmDialog(
+  //- выдачу. Оператор сверяет с паспортом данные пайщика, которые сервер
+  //- отдаёт только на время сверки.
+  VerifyIdentityDialog(
     v-model='verifyDialogOpen',
-    :full-name='pickupOrdererName',
     :username='pickupAccount',
-    hint='Получатель ещё не проходил верификацию личности. Попросите паспорт и сверьте фамилию, имя и отчество с данными выше. Подтверждение делается один раз — дальше пайщик приходит без документа.',
-    :loading='verifyLoading',
-    @confirm='confirmPickupVerification'
+    :full-name='pickupOrdererName',
+    :braname='braname',
+    @verified='onPickupVerified'
   )
 
   //- Резолв кода получения, когда открывать нечего: позиции ждут подтверждения

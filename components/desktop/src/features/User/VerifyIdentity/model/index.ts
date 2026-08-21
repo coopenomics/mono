@@ -3,18 +3,17 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { api } from '../api';
 
 /**
- * Управление верификацией личности пайщика из реестра совета: председатель
- * подтверждает личность по паспорту и может отозвать подтверждение. Участок
- * не передаётся — сверку проводит совет кооператива, и именно это фиксируется
- * в записи верификации.
+ * Управление верификацией личности пайщика. Участок передаёт оператор
+ * кооперативного участка — тогда сверка записывается за участком; совет
+ * кооператива участок не передаёт, и в записи стоит он.
  */
 export function useVerifyIdentity() {
   const loading = ref(false);
 
-  const verify = async (username: string): Promise<boolean> => {
+  const verify = async (username: string, braname?: string): Promise<boolean> => {
     try {
       loading.value = true;
-      await api.verifyParticipant({ username });
+      await api.verifyParticipant({ username, ...(braname ? { braname } : {}) });
       SuccessAlert('Личность пайщика подтверждена');
       return true;
     } catch (error: any) {

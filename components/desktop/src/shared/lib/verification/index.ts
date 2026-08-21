@@ -110,3 +110,77 @@ export function participantVerificationView(
     user_account: account.user_account ?? null,
   }).map((entry) => verificationLevelView(entry, naming));
 }
+
+/** Данные пайщика для сверки с документом (плоский набор полей от сервера). */
+export interface VerificationIdentity {
+  type: string;
+  full_name: string;
+  birthdate?: string | null;
+  passport_series?: string | null;
+  passport_number?: string | null;
+  passport_issued_by?: string | null;
+  passport_issued_at?: string | null;
+  passport_code?: string | null;
+  full_address?: string | null;
+  inn?: string | null;
+  ogrn?: string | null;
+  representative_name?: string | null;
+  representative_position?: string | null;
+  representative_based_on?: string | null;
+}
+
+/** Строка сверки: длинные значения (адрес, кем выдан) идут в две строки. */
+export interface VerificationIdentityFact {
+  label: string;
+  value: string;
+  wide?: boolean;
+}
+
+/**
+ * Что показать на экране сверки личности. Паспорт проверяют целиком — ФИО,
+ * дата рождения, серия и номер, кем и когда выдан, код подразделения, адрес
+ * регистрации, — иначе «сверка» сводится к взгляду на две цифры. У ИП и
+ * организаций паспорта в кооперативе нет: показываем то, по чему сверяют
+ * личность и полномочия. Пустые поля не выводим.
+ */
+export function verificationIdentityFacts(
+  identity: VerificationIdentity,
+  formatDate: (value?: string | null) => string,
+): VerificationIdentityFact[] {
+  const facts: VerificationIdentityFact[] = [];
+
+  if (identity.type === 'organization') {
+    facts.push({ label: 'Представитель', value: identity.representative_name ?? '', wide: true });
+    facts.push({ label: 'Должность', value: identity.representative_position ?? '' });
+    facts.push({ label: 'Действует на основании', value: identity.representative_based_on ?? '', wide: true });
+    facts.push({ label: 'ИНН', value: identity.inn ?? '' });
+    facts.push({ label: 'ОГРН', value: identity.ogrn ?? '' });
+    facts.push({ label: 'Юридический адрес', value: identity.full_address ?? '', wide: true });
+    return facts.filter((fact) => fact.value);
+  }
+
+  facts.push({ label: 'Дата рождения', value: formatDate(identity.birthdate) });
+
+  if (identity.type === 'entrepreneur') {
+    facts.push({ label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true });
+    facts.push({ label: 'ИНН', value: identity.inn ?? '' });
+    facts.push({ label: 'ОГРНИП', value: identity.ogrn ?? '' });
+    return facts.filter((fact) => fact.value);
+  }
+
+  const series = identity.passport_series ?? '';
+  const number = identity.passport_number ?? '';
+  if (series || number) facts.push({ label: 'Серия и номер', value: `${series} ${number}`.trim() });
+  facts.push({ label: 'Кем выдан', value: identity.passport_issued_by ?? '', wide: true });
+  facts.push({ label: 'Дата выдачи', value: formatDate(identity.passport_issued_at) });
+  facts.push({ label: 'Код подразделения', value: identity.passport_code ?? '' });
+  facts.push({ label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true });
+  return facts.filter((fact) => fact.value);
+}
+
+/** Что именно просят сверить — набор данных зависит от типа пайщика. */
+export function verificationHint(type: string): string {
+  return type === 'individual'
+    ? 'Сверьте с оригиналом паспорта все данные выше: фамилию, имя, отчество, дату рождения, серию и номер, кем и когда выдан, код подразделения и адрес регистрации. Подтверждение записывается в цепи от вашего имени и делается один раз.'
+    : 'Сверьте данные выше с документом, удостоверяющим личность, и с документом о полномочиях. Подтверждение записывается в цепи от вашего имени и делается один раз.';
+}

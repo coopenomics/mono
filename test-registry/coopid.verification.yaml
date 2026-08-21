@@ -10,6 +10,10 @@ title: Верификация личности пайщика (уровни на
 # «кооператив/участок». Отзыв — registrator::unverifyacc, председатель
 # кооператива, только по записям своего кооператива.
 #
+# Персональные данные для сверки сервер отдаёт только тому, кто вправе сверять,
+# и только пока личность не подтверждена: у оператора участка постоянного
+# доступа к данным пайщиков нет, каждая выдача пишется в аудит.
+#
 # Требуемые уровни для действий задаёт таблица verification_rules (per-coop);
 # правило выдачи имущества (marketplace.issue_property → passport_onsite)
 # сидируется миграцией V2.5.3. Выдача на столе заказов без верификации
@@ -148,6 +152,42 @@ cases:
     test: components/auth/test/certificate.test.ts
     status: passing
 
+  - id: cid.ver.happy.09
+    level: backend
+    kind: happy
+    scenario: запрос данных пайщика для сверки от председателя участка
+    expect: >
+      отдаются ФИО, дата рождения и паспорт целиком с адресом регистрации;
+      выдача пишется в аудит
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.12
+    level: backend
+    kind: side
+    scenario: запрос данных пайщика, чья личность уже подтверждена
+    expect: отказ — повод для выдачи исчерпан, аккаунт даже не читается
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.13
+    level: backend
+    kind: side
+    scenario: запрос данных от того, кто не вправе сверять, и по пайщику чужого кооператива
+    expect: отказ до чтения персональных данных
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.14
+    level: backend
+    kind: side
+    scenario: полномочия сверки — участок, совет, посторонний, несуществующий участок
+    expect: >
+      на участке сверяют председатель участка и доверенные лица, без участка —
+      председатель совета; остальным отказ, отзыв — только председателю совета
+    test: components/controller/src/application/auth-v2/verification/verification-authority.service.spec.ts
+    status: passing
+
   - id: cid.ver.happy.07
     level: backend
     kind: happy
@@ -180,6 +220,16 @@ cases:
       в деталях пайщика есть «Подтвердить личность» с диалогом сверки; после
       подтверждения уровень «Базовый» с подписью «подтвердил <ФИО>, совет
       кооператива», кнопка сменяется на «Отозвать верификацию»
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.10
+    level: ui
+    kind: happy
+    scenario: оператор ПВЗ открывает сверку личности получателя
+    expect: >
+      в окне сверки те же полные данные, что и у совета; после подтверждения
+      окно закрывается, лента перечитывается и открывается выдача
     test: ~
     status: missing
 

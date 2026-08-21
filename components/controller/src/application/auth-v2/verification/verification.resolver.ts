@@ -1,8 +1,12 @@
-import { ForbiddenException, UseGuards } from '@nestjs/common';
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser, GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import { VerificationOnsiteService } from './verification-onsite.service';
+import { VerificationIdentityService } from './verification-identity.service';
+import { VerificationAuthorityService } from './verification-authority.service';
 import {
+  ParticipantIdentityForVerificationDTO,
+  ParticipantIdentityForVerificationInputDTO,
   ParticipantVerificationDTO,
   UnverifyParticipantInputDTO,
   VerifyParticipantOnsiteInputDTO,
@@ -14,26 +18,38 @@ interface ICurrentUser {
   role: string;
 }
 
-/** Роль председателя совета — она даёт право распоряжаться верификациями. */
-const CHAIRMAN_ROLE = 'chairman';
-
 /**
  * GraphQL-фасад верификации личности пайщика.
  *
- * Верифицировать вправе кооперативный участок (председатель участка или его
+ * Сверять личность вправе кооперативный участок (председатель участка или его
  * доверенное лицо — тогда указан участок) либо совет кооператива (тогда участок
  * не указан); отзывать — председатель совета. Транзакцию подписывает кооператив:
- * личные ключи пайщиков хранятся у них самих. Поэтому полномочия участка
- * остаются на контракте (`registrator::verifyacc` сверяет таблицу участка),
- * а полномочия совета проверяются здесь — контракт кооперативу доверяет.
- *
- * Гард ролей (`RolesGuard`) для этого не годится: он пропускает запрос, когда
- * `data.username` совпадает с текущим пайщиком, и любой смог бы верифицировать
- * сам себя.
+ * личные ключи пайщиков хранятся у них самих, поэтому полномочия проверяет
+ * сервер (`VerificationAuthorityService`), а на участке их дополнительно
+ * подтверждает контракт по таблице участка.
  */
 @Resolver()
 export class VerificationResolver {
-  constructor(private readonly verificationOnsiteService: VerificationOnsiteService) {}
+  constructor(
+    private readonly verificationOnsiteService: VerificationOnsiteService,
+    private readonly verificationIdentityService: VerificationIdentityService,
+    private readonly verificationAuthorityService: VerificationAuthorityService,
+  ) {}
+
+  @Query(() => ParticipantIdentityForVerificationDTO, {
+    name: 'participantIdentityForVerification',
+    description: 'Данные пайщика для сверки с документом; выдаются, пока личность не подтверждена',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async participantIdentityForVerification(
+    @CurrentUser() user: ICurrentUser,
+    @Args('data') data: ParticipantIdentityForVerificationInputDTO,
+  ): Promise<ParticipantIdentityForVerificationDTO> {
+    return this.verificationIdentityService.getForVerification(
+      { username: user.username, role: user.role, braname: data.braname },
+      data.username,
+    );
+  }
 
   @Mutation(() => [ParticipantVerificationDTO], {
     name: 'verifyParticipantOnsite',
@@ -44,7 +60,11 @@ export class VerificationResolver {
     @CurrentUser() user: ICurrentUser,
     @Args('data') data: VerifyParticipantOnsiteInputDTO,
   ): Promise<ParticipantVerificationDTO[]> {
-    if (!data.braname) this.assertChairman(user, 'Подтверждать личность от имени совета вправе председатель совета');
+    await this.verificationAuthorityService.assertMayVerify({
+      username: user.username,
+      role: user.role,
+      braname: data.braname,
+    });
     return this.verificationOnsiteService.verifyOnsite(user.username, data.username, data.braname);
   }
 
@@ -57,11 +77,7 @@ export class VerificationResolver {
     @CurrentUser() user: ICurrentUser,
     @Args('data') data: UnverifyParticipantInputDTO,
   ): Promise<ParticipantVerificationDTO[]> {
-    this.assertChairman(user, 'Отзывать верификацию личности вправе председатель совета');
+    this.verificationAuthorityService.assertMayUnverify({ username: user.username, role: user.role });
     return this.verificationOnsiteService.unverify(user.username, data.username);
-  }
-
-  private assertChairman(user: ICurrentUser, message: string): void {
-    if (user.role !== CHAIRMAN_ROLE) throw new ForbiddenException(message);
   }
 }

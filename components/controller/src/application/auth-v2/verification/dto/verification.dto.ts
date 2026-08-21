@@ -1,5 +1,6 @@
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { InnerAccountType } from '@coopenomics/innercoop';
 import {
   VerificationSource,
   VerificationStatus,
@@ -71,4 +72,72 @@ export class UnverifyParticipantInputDTO {
   @IsString()
   @IsNotEmpty()
   username!: string;
+}
+
+@ObjectType('ParticipantIdentityForVerification', {
+  description: 'Данные пайщика для сверки с документом, удостоверяющим личность',
+})
+export class ParticipantIdentityForVerificationDTO {
+  @Field(() => String, { description: 'Имя аккаунта пайщика' })
+  username!: string;
+
+  @Field(() => InnerAccountType, { description: 'Тип пайщика' })
+  type!: InnerAccountType;
+
+  @Field(() => String, { description: 'ФИО или наименование' })
+  full_name!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата рождения' })
+  birthdate?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Серия паспорта' })
+  passport_series?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Номер паспорта' })
+  passport_number?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Кем выдан паспорт' })
+  passport_issued_by?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Дата выдачи паспорта' })
+  passport_issued_at?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Код подразделения' })
+  passport_code?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Адрес регистрации' })
+  full_address?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ИНН' })
+  inn?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ОГРН' })
+  ogrn?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ФИО представителя организации' })
+  representative_name?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Должность представителя' })
+  representative_position?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'На основании чего действует представитель' })
+  representative_based_on?: string | null;
+}
+
+@InputType('ParticipantIdentityForVerificationInput', {
+  description: 'Запрос данных пайщика для сверки личности перед подтверждением',
+})
+export class ParticipantIdentityForVerificationInputDTO {
+  @Field(() => String, { description: 'Имя аккаунта пайщика' })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Кооперативный участок, где идёт сверка; не указывается, если сверяет совет кооператива',
+  })
+  @IsString()
+  @IsOptional()
+  braname?: string;
 }

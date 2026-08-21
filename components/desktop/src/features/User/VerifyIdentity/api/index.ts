@@ -1,8 +1,24 @@
-import { Mutations } from '@coopenomics/sdk';
+import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 export type IVerifyParticipantInput = Mutations.Verification.VerifyParticipantOnsite.IInput['data'];
 export type IUnverifyParticipantInput = Mutations.Verification.UnverifyParticipant.IInput['data'];
+export type IParticipantIdentityInput =
+  Queries.Verification.ParticipantIdentityForVerification.IInput['data'];
+export type IParticipantIdentity =
+  Queries.Verification.ParticipantIdentityForVerification.IOutput[typeof Queries.Verification.ParticipantIdentityForVerification.name];
+
+/**
+ * Данные пайщика для сверки с документом. Сервер отдаёт их только тому, кто
+ * вправе сверять (участок или совет), и только пока личность не подтверждена.
+ */
+async function getIdentityForVerification(data: IParticipantIdentityInput): Promise<IParticipantIdentity> {
+  const { [Queries.Verification.ParticipantIdentityForVerification.name]: result } = await client.Query(
+    Queries.Verification.ParticipantIdentityForVerification.query,
+    { variables: { data } },
+  );
+  return result;
+}
 
 /**
  * Подтвердить личность пайщика по паспорту при личной явке. Полномочия
@@ -23,6 +39,7 @@ async function unverifyParticipant(data: IUnverifyParticipantInput): Promise<voi
 }
 
 export const api = {
+  getIdentityForVerification,
   verifyParticipant,
   unverifyParticipant,
 };
