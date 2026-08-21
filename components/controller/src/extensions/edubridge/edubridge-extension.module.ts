@@ -10,6 +10,7 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from './constants/edubridge.constants';
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
+import { EdubridgeDatabaseModule } from './infrastructure/database/edubridge-database.module';
 import { defaultConfig, type IConfig, Schema } from './types';
 
 /**
@@ -45,7 +46,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
 }
 
 @Module({
-  imports: [EdubridgeApplicationModule],
+  imports: [EdubridgeDatabaseModule, EdubridgeApplicationModule],
   providers: [EdubridgeExtension],
   exports: [EdubridgeExtension],
 })
