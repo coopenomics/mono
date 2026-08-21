@@ -601,8 +601,14 @@ export const AllTypesProps: Record<string,any> = {
 	EduCoursesFilterInput:{
 		status:"EduCourseStatus"
 	},
+	EduOfferKind: "enum" as const,
+	EduOnboardingSource: "enum" as const,
 	EduSetCourseStatusInput:{
 		status:"EduCourseStatus"
+	},
+	EduSignOfferInput:{
+		document:"SignedDigitalDocumentInput",
+		kind:"EduOfferKind"
 	},
 	EduUpdateCourseInput:{
 		carrier:"EduAccessCarrier",
@@ -1850,6 +1856,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeSetCourseStatus:{
 			data:"EduSetCourseStatusInput"
+		},
+		edubridgeSignOffer:{
+			input:"EduSignOfferInput"
 		},
 		edubridgeUpdateCourse:{
 			data:"EduUpdateCourseInput"
@@ -5025,6 +5034,17 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String",
 		updated_at:"DateTime"
 	},
+	EduOfferState:{
+		kind:"EduOfferKind",
+		registry_id:"Float",
+		requires_gate:"Boolean",
+		signed_at:"String",
+		source:"EduOnboardingSource"
+	},
+	EduOnboardingState:{
+		parent:"EduOfferState",
+		teacher:"EduOfferState"
+	},
 	Entrepreneur:{
 		birthdate:"String",
 		city:"String",
@@ -6696,6 +6716,7 @@ export const ReturnTypes: Record<string,any> = {
 		editBranch:"Branch",
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeSignOffer:"EduOnboardingState",
 		edubridgeUpdateCourse:"EduCourse",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
@@ -7490,6 +7511,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCatalogSubjects:"EduCatalogSubject",
 		edubridgeCourse:"EduCourse",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeOnboardingState:"EduOnboardingState",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

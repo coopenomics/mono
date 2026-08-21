@@ -8,3 +8,5 @@ export * as CatalogSubjects from './catalogSubjects'
 export * as Courses from './courses'
 /** Курс со служебными полями */
 export * as Course from './course'
+/** Подписаны ли оферты родителя-слушателя и преподавателя */
+export * as OnboardingState from './onboardingState'

@@ -11,6 +11,8 @@ import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-
 import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
+import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
+import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
 import { EdubridgeCourseService } from './services/edubridge-course.service';
 
 /** Слой приложения: резолверы, сервисы, доступ, провайдер грантов, политики. */
@@ -28,9 +30,11 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeCourseRepository,
     // Сервисы
     EdubridgeCourseService,
+    EdubridgeOnboardingService,
     // Резолверы
     EdubridgeCatalogResolver,
     EdubridgeCourseAdminResolver,
+    EdubridgeOnboardingResolver,
   ],
   exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService],
 })

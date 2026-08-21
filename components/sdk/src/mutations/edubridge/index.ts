@@ -4,3 +4,5 @@ export * as CreateCourse from './createCourse'
 export * as UpdateCourse from './updateCourse'
 /** Опубликовать, снять с публикации или архивировать курс */
 export * as SetCourseStatus from './setCourseStatus'
+/** Подписать оферту ЦПП «Образование» со стола */
+export * as SignOffer from './signOffer'

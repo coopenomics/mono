@@ -6527,11 +6527,43 @@ export type ValueTypes = {
 	/** Предмет */
 	subject?: string | undefined | null | Variable<any, string>
 };
+	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+["EduOfferKind"]:EduOfferKind;
+	["EduOfferState"]: AliasType<{
+	/** Оферта */
+	kind?:boolean | `@${string}`,
+	/** Шаблон экземпляра оферты в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Нужно подписать оферту, чтобы открыть стол */
+	requires_gate?:boolean | `@${string}`,
+	/** Когда подписана */
+	signed_at?:boolean | `@${string}`,
+	/** Источник состояния */
+	source?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduOfferState']?: Omit<ValueTypes["EduOfferState"], "...on EduOfferState">
+}>;
+	/** Состояние подключения пайщика к столу */
+["EduOnboardingSource"]:EduOnboardingSource;
+	["EduOnboardingState"]: AliasType<{
+	/** Оферта родителя-слушателя */
+	parent?:ValueTypes["EduOfferState"],
+	/** Оферта преподавателя */
+	teacher?:ValueTypes["EduOfferState"],
+		__typename?: boolean | `@${string}`,
+	['...on EduOnboardingState']?: Omit<ValueTypes["EduOnboardingState"], "...on EduOnboardingState">
+}>;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
 	/** Новое состояние */
 	status: ValueTypes["EduCourseStatus"] | Variable<any, string>
+};
+	["EduSignOfferInput"]: {
+	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Какая оферта подписывается */
+	kind: ValueTypes["EduOfferKind"] | Variable<any, string>
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -11944,6 +11976,7 @@ deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variab
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -13633,6 +13666,8 @@ edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueT
 	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -21052,11 +21087,41 @@ export type ResolverInputTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+["EduOfferKind"]:EduOfferKind;
+	["EduOfferState"]: AliasType<{
+	/** Оферта */
+	kind?:boolean | `@${string}`,
+	/** Шаблон экземпляра оферты в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Нужно подписать оферту, чтобы открыть стол */
+	requires_gate?:boolean | `@${string}`,
+	/** Когда подписана */
+	signed_at?:boolean | `@${string}`,
+	/** Источник состояния */
+	source?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние подключения пайщика к столу */
+["EduOnboardingSource"]:EduOnboardingSource;
+	["EduOnboardingState"]: AliasType<{
+	/** Оферта родителя-слушателя */
+	parent?:ResolverInputTypes["EduOfferState"],
+	/** Оферта преподавателя */
+	teacher?:ResolverInputTypes["EduOfferState"],
+		__typename?: boolean | `@${string}`
+}>;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
 	/** Новое состояние */
 	status: ResolverInputTypes["EduCourseStatus"]
+};
+	["EduSignOfferInput"]: {
+	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Какая оферта подписывается */
+	kind: ResolverInputTypes["EduOfferKind"]
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -26315,6 +26380,7 @@ deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]}
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -27936,6 +28002,8 @@ edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["Ed
 	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -35167,11 +35235,37 @@ export type ModelTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	["EduOfferKind"]:EduOfferKind;
+	["EduOfferState"]: {
+		/** Оферта */
+	kind: ModelTypes["EduOfferKind"],
+	/** Шаблон экземпляра оферты в реестре документов */
+	registry_id: number,
+	/** Нужно подписать оферту, чтобы открыть стол */
+	requires_gate: boolean,
+	/** Когда подписана */
+	signed_at?: string | undefined | null,
+	/** Источник состояния */
+	source: ModelTypes["EduOnboardingSource"]
+};
+	["EduOnboardingSource"]:EduOnboardingSource;
+	["EduOnboardingState"]: {
+		/** Оферта родителя-слушателя */
+	parent: ModelTypes["EduOfferState"],
+	/** Оферта преподавателя */
+	teacher: ModelTypes["EduOfferState"]
+};
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	/** Новое состояние */
 	status: ModelTypes["EduCourseStatus"]
+};
+	["EduSignOfferInput"]: {
+	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Какая оферта подписывается */
+	kind: ModelTypes["EduOfferKind"]
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -40614,6 +40708,8 @@ export type ModelTypes = {
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
+	/** Подписать оферту ЦПП «Образование» со стола */
+	edubridgeSignOffer: ModelTypes["EduOnboardingState"],
 	/** Изменить курс */
 	edubridgeUpdateCourse: ModelTypes["EduCourse"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
@@ -42624,6 +42720,8 @@ export type ModelTypes = {
 	edubridgeCourse: ModelTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
+	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -50284,11 +50382,43 @@ export type GraphQLTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+["EduOfferKind"]: EduOfferKind;
+	["EduOfferState"]: {
+	__typename: "EduOfferState",
+	/** Оферта */
+	kind: GraphQLTypes["EduOfferKind"],
+	/** Шаблон экземпляра оферты в реестре документов */
+	registry_id: number,
+	/** Нужно подписать оферту, чтобы открыть стол */
+	requires_gate: boolean,
+	/** Когда подписана */
+	signed_at?: string | undefined | null,
+	/** Источник состояния */
+	source: GraphQLTypes["EduOnboardingSource"],
+	['...on EduOfferState']: Omit<GraphQLTypes["EduOfferState"], "...on EduOfferState">
+};
+	/** Состояние подключения пайщика к столу */
+["EduOnboardingSource"]: EduOnboardingSource;
+	["EduOnboardingState"]: {
+	__typename: "EduOnboardingState",
+	/** Оферта родителя-слушателя */
+	parent: GraphQLTypes["EduOfferState"],
+	/** Оферта преподавателя */
+	teacher: GraphQLTypes["EduOfferState"],
+	['...on EduOnboardingState']: Omit<GraphQLTypes["EduOnboardingState"], "...on EduOnboardingState">
+};
 	["EduSetCourseStatusInput"]: {
 		/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	/** Новое состояние */
 	status: GraphQLTypes["EduCourseStatus"]
+};
+	["EduSignOfferInput"]: {
+		/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Какая оферта подписывается */
+	kind: GraphQLTypes["EduOfferKind"]
 };
 	["EduUpdateCourseInput"]: {
 		/** Носитель доступа */
@@ -56108,6 +56238,8 @@ export type GraphQLTypes = {
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
+	/** Подписать оферту ЦПП «Образование» со стола */
+	edubridgeSignOffer: GraphQLTypes["EduOnboardingState"],
 	/** Изменить курс */
 	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
@@ -58282,6 +58414,8 @@ export type GraphQLTypes = {
 	edubridgeCourse: GraphQLTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
+	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -60789,6 +60923,17 @@ export enum EduCourseStatus {
 	DRAFT = "DRAFT",
 	PUBLISHED = "PUBLISHED"
 }
+/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+export enum EduOfferKind {
+	PARENT = "PARENT",
+	TEACHER = "TEACHER"
+}
+/** Состояние подключения пайщика к столу */
+export enum EduOnboardingSource {
+	AGREEMENT_SIGNED = "AGREEMENT_SIGNED",
+	GATE_REQUIRED = "GATE_REQUIRED",
+	NOT_CONFIGURED = "NOT_CONFIGURED"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -61305,6 +61450,7 @@ export enum ProductCardType {
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
 	EDUCATION = "EDUCATION",
+	EDUCATION_TEACHING = "EDUCATION_TEACHING",
 	GENERATION = "GENERATION",
 	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
@@ -61672,7 +61818,10 @@ type ZEUS_VARIABLES = {
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
+	["EduOfferKind"]: ValueTypes["EduOfferKind"];
+	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
+	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
