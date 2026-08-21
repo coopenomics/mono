@@ -7,6 +7,7 @@ import {
   decodeTrustChain,
   verificationTypeLabel,
   deriveVerificationTypes,
+  highestVerificationType,
 } from '../src/certificate'
 import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
 
@@ -123,6 +124,32 @@ describe('certificateStatus', () => {
   it('exp далеко → active', () => {
     const exp = (now + CERTIFICATE_EXPIRING_WINDOW_MS + 10 * 60 * 1000) / 1000
     expect(certificateStatus({ exp }, now)).toBe('active')
+  })
+})
+
+describe('highestVerificationType', () => {
+  it('из достигнутых ступеней берёт верхнюю — её и показывают пайщику', () => {
+    expect(highestVerificationType(['coop_baseline', 'passport_onsite'])).toBe('passport_onsite')
+  })
+
+  it('порядок в списке не влияет: лестницу задаёт не он', () => {
+    expect(highestVerificationType(['passport_onsite', 'coop_baseline'])).toBe('passport_onsite')
+  })
+
+  it('отзыв верхней ступени оставляет предыдущую', () => {
+    expect(highestVerificationType(['coop_baseline'])).toBe('coop_baseline')
+  })
+
+  it('ни одной ступени — уровня нет', () => {
+    expect(highestVerificationType([])).toBeUndefined()
+  })
+
+  it('незнакомый тип не вытесняет знакомый: клиент мог отстать от сервера', () => {
+    expect(highestVerificationType(['coop_baseline', 'kyc_from_future'])).toBe('coop_baseline')
+  })
+
+  it('незнакомый тип в одиночку не теряется', () => {
+    expect(highestVerificationType(['kyc_from_future'])).toBe('kyc_from_future')
   })
 })
 

@@ -1,8 +1,10 @@
 import {
   deriveVerificationTypes,
+  highestVerificationType,
   verificationTypeLabel,
   verificationTypeShortLabel,
 } from '@coopenomics/auth';
+import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 
 /** Данные аккаунта, достаточные для вывода уровней верификации. */
 export interface VerificationSourceAccount {
@@ -109,6 +111,33 @@ export function participantVerificationView(
     participant_account: account.participant_account ?? null,
     user_account: account.user_account ?? null,
   }).map((entry) => verificationLevelView(entry, naming));
+}
+
+/**
+ * Цвет ступени. Уровни идут цепочкой снизу вверх, и цвет показывает, докуда
+ * пайщик поднялся: синий — вступил, зелёный — личность сверена с документом.
+ * Новый уровень получает свой цвет здесь; незнакомому даём нейтральный, чтобы
+ * не выдать его за подтверждённый сильнее, чем он есть.
+ */
+const LEVEL_VARIANTS: Record<string, BaseBadgeVariant> = {
+  coop_baseline: 'info',
+  passport_onsite: 'pos',
+};
+
+export function verificationBadgeVariant(type: string): BaseBadgeVariant {
+  return LEVEL_VARIANTS[type] ?? 'neutral';
+}
+
+/**
+ * Текущий уровень пайщика — самый высокий из достигнутых. Показываем ровно
+ * один: уровни складываются в лестницу, и человеку важно, докуда он поднялся,
+ * а не перечень пройденных ступеней. Отзовут верхний — останется предыдущий.
+ */
+export function highestVerificationLevel(
+  levels: ParticipantVerificationView[],
+): ParticipantVerificationView | null {
+  const type = highestVerificationType(levels.map((level) => level.type));
+  return levels.find((level) => level.type === type) ?? null;
 }
 
 /** Данные пайщика для сверки с документом (плоский набор полей от сервера). */

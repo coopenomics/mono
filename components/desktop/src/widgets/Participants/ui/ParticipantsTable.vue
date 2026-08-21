@@ -40,13 +40,9 @@ q-table.participants-table(
 
       q-td
         .participants-table__verification
-          template(v-if='verificationView(props.row).length')
-            BaseBadge(
-              v-for='level in verificationView(props.row)',
-              :key='level.type',
-              variant='info'
-            ) {{ level.short }}
-              q-tooltip {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
+          template(v-if='currentLevel(props.row)')
+            BaseBadge(:variant='verificationBadgeVariant(currentLevel(props.row).type)') {{ currentLevel(props.row).short }}
+              q-tooltip {{ currentLevel(props.row).label }}{{ currentLevel(props.row).hint ? ` — ${currentLevel(props.row).hint}` : '' }}
           BaseBadge(v-else, variant='neutral') Не верифицирован
             q-tooltip Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок
 
@@ -83,7 +79,12 @@ import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { getAccountStatusBadge } from 'src/entities/Account';
-import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
+import {
+  highestVerificationLevel,
+  participantVerificationView,
+  verificationBadgeVariant,
+  type VerificationNaming,
+} from 'src/shared/lib/verification';
 import {
   type IAccount,
   type IIndividualData,
@@ -160,8 +161,10 @@ const columns: any[] = [
   },
 ];
 
-// Уровни верификации пайщика (единый маппинг из @coopenomics/auth).
-const verificationView = (row: IAccount) => participantVerificationView(row, props.naming);
+// Текущий уровень верификации пайщика — один, самый высокий из достигнутых:
+// уровни складываются в лестницу, и совету важно, докуда пайщик поднялся.
+const currentLevel = (row: IAccount) =>
+  highestVerificationLevel(participantVerificationView(row, props.naming));
 
 // Форматирование даты
 const formatDate = (date?: string) =>

@@ -95,6 +95,31 @@ export const VERIFICATION_TYPE_LABELS: Record<string, string> = {
   passport_onsite: 'Базовый: личность сверена с паспортом',
 }
 
+/**
+ * Лестница уровней снизу вверх. Уровни — независимые факты-подтверждения, но
+ * пайщику и совету показывается ровно один: тот, до которого он поднялся.
+ * Отсюда порядок — он же определяет, какой уровень считается текущим, и что
+ * останется, если верхний отзовут. Новый уровень добавляется сюда же.
+ */
+export const VERIFICATION_LEVEL_ORDER: readonly string[] = ['coop_baseline', 'passport_onsite']
+
+/** Место уровня в лестнице; неизвестный — ниже всех (клиент отстал от сервера). */
+export function verificationLevelRank(type: string): number {
+  return VERIFICATION_LEVEL_ORDER.indexOf(type)
+}
+
+/**
+ * Текущий уровень пайщика — самый высокий из достигнутых. Пусто, если нет ни
+ * одного. Незнакомый тип не вытесняет знакомый, но и не теряется: когда он
+ * единственный, вернётся он.
+ */
+export function highestVerificationType(types: readonly string[]): string | undefined {
+  if (!types.length) return undefined
+  return types.reduce((best, type) =>
+    verificationLevelRank(type) > verificationLevelRank(best) ? type : best,
+  )
+}
+
 /** Описание типа верификации; неизвестный — отдаём как есть (forward-compat). */
 export function verificationTypeLabel(type: string): string {
   return VERIFICATION_TYPE_LABELS[type] ?? type

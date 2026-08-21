@@ -4,11 +4,17 @@
 .participant-details
   .participant-details__verification
     .participant-details__verification-title.t-sm.t-muted Верификация личности
-    template(v-if='verificationLevels.length')
-      .participant-details__verification-row(v-for='level in verificationLevels', :key='level.type')
-        BaseBadge(variant='info') {{ level.short }}
-        span {{ level.label }}
-        span.t-sm.t-muted(v-if='level.hint') {{ level.hint }}
+    template(v-if='currentLevel')
+      .participant-details__verification-row
+        BaseBadge(:variant='verificationBadgeVariant(currentLevel.type)') {{ currentLevel.short }}
+        span {{ currentLevel.label }}
+        span.t-sm.t-muted(v-if='currentLevel.hint') {{ currentLevel.hint }}
+      //- Пройденные ступени — без бейджей: бейдж показывает, где пайщик сейчас,
+      //- а это подписи к тому, чем каждая ступень подтверждена.
+      .participant-details__verification-step(
+        v-for='level in passedLevels',
+        :key='level.type'
+      ) {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
     .participant-details__verification-row(v-else)
       BaseBadge(variant='neutral') Не верифицирован
       span.t-sm.t-muted Личность подтверждает председатель совета или кооперативный участок при предъявлении паспорта
@@ -37,7 +43,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
-import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification'
+import {
+  highestVerificationLevel,
+  participantVerificationView,
+  verificationBadgeVariant,
+  type VerificationNaming,
+} from 'src/shared/lib/verification'
 import { VerifyIdentityActions } from 'src/features/User/VerifyIdentity'
 import { EditableEntrepreneurCard } from 'src/shared/ui/EditableEntrepreneurCard'
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard'
@@ -84,6 +95,12 @@ const organizationParticipantData = computed((): IOrganizationData | null => {
 // Уровни верификации пайщика — единый маппинг из @coopenomics/auth.
 const verificationLevels = computed(() => participantVerificationView(props.participant, props.naming))
 
+// Бейдж один — текущая ступень; остальные достигнутые уходят подписями ниже.
+const currentLevel = computed(() => highestVerificationLevel(verificationLevels.value))
+const passedLevels = computed(() =>
+  verificationLevels.value.filter((level) => level.type !== currentLevel.value?.type),
+)
+
 // События
 const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurData) => {
   emit('update', newData)
@@ -111,6 +128,14 @@ const onUpdate = (newData: IIndividualData | IOrganizationData | IEntrepreneurDa
   align-items: center;
   gap: var(--p-2);
   flex-wrap: wrap;
+}
+
+/* Пройденная ступень — подпись под текущей, с отступом под ширину бейджа. */
+.participant-details__verification-step {
+  padding-left: var(--p-6);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-3);
 }
 
 /* Форму держим читаемой шириной, не растягиваем на весь экран */

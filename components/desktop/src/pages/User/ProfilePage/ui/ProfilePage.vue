@@ -39,12 +39,10 @@
                       size='16px'
                     )
                 .cert__warn(v-if='!isEndorsed') Удостоверение не утверждено АНО
-          DataRow(v-if='verificationEntries.length', label='Уровень верификации')
+          DataRow(v-if='verificationLevel', label='Уровень верификации')
             template(#value-override)
-              .cert__verifications
-                .cert__verification(v-for='entry in verificationEntries', :key='entry.type')
-                  BaseChip(variant='info') {{ entry.label }}
-                    q-tooltip {{ entry.title }}
+              BaseChip(:variant='verificationLevel.variant') {{ verificationLevel.label }}
+                q-tooltip {{ verificationLevel.title }}
 
       //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
       .cert__qr(v-if='certLoading')
@@ -210,7 +208,11 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
 import { decodeTrustChain } from '@coopenomics/auth';
-import { verificationLevelView } from 'src/shared/lib/verification';
+import {
+  highestVerificationLevel,
+  verificationBadgeVariant,
+  verificationLevelView,
+} from 'src/shared/lib/verification';
 import { formatDocumentDate } from 'src/shared/lib/utils/dates';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
@@ -282,17 +284,19 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
-// Уровни верификации в удостоверении: короткий лейбл в чипе, полное описание в
-// тултипе. Кто и когда подтвердил — пайщику не показываем: своё удостоверение он
-// и так предъявляет как есть, а служебные подробности проверки его не касаются.
-// Совету они нужны — там подпись уровня показана в реестре пайщиков.
+// Уровень верификации в удостоверении: один чип — тот, до которого пайщик
+// поднялся. Уровни складываются в лестницу, и перечислять пройденные ступени
+// незачем: важно, где он сейчас. Кто и когда подтвердил — не показываем: своё
+// удостоверение пайщик предъявляет как есть, а подробности проверки его не
+// касаются; совету они видны в реестре пайщиков.
 // Словари лейблов общие (`verificationLevelView`), дубль в UI запрещён.
-const verificationEntries = computed(() =>
-  (certificate.value?.verification_types ?? []).map((e) => {
-    const level = verificationLevelView(e);
-    return { type: level.type, label: level.short, title: level.label };
-  }),
-);
+const verificationLevel = computed(() => {
+  const levels = (certificate.value?.verification_types ?? []).map((e) => verificationLevelView(e));
+  const current = highestVerificationLevel(levels);
+  return current
+    ? { label: current.short, title: current.label, variant: verificationBadgeVariant(current.type) }
+    : null;
+});
 
 
 // Показ удостоверения. Скачивания намеренно нет: удостоверение несёт персональные
@@ -541,21 +545,8 @@ const getRepresentativeName = (representative: any) => {
   gap: var(--p-2);
   flex: none;
 }
-/* Значения-чипы в строках: цепочка подписей и уровень верификации выровнены по
-   правому краю так же, как обычные значения соседних строк. */
-.cert__verifications {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
-.cert__verification {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  flex-wrap: wrap;
-}
-
+/* Значения-чипы в строках: цепочка подписей выровнена по правому краю так же,
+   как обычные значения соседних строк. */
 .cert__chips {
   display: flex;
   align-items: center;
