@@ -23,7 +23,7 @@
     {
     
       for (const auto& ver : a.verifications) {
-        eosio::check(ver.procedure == "online"_n, "Онлайн верификация уже проведена");
+        eosio::check(!(ver.procedure == "online"_n && ver.is_verified), "Онлайн верификация уже проведена");
       }
       
       verification new_verification {

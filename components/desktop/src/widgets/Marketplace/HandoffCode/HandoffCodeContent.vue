@@ -2,8 +2,9 @@
 import { computed } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
-import { EmptyState } from 'src/shared/ui/base';
-import { encodeHandoffToken } from 'src/shared/lib/marketplace';
+import { BaseBanner, EmptyState } from 'src/shared/ui/base';
+import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { participantVerificationView } from 'src/shared/lib/verification';
 import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
 
 /**
@@ -31,6 +32,18 @@ const session = useSessionStore();
 
 const copy = computed(() => HANDOFF_CODE_COPY[props.kind]);
 
+// Верификация личности (105-28): без базового уровня (паспорт на КУ) оператор
+// не откроет выдачу. Предупреждаем заранее — пайщик берёт паспорт с собой;
+// после первой верификации предупреждение исчезает навсегда.
+const needsPassportWarning = computed(() => {
+  if (props.kind !== HandoffTokenKind.Receive) return false;
+  const levels = participantVerificationView({
+    participant_account: session.participantAccount,
+    user_account: session.userAccount,
+  });
+  return !levels.some((level) => level.type === 'passport_onsite');
+});
+
 const code = computed(() =>
   session.username
     ? encodeHandoffToken({
@@ -44,6 +57,10 @@ const code = computed(() =>
 
 <template lang="pug">
 .handoff-code(v-if="code")
+  BaseBanner(v-if="needsPassportWarning", variant="warn")
+    | Возьмите с собой паспорт: при первом получении оператор сверит вашу
+    | личность и подтвердит её в системе. Это делается один раз — дальше
+    | документ не понадобится.
   HandoffQr(:value="code", :size="size", :caption="copy.caption")
 EmptyState(
   v-else,

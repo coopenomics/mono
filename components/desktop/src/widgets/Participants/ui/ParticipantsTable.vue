@@ -38,6 +38,14 @@ q-table.participants-table(
         .participants-table__status
           BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
 
+      q-td
+        .participants-table__verification
+          template(v-if='currentLevel(props.row)')
+            BaseBadge(:variant='verificationBadgeVariant(currentLevel(props.row).type)') {{ currentLevel(props.row).short }}
+              q-tooltip {{ currentLevel(props.row).label }}{{ currentLevel(props.row).hint ? ` — ${currentLevel(props.row).hint}` : '' }}
+          BaseBadge(v-else, variant='neutral') Не верифицирован
+            q-tooltip Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок
+
     q-tr.q-virtual-scroll--with-prev.no-hover(
       no-hover,
       v-if='expanded.get(props.row.username)',
@@ -47,15 +55,19 @@ q-table.participants-table(
       q-td.no-hover(colspan='100%' style="padding: 0px !important;")
         ParticipantDetails(
           :participant='props.row',
-          @update='(newData) => onUpdate(props.row, newData)'
+          :naming='naming',
+          @update='(newData) => onUpdate(props.row, newData)',
+          @verification-changed='emit("verification-changed")'
         )
 
   template(#item='props')
     ParticipantCard(
       :participant='props.row',
       :expanded='expanded.get(props.row.username)',
+      :naming='naming',
       @toggle-expand='() => onToggleExpand(props.row.username)',
-      @update='onUpdate'
+      @update='onUpdate',
+      @verification-changed='emit("verification-changed")'
     )
 </template>
 
@@ -68,6 +80,12 @@ import { getName } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import {
+  highestVerificationLevel,
+  participantVerificationView,
+  verificationBadgeVariant,
+  type VerificationNaming,
+} from 'src/shared/lib/verification';
+import {
   type IAccount,
   type IIndividualData,
   type IOrganizationData,
@@ -75,14 +93,17 @@ import {
 } from 'src/entities/Account/types';
 
 // Props
-defineProps<{
+const props = defineProps<{
   accounts: IAccount[];
   loading: boolean;
+  /** Как называть верификатора и участок в подписи уровня. */
+  naming?: VerificationNaming;
 }>();
 
 // Emits
 const emit = defineEmits<{
   (e: 'toggle-expand', id: string): void;
+  (e: 'verification-changed'): void;
   (
     e: 'update',
     account: IAccount,
@@ -132,7 +153,18 @@ const columns: any[] = [
     field: 'status',
     sortable: true,
   },
+  {
+    name: 'verification',
+    align: 'left',
+    label: 'Верификация',
+    field: 'verification',
+  },
 ];
+
+// Текущий уровень верификации пайщика — один, самый высокий из достигнутых:
+// уровни складываются в лестницу, и совету важно, докуда пайщик поднялся.
+const currentLevel = (row: IAccount) =>
+  highestVerificationLevel(participantVerificationView(row, props.naming));
 
 // Форматирование даты
 const formatDate = (date?: string) =>
@@ -166,6 +198,13 @@ const onUpdate = (
   display: flex;
   align-items: center;
   gap: var(--p-2, 8px);
+}
+
+.participants-table__verification {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  flex-wrap: wrap;
 }
 
 /* Грид-режим (мобайл): карточки во всю ширину. Вертикальный отступ задаёт

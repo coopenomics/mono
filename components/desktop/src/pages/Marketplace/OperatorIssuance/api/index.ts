@@ -190,3 +190,4 @@ export async function declineStockProposal(proposal_id: string): Promise<Marketp
 export async function cancelStockOrder(data: CancelStockOrderInput): Promise<void> {
   await client.Mutation(Mutations.Marketplace.CancelStockOrder.mutation, { variables: { data } });
 }
+

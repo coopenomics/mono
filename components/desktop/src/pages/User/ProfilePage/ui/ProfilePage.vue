@@ -39,14 +39,10 @@
                       size='16px'
                     )
                 .cert__warn(v-if='!isEndorsed') Удостоверение не утверждено АНО
-          DataRow(v-if='verificationLabels.length', label='Уровень верификации')
+          DataRow(v-if='verificationLevel', label='Уровень верификации')
             template(#value-override)
-              .cert__chips
-                BaseChip(
-                  v-for='(label, i) in verificationLabels',
-                  :key='i',
-                  variant='info'
-                ) {{ label }}
+              BaseChip(:variant='verificationLevel.variant') {{ verificationLevel.label }}
+                q-tooltip {{ verificationLevel.title }}
 
       //- Код — справа, отдельной колонкой: его предъявляют, а не читают.
       .cert__qr(v-if='certLoading')
@@ -96,7 +92,7 @@
     DataRow(
       v-if='hasBirthdate',
       label='Дата рождения',
-      :value='formatDate(getBirthdate())'
+      :value='formatDocumentDate(getBirthdate())'
     )
     DataRow(
       v-if='currentProfile.full_address',
@@ -121,7 +117,7 @@
       DataRow(label='Серия и номер паспорта', :value='passportSeriesNumber')
       DataRow(
         label='Дата выдачи',
-        :value='formatDate(individualProfile.passport.issued_at)'
+        :value='formatDocumentDate(individualProfile.passport.issued_at)'
       )
       DataRow(label='Код подразделения', :value='individualProfile.passport.code')
       DataRow(
@@ -212,6 +208,12 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
 import { decodeTrustChain } from '@coopenomics/auth';
+import {
+  highestVerificationLevel,
+  verificationBadgeVariant,
+  verificationLevelView,
+} from 'src/shared/lib/verification';
+import { formatDocumentDate } from 'src/shared/lib/utils/dates';
 import { fetchParticipantCertificate } from '../api';
 import type { ParticipantCertificate } from '../api';
 
@@ -282,17 +284,19 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
 });
 
-// Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).
-// Уровни верификации: сейчас есть только базовый — членство подтверждено самим
-// кооперативом. Дальше добавятся уровни, подтверждённые документами.
-const VERIFICATION_LABELS: Record<string, string> = {
-  coop_baseline: 'Базовый',
-};
-// Структурная форма claim (Story 4.3): отображаем лейбл по типу; verified_at/source —
-// в UI пока не выводим (отдельная verstka-история).
-const verificationLabels = computed(() =>
-  (certificate.value?.verification_types ?? []).map((e) => VERIFICATION_LABELS[e.type] ?? e.type),
-);
+// Уровень верификации в удостоверении: один чип — тот, до которого пайщик
+// поднялся. Уровни складываются в лестницу, и перечислять пройденные ступени
+// незачем: важно, где он сейчас. Кто и когда подтвердил — не показываем: своё
+// удостоверение пайщик предъявляет как есть, а подробности проверки его не
+// касаются; совету они видны в реестре пайщиков.
+// Словари лейблов общие (`verificationLevelView`), дубль в UI запрещён.
+const verificationLevel = computed(() => {
+  const levels = (certificate.value?.verification_types ?? []).map((e) => verificationLevelView(e));
+  const current = highestVerificationLevel(levels);
+  return current
+    ? { label: current.short, title: current.label, variant: verificationBadgeVariant(current.type) }
+    : null;
+});
 
 
 // Показ удостоверения. Скачивания намеренно нет: удостоверение несёт персональные
@@ -483,13 +487,6 @@ const getBirthdate = () => {
   return undefined;
 };
 
-// Утилиты для форматирования
-const formatDate = (dateString: string | undefined) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU');
-};
-
 const getOrganizationType = (type: string | undefined) => {
   const types: Record<string, string> = {
     coop: 'Потребительский кооператив',
@@ -548,8 +545,8 @@ const getRepresentativeName = (representative: any) => {
   gap: var(--p-2);
   flex: none;
 }
-/* Значения-чипы в строках: цепочка подписей и уровень верификации выровнены по
-   правому краю так же, как обычные значения соседних строк. */
+/* Значения-чипы в строках: цепочка подписей выровнена по правому краю так же,
+   как обычные значения соседних строк. */
 .cert__chips {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-export type { CertificateRenewalHandle, CertificateStatus, TrustChainLink, CoopIdSchemaPolicy, ParticipantCertificateClaims, ScheduleCertificateRenewalOptions, SchemaPolicyCache, SchemaPolicyCacheOptions, VerificationTypeClaim } from './certificate'
+export type { CertificateRenewalHandle, CertificateStatus, ChainVerificationRecord, TrustChainLink, CoopIdSchemaPolicy, ParticipantCertificateClaims, ScheduleCertificateRenewalOptions, SchemaPolicyCache, SchemaPolicyCacheOptions, VerificationTypeClaim } from './certificate'
 export {
   CERTIFICATE_EXPIRING_WINDOW_MS,
   CERTIFICATE_RENEWAL_LEAD_MS,
@@ -13,7 +13,15 @@ export {
   SCHEMA_POLICY_CACHE_TTL_MS,
   SCHEMA_POLICY_WELL_KNOWN_PATH,
   VERIFICATION_TYPE_LABELS,
+  VERIFICATION_TYPE_SHORT_LABELS,
+  VERIFICATION_LEVEL_ORDER,
+  verificationLevelRank,
+  highestVerificationType,
   verificationTypeLabel,
+  verificationTypeShortLabel,
+  CHAIN_PROCEDURE_TO_TYPE,
+  deriveVerificationTypes,
+  branchFromNotice,
 } from './certificate'
 
 export type { KeyValidityWindow, VerifyDocumentParams, VerifyDocumentReason, VerifyDocumentResult, VerifyOfflineOptions, VerifyOfflineReason, VerifyOfflineResult } from './chain'

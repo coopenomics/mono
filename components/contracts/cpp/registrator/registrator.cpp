@@ -34,3 +34,5 @@
 #include "src/coop/decparticpnt.cpp"
 
 #include "src/verification/verificate.cpp"
+#include "src/verification/verifyacc.cpp"
+#include "src/verification/unverifyacc.cpp"

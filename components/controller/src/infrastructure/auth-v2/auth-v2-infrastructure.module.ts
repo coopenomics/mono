@@ -6,6 +6,7 @@ import { TWO_FACTOR_REPOSITORY } from '~/domain/auth-v2/ports/two-factor.port';
 import { OFFLINE_RECOVERY_CODE_REPOSITORY } from '~/domain/auth-v2/ports/offline-recovery-code.port';
 import { RECOVERY_STRATEGY_REPOSITORY } from '~/domain/auth-v2/ports/recovery-strategy.port';
 import { VERIFICATION_RULE_REPOSITORY } from '~/domain/auth-v2/ports/verification-rule.port';
+import { VERIFICATION_REVIEW_REPOSITORY } from '~/domain/auth-v2/ports/verification-review.port';
 import { KNOWN_DEVICES_STORE } from '~/domain/auth-v2/ports/known-devices-store.port';
 import { NEW_DEVICE_NOTIFICATION_THROTTLE } from '~/domain/auth-v2/ports/new-device-notification-throttle.port';
 import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
@@ -33,6 +34,7 @@ import { PostgresTwoFactorRepository } from './postgres-two-factor.repository';
 import { PostgresOfflineRecoveryCodeRepository } from './postgres-offline-recovery-code.repository';
 import { PostgresRecoveryStrategyRepository } from './postgres-recovery-strategy.repository';
 import { PostgresVerificationRuleRepository } from './postgres-verification-rule.repository';
+import { PostgresVerificationReviewRepository } from './postgres-verification-review.repository';
 import { RedisKnownDevicesStore } from './redis-known-devices.store';
 import { RedisNewDeviceNotificationThrottleStore } from './redis-new-device-notification-throttle.store';
 import { RedisSessionMetadataStore } from './redis-session-metadata.store';
@@ -62,6 +64,7 @@ import { RedisLoginChallengeStore } from './redis-login-challenge.store';
     { provide: OFFLINE_RECOVERY_CODE_REPOSITORY, useClass: PostgresOfflineRecoveryCodeRepository },
     { provide: RECOVERY_STRATEGY_REPOSITORY, useClass: PostgresRecoveryStrategyRepository },
     { provide: VERIFICATION_RULE_REPOSITORY, useClass: PostgresVerificationRuleRepository },
+    { provide: VERIFICATION_REVIEW_REPOSITORY, useClass: PostgresVerificationReviewRepository },
     { provide: KNOWN_DEVICES_STORE, useClass: RedisKnownDevicesStore },
     { provide: NEW_DEVICE_NOTIFICATION_THROTTLE, useClass: RedisNewDeviceNotificationThrottleStore },
     { provide: SESSION_METADATA_PORT, useClass: RedisSessionMetadataStore },
@@ -81,6 +84,6 @@ import { RedisLoginChallengeStore } from './redis-login-challenge.store';
     { provide: AUTHENTIK_ADMIN_PORT, useClass: AuthentikAdminAdapter },
     { provide: CERT_KEY_CRYPTO_PORT, useClass: CertKeyCryptoAdapter },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, VERIFICATION_REVIEW_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
 })
 export class AuthV2InfrastructureModule {}

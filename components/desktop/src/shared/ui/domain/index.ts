@@ -24,5 +24,6 @@ export * from './PersonCard';
 export * from './PinPad';
 export * from './RailUserCard';
 export * from './SignatureCard';
+export * from './VerificationConfirmDialog';
 export * from './VerticalStepper';
 export * from './WalletCard';

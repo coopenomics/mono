@@ -283,6 +283,22 @@ export interface IVerificate {
   procedure: IName
 }
 
+export interface IVerifyacc {
+  coopname: IName
+  /** Кооперативный участок, где проведена сверка; пусто, если верифицирует совет кооператива. */
+  braname: IName
+  verificator: IName
+  username: IName
+  procedure: IName
+}
+
+export interface IUnverifyacc {
+  coopname: IName
+  chairman: IName
+  username: IName
+  procedure: IName
+}
+
 export interface IVerification {
   verificator: IName
   is_verified: boolean

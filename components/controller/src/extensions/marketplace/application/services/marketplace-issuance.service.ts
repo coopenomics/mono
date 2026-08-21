@@ -10,7 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -39,6 +39,7 @@ import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { presentSaleUnit } from '../shared/packaging.util';
 import { calcCostAmount, compareMoney } from '../shared/cost.util';
 import { isStockOrder } from '../shared/order-kind.util';
+import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { toQuantityAsset } from '../shared/quantity.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
@@ -116,6 +117,7 @@ export class MarketplaceIssuanceService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -163,6 +165,23 @@ export class MarketplaceIssuanceService {
     });
   }
 
+  /**
+   * Гейт верификации личности (105-28): имущество выдаётся только получателю,
+   * чья личность подтверждена требуемым уровнем (правило кооператива для
+   * действия выдачи; по умолчанию passport_onsite — сверка паспорта на КУ).
+   */
+  private async assertRecipientVerified(ordererAccount: string): Promise<void> {
+    const verification = await this.verificationPort.checkRequired(
+      ordererAccount,
+      MARKETPLACE_ISSUE_ACTION_CODE
+    );
+    if (!verification.passed) {
+      throw new ConflictException(
+        'Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите открытие выдачи.'
+      );
+    }
+  }
+
   async openIssuance(input: MarketplaceOpenIssuanceInput): Promise<MarketplaceIssuanceResult> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     if (order.status !== 'ACCEPTED_TO_COOP') {
@@ -179,6 +198,10 @@ export class MarketplaceIssuanceService {
     if (Number.parseFloat(input.actual_unit_price) <= 0) {
       throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
     }
+
+    // Гейт верификации личности (105-28) — до подписи акта: председатель/
+    // оператор сперва верифицирует пайщика, затем открывает выдачу.
+    await this.assertRecipientVerified(order.orderer_account);
 
     // Гард склада: выдать можно только то, что физически принято на склад КУ
     // по этому заказу и ещё не выдано. Без него акт подписывался на заказанное

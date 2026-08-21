@@ -1,0 +1,294 @@
+feature: coopid.verification
+title: Верификация личности пайщика (уровни начальный/базовый)
+
+# Задача 105-28 (проект 13, компонент CoopID). Уровни верификации — независимые
+# факты-подтверждения: начальный (coop_baseline) выводится из принятого членства,
+# базовый (passport_onsite) пишется он-чейн действием registrator::verifyacc —
+# личность с паспортом лично сверяет либо кооперативный участок (председатель
+# участка или доверенное лицо, участок указан), либо совет кооператива
+# (участок не указан). Контекст сверки контракт пишет в notice как
+# «кооператив/участок». Отзыв — registrator::unverifyacc, председатель
+# кооператива, только по записям своего кооператива.
+#
+# Персональные данные для сверки сервер отдаёт только тому, кто вправе сверять,
+# и только пока личность не подтверждена: у оператора участка постоянного
+# доступа к данным пайщиков нет, каждая выдача пишется в аудит.
+#
+# Требуемые уровни для действий задаёт таблица verification_rules (per-coop);
+# правило выдачи имущества (marketplace.issue_property → passport_onsite)
+# сидируется миграцией V2.5.3. Выдача на столе заказов без верификации
+# получателя отклоняется сервером до подписи акта.
+
+sources:
+  contract:
+    - components/contracts/cpp/registrator/src/verification/*.cpp
+    - components/contracts/cpp/lib/domain/table_registrator_verification.hpp
+  backend:
+    - components/controller/src/application/auth-v2/verification/**
+    - components/controller/src/domain/auth-v2/verification/**
+    - components/controller/src/domain/auth-v2/ports/verification-source.port.ts
+    - components/controller/src/infrastructure/innercoop/verification-innercoop.adapter.ts
+    - components/controller/src/extensions/marketplace/application/shared/verification-action.const.ts
+    - components/auth/src/certificate/index.ts
+  ui:
+    - components/desktop/src/shared/lib/verification/**
+    - components/desktop/src/widgets/Participants/**
+    - components/desktop/src/features/User/VerifyIdentity/**
+    - components/desktop/src/shared/lib/utils/dates/formatDocumentDate.ts
+    - components/desktop/src/shared/ui/domain/VerificationConfirmDialog/**
+    - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    - components/desktop/src/widgets/Marketplace/HandoffCode/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cid.ver.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Доверенное лицо кооперативного участка проводит верификацию пайщика по
+      паспорту (verifyacc с procedure=passport)
+    expect: >
+      в аккаунте пайщика появляется запись верификации с верификатором,
+      процедурой passport и контекстом «кооператив/участок»
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.01
+    level: contract
+    kind: side
+    scenario: verifyacc вызывает пайщик, не входящий в круг председателя и доверенных лиц участка
+    expect: отказ — верификацию проводит председатель участка или доверенное лицо
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.02
+    level: contract
+    kind: side
+    scenario: повторный verifyacc той же процедуры тому же пайщику
+    expect: отказ — верификация по этой процедуре уже проведена
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.03
+    level: contract
+    kind: side
+    scenario: unverifyacc от председателя чужого кооператива (запись сделана другим кооперативом)
+    expect: отказ — отзыв доступен только кооперативу, чей участок проводил верификацию
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.04
+    level: contract
+    kind: side
+    scenario: verifyacc для человека, не являющегося действующим пайщиком кооператива
+    expect: отказ — пайщик не является действующим членом кооператива
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.06
+    level: contract
+    kind: happy
+    scenario: >
+      председатель совета проводит верификацию из реестра пайщиков (verifyacc
+      без указания участка)
+    expect: >
+      запись верификации появляется с председателем как верификатором и
+      контекстом «кооператив/» — без участка
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.09
+    level: contract
+    kind: side
+    scenario: verifyacc без участка вызывает пайщик, не входящий в совет и не имеющий права на действие
+    expect: отказ — недостаточно прав доступа к действию
+    test: ~
+    status: missing
+
+  # ── Уровень backend ───────────────────────────────────────────────────────
+
+  - id: cid.ver.happy.02
+    level: backend
+    kind: happy
+    scenario: он-чейн запись passport у принятого пайщика
+    expect: >
+      резолвер отдаёт оба уровня — coop_baseline из членства и passport_onsite
+      с attested_by из записи участка
+    test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.05
+    level: backend
+    kind: side
+    scenario: отозванная (is_verified=false) и незнакомая (online) процедуры в векторе
+    expect: уровня не дают — резолвер их игнорирует
+    test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.06
+    level: backend
+    kind: side
+    scenario: дубликат типа из двух источников верификации
+    expect: схлопывается — выигрывает более ранний источник в наборе
+    test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.07
+    level: backend
+    kind: side
+    scenario: оператор открывает выдачу заказа получателю без базовой верификации
+    expect: отказ до подписи акта — «получатель не прошёл верификацию личности»
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
+
+  - id: cid.ver.happy.03
+    level: backend
+    kind: happy
+    scenario: derive-хелпер пакета auth выводит уровни из данных аккаунта
+    expect: >
+      начальный из принятого членства, базовый из он-чейн записи passport с
+      автором проверки; отозванные и незнакомые процедуры уровня не дают
+    test: components/auth/test/certificate.test.ts
+    status: passing
+
+  - id: cid.ver.happy.09
+    level: backend
+    kind: happy
+    scenario: запрос данных пайщика для сверки от председателя участка
+    expect: >
+      отдаются ФИО, дата рождения и паспорт целиком с адресом регистрации;
+      выдача пишется в аудит
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.12
+    level: backend
+    kind: side
+    scenario: запрос данных пайщика, чья личность уже подтверждена
+    expect: отказ — повод для выдачи исчерпан, аккаунт даже не читается
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.13
+    level: backend
+    kind: side
+    scenario: запрос данных от того, кто не вправе сверять, и по пайщику чужого кооператива
+    expect: отказ до чтения персональных данных
+    test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    status: passing
+
+  - id: cid.ver.side.14
+    level: backend
+    kind: side
+    scenario: полномочия сверки — участок, совет, посторонний, несуществующий участок
+    expect: >
+      на участке сверяют председатель участка и доверенные лица, без участка —
+      председатель совета; остальным отказ, отзыв — только председателю совета
+    test: components/controller/src/application/auth-v2/verification/verification-authority.service.spec.ts
+    status: passing
+
+  - id: cid.ver.happy.07
+    level: backend
+    kind: happy
+    scenario: запись верификации без участка в контексте (сверял совет кооператива)
+    expect: >
+      уровень получает источник «сверка советом», участок пустой; с участком —
+      источник «сверка на участке» и имя участка рядом
+    test: components/auth/test/certificate.test.ts
+    status: passing
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cid.ver.side.15
+    level: ui
+    kind: side
+    scenario: удостоверение пайщика в личном кабинете
+    expect: >
+      уровни показаны чипами с описанием в подсказке; кто и когда подтвердил —
+      не выводится, это служебная подробность проверки
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      реестр пайщиков: колонка «Верификация» показывает уровни чипами, фильтр
+      отбирает пайщиков без базового уровня
+    expect: чипы уровней в строке, блок фактов в раскрытых деталях, фильтр работает
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.06.ui
+    level: ui
+    kind: happy
+    scenario: >
+      председатель совета из реестра пайщиков подтверждает личность пайщика по
+      паспорту и затем отзывает подтверждение
+    expect: >
+      в деталях пайщика есть «Подтвердить личность» с диалогом сверки; после
+      подтверждения уровень «Базовый» с подписью «подтвердил <ФИО>, совет
+      кооператива», кнопка сменяется на «Отозвать верификацию»
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.10
+    level: ui
+    kind: happy
+    scenario: оператор ПВЗ открывает сверку личности получателя
+    expect: >
+      в окне сверки те же полные данные, что и у совета; после подтверждения
+      окно закрывается, лента перечитывается и открывается выдача
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.08
+    level: ui
+    kind: happy
+    scenario: диалог сверки личности у физлица
+    expect: >
+      показаны все данные, проверяемые по паспорту: ФИО, дата рождения, серия и
+      номер, кем и когда выдан, код подразделения, адрес регистрации — даты в
+      виде ДД.ММ.ГГГГ
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.11
+    level: ui
+    kind: side
+    scenario: диалог сверки у ИП и у организации — паспортных данных в кооперативе нет
+    expect: >
+      показано то, что есть (дата рождения и адрес у ИП; представитель,
+      должность, основание полномочий и реквизиты у организации), а подсказка
+      обещает сверку с документом, а не с паспортом; пустые поля не выводятся
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.10
+    level: ui
+    kind: side
+    scenario: реестр пайщиков открывает пайщик, не являющийся председателем совета
+    expect: кнопок управления верификацией нет; сервер отказывает и при прямом вызове
+    test: ~
+    status: missing
+
+  - id: cid.ver.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      оператор ПВЗ сканирует QR неверифицированного получателя, сверяет паспорт
+      и подтверждает личность
+    expect: >
+      диалог «Проверка личности» блокирует выдачу до подтверждения; после
+      подтверждения выдача открывается, при повторном визите диалога нет
+    test: ~
+    status: missing
+
+  - id: cid.ver.side.08
+    level: ui
+    kind: side
+    scenario: неверифицированный заказчик открывает экран «Показать QR»
+    expect: предупреждение «возьмите с собой паспорт» над QR-кодом
+    test: ~
+    status: missing

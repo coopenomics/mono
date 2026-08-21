@@ -152,6 +152,7 @@ export class MarketplaceIssuanceResolver {
     const display = await this.displayService.enrich([updated], {
       withParticipantNames: true,
       withWarehouseQuantity: true,
+      withOrdererVerification: true,
     });
     return toMarketplaceOrderDTO(updated, display.get(updated.id));
   }
@@ -196,6 +197,7 @@ export class MarketplaceIssuanceResolver {
     const display = await this.displayService.enrich(orders, {
       withParticipantNames: true,
       withWarehouseQuantity: true,
+      withOrdererVerification: true,
     });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }

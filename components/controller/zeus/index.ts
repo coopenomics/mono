@@ -1790,6 +1790,11 @@ export type ValueTypes = {
 	/** Хэш заявки */
 	hash: string | Variable<any, string>
 };
+	/** Утверждение сверки личности советом */
+["ApproveVerificationInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string | Variable<any, string>
+};
 	["ArchiveComponentMetricInput"]: {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
@@ -5528,7 +5533,7 @@ export type ValueTypes = {
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ValueTypes["Verification"],
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeOperatorAccount']?: Omit<ValueTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
@@ -10158,6 +10163,8 @@ export type ValueTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -11786,6 +11793,7 @@ addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<a
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -12081,6 +12089,7 @@ publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionIn
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
+rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -12112,6 +12121,7 @@ startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string
 submitExpenseReport?: [{	data: ValueTypes["SubmitExpenseReportInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ValueTypes["TriggerNotificationWorkflowInput"] | Variable<any, string>},boolean | `@${string}`],
 uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<any, string>},boolean | `@${string}`],
+unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
@@ -12121,6 +12131,7 @@ updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes
 uploadExpenseFile?: [{	data: ValueTypes["UploadExpenseFileInput"] | Variable<any, string>},ValueTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ValueTypes["UploadPaymentProofInput"] | Variable<any, string>},ValueTypes["PaymentFile"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
+verifyParticipantOnsite?: [{	data: ValueTypes["VerifyParticipantOnsiteInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},ValueTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`,
@@ -12865,6 +12876,71 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ParticipantCertificate']?: Omit<ValueTypes["ParticipantCertificate"], "...on ParticipantCertificate">
 }>;
+	/** Данные пайщика для сверки с документом, удостоверяющим личность */
+["ParticipantIdentityForVerification"]: AliasType<{
+	/** Дата рождения */
+	birthdate?:boolean | `@${string}`,
+	/** Адрес регистрации */
+	full_address?:boolean | `@${string}`,
+	/** ФИО или наименование */
+	full_name?:boolean | `@${string}`,
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** ОГРН */
+	ogrn?:boolean | `@${string}`,
+	/** Код подразделения */
+	passport_code?:boolean | `@${string}`,
+	/** Дата выдачи паспорта */
+	passport_issued_at?:boolean | `@${string}`,
+	/** Кем выдан паспорт */
+	passport_issued_by?:boolean | `@${string}`,
+	/** Номер паспорта */
+	passport_number?:boolean | `@${string}`,
+	/** Серия паспорта */
+	passport_series?:boolean | `@${string}`,
+	/** На основании чего действует представитель */
+	representative_based_on?:boolean | `@${string}`,
+	/** ФИО представителя организации */
+	representative_name?:boolean | `@${string}`,
+	/** Должность представителя */
+	representative_position?:boolean | `@${string}`,
+	/** Тип пайщика */
+	type?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantIdentityForVerification']?: Omit<ValueTypes["ParticipantIdentityForVerification"], "...on ParticipantIdentityForVerification">
+}>;
+	/** Запрос данных пайщика для сверки личности перед подтверждением */
+["ParticipantIdentityForVerificationInput"]: {
+	/** Кооперативный участок, где идёт сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
+};
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: AliasType<{
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?:boolean | `@${string}`,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?:boolean | `@${string}`,
+	/** Кто подтвердил */
+	source?:boolean | `@${string}`,
+	/** Статус подтверждения */
+	status?:boolean | `@${string}`,
+	/** Уровень верификации */
+	type?:boolean | `@${string}`,
+	/** Момент подтверждения */
+	verified_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantVerification']?: Omit<ValueTypes["ParticipantVerification"], "...on ParticipantVerification">
+}>;
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -13886,6 +13962,7 @@ marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ValueTypes["Marketplace
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 membershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExit"]],
 membershipExitReturnPreview?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExitReturnPreview"]],
+participantIdentityForVerification?: [{	data: ValueTypes["ParticipantIdentityForVerificationInput"] | Variable<any, string>},ValueTypes["ParticipantIdentityForVerification"]],
 paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
@@ -13893,6 +13970,8 @@ processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pa
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
 validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["FieldError"]],
+verificationReviewPhotos?: [{	data: ValueTypes["VerificationReviewPhotosInput"] | Variable<any, string>},ValueTypes["VerificationReviewPhoto"]],
+verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefined | null | Variable<any, string>},ValueTypes["VerificationReview"]],
 		__typename?: boolean | `@${string}`,
 	['...on Query']?: Omit<ValueTypes["Query"], "...on Query">
 }>;
@@ -14092,6 +14171,13 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on RegistrationProgram']?: Omit<ValueTypes["RegistrationProgram"], "...on RegistrationProgram">
 }>;
+	/** Отклонение сверки личности советом */
+["RejectVerificationInput"]: {
+	/** Причина отклонения — её увидит участок */
+	reason: string | Variable<any, string>,
+	/** Идентификатор записи журнала */
+	review_id: string | Variable<any, string>
+};
 	["RemoveAvailableCategoriesInput"]: {
 	/** ID категорий для удаления */
 	categoryIds: Array<number> | Variable<any, string>
@@ -15198,6 +15284,11 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 		__typename?: boolean | `@${string}`,
 	['...on UnreadNotificationsCount']?: Omit<ValueTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 }>;
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ValueTypes["UpdateOrganizationDataInput"] | undefined | null | Variable<any, string>,
@@ -15480,7 +15571,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ValueTypes["Verification"],
 		__typename?: boolean | `@${string}`,
 	['...on UserAccount']?: Omit<ValueTypes["UserAccount"], "...on UserAccount">
@@ -15577,9 +15668,89 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 		__typename?: boolean | `@${string}`,
 	['...on Verification']?: Omit<ValueTypes["Verification"], "...on Verification">
 }>;
+	/** Снимок сверки личности */
+["VerificationPhotoInput"]: {
+	/** SHA-256 содержимого в hex */
+	checksum_sha256: string | Variable<any, string>,
+	/** Содержимое файла в base64 */
+	content_base64: string | Variable<any, string>,
+	/** MIME-тип снимка */
+	mime_type: string | Variable<any, string>,
+	/** Исходное имя файла */
+	original_filename?: string | undefined | null | Variable<any, string>,
+	/** Размер файла в байтах */
+	size_bytes: number | Variable<any, string>
+};
+	/** Запись журнала верификаций: одна сверка личности и её судьба */
+["VerificationReview"]: AliasType<{
+	/** Участок, где сверяли; пусто — сверял совет кооператива */
+	braname?:boolean | `@${string}`,
+	/** Момент сверки */
+	created_at?:boolean | `@${string}`,
+	/** Момент решения */
+	decided_at?:boolean | `@${string}`,
+	/** Кто вынес решение */
+	decided_by?:boolean | `@${string}`,
+	/** Причина отклонения или отзыва */
+	decision_reason?:boolean | `@${string}`,
+	/** Идентификатор записи */
+	id?:boolean | `@${string}`,
+	/** Сколько снимков приложено; после решения совета — ноль */
+	photos_count?:boolean | `@${string}`,
+	/** Процедура сверки */
+	procedure?:boolean | `@${string}`,
+	/** Состояние проверки */
+	status?:boolean | `@${string}`,
+	/** Пайщик, чью личность сверяли */
+	username?:boolean | `@${string}`,
+	/** Кто сверил личность */
+	verificator?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on VerificationReview']?: Omit<ValueTypes["VerificationReview"], "...on VerificationReview">
+}>;
+	/** Ссылка на снимок сверки, действительна несколько минут */
+["VerificationReviewPhoto"]: AliasType<{
+	/** MIME-тип снимка */
+	mime_type?:boolean | `@${string}`,
+	/** Короткоживущая ссылка на снимок */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах */
+	size_bytes?:boolean | `@${string}`,
+	/** Ключ объекта в хранилище кооператива */
+	storage_key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on VerificationReviewPhoto']?: Omit<ValueTypes["VerificationReviewPhoto"], "...on VerificationReviewPhoto">
+}>;
+	/** Запрос снимков сверки для проверки советом */
+["VerificationReviewPhotosInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string | Variable<any, string>
+};
+	/** Состояние проверки сверки личности советом кооператива */
+["VerificationReviewStatus"]:VerificationReviewStatus;
+	/** Отбор записей журнала верификаций */
+["VerificationReviewsInput"]: {
+	/** Только по этому кооперативному участку */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Сколько записей вернуть (не больше 200) */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Только записи в этом состоянии */
+	status?: ValueTypes["VerificationReviewStatus"] | undefined | null | Variable<any, string>,
+	/** Только по этому пайщику */
+	username?: string | undefined | null | Variable<any, string>
+};
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string | Variable<any, string>
+};
+	/** Верификация личности пайщика по паспорту при личной явке */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Снимки сверки: пайщик, разворот паспорта, пайщик с паспортом. На участке обязательны */
+	photos?: Array<ValueTypes["VerificationPhotoInput"]> | undefined | null | Variable<any, string>,
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -16511,6 +16682,11 @@ export type ResolverInputTypes = {
 	countersigned_authority: ResolverInputTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	/** Утверждение сверки личности советом */
+["ApproveVerificationInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string
 };
 	["ArchiveComponentMetricInput"]: {
 	/** Хеш метрики */
@@ -20157,7 +20333,7 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ResolverInputTypes["Verification"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -24675,6 +24851,8 @@ export type ResolverInputTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -26242,6 +26420,7 @@ addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},Res
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
@@ -26537,6 +26716,7 @@ publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDe
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
+rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
@@ -26568,6 +26748,7 @@ startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@$
 submitExpenseReport?: [{	data: ResolverInputTypes["SubmitExpenseReportInput"]},ResolverInputTypes["Transaction"]],
 triggerNotificationWorkflow?: [{	data: ResolverInputTypes["TriggerNotificationWorkflowInput"]},boolean | `@${string}`],
 uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boolean | `@${string}`],
+unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
 updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
@@ -26577,6 +26758,7 @@ updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["System
 uploadExpenseFile?: [{	data: ResolverInputTypes["UploadExpenseFileInput"]},ResolverInputTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ResolverInputTypes["UploadPaymentProofInput"]},ResolverInputTypes["PaymentFile"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
+verifyParticipantOnsite?: [{	data: ResolverInputTypes["VerifyParticipantOnsiteInput"]},ResolverInputTypes["ParticipantVerification"]],
 voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
 		__typename?: boolean | `@${string}`
@@ -27279,6 +27461,69 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	participant_certificate?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Данные пайщика для сверки с документом, удостоверяющим личность */
+["ParticipantIdentityForVerification"]: AliasType<{
+	/** Дата рождения */
+	birthdate?:boolean | `@${string}`,
+	/** Адрес регистрации */
+	full_address?:boolean | `@${string}`,
+	/** ФИО или наименование */
+	full_name?:boolean | `@${string}`,
+	/** ИНН */
+	inn?:boolean | `@${string}`,
+	/** ОГРН */
+	ogrn?:boolean | `@${string}`,
+	/** Код подразделения */
+	passport_code?:boolean | `@${string}`,
+	/** Дата выдачи паспорта */
+	passport_issued_at?:boolean | `@${string}`,
+	/** Кем выдан паспорт */
+	passport_issued_by?:boolean | `@${string}`,
+	/** Номер паспорта */
+	passport_number?:boolean | `@${string}`,
+	/** Серия паспорта */
+	passport_series?:boolean | `@${string}`,
+	/** На основании чего действует представитель */
+	representative_based_on?:boolean | `@${string}`,
+	/** ФИО представителя организации */
+	representative_name?:boolean | `@${string}`,
+	/** Должность представителя */
+	representative_position?:boolean | `@${string}`,
+	/** Тип пайщика */
+	type?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запрос данных пайщика для сверки личности перед подтверждением */
+["ParticipantIdentityForVerificationInput"]: {
+	/** Кооперативный участок, где идёт сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: AliasType<{
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?:boolean | `@${string}`,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?:boolean | `@${string}`,
+	/** Кто подтвердил */
+	source?:boolean | `@${string}`,
+	/** Статус подтверждения */
+	status?:boolean | `@${string}`,
+	/** Уровень верификации */
+	type?:boolean | `@${string}`,
+	/** Момент подтверждения */
+	verified_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -28273,6 +28518,7 @@ marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ResolverInputTypes["Mar
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 membershipExit?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExit"]],
 membershipExitReturnPreview?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExitReturnPreview"]],
+participantIdentityForVerification?: [{	data: ResolverInputTypes["ParticipantIdentityForVerificationInput"]},ResolverInputTypes["ParticipantIdentityForVerification"]],
 paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
@@ -28280,6 +28526,8 @@ processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: Resolv
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
 validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["FieldError"]],
+verificationReviewPhotos?: [{	data: ResolverInputTypes["VerificationReviewPhotosInput"]},ResolverInputTypes["VerificationReviewPhoto"]],
+verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] | undefined | null},ResolverInputTypes["VerificationReview"]],
 		__typename?: boolean | `@${string}`
 }>;
 	/** Вопрос повестки собрания с результатами голосования */
@@ -28471,6 +28719,13 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Отклонение сверки личности советом */
+["RejectVerificationInput"]: {
+	/** Причина отклонения — её увидит участок */
+	reason: string,
+	/** Идентификатор записи журнала */
+	review_id: string
+};
 	["RemoveAvailableCategoriesInput"]: {
 	/** ID категорий для удаления */
 	categoryIds: Array<number>
@@ -29542,6 +29797,11 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	count?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ResolverInputTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -29824,7 +30084,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	type?:boolean | `@${string}`,
 	/** Имя аккаунта */
 	username?:boolean | `@${string}`,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications?:ResolverInputTypes["Verification"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -29918,9 +30178,87 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	verificator?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Снимок сверки личности */
+["VerificationPhotoInput"]: {
+	/** SHA-256 содержимого в hex */
+	checksum_sha256: string,
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** MIME-тип снимка */
+	mime_type: string,
+	/** Исходное имя файла */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах */
+	size_bytes: number
+};
+	/** Запись журнала верификаций: одна сверка личности и её судьба */
+["VerificationReview"]: AliasType<{
+	/** Участок, где сверяли; пусто — сверял совет кооператива */
+	braname?:boolean | `@${string}`,
+	/** Момент сверки */
+	created_at?:boolean | `@${string}`,
+	/** Момент решения */
+	decided_at?:boolean | `@${string}`,
+	/** Кто вынес решение */
+	decided_by?:boolean | `@${string}`,
+	/** Причина отклонения или отзыва */
+	decision_reason?:boolean | `@${string}`,
+	/** Идентификатор записи */
+	id?:boolean | `@${string}`,
+	/** Сколько снимков приложено; после решения совета — ноль */
+	photos_count?:boolean | `@${string}`,
+	/** Процедура сверки */
+	procedure?:boolean | `@${string}`,
+	/** Состояние проверки */
+	status?:boolean | `@${string}`,
+	/** Пайщик, чью личность сверяли */
+	username?:boolean | `@${string}`,
+	/** Кто сверил личность */
+	verificator?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Ссылка на снимок сверки, действительна несколько минут */
+["VerificationReviewPhoto"]: AliasType<{
+	/** MIME-тип снимка */
+	mime_type?:boolean | `@${string}`,
+	/** Короткоживущая ссылка на снимок */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах */
+	size_bytes?:boolean | `@${string}`,
+	/** Ключ объекта в хранилище кооператива */
+	storage_key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запрос снимков сверки для проверки советом */
+["VerificationReviewPhotosInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string
+};
+	/** Состояние проверки сверки личности советом кооператива */
+["VerificationReviewStatus"]:VerificationReviewStatus;
+	/** Отбор записей журнала верификаций */
+["VerificationReviewsInput"]: {
+	/** Только по этому кооперативному участку */
+	braname?: string | undefined | null,
+	/** Сколько записей вернуть (не больше 200) */
+	limit?: number | undefined | null,
+	/** Только записи в этом состоянии */
+	status?: ResolverInputTypes["VerificationReviewStatus"] | undefined | null,
+	/** Только по этому пайщику */
+	username?: string | undefined | null
+};
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика по паспорту при личной явке */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Снимки сверки: пайщик, разворот паспорта, пайщик с паспортом. На участке обязательны */
+	photos?: Array<ResolverInputTypes["VerificationPhotoInput"]> | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -30827,6 +31165,11 @@ export type ModelTypes = {
 	countersigned_authority: ModelTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	/** Утверждение сверки личности советом */
+["ApproveVerificationInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string
 };
 	["ArchiveComponentMetricInput"]: {
 	/** Хеш метрики */
@@ -34374,7 +34717,7 @@ export type ModelTypes = {
 	type: string,
 	/** Имя аккаунта кооператива */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<ModelTypes["Verification"]>
 };
 	["CooperativeProgram"]: {
@@ -38726,6 +39069,8 @@ export type ModelTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?: boolean | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
@@ -40223,6 +40568,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Совет подтвердил сверку личности; снимки удаляются */
+	approveVerification: ModelTypes["VerificationReview"],
 	/** Архивировать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -41187,6 +41534,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
+	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
+	rejectVerification: ModelTypes["VerificationReview"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -41273,6 +41622,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
+	/** Отозвать верификацию личности пайщика */
+	unverifyParticipant: Array<ModelTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -41305,6 +41656,8 @@ export type ModelTypes = {
 	uploadPaymentProof: ModelTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
+	/** Подтвердить личность пайщика по паспорту при личной явке */
+	verifyParticipantOnsite: Array<ModelTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -41964,6 +42317,64 @@ export type ModelTypes = {
 		/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
 	participant_certificate: string
 };
+	/** Данные пайщика для сверки с документом, удостоверяющим личность */
+["ParticipantIdentityForVerification"]: {
+		/** Дата рождения */
+	birthdate?: string | undefined | null,
+	/** Адрес регистрации */
+	full_address?: string | undefined | null,
+	/** ФИО или наименование */
+	full_name: string,
+	/** ИНН */
+	inn?: string | undefined | null,
+	/** ОГРН */
+	ogrn?: string | undefined | null,
+	/** Код подразделения */
+	passport_code?: string | undefined | null,
+	/** Дата выдачи паспорта */
+	passport_issued_at?: string | undefined | null,
+	/** Кем выдан паспорт */
+	passport_issued_by?: string | undefined | null,
+	/** Номер паспорта */
+	passport_number?: string | undefined | null,
+	/** Серия паспорта */
+	passport_series?: string | undefined | null,
+	/** На основании чего действует представитель */
+	representative_based_on?: string | undefined | null,
+	/** ФИО представителя организации */
+	representative_name?: string | undefined | null,
+	/** Должность представителя */
+	representative_position?: string | undefined | null,
+	/** Тип пайщика */
+	type: ModelTypes["AccountType"],
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Запрос данных пайщика для сверки личности перед подтверждением */
+["ParticipantIdentityForVerificationInput"]: {
+	/** Кооперативный участок, где идёт сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: {
+		/** Кто провёл верификацию (аккаунт) */
+	attested_by?: string | undefined | null,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?: string | undefined | null,
+	/** Кто подтвердил */
+	source: ModelTypes["ParticipantVerificationSource"],
+	/** Статус подтверждения */
+	status: ModelTypes["ParticipantVerificationStatus"],
+	/** Уровень верификации */
+	type: ModelTypes["ParticipantVerificationType"],
+	/** Момент подтверждения */
+	verified_at: string
+};
+	["ParticipantVerificationSource"]:ParticipantVerificationSource;
+	["ParticipantVerificationStatus"]:ParticipantVerificationStatus;
+	["ParticipantVerificationType"]:ParticipantVerificationType;
 	["Passport"]: {
 		/** Код подразделения */
 	code: string,
@@ -43267,6 +43678,8 @@ export type ModelTypes = {
 	membershipExit?: ModelTypes["MembershipExit"] | undefined | null,
 	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
 	membershipExitReturnPreview: ModelTypes["MembershipExitReturnPreview"],
+	/** Данные пайщика для сверки с документом; выдаются, пока личность не подтверждена */
+	participantIdentityForVerification: ModelTypes["ParticipantIdentityForVerification"],
 	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -43292,7 +43705,11 @@ export type ModelTypes = {
 	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
 
 Требуемые роли: chairman.  */
-	validateReportEdits: Array<ModelTypes["FieldError"]>
+	validateReportEdits: Array<ModelTypes["FieldError"]>,
+	/** Снимки сверки для проверки советом; доступны, пока решение не принято */
+	verificationReviewPhotos: Array<ModelTypes["VerificationReviewPhoto"]>,
+	/** Журнал верификаций личности: кто, где и когда сверял и чем это закончилось */
+	verificationReviews: Array<ModelTypes["VerificationReview"]>
 };
 	/** Вопрос повестки собрания с результатами голосования */
 ["Question"]: {
@@ -43474,6 +43891,13 @@ export type ModelTypes = {
 	requirements?: string | undefined | null,
 	/** Название программы для отображения */
 	title: string
+};
+	/** Отклонение сверки личности советом */
+["RejectVerificationInput"]: {
+	/** Причина отклонения — её увидит участок */
+	reason: string,
+	/** Идентификатор записи журнала */
+	review_id: string
 };
 	["RemoveAvailableCategoriesInput"]: {
 	/** ID категорий для удаления */
@@ -44500,6 +44924,11 @@ export type ModelTypes = {
 		/** Число непрочитанных уведомлений */
 	count: number
 };
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 	/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: ModelTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -44782,7 +45211,7 @@ export type ModelTypes = {
 	type: string,
 	/** Имя аккаунта */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<ModelTypes["Verification"]>
 };
 	/** Объединение сертификатов пользователей (сокращенная информация) */
@@ -44866,9 +45295,84 @@ export type ModelTypes = {
 	/** Имя верификатора */
 	verificator: string
 };
+	/** Снимок сверки личности */
+["VerificationPhotoInput"]: {
+	/** SHA-256 содержимого в hex */
+	checksum_sha256: string,
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** MIME-тип снимка */
+	mime_type: string,
+	/** Исходное имя файла */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах */
+	size_bytes: number
+};
+	/** Запись журнала верификаций: одна сверка личности и её судьба */
+["VerificationReview"]: {
+		/** Участок, где сверяли; пусто — сверял совет кооператива */
+	braname: string,
+	/** Момент сверки */
+	created_at: string,
+	/** Момент решения */
+	decided_at?: string | undefined | null,
+	/** Кто вынес решение */
+	decided_by?: string | undefined | null,
+	/** Причина отклонения или отзыва */
+	decision_reason?: string | undefined | null,
+	/** Идентификатор записи */
+	id: string,
+	/** Сколько снимков приложено; после решения совета — ноль */
+	photos_count: number,
+	/** Процедура сверки */
+	procedure: string,
+	/** Состояние проверки */
+	status: ModelTypes["VerificationReviewStatus"],
+	/** Пайщик, чью личность сверяли */
+	username: string,
+	/** Кто сверил личность */
+	verificator: string
+};
+	/** Ссылка на снимок сверки, действительна несколько минут */
+["VerificationReviewPhoto"]: {
+		/** MIME-тип снимка */
+	mime_type: string,
+	/** Короткоживущая ссылка на снимок */
+	read_url: string,
+	/** Размер файла в байтах */
+	size_bytes: number,
+	/** Ключ объекта в хранилище кооператива */
+	storage_key: string
+};
+	/** Запрос снимков сверки для проверки советом */
+["VerificationReviewPhotosInput"]: {
+	/** Идентификатор записи журнала */
+	review_id: string
+};
+	["VerificationReviewStatus"]:VerificationReviewStatus;
+	/** Отбор записей журнала верификаций */
+["VerificationReviewsInput"]: {
+	/** Только по этому кооперативному участку */
+	braname?: string | undefined | null,
+	/** Сколько записей вернуть (не больше 200) */
+	limit?: number | undefined | null,
+	/** Только записи в этом состоянии */
+	status?: ModelTypes["VerificationReviewStatus"] | undefined | null,
+	/** Только по этому пайщику */
+	username?: string | undefined | null
+};
 	["VerifyEmailInputDTO"]: {
 	/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика по паспорту при личной явке */
+["VerifyParticipantOnsiteInput"]: {
+	/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Снимки сверки: пайщик, разворот паспорта, пайщик с паспортом. На участке обязательны */
+	photos?: Array<ModelTypes["VerificationPhotoInput"]> | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 	/** Сумма голосов */
@@ -45796,6 +46300,11 @@ export type GraphQLTypes = {
 	countersigned_authority: GraphQLTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	/** Утверждение сверки личности советом */
+["ApproveVerificationInput"]: {
+		/** Идентификатор записи журнала */
+	review_id: string
 };
 	["ArchiveComponentMetricInput"]: {
 		/** Хеш метрики */
@@ -49536,7 +50045,7 @@ export type GraphQLTypes = {
 	type: string,
 	/** Имя аккаунта кооператива */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<GraphQLTypes["Verification"]>,
 	['...on CooperativeOperatorAccount']: Omit<GraphQLTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
 };
@@ -54167,6 +54676,8 @@ export type GraphQLTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
+	orderer_verification_passed?: boolean | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
@@ -55806,6 +56317,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Совет подтвердил сверку личности; снимки удаляются */
+	approveVerification: GraphQLTypes["VerificationReview"],
 	/** Архивировать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -56770,6 +57283,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
+	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
+	rejectVerification: GraphQLTypes["VerificationReview"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -56856,6 +57371,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
+	/** Отозвать верификацию личности пайщика */
+	unverifyParticipant: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
 
 Требуемые роли: chairman.  */
@@ -56888,6 +57405,8 @@ export type GraphQLTypes = {
 	uploadPaymentProof: GraphQLTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
+	/** Подтвердить личность пайщика по паспорту при личной явке */
+	verifyParticipantOnsite: Array<GraphQLTypes["ParticipantVerification"]>,
 	/** Голосование на общем собрании пайщиков
 
 Требуемые роли: member.  */
@@ -57637,6 +58156,71 @@ export type GraphQLTypes = {
 	participant_certificate: string,
 	['...on ParticipantCertificate']: Omit<GraphQLTypes["ParticipantCertificate"], "...on ParticipantCertificate">
 };
+	/** Данные пайщика для сверки с документом, удостоверяющим личность */
+["ParticipantIdentityForVerification"]: {
+	__typename: "ParticipantIdentityForVerification",
+	/** Дата рождения */
+	birthdate?: string | undefined | null,
+	/** Адрес регистрации */
+	full_address?: string | undefined | null,
+	/** ФИО или наименование */
+	full_name: string,
+	/** ИНН */
+	inn?: string | undefined | null,
+	/** ОГРН */
+	ogrn?: string | undefined | null,
+	/** Код подразделения */
+	passport_code?: string | undefined | null,
+	/** Дата выдачи паспорта */
+	passport_issued_at?: string | undefined | null,
+	/** Кем выдан паспорт */
+	passport_issued_by?: string | undefined | null,
+	/** Номер паспорта */
+	passport_number?: string | undefined | null,
+	/** Серия паспорта */
+	passport_series?: string | undefined | null,
+	/** На основании чего действует представитель */
+	representative_based_on?: string | undefined | null,
+	/** ФИО представителя организации */
+	representative_name?: string | undefined | null,
+	/** Должность представителя */
+	representative_position?: string | undefined | null,
+	/** Тип пайщика */
+	type: GraphQLTypes["AccountType"],
+	/** Имя аккаунта пайщика */
+	username: string,
+	['...on ParticipantIdentityForVerification']: Omit<GraphQLTypes["ParticipantIdentityForVerification"], "...on ParticipantIdentityForVerification">
+};
+	/** Запрос данных пайщика для сверки личности перед подтверждением */
+["ParticipantIdentityForVerificationInput"]: {
+		/** Кооперативный участок, где идёт сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Подтверждённый уровень верификации пайщика */
+["ParticipantVerification"]: {
+	__typename: "ParticipantVerification",
+	/** Кто провёл верификацию (аккаунт) */
+	attested_by?: string | undefined | null,
+	/** Кооперативный участок, где сверена личность; пусто — сверял совет кооператива */
+	attested_in?: string | undefined | null,
+	/** Кто подтвердил */
+	source: GraphQLTypes["ParticipantVerificationSource"],
+	/** Статус подтверждения */
+	status: GraphQLTypes["ParticipantVerificationStatus"],
+	/** Уровень верификации */
+	type: GraphQLTypes["ParticipantVerificationType"],
+	/** Момент подтверждения */
+	verified_at: string,
+	['...on ParticipantVerification']: Omit<GraphQLTypes["ParticipantVerification"], "...on ParticipantVerification">
+};
+	/** Кто подтвердил уровень верификации */
+["ParticipantVerificationSource"]: ParticipantVerificationSource;
+	/** Статус подтверждения уровня верификации */
+["ParticipantVerificationStatus"]: ParticipantVerificationStatus;
+	/** Уровень верификации пайщика */
+["ParticipantVerificationType"]: ParticipantVerificationType;
 	["Passport"]: {
 	__typename: "Passport",
 	/** Код подразделения */
@@ -59016,6 +59600,8 @@ export type GraphQLTypes = {
 	membershipExit?: GraphQLTypes["MembershipExit"] | undefined | null,
 	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
 	membershipExitReturnPreview: GraphQLTypes["MembershipExitReturnPreview"],
+	/** Данные пайщика для сверки с документом; выдаются, пока личность не подтверждена */
+	participantIdentityForVerification: GraphQLTypes["ParticipantIdentityForVerification"],
 	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -59042,6 +59628,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	validateReportEdits: Array<GraphQLTypes["FieldError"]>,
+	/** Снимки сверки для проверки советом; доступны, пока решение не принято */
+	verificationReviewPhotos: Array<GraphQLTypes["VerificationReviewPhoto"]>,
+	/** Журнал верификаций личности: кто, где и когда сверял и чем это закончилось */
+	verificationReviews: Array<GraphQLTypes["VerificationReview"]>,
 	['...on Query']: Omit<GraphQLTypes["Query"], "...on Query">
 };
 	/** Вопрос повестки собрания с результатами голосования */
@@ -59239,6 +59829,13 @@ export type GraphQLTypes = {
 	/** Название программы для отображения */
 	title: string,
 	['...on RegistrationProgram']: Omit<GraphQLTypes["RegistrationProgram"], "...on RegistrationProgram">
+};
+	/** Отклонение сверки личности советом */
+["RejectVerificationInput"]: {
+		/** Причина отклонения — её увидит участок */
+	reason: string,
+	/** Идентификатор записи журнала */
+	review_id: string
 };
 	["RemoveAvailableCategoriesInput"]: {
 		/** ID категорий для удаления */
@@ -60347,6 +60944,11 @@ export type GraphQLTypes = {
 	count: number,
 	['...on UnreadNotificationsCount']: Omit<GraphQLTypes["UnreadNotificationsCount"], "...on UnreadNotificationsCount">
 };
+	/** Отзыв верификации личности пайщика председателем кооператива */
+["UnverifyParticipantInput"]: {
+		/** Имя аккаунта пайщика */
+	username: string
+};
 	["Update"]: {
 		/** Собственные данные кооператива, обслуживающего экземпляр платформы */
 	organization_data?: GraphQLTypes["UpdateOrganizationDataInput"] | undefined | null,
@@ -60630,7 +61232,7 @@ export type GraphQLTypes = {
 	type: string,
 	/** Имя аккаунта */
 	username: string,
-	/** Дата регистрации */
+	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<GraphQLTypes["Verification"]>,
 	['...on UserAccount']: Omit<GraphQLTypes["UserAccount"], "...on UserAccount">
 };
@@ -60727,9 +61329,89 @@ export type GraphQLTypes = {
 	verificator: string,
 	['...on Verification']: Omit<GraphQLTypes["Verification"], "...on Verification">
 };
+	/** Снимок сверки личности */
+["VerificationPhotoInput"]: {
+		/** SHA-256 содержимого в hex */
+	checksum_sha256: string,
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** MIME-тип снимка */
+	mime_type: string,
+	/** Исходное имя файла */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах */
+	size_bytes: number
+};
+	/** Запись журнала верификаций: одна сверка личности и её судьба */
+["VerificationReview"]: {
+	__typename: "VerificationReview",
+	/** Участок, где сверяли; пусто — сверял совет кооператива */
+	braname: string,
+	/** Момент сверки */
+	created_at: string,
+	/** Момент решения */
+	decided_at?: string | undefined | null,
+	/** Кто вынес решение */
+	decided_by?: string | undefined | null,
+	/** Причина отклонения или отзыва */
+	decision_reason?: string | undefined | null,
+	/** Идентификатор записи */
+	id: string,
+	/** Сколько снимков приложено; после решения совета — ноль */
+	photos_count: number,
+	/** Процедура сверки */
+	procedure: string,
+	/** Состояние проверки */
+	status: GraphQLTypes["VerificationReviewStatus"],
+	/** Пайщик, чью личность сверяли */
+	username: string,
+	/** Кто сверил личность */
+	verificator: string,
+	['...on VerificationReview']: Omit<GraphQLTypes["VerificationReview"], "...on VerificationReview">
+};
+	/** Ссылка на снимок сверки, действительна несколько минут */
+["VerificationReviewPhoto"]: {
+	__typename: "VerificationReviewPhoto",
+	/** MIME-тип снимка */
+	mime_type: string,
+	/** Короткоживущая ссылка на снимок */
+	read_url: string,
+	/** Размер файла в байтах */
+	size_bytes: number,
+	/** Ключ объекта в хранилище кооператива */
+	storage_key: string,
+	['...on VerificationReviewPhoto']: Omit<GraphQLTypes["VerificationReviewPhoto"], "...on VerificationReviewPhoto">
+};
+	/** Запрос снимков сверки для проверки советом */
+["VerificationReviewPhotosInput"]: {
+		/** Идентификатор записи журнала */
+	review_id: string
+};
+	/** Состояние проверки сверки личности советом кооператива */
+["VerificationReviewStatus"]: VerificationReviewStatus;
+	/** Отбор записей журнала верификаций */
+["VerificationReviewsInput"]: {
+		/** Только по этому кооперативному участку */
+	braname?: string | undefined | null,
+	/** Сколько записей вернуть (не больше 200) */
+	limit?: number | undefined | null,
+	/** Только записи в этом состоянии */
+	status?: GraphQLTypes["VerificationReviewStatus"] | undefined | null,
+	/** Только по этому пайщику */
+	username?: string | undefined | null
+};
 	["VerifyEmailInputDTO"]: {
 		/** Токен верификации email */
 	token: string
+};
+	/** Верификация личности пайщика по паспорту при личной явке */
+["VerifyParticipantOnsiteInput"]: {
+		/** Кооперативный участок, где проводится сверка; не указывается, если сверяет совет кооператива */
+	braname?: string | undefined | null,
+	/** Снимки сверки: пайщик, разворот паспорта, пайщик с паспортом. На участке обязательны */
+	photos?: Array<GraphQLTypes["VerificationPhotoInput"]> | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
 };
 	["VoteDistributionInput"]: {
 		/** Сумма голосов */
@@ -61587,6 +62269,21 @@ export enum OrganizationType {
 	PRODCOOP = "PRODCOOP",
 	ZAO = "ZAO"
 }
+/** Кто подтвердил уровень верификации */
+export enum ParticipantVerificationSource {
+	BranchAttestation = "BranchAttestation",
+	CooperativeDecision = "CooperativeDecision",
+	CouncilAttestation = "CouncilAttestation"
+}
+/** Статус подтверждения уровня верификации */
+export enum ParticipantVerificationStatus {
+	Verified = "Verified"
+}
+/** Уровень верификации пайщика */
+export enum ParticipantVerificationType {
+	CoopBaseline = "CoopBaseline",
+	PassportOnsite = "PassportOnsite"
+}
 /** Направление платежа */
 export enum PaymentDirection {
 	INCOMING = "INCOMING",
@@ -61807,6 +62504,13 @@ export enum UserStatus {
 	Refunding = "Refunding",
 	Registered = "Registered"
 }
+/** Состояние проверки сверки личности советом кооператива */
+export enum VerificationReviewStatus {
+	Approved = "Approved",
+	Pending = "Pending",
+	Rejected = "Rejected",
+	Revoked = "Revoked"
+}
 /** Метка волны 5/3: импульс 1–5, коррекция A–C */
 export enum WaveLabel {
 	W1 = "W1",
@@ -61864,6 +62568,7 @@ type ZEUS_VARIABLES = {
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
 	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
+	["ApproveVerificationInput"]: ValueTypes["ApproveVerificationInput"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
 	["AssignCapabilitySetInput"]: ValueTypes["AssignCapabilitySetInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
@@ -62327,6 +63032,10 @@ type ZEUS_VARIABLES = {
 	["ParticipantApplicationGenerateDocumentInput"]: ValueTypes["ParticipantApplicationGenerateDocumentInput"];
 	["ParticipantApplicationSignedDocumentInput"]: ValueTypes["ParticipantApplicationSignedDocumentInput"];
 	["ParticipantApplicationSignedMetaDocumentInput"]: ValueTypes["ParticipantApplicationSignedMetaDocumentInput"];
+	["ParticipantIdentityForVerificationInput"]: ValueTypes["ParticipantIdentityForVerificationInput"];
+	["ParticipantVerificationSource"]: ValueTypes["ParticipantVerificationSource"];
+	["ParticipantVerificationStatus"]: ValueTypes["ParticipantVerificationStatus"];
+	["ParticipantVerificationType"]: ValueTypes["ParticipantVerificationType"];
 	["PassportInput"]: ValueTypes["PassportInput"];
 	["PayExpenseItemInput"]: ValueTypes["PayExpenseItemInput"];
 	["PayWithheldTaxInput"]: ValueTypes["PayWithheldTaxInput"];
@@ -62366,6 +63075,7 @@ type ZEUS_VARIABLES = {
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
+	["RejectVerificationInput"]: ValueTypes["RejectVerificationInput"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
 	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
@@ -62452,6 +63162,7 @@ type ZEUS_VARIABLES = {
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];
 	["TwoFactorCodeInput"]: ValueTypes["TwoFactorCodeInput"];
 	["UninstallExtensionInput"]: ValueTypes["UninstallExtensionInput"];
+	["UnverifyParticipantInput"]: ValueTypes["UnverifyParticipantInput"];
 	["Update"]: ValueTypes["Update"];
 	["UpdateAccountInput"]: ValueTypes["UpdateAccountInput"];
 	["UpdateBankAccountInput"]: ValueTypes["UpdateBankAccountInput"];
@@ -62472,7 +63183,12 @@ type ZEUS_VARIABLES = {
 	["UserStatus"]: ValueTypes["UserStatus"];
 	["ValidateAttributeValuesInput"]: ValueTypes["ValidateAttributeValuesInput"];
 	["VarsInput"]: ValueTypes["VarsInput"];
+	["VerificationPhotoInput"]: ValueTypes["VerificationPhotoInput"];
+	["VerificationReviewPhotosInput"]: ValueTypes["VerificationReviewPhotosInput"];
+	["VerificationReviewStatus"]: ValueTypes["VerificationReviewStatus"];
+	["VerificationReviewsInput"]: ValueTypes["VerificationReviewsInput"];
 	["VerifyEmailInputDTO"]: ValueTypes["VerifyEmailInputDTO"];
+	["VerifyParticipantOnsiteInput"]: ValueTypes["VerifyParticipantOnsiteInput"];
 	["VoteDistributionInput"]: ValueTypes["VoteDistributionInput"];
 	["VoteFilter"]: ValueTypes["VoteFilter"];
 	["VoteItemInput"]: ValueTypes["VoteItemInput"];

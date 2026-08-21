@@ -110,6 +110,9 @@ export const AllTypesProps: Record<string,any> = {
 		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
+	ApproveVerificationInput:{
+
+	},
 	ArchiveComponentMetricInput:{
 
 	},
@@ -1408,6 +1411,9 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
+		approveVerification:{
+			data:"ApproveVerificationInput"
+		},
 		archiveProductCard:{
 
 		},
@@ -2310,6 +2316,9 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		rejectVerification:{
+			data:"RejectVerificationInput"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
@@ -2391,6 +2400,9 @@ export const AllTypesProps: Record<string,any> = {
 		uninstallExtension:{
 			data:"UninstallExtensionInput"
 		},
+		unverifyParticipant:{
+			data:"UnverifyParticipantInput"
+		},
 		updateAccount:{
 			data:"UpdateAccountInput"
 		},
@@ -2417,6 +2429,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
+		},
+		verifyParticipantOnsite:{
+			data:"VerifyParticipantOnsiteInput"
 		},
 		voteOnAnnualGeneralMeet:{
 			data:"VoteOnAnnualGeneralMeetInput"
@@ -2467,6 +2482,12 @@ export const AllTypesProps: Record<string,any> = {
 	ParticipantApplicationSignedMetaDocumentInput:{
 
 	},
+	ParticipantIdentityForVerificationInput:{
+
+	},
+	ParticipantVerificationSource: "enum" as const,
+	ParticipantVerificationStatus: "enum" as const,
+	ParticipantVerificationType: "enum" as const,
 	PassportInput:{
 
 	},
@@ -3144,6 +3165,9 @@ export const AllTypesProps: Record<string,any> = {
 		membershipExitReturnPreview:{
 
 		},
+		participantIdentityForVerification:{
+			data:"ParticipantIdentityForVerificationInput"
+		},
 		paymentFile:{
 
 		},
@@ -3165,6 +3189,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		validateReportEdits:{
 			reportType:"ReportType"
+		},
+		verificationReviewPhotos:{
+			data:"VerificationReviewPhotosInput"
+		},
+		verificationReviews:{
+			data:"VerificationReviewsInput"
 		}
 	},
 	RecoveryStrategy: "enum" as const,
@@ -3196,6 +3226,9 @@ export const AllTypesProps: Record<string,any> = {
 		statement:"ParticipantApplicationSignedDocumentInput",
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
+	},
+	RejectVerificationInput:{
+
 	},
 	RemoveAvailableCategoriesInput:{
 
@@ -3444,6 +3477,9 @@ export const AllTypesProps: Record<string,any> = {
 	UninstallExtensionInput:{
 
 	},
+	UnverifyParticipantInput:{
+
+	},
 	Update:{
 		organization_data:"UpdateOrganizationDataInput",
 		vars:"VarsInput"
@@ -3519,8 +3555,21 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"AgreementInput",
 		wallet_agreement:"AgreementInput"
 	},
+	VerificationPhotoInput:{
+
+	},
+	VerificationReviewPhotosInput:{
+
+	},
+	VerificationReviewStatus: "enum" as const,
+	VerificationReviewsInput:{
+		status:"VerificationReviewStatus"
+	},
 	VerifyEmailInputDTO:{
 
+	},
+	VerifyParticipantOnsiteInput:{
+		photos:"VerificationPhotoInput"
 	},
 	VoteDistributionInput:{
 
@@ -6027,6 +6076,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_account:"String",
 		orderer_name:"String",
 		orderer_signed_at:"DateTime",
+		orderer_verification_passed:"Boolean",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",
@@ -6616,6 +6666,7 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		approveVerification:"VerificationReview",
 		archiveProductCard:"Boolean",
 		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
@@ -6903,6 +6954,7 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		rejectVerification:"VerificationReview",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
 		requestForceRecoveryConsent:"Boolean",
@@ -6932,6 +6984,7 @@ export const ReturnTypes: Record<string,any> = {
 		submitExpenseReport:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
+		unverifyParticipant:"ParticipantVerification",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
 		updateExtension:"Extension",
@@ -6941,6 +6994,7 @@ export const ReturnTypes: Record<string,any> = {
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
+		verifyParticipantOnsite:"ParticipantVerification",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
 	},
@@ -7231,6 +7285,31 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	ParticipantCertificate:{
 		participant_certificate:"String"
+	},
+	ParticipantIdentityForVerification:{
+		birthdate:"String",
+		full_address:"String",
+		full_name:"String",
+		inn:"String",
+		ogrn:"String",
+		passport_code:"String",
+		passport_issued_at:"String",
+		passport_issued_by:"String",
+		passport_number:"String",
+		passport_series:"String",
+		representative_based_on:"String",
+		representative_name:"String",
+		representative_position:"String",
+		type:"AccountType",
+		username:"String"
+	},
+	ParticipantVerification:{
+		attested_by:"String",
+		attested_in:"String",
+		source:"ParticipantVerificationSource",
+		status:"ParticipantVerificationStatus",
+		type:"ParticipantVerificationType",
+		verified_at:"String"
 	},
 	Passport:{
 		code:"String",
@@ -7736,13 +7815,16 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		membershipExit:"MembershipExit",
 		membershipExitReturnPreview:"MembershipExitReturnPreview",
+		participantIdentityForVerification:"ParticipantIdentityForVerification",
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
-		validateReportEdits:"FieldError"
+		validateReportEdits:"FieldError",
+		verificationReviewPhotos:"VerificationReviewPhoto",
+		verificationReviews:"VerificationReview"
 	},
 	Question:{
 		context:"String",
@@ -8095,6 +8177,25 @@ export const ReturnTypes: Record<string,any> = {
 		notice:"String",
 		procedure:"String",
 		verificator:"String"
+	},
+	VerificationReview:{
+		braname:"String",
+		created_at:"String",
+		decided_at:"String",
+		decided_by:"String",
+		decision_reason:"String",
+		id:"String",
+		photos_count:"Int",
+		procedure:"String",
+		status:"VerificationReviewStatus",
+		username:"String",
+		verificator:"String"
+	},
+	VerificationReviewPhoto:{
+		mime_type:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String"
 	},
 	WaitWeight:{
 		wait_sec:"Int",

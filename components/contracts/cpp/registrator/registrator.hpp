@@ -91,6 +91,20 @@ public:
   
   [[eosio::action]] void verificate(eosio::name username, eosio::name procedure);
 
+  /**
+   * \brief Верификация личности пайщика на кооперативном участке.
+   *
+   * \note Авторизация: председатель кооперативного участка или его доверенное лицо (@p verificator).
+   */
+  [[eosio::action]] void verifyacc(eosio::name coopname, eosio::name braname, eosio::name verificator, eosio::name username, eosio::name procedure);
+
+  /**
+   * \brief Отзыв верификации личности пайщика, проведённой кооперативным участком.
+   *
+   * \note Авторизация: председатель кооператива (@p chairman) либо сам кооператив.
+   */
+  [[eosio::action]] void unverifyacc(eosio::name coopname, eosio::name chairman, eosio::name username, eosio::name procedure);
+
   [[eosio::action]] void newaccount(
       eosio::name coopname, eosio::name referer,
       eosio::name username, eosio::public_key public_key, std::string meta);
