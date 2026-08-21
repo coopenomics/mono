@@ -1,0 +1,53 @@
+feature: edubridge.admin
+title: Образовательный мост — реестры, очередь, площадки, администраторы, контакты
+
+# E9 (задача 7DD-10). Контакты — только владельцу и на уровне данных: резолвер
+# карточки вырезает их, если у запросившего нет EduContacts:read. Ключи площадок
+# наружу не выдаются — только признак «задано». Выдать доступ в обход взноса
+# нельзя: такой операции нет, «Повторить» лишь возвращает задачу в очередь.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-admin.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-admin.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-admin.repository.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/Admin*/**
+
+cases:
+  - id: edu.admin.happy.01
+    level: backend
+    kind: happy
+    scenario: Карточка пайщика запрошена администратором и владельцем.
+    expect: Администратор получает recipient_value = null, владелец — контакт.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    status: passing
+  - id: edu.admin.happy.02
+    level: backend
+    kind: happy
+    scenario: Состояние площадок.
+    expect: Ключи в ответе отсутствуют, только configured/health/last_check.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    status: passing
+  - id: edu.admin.happy.03
+    level: backend
+    kind: happy
+    scenario: Повтор задачи из очереди.
+    expect: Задача снова pending, счётчик попыток сохраняется.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    status: passing
+  - id: edu.admin.break.01
+    level: backend
+    kind: break
+    scenario: Администратор (роль admin) вызывает edubridgeConnectors / edubridgeAppointAdmin.
+    expect: Forbidden — EduConnector:manage и EduAdmin:manage только у владельца.
+    test: ~
+    status: missing
+  - id: edu.admin.happy.04
+    level: ui
+    kind: happy
+    scenario: Реестры, карточка, очередь с фильтром needs_attention и кнопкой «Повторить», площадки с индикатором, администраторы.
+    expect: У администратора контактов в карточке нет; у владельца — есть.
+    test: ~
+    status: missing
