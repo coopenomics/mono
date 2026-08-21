@@ -61,11 +61,10 @@ cases:
   - id: edu.teach.side.01
     level: backend
     kind: side
-    scenario: Председатель присоединяет подпись к акту по хэшу после acceptrid.
-    expect: Документ в реестре получает вторую подпись; проводка не повторяется.
-    test: ~
-    status: missing
-    decision_needed: true
+    scenario: Акт двухподписный — преподаватель подписал (ACT_SIGNED), председатель подписывает тот же документ (агрегат по хэшу, signatureId=2) → acceptrid.
+    expect: Перегенерации акта нет; без обеих подписей или с другим хэшем приём отклоняется; acceptrid требует подпись teacher и chairman совета.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
   - id: edu.teach.happy.05
     level: ui
     kind: happy

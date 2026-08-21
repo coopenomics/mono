@@ -95,6 +95,8 @@ export enum EduContributionStatus {
   SUBMITTED = 'submitted',
   /** Совет принял решение — ждём подпись преподавателя на акте приёма-передачи. */
   COUNCIL_APPROVED = 'council_approved',
+  /** Преподаватель подписал акт — ждём подпись председателя на том же документе. */
+  ACT_SIGNED = 'act_signed',
   /** Акт подписан, проводка сделана, право требования в кошельке. */
   ACCEPTED = 'accepted',
   DECLINED = 'declined',

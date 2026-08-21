@@ -15,6 +15,7 @@ import {
   type IDocumentPort,
   type IFreeDecisionPort,
   type ILoggerPort,
+  type InnerDocumentAggregate,
   type InnerGeneratedDocument,
   type ISignedDocument,
   type IUserWalletPort,
@@ -238,10 +239,42 @@ export class EdubridgeTeacherService {
     return this.documents.generate({ data: action });
   }
 
-  /** Преподаватель подписал акт → протокол (3009) + акт → `acceptrid`. Председатель присоединяет подпись по хэшу. */
+  /** Преподаватель подписал акт: сохраняем документ и ждём подпись председателя на нём же. */
   async signAct(coopname: string, teacher: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw new BadRequestException('Акт доступен после решения совета');
+    if (!act.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Акт не подписан преподавателем');
+    c.act_hash = act.hash.toLowerCase();
+    c.act_signed = act as unknown as Record<string, unknown>;
+    c.status = EduContributionStatus.ACT_SIGNED;
+    const saved = await this.teachers.saveContribution(c);
+    this.logger.info(`[EDU.RID] акт ${c.act_hash} подписан преподавателем — ждём подпись председателя`);
+    return saved;
+  }
+
+  /** Агрегат акта для второй подписи: тот же документ, без перегенерации. */
+  async actSignablePayload(coopname: string, contributionId: string): Promise<InnerDocumentAggregate> {
+    const c = await this.teachers.findContribution(coopname, contributionId);
+    if (!c) throw new NotFoundException('Взнос не найден');
+    if (c.status !== EduContributionStatus.ACT_SIGNED || !c.act_signed) throw new BadRequestException('Акт ещё не подписан преподавателем');
+    const aggregate = await this.documents.buildAggregate(c.act_signed as unknown as ISignedDocument);
+    if (!aggregate) throw new NotFoundException('Акт не найден в реестре документов');
+    return aggregate;
+  }
+
+  /**
+   * Председатель подписал тот же акт (вторая подпись по хэшу) → протокол (3009)
+   * + акт с двумя подписями → `acceptrid`: проводка Дт 04 / Кт 80, право требования.
+   */
+  async acceptContribution(coopname: string, chairman: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionEntity> {
+    const c = await this.teachers.findContribution(coopname, contributionId);
+    if (!c) throw new NotFoundException('Взнос не найден');
+    if (c.status !== EduContributionStatus.ACT_SIGNED) throw new BadRequestException('Акт ещё не подписан преподавателем');
+    if (act.hash.toLowerCase() !== c.act_hash) throw new BadRequestException('Подписан другой документ: хэш акта не совпадает');
+    const signers = new Set((act.signatures ?? []).map((s) => s.signer));
+    if (!signers.has(c.teacher_username) || !signers.has(chairman)) {
+      throw new BadRequestException('На акте должны быть подписи преподавателя и председателя');
+    }
     const decision = await this.documents.generate({
       data: {
         registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
@@ -254,21 +287,20 @@ export class EdubridgeTeacherService {
         skip_save: false,
       } as Cooperative.Registry.EducationRidDecision.Action,
     });
-    const decisionDoc = this.unsigned(decision);
-    await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision: decisionDoc, act } as never);
+    await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision), act } as never);
     c.decision_hash = decision.hash.toLowerCase();
-    c.act_hash = act.hash.toLowerCase();
+    c.act_signed = act as unknown as Record<string, unknown>;
     c.status = EduContributionStatus.ACCEPTED;
     const saved = await this.teachers.saveContribution(c);
-    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: teacher, accepted: true });
-    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — acceptrid, право требования в кошельке ${teacher}`);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: true });
+    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — acceptrid, право требования в кошельке ${c.teacher_username}`);
     return saved;
   }
 
   async decline(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionEntity> {
     const c = await this.teachers.findContribution(coopname, contributionId);
     if (!c) throw new NotFoundException('Взнос не найден');
-    if (![EduContributionStatus.SUBMITTED, EduContributionStatus.COUNCIL_APPROVED].includes(c.status)) {
+    if (![EduContributionStatus.SUBMITTED, EduContributionStatus.COUNCIL_APPROVED, EduContributionStatus.ACT_SIGNED].includes(c.status)) {
       throw new BadRequestException('Отклонить можно только поданный взнос');
     }
     const decision = await this.documents.generate({

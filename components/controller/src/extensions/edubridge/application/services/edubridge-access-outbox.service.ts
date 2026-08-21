@@ -27,6 +27,8 @@ import {
 export const OUTBOX_MAX_ATTEMPTS = 10;
 /** Размер пачки воркера. */
 export const OUTBOX_BATCH = 20;
+/** Как долго верить сверке курса с площадкой. */
+export const CHECK_TTL_MS = 60 * 60_000;
 
 /** Задержка перед попыткой n (1-based): 1, 2, 4, 8 … минут, не больше 60. */
 export function backoffMinutes(attempt: number): number {
@@ -102,17 +104,18 @@ export class EdubridgeAccessOutboxService {
     if (!connector) return this.attention(task, `Носитель доступа ${task.carrier} не поддерживается`);
 
     // Сверка карточки с площадкой до выдачи: переименован/удалён — не выдаём молча.
-    if (task.kind === EduAccessTaskKind.GRANT && course.external_ref) {
+    // Не чаще раза в CHECK_TTL_MS на курс: экспорт-API площадок лимитирован.
+    const checkedRecently = course.external_checked_at && Date.now() - course.external_checked_at.getTime() < CHECK_TTL_MS;
+    if (task.kind === EduAccessTaskKind.GRANT && course.external_ref && !checkedRecently) {
       const check = await connector.check(task.coopname, course.external_ref);
       if (check.unavailable) return this.fail(task, { code: 'retryable', message: check.message ?? 'Площадка недоступна' });
       if (!check.found) return this.attention(task, check.message ?? 'Курс не найден на площадке', course.id);
       if (check.title && course.external_title_seen && check.title !== course.external_title_seen) {
         return this.attention(task, `Курс на площадке переименован: «${course.external_title_seen}» → «${check.title}»`, course.id);
       }
-      if (check.title && !course.external_title_seen) {
-        course.external_title_seen = check.title;
-        await this.courses.save(course);
-      }
+      if (check.title && !course.external_title_seen) course.external_title_seen = check.title;
+      course.external_checked_at = new Date();
+      await this.courses.save(course);
     }
 
     const recipient = task.recipient_override ?? { type: learner.recipient_type, value: learner.recipient_value };

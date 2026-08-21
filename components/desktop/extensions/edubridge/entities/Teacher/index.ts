@@ -1,9 +1,10 @@
 import { Cooperative } from 'cooptypes';
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Classes, Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
+import { useGlobalStore } from 'src/shared/store';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
 export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
@@ -24,6 +25,7 @@ export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant
   draft: { label: 'Черновик', variant: 'neutral' },
   submitted: { label: 'На рассмотрении совета', variant: 'info' },
   council_approved: { label: 'Ждёт подписи акта', variant: 'warn' },
+  act_signed: { label: 'Ждёт подписи председателя', variant: 'info' },
   accepted: { label: 'Принят', variant: 'pos' },
   declined: { label: 'Отклонён', variant: 'neg' },
 };
@@ -122,4 +124,21 @@ export async function signAct(c: IContribution): Promise<IContribution> {
   await doc.sign(username);
   if (!doc.signedDocument) throw new Error('Не удалось подписать акт');
   return m<IContribution>(Mutations.Edubridge.SignAct.mutation, Mutations.Edubridge.SignAct.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
+}
+
+/**
+ * Вторая подпись председателя: берём тот же акт, что подписал преподаватель
+ * (агрегат из реестра документов), и присоединяем подпись с id=2 — без
+ * перегенерации. Так же подписываются акты «Благороста» и «Стола заказов».
+ */
+export async function acceptContributionAsChairman(c: IContribution): Promise<IContribution> {
+  const { username } = who();
+  const globalStore = useGlobalStore();
+  const wif = globalStore.wif?.toString();
+  if (!wif) throw new Error('Приватный ключ не установлен');
+  const aggregate = await q<{ hash: string; document: any; rawDocument: any }>(Queries.Edubridge.ActSignablePayload.query, Queries.Edubridge.ActSignablePayload.name, { contribution_id: c.id });
+  if (!aggregate?.rawDocument) throw new Error('Акт не найден в реестре документов');
+  const signer = new Classes.Document(wif);
+  const signed = await signer.signDocument(aggregate.rawDocument, username, 2, [aggregate.document]);
+  return m<IContribution>(Mutations.Edubridge.AcceptContribution.mutation, Mutations.Edubridge.AcceptContribution.name, { data: { contribution_id: c.id, document: signed } });
 }

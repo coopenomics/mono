@@ -61,6 +61,10 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   public external_title_seen!: string | null;
 
+  /** Когда курс последний раз сверялся с площадкой (экспорт GetCourse лимитирован — сверка кэшируется). */
+  @Column({ type: 'timestamptz', nullable: true })
+  public external_checked_at!: Date | null;
+
   @Column({ type: 'enum', enum: EduCourseStatus, default: EduCourseStatus.DRAFT })
   public status!: EduCourseStatus;
 

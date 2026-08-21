@@ -10,15 +10,26 @@ import { EdubridgeConfigHolder } from '../../application/config/edubridge-config
 import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
 
 /**
- * Skillspace: REST API платформы (Bearer-токен школы). Эндпоинты вынесены в
- * константы — состав и формат подлежат сверке с документацией аккаунта школы:
- *  - GET  /courses/{id}                — карточка курса (проверка и название);
- *  - POST /courses/{id}/students       — пригласить ученика по почте;
- *  - DELETE /courses/{id}/students     — снять доступ ученика по почте.
- * Ответ «уже зачислен» трактуется как успех (`exists`), лимит учеников тарифа —
- * как обнаруживаемое состояние (`LICENSE_LIMIT`).
+ * Skillspace — открытый API школы (справка: help.skillspace.ru/api, раздел
+ * «Настройки школы — API» аккаунта):
+ *  - POST https://skillspace.ru/api/open/v1/course/student-invite
+ *      token, email, courses[<ID_КУРСА>]=<ID_ГРУППЫ> (группа пуста — подбирается
+ *      автоматически), name — пригласить ученика на курс; письмо шлёт площадка;
+ *  - POST https://skillspace.ru/api/open/v1/course/:id/student-remove
+ *      token, email — снять ученика с курса.
+ * Ответ — `{}` при успехе; 400 — неверные данные, 401 — неверный ключ.
+ *
+ * `course_ref` курса — `<ID_КУРСА>` или `<ID_КУРСА>:<ID_ГРУППЫ>`.
+ * Площадке передаётся только почта обучающегося; имя не передаём.
+ * Карточку курса API не отдаёт — сверка названия недоступна, поэтому
+ * `check` подтверждает лишь доступность API и корректность ключа.
  */
-const SKILLSPACE_API_BASE = 'https://api.skillspace.ru/v1';
+const SKILLSPACE_API_BASE = 'https://skillspace.ru/api/open/v1';
+
+function splitRef(ref: string): { course: string; group: string } {
+  const [course, group = ''] = ref.split(':');
+  return { course: course?.trim() ?? '', group: group.trim() };
+}
 
 @Injectable()
 export class SkillspaceConnector implements AccessCarrierConnector {
@@ -26,51 +37,69 @@ export class SkillspaceConnector implements AccessCarrierConnector {
 
   constructor(private readonly config: EdubridgeConfigHolder) {}
 
-  private headers(): Record<string, string> | null {
-    const key = this.config.get().connectors.skillspace_api_key;
-    if (!key) return null;
-    return { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'application/json' };
+  private token(): string {
+    return this.config.get().connectors.skillspace_api_key;
   }
 
-  private async studentAction(request: AccessRequest, method: 'POST' | 'DELETE'): Promise<ConnectorResult> {
-    const headers = this.headers();
-    if (!headers) return { code: 'fatal', message: 'Skillspace не настроен: укажите API-ключ', error_code: 'NOT_CONFIGURED' };
-    if (request.recipient.type !== EduRecipientType.EMAIL) {
-      return { code: 'fatal', message: 'Skillspace принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
-    }
+  private async post(path: string, body: URLSearchParams): Promise<ConnectorResult> {
     try {
-      const res = await httpCall(`${SKILLSPACE_API_BASE}/courses/${encodeURIComponent(request.course_ref)}/students`, {
-        method,
-        headers,
-        body: JSON.stringify({ email: request.recipient.value, send_invite: method === 'POST' }),
+      const res = await httpCall(`${SKILLSPACE_API_BASE}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        body,
       });
       if (res.ok) return { code: 'ok' };
-      if (res.status === 409) return { code: 'exists', message: 'Ученик уже зачислен' };
-      if (res.status === 402 || /limit|лимит/i.test(res.text)) return { code: 'fatal', message: 'Исчерпан лимит учеников тарифа Skillspace', error_code: 'LICENSE_LIMIT' };
-      if (method === 'DELETE' && res.status === 404) return { code: 'exists', message: 'Ученика уже нет на курсе' };
+      if (res.status === 401) return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
+      if (res.status === 400) return { code: 'fatal', message: `Skillspace: неверные данные — ${res.text.slice(0, 200)}`, error_code: 'BAD_REQUEST' };
       return classifyStatus(res.status, res.text);
     } catch (e) {
       return classifyHttpFailure(e);
     }
   }
 
-  grant(request: AccessRequest): Promise<ConnectorResult> {
-    return this.studentAction(request, 'POST');
+  async grant(request: AccessRequest): Promise<ConnectorResult> {
+    const token = this.token();
+    if (!token) return { code: 'fatal', message: 'Skillspace не настроен: укажите API-ключ школы', error_code: 'NOT_CONFIGURED' };
+    if (request.recipient.type !== EduRecipientType.EMAIL) {
+      return { code: 'fatal', message: 'Skillspace принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
+    }
+    const { course, group } = splitRef(request.course_ref);
+    if (!course) return { code: 'fatal', message: 'У курса не задан идентификатор курса Skillspace', error_code: 'NO_COURSE_REF' };
+    const body = new URLSearchParams({ token, email: request.recipient.value });
+    body.append(`courses[${course}]`, group);
+    return this.post('/course/student-invite', body);
   }
 
-  revoke(request: AccessRequest): Promise<ConnectorResult> {
-    return this.studentAction(request, 'DELETE');
+  async revoke(request: AccessRequest): Promise<ConnectorResult> {
+    const token = this.token();
+    if (!token) return { code: 'fatal', message: 'Skillspace не настроен: укажите API-ключ школы', error_code: 'NOT_CONFIGURED' };
+    if (request.recipient.type !== EduRecipientType.EMAIL) {
+      return { code: 'fatal', message: 'Skillspace принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
+    }
+    const { course } = splitRef(request.course_ref);
+    if (!course) return { code: 'fatal', message: 'У курса не задан идентификатор курса Skillspace', error_code: 'NO_COURSE_REF' };
+    const result = await this.post(`/course/${encodeURIComponent(course)}/student-remove`, new URLSearchParams({ token, email: request.recipient.value }));
+    // Ученика уже нет на курсе — площадка отвечает 400; для отзыва это достигнутая цель.
+    if (result.code === 'fatal' && result.error_code === 'BAD_REQUEST') return { code: 'exists', message: 'Ученика уже нет на курсе' };
+    return result;
   }
 
   async check(_coopname: string, courseRef: string): Promise<CourseCheckResult> {
-    const headers = this.headers();
-    if (!headers) return { found: false, unavailable: true, message: 'Skillspace не настроен' };
+    const token = this.token();
+    if (!token) return { found: false, unavailable: true, message: 'Skillspace не настроен' };
+    const { course } = splitRef(courseRef);
+    if (!course) return { found: false, message: 'У курса не задан идентификатор курса Skillspace' };
+    // Карточки курса у открытого API нет: проверяем доступность API и ключ
+    // запросом без почты — 400 «неверные данные» означает, что ключ принят.
     try {
-      const res = await httpCall(`${SKILLSPACE_API_BASE}/courses/${encodeURIComponent(courseRef)}`, { method: 'GET', headers });
-      if (res.status === 404) return { found: false, message: 'Курс не найден в Skillspace' };
-      if (!res.ok) return { found: false, unavailable: true, message: `HTTP ${res.status}` };
-      const data = (res.body ?? {}) as { title?: string; name?: string };
-      return { found: true, title: data.title ?? data.name };
+      const res = await httpCall(`${SKILLSPACE_API_BASE}/course/student-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ token }),
+      });
+      if (res.status === 401) return { found: false, unavailable: true, message: 'Skillspace: неверный API-ключ школы' };
+      if (res.status >= 500) return { found: false, unavailable: true, message: `Skillspace недоступен (HTTP ${res.status})` };
+      return { found: true, message: 'Открытый API Skillspace не отдаёт карточку курса — сверка названия недоступна' };
     } catch (e) {
       return { found: false, unavailable: true, message: e instanceof Error ? e.message : String(e) };
     }

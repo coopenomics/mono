@@ -588,6 +588,9 @@ export const AllTypesProps: Record<string,any> = {
 	EditProjectInput:{
 
 	},
+	EduAcceptContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	EduAccessCarrier: "enum" as const,
 	EduAccessState: "enum" as const,
 	EduAccessTaskKind: "enum" as const,
@@ -1907,6 +1910,9 @@ export const AllTypesProps: Record<string,any> = {
 		editBranch:{
 			data:"EditBranchInput"
 		},
+		edubridgeAcceptContribution:{
+			data:"EduAcceptContributionInput"
+		},
 		edubridgeAddLearner:{
 			data:"EduLearnerInput"
 		},
@@ -2848,6 +2854,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		cooperativePrograms:{
+
+		},
+		edubridgeActSignablePayload:{
 
 		},
 		edubridgeCatalog:{
@@ -6951,6 +6960,7 @@ export const ReturnTypes: Record<string,any> = {
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		editBranch:"Branch",
+		edubridgeAcceptContribution:"EduContribution",
 		edubridgeAddLearner:"EduLearner",
 		edubridgeAppointAdmin:"EduAdmin",
 		edubridgeCheckConnector:"EduConnectorBinding",
@@ -7763,6 +7773,7 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		edubridgeActSignablePayload:"DocumentAggregate",
 		edubridgeAdmins:"EduAdmin",
 		edubridgeAssignments:"EduAssignment",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",

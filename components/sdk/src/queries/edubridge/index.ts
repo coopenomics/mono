@@ -38,3 +38,5 @@ export * as Queue from './queue'
 export * as Connectors from './connectors'
 /** Администраторы приложения */
 export * as Admins from './admins'
+/** Акт с подписью преподавателя для второй подписи председателя */
+export * as ActSignablePayload from './actSignablePayload'

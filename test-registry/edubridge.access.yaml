@@ -10,9 +10,10 @@ title: Образовательный мост — выдача и отзыв д
 # paid_until — expiresub ключом кооператива и отзыв; за expiry_notice_days —
 # уведомление; exitcoop — досрочный отзыв всех подписок пайщика.
 #
-# Коннекторы Skillspace/GetCourse написаны по публично известным схемам API;
-# состав эндпоинтов/параметров подлежит сверке с документацией аккаунтов
-# площадок (decision_needed).
+# Коннекторы по официальной документации: GetCourse — getcourse.ru/help/api;
+# Skillspace — открытый API school-настроек (help.skillspace.ru/api):
+# /api/open/v1/course/student-invite, /course/:id/student-remove. Живая
+# проверка — на тестовых аккаунтах владельца.
 
 sources:
   backend:
@@ -89,11 +90,24 @@ cases:
     expect: Все его подписки закрыты, доступы отозваны.
     test: ~
     status: missing
+  - id: edu.access.happy.04
+    level: backend
+    kind: happy
+    scenario: Формат запросов коннекторов по официальной документации (Skillspace open/v1 student-invite/student-remove; GetCourse /pl/api/users action=add base64 params, /pl/api/account/groups).
+    expect: Только почта обучающегося, без имени; Limit reached → LICENSE_LIMIT; отзыв GetCourse — группа-сигнал.
+    test: components/controller/tests/unit/edubridge/connectors.test.ts
+    status: passing
+  - id: edu.access.side.07
+    level: backend
+    kind: side
+    scenario: Сверка курса с площадкой кэшируется (CHECK_TTL 1 час).
+    expect: Повторная выдача по недавно сверенному курсу не зовёт check — экспорт-API GetCourse лимитирован 100/2ч.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
   - id: edu.access.break.01
     level: backend
     kind: break
-    scenario: Реальные ответы Skillspace/GetCourse на grant/revoke/check.
-    expect: Коды ответов соответствуют ожиданиям коннекторов; эндпоинты подтверждены документацией площадок.
+    scenario: Живые ответы Skillspace/GetCourse на тестовых аккаунтах владельца.
+    expect: Коды и тексты ответов совпадают с ожиданиями; у Skillspace подтверждён формат courses[ID]=GROUP по документации в настройках школы.
     test: ~
     status: missing
-    decision_needed: true

@@ -10,18 +10,21 @@ import { EdubridgeConfigHolder } from '../../application/config/edubridge-config
 import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
 
 /**
- * GetCourse: открытый API `https://<account>.getcourse.ru/pl/api/users`
- * (POST, `action=add`, `params` = base64(JSON), `key` = API-ключ аккаунта).
- * Доступ к курсу — через добавление пользователя в группу (`user.group_name`
- * = `course_ref`); на стороне GetCourse группа открывает тренинг процессом.
+ * GetCourse — официальный API (getcourse.ru/help/api):
+ *  - импорт: POST https://<account>.getcourse.ru/pl/api/users
+ *      action=add, key=<API-ключ>, params=base64(JSON{user:{email, group_name:[…]},
+ *      system:{refresh_if_exists:1}, session:{utm_*}}); ответ
+ *      {success, result:{user_id, error, error_message}}; «Limit reached» —
+ *      исчерпана месячная квота тарифа;
+ *  - экспорт: GET https://<account>.getcourse.ru/pl/api/account/groups?key=…
+ *      (лимит 100 экспорт-запросов за 2 часа — поэтому сверка курса кэшируется
+ *      в очереди, а не делается на каждую выдачу).
+ * Доступ к тренингу — через группу (`user.group_name` = `course_ref`); группа
+ * открывает тренинг процессом на стороне GetCourse.
  *
- * Отзыв: публичного удаления из группы у GetCourse нет — пользователь
- * добавляется в группу-сигнал `<course_ref>:revoked`, а процесс на стороне
- * площадки снимает доступ. Это договорённость с владельцем площадки, она
- * описана в INSTALL.md расширения.
- *
- * Проверка курса: у API нет чтения групп — `check` подтверждает доступность
- * аккаунта (запрос с пустым действием) и не может обнаружить переименование.
+ * Отзыв: API удаления из группы у GetCourse нет — пользователь добавляется в
+ * группу-сигнал `<course_ref>:revoked`, а процесс площадки снимает доступ
+ * (договорённость с владельцем площадки, описана в INSTALL.md).
  */
 @Injectable()
 export class GetCourseConnector implements AccessCarrierConnector {
@@ -43,7 +46,7 @@ export class GetCourseConnector implements AccessCarrierConnector {
     const params = Buffer.from(
       JSON.stringify({
         user: { email: request.recipient.value, group_name: [group] },
-        system: { refresh_if_exists: 1, partner_email: undefined },
+        system: { refresh_if_exists: 1 },
         session: { utm_source: 'coopenomics', utm_medium: 'edubridge', utm_campaign: request.enrollment_id },
       })
     ).toString('base64');
@@ -59,7 +62,9 @@ export class GetCourseConnector implements AccessCarrierConnector {
       const success = data.success === true || data.result?.success === true;
       if (success) return { code: 'ok' };
       const message = data.error_message ?? data.result?.error_message ?? res.text.slice(0, 200);
-      if (/limit|лимит/i.test(message)) return { code: 'fatal', message, error_code: 'LICENSE_LIMIT' };
+      if (/limit reached|лимит/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'LICENSE_LIMIT' };
+      if (/unauthorized/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'UNAUTHORIZED' };
+      if (/no email|empty action|forbidden/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'BAD_REQUEST' };
       return { code: 'retryable', message };
     } catch (e) {
       return classifyHttpFailure(e);

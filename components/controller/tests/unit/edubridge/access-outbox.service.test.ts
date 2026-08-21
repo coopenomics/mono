@@ -5,13 +5,13 @@ import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT 
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 
-function make(opts: { grant?: any; check?: any; task?: Partial<any> } = {}) {
+function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?: Date | null } = {}) {
   const task = {
     id: 'T1', coopname: 'voskhod', enrollment_id: 'E1', kind: EduAccessTaskKind.GRANT, carrier: EduAccessCarrier.SKILLSPACE,
     trigger_trx: 'TRX', status: EduAccessTaskStatus.RUNNING, attempts: 0, next_attempt_at: new Date(), recipient_override: null, ...opts.task,
   } as any;
   const enrollment = { id: 'E1', coopname: 'voskhod', learner_id: 'L1', course_id: 'C1', member_username: 'ant', access_state: EduAccessState.PENDING } as any;
-  const course = { id: 'C1', carrier: EduAccessCarrier.SKILLSPACE, external_ref: 'course-42', external_title_seen: 'Алгебра' } as any;
+  const course = { id: 'C1', carrier: EduAccessCarrier.SKILLSPACE, external_ref: 'course-42', external_title_seen: 'Алгебра', external_checked_at: opts.checkedAt ?? null } as any;
   const learner = { id: 'L1', recipient_type: 'email', recipient_value: 'kid@x.ru' } as any;
   const tasks = { enqueue: jest.fn(async (d: any) => ({ ...d })), claimDue: jest.fn(async () => [task]), save: jest.fn(async (t: any) => t), findById: jest.fn(async () => task) } as any;
   const enrollments = { findById: jest.fn(async () => enrollment), save: jest.fn(async (e: any) => e) } as any;
@@ -85,6 +85,13 @@ describe('EdubridgeAccessOutboxService.processDue', () => {
     expect(connector.grant).not.toHaveBeenCalled();
     expect(task.status).toBe(EduAccessTaskStatus.NEEDS_ATTENTION);
     expect(task.last_error).toMatch(/переименован/);
+  });
+
+  it('недавно сверенный курс повторно не проверяется — экспорт-API лимитирован', async () => {
+    const { service, connector, task } = make({ checkedAt: new Date() });
+    await service.processDue('voskhod');
+    expect(connector.check).not.toHaveBeenCalled();
+    expect(task.status).toBe(EduAccessTaskStatus.DONE);
   });
 
   it('площадка недоступна при сверке — retryable, не needs_attention', async () => {

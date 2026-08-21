@@ -131,6 +131,13 @@ export class EduSignActInputDTO {
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
 }
 
+@InputType('EduAcceptContributionInput')
+export class EduAcceptContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Тот же акт приёма-передачи с подписями преподавателя и председателя' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
 @InputType('EduDeclineContributionInput')
 export class EduDeclineContributionInputDTO {
   @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;

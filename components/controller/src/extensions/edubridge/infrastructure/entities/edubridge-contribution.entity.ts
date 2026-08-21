@@ -47,6 +47,10 @@ export class EdubridgeContributionEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   public act_hash!: string | null;
 
+  /** Акт с подписью преподавателя — председатель присоединяет свою к этому же документу. */
+  @Column({ type: 'jsonb', nullable: true })
+  public act_signed!: Record<string, unknown> | null;
+
   @Column({ type: 'text', nullable: true })
   public decline_reason!: string | null;
 

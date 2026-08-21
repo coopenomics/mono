@@ -129,7 +129,7 @@ async function onSignAct(c: IContribution): Promise<void> {
   busy.value = c.id;
   try {
     replace(await signAct(c));
-    SuccessAlert('Акт подписан — взнос принят в паевой фонд');
+    SuccessAlert('Акт подписан — ждём подпись председателя');
   } catch (e) {
     FailAlert(e);
   } finally {

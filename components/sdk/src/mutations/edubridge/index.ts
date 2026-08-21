@@ -46,3 +46,5 @@ export * as SetConnectorEnabled from './setConnectorEnabled'
 export * as AppointAdmin from './appointAdmin'
 /** Снять администратора */
 export * as DismissAdmin from './dismissAdmin'
+/** Председатель подписал акт — взнос принят */
+export * as AcceptContribution from './acceptContribution'

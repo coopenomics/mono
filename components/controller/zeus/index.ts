@@ -6407,6 +6407,12 @@ export type ValueTypes = {
 	/** Новое название проекта */
 	title: string | Variable<any, string>
 };
+	["EduAcceptContributionInput"]: {
+	/** Взнос */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Тот же акт приёма-передачи с подписями преподавателя и председателя */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
@@ -12291,6 +12297,7 @@ deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+edubridgeAcceptContribution?: [{	data: ValueTypes["EduAcceptContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
@@ -13997,6 +14004,7 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+edubridgeActSignablePayload?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Администраторы приложения */
 	edubridgeAdmins?:ValueTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
@@ -21331,6 +21339,12 @@ export type ResolverInputTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	["EduAcceptContributionInput"]: {
+	/** Взнос */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Тот же акт приёма-передачи с подписями преподавателя и председателя */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
@@ -27044,6 +27058,7 @@ deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
+edubridgeAcceptContribution?: [{	data: ResolverInputTypes["EduAcceptContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
@@ -28682,6 +28697,7 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+edubridgeActSignablePayload?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["DocumentAggregate"]],
 	/** Администраторы приложения */
 	edubridgeAdmins?:ResolverInputTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
@@ -35834,6 +35850,12 @@ export type ModelTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	["EduAcceptContributionInput"]: {
+	/** Взнос */
+	contribution_id: ModelTypes["ID"],
+	/** Тот же акт приёма-передачи с подписями преподавателя и председателя */
+	document: ModelTypes["SignedDigitalDocumentInput"]
+};
 	["EduAccessCarrier"]:EduAccessCarrier;
 	["EduAccessState"]:EduAccessState;
 	["EduAccessTask"]: {
@@ -41697,6 +41719,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
+	/** Председатель подписал акт — взнос принимается в паевой фонд */
+	edubridgeAcceptContribution: ModelTypes["EduContribution"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: ModelTypes["EduLearner"],
 	/** Назначить администратора */
@@ -41729,7 +41753,7 @@ export type ModelTypes = {
 	edubridgeSetConnectorEnabled: ModelTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
-	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
+	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: ModelTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
 	edubridgeSignAnnex: ModelTypes["EduAssignment"],
@@ -43743,6 +43767,8 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Акт с подписью преподавателя для второй подписи председателя (тот же документ) */
+	edubridgeActSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Администраторы приложения */
 	edubridgeAdmins: Array<ModelTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
@@ -51323,6 +51349,12 @@ export type GraphQLTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	["EduAcceptContributionInput"]: {
+		/** Взнос */
+	contribution_id: GraphQLTypes["ID"],
+	/** Тот же акт приёма-передачи с подписями преподавателя и председателя */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]: EduAccessCarrier;
 	/** Состояние доступа на площадке */
@@ -57612,6 +57644,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
+	/** Председатель подписал акт — взнос принимается в паевой фонд */
+	edubridgeAcceptContribution: GraphQLTypes["EduContribution"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
 	/** Назначить администратора */
@@ -57644,7 +57678,7 @@ export type GraphQLTypes = {
 	edubridgeSetConnectorEnabled: GraphQLTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
-	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
+	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: GraphQLTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
 	edubridgeSignAnnex: GraphQLTypes["EduAssignment"],
@@ -59822,6 +59856,8 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Акт с подписью преподавателя для второй подписи председателя (тот же документ) */
+	edubridgeActSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Администраторы приложения */
 	edubridgeAdmins: Array<GraphQLTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
@@ -62394,6 +62430,7 @@ export enum EduConnectorHealth {
 /** Состояние взноса результатами работы */
 export enum EduContributionStatus {
 	ACCEPTED = "ACCEPTED",
+	ACT_SIGNED = "ACT_SIGNED",
 	COUNCIL_APPROVED = "COUNCIL_APPROVED",
 	DECLINED = "DECLINED",
 	DRAFT = "DRAFT",
@@ -63326,6 +63363,7 @@ type ZEUS_VARIABLES = {
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
+	["EduAcceptContributionInput"]: ValueTypes["EduAcceptContributionInput"];
 	["EduAccessCarrier"]: ValueTypes["EduAccessCarrier"];
 	["EduAccessState"]: ValueTypes["EduAccessState"];
 	["EduAccessTaskKind"]: ValueTypes["EduAccessTaskKind"];

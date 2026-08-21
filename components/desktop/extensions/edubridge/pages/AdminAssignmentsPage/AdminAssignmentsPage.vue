@@ -27,7 +27,9 @@
       template(#cell-status="{ row }")
         BaseBadge(:variant="contributionStatusOf(row.status).variant") {{ contributionStatusOf(row.status).label }}
       template(#cell-actions="{ row }")
-        BaseButton(v-if="row.status === 'submitted' || row.status === 'council_approved'" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
+        .row.no-wrap.justify-end.q-gutter-xs
+          BaseButton(v-if="row.status === 'act_signed'" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
+          BaseButton(v-if="row.status === 'submitted' || row.status === 'council_approved' || row.status === 'act_signed'" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
     EmptyState(v-if="!loading && !contributions.length" title="Взносов нет")
       template(#icon)
         q-icon(name="workspace_premium" size="32px")
@@ -70,6 +72,7 @@ import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRIBUTION_STATUS_LABELS,
   RID_TYPE_LABELS,
+  acceptContributionAsChairman,
   closeAssignment,
   createAssignment,
   declineContribution,
@@ -92,6 +95,7 @@ const contributions = ref<IContribution[]>([]);
 const courses = ref<ICourse[]>([]);
 const loading = ref(false);
 const busy = ref(false);
+const busyId = ref<string | null>(null);
 const createOpen = ref(false);
 const declineOpen = ref(false);
 const declineTarget = ref<IContribution | null>(null);
@@ -149,6 +153,18 @@ async function onClose(a: IAssignment): Promise<void> {
     assignments.value = assignments.value.map((x) => (x.id === updated.id ? { ...x, status: updated.status } : x));
   } catch (e) {
     FailAlert(e);
+  }
+}
+async function onAccept(c: IContribution): Promise<void> {
+  busyId.value = c.id;
+  try {
+    const updated = await acceptContributionAsChairman(c);
+    contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
+    SuccessAlert('Акт подписан — взнос принят в паевой фонд');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busyId.value = null;
   }
 }
 function openDecline(c: IContribution): void {

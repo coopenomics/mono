@@ -35,10 +35,13 @@ void edubridge::acceptrid(eosio::name coopname,
 
   const eosio::name username = rid->username;
 
-  // Подписи действительны; акт двухподписный — преподаватель подписывает
-  // первым, председатель присоединяет подпись по хэшу того же документа.
+  // Акт двухподписный: преподаватель подписал первым, председатель совета
+  // присоединил свою подпись к тому же документу (по хэшу, без перегенерации).
+  // Оба подписанта обязательны, как у акта-2 «Благороста» (capital::signact2).
+  auto soviet = get_board_by_type_or_fail(coopname, "soviet"_n);
+  auto chairman = soviet.get_chairman();
   verify_document_or_fail(decision);
-  verify_document_or_fail(act, { username });
+  verify_document_or_fail(act, { username, chairman });
   const eosio::asset amount  = rid->amount;
   const uint64_t rid_id      = rid->id;
 

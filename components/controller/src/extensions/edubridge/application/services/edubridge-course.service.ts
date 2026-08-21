@@ -54,7 +54,10 @@ export class EdubridgeCourseService {
     const course = await this.get(coopname, input.id);
     Object.assign(course, this.fields(input));
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
-    if (input.external_ref !== undefined && input.external_ref !== course.external_ref) course.external_title_seen = null;
+    if (input.external_ref !== undefined && input.external_ref !== course.external_ref) {
+      course.external_title_seen = null;
+      course.external_checked_at = null;
+    }
     return this.courses.save(course);
   }
 

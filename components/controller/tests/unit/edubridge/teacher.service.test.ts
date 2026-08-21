@@ -29,7 +29,10 @@ function make(opts: { contract?: boolean; assignmentStatus?: EduAssignmentStatus
   } as any;
   const courses = { findById: jest.fn(async () => ({ id: 'C1', title: 'Алгебра' })) } as any;
   const chain = { submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})) } as any;
-  const documents = { generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })) } as any;
+  const documents = {
+    generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
+    buildAggregate: jest.fn(async (d: any) => ({ hash: d.hash, document: d, rawDocument: { hash: d.hash, html: '', meta: {} } })),
+  } as any;
   const freeDecisions = {
     createProjectOfFreeDecision: jest.fn(async () => ({})),
     generateProjectOfFreeDecisionDocument: jest.fn(async () => ({ hash: 'PROJ', meta: {} })),
@@ -66,7 +69,7 @@ describe('EdubridgeTeacherService', () => {
     expect(submitted.statement_hash).toBe('stmt');
   });
 
-  it('решение совета → COUNCIL_APPROVED; акт преподавателя → acceptrid с протоколом 3009, статус ACCEPTED', async () => {
+  it('решение совета → COUNCIL_APPROVED; акт преподавателя → ACT_SIGNED; тот же акт с подписью председателя → acceptrid, ACCEPTED', async () => {
     const { service, chain, documents } = make();
     const c = await service.draftContribution('voskhod', 'teach', draft);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
@@ -76,11 +79,31 @@ describe('EdubridgeTeacherService', () => {
     expect(approved[0]!.council_decision_id).toBe('17');
 
     await expect(service.act('voskhod', 'teach', c.id)).resolves.toBeTruthy();
-    const accepted = await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
+    const teacherAct = signedBy('teach', 'ACT');
+    const signedByTeacher = await service.signAct('voskhod', 'teach', c.id, teacherAct);
+    expect(signedByTeacher.status).toBe(EduContributionStatus.ACT_SIGNED);
+    expect(chain.acceptRid).not.toHaveBeenCalled();
+
+    // Председатель получает тот же документ и подписывает его вторым — без перегенерации.
+    const payload = await service.actSignablePayload('voskhod', c.id);
+    expect(payload.hash).toBe('ACT');
+    expect(documents.generate.mock.calls.filter((x: any) => x[0].data.registry_id === 3010).length).toBe(1);
+
+    const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
+    const accepted = await service.acceptContribution('voskhod', 'ant', c.id, bothSigned);
     expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, act: expect.objectContaining({ hash: 'ACT' }) }));
     expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === 3009 && x[0].data.decision_id === 17)).toBe(true);
     expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
-    expect(accepted.act_hash).toBe('act');
+  });
+
+  it('приём отклоняется, если на акте нет обеих подписей или хэш другой', async () => {
+    const { service } = make();
+    const c = await service.draftContribution('voskhod', 'teach', draft);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onDecisionTracked(new DecisionTrackedEvent({ matched: true, hash: 'PROJ', event_type: DecisionEventType.SOVIET_DECISION, decision_id: '1', metadata: { extension: 'edubridge', rid_hash: c.rid_hash } }));
+    await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
+    await expect(service.acceptContribution('voskhod', 'ant', c.id, signedBy('teach', 'ACT'))).rejects.toThrow(/подписи преподавателя и председателя/);
+    await expect(service.acceptContribution('voskhod', 'ant', c.id, { ...signedBy('ant', 'OTHER'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] })).rejects.toThrow(/хэш акта/);
   });
 
   it('акт до решения совета недоступен; чужое решение игнорируется', async () => {

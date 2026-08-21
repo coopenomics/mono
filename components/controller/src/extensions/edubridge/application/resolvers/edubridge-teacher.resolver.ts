@@ -1,9 +1,10 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO, GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
+  EduAcceptContributionInputDTO,
   EduAssignmentDTO,
   EduAssignmentInputDTO,
   EduContributionDTO,
@@ -96,7 +97,7 @@ export class EdubridgeTeacherResolver {
     return new GeneratedDocumentDTO(await this.teachers.act(coop(), m.username as string, id));
   }
 
-  @Mutation(() => EduContributionDTO, { name: 'edubridgeSignAct', description: 'Подписать акт приёма-передачи — взнос принимается в паевой фонд' })
+  @Mutation(() => EduContributionDTO, { name: 'edubridgeSignAct', description: 'Подписать акт приёма-передачи (первая подпись — преподаватель)' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduContribution', 'create:own')
   async edubridgeSignAct(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSignActInputDTO): Promise<EduContributionDTO> {
@@ -141,6 +142,20 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduContribution', 'read:all')
   async edubridgeContributions(): Promise<EduContributionDTO[]> {
     return (await this.teachers.listContributions(coop())).map((c) => new EduContributionDTO(c));
+  }
+
+  @Query(() => DocumentAggregateDTO, { name: 'edubridgeActSignablePayload', description: 'Акт с подписью преподавателя для второй подписи председателя (тот же документ)' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduContribution', 'decide')
+  async edubridgeActSignablePayload(@Args('contribution_id', { type: () => ID }) id: string): Promise<DocumentAggregateDTO> {
+    return new DocumentAggregateDTO(await this.teachers.actSignablePayload(coop(), id));
+  }
+
+  @Mutation(() => EduContributionDTO, { name: 'edubridgeAcceptContribution', description: 'Председатель подписал акт — взнос принимается в паевой фонд' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduContribution', 'decide')
+  async edubridgeAcceptContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduAcceptContributionInputDTO): Promise<EduContributionDTO> {
+    return new EduContributionDTO(await this.teachers.acceptContribution(coop(), m.username as string, data.contribution_id, data.document));
   }
 
   @Mutation(() => EduContributionDTO, { name: 'edubridgeDeclineContribution', description: 'Отклонить взнос РИД с причиной' })
