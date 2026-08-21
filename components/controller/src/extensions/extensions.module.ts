@@ -11,6 +11,7 @@ import { ParticipantExtensionModule } from './participant/participant-extension.
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
+import { EdubridgeExtensionModule } from './edubridge/edubridge-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
 
@@ -34,6 +35,7 @@ export class ExtensionsModule {
         InnercoopBridgeModule,
         ReportsExtensionModule,
         MarketplaceExtensionModule,
+        EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
       ],
@@ -53,6 +55,7 @@ export class ExtensionsModule {
         InnercoopBridgeModule,
         ReportsExtensionModule,
         MarketplaceExtensionModule,
+        EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
       ],

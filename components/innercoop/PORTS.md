@@ -33,7 +33,7 @@
 | `FREE_DECISION_PORT` | `IFreeDecisionPort` (3)<br><sub>core-ports/free-decision.port.ts</sub> | `FreeDecisionAdapter` | capital, chairman | Свободные решения совета: расширение заводит проект решения, получает его документ и публикует в цепь. |
 | `INTEGRATION_SETTINGS_PORT` | `IIntegrationSettingsPort` (1)<br><sub>core-ports/integration-settings.port.ts</sub> | `IntegrationSettingsInnercoopAdapter` | capital, chatcoop, marketplace | Доступы к внешним службам: мессенджер, распознавание речи, видеосвязь, геокодер, хостинг репозиториев. |
 | `LEDGER2_HISTORY_PORT` | `ILedger2HistoryPort` (2)<br><sub>core-ports/ledger2-history.port.ts</sub> | `Ledger2InnercoopHistoryAdapter` | marketplace, reports | Ledger2 (ядро): read-only контракт истории операций/движений по кошельку из журнала `blockchain_actions`. |
-| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, chairman, chatcoop, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, yookassa | Журналирование контура кооператива. |
+| `LOGGER_PORT` | `ILoggerPort` (6)<br><sub>core-ports/logger.port.ts</sub> | `WinstonLoggerService` | builtin, capital, chairman, chatcoop, edubridge, expenses, ku, marketplace, participant, powerup, qrpay, reports, sberpoll, yookassa | Журналирование контура кооператива. |
 | `MEET_PORT` | `IMeetPort` (3)<br><sub>core-ports/meet.port.ts</sub> | `MeetDataAdapter` | chairman, participant | Собрания пайщиков: перечислить и получить по идентификатору. |
 | `MESSAGE_CHANNEL_PORT` | `IMessageChannelPort` (2)<br><sub>core-ports/message-channel.port.ts</sub> | `RedisService` | sberpoll, yookassa | Именованный канал сообщений контура кооператива: публикация и подписка. |
 | `MUTATION_LOG_PORT` | `IMutationLogPort` (2)<br><sub>core-ports/mutation-log.port.ts</sub> | `MutationLogInnercoopAdapter` | capital | Журнал изменений: кто, что и когда менял через интерфейс кооператива. |
@@ -49,7 +49,7 @@
 | `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | marketplace | Шина событий реального времени — то, из чего кормятся подписки клиента. |
-| `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (4)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
+| `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (4)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
@@ -78,7 +78,7 @@
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
 | `DESKTOP_GRANTS_FILTER_REGISTRY_PORT` | `IDesktopGrantsFilterRegistryPort` (2)<br><sub>hooks/desktop-grants-filter.hook.ts</sub> | `ExtensionGrantsFilterRegistry` | — | Сужение прав пайщика на столах ЧУЖОГО расширения. |
-| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, marketplace | Права пайщика на рабочем столе расширения. |
+| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, edubridge, marketplace | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | — | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 

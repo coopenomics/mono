@@ -35,6 +35,10 @@ import { chairmanPorts } from './chairman/chairman.ports';
 import { chatcoopPorts } from './chatcoop/chatcoop.ports';
 import { kuPorts } from './ku/ku.ports';
 import { marketplacePorts } from './marketplace/marketplace.ports';
+import { EdubridgeExtensionModule, EdubridgeExtension } from './edubridge/edubridge-extension.module';
+import { Schema as EdubridgeSchema } from './edubridge/types';
+import { edubridgeEntities } from './edubridge/edubridge.entities';
+import { edubridgePorts } from './edubridge/edubridge.ports';
 import { participantPorts } from './participant/participant.ports';
 import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
@@ -407,6 +411,39 @@ export const AppRegistry: INamedExtension = {
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./marketplace'),
     instructions: getInstructionsContent('./marketplace'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  edubridge: {
+    is_builtin: false,
+    is_internal: true,
+    // Обкатка на тестовом контуре; в основной сети — после приёмки MVP.
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    // Три стола по ролям. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
+    // `extensions/edubridge/install.ts`. Видимость — канон грантов
+    // (EdubridgeDesktopGrantsProvider): гость видит каталог, до принятия ЦПП
+    // советом у председателя только Extension:configure.
+    desktops: [
+      { name: 'edubridge', title: 'Обучение', icon: 'school' },
+      { name: 'edubridge-member', title: 'Моё обучение', icon: 'family_restroom' },
+      { name: 'edubridge-teacher', title: 'Преподавание', icon: 'co_present' },
+    ],
+    title: 'Образовательный мост',
+    description: 'Курсы кооператива на образовательных площадках: каталог, членские взносы, автоматический доступ.',
+    image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
+    class: EdubridgeExtensionModule,
+    extensionClass: EdubridgeExtension,
+    entities: edubridgeEntities,
+    ports: edubridgePorts,
+    schema: EdubridgeSchema,
+    configPolicy: {
+      'connectors.skillspace_api_key': { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+      'connectors.getcourse_api_key': { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+    },
+    tags: ['стол', 'образование'],
+    readme: getReadmeContent('./edubridge'),
+    instructions: getInstructionsContent('./edubridge'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

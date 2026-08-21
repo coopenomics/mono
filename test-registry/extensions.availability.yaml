@@ -101,3 +101,14 @@ cases:
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
     status: passing
 
+  - id: ext.avail.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Расширение «Образовательный мост» (edubridge) объявлено NON_MAINNET_ONLY
+      на время обкатки MVP.
+    expect: >
+      в основной сети расширение в каталоге закрыто для установки; на тестовом
+      контуре ставится. Открытие для mainnet — отдельным решением после приёмки.
+    test: ~
+    status: missing

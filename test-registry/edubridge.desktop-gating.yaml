@@ -1,0 +1,54 @@
+feature: edubridge.desktop-gating
+title: Образовательный мост — столы, права и шлюзы онбординга
+
+# Каркас приложения (E1, задача 7DD-2 проекта «Платформа образования»).
+# Три стола: «Обучение» (edubridge), «Моё обучение» (edubridge-member),
+# «Преподавание» (edubridge-teacher). Видимость — канон грантов:
+# EdubridgeDesktopGrantsProvider выдаёт права, фронт сверяет `meta.requires`.
+# Особенность приложения: каталог открыт гостю — право `EduCatalog:read`
+# получает даже неавторизованный посетитель.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/desktop/**
+    - components/controller/src/extensions/edubridge/application/access/**
+    - components/controller/src/extensions/edubridge/application/membership/**
+  ui:
+    - components/desktop/extensions/edubridge/install.ts
+
+cases:
+  - id: edu.gating.happy.01
+    level: backend
+    kind: happy
+    scenario: Гость (без username) запрашивает стол.
+    expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты.
+    test: ~
+    status: missing
+  - id: edu.gating.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель активного кооператива, ЦПП ещё не принята советом.
+    expect: Гранты = каталог + 'Extension:configure'; рабочих прав нет.
+    test: ~
+    status: missing
+  - id: edu.gating.happy.03
+    level: backend
+    kind: happy
+    scenario: ЦПП принята; пайщик без подписанных оферт.
+    expect: Гранты содержат 'Onboarding:learner' и 'Onboarding:teacher', рабочих прав learner/teacher нет.
+    test: ~
+    status: missing
+  - id: edu.gating.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик со статусом, отличным от active.
+    expect: Только гостевые гранты.
+    test: ~
+    status: missing
+  - id: edu.gating.happy.04
+    level: ui
+    kind: happy
+    scenario: Имена workspace в install.ts совпадают с AppRegistry.desktops.
+    expect: Все три стола получают маршруты, предупреждений «стол не объявлен» нет.
+    test: ~
+    status: missing
