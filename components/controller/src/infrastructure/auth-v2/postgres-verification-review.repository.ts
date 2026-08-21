@@ -14,7 +14,7 @@ import {
 
 const DEFAULT_LIMIT = 200;
 
-interface ReviewRow {
+export interface ReviewRow {
   id: string;
   username: string;
   procedure: string;
@@ -29,6 +29,17 @@ interface ReviewRow {
 }
 
 const VALID_STATUSES = new Set<string>(Object.values(VerificationReviewStatus));
+
+/**
+ * TypeORM для UPDATE и DELETE отдаёт из `query` пару `[строки, число задетых]`,
+ * а для SELECT и INSERT — сами строки. Приводим к строкам, иначе `RETURNING *`
+ * читается как одна запись-массив и любое обращение к её полю падает.
+ */
+export function rowsOf(raw: unknown): ReviewRow[] {
+  if (!Array.isArray(raw)) return [];
+  const [first] = raw;
+  return Array.isArray(first) ? (first as ReviewRow[]) : (raw as ReviewRow[]);
+}
 
 function toReview(row: ReviewRow): VerificationReview {
   return {
@@ -161,7 +172,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
     clear_photos: boolean;
   }): Promise<VerificationReview | null> {
     const ds = await this.getDataSource();
-    const rows: ReviewRow[] = await ds.query(
+    const raw = await ds.query(
       `UPDATE verification_reviews
           SET status = $2,
               decided_by = $3,
@@ -172,6 +183,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
         RETURNING *`,
       [params.id, params.status, params.decided_by, params.decision_reason ?? null, params.clear_photos],
     );
+    const rows = rowsOf(raw);
     return rows.length ? toReview(rows[0]) : null;
   }
 

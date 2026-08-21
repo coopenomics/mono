@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import config from '~/config/config';
 import {
   ACCOUNT_BLOCKCHAIN_PORT,
@@ -8,6 +8,7 @@ import { VerificationProcedure, type VerificationTypeEntry } from '~/domain/auth
 import { VerificationTypesService } from './verification-types.service';
 import { VerificationReviewService, type VerificationPhotoUpload } from './verification-review.service';
 import type { VerificationActor } from './verification-authority.service';
+import { AuditService } from '../audit/audit.service';
 
 /**
  * Верификация личности пайщика при личной явке (уровень `passport_onsite`).
@@ -26,7 +27,29 @@ export class VerificationOnsiteService {
     @Inject(ACCOUNT_BLOCKCHAIN_PORT) private readonly accountBlockchainPort: AccountBlockchainPort,
     private readonly verificationTypesService: VerificationTypesService,
     private readonly verificationReviewService: VerificationReviewService,
+    private readonly audit: AuditService,
   ) {}
+
+  private readonly logger = new Logger(VerificationOnsiteService.name);
+
+  /**
+   * Журнал ведём после записи в цепь, и его сбой не должен ронять действие:
+   * оно уже необратимо, а повторить его контракт не даст — на верификацию он
+   * ответит «уже проведена», на отзыв «не найдена», и человек упрётся в тупик
+   * с ошибкой на экране и сделанной работой в цепи. Сбой громко логируем и
+   * пишем в аудит: запись в журнале не появится, и это надо будет разобрать.
+   */
+  private async keepJournal(username: string, event: string, write: () => Promise<unknown>): Promise<void> {
+    try {
+      await write();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Не удалось записать в журнал верификаций (${event}, ${username}): ${reason}`);
+      await this.audit
+        .record({ event, subjectId: username, result: 'degraded', context: { reason } })
+        .catch(() => undefined);
+    }
+  }
 
   /**
    * Провести верификацию по паспорту; возвращает актуальные уровни пайщика.
@@ -49,12 +72,14 @@ export class VerificationOnsiteService {
       username: params.username,
       procedure: VerificationProcedure.Passport,
     });
-    await this.verificationReviewService.recordVerification({
-      actor: params.actor,
-      username: params.username,
-      braname,
-      photos,
-    });
+    await this.keepJournal(params.username, 'ParticipantVerificationRecorded', () =>
+      this.verificationReviewService.recordVerification({
+        actor: params.actor,
+        username: params.username,
+        braname,
+        photos,
+      }),
+    );
     return this.verificationTypesService.resolveForUsername(params.username);
   }
 
@@ -66,7 +91,9 @@ export class VerificationOnsiteService {
       username,
       procedure: VerificationProcedure.Passport,
     });
-    await this.verificationReviewService.recordRevocation(chairman, username, reason ?? null);
+    await this.keepJournal(username, 'ParticipantVerificationRevoked', () =>
+      this.verificationReviewService.recordRevocation(chairman, username, reason ?? null),
+    );
     return this.verificationTypesService.resolveForUsername(username);
   }
 }

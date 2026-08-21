@@ -24,6 +24,7 @@ sources:
     - components/controller/src/domain/auth-v2/ports/verification-review.port.ts
     - components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.ts
     - components/controller/migrations/V2.5.4__coopid_verification_reviews.ts
+    - components/controller/src/application/auth-v2/verification/verification-onsite.service.ts
   ui:
     - components/desktop/src/widgets/Verifications/**
     - components/desktop/src/shared/lib/utils/readFileForUpload.ts
@@ -152,6 +153,28 @@ cases:
     expect: >
       решение всё равно закрывается — иначе сверка зависнет в очереди совета;
       осиротевший объект удалится следующей попыткой
+    test: ~
+    status: missing
+
+  - id: cid.vrev.break.08
+    level: backend
+    kind: break
+    scenario: >
+      ответ UPDATE ... RETURNING от TypeORM приходит парой «строки и число
+      задетых», а не плоским списком строк
+    expect: >
+      запись читается верно; иначе отзыв верификации падает уже после того,
+      как цепь его провела, и повторить его контракт не даёт
+    test: components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.spec.ts
+    status: passing
+
+  - id: cid.vrev.side.08
+    level: backend
+    kind: side
+    scenario: журнал недоступен в момент записи после успешного действия в цепи
+    expect: >
+      действие не роняется — оно уже необратимо, а повторить его контракт не
+      даст; сбой уходит в лог и в аудит со статусом degraded
     test: ~
     status: missing
 
