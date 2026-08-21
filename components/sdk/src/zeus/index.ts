@@ -6411,6 +6411,38 @@ export type ValueTypes = {
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]:EduAccessState;
+	["EduAccessTask"]: AliasType<{
+	attempts?:boolean | `@${string}`,
+	carrier?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	done_at?:boolean | `@${string}`,
+	enrollment_id?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	kind?:boolean | `@${string}`,
+	last_error?:boolean | `@${string}`,
+	last_result?:boolean | `@${string}`,
+	next_attempt_at?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduAccessTask']?: Omit<ValueTypes["EduAccessTask"], "...on EduAccessTask">
+}>;
+	/** Вид задачи выдачи доступа */
+["EduAccessTaskKind"]:EduAccessTaskKind;
+	/** Состояние задачи очереди выдачи доступа */
+["EduAccessTaskStatus"]:EduAccessTaskStatus;
+	["EduAdmin"]: AliasType<{
+	appointed_by?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduAdmin']?: Omit<ValueTypes["EduAdmin"], "...on EduAdmin">
+}>;
+	["EduAdminInput"]: {
+	/** Учётное имя пайщика */
+	username: string | Variable<any, string>
+};
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
@@ -6489,6 +6521,19 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduCatalogSubject']?: Omit<ValueTypes["EduCatalogSubject"], "...on EduCatalogSubject">
 }>;
+	["EduConnectorBinding"]: AliasType<{
+	carrier?:boolean | `@${string}`,
+	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	configured?:boolean | `@${string}`,
+	enabled?:boolean | `@${string}`,
+	health?:boolean | `@${string}`,
+	last_check_at?:boolean | `@${string}`,
+	last_check_message?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduConnectorBinding']?: Omit<ValueTypes["EduConnectorBinding"], "...on EduConnectorBinding">
+}>;
+	/** Состояние подключения площадки */
+["EduConnectorHealth"]:EduConnectorHealth;
 	["EduContribution"]: AliasType<{
 	act_hash?:boolean | `@${string}`,
 	/** Сумма паевого взноса */
@@ -6534,18 +6579,6 @@ export type ValueTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: AliasType<{
-	/** PDF в base64 */
-	binary?:boolean | `@${string}`,
-	/** Название документа */
-	full_title?:boolean | `@${string}`,
-	/** Хеш документа */
-	hash?:boolean | `@${string}`,
-	/** HTML для ознакомления */
-	html?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on EduConvertStatement']?: Omit<ValueTypes["EduConvertStatement"], "...on EduConvertStatement">
-}>;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -6684,6 +6717,26 @@ export type ValueTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string | Variable<any, string>
 };
+	["EduMemberCard"]: AliasType<{
+	enrollments?:ValueTypes["EduEnrollment"],
+	learners?:ValueTypes["EduLearner"],
+	tasks?:ValueTypes["EduAccessTask"],
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduMemberCard']?: Omit<ValueTypes["EduMemberCard"], "...on EduMemberCard">
+}>;
+	["EduMemberRow"]: AliasType<{
+	/** Действующих подписок */
+	active_enrollments?:boolean | `@${string}`,
+	/** Подписок, требующих внимания */
+	attention_count?:boolean | `@${string}`,
+	/** Обучающихся */
+	learners_count?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduMemberRow']?: Omit<ValueTypes["EduMemberRow"], "...on EduMemberRow">
+}>;
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -6710,6 +6763,10 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduOnboardingState']?: Omit<ValueTypes["EduOnboardingState"], "...on EduOnboardingState">
 }>;
+	["EduQueueFilterInput"]: {
+	/** Состояния задач */
+	statuses?: Array<ValueTypes["EduAccessTaskStatus"]> | undefined | null | Variable<any, string>
+};
 	["EduQuote"]: AliasType<{
 	/** Сумма членского взноса за период */
 	amount?:boolean | `@${string}`,
@@ -6738,8 +6795,15 @@ export type ValueTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	["EduRetryTaskInput"]: {
+	task_id: ValueTypes["ID"] | Variable<any, string>
+};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSetConnectorEnabledInput"]: {
+	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
+	enabled: boolean | Variable<any, string>
+};
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
@@ -12228,15 +12292,20 @@ deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
+edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
+edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
-edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDraftContribution?: [{	data: ValueTypes["EduContributionDraftInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
-edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
-edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
+edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeSignAnnex?: [{	data: ValueTypes["EduSignAnnexInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
@@ -13928,16 +13997,22 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+	/** Администраторы приложения */
+	edubridgeAdmins?:ValueTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ValueTypes["EduAssignment"],
 edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
+	/** Площадки и их состояние (ключи не выдаются) */
+	edubridgeConnectors?:ValueTypes["EduConnectorBinding"],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ValueTypes["EduContribution"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
+edubridgeMemberCard?: [{	username: string | Variable<any, string>},ValueTypes["EduMemberCard"]],
+edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>},ValueTypes["EduMemberRow"]],
 	/** Мои назначения */
 	edubridgeMyAssignments?:ValueTypes["EduAssignment"],
 	/** Мой договор участия в хозяйственной деятельности */
@@ -13952,6 +14027,7 @@ edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined |
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
+edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -21259,6 +21335,36 @@ export type ResolverInputTypes = {
 ["EduAccessCarrier"]:EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]:EduAccessState;
+	["EduAccessTask"]: AliasType<{
+	attempts?:boolean | `@${string}`,
+	carrier?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	done_at?:boolean | `@${string}`,
+	enrollment_id?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	kind?:boolean | `@${string}`,
+	last_error?:boolean | `@${string}`,
+	last_result?:boolean | `@${string}`,
+	next_attempt_at?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид задачи выдачи доступа */
+["EduAccessTaskKind"]:EduAccessTaskKind;
+	/** Состояние задачи очереди выдачи доступа */
+["EduAccessTaskStatus"]:EduAccessTaskStatus;
+	["EduAdmin"]: AliasType<{
+	appointed_by?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduAdminInput"]: {
+	/** Учётное имя пайщика */
+	username: string
+};
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
@@ -21334,6 +21440,18 @@ export type ResolverInputTypes = {
 	subject?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduConnectorBinding"]: AliasType<{
+	carrier?:boolean | `@${string}`,
+	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	configured?:boolean | `@${string}`,
+	enabled?:boolean | `@${string}`,
+	health?:boolean | `@${string}`,
+	last_check_at?:boolean | `@${string}`,
+	last_check_message?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние подключения площадки */
+["EduConnectorHealth"]:EduConnectorHealth;
 	["EduContribution"]: AliasType<{
 	act_hash?:boolean | `@${string}`,
 	/** Сумма паевого взноса */
@@ -21378,17 +21496,6 @@ export type ResolverInputTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: AliasType<{
-	/** PDF в base64 */
-	binary?:boolean | `@${string}`,
-	/** Название документа */
-	full_title?:boolean | `@${string}`,
-	/** Хеш документа */
-	hash?:boolean | `@${string}`,
-	/** HTML для ознакомления */
-	html?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -21524,6 +21631,24 @@ export type ResolverInputTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduMemberCard"]: AliasType<{
+	enrollments?:ResolverInputTypes["EduEnrollment"],
+	learners?:ResolverInputTypes["EduLearner"],
+	tasks?:ResolverInputTypes["EduAccessTask"],
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduMemberRow"]: AliasType<{
+	/** Действующих подписок */
+	active_enrollments?:boolean | `@${string}`,
+	/** Подписок, требующих внимания */
+	attention_count?:boolean | `@${string}`,
+	/** Обучающихся */
+	learners_count?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -21548,6 +21673,10 @@ export type ResolverInputTypes = {
 	teacher?:ResolverInputTypes["EduOfferState"],
 		__typename?: boolean | `@${string}`
 }>;
+	["EduQueueFilterInput"]: {
+	/** Состояния задач */
+	statuses?: Array<ResolverInputTypes["EduAccessTaskStatus"]> | undefined | null
+};
 	["EduQuote"]: AliasType<{
 	/** Сумма членского взноса за период */
 	amount?:boolean | `@${string}`,
@@ -21575,8 +21704,15 @@ export type ResolverInputTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	["EduRetryTaskInput"]: {
+	task_id: ResolverInputTypes["ID"]
+};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSetConnectorEnabledInput"]: {
+	carrier: ResolverInputTypes["EduAccessCarrier"],
+	enabled: boolean
+};
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
@@ -26909,15 +27045,20 @@ deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
+edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
+edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
-edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeDraftContribution?: [{	data: ResolverInputTypes["EduContributionDraftInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
-edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
-edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
+edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeSignAnnex?: [{	data: ResolverInputTypes["EduSignAnnexInput"]},ResolverInputTypes["EduAssignment"]],
@@ -28541,16 +28682,22 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+	/** Администраторы приложения */
+	edubridgeAdmins?:ResolverInputTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ResolverInputTypes["EduAssignment"],
 edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
+	/** Площадки и их состояние (ключи не выдаются) */
+	edubridgeConnectors?:ResolverInputTypes["EduConnectorBinding"],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ResolverInputTypes["EduContribution"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
+edubridgeMemberCard?: [{	username: string},ResolverInputTypes["EduMemberCard"]],
+edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["EduMemberRow"]],
 	/** Мои назначения */
 	edubridgeMyAssignments?:ResolverInputTypes["EduAssignment"],
 	/** Мой договор участия в хозяйственной деятельности */
@@ -28565,6 +28712,7 @@ edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | und
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
+edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -35688,6 +35836,32 @@ export type ModelTypes = {
 };
 	["EduAccessCarrier"]:EduAccessCarrier;
 	["EduAccessState"]:EduAccessState;
+	["EduAccessTask"]: {
+		attempts: number,
+	carrier: ModelTypes["EduAccessCarrier"],
+	created_at: ModelTypes["DateTime"],
+	done_at?: ModelTypes["DateTime"] | undefined | null,
+	enrollment_id: ModelTypes["ID"],
+	id: ModelTypes["ID"],
+	kind: ModelTypes["EduAccessTaskKind"],
+	last_error?: string | undefined | null,
+	last_result?: string | undefined | null,
+	next_attempt_at: ModelTypes["DateTime"],
+	status: ModelTypes["EduAccessTaskStatus"],
+	updated_at: ModelTypes["DateTime"]
+};
+	["EduAccessTaskKind"]:EduAccessTaskKind;
+	["EduAccessTaskStatus"]:EduAccessTaskStatus;
+	["EduAdmin"]: {
+		appointed_by: string,
+	created_at: ModelTypes["DateTime"],
+	id: ModelTypes["ID"],
+	username: string
+};
+	["EduAdminInput"]: {
+	/** Учётное имя пайщика */
+	username: string
+};
 	["EduAssignment"]: {
 		/** Хеш подписанного приложения к договору */
 	annex_hash?: string | undefined | null,
@@ -35759,6 +35933,16 @@ export type ModelTypes = {
 	/** Предмет */
 	subject: string
 };
+	["EduConnectorBinding"]: {
+		carrier: ModelTypes["EduAccessCarrier"],
+	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	configured: boolean,
+	enabled: boolean,
+	health: ModelTypes["EduConnectorHealth"],
+	last_check_at?: ModelTypes["DateTime"] | undefined | null,
+	last_check_message?: string | undefined | null
+};
+	["EduConnectorHealth"]:EduConnectorHealth;
 	["EduContribution"]: {
 		act_hash?: string | undefined | null,
 	/** Сумма паевого взноса */
@@ -35801,16 +35985,6 @@ export type ModelTypes = {
 	rid_type: ModelTypes["EduRidType"]
 };
 	["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: {
-		/** PDF в base64 */
-	binary: string,
-	/** Название документа */
-	full_title: string,
-	/** Хеш документа */
-	hash: string,
-	/** HTML для ознакомления */
-	html: string
-};
 	["EduCourse"]: {
 		/** Носитель доступа */
 	carrier: ModelTypes["EduAccessCarrier"],
@@ -35939,6 +36113,22 @@ export type ModelTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduMemberCard"]: {
+		enrollments: Array<ModelTypes["EduEnrollment"]>,
+	learners: Array<ModelTypes["EduLearner"]>,
+	tasks: Array<ModelTypes["EduAccessTask"]>,
+	username: string
+};
+	["EduMemberRow"]: {
+		/** Действующих подписок */
+	active_enrollments: number,
+	/** Подписок, требующих внимания */
+	attention_count: number,
+	/** Обучающихся */
+	learners_count: number,
+	/** Учётное имя пайщика */
+	username: string
+};
 	["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: {
 		/** Оферта */
@@ -35958,6 +36148,10 @@ export type ModelTypes = {
 	parent: ModelTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher: ModelTypes["EduOfferState"]
+};
+	["EduQueueFilterInput"]: {
+	/** Состояния задач */
+	statuses?: Array<ModelTypes["EduAccessTaskStatus"]> | undefined | null
 };
 	["EduQuote"]: {
 		/** Сумма членского взноса за период */
@@ -35984,7 +36178,14 @@ export type ModelTypes = {
 	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduRecipientType"]:EduRecipientType;
+	["EduRetryTaskInput"]: {
+	task_id: ModelTypes["ID"]
+};
 	["EduRidType"]:EduRidType;
+	["EduSetConnectorEnabledInput"]: {
+	carrier: ModelTypes["EduAccessCarrier"],
+	enabled: boolean
+};
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
@@ -41498,24 +41699,34 @@ export type ModelTypes = {
 	editBranch: ModelTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: ModelTypes["EduLearner"],
+	/** Назначить администратора */
+	edubridgeAppointAdmin: ModelTypes["EduAdmin"],
+	/** Проверить площадку сейчас */
+	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Закрыть назначение */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
-	edubridgeConvertStatement: ModelTypes["EduConvertStatement"],
+	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
 	edubridgeCreateAssignment: ModelTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
+	/** Снять администратора */
+	edubridgeDismissAdmin: boolean,
 	/** Подготовить взнос РИД (черновик) */
 	edubridgeDraftContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Повторить задачу выдачи/отзыва доступа */
+	edubridgeRetryTask: ModelTypes["EduAccessTask"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
-	edubridgeRidAct: ModelTypes["EduConvertStatement"],
+	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
-	edubridgeRidStatement: ModelTypes["EduConvertStatement"],
+	edubridgeRidStatement: ModelTypes["GeneratedDocument"],
+	/** Включить или выключить площадку */
+	edubridgeSetConnectorEnabled: ModelTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
 	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
@@ -43532,6 +43743,8 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Администраторы приложения */
+	edubridgeAdmins: Array<ModelTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<ModelTypes["EduAssignment"]>,
 	/** Каталог опубликованных курсов */
@@ -43540,12 +43753,18 @@ export type ModelTypes = {
 	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects: Array<ModelTypes["EduCatalogSubject"]>,
+	/** Площадки и их состояние (ключи не выдаются) */
+	edubridgeConnectors: Array<ModelTypes["EduConnectorBinding"]>,
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions: Array<ModelTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: ModelTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
+	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
+	edubridgeMemberCard: ModelTypes["EduMemberCard"],
+	/** Реестр пайщиков приложения */
+	edubridgeMembers: Array<ModelTypes["EduMemberRow"]>,
 	/** Мои назначения */
 	edubridgeMyAssignments: Array<ModelTypes["EduAssignment"]>,
 	/** Мой договор участия в хозяйственной деятельности */
@@ -43560,6 +43779,8 @@ export type ModelTypes = {
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
+	/** Очередь выдачи доступа и застрявшие задачи */
+	edubridgeQueue: Array<ModelTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: ModelTypes["EduQuote"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
@@ -51106,6 +51327,38 @@ export type GraphQLTypes = {
 ["EduAccessCarrier"]: EduAccessCarrier;
 	/** Состояние доступа на площадке */
 ["EduAccessState"]: EduAccessState;
+	["EduAccessTask"]: {
+	__typename: "EduAccessTask",
+	attempts: number,
+	carrier: GraphQLTypes["EduAccessCarrier"],
+	created_at: GraphQLTypes["DateTime"],
+	done_at?: GraphQLTypes["DateTime"] | undefined | null,
+	enrollment_id: GraphQLTypes["ID"],
+	id: GraphQLTypes["ID"],
+	kind: GraphQLTypes["EduAccessTaskKind"],
+	last_error?: string | undefined | null,
+	last_result?: string | undefined | null,
+	next_attempt_at: GraphQLTypes["DateTime"],
+	status: GraphQLTypes["EduAccessTaskStatus"],
+	updated_at: GraphQLTypes["DateTime"],
+	['...on EduAccessTask']: Omit<GraphQLTypes["EduAccessTask"], "...on EduAccessTask">
+};
+	/** Вид задачи выдачи доступа */
+["EduAccessTaskKind"]: EduAccessTaskKind;
+	/** Состояние задачи очереди выдачи доступа */
+["EduAccessTaskStatus"]: EduAccessTaskStatus;
+	["EduAdmin"]: {
+	__typename: "EduAdmin",
+	appointed_by: string,
+	created_at: GraphQLTypes["DateTime"],
+	id: GraphQLTypes["ID"],
+	username: string,
+	['...on EduAdmin']: Omit<GraphQLTypes["EduAdmin"], "...on EduAdmin">
+};
+	["EduAdminInput"]: {
+		/** Учётное имя пайщика */
+	username: string
+};
 	["EduAssignment"]: {
 	__typename: "EduAssignment",
 	/** Хеш подписанного приложения к договору */
@@ -51184,6 +51437,19 @@ export type GraphQLTypes = {
 	subject: string,
 	['...on EduCatalogSubject']: Omit<GraphQLTypes["EduCatalogSubject"], "...on EduCatalogSubject">
 };
+	["EduConnectorBinding"]: {
+	__typename: "EduConnectorBinding",
+	carrier: GraphQLTypes["EduAccessCarrier"],
+	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	configured: boolean,
+	enabled: boolean,
+	health: GraphQLTypes["EduConnectorHealth"],
+	last_check_at?: GraphQLTypes["DateTime"] | undefined | null,
+	last_check_message?: string | undefined | null,
+	['...on EduConnectorBinding']: Omit<GraphQLTypes["EduConnectorBinding"], "...on EduConnectorBinding">
+};
+	/** Состояние подключения площадки */
+["EduConnectorHealth"]: EduConnectorHealth;
 	["EduContribution"]: {
 	__typename: "EduContribution",
 	act_hash?: string | undefined | null,
@@ -51229,18 +51495,6 @@ export type GraphQLTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]: EduContributionStatus;
-	["EduConvertStatement"]: {
-	__typename: "EduConvertStatement",
-	/** PDF в base64 */
-	binary: string,
-	/** Название документа */
-	full_title: string,
-	/** Хеш документа */
-	hash: string,
-	/** HTML для ознакомления */
-	html: string,
-	['...on EduConvertStatement']: Omit<GraphQLTypes["EduConvertStatement"], "...on EduConvertStatement">
-};
 	["EduCourse"]: {
 	__typename: "EduCourse",
 	/** Носитель доступа */
@@ -51379,6 +51633,26 @@ export type GraphQLTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduMemberCard"]: {
+	__typename: "EduMemberCard",
+	enrollments: Array<GraphQLTypes["EduEnrollment"]>,
+	learners: Array<GraphQLTypes["EduLearner"]>,
+	tasks: Array<GraphQLTypes["EduAccessTask"]>,
+	username: string,
+	['...on EduMemberCard']: Omit<GraphQLTypes["EduMemberCard"], "...on EduMemberCard">
+};
+	["EduMemberRow"]: {
+	__typename: "EduMemberRow",
+	/** Действующих подписок */
+	active_enrollments: number,
+	/** Подписок, требующих внимания */
+	attention_count: number,
+	/** Обучающихся */
+	learners_count: number,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on EduMemberRow']: Omit<GraphQLTypes["EduMemberRow"], "...on EduMemberRow">
+};
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]: EduOfferKind;
 	["EduOfferState"]: {
@@ -51404,6 +51678,10 @@ export type GraphQLTypes = {
 	/** Оферта преподавателя */
 	teacher: GraphQLTypes["EduOfferState"],
 	['...on EduOnboardingState']: Omit<GraphQLTypes["EduOnboardingState"], "...on EduOnboardingState">
+};
+	["EduQueueFilterInput"]: {
+		/** Состояния задач */
+	statuses?: Array<GraphQLTypes["EduAccessTaskStatus"]> | undefined | null
 };
 	["EduQuote"]: {
 	__typename: "EduQuote",
@@ -51433,8 +51711,15 @@ export type GraphQLTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]: EduRecipientType;
+	["EduRetryTaskInput"]: {
+		task_id: GraphQLTypes["ID"]
+};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
+	["EduSetConnectorEnabledInput"]: {
+		carrier: GraphQLTypes["EduAccessCarrier"],
+	enabled: boolean
+};
 	["EduSetCourseStatusInput"]: {
 		/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
@@ -57329,24 +57614,34 @@ export type GraphQLTypes = {
 	editBranch: GraphQLTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
+	/** Назначить администратора */
+	edubridgeAppointAdmin: GraphQLTypes["EduAdmin"],
+	/** Проверить площадку сейчас */
+	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Закрыть назначение */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
-	edubridgeConvertStatement: GraphQLTypes["EduConvertStatement"],
+	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
 	edubridgeCreateAssignment: GraphQLTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
+	/** Снять администратора */
+	edubridgeDismissAdmin: boolean,
 	/** Подготовить взнос РИД (черновик) */
 	edubridgeDraftContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Повторить задачу выдачи/отзыва доступа */
+	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
-	edubridgeRidAct: GraphQLTypes["EduConvertStatement"],
+	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
-	edubridgeRidStatement: GraphQLTypes["EduConvertStatement"],
+	edubridgeRidStatement: GraphQLTypes["GeneratedDocument"],
+	/** Включить или выключить площадку */
+	edubridgeSetConnectorEnabled: GraphQLTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
 	/** Подписать акт приёма-передачи — взнос принимается в паевой фонд */
@@ -59527,6 +59822,8 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Администраторы приложения */
+	edubridgeAdmins: Array<GraphQLTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<GraphQLTypes["EduAssignment"]>,
 	/** Каталог опубликованных курсов */
@@ -59535,12 +59832,18 @@ export type GraphQLTypes = {
 	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
 	/** Предметы и классы каталога */
 	edubridgeCatalogSubjects: Array<GraphQLTypes["EduCatalogSubject"]>,
+	/** Площадки и их состояние (ключи не выдаются) */
+	edubridgeConnectors: Array<GraphQLTypes["EduConnectorBinding"]>,
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: GraphQLTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
+	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
+	edubridgeMemberCard: GraphQLTypes["EduMemberCard"],
+	/** Реестр пайщиков приложения */
+	edubridgeMembers: Array<GraphQLTypes["EduMemberRow"]>,
 	/** Мои назначения */
 	edubridgeMyAssignments: Array<GraphQLTypes["EduAssignment"]>,
 	/** Мой договор участия в хозяйственной деятельности */
@@ -59555,6 +59858,8 @@ export type GraphQLTypes = {
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
+	/** Очередь выдачи доступа и застрявшие задачи */
+	edubridgeQueue: Array<GraphQLTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: GraphQLTypes["EduQuote"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
@@ -62060,11 +62365,31 @@ export enum EduAccessState {
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"
 }
+/** Вид задачи выдачи доступа */
+export enum EduAccessTaskKind {
+	GRANT = "GRANT",
+	REVOKE = "REVOKE"
+}
+/** Состояние задачи очереди выдачи доступа */
+export enum EduAccessTaskStatus {
+	DONE = "DONE",
+	FAILED = "FAILED",
+	NEEDS_ATTENTION = "NEEDS_ATTENTION",
+	PENDING = "PENDING",
+	RUNNING = "RUNNING"
+}
 /** Состояние назначения преподавателя */
 export enum EduAssignmentStatus {
 	ACTIVE = "ACTIVE",
 	CLOSED = "CLOSED",
 	DRAFT = "DRAFT"
+}
+/** Состояние подключения площадки */
+export enum EduConnectorHealth {
+	FAILING = "FAILING",
+	LICENSE_LIMIT = "LICENSE_LIMIT",
+	OK = "OK",
+	UNKNOWN = "UNKNOWN"
 }
 /** Состояние взноса результатами работы */
 export enum EduContributionStatus {
@@ -63003,9 +63328,13 @@ type ZEUS_VARIABLES = {
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EduAccessCarrier"]: ValueTypes["EduAccessCarrier"];
 	["EduAccessState"]: ValueTypes["EduAccessState"];
+	["EduAccessTaskKind"]: ValueTypes["EduAccessTaskKind"];
+	["EduAccessTaskStatus"]: ValueTypes["EduAccessTaskStatus"];
+	["EduAdminInput"]: ValueTypes["EduAdminInput"];
 	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
+	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
@@ -63018,9 +63347,12 @@ type ZEUS_VARIABLES = {
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
+	["EduQueueFilterInput"]: ValueTypes["EduQueueFilterInput"];
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
+	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
+	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
 	["EduSignActInput"]: ValueTypes["EduSignActInput"];
 	["EduSignAnnexInput"]: ValueTypes["EduSignAnnexInput"];

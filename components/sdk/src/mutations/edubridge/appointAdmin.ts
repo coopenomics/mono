@@ -1,10 +1,10 @@
-import { documentSelector } from '../../selectors/common/documentSelector'
+import { eduAdminSelector } from '../../selectors/edubridge/adminSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'edubridgeConvertStatement'
+export const name = 'edubridgeAppointAdmin'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ data: $('data', 'EduQuoteInput!') }, documentSelector],
+  [name]: [{ data: $('data', 'EduAdminInput!') }, eduAdminSelector],
 })
 
 export interface IInput {
@@ -13,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['EduQuoteInput']
+  data: ModelTypes['EduAdminInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

@@ -28,3 +28,13 @@ export * as MySettlement from './mySettlement'
 export * as Assignments from './assignments'
 /** Взносы РИД всех преподавателей */
 export * as Contributions from './contributions'
+/** Реестр пайщиков приложения */
+export * as Members from './members'
+/** Сводная карточка пайщика */
+export * as MemberCard from './memberCard'
+/** Очередь выдачи доступа */
+export * as Queue from './queue'
+/** Площадки и их состояние */
+export * as Connectors from './connectors'
+/** Администраторы приложения */
+export * as Admins from './admins'

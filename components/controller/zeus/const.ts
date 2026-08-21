@@ -5201,12 +5201,6 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduContributionStatus",
 		teacher_username:"String"
 	},
-	EduConvertStatement:{
-		binary:"String",
-		full_title:"String",
-		hash:"String",
-		html:"String"
-	},
 	EduCourse:{
 		carrier:"EduAccessCarrier",
 		created_at:"DateTime",
@@ -6961,7 +6955,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAppointAdmin:"EduAdmin",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
-		edubridgeConvertStatement:"EduConvertStatement",
+		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeDeclineContribution:"EduContribution",
@@ -6969,8 +6963,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeDraftContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
 		edubridgeRetryTask:"EduAccessTask",
-		edubridgeRidAct:"EduConvertStatement",
-		edubridgeRidStatement:"EduConvertStatement",
+		edubridgeRidAct:"GeneratedDocument",
+		edubridgeRidStatement:"GeneratedDocument",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
 		edubridgeSignAct:"EduContribution",

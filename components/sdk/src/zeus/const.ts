@@ -590,6 +590,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduAccessCarrier: "enum" as const,
 	EduAccessState: "enum" as const,
+	EduAccessTaskKind: "enum" as const,
+	EduAccessTaskStatus: "enum" as const,
+	EduAdminInput:{
+
+	},
 	EduAssignmentInput:{
 
 	},
@@ -597,6 +602,7 @@ export const AllTypesProps: Record<string,any> = {
 	EduCatalogFilterInput:{
 
 	},
+	EduConnectorHealth: "enum" as const,
 	EduContributionDraftInput:{
 		rid_type:"EduRidType"
 	},
@@ -620,11 +626,20 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduOfferKind: "enum" as const,
 	EduOnboardingSource: "enum" as const,
+	EduQueueFilterInput:{
+		statuses:"EduAccessTaskStatus"
+	},
 	EduQuoteInput:{
 		period:"EduEnrollmentPeriod"
 	},
 	EduRecipientType: "enum" as const,
+	EduRetryTaskInput:{
+
+	},
 	EduRidType: "enum" as const,
+	EduSetConnectorEnabledInput:{
+		carrier:"EduAccessCarrier"
+	},
 	EduSetCourseStatusInput:{
 		status:"EduCourseStatus"
 	},
@@ -1895,6 +1910,12 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeAddLearner:{
 			data:"EduLearnerInput"
 		},
+		edubridgeAppointAdmin:{
+			data:"EduAdminInput"
+		},
+		edubridgeCheckConnector:{
+			carrier:"EduAccessCarrier"
+		},
 		edubridgeCloseAssignment:{
 
 		},
@@ -1910,17 +1931,26 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDeclineContribution:{
 			data:"EduDeclineContributionInput"
 		},
+		edubridgeDismissAdmin:{
+			data:"EduAdminInput"
+		},
 		edubridgeDraftContribution:{
 			data:"EduContributionDraftInput"
 		},
 		edubridgeRemoveLearner:{
 
 		},
+		edubridgeRetryTask:{
+			data:"EduRetryTaskInput"
+		},
 		edubridgeRidAct:{
 
 		},
 		edubridgeRidStatement:{
 
+		},
+		edubridgeSetConnectorEnabled:{
+			data:"EduSetConnectorEnabledInput"
 		},
 		edubridgeSetCourseStatus:{
 			data:"EduSetCourseStatusInput"
@@ -2833,6 +2863,15 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCourses:{
 			filter:"EduCoursesFilterInput",
 			options:"PaginationInput"
+		},
+		edubridgeMemberCard:{
+
+		},
+		edubridgeMembers:{
+
+		},
+		edubridgeQueue:{
+			filter:"EduQueueFilterInput"
 		},
 		edubridgeQuote:{
 			data:"EduQuoteInput"
@@ -5087,6 +5126,26 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	EduAccessTask:{
+		attempts:"Int",
+		carrier:"EduAccessCarrier",
+		created_at:"DateTime",
+		done_at:"DateTime",
+		enrollment_id:"ID",
+		id:"ID",
+		kind:"EduAccessTaskKind",
+		last_error:"String",
+		last_result:"String",
+		next_attempt_at:"DateTime",
+		status:"EduAccessTaskStatus",
+		updated_at:"DateTime"
+	},
+	EduAdmin:{
+		appointed_by:"String",
+		created_at:"DateTime",
+		id:"ID",
+		username:"String"
+	},
 	EduAssignment:{
 		annex_hash:"String",
 		course_id:"ID",
@@ -5116,6 +5175,14 @@ export const ReturnTypes: Record<string,any> = {
 		grades:"String",
 		subject:"String"
 	},
+	EduConnectorBinding:{
+		carrier:"EduAccessCarrier",
+		configured:"Boolean",
+		enabled:"Boolean",
+		health:"EduConnectorHealth",
+		last_check_at:"DateTime",
+		last_check_message:"String"
+	},
 	EduContribution:{
 		act_hash:"String",
 		amount:"String",
@@ -5133,12 +5200,6 @@ export const ReturnTypes: Record<string,any> = {
 		statement_hash:"String",
 		status:"EduContributionStatus",
 		teacher_username:"String"
-	},
-	EduConvertStatement:{
-		binary:"String",
-		full_title:"String",
-		hash:"String",
-		html:"String"
 	},
 	EduCourse:{
 		carrier:"EduAccessCarrier",
@@ -5178,6 +5239,18 @@ export const ReturnTypes: Record<string,any> = {
 		is_self:"Boolean",
 		recipient_type:"EduRecipientType",
 		recipient_value:"String"
+	},
+	EduMemberCard:{
+		enrollments:"EduEnrollment",
+		learners:"EduLearner",
+		tasks:"EduAccessTask",
+		username:"String"
+	},
+	EduMemberRow:{
+		active_enrollments:"Int",
+		attention_count:"Int",
+		learners_count:"Int",
+		username:"String"
 	},
 	EduOfferState:{
 		kind:"EduOfferKind",
@@ -6879,15 +6952,20 @@ export const ReturnTypes: Record<string,any> = {
 		deleteTrustedAccount:"Branch",
 		editBranch:"Branch",
 		edubridgeAddLearner:"EduLearner",
+		edubridgeAppointAdmin:"EduAdmin",
+		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
-		edubridgeConvertStatement:"EduConvertStatement",
+		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeDeclineContribution:"EduContribution",
+		edubridgeDismissAdmin:"Boolean",
 		edubridgeDraftContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
-		edubridgeRidAct:"EduConvertStatement",
-		edubridgeRidStatement:"EduConvertStatement",
+		edubridgeRetryTask:"EduAccessTask",
+		edubridgeRidAct:"GeneratedDocument",
+		edubridgeRidStatement:"GeneratedDocument",
+		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
 		edubridgeSignAct:"EduContribution",
 		edubridgeSignAnnex:"EduAssignment",
@@ -7685,13 +7763,17 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		edubridgeAdmins:"EduAdmin",
 		edubridgeAssignments:"EduAssignment",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
 		edubridgeCatalogSubjects:"EduCatalogSubject",
+		edubridgeConnectors:"EduConnectorBinding",
 		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeMemberCard:"EduMemberCard",
+		edubridgeMembers:"EduMemberRow",
 		edubridgeMyAssignments:"EduAssignment",
 		edubridgeMyContract:"EduTeacherContract",
 		edubridgeMyContributions:"EduContribution",
@@ -7699,6 +7781,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
+		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",

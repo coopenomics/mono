@@ -18,7 +18,9 @@ sources:
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
   ui:
     - components/desktop/extensions/edubridge/pages/TeacherAssignmentsPage/**
-    - components/desktop/extensions/edubridge/features/Teacher/**
+    - components/desktop/extensions/edubridge/pages/TeacherContributionsPage/**
+    - components/desktop/extensions/edubridge/pages/TeacherSettlementPage/**
+    - components/desktop/extensions/edubridge/entities/Teacher/**
 
 cases:
   - id: edu.teach.break.01
@@ -64,3 +66,10 @@ cases:
     test: ~
     status: missing
     decision_needed: true
+  - id: edu.teach.happy.05
+    level: ui
+    kind: happy
+    scenario: Преподаватель подписывает ДУХД, приложение к назначению, подаёт взнос, после решения совета подписывает акт, видит расчёт.
+    expect: Статусы меняются по шагам; кнопки показываются только в допустимом состоянии.
+    test: ~
+    status: missing

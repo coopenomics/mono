@@ -1,10 +1,10 @@
-import { eduConvertStatementSelector } from '../../selectors/edubridge/memberSelector'
+import { documentSelector } from '../../selectors/common/documentSelector'
 import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
 export const name = 'edubridgeRidStatement'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ contribution_id: $('contribution_id', 'ID!') }, eduConvertStatementSelector],
+  [name]: [{ contribution_id: $('contribution_id', 'ID!') }, documentSelector],
 })
 
 export interface IInput {

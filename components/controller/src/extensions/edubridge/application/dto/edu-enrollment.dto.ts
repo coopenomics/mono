@@ -89,22 +89,6 @@ export class EduQuoteDTO {
   sub_hash!: string;
 }
 
-/** Заявление о конвертации для подписи пайщиком. */
-@ObjectType('EduConvertStatement')
-export class EduConvertStatementDTO {
-  @Field(() => String, { description: 'Хеш документа' })
-  hash!: string;
-
-  @Field(() => String, { description: 'Название документа' })
-  full_title!: string;
-
-  @Field(() => String, { description: 'HTML для ознакомления' })
-  html!: string;
-
-  @Field(() => String, { description: 'PDF в base64' })
-  binary!: string;
-}
-
 @InputType('EduSubscribeInput')
 export class EduSubscribeInputDTO extends EduQuoteInputDTO {
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о конвертации паевого взноса в членский' })

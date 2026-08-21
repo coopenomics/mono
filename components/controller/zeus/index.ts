@@ -6579,18 +6579,6 @@ export type ValueTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: AliasType<{
-	/** PDF в base64 */
-	binary?:boolean | `@${string}`,
-	/** Название документа */
-	full_title?:boolean | `@${string}`,
-	/** Хеш документа */
-	hash?:boolean | `@${string}`,
-	/** HTML для ознакомления */
-	html?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on EduConvertStatement']?: Omit<ValueTypes["EduConvertStatement"], "...on EduConvertStatement">
-}>;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -12307,7 +12295,7 @@ edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, str
 edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
-edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -12315,8 +12303,8 @@ edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, str
 edubridgeDraftContribution?: [{	data: ValueTypes["EduContributionDraftInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
-edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
-edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
+edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -21508,17 +21496,6 @@ export type ResolverInputTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: AliasType<{
-	/** PDF в base64 */
-	binary?:boolean | `@${string}`,
-	/** Название документа */
-	full_title?:boolean | `@${string}`,
-	/** Хеш документа */
-	hash?:boolean | `@${string}`,
-	/** HTML для ознакомления */
-	html?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -27071,7 +27048,7 @@ edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverIn
 edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
-edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
@@ -27079,8 +27056,8 @@ edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | 
 edubridgeDraftContribution?: [{	data: ResolverInputTypes["EduContributionDraftInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
-edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
-edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduConvertStatement"]],
+edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
@@ -36008,16 +35985,6 @@ export type ModelTypes = {
 	rid_type: ModelTypes["EduRidType"]
 };
 	["EduContributionStatus"]:EduContributionStatus;
-	["EduConvertStatement"]: {
-		/** PDF в base64 */
-	binary: string,
-	/** Название документа */
-	full_title: string,
-	/** Хеш документа */
-	hash: string,
-	/** HTML для ознакомления */
-	html: string
-};
 	["EduCourse"]: {
 		/** Носитель доступа */
 	carrier: ModelTypes["EduAccessCarrier"],
@@ -41739,7 +41706,7 @@ export type ModelTypes = {
 	/** Закрыть назначение */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
-	edubridgeConvertStatement: ModelTypes["EduConvertStatement"],
+	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
 	edubridgeCreateAssignment: ModelTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
@@ -41755,9 +41722,9 @@ export type ModelTypes = {
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
-	edubridgeRidAct: ModelTypes["EduConvertStatement"],
+	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
-	edubridgeRidStatement: ModelTypes["EduConvertStatement"],
+	edubridgeRidStatement: ModelTypes["GeneratedDocument"],
 	/** Включить или выключить площадку */
 	edubridgeSetConnectorEnabled: ModelTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
@@ -51528,18 +51495,6 @@ export type GraphQLTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]: EduContributionStatus;
-	["EduConvertStatement"]: {
-	__typename: "EduConvertStatement",
-	/** PDF в base64 */
-	binary: string,
-	/** Название документа */
-	full_title: string,
-	/** Хеш документа */
-	hash: string,
-	/** HTML для ознакомления */
-	html: string,
-	['...on EduConvertStatement']: Omit<GraphQLTypes["EduConvertStatement"], "...on EduConvertStatement">
-};
 	["EduCourse"]: {
 	__typename: "EduCourse",
 	/** Носитель доступа */
@@ -57666,7 +57621,7 @@ export type GraphQLTypes = {
 	/** Закрыть назначение */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
-	edubridgeConvertStatement: GraphQLTypes["EduConvertStatement"],
+	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
 	edubridgeCreateAssignment: GraphQLTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
@@ -57682,9 +57637,9 @@ export type GraphQLTypes = {
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
-	edubridgeRidAct: GraphQLTypes["EduConvertStatement"],
+	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
-	edubridgeRidStatement: GraphQLTypes["EduConvertStatement"],
+	edubridgeRidStatement: GraphQLTypes["GeneratedDocument"],
 	/** Включить или выключить площадку */
 	edubridgeSetConnectorEnabled: GraphQLTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */

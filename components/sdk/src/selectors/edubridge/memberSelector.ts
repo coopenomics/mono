@@ -38,6 +38,3 @@ const rawQuoteSelector = {
 const _validateQuote: MakeAllFieldsRequired<ValueTypes['EduQuote']> = rawQuoteSelector
 export const eduQuoteSelector = Selector('EduQuote')(rawQuoteSelector)
 
-const rawStatementSelector = { hash: true, full_title: true, html: true, binary: true }
-const _validateStatement: MakeAllFieldsRequired<ValueTypes['EduConvertStatement']> = rawStatementSelector
-export const eduConvertStatementSelector = Selector('EduConvertStatement')(rawStatementSelector)

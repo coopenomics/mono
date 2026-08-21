@@ -36,3 +36,13 @@ export * as CreateAssignment from './createAssignment'
 export * as CloseAssignment from './closeAssignment'
 /** Отклонить взнос РИД */
 export * as DeclineContribution from './declineContribution'
+/** Повторить задачу выдачи */
+export * as RetryTask from './retryTask'
+/** Проверить площадку */
+export * as CheckConnector from './checkConnector'
+/** Включить/выключить площадку */
+export * as SetConnectorEnabled from './setConnectorEnabled'
+/** Назначить администратора */
+export * as AppointAdmin from './appointAdmin'
+/** Снять администратора */
+export * as DismissAdmin from './dismissAdmin'

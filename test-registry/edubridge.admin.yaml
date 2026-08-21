@@ -14,6 +14,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
   ui:
     - components/desktop/extensions/edubridge/pages/Admin*/**
+    - components/desktop/extensions/edubridge/entities/Admin/**
 
 cases:
   - id: edu.admin.happy.01

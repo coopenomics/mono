@@ -1,10 +1,9 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
-  EduConvertStatementDTO,
   EduEnrollmentDTO,
   EduQuoteDTO,
   EduQuoteInputDTO,
@@ -71,12 +70,11 @@ export class EdubridgeMemberResolver {
     return this.enrollments.quote(coop(), m.username as string, data.learner_id, data.course_id, data.period);
   }
 
-  @Mutation(() => EduConvertStatementDTO, { name: 'edubridgeConvertStatement', description: 'Сформировать заявление о конвертации паевого взноса в членский' })
+  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeConvertStatement', description: 'Сформировать заявление о конвертации паевого взноса в членский' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduEnrollment', 'create:own')
-  async edubridgeConvertStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduQuoteInputDTO): Promise<EduConvertStatementDTO> {
-    const doc = await this.enrollments.statement(coop(), m.username as string, data.learner_id, data.course_id, data.period);
-    return { hash: doc.hash, full_title: doc.full_title, html: doc.html, binary: doc.binary };
+  async edubridgeConvertStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduQuoteInputDTO): Promise<GeneratedDocumentDTO> {
+    return new GeneratedDocumentDTO(await this.enrollments.statement(coop(), m.username as string, data.learner_id, data.course_id, data.period));
   }
 
   @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeSubscribe', description: 'Получить доступ: конвертировать паевой в членский и открыть/продлить подписку' })

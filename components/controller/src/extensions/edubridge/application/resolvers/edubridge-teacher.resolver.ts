@@ -1,9 +1,8 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
-import { EduConvertStatementDTO } from '../dto/edu-enrollment.dto';
 import {
   EduAssignmentDTO,
   EduAssignmentInputDTO,
@@ -22,7 +21,6 @@ import type { IEdubridgeMembership } from '../membership/edubridge-membership.se
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
 
 const coop = () => platformSettings().coopname;
-const toDoc = (d: { hash: string; full_title: string; html: string; binary: string }): EduConvertStatementDTO => ({ hash: d.hash, full_title: d.full_title, html: d.html, binary: d.binary });
 
 /** Стол преподавателя и управление назначениями/взносами администратором. */
 @Resolver()
@@ -77,11 +75,11 @@ export class EdubridgeTeacherResolver {
     return new EduContributionDTO(await this.teachers.draftContribution(coop(), m.username as string, data));
   }
 
-  @Mutation(() => EduConvertStatementDTO, { name: 'edubridgeRidStatement', description: 'Сформировать заявление о паевом взносе РИД для подписи' })
+  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStatement', description: 'Сформировать заявление о паевом взносе РИД для подписи' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduContribution', 'create:own')
-  async edubridgeRidStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<EduConvertStatementDTO> {
-    return toDoc(await this.teachers.statement(coop(), m.username as string, id));
+  async edubridgeRidStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<GeneratedDocumentDTO> {
+    return new GeneratedDocumentDTO(await this.teachers.statement(coop(), m.username as string, id));
   }
 
   @Mutation(() => EduContributionDTO, { name: 'edubridgeSubmitContribution', description: 'Подать взнос РИД: заявление в цепь и проект решения совету' })
@@ -91,11 +89,11 @@ export class EdubridgeTeacherResolver {
     return new EduContributionDTO(await this.teachers.submitContribution(coop(), m.username as string, data.contribution_id, data.document));
   }
 
-  @Mutation(() => EduConvertStatementDTO, { name: 'edubridgeRidAct', description: 'Сформировать акт приёма-передачи для подписи (после решения совета)' })
+  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidAct', description: 'Сформировать акт приёма-передачи для подписи (после решения совета)' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduContribution', 'create:own')
-  async edubridgeRidAct(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<EduConvertStatementDTO> {
-    return toDoc(await this.teachers.act(coop(), m.username as string, id));
+  async edubridgeRidAct(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<GeneratedDocumentDTO> {
+    return new GeneratedDocumentDTO(await this.teachers.act(coop(), m.username as string, id));
   }
 
   @Mutation(() => EduContributionDTO, { name: 'edubridgeSignAct', description: 'Подписать акт приёма-передачи — взнос принимается в паевой фонд' })
