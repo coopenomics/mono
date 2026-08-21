@@ -1,7 +1,11 @@
 import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
-import { PersonnelPage } from 'src/pages/Cooperative/Personnel';
+// Страница «Персонал» (назначение ролей, Story 6.11) временно снята со стола
+// совета: управление наборами возможностей не доведено до конца, а
+// полурабочий экран раздачи прав опаснее его отсутствия. Возвращается
+// вместе с доделанной фичей — снять комментарии здесь и у маршрута ниже.
+// import { PersonnelPage } from 'src/pages/Cooperative/Personnel';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
@@ -48,16 +52,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman', 'member'],
             },
           },
-          {
-            path: 'personnel',
-            name: 'personnel',
-            component: markRaw(PersonnelPage),
-            meta: {
-              title: 'Персонал',
-              icon: 'fa-solid fa-user-shield',
-              roles: ['chairman'],
-            },
-          },
+          // Временно скрыто — см. комментарий у импорта PersonnelPage.
+          // {
+          //   path: 'personnel',
+          //   name: 'personnel',
+          //   component: markRaw(PersonnelPage),
+          //   meta: {
+          //     title: 'Персонал',
+          //     icon: 'fa-solid fa-user-shield',
+          //     roles: ['chairman'],
+          //   },
+          // },
           {
             path: 'documents',
             name: 'documents',
