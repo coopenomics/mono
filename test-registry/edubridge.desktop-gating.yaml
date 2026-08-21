@@ -24,29 +24,29 @@ cases:
     kind: happy
     scenario: Гость (без username) запрашивает стол.
     expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты.
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
   - id: edu.gating.happy.02
     level: backend
     kind: happy
     scenario: Председатель активного кооператива, ЦПП ещё не принята советом.
     expect: Гранты = каталог + 'Extension:configure'; рабочих прав нет.
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
   - id: edu.gating.happy.03
     level: backend
     kind: happy
     scenario: ЦПП принята; пайщик без подписанных оферт.
     expect: Гранты содержат 'Onboarding:learner' и 'Onboarding:teacher', рабочих прав learner/teacher нет.
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
   - id: edu.gating.side.01
     level: backend
     kind: side
     scenario: Пайщик со статусом, отличным от active.
     expect: Только гостевые гранты.
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
   - id: edu.gating.happy.04
     level: ui
     kind: happy
@@ -60,4 +60,11 @@ cases:
     scenario: Связка с Благоростом включена; рядовой пайщик, преподаватель, совет, гость.
     expect: Столы capital — преподавателю и совету; рядовому и гостю — нет; оферты/программы capital при вступлении скрыты; при выключенной связке ничего не сужается.
     test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    status: passing
+  - id: edu.gating.happy.06
+    level: backend
+    kind: happy
+    scenario: Матрица доступа — гость, владелец, администратор; разворот :all → :own.
+    expect: Гость только EduCatalog:read; контакты и площадки только у владельца; список действий — хотя бы одно.
+    test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
     status: passing

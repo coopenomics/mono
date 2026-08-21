@@ -11,7 +11,7 @@ function make(opts: { teacher?: boolean; enabled?: boolean } = {}) {
   const grantsFilters = { register: jest.fn(), unregister: jest.fn() };
   const offerFilters = { register: jest.fn(), unregister: jest.fn() };
   const facts = { resolve: jest.fn(async () => ({ isLearner: false, isTeacher: !!opts.teacher, isAdmin: false })) };
-  const holder = new EdubridgeConfigHolder();
+  const holder = new EdubridgeConfigHolder({ get: async () => null } as any);
   holder.set({ ...defaultConfig, capital_integration: opts.enabled ?? true });
   const policy = new EdubridgeCapitalNarrowingPolicy(grantsFilters, offerFilters, facts, holder);
   return { policy, grantsFilters, offerFilters, facts };

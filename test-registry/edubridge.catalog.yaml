@@ -1,0 +1,56 @@
+feature: edubridge.catalog
+title: Образовательный мост — каталог курсов и карточка
+
+# E4 (задача 7DD-5). Каталог открыт гостю: витрина показывает только
+# опубликованные курсы и не раскрывает внутренние признаки (тип направления,
+# привязку к площадке, состояние). Управление курсами — владелец/администратор
+# (EduCourse:manage), enforcement — EdubridgeAccessGuard по матрице.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-catalog.resolver.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-course-admin.resolver.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-course.service.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-course.repository.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-course.dto.ts
+    - components/controller/src/extensions/edubridge/application/guards/**
+  ui:
+    - components/desktop/extensions/edubridge/pages/CatalogPage/**
+    - components/desktop/extensions/edubridge/pages/AdminCoursesPage/**
+
+cases:
+  - id: edu.catalog.happy.01
+    level: backend
+    kind: happy
+    scenario: Гость запрашивает каталог и карточку опубликованного курса.
+    expect: Список только published; в карточке нет direction/external_ref/status.
+    test: ~
+    status: missing
+  - id: edu.catalog.side.01
+    level: backend
+    kind: side
+    scenario: Гость запрашивает карточку черновика по прямому id.
+    expect: NotFound — черновик для витрины не существует.
+    test: ~
+    status: missing
+  - id: edu.catalog.break.01
+    level: backend
+    kind: break
+    scenario: Пайщик без EduCourse:manage вызывает edubridgeCreateCourse.
+    expect: Forbidden от EdubridgeAccessGuard.
+    test: ~
+    status: missing
+  - id: edu.catalog.side.02
+    level: backend
+    kind: side
+    scenario: Владелец меняет external_ref курса.
+    expect: external_title_seen сбрасывается — прежняя сверка с площадкой недействительна.
+    test: ~
+    status: missing
+  - id: edu.catalog.happy.02
+    level: ui
+    kind: happy
+    scenario: Каталог по иерархии предмет → класс, карточка с расписанием, преподавателем, взносом и программой.
+    expect: Суммы через форматтер, тип направления не показан.
+    test: ~
+    status: missing

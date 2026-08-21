@@ -41,3 +41,24 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
     EduSettings: ['manage'],
   },
 };
+
+/** Охват действия: `:all` покрывает `:own`; без охвата — точное совпадение. */
+function actionCovers(granted: string, required: string): boolean {
+  if (granted === required) return true;
+  const [gName, gScope] = granted.split(':');
+  const [rName, rScope] = required.split(':');
+  if (gName !== rName) return false;
+  if (gScope === 'all') return true;
+  return !gScope && !rScope;
+}
+
+/** Может ли набор ролей выполнить действие над ресурсом. Единственный источник policy на бэкенде. */
+export function canAccess(roles: readonly EdubridgeRole[], resource: string, action: string | string[]): boolean {
+  const required = Array.isArray(action) ? action : [action];
+  for (const role of roles) {
+    const granted = edubridgeAccessMatrix[role]?.[resource];
+    if (!granted) continue;
+    if (required.some((r) => granted.some((g) => actionCovers(g, r)))) return true;
+  }
+  return false;
+}

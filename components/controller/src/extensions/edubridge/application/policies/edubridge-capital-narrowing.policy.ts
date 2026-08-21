@@ -64,7 +64,8 @@ export class EdubridgeCapitalNarrowingPolicy
   }
 
   async filterGrants(target: InnerDesktopGrantsFilterTarget, ctx: InnerDesktopGrantsContext): Promise<readonly string[]> {
-    if (!this.enabled || target.extensionName !== CAPITAL_EXTENSION_NAME) return target.grants;
+    if (target.extensionName !== CAPITAL_EXTENSION_NAME) return target.grants;
+    if (!(await this.config.load()).capital_integration) return target.grants;
     if (ctx.userRole === 'chairman' || ctx.userRole === 'member') return target.grants;
     if (!ctx.username) return [];
     const facts = await this.roleFacts.resolve(ctx.coopname, ctx.username);
