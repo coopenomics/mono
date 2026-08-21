@@ -20,6 +20,7 @@
       RailUserCard(
         v-if='walletReady',
         v-model:collapsed='userCardCollapsed',
+        :lockable='walletLockable',
         :name='userName',
         :role='userRoleLabel',
         :balance='walletBalance',
@@ -43,10 +44,11 @@
   .left-drawer-menu__hidden-dialogs(aria-hidden='true')
     DepositButton(:micro='true')
     WithdrawButton(:micro='true')
+
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -253,18 +255,45 @@ const userRoleLabel = computed<string>(() =>
   session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
 );
 
-// --- Свёртка кошелька (canon v-model:collapsed) ---------------------------
+// --- Свёртка кошелька: замок или стрелка ----------------------------------
+//
+// Запирать кошелёк есть смысл только при заданном PIN-коде: без него отпирание
+// прозрачно — ключ поднимается из локального кэша, ничего не спрашивая, — и
+// замок обещал бы защиту, которой нет. Поэтому:
+//
+//   PIN задан — свёртка и есть запирание. Состояние карточки не хранится
+//   отдельно, его определяет сам кошелёк, и запирание по простою сворачивает
+//   карточку само, без чьей-либо помощи.
+//
+//   PIN не задан (или вход прежний, по ключу) — свёртка остаётся тем, чем была:
+//   спрятать и показать баланс, с запоминанием выбора и без единого вопроса.
 
 const STORAGE_KEY_USERCARD_COLLAPSED = 'monocoop-left-drawer-usercard-collapsed';
-const userCardCollapsed = ref<boolean>(false);
+const manualCollapsed = ref<boolean>(false);
+
+const walletLockable = computed<boolean>(() => session.isCoopIdSession && session.hasCustomPin);
+
+const userCardCollapsed = computed<boolean>({
+  get: () => (walletLockable.value ? session.walletLocked : manualCollapsed.value),
+  set: (val) => {
+    if (!walletLockable.value) {
+      manualCollapsed.value = val;
+      localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+      return;
+    }
+    if (val) {
+      session.lockWalletNow();
+      return;
+    }
+    // Отказ от ввода PIN оставляет кошелёк запертым — карточка так и не
+    // раскроется, и это верно: раскрытая карточка обещала бы доступ, которого нет.
+    void session.unlockWalletInteractive();
+  },
+});
 
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY_USERCARD_COLLAPSED);
-  if (saved !== null) userCardCollapsed.value = saved === 'true';
-});
-
-watch(userCardCollapsed, (val) => {
-  localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+  if (saved !== null) manualCollapsed.value = saved === 'true';
 });
 
 // --- Триггеры действий ----------------------------------------------------

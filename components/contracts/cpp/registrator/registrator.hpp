@@ -69,6 +69,25 @@ public:
   [[eosio::action]] void regcoop(eosio::name coopname, eosio::name username, org_data params, document2 document);
   [[eosio::action]] void delcoop(eosio::name registrator, eosio::name coopname);  
   [[eosio::action]] void stcoopstatus(eosio::name coopname, eosio::name username, eosio::name status);
+
+  /**
+   * \brief Указать оператора, обслуживающего кооператив.
+   *
+   * Родитель в реестре кооперативов — это оператор, развернувший установку, а не
+   * учредитель: кооперативы друг друга не учреждают. Пустой родитель означает
+   * собственную установку.
+   *
+   * \note Авторизация: @p operator_name; при смене оператора — дополнительно
+   *       прежний оператор либо провайдер.
+   */
+  [[eosio::action]] void setoperator(eosio::name coopname, eosio::name operator_name);
+
+  /**
+   * \brief Снять оператора с кооператива: он снова держит установку сам.
+   *
+   * \note Авторизация: сам кооператив, его оператор либо провайдер.
+   */
+  [[eosio::action]] void deloperator(eosio::name coopname);
   
   [[eosio::action]] void verificate(eosio::name username, eosio::name procedure);
 

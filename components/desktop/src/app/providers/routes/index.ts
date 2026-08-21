@@ -9,8 +9,10 @@ import { RouteRecordRaw } from 'vue-router';
 import { InstallCooperativePage } from 'src/pages/Union/InstallCooperative';
 import { LostKeyPage } from 'src/pages/Registrator/LostKey/ui';
 import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
+import { RecoverRequestPage, RecoverConfirmPage } from 'src/pages/Registrator/Recover/ui';
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
+import { NotMePage } from 'src/pages/Security/NotMe';
 import { PrivacyPage } from 'src/pages/Privacy';
 import { TermsPage } from 'src/pages/Terms';
 import { defineComponent, h } from 'vue';
@@ -92,6 +94,52 @@ const baseRoutes: RouteRecordRaw[] = [
           icon: 'fa-solid fa-key',
           widget: {
             title: 'Сброс ключа',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Запрос восстановления доступа CoopID (magic-link на email) — Эпик 12, Story 12.3.
+        path: ':coopname/auth/recover',
+        name: 'recover',
+        component: RecoverRequestPage,
+        children: [],
+        meta: {
+          title: 'Восстановление доступа',
+          icon: 'key',
+          widget: {
+            title: 'Восстановление доступа',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Landing one-click «Это не я» из письма о входе с нового устройства
+        // (Story 3.10): без входа отзывает все сессии по одноразовому токену.
+        path: ':coopname/security/not-me/:token',
+        name: 'notMe',
+        component: NotMePage,
+        children: [],
+        meta: {
+          title: 'Защита аккаунта',
+          icon: 'security',
+          widget: {
+            title: 'Защита аккаунта',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Landing magic-link из письма: подтверждение смены ключа + новый пароль.
+        path: ':coopname/auth/recover/:token',
+        name: 'recoverConfirm',
+        component: RecoverConfirmPage,
+        children: [],
+        meta: {
+          title: 'Восстановление доступа',
+          icon: 'key',
+          widget: {
+            title: 'Восстановление доступа',
             hideHeader: true,
           },
         },
@@ -185,6 +233,16 @@ if (process.env.DEV) {
     meta: { title: 'MONO v2 — базовые компоненты', icon: 'fa-solid fa-flask' },
   });
 }
+
+// Считыватель удостоверений — отдельная страница для устройства проверяющего
+// (планшет на входе), а не раздел кабинета. Намеренно не выведена ни в одно меню:
+// пайщику она не нужна, а тому, кто проверяет, достаточно знать адрес.
+baseRoutes.push({
+  path: '/verify',
+  name: 'verify-certificate',
+  component: () => import('src/pages/Verify/VerifyCertificatePage.vue'),
+  meta: { title: 'Проверка удостоверения' },
+});
 
 const rs = baseRoutes;
 

@@ -1,0 +1,59 @@
+name: SDK cross-runtime
+
+# Story 9.13 (CoopID, Эпик 9): smoke-тесты @coopenomics/auth на трёх рантаймах —
+# Node (vitest), браузер (vitest browser mode + chromium), desktop-runtime
+# (electron, main-process против собранного dist). SDK уходит клиентам в три
+# разных рантайма, и регрессия вида «crypto.subtle недоступен / bundle не
+# грузится в браузере» не ловится Node-юнитами вовсе.
+#
+# Триггер — только изменения самого пакета: прогон тяжёлый (браузер + electron
+# + xvfb), на каждый PR в dev его гонять незачем.
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'components/auth/**'
+      - '.github/workflows/sdk-cross-runtime.yaml'
+  workflow_call:
+
+concurrency:
+  group: sdk-cross-runtime-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile --filter @coopenomics/auth...
+
+      # xvfb — electron на Linux требует X-сервер; браузеры playwright ставим
+      # вместе с системными библиотеками chromium (--with-deps).
+      - name: Install runtime prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          # test:electron поднимает реальный electron — ему нужны GTK/ATK/ALSA-библиотеки,
+          # которых нет в наборе `playwright --with-deps chromium` (chromium на другом тулките).
+          # Симптом без них: electron «error while loading shared libraries: libgtk-3.so.0».
+          # Ubuntu 24.04 (noble) — пакеты с суффиксом t64; ставим по одному, чтобы расхождение
+          # имени пакета не валило весь шаг.
+          for pkg in libgtk-3-0t64 libnotify4 libnss3 libxss1 libxtst6 libatspi2.0-0t64 libasound2t64; do
+            sudo apt-get install -y "$pkg" || true
+          done
+          cd components/auth && pnpm exec playwright install --with-deps chromium
+
+      - name: Run cross-runtime smoke
+        run: pnpm test:cross-runtime

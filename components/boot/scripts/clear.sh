@@ -11,7 +11,7 @@ fi
 
 # Останавливаем и удаляем контейнеры вместе с volumes
 echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres cooparser || true
+docker compose down -v mongo postgres parser2 || true
 
 # Останавливаем blockchain контейнер перед удалением данных
 echo "Останавливаем blockchain контейнер..."

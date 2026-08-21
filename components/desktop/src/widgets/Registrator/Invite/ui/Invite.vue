@@ -11,6 +11,10 @@ AuthCard.invite(
     a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
     | .
 
+  BaseBanner.invite__hint(variant='info')
+    | При первом входе по этому ключу мы предложим задать пароль — дальше будете
+    | входить им, а ключ останется запасным способом восстановления доступа.
+
   .invite__key(v-if='account && account.private_key')
     .invite__key-head
       span.invite__key-label Приватный ключ
@@ -58,6 +62,7 @@ import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { type IGeneratedAccount } from 'src/shared/lib/types/user';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';

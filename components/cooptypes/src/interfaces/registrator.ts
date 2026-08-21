@@ -243,6 +243,24 @@ export interface IStcoopstatus {
   status: IName
 }
 
+/**
+ * Указание оператора, обслуживающего кооператив. Родитель в реестре кооперативов —
+ * это тот, кто развернул установку, а не учредитель: кооперативы друг друга не
+ * учреждают. Пустой оператор означает собственную установку.
+ */
+export interface ISetoperator {
+  coopname: IName
+  operator_name: IName
+}
+
+/**
+ * Снятие оператора: кооператив снова держит установку сам. Выданное заверение не
+ * отзывается — продлевать его будет некому, и оно погаснет в пределах своего срока.
+ */
+export interface IDeloperator {
+  coopname: IName
+}
+
 export interface IUpdateaccnt {
   username: IName
   account_to_change: IName

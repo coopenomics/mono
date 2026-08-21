@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -33,6 +34,7 @@ import { FreeDecisionDomainModule } from './domain/free-decision/free-decision.m
 import { AgreementDomainModule } from './domain/agreement/agreement-domain.module';
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
+import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
@@ -99,6 +101,11 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
       },
     ]),
     ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
+    // Prometheus pull-метрики (Story 9.11, NFR28): GET /metrics в Prometheus
+    // exposition format + процессные метрики Node на глобальном реестре prom-client
+    // (туда же пишут доменные счётчики AuthMetricsService). Доступ снаружи режет
+    // edge (Caddy, Story 9.2) — как и нативный /metrics authentik.
+    PrometheusModule.register({ defaultMetrics: { enabled: true } }),
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
@@ -120,6 +127,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     }),
     // Domain modules
     AuthDomainModule,
+    AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
     AgendaDomainModule,

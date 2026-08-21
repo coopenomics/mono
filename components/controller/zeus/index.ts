@@ -1107,11 +1107,21 @@ export type ScalarCoders = {
 type ZEUS_UNIONS = GraphQLTypes["MarketplaceEvent"] | GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
 
 export type ValueTypes = {
-    ["Account"]: AliasType<{
+    ["AccessGrant"]: AliasType<{
+	/** Действие (например, read / confirm / manage) */
+	action?:boolean | `@${string}`,
+	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
+	resource?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AccessGrant']?: Omit<ValueTypes["AccessGrant"], "...on AccessGrant">
+}>;
+	["Account"]: AliasType<{
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind?:boolean | `@${string}`,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ValueTypes["BlockchainAccount"],
+	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
+	has_password?:boolean | `@${string}`,
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
 	participant_account?:ValueTypes["ParticipantAccount"],
 	/** объект приватных данных пайщика кооператива. */
@@ -1148,6 +1158,22 @@ export type ValueTypes = {
 	used?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on AccountResourceInfo']?: Omit<ValueTypes["AccountResourceInfo"], "...on AccountResourceInfo">
+}>;
+	["AccountSession"]: AliasType<{
+	/** Время создания сессии (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Текущая сессия (с которой выполнен запрос) */
+	current?:boolean | `@${string}`,
+	/** Устройство входа (User-Agent); заглушка, если метаданные не сохранялись */
+	device?:boolean | `@${string}`,
+	/** Идентификатор сессии (для точечного завершения) */
+	id?:boolean | `@${string}`,
+	/** IP входа; заглушка, если метаданные не сохранялись */
+	ip?:boolean | `@${string}`,
+	/** Последняя зафиксированная активность (ISO) */
+	last_seen_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AccountSession']?: Omit<ValueTypes["AccountSession"], "...on AccountSession">
 }>;
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]:AccountType;
@@ -1768,6 +1794,14 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["AssignCapabilitySetInput"]: {
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор назначаемого набора */
+	set_key: string | Variable<any, string>,
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
+};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -1795,6 +1829,14 @@ export type ValueTypes = {
 	decision_id: number | Variable<any, string>,
 	/** Подписанный председателем документ утверждения решения */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	["AuthorizeForceRecoveryInput"]: {
+	/** Идентификатор транзакции решения собрания (если основание — собрание) */
+	assembly_decision_tx_id?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор связанного критического действия */
+	critical_action_id?: string | undefined | null | Variable<any, string>,
+	/** Пайщик, для которого авторизуется восстановление */
+	target_id: string | Variable<any, string>
 };
 	["AvailableReport"]: AliasType<{
 	deadline?:boolean | `@${string}`,
@@ -2951,6 +2993,36 @@ export type ValueTypes = {
 	referer?: string | undefined | null | Variable<any, string>
 };
 	["CandidateStatus"]:CandidateStatus;
+	["CapabilitySet"]: AliasType<{
+	/** true — платформенный набор; false — кооперативный кастомный */
+	builtin?:boolean | `@${string}`,
+	/** Кооператив-владелец кастомного набора; пусто для платформенных */
+	coopname?:boolean | `@${string}`,
+	/** Назначение набора */
+	description?:boolean | `@${string}`,
+	/** Права, которые открывает набор */
+	grants?:ValueTypes["AccessGrant"],
+	/** Канон-идентификатор набора (например, accountant / cashier) */
+	set_key?:boolean | `@${string}`,
+	/** Человеко-имя набора для интерфейса */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapabilitySet']?: Omit<ValueTypes["CapabilitySet"], "...on CapabilitySet">
+}>;
+	["CapabilitySetAssignment"]: AliasType<{
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?:boolean | `@${string}`,
+	/** Когда выдан */
+	granted_at?:boolean | `@${string}`,
+	/** Кто выдал набор (председатель) */
+	granted_by?:boolean | `@${string}`,
+	/** Идентификатор назначенного набора */
+	set_key?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapabilitySetAssignment']?: Omit<ValueTypes["CapabilitySetAssignment"], "...on CapabilitySetAssignment">
+}>;
 	/** Ручная запись фактического времени по задаче */
 ["CapitalAddWorklogInput"]: {
 	/** Имя кооператива */
@@ -6079,6 +6151,42 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CreatedProjectFreeDecision']?: Omit<ValueTypes["CreatedProjectFreeDecision"], "...on CreatedProjectFreeDecision">
 }>;
+	["CriticalActionAuditEntry"]: AliasType<{
+	/** Тип действия */
+	action_type?:boolean | `@${string}`,
+	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
+	confirmer_ids?:ValueTypes["CriticalActionConfirmation"],
+	/** Момент инициации (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?:boolean | `@${string}`,
+	/** Идентификатор критического действия */
+	id?:boolean | `@${string}`,
+	/** Момент первой подписи инициатора (ISO) */
+	initiated_at?:boolean | `@${string}`,
+	/** Инициатор (председатель) */
+	initiator_id?:boolean | `@${string}`,
+	/** SHA-256 от payload — гарантия неподменяемости содержимого */
+	payload_hash?:boolean | `@${string}`,
+	/** Состояние действия */
+	status?:boolean | `@${string}`,
+	/** Кого/что затрагивает действие */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CriticalActionAuditEntry']?: Omit<ValueTypes["CriticalActionAuditEntry"], "...on CriticalActionAuditEntry">
+}>;
+	["CriticalActionConfirmation"]: AliasType<{
+	/** Когда подтвердил (ISO) */
+	at?:boolean | `@${string}`,
+	/** Кто подтвердил (имя аккаунта) */
+	by?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CriticalActionConfirmation']?: Omit<ValueTypes["CriticalActionConfirmation"], "...on CriticalActionConfirmation">
+}>;
+	/** Состояние критического действия */
+["CriticalActionStatus"]:CriticalActionStatus;
+	/** Тип критического действия совета */
+["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: AliasType<{
 	/** Статус в блокчейне от контракта кооператива */
 	blockchain_status?:boolean | `@${string}`,
@@ -7010,6 +7118,18 @@ export type ValueTypes = {
 	/** ID заявки для поиска совпадений */
 	requestId: number | Variable<any, string>
 };
+	["ForceRecoveryAuthorization"]: AliasType<{
+	/** Восстановление авторизовано */
+	authorized?:boolean | `@${string}`,
+	/** Чем подтверждено восстановление */
+	consent_via?:boolean | `@${string}`,
+	/** Кто инициировал (председатель) */
+	triggered_by?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ForceRecoveryAuthorization']?: Omit<ValueTypes["ForceRecoveryAuthorization"], "...on ForceRecoveryAuthorization">
+}>;
+	/** Чем подтверждено принудительное восстановление: согласием пайщика или решением собрания */
+["ForceRecoveryConsentVia"]:ForceRecoveryConsentVia;
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
@@ -7828,6 +7948,14 @@ export type ValueTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ValueTypes["CreateInitOrganizationDataInput"] | Variable<any, string>
 };
+	["InitiateCriticalActionInput"]: {
+	/** Тип критического действия */
+	action_type: ValueTypes["CriticalActionType"] | Variable<any, string>,
+	/** Содержимое действия (зависит от типа) */
+	payload?: ValueTypes["JSON"] | undefined | null | Variable<any, string>,
+	/** Кого/что затрагивает действие */
+	target_id: string | Variable<any, string>
+};
 	["Install"]: {
 	soviet: Array<ValueTypes["SovietMemberInput"]> | Variable<any, string>,
 	vars: ValueTypes["SetVarsInput"] | Variable<any, string>
@@ -8288,6 +8416,18 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["LoginFactors"]: AliasType<{
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available?:boolean | `@${string}`,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled?:boolean | `@${string}`,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on LoginFactors']?: Omit<ValueTypes["LoginFactors"], "...on LoginFactors">
+}>;
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string | Variable<any, string>,
@@ -11641,12 +11781,15 @@ export type ValueTypes = {
 	target_project_hash: string | Variable<any, string>
 };
 	["Mutation"]: AliasType<{
+activateTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, string>},boolean | `@${string}`],
 addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
@@ -11760,6 +11903,7 @@ completeChairmanAgendaStep?: [{	data: ValueTypes["ChairmanOnboardingAgendaInput"
 completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneralMeetInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+confirmCriticalAction?: [{	id: string | Variable<any, string>},ValueTypes["PendingCriticalAction"]],
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -11785,7 +11929,10 @@ deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable
 deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+disableTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, string>},boolean | `@${string}`],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
+	enrollTwoFactor?:ValueTypes["TwoFactorEnrollment"],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -11811,6 +11958,7 @@ generateSovietDecisionOnAnnualMeetDocument?: [{	data: ValueTypes["AnnualGeneralM
 generateUserAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 initSystem?: [{	data: ValueTypes["Init"] | Variable<any, string>},ValueTypes["SystemInfo"]],
+initiateCriticalAction?: [{	data: ValueTypes["InitiateCriticalActionInput"] | Variable<any, string>},ValueTypes["PendingCriticalAction"]],
 installExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 kuApproveTrusted?: [{	data: ValueTypes["ApproveKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -11934,19 +12082,28 @@ refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueType
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
+reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
+requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ValueTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+	/** Завершить все сессии пайщика, кроме текущей */
+	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
+revokeCapabilitySet?: [{	data: ValueTypes["RevokeCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
+revokeParticipantKey?: [{	data: ValueTypes["RevokeParticipantKeyInput"] | Variable<any, string>},ValueTypes["RevokeKeyResult"]],
+revokeSession?: [{	data: ValueTypes["RevokeSessionInput"] | Variable<any, string>},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string>},ValueTypes["Account"]],
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
+setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
+setRecoveryStrategy?: [{	data: ValueTypes["SetRecoveryStrategyInput"] | Variable<any, string>},boolean | `@${string}`],
 setWif?: [{	data: ValueTypes["SetWifInput"] | Variable<any, string>},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ValueTypes["SignBySecretaryOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -12571,6 +12728,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string | Variable<any, string>
 };
+	["ParticipantAccess"]: AliasType<{
+	/** Эффективные права пайщика (основание гейтинга столов/страниц) */
+	grants?:ValueTypes["AccessGrant"],
+	/** Идентификаторы активных наборов возможностей пайщика */
+	sets?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantAccess']?: Omit<ValueTypes["ParticipantAccess"], "...on ParticipantAccess">
+}>;
 	["ParticipantAccount"]: AliasType<{
 	/** Имя кооперативного участка */
 	braname?:boolean | `@${string}`,
@@ -12694,6 +12859,12 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["ParticipantCertificate"]: AliasType<{
+	/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
+	participant_certificate?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantCertificate']?: Omit<ValueTypes["ParticipantCertificate"], "...on ParticipantCertificate">
+}>;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -12837,6 +13008,30 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["PaymentStatus"]:PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]:PaymentType;
+	["PendingCriticalAction"]: AliasType<{
+	/** Тип действия */
+	action_type?:boolean | `@${string}`,
+	/** Инициатор (председатель) */
+	actor_id?:boolean | `@${string}`,
+	/** Накопленные подтверждения */
+	confirmations?:ValueTypes["CriticalActionConfirmation"],
+	/** Момент инициации (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Крайний срок подтверждения (ISO) */
+	expires_at?:boolean | `@${string}`,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?:boolean | `@${string}`,
+	/** Идентификатор критического действия */
+	id?:boolean | `@${string}`,
+	/** Содержимое действия (зависит от типа) */
+	payload?:boolean | `@${string}`,
+	/** Состояние действия */
+	status?:boolean | `@${string}`,
+	/** Кого/что затрагивает действие */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PendingCriticalAction']?: Omit<ValueTypes["PendingCriticalAction"], "...on PendingCriticalAction">
+}>;
 	["Permission"]: AliasType<{
 	/** Родительское разрешение */
 	parent?:boolean | `@${string}`,
@@ -13463,6 +13658,8 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
+	/** Каталог наборов возможностей с правами, которые они открывают */
+	getCapabilitySets?:ValueTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
 
@@ -13475,6 +13672,7 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
+getCriticalActionAuditTrail?: [{	target_id: string | Variable<any, string>},ValueTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -13495,14 +13693,21 @@ getLedger2History?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<an
 getLedger2Postings?: [{	input: ValueTypes["GetLedger2PostingsInput"] | Variable<any, string>},ValueTypes["Ledger2PostingsResponse"]],
 getLedger2Wallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ValueTypes["GetLedgerHistoryInput"] | Variable<any, string>},ValueTypes["LedgerHistoryResponse"]],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors?:ValueTypes["LoginFactors"],
 getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
+	getMyAccess?:ValueTypes["ParticipantAccess"],
+	/** Получить удостоверение текущего пайщика */
+	getMyCertificate?:ValueTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards?:ValueTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
+getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},ValueTypes["CapabilitySetAssignment"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"]],
@@ -13514,6 +13719,8 @@ getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes[
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ValueTypes["ProviderSubscription"],
+	/** Текущая стратегия восстановления доступа пайщика */
+	getRecoveryStrategy?:boolean | `@${string}`,
 getRegistrationAgreements?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>,	program_key?: string | undefined | null | Variable<any, string>},ValueTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>},ValueTypes["RegistrationConfig"]],
 getReport?: [{	id: string | Variable<any, string>},ValueTypes["GeneratedReport"]],
@@ -13525,6 +13732,8 @@ getReportPreview?: [{	input: ValueTypes["ReportPreviewInput"] | Variable<any, st
 
 Требуемые роли: chairman.  */
 	getReportRequisites?:ValueTypes["ReportRequisitesView"],
+	/** Активные сессии текущего пайщика (текущая помечается current) */
+	getSessions?:ValueTypes["AccountSession"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ValueTypes["SystemInfo"],
 getUnreadNotificationsCount?: [{	coopname: string | Variable<any, string>},ValueTypes["UnreadNotificationsCount"]],
@@ -13718,6 +13927,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on Question']?: Omit<ValueTypes["Question"], "...on Question">
 }>;
+	/** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
+["RecoveryStrategy"]:RecoveryStrategy;
 	["RefreshInput"]: {
 	/** Токен доступа */
 	access_token: string | Variable<any, string>,
@@ -13955,6 +14166,10 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on ReportHistoryPage']?: Omit<ValueTypes["ReportHistoryPage"], "...on ReportHistoryPage">
 }>;
+	["ReportNotMeInput"]: {
+	/** Идентификатор подозрительной сессии (опционально, из настроек) */
+	session_id?: string | undefined | null | Variable<any, string>
+};
 	["ReportPreview"]: AliasType<{
 	period?:boolean | `@${string}`,
 	reportType?:boolean | `@${string}`,
@@ -14061,6 +14276,10 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	dictionaryValueId?: number | undefined | null | Variable<any, string>,
 	/** Значение атрибута */
 	value: string | Variable<any, string>
+};
+	["RequestForceRecoveryConsentInput"]: {
+	/** Пайщик, для которого запрашивается согласие */
+	target_id: string | Variable<any, string>
 };
 	["RequestImageInput"]: {
 	/** Описание изображения */
@@ -14295,6 +14514,40 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Возвращаемая сумма (asset, например "50.0000 RUB"). */
 	return_amount: string | Variable<any, string>
 };
+	["RevokeCapabilitySetInput"]: {
+	/** Идентификатор отзываемого набора */
+	set_key: string | Variable<any, string>,
+	/** Имя аккаунта пайщика */
+	username: string | Variable<any, string>
+};
+	["RevokeKeyResult"]: AliasType<{
+	/** Пайщик обязан пройти recovery для получения нового ключа */
+	must_recover?:boolean | `@${string}`,
+	/** Сколько активных сессий пайщика отозвано */
+	sessions_revoked?:boolean | `@${string}`,
+	/** Статус операции */
+	status?:boolean | `@${string}`,
+	/** Пайщик, чей ключ отозван */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RevokeKeyResult']?: Omit<ValueTypes["RevokeKeyResult"], "...on RevokeKeyResult">
+}>;
+	["RevokeParticipantKeyInput"]: {
+	/** Обоснование отзыва */
+	reason: string | Variable<any, string>,
+	/** Пайщик, чей ключ отзывается */
+	target_id: string | Variable<any, string>
+};
+	["RevokeSessionInput"]: {
+	/** Идентификатор завершаемой сессии */
+	session_id: string | Variable<any, string>
+};
+	["RevokedSessionsResult"]: AliasType<{
+	/** Сколько активных сессий завершено */
+	revoked?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RevokedSessionsResult']?: Omit<ValueTypes["RevokedSessionsResult"], "...on RevokedSessionsResult">
+}>;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -14501,6 +14754,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Хеш задачи */
 	issue_hash: string | Variable<any, string>
 };
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null | Variable<any, string>,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean | Variable<any, string>,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean | Variable<any, string>
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -14530,6 +14791,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	plan_hour_cost: string | Variable<any, string>,
 	/** Хэш проекта */
 	project_hash: string | Variable<any, string>
+};
+	["SetRecoveryStrategyInput"]: {
+	/** TOTP-код для подтверждения смены (step-up) */
+	code: string | Variable<any, string>,
+	/** Новая стратегия восстановления */
+	strategy: ValueTypes["RecoveryStrategy"] | Variable<any, string>
 };
 	["SetVarsInput"]: {
 	confidential_email: string | Variable<any, string>,
@@ -14909,6 +15176,18 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** Получатели уведомления */
 	to: Array<ValueTypes["NotificationWorkflowRecipientInput"]> | Variable<any, string>
 };
+	["TwoFactorCodeInput"]: {
+	/** Одноразовый код из приложения-аутентификатора */
+	code: string | Variable<any, string>
+};
+	["TwoFactorEnrollment"]: AliasType<{
+	/** otpauth://-URI для QR-кода */
+	otpauth_uri?:boolean | `@${string}`,
+	/** Base32-секрет для ручного ввода в приложение-аутентификатор */
+	secret?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on TwoFactorEnrollment']?: Omit<ValueTypes["TwoFactorEnrollment"], "...on TwoFactorEnrollment">
+}>;
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
 	name: string | Variable<any, string>
@@ -15565,11 +15844,20 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
   }
 
 export type ResolverInputTypes = {
-    ["Account"]: AliasType<{
+    ["AccessGrant"]: AliasType<{
+	/** Действие (например, read / confirm / manage) */
+	action?:boolean | `@${string}`,
+	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
+	resource?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["Account"]: AliasType<{
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind?:boolean | `@${string}`,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ResolverInputTypes["BlockchainAccount"],
+	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
+	has_password?:boolean | `@${string}`,
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
 	participant_account?:ResolverInputTypes["ParticipantAccount"],
 	/** объект приватных данных пайщика кооператива. */
@@ -15602,6 +15890,21 @@ export type ResolverInputTypes = {
 	max?:boolean | `@${string}`,
 	/** Использовано ресурсов */
 	used?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["AccountSession"]: AliasType<{
+	/** Время создания сессии (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Текущая сессия (с которой выполнен запрос) */
+	current?:boolean | `@${string}`,
+	/** Устройство входа (User-Agent); заглушка, если метаданные не сохранялись */
+	device?:boolean | `@${string}`,
+	/** Идентификатор сессии (для точечного завершения) */
+	id?:boolean | `@${string}`,
+	/** IP входа; заглушка, если метаданные не сохранялись */
+	ip?:boolean | `@${string}`,
+	/** Последняя зафиксированная активность (ISO) */
+	last_seen_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Тип аккаунта пользователя в системе */
@@ -16213,6 +16516,14 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["AssignCapabilitySetInput"]: {
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Идентификатор назначаемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -16238,6 +16549,14 @@ export type ResolverInputTypes = {
 	decision_id: number,
 	/** Подписанный председателем документ утверждения решения */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	["AuthorizeForceRecoveryInput"]: {
+	/** Идентификатор транзакции решения собрания (если основание — собрание) */
+	assembly_decision_tx_id?: string | undefined | null,
+	/** Идентификатор связанного критического действия */
+	critical_action_id?: string | undefined | null,
+	/** Пайщик, для которого авторизуется восстановление */
+	target_id: string
 };
 	["AvailableReport"]: AliasType<{
 	deadline?:boolean | `@${string}`,
@@ -17373,6 +17692,34 @@ export type ResolverInputTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	["CapabilitySet"]: AliasType<{
+	/** true — платформенный набор; false — кооперативный кастомный */
+	builtin?:boolean | `@${string}`,
+	/** Кооператив-владелец кастомного набора; пусто для платформенных */
+	coopname?:boolean | `@${string}`,
+	/** Назначение набора */
+	description?:boolean | `@${string}`,
+	/** Права, которые открывает набор */
+	grants?:ResolverInputTypes["AccessGrant"],
+	/** Канон-идентификатор набора (например, accountant / cashier) */
+	set_key?:boolean | `@${string}`,
+	/** Человеко-имя набора для интерфейса */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapabilitySetAssignment"]: AliasType<{
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?:boolean | `@${string}`,
+	/** Когда выдан */
+	granted_at?:boolean | `@${string}`,
+	/** Кто выдал набор (председатель) */
+	granted_by?:boolean | `@${string}`,
+	/** Идентификатор назначенного набора */
+	set_key?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Ручная запись фактического времени по задаче */
 ["CapitalAddWorklogInput"]: {
 	/** Имя кооператива */
@@ -20428,6 +20775,40 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CriticalActionAuditEntry"]: AliasType<{
+	/** Тип действия */
+	action_type?:boolean | `@${string}`,
+	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
+	confirmer_ids?:ResolverInputTypes["CriticalActionConfirmation"],
+	/** Момент инициации (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?:boolean | `@${string}`,
+	/** Идентификатор критического действия */
+	id?:boolean | `@${string}`,
+	/** Момент первой подписи инициатора (ISO) */
+	initiated_at?:boolean | `@${string}`,
+	/** Инициатор (председатель) */
+	initiator_id?:boolean | `@${string}`,
+	/** SHA-256 от payload — гарантия неподменяемости содержимого */
+	payload_hash?:boolean | `@${string}`,
+	/** Состояние действия */
+	status?:boolean | `@${string}`,
+	/** Кого/что затрагивает действие */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CriticalActionConfirmation"]: AliasType<{
+	/** Когда подтвердил (ISO) */
+	at?:boolean | `@${string}`,
+	/** Кто подтвердил (имя аккаунта) */
+	by?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние критического действия */
+["CriticalActionStatus"]:CriticalActionStatus;
+	/** Тип критического действия совета */
+["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: AliasType<{
 	/** Статус в блокчейне от контракта кооператива */
 	blockchain_status?:boolean | `@${string}`,
@@ -21333,6 +21714,17 @@ export type ResolverInputTypes = {
 	/** ID заявки для поиска совпадений */
 	requestId: number
 };
+	["ForceRecoveryAuthorization"]: AliasType<{
+	/** Восстановление авторизовано */
+	authorized?:boolean | `@${string}`,
+	/** Чем подтверждено восстановление */
+	consent_via?:boolean | `@${string}`,
+	/** Кто инициировал (председатель) */
+	triggered_by?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Чем подтверждено принудительное восстановление: согласием пайщика или решением собрания */
+["ForceRecoveryConsentVia"]:ForceRecoveryConsentVia;
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -22140,6 +22532,14 @@ export type ResolverInputTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ResolverInputTypes["CreateInitOrganizationDataInput"]
 };
+	["InitiateCriticalActionInput"]: {
+	/** Тип критического действия */
+	action_type: ResolverInputTypes["CriticalActionType"],
+	/** Содержимое действия (зависит от типа) */
+	payload?: ResolverInputTypes["JSON"] | undefined | null,
+	/** Кого/что затрагивает действие */
+	target_id: string
+};
 	["Install"]: {
 	soviet: Array<ResolverInputTypes["SovietMemberInput"]>,
 	vars: ResolverInputTypes["SetVarsInput"]
@@ -22584,6 +22984,17 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["LoginFactors"]: AliasType<{
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available?:boolean | `@${string}`,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled?:boolean | `@${string}`,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -25826,12 +26237,15 @@ export type ResolverInputTypes = {
 	target_project_hash: string
 };
 	["Mutation"]: AliasType<{
+activateTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | `@${string}`],
 addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
+assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
+authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
@@ -25945,6 +26359,7 @@ completeChairmanAgendaStep?: [{	data: ResolverInputTypes["ChairmanOnboardingAgen
 completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardingGeneralMeetInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
+confirmCriticalAction?: [{	id: string},ResolverInputTypes["PendingCriticalAction"]],
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
@@ -25970,7 +26385,10 @@ deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},b
 deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+disableTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | `@${string}`],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
+	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
+	enrollTwoFactor?:ResolverInputTypes["TwoFactorEnrollment"],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -25996,6 +26414,7 @@ generateSovietDecisionOnAnnualMeetDocument?: [{	data: ResolverInputTypes["Annual
 generateUserAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 initSystem?: [{	data: ResolverInputTypes["Init"]},ResolverInputTypes["SystemInfo"]],
+initiateCriticalAction?: [{	data: ResolverInputTypes["InitiateCriticalActionInput"]},ResolverInputTypes["PendingCriticalAction"]],
 installExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["SystemInfo"]],
 kuApproveTrusted?: [{	data: ResolverInputTypes["ApproveKuTrustedInput"]},ResolverInputTypes["Transaction"]],
@@ -26119,19 +26538,28 @@ refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["Regis
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
+reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
+requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ResolverInputTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},ResolverInputTypes["Transaction"]],
+	/** Завершить все сессии пайщика, кроме текущей */
+	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
+revokeCapabilitySet?: [{	data: ResolverInputTypes["RevokeCapabilitySetInput"]},boolean | `@${string}`],
+revokeParticipantKey?: [{	data: ResolverInputTypes["RevokeParticipantKeyInput"]},ResolverInputTypes["RevokeKeyResult"]],
+revokeSession?: [{	data: ResolverInputTypes["RevokeSessionInput"]},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramDocDataInput"]},ResolverInputTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInputTypes["Account"]],
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
+setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
+setRecoveryStrategy?: [{	data: ResolverInputTypes["SetRecoveryStrategyInput"]},boolean | `@${string}`],
 setWif?: [{	data: ResolverInputTypes["SetWifInput"]},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignByPresiderOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignBySecretaryOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -26717,6 +27145,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
 };
+	["ParticipantAccess"]: AliasType<{
+	/** Эффективные права пайщика (основание гейтинга столов/страниц) */
+	grants?:ResolverInputTypes["AccessGrant"],
+	/** Идентификаторы активных наборов возможностей пайщика */
+	sets?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ParticipantAccount"]: AliasType<{
 	/** Имя кооперативного участка */
 	braname?:boolean | `@${string}`,
@@ -26839,6 +27274,11 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["ParticipantCertificate"]: AliasType<{
+	/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
+	participant_certificate?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["Passport"]: AliasType<{
 	/** Код подразделения */
 	code?:boolean | `@${string}`,
@@ -26978,6 +27418,29 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["PaymentStatus"]:PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]:PaymentType;
+	["PendingCriticalAction"]: AliasType<{
+	/** Тип действия */
+	action_type?:boolean | `@${string}`,
+	/** Инициатор (председатель) */
+	actor_id?:boolean | `@${string}`,
+	/** Накопленные подтверждения */
+	confirmations?:ResolverInputTypes["CriticalActionConfirmation"],
+	/** Момент инициации (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Крайний срок подтверждения (ISO) */
+	expires_at?:boolean | `@${string}`,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?:boolean | `@${string}`,
+	/** Идентификатор критического действия */
+	id?:boolean | `@${string}`,
+	/** Содержимое действия (зависит от типа) */
+	payload?:boolean | `@${string}`,
+	/** Состояние действия */
+	status?:boolean | `@${string}`,
+	/** Кого/что затрагивает действие */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["Permission"]: AliasType<{
 	/** Родительское разрешение */
 	parent?:boolean | `@${string}`,
@@ -27582,6 +28045,8 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
+	/** Каталог наборов возможностей с правами, которые они открывают */
+	getCapabilitySets?:ResolverInputTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
 	/** Получить состояние онбординга capital
 
@@ -27594,6 +28059,7 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
+getCriticalActionAuditTrail?: [{	target_id: string},ResolverInputTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -27614,14 +28080,21 @@ getLedger2History?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},Reso
 getLedger2Postings?: [{	input: ResolverInputTypes["GetLedger2PostingsInput"]},ResolverInputTypes["Ledger2PostingsResponse"]],
 getLedger2Wallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
 getLedgerHistory?: [{	data: ResolverInputTypes["GetLedgerHistoryInput"]},ResolverInputTypes["LedgerHistoryResponse"]],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors?:ResolverInputTypes["LoginFactors"],
 getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
+	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
+	getMyAccess?:ResolverInputTypes["ParticipantAccess"],
+	/** Получить удостоверение текущего пайщика */
+	getMyCertificate?:ResolverInputTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards?:ResolverInputTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
+getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["CapabilitySetAssignment"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
@@ -27633,6 +28106,8 @@ getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscri
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ResolverInputTypes["ProviderSubscription"],
+	/** Текущая стратегия восстановления доступа пайщика */
+	getRecoveryStrategy?:boolean | `@${string}`,
 getRegistrationAgreements?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string,	program_key?: string | undefined | null},ResolverInputTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string},ResolverInputTypes["RegistrationConfig"]],
 getReport?: [{	id: string},ResolverInputTypes["GeneratedReport"]],
@@ -27644,6 +28119,8 @@ getReportPreview?: [{	input: ResolverInputTypes["ReportPreviewInput"]},ResolverI
 
 Требуемые роли: chairman.  */
 	getReportRequisites?:ResolverInputTypes["ReportRequisitesView"],
+	/** Активные сессии текущего пайщика (текущая помечается current) */
+	getSessions?:ResolverInputTypes["AccountSession"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ResolverInputTypes["SystemInfo"],
 getUnreadNotificationsCount?: [{	coopname: string},ResolverInputTypes["UnreadNotificationsCount"]],
@@ -27835,6 +28312,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	voters_for?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
+["RecoveryStrategy"]:RecoveryStrategy;
 	["RefreshInput"]: {
 	/** Токен доступа */
 	access_token: string,
@@ -28062,6 +28541,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ReportNotMeInput"]: {
+	/** Идентификатор подозрительной сессии (опционально, из настроек) */
+	session_id?: string | undefined | null
+};
 	["ReportPreview"]: AliasType<{
 	period?:boolean | `@${string}`,
 	reportType?:boolean | `@${string}`,
@@ -28161,6 +28644,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	dictionaryValueId?: number | undefined | null,
 	/** Значение атрибута */
 	value: string
+};
+	["RequestForceRecoveryConsentInput"]: {
+	/** Пайщик, для которого запрашивается согласие */
+	target_id: string
 };
 	["RequestImageInput"]: {
 	/** Описание изображения */
@@ -28392,6 +28879,38 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Возвращаемая сумма (asset, например "50.0000 RUB"). */
 	return_amount: string
 };
+	["RevokeCapabilitySetInput"]: {
+	/** Идентификатор отзываемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	["RevokeKeyResult"]: AliasType<{
+	/** Пайщик обязан пройти recovery для получения нового ключа */
+	must_recover?:boolean | `@${string}`,
+	/** Сколько активных сессий пайщика отозвано */
+	sessions_revoked?:boolean | `@${string}`,
+	/** Статус операции */
+	status?:boolean | `@${string}`,
+	/** Пайщик, чей ключ отозван */
+	target_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["RevokeParticipantKeyInput"]: {
+	/** Обоснование отзыва */
+	reason: string,
+	/** Пайщик, чей ключ отзывается */
+	target_id: string
+};
+	["RevokeSessionInput"]: {
+	/** Идентификатор завершаемой сессии */
+	session_id: string
+};
+	["RevokedSessionsResult"]: AliasType<{
+	/** Сколько активных сессий завершено */
+	revoked?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -28596,6 +29115,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Хеш задачи */
 	issue_hash: string
 };
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -28625,6 +29152,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	plan_hour_cost: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["SetRecoveryStrategyInput"]: {
+	/** TOTP-код для подтверждения смены (step-up) */
+	code: string,
+	/** Новая стратегия восстановления */
+	strategy: ResolverInputTypes["RecoveryStrategy"]
 };
 	["SetVarsInput"]: {
 	confidential_email: string,
@@ -28989,6 +29522,17 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** Получатели уведомления */
 	to: Array<ResolverInputTypes["NotificationWorkflowRecipientInput"]>
 };
+	["TwoFactorCodeInput"]: {
+	/** Одноразовый код из приложения-аутентификатора */
+	code: string
+};
+	["TwoFactorEnrollment"]: AliasType<{
+	/** otpauth://-URI для QR-кода */
+	otpauth_uri?:boolean | `@${string}`,
+	/** Base32-секрет для ручного ввода в приложение-аутентификатор */
+	secret?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
 	name: string
@@ -29635,11 +30179,19 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
   }
 
 export type ModelTypes = {
-    ["Account"]: {
+    ["AccessGrant"]: {
+		/** Действие (например, read / confirm / manage) */
+	action: string,
+	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
+	resource: string
+};
+	["Account"]: {
 		/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind: ModelTypes["AccountKind"],
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?: ModelTypes["BlockchainAccount"] | undefined | null,
+	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
+	has_password: boolean,
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
 	participant_account?: ModelTypes["ParticipantAccount"] | undefined | null,
 	/** объект приватных данных пайщика кооператива. */
@@ -29669,6 +30221,20 @@ export type ModelTypes = {
 	max: string,
 	/** Использовано ресурсов */
 	used: string
+};
+	["AccountSession"]: {
+		/** Время создания сессии (ISO) */
+	created_at: string,
+	/** Текущая сессия (с которой выполнен запрос) */
+	current: boolean,
+	/** Устройство входа (User-Agent); заглушка, если метаданные не сохранялись */
+	device: string,
+	/** Идентификатор сессии (для точечного завершения) */
+	id: string,
+	/** IP входа; заглушка, если метаданные не сохранялись */
+	ip: string,
+	/** Последняя зафиксированная активность (ISO) */
+	last_seen_at: string
 };
 	["AccountType"]:AccountType;
 	["AccountsPaginationResult"]: {
@@ -30266,6 +30832,14 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["AssignCapabilitySetInput"]: {
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Идентификатор назначаемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["AuthSequence"]: {
 		account: string,
 	sequence: string
@@ -30289,6 +30863,14 @@ export type ModelTypes = {
 	decision_id: number,
 	/** Подписанный председателем документ утверждения решения */
 	document: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["AuthorizeForceRecoveryInput"]: {
+	/** Идентификатор транзакции решения собрания (если основание — собрание) */
+	assembly_decision_tx_id?: string | undefined | null,
+	/** Идентификатор связанного критического действия */
+	critical_action_id?: string | undefined | null,
+	/** Пайщик, для которого авторизуется восстановление */
+	target_id: string
 };
 	["AvailableReport"]: {
 		deadline: string,
@@ -31401,6 +31983,32 @@ export type ModelTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	["CapabilitySet"]: {
+		/** true — платформенный набор; false — кооперативный кастомный */
+	builtin: boolean,
+	/** Кооператив-владелец кастомного набора; пусто для платформенных */
+	coopname?: string | undefined | null,
+	/** Назначение набора */
+	description: string,
+	/** Права, которые открывает набор */
+	grants: Array<ModelTypes["AccessGrant"]>,
+	/** Канон-идентификатор набора (например, accountant / cashier) */
+	set_key: string,
+	/** Человеко-имя набора для интерфейса */
+	title: string
+};
+	["CapabilitySetAssignment"]: {
+		/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Когда выдан */
+	granted_at: string,
+	/** Кто выдал набор (председатель) */
+	granted_by: string,
+	/** Идентификатор назначенного набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	/** Ручная запись фактического времени по задаче */
 ["CapitalAddWorklogInput"]: {
 	/** Имя кооператива */
@@ -34378,6 +34986,36 @@ export type ModelTypes = {
 	/** Пользовательский заголовок документа */
 	title?: string | undefined | null
 };
+	["CriticalActionAuditEntry"]: {
+		/** Тип действия */
+	action_type: ModelTypes["CriticalActionType"],
+	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
+	confirmer_ids: Array<ModelTypes["CriticalActionConfirmation"]>,
+	/** Момент инициации (ISO) */
+	created_at: string,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?: string | undefined | null,
+	/** Идентификатор критического действия */
+	id: string,
+	/** Момент первой подписи инициатора (ISO) */
+	initiated_at?: string | undefined | null,
+	/** Инициатор (председатель) */
+	initiator_id: string,
+	/** SHA-256 от payload — гарантия неподменяемости содержимого */
+	payload_hash: string,
+	/** Состояние действия */
+	status: ModelTypes["CriticalActionStatus"],
+	/** Кого/что затрагивает действие */
+	target_id: string
+};
+	["CriticalActionConfirmation"]: {
+		/** Когда подтвердил (ISO) */
+	at: string,
+	/** Кто подтвердил (имя аккаунта) */
+	by: string
+};
+	["CriticalActionStatus"]:CriticalActionStatus;
+	["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: {
 		/** Статус в блокчейне от контракта кооператива */
 	blockchain_status: string,
@@ -35245,6 +35883,15 @@ export type ModelTypes = {
 	/** ID заявки для поиска совпадений */
 	requestId: number
 };
+	["ForceRecoveryAuthorization"]: {
+		/** Восстановление авторизовано */
+	authorized: boolean,
+	/** Чем подтверждено восстановление */
+	consent_via: ModelTypes["ForceRecoveryConsentVia"],
+	/** Кто инициировал (председатель) */
+	triggered_by: string
+};
+	["ForceRecoveryConsentVia"]:ForceRecoveryConsentVia;
 	["FreeDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -36041,6 +36688,14 @@ export type ModelTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ModelTypes["CreateInitOrganizationDataInput"]
 };
+	["InitiateCriticalActionInput"]: {
+	/** Тип критического действия */
+	action_type: ModelTypes["CriticalActionType"],
+	/** Содержимое действия (зависит от типа) */
+	payload?: ModelTypes["JSON"] | undefined | null,
+	/** Кого/что затрагивает действие */
+	target_id: string
+};
 	["Install"]: {
 	soviet: Array<ModelTypes["SovietMemberInput"]>,
 	vars: ModelTypes["SetVarsInput"]
@@ -36460,6 +37115,16 @@ export type ModelTypes = {
 	issue_hash?: string | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string
+};
+	["LoginFactors"]: {
+		/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available: boolean,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled: boolean
 };
 	["LoginInput"]: {
 	/** Электронная почта */
@@ -39542,7 +40207,9 @@ export type ModelTypes = {
 	target_project_hash: string
 };
 	["Mutation"]: {
-		/** Добавить пайщика в белый список приватного кооперативного участка
+		/** Подтвердить подключение второго фактора первым кодом */
+	activateTwoFactor: boolean,
+	/** Добавить пайщика в белый список приватного кооперативного участка
 
 Требуемые роли: chairman.  */
 	addBranchWhitelist: ModelTypes["Branch"],
@@ -39560,10 +40227,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
+	/** Назначить пайщику набор возможностей (управляет председатель) */
+	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
 	authorizeDecision: ModelTypes["Transaction"],
+	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
+	authorizeForceRecovery: ModelTypes["ForceRecoveryAuthorization"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте
@@ -39996,6 +40667,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: ModelTypes["Transaction"],
+	/** Подтвердить критическое действие совета (член совета) */
+	confirmCriticalAction: ModelTypes["PendingCriticalAction"],
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: ModelTypes["MembershipExitResult"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
@@ -40086,10 +40759,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteTrustedAccount: ModelTypes["Branch"],
+	/** Отключить второй фактор (требует валидный код) */
+	disableTwoFactor: boolean,
 	/** Изменить кооперативный участок
 
 Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
+	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
+	enrollTwoFactor: ModelTypes["TwoFactorEnrollment"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -40184,6 +40861,8 @@ export type ModelTypes = {
 	generateWalletAgreement: ModelTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: ModelTypes["SystemInfo"],
+	/** Инициировать критическое действие совета (председатель) */
+	initiateCriticalAction: ModelTypes["PendingCriticalAction"],
 	/** Установить расширение
 
 Требуемые роли: chairman.  */
@@ -40512,6 +41191,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
+	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
+	reportNotMe: ModelTypes["RevokedSessionsResult"],
+	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
+	requestForceRecoveryConsent: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
 
 Требуемые роли: chairman.  */
@@ -40528,6 +41211,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: ModelTypes["Transaction"],
+	/** Завершить все сессии пайщика, кроме текущей */
+	revokeAllSessions: ModelTypes["RevokedSessionsResult"],
+	/** Отозвать у пайщика набор возможностей (управляет председатель) */
+	revokeCapabilitySet: boolean,
+	/** Отозвать скомпрометированный ключ пайщика (председатель) */
+	revokeParticipantKey: ModelTypes["RevokeKeyResult"],
+	/** Завершить конкретную сессию пайщика */
+	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП
 
 Требуемые роли: chairman.  */
@@ -40548,10 +41239,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	setBranchPrivate: ModelTypes["Branch"],
+	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
+	setLoginFactors: ModelTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
 	setPaymentStatus: ModelTypes["GatewayPayment"],
+	/** Сменить стратегию восстановления (требует step-up второго фактора) */
+	setRecoveryStrategy: boolean,
 	/** Сохранить приватный ключ в зашифрованном серверном хранилище */
 	setWif: boolean,
 	/** Подписание решения председателем на общем собрании пайщиков
@@ -41138,6 +41833,12 @@ export type ModelTypes = {
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
 };
+	["ParticipantAccess"]: {
+		/** Эффективные права пайщика (основание гейтинга столов/страниц) */
+	grants: Array<ModelTypes["AccessGrant"]>,
+	/** Идентификаторы активных наборов возможностей пайщика */
+	sets: Array<string>
+};
 	["ParticipantAccount"]: {
 		/** Имя кооперативного участка */
 	braname?: string | undefined | null,
@@ -41258,6 +41959,10 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	["ParticipantCertificate"]: {
+		/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
+	participant_certificate: string
 };
 	["Passport"]: {
 		/** Код подразделения */
@@ -41385,6 +42090,28 @@ export type ModelTypes = {
 };
 	["PaymentStatus"]:PaymentStatus;
 	["PaymentType"]:PaymentType;
+	["PendingCriticalAction"]: {
+		/** Тип действия */
+	action_type: ModelTypes["CriticalActionType"],
+	/** Инициатор (председатель) */
+	actor_id: string,
+	/** Накопленные подтверждения */
+	confirmations: Array<ModelTypes["CriticalActionConfirmation"]>,
+	/** Момент инициации (ISO) */
+	created_at: string,
+	/** Крайний срок подтверждения (ISO) */
+	expires_at: string,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?: string | undefined | null,
+	/** Идентификатор критического действия */
+	id: string,
+	/** Содержимое действия (зависит от типа) */
+	payload: ModelTypes["JSON"],
+	/** Состояние действия */
+	status: ModelTypes["CriticalActionStatus"],
+	/** Кого/что затрагивает действие */
+	target_id: string
+};
 	["Permission"]: {
 		/** Родительское разрешение */
 	parent: string,
@@ -42118,6 +42845,8 @@ export type ModelTypes = {
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
+	/** Каталог наборов возможностей с правами, которые они открывают */
+	getCapabilitySets: Array<ModelTypes["CapabilitySet"]>,
 	/** Получить логи событий по задаче */
 	getCapitalIssueLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга capital
@@ -42132,6 +42861,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
+	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
+	getCriticalActionAuditTrail: Array<ModelTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -42192,6 +42923,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	getLedgerHistory: ModelTypes["LedgerHistoryResponse"],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors: ModelTypes["LoginFactors"],
 	/** Получить данные собрания по хешу
 
 Требуемые роли: chairman, member, user.  */
@@ -42200,6 +42933,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
+	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
+	getMyAccess: ModelTypes["ParticipantAccess"],
+	/** Получить удостоверение текущего пайщика */
+	getMyCertificate: ModelTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
@@ -42212,6 +42949,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	getNotifications: ModelTypes["NotificationPaginationResult"],
+	/** Активные наборы возможностей, назначенные пайщику */
+	getParticipantCapabilitySets: Array<ModelTypes["CapabilitySetAssignment"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -42240,6 +42979,8 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<ModelTypes["ProviderSubscription"]>,
+	/** Текущая стратегия восстановления доступа пайщика */
+	getRecoveryStrategy: ModelTypes["RecoveryStrategy"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<ModelTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -42268,6 +43009,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getReportRequisites: ModelTypes["ReportRequisitesView"],
+	/** Активные сессии текущего пайщика (текущая помечается current) */
+	getSessions: Array<ModelTypes["AccountSession"]>,
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: ModelTypes["SystemInfo"],
 	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)
@@ -42580,6 +43323,7 @@ export type ModelTypes = {
 	/** Список участников, проголосовавших "За" */
 	voters_for: Array<string>
 };
+	["RecoveryStrategy"]:RecoveryStrategy;
 	["RefreshInput"]: {
 	/** Токен доступа */
 	access_token: string,
@@ -42797,6 +43541,10 @@ export type ModelTypes = {
 		items: Array<ModelTypes["GeneratedReportSummary"]>,
 	total: number
 };
+	["ReportNotMeInput"]: {
+	/** Идентификатор подозрительной сессии (опционально, из настроек) */
+	session_id?: string | undefined | null
+};
 	["ReportPreview"]: {
 		period?: number | undefined | null,
 	reportType: ModelTypes["ReportType"],
@@ -42888,6 +43636,10 @@ export type ModelTypes = {
 	dictionaryValueId?: number | undefined | null,
 	/** Значение атрибута */
 	value: string
+};
+	["RequestForceRecoveryConsentInput"]: {
+	/** Пайщик, для которого запрашивается согласие */
+	target_id: string
 };
 	["RequestImageInput"]: {
 	/** Описание изображения */
@@ -43110,6 +43862,36 @@ export type ModelTypes = {
 	/** Возвращаемая сумма (asset, например "50.0000 RUB"). */
 	return_amount: string
 };
+	["RevokeCapabilitySetInput"]: {
+	/** Идентификатор отзываемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	["RevokeKeyResult"]: {
+		/** Пайщик обязан пройти recovery для получения нового ключа */
+	must_recover: boolean,
+	/** Сколько активных сессий пайщика отозвано */
+	sessions_revoked: number,
+	/** Статус операции */
+	status: string,
+	/** Пайщик, чей ключ отозван */
+	target_id: string
+};
+	["RevokeParticipantKeyInput"]: {
+	/** Обоснование отзыва */
+	reason: string,
+	/** Пайщик, чей ключ отзывается */
+	target_id: string
+};
+	["RevokeSessionInput"]: {
+	/** Идентификатор завершаемой сессии */
+	session_id: string
+};
+	["RevokedSessionsResult"]: {
+		/** Сколько активных сессий завершено */
+	revoked: number
+};
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
@@ -43310,6 +44092,14 @@ export type ModelTypes = {
 	/** Хеш задачи */
 	issue_hash: string
 };
+	["SetLoginFactorsInput"]: {
+	/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -43339,6 +44129,12 @@ export type ModelTypes = {
 	plan_hour_cost: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["SetRecoveryStrategyInput"]: {
+	/** TOTP-код для подтверждения смены (step-up) */
+	code: string,
+	/** Новая стратегия восстановления */
+	strategy: ModelTypes["RecoveryStrategy"]
 };
 	["SetVarsInput"]: {
 	confidential_email: string,
@@ -43685,6 +44481,16 @@ export type ModelTypes = {
 	payload?: ModelTypes["JSONObject"] | undefined | null,
 	/** Получатели уведомления */
 	to: Array<ModelTypes["NotificationWorkflowRecipientInput"]>
+};
+	["TwoFactorCodeInput"]: {
+	/** Одноразовый код из приложения-аутентификатора */
+	code: string
+};
+	["TwoFactorEnrollment"]: {
+		/** otpauth://-URI для QR-кода */
+	otpauth_uri: string,
+	/** Base32-секрет для ручного ввода в приложение-аутентификатор */
+	secret: string
 };
 	["UninstallExtensionInput"]: {
 	/** Фильтр по имени */
@@ -44308,12 +45114,22 @@ export type GraphQLTypes = {
     // ------------------------------------------------------;
 	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
 	// ------------------------------------------------------;
+	["AccessGrant"]: {
+	__typename: "AccessGrant",
+	/** Действие (например, read / confirm / manage) */
+	action: string,
+	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
+	resource: string,
+	['...on AccessGrant']: Omit<GraphQLTypes["AccessGrant"], "...on AccessGrant">
+};
 	["Account"]: {
 	__typename: "Account",
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind: GraphQLTypes["AccountKind"],
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?: GraphQLTypes["BlockchainAccount"] | undefined | null,
+	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
+	has_password: boolean,
 	/** объект пайщика кооператива в таблице блокчейне, который определяет членство пайщика в конкретном кооперативе. Поскольку MONO обслуживает только один кооператив, то в participant_account обычно содержится информация, которая описывает членство пайщика в этом кооперативе. Этот объект обезличен, публичен, и хранится в блокчейне. */
 	participant_account?: GraphQLTypes["ParticipantAccount"] | undefined | null,
 	/** объект приватных данных пайщика кооператива. */
@@ -44349,6 +45165,22 @@ export type GraphQLTypes = {
 	/** Использовано ресурсов */
 	used: string,
 	['...on AccountResourceInfo']: Omit<GraphQLTypes["AccountResourceInfo"], "...on AccountResourceInfo">
+};
+	["AccountSession"]: {
+	__typename: "AccountSession",
+	/** Время создания сессии (ISO) */
+	created_at: string,
+	/** Текущая сессия (с которой выполнен запрос) */
+	current: boolean,
+	/** Устройство входа (User-Agent); заглушка, если метаданные не сохранялись */
+	device: string,
+	/** Идентификатор сессии (для точечного завершения) */
+	id: string,
+	/** IP входа; заглушка, если метаданные не сохранялись */
+	ip: string,
+	/** Последняя зафиксированная активность (ISO) */
+	last_seen_at: string,
+	['...on AccountSession']: Omit<GraphQLTypes["AccountSession"], "...on AccountSession">
 };
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]: AccountType;
@@ -44969,6 +45801,14 @@ export type GraphQLTypes = {
 		/** Хеш метрики */
 	metric_hash: string
 };
+	["AssignCapabilitySetInput"]: {
+		/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Идентификатор назначаемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
 	account: string,
@@ -44996,6 +45836,14 @@ export type GraphQLTypes = {
 	decision_id: number,
 	/** Подписанный председателем документ утверждения решения */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	["AuthorizeForceRecoveryInput"]: {
+		/** Идентификатор транзакции решения собрания (если основание — собрание) */
+	assembly_decision_tx_id?: string | undefined | null,
+	/** Идентификатор связанного критического действия */
+	critical_action_id?: string | undefined | null,
+	/** Пайщик, для которого авторизуется восстановление */
+	target_id: string
 };
 	["AvailableReport"]: {
 	__typename: "AvailableReport",
@@ -46152,6 +47000,36 @@ export type GraphQLTypes = {
 		referer?: string | undefined | null
 };
 	["CandidateStatus"]: CandidateStatus;
+	["CapabilitySet"]: {
+	__typename: "CapabilitySet",
+	/** true — платформенный набор; false — кооперативный кастомный */
+	builtin: boolean,
+	/** Кооператив-владелец кастомного набора; пусто для платформенных */
+	coopname?: string | undefined | null,
+	/** Назначение набора */
+	description: string,
+	/** Права, которые открывает набор */
+	grants: Array<GraphQLTypes["AccessGrant"]>,
+	/** Канон-идентификатор набора (например, accountant / cashier) */
+	set_key: string,
+	/** Человеко-имя набора для интерфейса */
+	title: string,
+	['...on CapabilitySet']: Omit<GraphQLTypes["CapabilitySet"], "...on CapabilitySet">
+};
+	["CapabilitySetAssignment"]: {
+	__typename: "CapabilitySetAssignment",
+	/** Срок действия назначения; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Когда выдан */
+	granted_at: string,
+	/** Кто выдал набор (председатель) */
+	granted_by: string,
+	/** Идентификатор назначенного набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string,
+	['...on CapabilitySetAssignment']: Omit<GraphQLTypes["CapabilitySetAssignment"], "...on CapabilitySetAssignment">
+};
 	/** Ручная запись фактического времени по задаче */
 ["CapitalAddWorklogInput"]: {
 		/** Имя кооператива */
@@ -49280,6 +50158,42 @@ export type GraphQLTypes = {
 	title?: string | undefined | null,
 	['...on CreatedProjectFreeDecision']: Omit<GraphQLTypes["CreatedProjectFreeDecision"], "...on CreatedProjectFreeDecision">
 };
+	["CriticalActionAuditEntry"]: {
+	__typename: "CriticalActionAuditEntry",
+	/** Тип действия */
+	action_type: GraphQLTypes["CriticalActionType"],
+	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
+	confirmer_ids: Array<GraphQLTypes["CriticalActionConfirmation"]>,
+	/** Момент инициации (ISO) */
+	created_at: string,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?: string | undefined | null,
+	/** Идентификатор критического действия */
+	id: string,
+	/** Момент первой подписи инициатора (ISO) */
+	initiated_at?: string | undefined | null,
+	/** Инициатор (председатель) */
+	initiator_id: string,
+	/** SHA-256 от payload — гарантия неподменяемости содержимого */
+	payload_hash: string,
+	/** Состояние действия */
+	status: GraphQLTypes["CriticalActionStatus"],
+	/** Кого/что затрагивает действие */
+	target_id: string,
+	['...on CriticalActionAuditEntry']: Omit<GraphQLTypes["CriticalActionAuditEntry"], "...on CriticalActionAuditEntry">
+};
+	["CriticalActionConfirmation"]: {
+	__typename: "CriticalActionConfirmation",
+	/** Когда подтвердил (ISO) */
+	at: string,
+	/** Кто подтвердил (имя аккаунта) */
+	by: string,
+	['...on CriticalActionConfirmation']: Omit<GraphQLTypes["CriticalActionConfirmation"], "...on CriticalActionConfirmation">
+};
+	/** Состояние критического действия */
+["CriticalActionStatus"]: CriticalActionStatus;
+	/** Тип критического действия совета */
+["CriticalActionType"]: CriticalActionType;
 	["CurrentInstanceDTO"]: {
 	__typename: "CurrentInstanceDTO",
 	/** Статус в блокчейне от контракта кооператива */
@@ -50211,6 +51125,18 @@ export type GraphQLTypes = {
 		/** ID заявки для поиска совпадений */
 	requestId: number
 };
+	["ForceRecoveryAuthorization"]: {
+	__typename: "ForceRecoveryAuthorization",
+	/** Восстановление авторизовано */
+	authorized: boolean,
+	/** Чем подтверждено восстановление */
+	consent_via: GraphQLTypes["ForceRecoveryConsentVia"],
+	/** Кто инициировал (председатель) */
+	triggered_by: string,
+	['...on ForceRecoveryAuthorization']: Omit<GraphQLTypes["ForceRecoveryAuthorization"], "...on ForceRecoveryAuthorization">
+};
+	/** Чем подтверждено принудительное восстановление: согласием пайщика или решением собрания */
+["ForceRecoveryConsentVia"]: ForceRecoveryConsentVia;
 	["FreeDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -51029,6 +51955,14 @@ export type GraphQLTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: GraphQLTypes["CreateInitOrganizationDataInput"]
 };
+	["InitiateCriticalActionInput"]: {
+		/** Тип критического действия */
+	action_type: GraphQLTypes["CriticalActionType"],
+	/** Содержимое действия (зависит от типа) */
+	payload?: GraphQLTypes["JSON"] | undefined | null,
+	/** Кого/что затрагивает действие */
+	target_id: string
+};
 	["Install"]: {
 		soviet: Array<GraphQLTypes["SovietMemberInput"]>,
 	vars: GraphQLTypes["SetVarsInput"]
@@ -51488,6 +52422,18 @@ export type GraphQLTypes = {
 	issue_hash?: string | undefined | null,
 	/** Хеш метрики */
 	metric_hash: string
+};
+	["LoginFactors"]: {
+	__typename: "LoginFactors",
+	/** Почта подтверждена (можно включить код на почту при входе) */
+	email_available: boolean,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено (можно включить код при входе) */
+	totp_enrolled: boolean,
+	['...on LoginFactors']: Omit<GraphQLTypes["LoginFactors"], "...on LoginFactors">
 };
 	["LoginInput"]: {
 		/** Электронная почта */
@@ -54844,6 +55790,8 @@ export type GraphQLTypes = {
 };
 	["Mutation"]: {
 	__typename: "Mutation",
+	/** Подтвердить подключение второго фактора первым кодом */
+	activateTwoFactor: boolean,
 	/** Добавить пайщика в белый список приватного кооперативного участка
 
 Требуемые роли: chairman.  */
@@ -54862,10 +55810,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
+	/** Назначить пайщику набор возможностей (управляет председатель) */
+	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
 	authorizeDecision: GraphQLTypes["Transaction"],
+	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
+	authorizeForceRecovery: GraphQLTypes["ForceRecoveryAuthorization"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте
@@ -55298,6 +56250,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: GraphQLTypes["Transaction"],
+	/** Подтвердить критическое действие совета (член совета) */
+	confirmCriticalAction: GraphQLTypes["PendingCriticalAction"],
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: GraphQLTypes["MembershipExitResult"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
@@ -55388,10 +56342,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteTrustedAccount: GraphQLTypes["Branch"],
+	/** Отключить второй фактор (требует валидный код) */
+	disableTwoFactor: boolean,
 	/** Изменить кооперативный участок
 
 Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
+	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
+	enrollTwoFactor: GraphQLTypes["TwoFactorEnrollment"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -55486,6 +56444,8 @@ export type GraphQLTypes = {
 	generateWalletAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: GraphQLTypes["SystemInfo"],
+	/** Инициировать критическое действие совета (председатель) */
+	initiateCriticalAction: GraphQLTypes["PendingCriticalAction"],
 	/** Установить расширение
 
 Требуемые роли: chairman.  */
@@ -55814,6 +56774,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
+	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
+	reportNotMe: GraphQLTypes["RevokedSessionsResult"],
+	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
+	requestForceRecoveryConsent: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
 
 Требуемые роли: chairman.  */
@@ -55830,6 +56794,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: GraphQLTypes["Transaction"],
+	/** Завершить все сессии пайщика, кроме текущей */
+	revokeAllSessions: GraphQLTypes["RevokedSessionsResult"],
+	/** Отозвать у пайщика набор возможностей (управляет председатель) */
+	revokeCapabilitySet: boolean,
+	/** Отозвать скомпрометированный ключ пайщика (председатель) */
+	revokeParticipantKey: GraphQLTypes["RevokeKeyResult"],
+	/** Завершить конкретную сессию пайщика */
+	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП
 
 Требуемые роли: chairman.  */
@@ -55850,10 +56822,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	setBranchPrivate: GraphQLTypes["Branch"],
+	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
+	setLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
 	setPaymentStatus: GraphQLTypes["GatewayPayment"],
+	/** Сменить стратегию восстановления (требует step-up второго фактора) */
+	setRecoveryStrategy: boolean,
 	/** Сохранить приватный ключ в зашифрованном серверном хранилище */
 	setWif: boolean,
 	/** Подписание решения председателем на общем собрании пайщиков
@@ -56524,6 +57500,14 @@ export type GraphQLTypes = {
 	/** Направление сортировки ("ASC" или "DESC") */
 	sortOrder: string
 };
+	["ParticipantAccess"]: {
+	__typename: "ParticipantAccess",
+	/** Эффективные права пайщика (основание гейтинга столов/страниц) */
+	grants: Array<GraphQLTypes["AccessGrant"]>,
+	/** Идентификаторы активных наборов возможностей пайщика */
+	sets: Array<string>,
+	['...on ParticipantAccess']: Omit<GraphQLTypes["ParticipantAccess"], "...on ParticipantAccess">
+};
 	["ParticipantAccount"]: {
 	__typename: "ParticipantAccount",
 	/** Имя кооперативного участка */
@@ -56646,6 +57630,12 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	["ParticipantCertificate"]: {
+	__typename: "ParticipantCertificate",
+	/** Подписанное удостоверение пайщика (JWT-сертификат CoopID) */
+	participant_certificate: string,
+	['...on ParticipantCertificate']: Omit<GraphQLTypes["ParticipantCertificate"], "...on ParticipantCertificate">
 };
 	["Passport"]: {
 	__typename: "Passport",
@@ -56791,6 +57781,30 @@ export type GraphQLTypes = {
 ["PaymentStatus"]: PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]: PaymentType;
+	["PendingCriticalAction"]: {
+	__typename: "PendingCriticalAction",
+	/** Тип действия */
+	action_type: GraphQLTypes["CriticalActionType"],
+	/** Инициатор (председатель) */
+	actor_id: string,
+	/** Накопленные подтверждения */
+	confirmations: Array<GraphQLTypes["CriticalActionConfirmation"]>,
+	/** Момент инициации (ISO) */
+	created_at: string,
+	/** Крайний срок подтверждения (ISO) */
+	expires_at: string,
+	/** Момент финализации (ISO); пусто, пока не финализировано */
+	finalized_at?: string | undefined | null,
+	/** Идентификатор критического действия */
+	id: string,
+	/** Содержимое действия (зависит от типа) */
+	payload: GraphQLTypes["JSON"],
+	/** Состояние действия */
+	status: GraphQLTypes["CriticalActionStatus"],
+	/** Кого/что затрагивает действие */
+	target_id: string,
+	['...on PendingCriticalAction']: Omit<GraphQLTypes["PendingCriticalAction"], "...on PendingCriticalAction">
+};
 	["Permission"]: {
 	__typename: "Permission",
 	/** Родительское разрешение */
@@ -57580,6 +58594,8 @@ export type GraphQLTypes = {
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
+	/** Каталог наборов возможностей с правами, которые они открывают */
+	getCapabilitySets: Array<GraphQLTypes["CapabilitySet"]>,
 	/** Получить логи событий по задаче */
 	getCapitalIssueLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга capital
@@ -57594,6 +58610,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
+	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
+	getCriticalActionAuditTrail: Array<GraphQLTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -57654,6 +58672,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	getLedgerHistory: GraphQLTypes["LedgerHistoryResponse"],
+	/** Настройки подтверждения входа (2FA): какие коды запрашиваются при входе */
+	getLoginFactors: GraphQLTypes["LoginFactors"],
 	/** Получить данные собрания по хешу
 
 Требуемые роли: chairman, member, user.  */
@@ -57662,6 +58682,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
+	/** Эффективный доступ текущего пайщика (основание гейтинга столов и страниц) */
+	getMyAccess: GraphQLTypes["ParticipantAccess"],
+	/** Получить удостоверение текущего пайщика */
+	getMyCertificate: GraphQLTypes["ParticipantCertificate"],
 	/** Мои карточки */
 	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
@@ -57674,6 +58698,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	getNotifications: GraphQLTypes["NotificationPaginationResult"],
+	/** Активные наборы возможностей, назначенные пайщику */
+	getParticipantCapabilitySets: Array<GraphQLTypes["CapabilitySetAssignment"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -57702,6 +58728,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
+	/** Текущая стратегия восстановления доступа пайщика */
+	getRecoveryStrategy: GraphQLTypes["RecoveryStrategy"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<GraphQLTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -57730,6 +58758,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getReportRequisites: GraphQLTypes["ReportRequisitesView"],
+	/** Активные сессии текущего пайщика (текущая помечается current) */
+	getSessions: Array<GraphQLTypes["AccountSession"]>,
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: GraphQLTypes["SystemInfo"],
 	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)
@@ -58045,6 +59075,8 @@ export type GraphQLTypes = {
 	voters_for: Array<string>,
 	['...on Question']: Omit<GraphQLTypes["Question"], "...on Question">
 };
+	/** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
+["RecoveryStrategy"]: RecoveryStrategy;
 	["RefreshInput"]: {
 		/** Токен доступа */
 	access_token: string,
@@ -58282,6 +59314,10 @@ export type GraphQLTypes = {
 	total: number,
 	['...on ReportHistoryPage']: Omit<GraphQLTypes["ReportHistoryPage"], "...on ReportHistoryPage">
 };
+	["ReportNotMeInput"]: {
+		/** Идентификатор подозрительной сессии (опционально, из настроек) */
+	session_id?: string | undefined | null
+};
 	["ReportPreview"]: {
 	__typename: "ReportPreview",
 	period?: number | undefined | null,
@@ -58388,6 +59424,10 @@ export type GraphQLTypes = {
 	dictionaryValueId?: number | undefined | null,
 	/** Значение атрибута */
 	value: string
+};
+	["RequestForceRecoveryConsentInput"]: {
+		/** Пайщик, для которого запрашивается согласие */
+	target_id: string
 };
 	["RequestImageInput"]: {
 		/** Описание изображения */
@@ -58622,6 +59662,40 @@ export type GraphQLTypes = {
 	/** Возвращаемая сумма (asset, например "50.0000 RUB"). */
 	return_amount: string
 };
+	["RevokeCapabilitySetInput"]: {
+		/** Идентификатор отзываемого набора */
+	set_key: string,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	["RevokeKeyResult"]: {
+	__typename: "RevokeKeyResult",
+	/** Пайщик обязан пройти recovery для получения нового ключа */
+	must_recover: boolean,
+	/** Сколько активных сессий пайщика отозвано */
+	sessions_revoked: number,
+	/** Статус операции */
+	status: string,
+	/** Пайщик, чей ключ отозван */
+	target_id: string,
+	['...on RevokeKeyResult']: Omit<GraphQLTypes["RevokeKeyResult"], "...on RevokeKeyResult">
+};
+	["RevokeParticipantKeyInput"]: {
+		/** Обоснование отзыва */
+	reason: string,
+	/** Пайщик, чей ключ отзывается */
+	target_id: string
+};
+	["RevokeSessionInput"]: {
+		/** Идентификатор завершаемой сессии */
+	session_id: string
+};
+	["RevokedSessionsResult"]: {
+	__typename: "RevokedSessionsResult",
+	/** Сколько активных сессий завершено */
+	revoked: number,
+	['...on RevokedSessionsResult']: Omit<GraphQLTypes["RevokedSessionsResult"], "...on RevokedSessionsResult">
+};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -58828,6 +59902,14 @@ export type GraphQLTypes = {
 	/** Хеш задачи */
 	issue_hash: string
 };
+	["SetLoginFactorsInput"]: {
+		/** Код из приложения-аутентификатора (обязателен при изменении фактора приложения) */
+	code?: string | undefined | null,
+	/** Запрашивать одноразовый код на почту при входе */
+	email_enabled: boolean,
+	/** Запрашивать код из приложения-аутентификатора при входе */
+	totp_enabled: boolean
+};
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -58857,6 +59939,12 @@ export type GraphQLTypes = {
 	plan_hour_cost: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["SetRecoveryStrategyInput"]: {
+		/** TOTP-код для подтверждения смены (step-up) */
+	code: string,
+	/** Новая стратегия восстановления */
+	strategy: GraphQLTypes["RecoveryStrategy"]
 };
 	["SetVarsInput"]: {
 		confidential_email: string,
@@ -59236,6 +60324,18 @@ export type GraphQLTypes = {
 	payload?: GraphQLTypes["JSONObject"] | undefined | null,
 	/** Получатели уведомления */
 	to: Array<GraphQLTypes["NotificationWorkflowRecipientInput"]>
+};
+	["TwoFactorCodeInput"]: {
+		/** Одноразовый код из приложения-аутентификатора */
+	code: string
+};
+	["TwoFactorEnrollment"]: {
+	__typename: "TwoFactorEnrollment",
+	/** otpauth://-URI для QR-кода */
+	otpauth_uri: string,
+	/** Base32-секрет для ручного ввода в приложение-аутентификатор */
+	secret: string,
+	['...on TwoFactorEnrollment']: Omit<GraphQLTypes["TwoFactorEnrollment"], "...on TwoFactorEnrollment">
 };
 	["UninstallExtensionInput"]: {
 		/** Фильтр по имени */
@@ -59991,6 +61091,20 @@ export enum ContributorStatus {
 export enum Country {
 	Russia = "Russia"
 }
+/** Состояние критического действия */
+export enum CriticalActionStatus {
+	Cancelled = "Cancelled",
+	Confirmed = "Confirmed",
+	Expired = "Expired",
+	Pending = "Pending"
+}
+/** Тип критического действия совета */
+export enum CriticalActionType {
+	ChangeCouncilRoles = "ChangeCouncilRoles",
+	ChangeVerificationTypes = "ChangeVerificationTypes",
+	ExcludeParticipant = "ExcludeParticipant",
+	ForceRecovery = "ForceRecovery"
+}
 /** Статус цикла в системе CAPITAL */
 export enum CycleStatus {
 	ACTIVE = "ACTIVE",
@@ -60088,6 +61202,11 @@ export enum ExtendedMeetStatus {
 	VOTING_COMPLETED = "VOTING_COMPLETED",
 	VOTING_IN_PROGRESS = "VOTING_IN_PROGRESS",
 	WAITING_FOR_OPENING = "WAITING_FOR_OPENING"
+}
+/** Чем подтверждено принудительное восстановление: согласием пайщика или решением собрания */
+export enum ForceRecoveryConsentVia {
+	AssemblyDecision = "AssemblyDecision",
+	ParticipantMagicLink = "ParticipantMagicLink"
 }
 /** Статусы жизненного цикла инстанса кооператива */
 export enum InstanceStatus {
@@ -60559,6 +61678,12 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+/** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
+export enum RecoveryStrategy {
+	Council = "Council",
+	EmailMagicLink = "EmailMagicLink",
+	OfflineCode = "OfflineCode"
+}
 /** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 export enum ReportSubmissionMark {
 	NOT_REQUIRED = "NOT_REQUIRED",
@@ -60740,7 +61865,9 @@ type ZEUS_VARIABLES = {
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
 	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
+	["AssignCapabilitySetInput"]: ValueTypes["AssignCapabilitySetInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
+	["AuthorizeForceRecoveryInput"]: ValueTypes["AuthorizeForceRecoveryInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"];
@@ -60868,6 +61995,8 @@ type ZEUS_VARIABLES = {
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
 	["CreateWithdrawInput"]: ValueTypes["CreateWithdrawInput"];
+	["CriticalActionStatus"]: ValueTypes["CriticalActionStatus"];
+	["CriticalActionType"]: ValueTypes["CriticalActionType"];
 	["CurrentTableStatesFiltersInput"]: ValueTypes["CurrentTableStatesFiltersInput"];
 	["CycleStatus"]: ValueTypes["CycleStatus"];
 	["DateTime"]: ValueTypes["DateTime"];
@@ -60920,6 +62049,7 @@ type ZEUS_VARIABLES = {
 	["ExtensionInput"]: ValueTypes["ExtensionInput"];
 	["FinalizeProjectInput"]: ValueTypes["FinalizeProjectInput"];
 	["FindPotentialMatchesInput"]: ValueTypes["FindPotentialMatchesInput"];
+	["ForceRecoveryConsentVia"]: ValueTypes["ForceRecoveryConsentVia"];
 	["FreeDecisionGenerateDocumentInput"]: ValueTypes["FreeDecisionGenerateDocumentInput"];
 	["FundProgramInput"]: ValueTypes["FundProgramInput"];
 	["GenerateAnyDocumentInput"]: ValueTypes["GenerateAnyDocumentInput"];
@@ -60988,6 +62118,7 @@ type ZEUS_VARIABLES = {
 	["GetVoteInput"]: ValueTypes["GetVoteInput"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];
 	["Init"]: ValueTypes["Init"];
+	["InitiateCriticalActionInput"]: ValueTypes["InitiateCriticalActionInput"];
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
@@ -61228,6 +62359,7 @@ type ZEUS_VARIABLES = {
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
+	["RecoveryStrategy"]: ValueTypes["RecoveryStrategy"];
 	["RefreshInput"]: ValueTypes["RefreshInput"];
 	["RefreshProgramInput"]: ValueTypes["RefreshProgramInput"];
 	["RefreshSegmentInput"]: ValueTypes["RefreshSegmentInput"];
@@ -61240,11 +62372,13 @@ type ZEUS_VARIABLES = {
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReportExpenseItemInput"]: ValueTypes["ReportExpenseItemInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
+	["ReportNotMeInput"]: ValueTypes["ReportNotMeInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
 	["RequestAttributeInput"]: ValueTypes["RequestAttributeInput"];
+	["RequestForceRecoveryConsentInput"]: ValueTypes["RequestForceRecoveryConsentInput"];
 	["RequestImageInput"]: ValueTypes["RequestImageInput"];
 	["RequestImageType"]: ValueTypes["RequestImageType"];
 	["RequestImageTypeInput"]: ValueTypes["RequestImageTypeInput"];
@@ -61265,6 +62399,9 @@ type ZEUS_VARIABLES = {
 	["ReturnByMoneySignedDocumentInput"]: ValueTypes["ReturnByMoneySignedDocumentInput"];
 	["ReturnByMoneySignedMetaDocumentInput"]: ValueTypes["ReturnByMoneySignedMetaDocumentInput"];
 	["ReturnExpenseItemInput"]: ValueTypes["ReturnExpenseItemInput"];
+	["RevokeCapabilitySetInput"]: ValueTypes["RevokeCapabilitySetInput"];
+	["RevokeParticipantKeyInput"]: ValueTypes["RevokeParticipantKeyInput"];
+	["RevokeSessionInput"]: ValueTypes["RevokeSessionInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
@@ -61286,9 +62423,11 @@ type ZEUS_VARIABLES = {
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
+	["SetLoginFactorsInput"]: ValueTypes["SetLoginFactorsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];
+	["SetRecoveryStrategyInput"]: ValueTypes["SetRecoveryStrategyInput"];
 	["SetVarsInput"]: ValueTypes["SetVarsInput"];
 	["SetWifInput"]: ValueTypes["SetWifInput"];
 	["SignActAsChairmanInput"]: ValueTypes["SignActAsChairmanInput"];
@@ -61311,6 +62450,7 @@ type ZEUS_VARIABLES = {
 	["SystemStatus"]: ValueTypes["SystemStatus"];
 	["TranscriptionStatus"]: ValueTypes["TranscriptionStatus"];
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];
+	["TwoFactorCodeInput"]: ValueTypes["TwoFactorCodeInput"];
 	["UninstallExtensionInput"]: ValueTypes["UninstallExtensionInput"];
 	["Update"]: ValueTypes["Update"];
 	["UpdateAccountInput"]: ValueTypes["UpdateAccountInput"];

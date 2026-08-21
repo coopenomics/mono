@@ -112,9 +112,8 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
-      const global = useGlobalStore()
-      const wifKey = global.wif?.toString()
-      if (!wifKey) throw new Error('Приватный ключ не найден. Войдите в кооператив заново.')
+      // Заперт кошелёк — спросит PIN-код, а не уронит оформление заказа.
+      const wifKey = await useGlobalStore().ensureSigningKey()
 
       const payloads = await api.getCheckoutSignablePayloads()
       const signer = new Classes.Document(wifKey)

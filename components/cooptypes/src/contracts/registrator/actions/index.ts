@@ -62,6 +62,17 @@ export * as AddUser from './addUser'
 export * as SetCoopStatus from './setCoopStatus'
 
 /**
+ * Действие указания оператора, который обслуживает кооператив: разворачивает и
+ * держит его установку платформы, а значит и продлевает ему заверение.
+ */
+export * as SetOperator from './setOperator'
+
+/**
+ * Действие снятия оператора: кооператив снова держит установку сам.
+ */
+export * as DelOperator from './delOperator'
+
+/**
  * Удаление кооператива из реестра подключений
  * @private
  */

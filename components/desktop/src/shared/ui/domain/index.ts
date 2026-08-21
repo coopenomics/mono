@@ -21,6 +21,7 @@ export * from './OtpInput';
 export * from './PageHint';
 export * from './PaymentMethodSelect';
 export * from './PersonCard';
+export * from './PinPad';
 export * from './RailUserCard';
 export * from './SignatureCard';
 export * from './VerticalStepper';

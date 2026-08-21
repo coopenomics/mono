@@ -27,6 +27,7 @@
     "start": "node -r ./alias-resolver.js dist/ssr/index.js"
   },
   "dependencies": {
+    "@coopenomics/auth": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/sdk": "workspace:*",
     "@dicebear/collection": "^9.0.1",

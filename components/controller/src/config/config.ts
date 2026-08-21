@@ -129,7 +129,55 @@ const envVarsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
   REDIS_PASSWORD: z.string(),
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // CSV-список RPC-endpoint'ов COOPOS (CoopID, Story 1.3): на prod ≥2 для
+  // failover (механика — Story 9.4). Не задан — используется [BLOCKCHAIN_RPC].
+  BLOCKCHAIN_RPC_LIST: z
+    .string()
+    .optional()
+    .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
+    .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
+  // Устойчивость COOPOS RPC (CoopID, Эпик 9). Интервал health-check каждого узла
+  // (get_info); 0 — отключить фоновую проверку (Story 9.4).
+  BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS: z.coerce.number().default(10000),
+  // Таймаут одиночного RPC-запроса (read + health-probe); по истечении — переключение
+  // на следующий здоровый узел (Story 9.4).
+  BLOCKCHAIN_RPC_TIMEOUT_MS: z.coerce.number().default(5000),
+  // Сколько узлов опрашивать для M-of-N консенсуса при обновлении кэша ключей
+  // (Story 9.7). <2 здоровых узлов — консенсус не проверяется (single-node).
+  BLOCKCHAIN_RPC_QUORUM_SIZE: z.coerce.number().default(2),
+  // Интервал блока цепи (мс) — для оценки времени LIB-блока, когда узел не отдаёт
+  // last_irreversible_block_time напрямую (Story 9.6).
+  BLOCKCHAIN_BLOCK_INTERVAL_MS: z.coerce.number().default(500),
+  // Запас (мс) к границе финализации: ключ считается финализированным, только если
+  // его last_updated не позже (время LIB − запас) — компенсирует оценку времени LIB
+  // (Story 9.6).
+  BLOCKCHAIN_FINALITY_MARGIN_MS: z.coerce.number().default(500),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
+  // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
+  // Дефолт-порт 5532 = host-маппинг существующего postgres (PG_HOST_PORT) для запуска вне контейнера.
+  COOP_DOMAIN_DB_HOST: z.string().default('127.0.0.1'),
+  COOP_DOMAIN_DB_PORT: z.coerce.number().default(5532),
+  COOP_DOMAIN_DB_USERNAME: z.string().default('coop_app_user'),
+  COOP_DOMAIN_DB_DATABASE: z.string().default('coop_domain_db'),
+  COOP_DOMAIN_DB_PASSWORD: z.string().optional(),
+  COOP_DOMAIN_DB_PASSWORD_FILE: z.string().optional(),
+  // auth-v2 (CoopID): shared-токен вебхука authentik→controller (Story 1.5).
+  AUTH_V2_WEBHOOK_TOKEN: z.string().optional(),
+  AUTH_V2_WEBHOOK_TOKEN_FILE: z.string().optional(),
+  // auth-v2 (CoopID, Story 1.6): секрет подписи session_binding_token (HS256) + адрес authentik.
+  AUTH_V2_SESSION_BINDING_SECRET: z.string().optional(),
+  AUTH_V2_SESSION_BINDING_SECRET_FILE: z.string().optional(),
+  AUTHENTIK_INTERNAL_URL: z.string().default('http://authentik-server:9000'),
+  // auth-v2 (CoopID, Эпик 11): admin-API токен authentik для записи пароля пайщику
+  // (ensure user + set_password) — миграция «ключ→пароль» (11.4) и recovery-confirm (12.1).
+  AUTHENTIK_ADMIN_TOKEN: z.string().optional(),
+  AUTHENTIK_ADMIN_TOKEN_FILE: z.string().optional(),
+  // auth-v2 (CoopID, Story 1.8): PEM приватного ключа (ES256K/secp256k1) permission `cert`
+  // аккаунта vostok — им подписывается participant_certificate. Тот же ключ дериватится
+  // в vostok.cert миграцией 052 (on-chain цепь обязана совпасть с ключом подписи).
+  COOP_CERT_KEY: z.string().optional(),
+  COOP_CERT_KEY_FILE: z.string().optional(),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
@@ -149,6 +197,21 @@ const envVarsSchema = z.object({
    * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
    * кооператив) данные могут копиться годами — отключить кроном.
    */
+  /**
+   * Прогонять непринятые миграции самому при старте, не дожидаясь отдельной
+   * команды. Нужно стендам: там база каждый раз создаётся с нуля, и без
+   * миграций нет схемы CoopID (coop_domain_db) — сохранить ключ и записать
+   * аудит некуда. Раньше это делал скрипт подъёма отдельным заходом и ради
+   * этого караулил готовность контроллера, растягивая ребут.
+   *
+   * По умолчанию выключено: на проде миграции раскатывает релиз осознанно,
+   * и самовольный прогон при каждом рестарте там недопустим. Включается явно
+   * (`AUTO_MIGRATE=true` в окружении стенда).
+   */
+  AUTO_MIGRATE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED: z
     .string()
     .default('true')
@@ -332,13 +395,93 @@ if (!envVars.success) {
 export default {
   env: envVars.data.NODE_ENV,
   log_level: envVars.data.LOG_LEVEL ?? (envVars.data.NODE_ENV === 'development' ? 'debug' : 'info'),
+  auto_migrate: envVars.data.AUTO_MIGRATE,
   backend_url: envVars.data.BACKEND_URL,
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
   server_secret: envVars.data.SERVER_SECRET,
   timezone: envVars.data.TIMEZONE,
+  coopDomainDb: {
+    host: envVars.data.COOP_DOMAIN_DB_HOST,
+    port: envVars.data.COOP_DOMAIN_DB_PORT,
+    username: envVars.data.COOP_DOMAIN_DB_USERNAME,
+    database: envVars.data.COOP_DOMAIN_DB_DATABASE,
+    // Ленивый геттер: отсутствие секрет-файла бьёт только по потребителям
+    // coop_domain_db (миграция V2.4.0+), а не по импорту config всем coopback'ом.
+    get password(): string {
+      const file = envVars.data!.COOP_DOMAIN_DB_PASSWORD_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch (e) {
+          throw new Error(`COOP_DOMAIN_DB_PASSWORD_FILE недоступен (${file}): ${e instanceof Error ? e.message : e}`);
+        }
+      }
+      return envVars.data!.COOP_DOMAIN_DB_PASSWORD ?? '';
+    },
+  },
+  authV2: {
+    authentikInternalUrl: envVars.data.AUTHENTIK_INTERNAL_URL,
+    get webhookToken(): string {
+      const file = envVars.data!.AUTH_V2_WEBHOOK_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_WEBHOOK_TOKEN ?? '';
+    },
+    get sessionBindingSecret(): string {
+      const file = envVars.data!.AUTH_V2_SESSION_BINDING_SECRET_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_SESSION_BINDING_SECRET ?? '';
+    },
+    // auth-v2 (CoopID, Эпик 11): admin-токен authentik для записи пароля пайщику.
+    // '' при отсутствии — адаптер бросает явную ошибку конфигурации при попытке записи.
+    get authentikAdminToken(): string {
+      const file = envVars.data!.AUTHENTIK_ADMIN_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTHENTIK_ADMIN_TOKEN ?? '';
+    },
+    // PEM cert-ключа: многострочный, .trim() убирает только хвостовой перевод строки
+    // (createPrivateKey терпим к нему). '' при отсутствии — потребитель (CertificateService)
+    // отдаёт явную ошибку конфигурации, не падая на импорте config.
+    get certKey(): string {
+      const file = envVars.data!.COOP_CERT_KEY_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.COOP_CERT_KEY ?? '';
+    },
+  },
   blockchain: {
     url: envVars.data.BLOCKCHAIN_RPC,
+    rpcList: envVars.data.BLOCKCHAIN_RPC_LIST.length
+      ? envVars.data.BLOCKCHAIN_RPC_LIST
+      : [envVars.data.BLOCKCHAIN_RPC],
+    rpcHealthCheckIntervalMs: envVars.data.BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS,
+    rpcTimeoutMs: envVars.data.BLOCKCHAIN_RPC_TIMEOUT_MS,
+    rpcQuorumSize: envVars.data.BLOCKCHAIN_RPC_QUORUM_SIZE,
+    blockIntervalMs: envVars.data.BLOCKCHAIN_BLOCK_INTERVAL_MS,
+    finalityMarginMs: envVars.data.BLOCKCHAIN_FINALITY_MARGIN_MS,
     id: envVars.data.CHAIN_ID,
     /** Узел работает в основной сети. Любая другая цепь (тестовая, локальная) — false. */
     is_mainnet: envVars.data.CHAIN_ID === MAINNET_CHAIN_ID,

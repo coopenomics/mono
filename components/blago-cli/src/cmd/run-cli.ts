@@ -327,7 +327,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   program
     .command('login')
-    .description('Интерактивный вход (email + WIF); сохраняет сессию для активной среды')
+    .description('Интерактивный вход (email + пароль; ключ WIF — для аккаунтов без пароля); сохраняет сессию для активной среды')
     .action(async () => {
       const root = requireRoot()
       const cfg = await loadConfig(root)

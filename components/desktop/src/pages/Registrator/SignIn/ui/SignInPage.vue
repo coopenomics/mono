@@ -29,7 +29,8 @@ const registeredAndloggedIn = computed(
 );
 
 function goToLostKey(): void {
-  void router.push({ name: 'lostkey' });
+  // CoopID-восстановление по magic-link (Эпик 12) — пришло на смену легаси-сбросу ключа.
+  void router.push({ name: 'recover' });
 }
 function goToSignUp(): void {
   void router.push({ name: 'signup' });

@@ -48,6 +48,8 @@
                 .notification-center__item-title {{ n.title }}
                 .notification-center__item-desc(v-if='n.description') {{ n.description }}
                 time.notification-center__item-date(:datetime='toIso(n.date)') {{ formatRelative(n.date) }}
+              //- Шеврон — знак, что нажатие ведёт к действию, а не только «прочитать».
+              q-icon.notification-center__item-go(v-if='n.link', name='chevron_right', size='18px')
 
   footer.notification-center__footer(v-if='!loading && notifications.length && showViewAll')
     a.notification-center__view-all(
@@ -371,6 +373,14 @@ function plural(n: number, one: string, few: string, many: string): string {
   font-size: var(--p-fs-caption, 12px);
   line-height: var(--p-lh-body-sm, 1.4);
   color: var(--p-ink-3);
+}
+
+/* Шеврон deep-link'а: приглушён, прижат к правому краю по центру строки. */
+.notification-center__item-go {
+  align-self: center;
+  margin-left: auto;
+  color: var(--p-ink-3);
+  flex-shrink: 0;
 }
 
 .notification-center__footer {

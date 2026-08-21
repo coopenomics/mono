@@ -135,6 +135,10 @@ export const useRegistratorStore = defineStore(
       userAgreement: structuredClone(initialDocumentState),
       payment: initialPaymentState as IInitialPaymentOrder | null,
       is_paid: false,
+      // Учётка уже создана на сервере (createUser прошёл). Шаг пароля состоит из
+      // двух сетевых операций (createUser → установка пароля): если вторая упала,
+      // повтор без маркера снова звал бы createUser и упирался в «email занят».
+      accountCreated: false,
     });
 
     const stepNames = [
@@ -297,6 +301,7 @@ export const useRegistratorStore = defineStore(
       state.userData = structuredClone(initialUserDataState);
       state.payment = initialPaymentState;
       state.is_paid = false;
+      state.accountCreated = false;
       state.statement = structuredClone(initialDocumentState);
       state.walletAgreement = structuredClone(initialDocumentState);
       state.privacyAgreement = structuredClone(initialDocumentState);

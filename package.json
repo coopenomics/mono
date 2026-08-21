@@ -25,6 +25,7 @@
     ]
   },
   "dependencies": {
+    "@coopenomics/auth": "workspace:*",
     "@coopenomics/blago-cli": "workspace:*",
     "@coopenomics/boot": "workspace:*",
     "@coopenomics/cleos": "workspace:*",
@@ -51,13 +52,15 @@
     "setup": "lerna run setup --scope @coopenomics/setup",
     "boot": "lerna run boot --scope @coopenomics/boot",
     "reboot": "cd components/boot/scripts && bash reboot.sh",
+    "start": "cd components/boot/scripts && bash up.sh",
+    "stop": "cd components/boot/scripts && bash down.sh",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
     "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "deploy": "lerna run deploy --scope @coopenomics/boot --",
     "clear": "lerna run clear --scope @coopenomics/boot",
     "enter": "lerna run run --scope @coopenomics/cleos",
-    "build:lib": "lerna run build --scope cooptypes --scope @coopenomics/factory --scope @coopenomics/extension-kit --scope @coopenomics/innercoop --scope @coopenomics/sdk",
+    "build:lib": "lerna run build --scope cooptypes --scope @coopenomics/jurisdictions --scope @coopenomics/factory --scope @coopenomics/extension-kit --scope @coopenomics/innercoop --scope @coopenomics/sdk",
     "build:contracts:all": "lerna run build:all --scope @coopenomics/contracts",
     "build:contract": "lerna run build:one --scope @coopenomics/contracts --",
     "build:contracts:all:test": "lerna run build:all:test --scope @coopenomics/contracts",
@@ -83,6 +86,7 @@
     "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/jurisdictions run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
     "test:component": "SOURCE=local NODE_ENV=test SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory run test",
     "test:integration": "bash scripts/run-integration-tests.sh",
+    "test:cross-runtime": "pnpm --filter @coopenomics/auth run test:cross-runtime",
     "test:ui:marketplace": "node components/docs-harness/bin/run-marketplace-all.mjs",
     "registry:sync": "node components/docs-harness/bin/registry-sync.mjs"
   },

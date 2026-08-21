@@ -6,6 +6,12 @@ export interface BaseDialogProps {
   size?: BaseDialogSize;
   /** Закрытие по клику на backdrop */
   closeOnBackdrop?: boolean;
+  /**
+   * Закрытие при смене роута (поведение q-dialog по умолчанию). Выключать для
+   * диалогов, поднимающихся во время загрузки приложения: стартовый редирект на
+   * дефолтный стол иначе молча закрывает их раньше, чем пользователь их увидит.
+   */
+  closeOnRouteChange?: boolean;
   /** Закрытие по Escape */
   closeOnEscape?: boolean;
   /** Спрятать стандартную кнопку «×» в шапке */
