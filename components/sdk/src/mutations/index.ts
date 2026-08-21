@@ -6,6 +6,8 @@ export * as Capital from './capital'
 export * as Chairman from './chairman'
 export * as ChatCoop from './chatcoop'
 export * as Marketplace from './marketplace'
+/** Образовательный мост: каталог курсов, подписки, преподаватели */
+export * as Edubridge from './edubridge'
 export * as Decisions from './decisions'
 export * as Documents from './documents'
 export * as Expense from './expense'

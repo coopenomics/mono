@@ -16,6 +16,8 @@ export * as Ledger from './ledger'
 export * as Ku from './ku'
 export * as Ledger2 from './ledger2'
 export * as Marketplace from './marketplace'
+/** Образовательный мост: каталог курсов, подписки, преподаватели */
+export * as Edubridge from './edubridge'
 export * as Meet from './meet'
 export * as MembershipExit from './membershipExit'
 export * as Notification from './notification'

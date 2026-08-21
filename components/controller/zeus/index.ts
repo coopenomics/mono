@@ -6407,6 +6407,162 @@ export type ValueTypes = {
 	/** Новое название проекта */
 	title: string | Variable<any, string>
 };
+	/** Носитель доступа к курсу (площадка или очный формат) */
+["EduAccessCarrier"]:EduAccessCarrier;
+	["EduCatalogCourse"]: AliasType<{
+	/** Описание курса */
+	description?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Класс */
+	grade?:boolean | `@${string}`,
+	/** Идентификатор курса */
+	id?:boolean | `@${string}`,
+	/** Расписание занятий */
+	schedule?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+	/** Учебная программа */
+	syllabus?:boolean | `@${string}`,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?:boolean | `@${string}`,
+	/** Название курса */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduCatalogCourse']?: Omit<ValueTypes["EduCatalogCourse"], "...on EduCatalogCourse">
+}>;
+	["EduCatalogFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null | Variable<any, string>,
+	/** Предмет */
+	subject?: string | undefined | null | Variable<any, string>
+};
+	["EduCatalogSubject"]: AliasType<{
+	/** Классы, по которым есть курсы */
+	grades?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduCatalogSubject']?: Omit<ValueTypes["EduCatalogSubject"], "...on EduCatalogSubject">
+}>;
+	["EduCourse"]: AliasType<{
+	/** Носитель доступа */
+	carrier?:boolean | `@${string}`,
+	/** Создан */
+	created_at?:boolean | `@${string}`,
+	/** Описание курса */
+	description?:boolean | `@${string}`,
+	/** Тип направления (внутренний признак) */
+	direction?:boolean | `@${string}`,
+	/** Идентификатор курса на площадке */
+	external_ref?:boolean | `@${string}`,
+	/** Название курса на площадке при последней сверке */
+	external_title_seen?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Класс */
+	grade?:boolean | `@${string}`,
+	/** Идентификатор курса */
+	id?:boolean | `@${string}`,
+	/** Расписание занятий */
+	schedule?:boolean | `@${string}`,
+	/** Порядок в каталоге */
+	sort_order?:boolean | `@${string}`,
+	/** Состояние курса */
+	status?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+	/** Учебная программа */
+	syllabus?:boolean | `@${string}`,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?:boolean | `@${string}`,
+	/** Название курса */
+	title?:boolean | `@${string}`,
+	/** Изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduCourse']?: Omit<ValueTypes["EduCourse"], "...on EduCourse">
+}>;
+	/** Тип направления курса (внутренний признак) */
+["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
+	/** Описание курса */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Тип направления */
+	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null | Variable<any, string>,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string | Variable<any, string>,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string | Variable<any, string>,
+	/** Класс */
+	grade: string | Variable<any, string>,
+	/** Расписание занятий */
+	schedule?: string | undefined | null | Variable<any, string>,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null | Variable<any, string>,
+	/** Предмет */
+	subject: string | Variable<any, string>,
+	/** Учебная программа */
+	syllabus?: string | undefined | null | Variable<any, string>,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null | Variable<any, string>,
+	/** Название курса */
+	title: string | Variable<any, string>
+};
+	/** Состояние курса в каталоге */
+["EduCourseStatus"]:EduCourseStatus;
+	["EduCoursesFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null | Variable<any, string>,
+	/** Состояние курса */
+	status?: ValueTypes["EduCourseStatus"] | undefined | null | Variable<any, string>,
+	/** Предмет */
+	subject?: string | undefined | null | Variable<any, string>
+};
+	["EduSetCourseStatusInput"]: {
+	/** Идентификатор курса */
+	id: ValueTypes["ID"] | Variable<any, string>,
+	/** Новое состояние */
+	status: ValueTypes["EduCourseStatus"] | Variable<any, string>
+};
+	["EduUpdateCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
+	/** Описание курса */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Тип направления */
+	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null | Variable<any, string>,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string | Variable<any, string>,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string | Variable<any, string>,
+	/** Класс */
+	grade: string | Variable<any, string>,
+	/** Идентификатор курса */
+	id: ValueTypes["ID"] | Variable<any, string>,
+	/** Расписание занятий */
+	schedule?: string | undefined | null | Variable<any, string>,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null | Variable<any, string>,
+	/** Предмет */
+	subject: string | Variable<any, string>,
+	/** Учебная программа */
+	syllabus?: string | undefined | null | Variable<any, string>,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null | Variable<any, string>,
+	/** Название курса */
+	title: string | Variable<any, string>
+};
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
 	birthdate?:boolean | `@${string}`,
@@ -7570,7 +7726,7 @@ export type ValueTypes = {
 	page?: number | undefined | null | Variable<any, string>,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null | Variable<any, string>,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null | Variable<any, string>,
 	sortOrder?: string | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>,
@@ -11786,6 +11942,9 @@ deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -12500,6 +12659,30 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedDeltasPaginationResult']?: Omit<ValueTypes["PaginatedDeltasPaginationResult"], "...on PaginatedDeltasPaginationResult">
+}>;
+	["PaginatedEduCatalogCoursesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["EduCatalogCourse"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedEduCatalogCoursesPaginationResult']?: Omit<ValueTypes["PaginatedEduCatalogCoursesPaginationResult"], "...on PaginatedEduCatalogCoursesPaginationResult">
+}>;
+	["PaginatedEduCoursesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["EduCourse"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedEduCoursesPaginationResult']?: Omit<ValueTypes["PaginatedEduCoursesPaginationResult"], "...on PaginatedEduCoursesPaginationResult">
 }>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -13444,6 +13627,12 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCatalogCoursesPaginationResult"]],
+edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
+	/** Предметы и классы каталога */
+	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
+edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -20746,6 +20935,159 @@ export type ResolverInputTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	/** Носитель доступа к курсу (площадка или очный формат) */
+["EduAccessCarrier"]:EduAccessCarrier;
+	["EduCatalogCourse"]: AliasType<{
+	/** Описание курса */
+	description?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Класс */
+	grade?:boolean | `@${string}`,
+	/** Идентификатор курса */
+	id?:boolean | `@${string}`,
+	/** Расписание занятий */
+	schedule?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+	/** Учебная программа */
+	syllabus?:boolean | `@${string}`,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?:boolean | `@${string}`,
+	/** Название курса */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduCatalogFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduCatalogSubject"]: AliasType<{
+	/** Классы, по которым есть курсы */
+	grades?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduCourse"]: AliasType<{
+	/** Носитель доступа */
+	carrier?:boolean | `@${string}`,
+	/** Создан */
+	created_at?:boolean | `@${string}`,
+	/** Описание курса */
+	description?:boolean | `@${string}`,
+	/** Тип направления (внутренний признак) */
+	direction?:boolean | `@${string}`,
+	/** Идентификатор курса на площадке */
+	external_ref?:boolean | `@${string}`,
+	/** Название курса на площадке при последней сверке */
+	external_title_seen?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Класс */
+	grade?:boolean | `@${string}`,
+	/** Идентификатор курса */
+	id?:boolean | `@${string}`,
+	/** Расписание занятий */
+	schedule?:boolean | `@${string}`,
+	/** Порядок в каталоге */
+	sort_order?:boolean | `@${string}`,
+	/** Состояние курса */
+	status?:boolean | `@${string}`,
+	/** Предмет */
+	subject?:boolean | `@${string}`,
+	/** Учебная программа */
+	syllabus?:boolean | `@${string}`,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?:boolean | `@${string}`,
+	/** Название курса */
+	title?:boolean | `@${string}`,
+	/** Изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Тип направления курса (внутренний признак) */
+["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ResolverInputTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: ResolverInputTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
+	/** Состояние курса в каталоге */
+["EduCourseStatus"]:EduCourseStatus;
+	["EduCoursesFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null,
+	/** Состояние курса */
+	status?: ResolverInputTypes["EduCourseStatus"] | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduSetCourseStatusInput"]: {
+	/** Идентификатор курса */
+	id: ResolverInputTypes["ID"],
+	/** Новое состояние */
+	status: ResolverInputTypes["EduCourseStatus"]
+};
+	["EduUpdateCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ResolverInputTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: ResolverInputTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: ResolverInputTypes["ID"],
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
 	birthdate?:boolean | `@${string}`,
@@ -21886,7 +22228,7 @@ export type ResolverInputTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -25971,6 +26313,9 @@ deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
+edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -26646,6 +26991,28 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["Delta"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedEduCatalogCoursesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["EduCatalogCourse"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedEduCoursesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["EduCourse"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -27563,6 +27930,12 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCatalogCoursesPaginationResult"]],
+edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
+	/** Предметы и классы каталога */
+	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
+edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
+edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -34683,6 +35056,153 @@ export type ModelTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	["EduAccessCarrier"]:EduAccessCarrier;
+	["EduCatalogCourse"]: {
+		/** Описание курса */
+	description: string,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: ModelTypes["ID"],
+	/** Расписание занятий */
+	schedule: string,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus: string,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
+	["EduCatalogFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduCatalogSubject"]: {
+		/** Классы, по которым есть курсы */
+	grades: Array<string>,
+	/** Предмет */
+	subject: string
+};
+	["EduCourse"]: {
+		/** Носитель доступа */
+	carrier: ModelTypes["EduAccessCarrier"],
+	/** Создан */
+	created_at: ModelTypes["DateTime"],
+	/** Описание курса */
+	description: string,
+	/** Тип направления (внутренний признак) */
+	direction: ModelTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref: string,
+	/** Название курса на площадке при последней сверке */
+	external_title_seen?: string | undefined | null,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: ModelTypes["ID"],
+	/** Расписание занятий */
+	schedule: string,
+	/** Порядок в каталоге */
+	sort_order: number,
+	/** Состояние курса */
+	status: ModelTypes["EduCourseStatus"],
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus: string,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string,
+	/** Изменён */
+	updated_at: ModelTypes["DateTime"]
+};
+	["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ModelTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: ModelTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
+	["EduCourseStatus"]:EduCourseStatus;
+	["EduCoursesFilterInput"]: {
+	/** Класс */
+	grade?: string | undefined | null,
+	/** Состояние курса */
+	status?: ModelTypes["EduCourseStatus"] | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduSetCourseStatusInput"]: {
+	/** Идентификатор курса */
+	id: ModelTypes["ID"],
+	/** Новое состояние */
+	status: ModelTypes["EduCourseStatus"]
+};
+	["EduUpdateCourseInput"]: {
+	/** Носитель доступа */
+	carrier: ModelTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: ModelTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: ModelTypes["ID"],
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
 	["Entrepreneur"]: {
 		/** Дата рождения */
 	birthdate: string,
@@ -35791,7 +36311,7 @@ export type ModelTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -40090,6 +40610,12 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
+	/** Добавить курс (черновик) */
+	edubridgeCreateCourse: ModelTypes["EduCourse"],
+	/** Опубликовать, снять с публикации или архивировать курс */
+	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
+	/** Изменить курс */
+	edubridgeUpdateCourse: ModelTypes["EduCourse"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -41073,6 +41599,26 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["Delta"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedEduCatalogCoursesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["EduCatalogCourse"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedEduCoursesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["EduCourse"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -42068,6 +42614,16 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Каталог опубликованных курсов */
+	edubridgeCatalog: ModelTypes["PaginatedEduCatalogCoursesPaginationResult"],
+	/** Карточка курса */
+	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
+	/** Предметы и классы каталога */
+	edubridgeCatalogSubjects: Array<ModelTypes["EduCatalogSubject"]>,
+	/** Курс со служебными полями */
+	edubridgeCourse: ModelTypes["EduCourse"],
+	/** Курсы кооператива во всех состояниях */
+	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -49608,6 +50164,162 @@ export type GraphQLTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	/** Носитель доступа к курсу (площадка или очный формат) */
+["EduAccessCarrier"]: EduAccessCarrier;
+	["EduCatalogCourse"]: {
+	__typename: "EduCatalogCourse",
+	/** Описание курса */
+	description: string,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: GraphQLTypes["ID"],
+	/** Расписание занятий */
+	schedule: string,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus: string,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string,
+	['...on EduCatalogCourse']: Omit<GraphQLTypes["EduCatalogCourse"], "...on EduCatalogCourse">
+};
+	["EduCatalogFilterInput"]: {
+		/** Класс */
+	grade?: string | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduCatalogSubject"]: {
+	__typename: "EduCatalogSubject",
+	/** Классы, по которым есть курсы */
+	grades: Array<string>,
+	/** Предмет */
+	subject: string,
+	['...on EduCatalogSubject']: Omit<GraphQLTypes["EduCatalogSubject"], "...on EduCatalogSubject">
+};
+	["EduCourse"]: {
+	__typename: "EduCourse",
+	/** Носитель доступа */
+	carrier: GraphQLTypes["EduAccessCarrier"],
+	/** Создан */
+	created_at: GraphQLTypes["DateTime"],
+	/** Описание курса */
+	description: string,
+	/** Тип направления (внутренний признак) */
+	direction: GraphQLTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref: string,
+	/** Название курса на площадке при последней сверке */
+	external_title_seen?: string | undefined | null,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: GraphQLTypes["ID"],
+	/** Расписание занятий */
+	schedule: string,
+	/** Порядок в каталоге */
+	sort_order: number,
+	/** Состояние курса */
+	status: GraphQLTypes["EduCourseStatus"],
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus: string,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string,
+	/** Изменён */
+	updated_at: GraphQLTypes["DateTime"],
+	['...on EduCourse']: Omit<GraphQLTypes["EduCourse"], "...on EduCourse">
+};
+	/** Тип направления курса (внутренний признак) */
+["EduCourseDirection"]: EduCourseDirection;
+	["EduCourseInput"]: {
+		/** Носитель доступа */
+	carrier: GraphQLTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: GraphQLTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
+	/** Состояние курса в каталоге */
+["EduCourseStatus"]: EduCourseStatus;
+	["EduCoursesFilterInput"]: {
+		/** Класс */
+	grade?: string | undefined | null,
+	/** Состояние курса */
+	status?: GraphQLTypes["EduCourseStatus"] | undefined | null,
+	/** Предмет */
+	subject?: string | undefined | null
+};
+	["EduSetCourseStatusInput"]: {
+		/** Идентификатор курса */
+	id: GraphQLTypes["ID"],
+	/** Новое состояние */
+	status: GraphQLTypes["EduCourseStatus"]
+};
+	["EduUpdateCourseInput"]: {
+		/** Носитель доступа */
+	carrier: GraphQLTypes["EduAccessCarrier"],
+	/** Описание курса */
+	description?: string | undefined | null,
+	/** Тип направления */
+	direction: GraphQLTypes["EduCourseDirection"],
+	/** Идентификатор курса на площадке */
+	external_ref?: string | undefined | null,
+	/** Членский взнос за месяц («1000.0000 RUB») */
+	fee_month: string,
+	/** Членский взнос за год («10000.0000 RUB») */
+	fee_year: string,
+	/** Класс */
+	grade: string,
+	/** Идентификатор курса */
+	id: GraphQLTypes["ID"],
+	/** Расписание занятий */
+	schedule?: string | undefined | null,
+	/** Порядок в каталоге */
+	sort_order?: number | undefined | null,
+	/** Предмет */
+	subject: string,
+	/** Учебная программа */
+	syllabus?: string | undefined | null,
+	/** Преподаватель (учётное имя пайщика) */
+	teacher_username?: string | undefined | null,
+	/** Название курса */
+	title: string
+};
 	["Entrepreneur"]: {
 	__typename: "Entrepreneur",
 	/** Дата рождения */
@@ -50771,7 +51483,7 @@ export type GraphQLTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -55392,6 +56104,12 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
+	/** Добавить курс (черновик) */
+	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
+	/** Опубликовать, снять с публикации или архивировать курс */
+	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
+	/** Изменить курс */
+	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -56453,6 +57171,30 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedDeltasPaginationResult']: Omit<GraphQLTypes["PaginatedDeltasPaginationResult"], "...on PaginatedDeltasPaginationResult">
+};
+	["PaginatedEduCatalogCoursesPaginationResult"]: {
+	__typename: "PaginatedEduCatalogCoursesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["EduCatalogCourse"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedEduCatalogCoursesPaginationResult']: Omit<GraphQLTypes["PaginatedEduCatalogCoursesPaginationResult"], "...on PaginatedEduCatalogCoursesPaginationResult">
+};
+	["PaginatedEduCoursesPaginationResult"]: {
+	__typename: "PaginatedEduCoursesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["EduCourse"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedEduCoursesPaginationResult']: Omit<GraphQLTypes["PaginatedEduCoursesPaginationResult"], "...on PaginatedEduCoursesPaginationResult">
 };
 	["PaginatedExpenseProposalsPaginationResult"]: {
 	__typename: "PaginatedExpenseProposalsPaginationResult",
@@ -57530,6 +58272,16 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Каталог опубликованных курсов */
+	edubridgeCatalog: GraphQLTypes["PaginatedEduCatalogCoursesPaginationResult"],
+	/** Карточка курса */
+	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
+	/** Предметы и классы каталога */
+	edubridgeCatalogSubjects: Array<GraphQLTypes["EduCatalogSubject"]>,
+	/** Курс со служебными полями */
+	edubridgeCourse: GraphQLTypes["EduCourse"],
+	/** Курсы кооператива во всех состояниях */
+	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -60017,6 +60769,26 @@ export enum DocumentAction {
 	REGCOOP = "REGCOOP",
 	WITHDRAW = "WITHDRAW"
 }
+/** Носитель доступа к курсу (площадка или очный формат) */
+export enum EduAccessCarrier {
+	GETCOURSE = "GETCOURSE",
+	ONSITE = "ONSITE",
+	SKILLSPACE = "SKILLSPACE",
+	TELEGRAM = "TELEGRAM",
+	VK = "VK"
+}
+/** Тип направления курса (внутренний признак) */
+export enum EduCourseDirection {
+	CLOSED_COMMUNITY = "CLOSED_COMMUNITY",
+	ONLINE_PLATFORM = "ONLINE_PLATFORM",
+	ONSITE = "ONSITE"
+}
+/** Состояние курса в каталоге */
+export enum EduCourseStatus {
+	ARCHIVED = "ARCHIVED",
+	DRAFT = "DRAFT",
+	PUBLISHED = "PUBLISHED"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -60532,6 +61304,7 @@ export enum ProductCardType {
 /** Ключ выбранной программы регистрации */
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
+	EDUCATION = "EDUCATION",
 	GENERATION = "GENERATION",
 	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
@@ -60893,6 +61666,14 @@ type ZEUS_VARIABLES = {
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
+	["EduAccessCarrier"]: ValueTypes["EduAccessCarrier"];
+	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
+	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
+	["EduCourseInput"]: ValueTypes["EduCourseInput"];
+	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
+	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
+	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
+	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];

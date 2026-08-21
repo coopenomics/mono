@@ -588,6 +588,26 @@ export const AllTypesProps: Record<string,any> = {
 	EditProjectInput:{
 
 	},
+	EduAccessCarrier: "enum" as const,
+	EduCatalogFilterInput:{
+
+	},
+	EduCourseDirection: "enum" as const,
+	EduCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection"
+	},
+	EduCourseStatus: "enum" as const,
+	EduCoursesFilterInput:{
+		status:"EduCourseStatus"
+	},
+	EduSetCourseStatusInput:{
+		status:"EduCourseStatus"
+	},
+	EduUpdateCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection"
+	},
 	EntrepreneurDetailsInput:{
 
 	},
@@ -1825,6 +1845,15 @@ export const AllTypesProps: Record<string,any> = {
 		editBranch:{
 			data:"EditBranchInput"
 		},
+		edubridgeCreateCourse:{
+			data:"EduCourseInput"
+		},
+		edubridgeSetCourseStatus:{
+			data:"EduSetCourseStatusInput"
+		},
+		edubridgeUpdateCourse:{
+			data:"EduUpdateCourseInput"
+		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -2695,6 +2724,20 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		cooperativePrograms:{
 
+		},
+		edubridgeCatalog:{
+			filter:"EduCatalogFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeCatalogCourse:{
+
+		},
+		edubridgeCourse:{
+
+		},
+		edubridgeCourses:{
+			filter:"EduCoursesFilterInput",
+			options:"PaginationInput"
 		},
 		expenseFile:{
 
@@ -4946,6 +4989,42 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	EduCatalogCourse:{
+		description:"String",
+		fee_month:"String",
+		fee_year:"String",
+		grade:"String",
+		id:"ID",
+		schedule:"String",
+		subject:"String",
+		syllabus:"String",
+		teacher_username:"String",
+		title:"String"
+	},
+	EduCatalogSubject:{
+		grades:"String",
+		subject:"String"
+	},
+	EduCourse:{
+		carrier:"EduAccessCarrier",
+		created_at:"DateTime",
+		description:"String",
+		direction:"EduCourseDirection",
+		external_ref:"String",
+		external_title_seen:"String",
+		fee_month:"String",
+		fee_year:"String",
+		grade:"String",
+		id:"ID",
+		schedule:"String",
+		sort_order:"Int",
+		status:"EduCourseStatus",
+		subject:"String",
+		syllabus:"String",
+		teacher_username:"String",
+		title:"String",
+		updated_at:"DateTime"
+	},
 	Entrepreneur:{
 		birthdate:"String",
 		city:"String",
@@ -6615,6 +6694,9 @@ export const ReturnTypes: Record<string,any> = {
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		editBranch:"Branch",
+		edubridgeCreateCourse:"EduCourse",
+		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeUpdateCourse:"EduCourse",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
@@ -7028,6 +7110,18 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedEduCatalogCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCatalogCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedEduCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -7391,6 +7485,11 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
+		edubridgeCatalogCourse:"EduCatalogCourse",
+		edubridgeCatalogSubjects:"EduCatalogSubject",
+		edubridgeCourse:"EduCourse",
+		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
