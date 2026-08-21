@@ -77,6 +77,13 @@ export class MarketplaceMembershipGuard implements CanActivate {
       return true;
     }
 
+    // Обе ветки выше гарантируют пользователя, но компилятор этого не выводит:
+    // явное сужение, иначе ts-node (TS 5.9) не собирает файл.
+    if (!user?.username) {
+      throw new UnauthorizedException('Требуется авторизованный пользователь');
+    }
+    const username = user.username;
+
     // Под межсервисным секретом статус не проверяется: это служебный вызов,
     // а не запрос пайщика.
     if (!bypass && user.status !== MonoAccountStatus.Active) {
@@ -88,8 +95,8 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // (MarketplaceSupplierRegistryService / MarketplaceKuChairmanService),
     // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.
     const [isOfferer, isKuChairman] = await Promise.all([
-      this.supplierRegistry.isOfferer(platformSettings().coopname, user.username),
-      this.kuChairmanService.isKuChairman(platformSettings().coopname, user.username),
+      this.supplierRegistry.isOfferer(platformSettings().coopname, username),
+      this.kuChairmanService.isKuChairman(platformSettings().coopname, username),
     ]);
     const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {
       isOfferer,
@@ -97,7 +104,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
     });
 
     const currentMember: IMarketplaceCurrentMember = {
-      username: user.username,
+      username,
       core_roles: coreRoles,
       marketplace_roles: marketplaceRoles,
     };
