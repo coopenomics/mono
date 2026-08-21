@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Generated, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { EduRecipientType } from '../../domain/enums';
 
 /**
@@ -14,6 +14,11 @@ export class EdubridgeLearnerEntity {
 
   @Column({ type: 'varchar', length: 13 })
   public coopname!: string;
+
+  /** Числовой идентификатор для цепи (uint64): таблицы контракта не знают uuid. */
+  @Column({ type: 'bigint', unique: true })
+  @Generated('increment')
+  public chain_ref!: string;
 
   /** Пайщик-родитель (или сам обучающийся). */
   @Column({ type: 'varchar', length: 13 })

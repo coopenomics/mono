@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Generated, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 
 /** Курс каталога: предмет → класс, карточка, привязка к курсу площадки. Off-chain. */
@@ -10,6 +10,11 @@ export class EdubridgeCourseEntity {
 
   @Column({ type: 'varchar', length: 13 })
   public coopname!: string;
+
+  /** Числовой идентификатор для цепи (uint64): таблицы контракта не знают uuid. */
+  @Column({ type: 'bigint', unique: true })
+  @Generated('increment')
+  public chain_ref!: string;
 
   @Column({ type: 'varchar', length: 255 })
   public title!: string;

@@ -10,3 +10,9 @@ export * as Courses from './courses'
 export * as Course from './course'
 /** Подписаны ли оферты родителя-слушателя и преподавателя */
 export * as OnboardingState from './onboardingState'
+/** Мои обучающиеся */
+export * as MyLearners from './myLearners'
+/** Подписки моих обучающихся */
+export * as MyEnrollments from './myEnrollments'
+/** Сумма взноса и хватает ли паевого */
+export * as Quote from './quote'

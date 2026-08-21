@@ -1,0 +1,71 @@
+feature: edubridge.enrollment
+title: Образовательный мост — обучающиеся, подписки, «Получить доступ»
+
+# E6 (задача 7DD-7). Прямого платежа как членского взноса нет: паевой пополняется
+# средствами ядра, затем по кнопке «Получить доступ» пайщик подписывает
+# заявление о конвертации (3011), кооператив одной транзакцией проводит
+# convert (w.wal.share → w.edu.member) и opensub/extendsub. Период ведётся
+# раздельно по связке «обучающийся + курс» (sub_hash детерминирован парой).
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-enrollment.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-learner.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-member.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/adapters/edubridge-chain.adapter.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.repository.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
+    - components/desktop/extensions/edubridge/features/Subscribe/**
+
+cases:
+  - id: edu.enr.happy.01
+    level: backend
+    kind: happy
+    scenario: Котировка по периоду; паевого не хватает.
+    expect: amount по fee_month/fee_year, enough=false, shortfall = разница, sub_hash детерминирован.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enr.break.01
+    level: backend
+    kind: break
+    scenario: Подписка при нехватке паевого.
+    expect: BadRequest с подсказкой пополнить главный кошелёк; транзакции нет.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enr.happy.02
+    level: backend
+    kind: happy
+    scenario: Новая подписка.
+    expect: convert + opensub одной транзакцией, статус ACTIVE, доступ PENDING, событие enrollment.opened с trx_id.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enr.happy.03
+    level: backend
+    kind: happy
+    scenario: Продление действующей подписки.
+    expect: extendsub от текущего paid_until, доступ не трогается, событие enrollment.extended.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enr.side.01
+    level: backend
+    kind: side
+    scenario: Повторный вызов subscribe с тем же заявлением после успеха.
+    expect: Цепь отклоняет повторную конвертацию/opensub (sub_hash занят); запись не дублируется.
+    test: ~
+    status: missing
+  - id: edu.enr.side.02
+    level: backend
+    kind: side
+    scenario: Правка почты обучающегося при активной подписке.
+    expect: Событие learner.recipient_changed → очередь переоформляет доступ без повторной оплаты.
+    test: ~
+    status: missing
+  - id: edu.enr.break.02
+    level: backend
+    kind: break
+    scenario: Пайщик правит чужого обучающегося / удаляет обучающегося с активной подпиской.
+    expect: Forbidden / BadRequest.
+    test: ~
+    status: missing

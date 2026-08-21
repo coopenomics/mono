@@ -11,7 +11,9 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  CHAIN_PORT,
   COUNCIL_PORT,
+  DOCUMENT_PORT,
   DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   EXTENSION_CONFIG_PORT,
@@ -22,11 +24,15 @@ import {
   REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   USER_DATA_PORT,
+  USER_WALLET_PORT,
+  VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const edubridgePorts = {
   required: [
+    CHAIN_PORT,
     COUNCIL_PORT,
+    DOCUMENT_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     EXTENSION_CONFIG_PORT,
@@ -36,6 +42,8 @@ export const edubridgePorts = {
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
     USER_DATA_PORT,
+    USER_WALLET_PORT,
+    VAULT_PORT,
   ],
   optional: [
     // Без реестра оферт расширение ставится, но свои программы и оферты

@@ -6409,6 +6409,8 @@ export type ValueTypes = {
 };
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]:EduAccessCarrier;
+	/** Состояние доступа на площадке */
+["EduAccessState"]:EduAccessState;
 	["EduCatalogCourse"]: AliasType<{
 	/** Описание курса */
 	description?:boolean | `@${string}`,
@@ -6446,6 +6448,18 @@ export type ValueTypes = {
 	subject?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduCatalogSubject']?: Omit<ValueTypes["EduCatalogSubject"], "...on EduCatalogSubject">
+}>;
+	["EduConvertStatement"]: AliasType<{
+	/** PDF в base64 */
+	binary?:boolean | `@${string}`,
+	/** Название документа */
+	full_title?:boolean | `@${string}`,
+	/** Хеш документа */
+	hash?:boolean | `@${string}`,
+	/** HTML для ознакомления */
+	html?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduConvertStatement']?: Omit<ValueTypes["EduConvertStatement"], "...on EduConvertStatement">
 }>;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
@@ -6527,6 +6541,58 @@ export type ValueTypes = {
 	/** Предмет */
 	subject?: string | undefined | null | Variable<any, string>
 };
+	["EduEnrollment"]: AliasType<{
+	/** Состояние доступа на площадке */
+	access_state?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Идентификатор подписки */
+	id?:boolean | `@${string}`,
+	/** Обучающийся */
+	learner_id?:boolean | `@${string}`,
+	/** Оплачено до */
+	paid_until?:boolean | `@${string}`,
+	/** Период членского взноса */
+	period?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+	/** Ключ подписки в цепи */
+	sub_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduEnrollment']?: Omit<ValueTypes["EduEnrollment"], "...on EduEnrollment">
+}>;
+	/** Период членского взноса */
+["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
+	/** Состояние подписки обучающегося на курс */
+["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduLearner"]: AliasType<{
+	/** Добавлен */
+	created_at?:boolean | `@${string}`,
+	/** Имя обучающегося */
+	display_name?:boolean | `@${string}`,
+	/** Идентификатор обучающегося */
+	id?:boolean | `@${string}`,
+	/** Обучается сам пайщик */
+	is_self?:boolean | `@${string}`,
+	/** Как доставляется пропуск */
+	recipient_type?:boolean | `@${string}`,
+	/** Почта / Telegram / код пропуска */
+	recipient_value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduLearner']?: Omit<ValueTypes["EduLearner"], "...on EduLearner">
+}>;
+	["EduLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string | Variable<any, string>,
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null | Variable<any, string>,
+	/** Как доставляется пропуск */
+	recipient_type: ValueTypes["EduRecipientType"] | Variable<any, string>,
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string | Variable<any, string>
+};
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -6553,6 +6619,34 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduOnboardingState']?: Omit<ValueTypes["EduOnboardingState"], "...on EduOnboardingState">
 }>;
+	["EduQuote"]: AliasType<{
+	/** Сумма членского взноса за период */
+	amount?:boolean | `@${string}`,
+	/** Доступно паевого в главном кошельке */
+	available?:boolean | `@${string}`,
+	/** Паевого хватает — можно подписывать заявление */
+	enough?:boolean | `@${string}`,
+	/** Это продление действующей подписки */
+	is_extension?:boolean | `@${string}`,
+	/** До какой даты будет оплачено */
+	paid_until?:boolean | `@${string}`,
+	/** Сколько не хватает (0 — достаточно) */
+	shortfall?:boolean | `@${string}`,
+	/** Ключ подписки в цепи */
+	sub_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduQuote']?: Omit<ValueTypes["EduQuote"], "...on EduQuote">
+}>;
+	["EduQuoteInput"]: {
+	/** Курс */
+	course_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Обучающийся */
+	learner_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Период */
+	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
+};
+	/** Как доставляется пропуск обучающемуся */
+["EduRecipientType"]:EduRecipientType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
@@ -6564,6 +6658,16 @@ export type ValueTypes = {
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Какая оферта подписывается */
 	kind: ValueTypes["EduOfferKind"] | Variable<any, string>
+};
+	["EduSubscribeInput"]: {
+	/** Курс */
+	course_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанное заявление о конвертации паевого взноса в членский */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Обучающийся */
+	learner_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Период */
+	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -6594,6 +6698,18 @@ export type ValueTypes = {
 	teacher_username?: string | undefined | null | Variable<any, string>,
 	/** Название курса */
 	title: string | Variable<any, string>
+};
+	["EduUpdateLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string | Variable<any, string>,
+	/** Идентификатор обучающегося */
+	id: ValueTypes["ID"] | Variable<any, string>,
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null | Variable<any, string>,
+	/** Как доставляется пропуск */
+	recipient_type: ValueTypes["EduRecipientType"] | Variable<any, string>,
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string | Variable<any, string>
 };
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
@@ -11974,10 +12090,15 @@ deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
+edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduConvertStatement"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
+edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeUpdateLearner?: [{	data: ValueTypes["EduUpdateLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -13666,8 +13787,13 @@ edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueT
 	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Подписки моих обучающихся: курс, доступ, срок */
+	edubridgeMyEnrollments?:ValueTypes["EduEnrollment"],
+	/** Мои обучающиеся */
+	edubridgeMyLearners?:ValueTypes["EduLearner"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
+edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -20972,6 +21098,8 @@ export type ResolverInputTypes = {
 };
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]:EduAccessCarrier;
+	/** Состояние доступа на площадке */
+["EduAccessState"]:EduAccessState;
 	["EduCatalogCourse"]: AliasType<{
 	/** Описание курса */
 	description?:boolean | `@${string}`,
@@ -21006,6 +21134,17 @@ export type ResolverInputTypes = {
 	grades?:boolean | `@${string}`,
 	/** Предмет */
 	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduConvertStatement"]: AliasType<{
+	/** PDF в base64 */
+	binary?:boolean | `@${string}`,
+	/** Название документа */
+	full_title?:boolean | `@${string}`,
+	/** Хеш документа */
+	hash?:boolean | `@${string}`,
+	/** HTML для ознакомления */
+	html?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduCourse"]: AliasType<{
@@ -21087,6 +21226,56 @@ export type ResolverInputTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	["EduEnrollment"]: AliasType<{
+	/** Состояние доступа на площадке */
+	access_state?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Идентификатор подписки */
+	id?:boolean | `@${string}`,
+	/** Обучающийся */
+	learner_id?:boolean | `@${string}`,
+	/** Оплачено до */
+	paid_until?:boolean | `@${string}`,
+	/** Период членского взноса */
+	period?:boolean | `@${string}`,
+	/** Состояние подписки */
+	status?:boolean | `@${string}`,
+	/** Ключ подписки в цепи */
+	sub_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Период членского взноса */
+["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
+	/** Состояние подписки обучающегося на курс */
+["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduLearner"]: AliasType<{
+	/** Добавлен */
+	created_at?:boolean | `@${string}`,
+	/** Имя обучающегося */
+	display_name?:boolean | `@${string}`,
+	/** Идентификатор обучающегося */
+	id?:boolean | `@${string}`,
+	/** Обучается сам пайщик */
+	is_self?:boolean | `@${string}`,
+	/** Как доставляется пропуск */
+	recipient_type?:boolean | `@${string}`,
+	/** Почта / Telegram / код пропуска */
+	recipient_value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string,
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: ResolverInputTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
+};
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
@@ -21111,6 +21300,33 @@ export type ResolverInputTypes = {
 	teacher?:ResolverInputTypes["EduOfferState"],
 		__typename?: boolean | `@${string}`
 }>;
+	["EduQuote"]: AliasType<{
+	/** Сумма членского взноса за период */
+	amount?:boolean | `@${string}`,
+	/** Доступно паевого в главном кошельке */
+	available?:boolean | `@${string}`,
+	/** Паевого хватает — можно подписывать заявление */
+	enough?:boolean | `@${string}`,
+	/** Это продление действующей подписки */
+	is_extension?:boolean | `@${string}`,
+	/** До какой даты будет оплачено */
+	paid_until?:boolean | `@${string}`,
+	/** Сколько не хватает (0 — достаточно) */
+	shortfall?:boolean | `@${string}`,
+	/** Ключ подписки в цепи */
+	sub_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduQuoteInput"]: {
+	/** Курс */
+	course_id: ResolverInputTypes["ID"],
+	/** Обучающийся */
+	learner_id: ResolverInputTypes["ID"],
+	/** Период */
+	period: ResolverInputTypes["EduEnrollmentPeriod"]
+};
+	/** Как доставляется пропуск обучающемуся */
+["EduRecipientType"]:EduRecipientType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
@@ -21122,6 +21338,16 @@ export type ResolverInputTypes = {
 	document: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: ResolverInputTypes["EduOfferKind"]
+};
+	["EduSubscribeInput"]: {
+	/** Курс */
+	course_id: ResolverInputTypes["ID"],
+	/** Подписанное заявление о конвертации паевого взноса в членский */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Обучающийся */
+	learner_id: ResolverInputTypes["ID"],
+	/** Период */
+	period: ResolverInputTypes["EduEnrollmentPeriod"]
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -21152,6 +21378,18 @@ export type ResolverInputTypes = {
 	teacher_username?: string | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string,
+	/** Идентификатор обучающегося */
+	id: ResolverInputTypes["ID"],
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: ResolverInputTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
 };
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
@@ -26378,10 +26616,15 @@ deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
+edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
+edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduConvertStatement"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
+edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeUpdateLearner?: [{	data: ResolverInputTypes["EduUpdateLearnerInput"]},ResolverInputTypes["EduLearner"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -28002,8 +28245,13 @@ edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["Ed
 	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Подписки моих обучающихся: курс, доступ, срок */
+	edubridgeMyEnrollments?:ResolverInputTypes["EduEnrollment"],
+	/** Мои обучающиеся */
+	edubridgeMyLearners?:ResolverInputTypes["EduLearner"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
+edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -35125,6 +35373,7 @@ export type ModelTypes = {
 	title: string
 };
 	["EduAccessCarrier"]:EduAccessCarrier;
+	["EduAccessState"]:EduAccessState;
 	["EduCatalogCourse"]: {
 		/** Описание курса */
 	description: string,
@@ -35158,6 +35407,16 @@ export type ModelTypes = {
 	grades: Array<string>,
 	/** Предмет */
 	subject: string
+};
+	["EduConvertStatement"]: {
+		/** PDF в base64 */
+	binary: string,
+	/** Название документа */
+	full_title: string,
+	/** Хеш документа */
+	hash: string,
+	/** HTML для ознакомления */
+	html: string
 };
 	["EduCourse"]: {
 		/** Носитель доступа */
@@ -35235,6 +35494,52 @@ export type ModelTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	["EduEnrollment"]: {
+		/** Состояние доступа на площадке */
+	access_state: ModelTypes["EduAccessState"],
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	/** Идентификатор подписки */
+	id: ModelTypes["ID"],
+	/** Обучающийся */
+	learner_id: ModelTypes["ID"],
+	/** Оплачено до */
+	paid_until?: ModelTypes["DateTime"] | undefined | null,
+	/** Период членского взноса */
+	period: ModelTypes["EduEnrollmentPeriod"],
+	/** Состояние подписки */
+	status: ModelTypes["EduEnrollmentStatus"],
+	/** Ключ подписки в цепи */
+	sub_hash: string
+};
+	["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
+	["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduLearner"]: {
+		/** Добавлен */
+	created_at: ModelTypes["DateTime"],
+	/** Имя обучающегося */
+	display_name: string,
+	/** Идентификатор обучающегося */
+	id: ModelTypes["ID"],
+	/** Обучается сам пайщик */
+	is_self: boolean,
+	/** Как доставляется пропуск */
+	recipient_type: ModelTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value?: string | undefined | null
+};
+	["EduLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string,
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: ModelTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
+};
 	["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: {
 		/** Оферта */
@@ -35255,6 +35560,31 @@ export type ModelTypes = {
 	/** Оферта преподавателя */
 	teacher: ModelTypes["EduOfferState"]
 };
+	["EduQuote"]: {
+		/** Сумма членского взноса за период */
+	amount: string,
+	/** Доступно паевого в главном кошельке */
+	available: string,
+	/** Паевого хватает — можно подписывать заявление */
+	enough: boolean,
+	/** Это продление действующей подписки */
+	is_extension: boolean,
+	/** До какой даты будет оплачено */
+	paid_until: ModelTypes["DateTime"],
+	/** Сколько не хватает (0 — достаточно) */
+	shortfall: string,
+	/** Ключ подписки в цепи */
+	sub_hash: string
+};
+	["EduQuoteInput"]: {
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Обучающийся */
+	learner_id: ModelTypes["ID"],
+	/** Период */
+	period: ModelTypes["EduEnrollmentPeriod"]
+};
+	["EduRecipientType"]:EduRecipientType;
 	["EduSetCourseStatusInput"]: {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
@@ -35266,6 +35596,16 @@ export type ModelTypes = {
 	document: ModelTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: ModelTypes["EduOfferKind"]
+};
+	["EduSubscribeInput"]: {
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Подписанное заявление о конвертации паевого взноса в членский */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Обучающийся */
+	learner_id: ModelTypes["ID"],
+	/** Период */
+	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduUpdateCourseInput"]: {
 	/** Носитель доступа */
@@ -35296,6 +35636,18 @@ export type ModelTypes = {
 	teacher_username?: string | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateLearnerInput"]: {
+	/** Имя обучающегося */
+	display_name: string,
+	/** Идентификатор обучающегося */
+	id: ModelTypes["ID"],
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: ModelTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
 };
 	["Entrepreneur"]: {
 		/** Дата рождения */
@@ -40704,14 +41056,24 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
+	/** Добавить обучающегося — себя или ребёнка */
+	edubridgeAddLearner: ModelTypes["EduLearner"],
+	/** Сформировать заявление о конвертации паевого взноса в членский */
+	edubridgeConvertStatement: ModelTypes["EduConvertStatement"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
+	/** Удалить обучающегося без действующих подписок */
+	edubridgeRemoveLearner: boolean,
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: ModelTypes["EduOnboardingState"],
+	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
+	edubridgeSubscribe: ModelTypes["EduEnrollment"],
 	/** Изменить курс */
 	edubridgeUpdateCourse: ModelTypes["EduCourse"],
+	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
+	edubridgeUpdateLearner: ModelTypes["EduLearner"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -42720,8 +43082,14 @@ export type ModelTypes = {
 	edubridgeCourse: ModelTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
+	/** Подписки моих обучающихся: курс, доступ, срок */
+	edubridgeMyEnrollments: Array<ModelTypes["EduEnrollment"]>,
+	/** Мои обучающиеся */
+	edubridgeMyLearners: Array<ModelTypes["EduLearner"]>,
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
+	/** Сумма взноса за период и хватает ли паевого */
+	edubridgeQuote: ModelTypes["EduQuote"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -50264,6 +50632,8 @@ export type GraphQLTypes = {
 };
 	/** Носитель доступа к курсу (площадка или очный формат) */
 ["EduAccessCarrier"]: EduAccessCarrier;
+	/** Состояние доступа на площадке */
+["EduAccessState"]: EduAccessState;
 	["EduCatalogCourse"]: {
 	__typename: "EduCatalogCourse",
 	/** Описание курса */
@@ -50301,6 +50671,18 @@ export type GraphQLTypes = {
 	/** Предмет */
 	subject: string,
 	['...on EduCatalogSubject']: Omit<GraphQLTypes["EduCatalogSubject"], "...on EduCatalogSubject">
+};
+	["EduConvertStatement"]: {
+	__typename: "EduConvertStatement",
+	/** PDF в base64 */
+	binary: string,
+	/** Название документа */
+	full_title: string,
+	/** Хеш документа */
+	hash: string,
+	/** HTML для ознакомления */
+	html: string,
+	['...on EduConvertStatement']: Omit<GraphQLTypes["EduConvertStatement"], "...on EduConvertStatement">
 };
 	["EduCourse"]: {
 	__typename: "EduCourse",
@@ -50382,6 +50764,58 @@ export type GraphQLTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	["EduEnrollment"]: {
+	__typename: "EduEnrollment",
+	/** Состояние доступа на площадке */
+	access_state: GraphQLTypes["EduAccessState"],
+	/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	/** Идентификатор подписки */
+	id: GraphQLTypes["ID"],
+	/** Обучающийся */
+	learner_id: GraphQLTypes["ID"],
+	/** Оплачено до */
+	paid_until?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Период членского взноса */
+	period: GraphQLTypes["EduEnrollmentPeriod"],
+	/** Состояние подписки */
+	status: GraphQLTypes["EduEnrollmentStatus"],
+	/** Ключ подписки в цепи */
+	sub_hash: string,
+	['...on EduEnrollment']: Omit<GraphQLTypes["EduEnrollment"], "...on EduEnrollment">
+};
+	/** Период членского взноса */
+["EduEnrollmentPeriod"]: EduEnrollmentPeriod;
+	/** Состояние подписки обучающегося на курс */
+["EduEnrollmentStatus"]: EduEnrollmentStatus;
+	["EduLearner"]: {
+	__typename: "EduLearner",
+	/** Добавлен */
+	created_at: GraphQLTypes["DateTime"],
+	/** Имя обучающегося */
+	display_name: string,
+	/** Идентификатор обучающегося */
+	id: GraphQLTypes["ID"],
+	/** Обучается сам пайщик */
+	is_self: boolean,
+	/** Как доставляется пропуск */
+	recipient_type: GraphQLTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value?: string | undefined | null,
+	['...on EduLearner']: Omit<GraphQLTypes["EduLearner"], "...on EduLearner">
+};
+	["EduLearnerInput"]: {
+		/** Имя обучающегося */
+	display_name: string,
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: GraphQLTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
+};
 	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 ["EduOfferKind"]: EduOfferKind;
 	["EduOfferState"]: {
@@ -50408,6 +50842,34 @@ export type GraphQLTypes = {
 	teacher: GraphQLTypes["EduOfferState"],
 	['...on EduOnboardingState']: Omit<GraphQLTypes["EduOnboardingState"], "...on EduOnboardingState">
 };
+	["EduQuote"]: {
+	__typename: "EduQuote",
+	/** Сумма членского взноса за период */
+	amount: string,
+	/** Доступно паевого в главном кошельке */
+	available: string,
+	/** Паевого хватает — можно подписывать заявление */
+	enough: boolean,
+	/** Это продление действующей подписки */
+	is_extension: boolean,
+	/** До какой даты будет оплачено */
+	paid_until: GraphQLTypes["DateTime"],
+	/** Сколько не хватает (0 — достаточно) */
+	shortfall: string,
+	/** Ключ подписки в цепи */
+	sub_hash: string,
+	['...on EduQuote']: Omit<GraphQLTypes["EduQuote"], "...on EduQuote">
+};
+	["EduQuoteInput"]: {
+		/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Обучающийся */
+	learner_id: GraphQLTypes["ID"],
+	/** Период */
+	period: GraphQLTypes["EduEnrollmentPeriod"]
+};
+	/** Как доставляется пропуск обучающемуся */
+["EduRecipientType"]: EduRecipientType;
 	["EduSetCourseStatusInput"]: {
 		/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
@@ -50419,6 +50881,16 @@ export type GraphQLTypes = {
 	document: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Какая оферта подписывается */
 	kind: GraphQLTypes["EduOfferKind"]
+};
+	["EduSubscribeInput"]: {
+		/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Подписанное заявление о конвертации паевого взноса в членский */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Обучающийся */
+	learner_id: GraphQLTypes["ID"],
+	/** Период */
+	period: GraphQLTypes["EduEnrollmentPeriod"]
 };
 	["EduUpdateCourseInput"]: {
 		/** Носитель доступа */
@@ -50449,6 +50921,18 @@ export type GraphQLTypes = {
 	teacher_username?: string | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateLearnerInput"]: {
+		/** Имя обучающегося */
+	display_name: string,
+	/** Идентификатор обучающегося */
+	id: GraphQLTypes["ID"],
+	/** Обучается сам пайщик */
+	is_self?: boolean | undefined | null,
+	/** Как доставляется пропуск */
+	recipient_type: GraphQLTypes["EduRecipientType"],
+	/** Почта / Telegram / код пропуска */
+	recipient_value: string
 };
 	["Entrepreneur"]: {
 	__typename: "Entrepreneur",
@@ -56234,14 +56718,24 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
+	/** Добавить обучающегося — себя или ребёнка */
+	edubridgeAddLearner: GraphQLTypes["EduLearner"],
+	/** Сформировать заявление о конвертации паевого взноса в членский */
+	edubridgeConvertStatement: GraphQLTypes["EduConvertStatement"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
+	/** Удалить обучающегося без действующих подписок */
+	edubridgeRemoveLearner: boolean,
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: GraphQLTypes["EduOnboardingState"],
+	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
+	edubridgeSubscribe: GraphQLTypes["EduEnrollment"],
 	/** Изменить курс */
 	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
+	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
+	edubridgeUpdateLearner: GraphQLTypes["EduLearner"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -58414,8 +58908,14 @@ export type GraphQLTypes = {
 	edubridgeCourse: GraphQLTypes["EduCourse"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
+	/** Подписки моих обучающихся: курс, доступ, срок */
+	edubridgeMyEnrollments: Array<GraphQLTypes["EduEnrollment"]>,
+	/** Мои обучающиеся */
+	edubridgeMyLearners: Array<GraphQLTypes["EduLearner"]>,
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
+	/** Сумма взноса за период и хватает ли паевого */
+	edubridgeQuote: GraphQLTypes["EduQuote"],
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -60911,6 +61411,14 @@ export enum EduAccessCarrier {
 	TELEGRAM = "TELEGRAM",
 	VK = "VK"
 }
+/** Состояние доступа на площадке */
+export enum EduAccessState {
+	GRANTED = "GRANTED",
+	NEEDS_ATTENTION = "NEEDS_ATTENTION",
+	NONE = "NONE",
+	PENDING = "PENDING",
+	REVOKED = "REVOKED"
+}
 /** Тип направления курса (внутренний признак) */
 export enum EduCourseDirection {
 	CLOSED_COMMUNITY = "CLOSED_COMMUNITY",
@@ -60923,6 +61431,18 @@ export enum EduCourseStatus {
 	DRAFT = "DRAFT",
 	PUBLISHED = "PUBLISHED"
 }
+/** Период членского взноса */
+export enum EduEnrollmentPeriod {
+	MONTH = "MONTH",
+	YEAR = "YEAR"
+}
+/** Состояние подписки обучающегося на курс */
+export enum EduEnrollmentStatus {
+	ACTIVE = "ACTIVE",
+	EXPIRED = "EXPIRED",
+	PENDING = "PENDING",
+	REVOKED = "REVOKED"
+}
 /** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
 export enum EduOfferKind {
 	PARENT = "PARENT",
@@ -60933,6 +61453,12 @@ export enum EduOnboardingSource {
 	AGREEMENT_SIGNED = "AGREEMENT_SIGNED",
 	GATE_REQUIRED = "GATE_REQUIRED",
 	NOT_CONFIGURED = "NOT_CONFIGURED"
+}
+/** Как доставляется пропуск обучающемуся */
+export enum EduRecipientType {
+	EMAIL = "EMAIL",
+	ONSITE = "ONSITE",
+	TELEGRAM = "TELEGRAM"
 }
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
@@ -61813,16 +62339,24 @@ type ZEUS_VARIABLES = {
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EduAccessCarrier"]: ValueTypes["EduAccessCarrier"];
+	["EduAccessState"]: ValueTypes["EduAccessState"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
+	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
+	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
+	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
+	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
+	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
 	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
+	["EduSubscribeInput"]: ValueTypes["EduSubscribeInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
+	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];

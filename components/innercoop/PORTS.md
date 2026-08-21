@@ -22,11 +22,11 @@
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
 | `CHAIN_RESOURCES_PORT` | `IChainResourcesPort` (2)<br><sub>core-ports/chain-resources.port.ts</sub> | `ChainResourcesInnercoopAdapter` | powerup | Ресурсы аккаунта в цепи: оперативная память, полоса, процессорное время. |
-| `CHAIN_PORT` | `IChainPort` (4)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports | Проводка действий в цепь и чтение её таблиц. |
+| `CHAIN_PORT` | `IChainPort` (4)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, chairman, edubridge, expenses, ku, marketplace, reports | Проводка действий в цепь и чтение её таблиц. |
 | `COOPERATIVE_VARS_PORT` | `ICooperativeVarsPort` (1)<br><sub>core-ports/cooperative-vars.port.ts</sub> | `CooperativeVarsInnercoopAdapter` | chairman, chatcoop | Реквизиты кооператива, которому принадлежит контур: как он называется и как его называть в текстах. |
 | `COUNCIL_PORT` | `ICouncilPort` (5)<br><sub>core-ports/council.port.ts</sub> | `CouncilInnercoopAdapter` | capital, chairman, edubridge, marketplace | Совет кооператива: решения и типовые соглашения. |
 | `DECISION_TRACKING_PORT` | `IDecisionTrackingPort` (7)<br><sub>core-ports/decision-tracking.port.ts</sub> | `DecisionTrackingAdapter` | capital, chairman | Отслеживание решений: расширение регистрирует правило «когда примут решение с этим хэшем — обновить такое-то поле параметров кооператива», и дальше ядро следит само. |
-| `DOCUMENT_PORT` | `IDocumentPort` (5)<br><sub>core-ports/document.port.ts</sub> | `DocumentInnercoopAdapter` | capital, chairman, expenses, ku, marketplace | Реестр документов кооператива: сгенерировать документ по шаблону, найти его по хэшу, собрать агрегат вокруг подписанного документа, сохранить приватную часть. |
+| `DOCUMENT_PORT` | `IDocumentPort` (5)<br><sub>core-ports/document.port.ts</sub> | `DocumentInnercoopAdapter` | capital, chairman, edubridge, expenses, ku, marketplace | Реестр документов кооператива: сгенерировать документ по шаблону, найти его по хэшу, собрать агрегат вокруг подписанного документа, сохранить приватную часть. |
 | `EXTENSION_CONFIG_PORT` | `IExtensionConfigPort` (1)<br><sub>core-ports/extension-config.port.ts</sub> | `ExtensionConfigInnercoopAdapter` | edubridge, marketplace | Настройка установленного расширения. |
 | `EXTENSION_DATABASE_PORT` | `IExtensionDatabasePort` (1)<br><sub>core-ports/extension-database.port.ts</sub> | `ExtensionDatabaseInnercoopAdapter` | marketplace | Отдельная база расширения. |
 | `FILE_STORAGE_PORT` | `IFileStoragePort` (1)<br><sub>core-ports/file-storage.port.ts</sub> | — | expenses, marketplace | Универсальное файловое хранилище контура кооператива. |
@@ -54,9 +54,9 @@
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, edubridge, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
-| `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports | Ключи подписи, хранимые кооперативом. |
+| `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, edubridge, expenses, ku, marketplace, reports | Ключи подписи, хранимые кооперативом. |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
-| `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | marketplace | Кошельки пайщика. |
+| `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | edubridge, marketplace | Кошельки пайщика. |
 
 ## Межрасширенческие порты
 

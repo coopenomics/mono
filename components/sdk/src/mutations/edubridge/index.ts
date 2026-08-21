@@ -6,3 +6,13 @@ export * as UpdateCourse from './updateCourse'
 export * as SetCourseStatus from './setCourseStatus'
 /** Подписать оферту ЦПП «Образование» со стола */
 export * as SignOffer from './signOffer'
+/** Добавить обучающегося */
+export * as AddLearner from './addLearner'
+/** Исправить обучающегося */
+export * as UpdateLearner from './updateLearner'
+/** Удалить обучающегося */
+export * as RemoveLearner from './removeLearner'
+/** Заявление о конвертации для подписи */
+export * as ConvertStatement from './convertStatement'
+/** Получить доступ: конвертация и подписка */
+export * as Subscribe from './subscribe'
