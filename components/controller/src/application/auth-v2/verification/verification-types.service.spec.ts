@@ -86,6 +86,9 @@ describe('VerificationTypesService.resolveForUsername (Stories 4.1/4.2, фабр
       source: VerificationSource.BranchAttestation,
       verified_at: '2026-02-03T04:05:06.000Z',
       attested_by: 'trustee1',
+      // Кооперативный участок разбирается из notice ('voskhod/braname1') и
+      // едет в записи рядом с тем, кто сверял.
+      attested_in: 'braname1',
     });
     // Начальный уровень при этом сохраняется — уровни независимы.
     expect(types.map((t) => t.type)).toEqual([VerificationType.CoopBaseline, VerificationType.PassportOnsite]);

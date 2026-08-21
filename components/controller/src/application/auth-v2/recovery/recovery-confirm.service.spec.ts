@@ -10,7 +10,11 @@ const VAULT = {
   ciphertext: 'c',
   auth_tag: 't',
 };
-const INPUT = { token: 'tok-1', code: '123456', newPublicKey: 'EOS_NEW', vaultBlob: VAULT, newPassword: 'pw' };
+// Пароль обязан проходить парольную политику CoopID (8+ символов, цифра,
+// спецсимвол) — иначе confirm отсекает вход раньше проверок токена и 2FA,
+// и сценарии ниже проверяли бы не то, ради чего написаны.
+const NEW_PASSWORD = 'Pa55word!';
+const INPUT = { token: 'tok-1', code: '123456', newPublicKey: 'EOS_NEW', vaultBlob: VAULT, newPassword: NEW_PASSWORD };
 
 function setup() {
   const tokenStore = {
@@ -44,7 +48,7 @@ describe('RecoveryConfirmService (Story 3.2 — двухканальное по�
     expect(twoFactor.verify).toHaveBeenCalledWith('u1', '123456');
     expect(tokenStore.consume).toHaveBeenCalledWith('tok-1');
     expect(finalization.finalize).toHaveBeenCalledWith(
-      expect.objectContaining({ subjectId: 'u1', username: 'ant', coopname: 'voskhod', newPublicKey: 'EOS_NEW', vaultBlob: VAULT, newPassword: 'pw' }),
+      expect.objectContaining({ subjectId: 'u1', username: 'ant', coopname: 'voskhod', newPublicKey: 'EOS_NEW', vaultBlob: VAULT, newPassword: NEW_PASSWORD }),
     );
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'coopid.recovery.confirmed', result: 'success' }),

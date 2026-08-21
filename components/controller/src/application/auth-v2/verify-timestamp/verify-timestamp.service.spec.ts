@@ -3,6 +3,7 @@ import { SignJWT } from 'jose';
 import config from '~/config/config';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { canonicalTimestampMessage, VerifyTimestampService } from './verify-timestamp.service';
+import type { VerifyTimestampOutcome, VerifyTimestampResult } from './verify-timestamp.service';
 import { SessionIssueService } from './session-issue.service';
 
 const KEY = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3';
@@ -10,6 +11,19 @@ const ACCOUNT = 'ant';
 const SECRET = 'test-binding-secret-padding-0000000000';
 const PUB = PrivateKey.from(KEY).toPublic().toString();
 const TS = '2026-06-10T12:00:00.000Z';
+
+/**
+ * Сужение исхода verify: с появлением 2FA-входа (Story 3.x) verify отдаёт либо
+ * токены, либо challenge второго фактора. Сценарии ниже — про токены, и если
+ * вместо них пришёл challenge, тест должен падать этим сообщением, а не
+ * «undefined не равно access-jwt».
+ */
+function expectTokens(res: VerifyTimestampOutcome): VerifyTimestampResult {
+  if ('second_factor_required' in res) {
+    throw new Error('ожидались токены входа, а сервис потребовал второй фактор');
+  }
+  return res;
+}
 
 async function makeToken(sub = ACCOUNT, jti = 'jti-1'): Promise<string> {
   return new SignJWT({ stage_completed: 'password' })
@@ -210,7 +224,7 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
+    expect(expectTokens(res).access_token).toBe('access-jwt');
   });
 
   it('сбой device tracking best-effort: вход всё равно завершается токенами', async () => {
@@ -221,7 +235,7 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
+    expect(expectTokens(res).access_token).toBe('access-jwt');
   });
 
   it('сбой выпуска сертификата best-effort: токены выдаются без participant_certificate', async () => {
@@ -232,8 +246,8 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
-    expect(res.participant_certificate).toBeUndefined();
+    expect(expectTokens(res).access_token).toBe('access-jwt');
+    expect(expectTokens(res).participant_certificate).toBeUndefined();
   });
 
   it('recover round-trip: восстановленный pubkey передан в hasActiveKey', async () => {
@@ -329,9 +343,9 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
-    expect(res.degraded).toBe(true);
-    expect(res.degraded_reason).toBe('rpc_unavailable');
+    expect(expectTokens(res).access_token).toBe('access-jwt');
+    expect(expectTokens(res).degraded).toBe(true);
+    expect(expectTokens(res).degraded_reason).toBe('rpc_unavailable');
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'coopid.auth.degraded', result: 'degraded', context: { reason: 'rpc_unavailable' } }),
     );
@@ -375,9 +389,9 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
-    expect(res.degraded).toBe(true);
-    expect(res.degraded_reason).toBe('key_not_finalized');
+    expect(expectTokens(res).access_token).toBe('access-jwt');
+    expect(expectTokens(res).degraded).toBe(true);
+    expect(expectTokens(res).degraded_reason).toBe('key_not_finalized');
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'coopid.auth.degraded', result: 'degraded', context: { reason: 'key_not_finalized' } }),
     );
@@ -405,7 +419,7 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.degraded).toBeUndefined();
+    expect(expectTokens(res).degraded).toBeUndefined();
     expect(chainManifests.put).toHaveBeenCalledWith(ACCOUNT, [PUB]);
   });
 
@@ -425,7 +439,7 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt'); // вход уже проверен против живого узла — не валим
+    expect(expectTokens(res).access_token).toBe('access-jwt'); // вход уже проверен против живого узла — не валим
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'coopid.chain.divergent_rpc', result: 'failure' }),
     );
@@ -444,7 +458,7 @@ describe('кандидат (регистрации в цепи ещё нет): �
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res.access_token).toBe('access-jwt');
+    expect(expectTokens(res).access_token).toBe('access-jwt');
     expect(res).not.toHaveProperty('degraded');
     // manifest-кэш в кандидатском пути не участвует
     expect(blockchain.readActiveKeysQuorum).not.toHaveBeenCalled();

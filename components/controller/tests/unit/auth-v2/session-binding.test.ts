@@ -22,6 +22,9 @@ function makeRedisMock() {
       delete store[key];
       return v;
     }),
+    // Привязке сессий hash-чтение не нужно, но порт обязывает: заглушка
+    // отвечает «ключа нет».
+    hgetall: jest.fn(async () => null),
   };
   return { redis, store };
 }

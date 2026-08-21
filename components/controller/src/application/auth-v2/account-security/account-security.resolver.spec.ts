@@ -2,6 +2,7 @@ import type { SessionsService } from '../sessions/sessions.service';
 import type { TwoFactorService } from '../two-factor/two-factor.service';
 import type { RecoveryStrategyService } from '../recovery/recovery-strategy.service';
 import type { SecurityIncidentService } from '../security/security-incident.service';
+import type { LoginFactorsService } from '../login-2fa/login-factors.service';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { AccountSecurityResolver } from './account-security.resolver';
 
@@ -35,13 +36,19 @@ function build() {
   const incidents = {
     report: jest.fn(async () => ({ revoked: 2 })),
   };
+  const loginFactors = {
+    get: jest.fn(async () => ({ totp_enrolled: true, second_factor: 'totp' })),
+    set: jest.fn(async () => ({ totp_enrolled: true, second_factor: 'totp' })),
+    onTotpUnenrolled: jest.fn(async () => undefined),
+  };
   const resolver = new AccountSecurityResolver(
     sessions as unknown as SessionsService,
     twoFactor as unknown as TwoFactorService,
     recoveryStrategy as unknown as RecoveryStrategyService,
     incidents as unknown as SecurityIncidentService,
+    loginFactors as unknown as LoginFactorsService,
   );
-  return { resolver, sessions, twoFactor, recoveryStrategy, incidents };
+  return { resolver, sessions, twoFactor, recoveryStrategy, incidents, loginFactors };
 }
 
 describe('AccountSecurityResolver', () => {

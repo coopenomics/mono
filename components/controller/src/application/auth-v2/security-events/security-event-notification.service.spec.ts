@@ -42,7 +42,9 @@ describe('SecurityEventNotificationService (Story 3.11 — события без
     expect(payload.to).toEqual({ subscriberId: 'sub-1', email: 'ant@coop.test', username: 'ant' });
     expect(payload.payload.event).toBe(title);
     expect(payload.payload.ip).toBe('1.2.3.4');
-    expect(payload.payload.securityUrl).toBe('https://app.test/settings/security');
+    // Канон ссылки на настройки безопасности — /<coopname>/user/settings
+    // (так же в NewDeviceNotificationService).
+    expect(payload.payload.securityUrl).toBe('https://app.test/voskhod/user/settings');
     expect(typeof payload.payload.time).toBe('string');
   });
 
