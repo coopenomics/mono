@@ -44,7 +44,7 @@ export type ProjectTreeOptions = {
 };
 
 const hiddenMeta = {
-  roles: [] as string[],
+  requires: 'Capital:access',
   agreements: agreementsBase,
   requiresAuth: true,
   hidden: true,

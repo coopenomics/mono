@@ -7,6 +7,7 @@ import { AGREEMENT_REGISTRATION_PORT } from './ports/agreement-registration.port
 import { AGREEMENT_QUERY_PORT } from './ports/agreement-query.port';
 import { DocumentModule } from '~/application/document/document.module';
 import { RegistrationDocumentParametersRegistry } from './services/registration-document-parameters.registry';
+import { ExtensionOfferFilterRegistry } from './services/extension-offer-filter.registry';
 
 /**
  * Глобальный модуль для сервисов регистрации
@@ -27,6 +28,7 @@ import { RegistrationDocumentParametersRegistry } from './services/registration-
   ],
   providers: [
     CooperativeConfigService,
+    ExtensionOfferFilterRegistry,
     AgreementConfigurationService,
     {
       provide: AGREEMENT_CONFIGURATION_SERVICE,
@@ -54,6 +56,7 @@ import { RegistrationDocumentParametersRegistry } from './services/registration-
   ],
   exports: [
     RegistrationDocumentParametersRegistry,
+    ExtensionOfferFilterRegistry,
     AgreementConfigurationService,
     AGREEMENT_CONFIGURATION_SERVICE,
     AgreementRegistryService,

@@ -5,6 +5,7 @@ import { DesktopDomainEntity } from '~/domain/desktop/entities/desktop-domain.en
 import { DesktopWorkspaceDomainEntity } from '~/domain/desktop/entities/workspace-domain.entity';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import { ExtensionGrantsRegistry } from '../extension-grants.registry';
+import { ExtensionGrantsFilterRegistry } from '../extension-grants-filter.registry';
 
 /** Текущий пользователь из JWT (или undefined для гостя). */
 export interface IDesktopRequester {
@@ -18,6 +19,7 @@ export class DesktopDomainInteractor {
   constructor(
     private readonly extensionListingInteractor: ExtensionListingInteractor,
     private readonly grantsRegistry: ExtensionGrantsRegistry,
+    private readonly grantsFilterRegistry: ExtensionGrantsFilterRegistry,
   ) {}
 
   async getDesktop(requester?: IDesktopRequester): Promise<DesktopDomainEntity> {
@@ -42,13 +44,21 @@ export class DesktopDomainInteractor {
       // (включая онбординг-гейтинг до принятия ЦПП) фронт выводит из грантов,
       // а резолверы расширения остаются настоящим enforcement'ом.
       // Расширение без провайдера → grants=undefined → фронт на legacy ролях.
-      const grants = await this.grantsRegistry.resolve(app.name, {
+      const grantsCtx = {
         coopname: config.coopname,
         username: requester?.username,
         userRole: requester?.role,
         userStatus: requester?.status,
         config: app.config,
-      });
+      };
+      const ownGrants = await this.grantsRegistry.resolve(app.name, grantsCtx);
+      // Сужающие политики других приложений (канон IDesktopGrantsFilterHook):
+      // только пересечение с набором владельца, только для grant-столов.
+      // Контекст фильтра — тот же пайщик, но без конфига чужого расширения.
+      const grants =
+        ownGrants === undefined
+          ? undefined
+          : await this.grantsFilterRegistry.narrow(app.name, ownGrants, { ...grantsCtx, config: undefined });
 
       for (const desktop of registryData.desktops) {
         workspaces.push(

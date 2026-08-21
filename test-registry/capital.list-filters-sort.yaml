@@ -36,6 +36,9 @@ title: Списки Благороста — раздел «Компоненты
 # вложенные компоненты раскрытого проекта сортируются локально тем же полем
 # (shared/lib/listSort.ts). Права и инлайн-редактирование — в capital.priorities.
 
+# 2026-08-21: дерево маршрутов (projectTreeChildren.ts) переведено с meta.roles на
+# meta.requires='Capital:access' — канон грантов, см. extensions.narrowing-policies.
+# Поведение фильтров/сортировок не затронуто.
 sources:
   backend:
     - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts

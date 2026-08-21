@@ -45,7 +45,7 @@ export interface AgreementQueryPort {
   /**
    * Все оферты, привязанные к программе через её agreement_ids.
    */
-  getAgreementsForProgram(programKey: string): IAgreementConfigItem[];
+  getAgreementsForProgram(programKey: string, coopname?: string): IAgreementConfigItem[];
 
   /**
    * Программы, применимые к типу аккаунта в заданном кооперативе.

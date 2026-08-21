@@ -22,6 +22,8 @@ export enum ProgramKey {
   CAPITALIZATION = 'CAPITALIZATION',
   /** Стол заказов — совместные закупки. */
   MARKETPLACE = 'MARKETPLACE',
+  /** Образование — обучение на площадках кооператива, членские взносы за курсы. */
+  EDUCATION = 'EDUCATION',
   /** Программа не определена. */
   UNDEFINED = 'UNDEFINED',
 }

@@ -11,6 +11,8 @@ import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
+  DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+  REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   EXTENSION_CONFIG_PORT,
@@ -95,6 +97,8 @@ import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
+import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-grants-filter.registry';
+import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
@@ -370,6 +374,16 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ExtensionGrantsRegistry,
     },
     {
+      // Сужающие политики чужих столов: расширение кладёт фильтр, ядро пересекает.
+      provide: DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+      useExisting: ExtensionGrantsFilterRegistry,
+    },
+    {
+      // Сужающие политики витрины вступления — та же дисциплина.
+      provide: REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+      useExisting: ExtensionOfferFilterRegistry,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -438,6 +452,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
+    DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
+    REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,

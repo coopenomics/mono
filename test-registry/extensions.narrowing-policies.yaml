@@ -1,0 +1,83 @@
+feature: extensions.narrowing-policies
+title: Сужающие политики — одно приложение сужает столы и витрину вступления другого
+
+# Канон межприложенческого влияния (архитектура «Образовательного моста», №88):
+# приложение меняет чужие столы и оферты только через конвейеры ядра и только
+# сужением. Ядро пересекает набор владельца со всеми фильтрами
+# (`result = input ∩ …`), порядок фильтров не важен, добавить право/программу
+# фильтр не может, сбой фильтра трактуется в пользу владельца. Свои столы и
+# программы автор фильтра не трогает. Контракты — innercoop `hooks/
+# desktop-grants-filter.hook.ts`, `hooks/registration-offer-filter.hook.ts`.
+#
+# Зачем «Благорост» переведён на канон грантов (CapitalDesktopGrantsProvider):
+# сузить можно только grant-стол; набор зеркалит прежние meta.roles, поведение
+# пайщиков не меняется.
+
+sources:
+  backend:
+    - components/innercoop/src/hooks/desktop-grants-filter.hook.ts
+    - components/innercoop/src/hooks/registration-offer-filter.hook.ts
+    - components/controller/src/application/desktop/extension-grants-filter.registry.ts
+    - components/controller/src/domain/registration/services/extension-offer-filter.registry.ts
+    - components/controller/src/extensions/capital/application/desktop/**
+  ui:
+    - components/desktop/extensions/capital/install.ts
+    - components/desktop/extensions/capital/routes/projectTreeChildren.ts
+
+cases:
+  - id: ext.narrow.happy.01
+    level: backend
+    kind: happy
+    scenario: Один фильтр оставляет часть прав чужого стола.
+    expect: Результат — пересечение; прав, которых не было у владельца, в ответе нет.
+    test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    status: passing
+  - id: ext.narrow.happy.02
+    level: backend
+    kind: happy
+    scenario: Два фильтра зарегистрированы в разном порядке.
+    expect: Итог одинаков.
+    test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    status: passing
+  - id: ext.narrow.side.01
+    level: backend
+    kind: side
+    scenario: Фильтр бросает исключение.
+    expect: Набор владельца не меняется, предупреждение в журнале (fail-open).
+    test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    status: passing
+  - id: ext.narrow.side.02
+    level: backend
+    kind: side
+    scenario: Фильтр зарегистрирован расширением-владельцем стола.
+    expect: К собственному столу не применяется.
+    test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    status: passing
+  - id: ext.narrow.happy.03
+    level: backend
+    kind: happy
+    scenario: Фильтр витрины вступления скрывает чужие программы.
+    expect: Свои программы автора остаются и фильтру не предлагаются; чужие — пересечение; оферты — та же дисциплина.
+    test: components/controller/tests/unit/registration/extension-offer-filter.registry.test.ts
+    status: passing
+  - id: ext.narrow.side.03
+    level: backend
+    kind: side
+    scenario: Расширение без провайдера грантов (legacy meta.roles).
+    expect: Фильтры не применяются — grants остаётся undefined, фронт на ролях.
+    test: ~
+    status: missing
+  - id: ext.narrow.happy.04
+    level: backend
+    kind: happy
+    scenario: Стол «Благорост» после перевода на гранты — пайщик, член совета, председатель, гость.
+    expect: "Capital:access всем; Capital:board — member/chairman; Capital:chairman — chairman; видимость страниц как при meta.roles."
+    test: ~
+    status: missing
+  - id: ext.narrow.happy.05
+    level: ui
+    kind: happy
+    scenario: Все маршруты capital объявляют meta.requires.
+    expect: Страниц без requires в grant-столе нет (иначе они скрылись бы у всех).
+    test: ~
+    status: missing

@@ -9,6 +9,7 @@ import { AgreementRegistryService, AGREEMENT_REGISTRY_SERVICE } from './agreemen
 import type { AgreementRegistrationSpec } from '../dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '../dto/program-registration-spec.dto';
 import { CooperativeConfigService } from './cooperative-config.service';
+import { ExtensionOfferFilterRegistry } from './extension-offer-filter.registry';
 
 export const AGREEMENT_CONFIGURATION_SERVICE = Symbol('AgreementConfigurationService');
 
@@ -31,7 +32,8 @@ export class AgreementConfigurationService {
   constructor(
     private readonly cooperativeConfigService: CooperativeConfigService,
     @Inject(AGREEMENT_REGISTRY_SERVICE)
-    private readonly agreementRegistry: AgreementRegistryService
+    private readonly agreementRegistry: AgreementRegistryService,
+    private readonly offerFilters: ExtensionOfferFilterRegistry
   ) {}
 
   /**
@@ -103,7 +105,7 @@ export class AgreementConfigurationService {
     const defaultAgreements = this.getDefaultAgreementsForCooperative(accountType, coopname);
 
     if (programKey) {
-      const programAgreements = this.getAgreementsForProgram(programKey);
+      const programAgreements = this.getAgreementsForProgram(programKey, coopname);
       return [...defaultAgreements, ...programAgreements].sort((a, b) => a.order - b.order);
     }
 
@@ -183,18 +185,23 @@ export class AgreementConfigurationService {
    * одной инсталляции), но сохранён в сигнатуре ради совместимости
    * с GraphQL-резолвером и для будущего coop-scoping.
    */
-  getAvailablePrograms(_coopname: string, accountType: AccountType): IRegistrationProgram[] {
-    return this.agreementRegistry
-      .listProgramsForAccountType(accountType)
-      .map((spec) => this.programSpecToConfig(spec));
+  getAvailablePrograms(coopname: string, accountType: AccountType): IRegistrationProgram[] {
+    // Сужающие политики других расширений (канон IRegistrationOfferFilterHook):
+    // витрина вступления показывает пересечение реестра со всеми фильтрами.
+    const programs = this.offerFilters.narrowPrograms(this.agreementRegistry.listProgramsForAccountType(accountType), {
+      coopname,
+      accountType,
+    });
+    return programs.map((spec) => this.programSpecToConfig(spec));
   }
 
   /**
    * Соглашения, привязанные к программе через её agreement_ids.
    */
-  getAgreementsForProgram(programKey: string): IAgreementConfigItem[] {
-    return this.agreementRegistry
-      .listAgreementsForProgram(programKey)
-      .map((spec) => this.specToConfigItem(spec));
+  getAgreementsForProgram(programKey: string, coopname?: string): IAgreementConfigItem[] {
+    const agreements = this.offerFilters.narrowAgreements(this.agreementRegistry.listAgreementsForProgram(programKey), {
+      coopname,
+    });
+    return agreements.map((spec) => this.specToConfigItem(spec));
   }
 }

@@ -1,4 +1,5 @@
 import { Module, Injectable, Inject } from '@nestjs/common';
+import { CapitalDesktopGrantsProvider } from './application/desktop/capital-desktop-grants.provider';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
   platformSettings,
 } from '@coopenomics/extension-kit';
@@ -781,6 +782,7 @@ export class CapitalExtension extends BaseExtensionModule {
   providers: [
     // Extension
     CapitalExtension,
+    CapitalDesktopGrantsProvider,
     CapitalRegistrationService,
     CapitalRegistrationResolver,
 

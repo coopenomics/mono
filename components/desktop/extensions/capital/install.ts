@@ -112,7 +112,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: 'Шаблон',
           icon: 'fa-solid fa-user-tie',
-          roles: [],
+          requires: 'Capital:access',
         },
         path: '/:coopname/capital',
         name: 'capital',
@@ -128,7 +128,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Профиль',
               icon: 'fa-solid fa-wallet',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -141,7 +141,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Регистрация',
               icon: 'fa-solid fa-user-plus',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -155,7 +155,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Мои проекты',
               icon: 'folder_special',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -169,7 +169,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Время',
               icon: 'fa-solid fa-clock',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -183,7 +183,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Проекты',
               icon: 'fa-solid fa-list',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -199,7 +199,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Компоненты',
               icon: 'account_tree',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -213,7 +213,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Задачи',
               icon: 'assignment',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -225,7 +225,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: 'Задача',
                   icon: 'task',
-                  roles: [],
+                  requires: 'Capital:access',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -243,7 +243,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: 'Описание задачи',
                       icon: 'description',
-                      roles: [],
+                      requires: 'Capital:access',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -256,7 +256,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: 'Артефакты задачи',
                       icon: 'assignment',
-                      roles: [],
+                      requires: 'Capital:access',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -269,7 +269,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: 'Коммиты задачи',
                       icon: 'commit',
-                      roles: [],
+                      requires: 'Capital:access',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -282,7 +282,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: 'История задачи',
                       icon: 'history',
-                      roles: [],
+                      requires: 'Capital:access',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -299,7 +299,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Артефакты',
               icon: 'article',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -311,7 +311,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Коммиты',
               icon: 'fa-solid fa-code-commit',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -328,7 +328,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Голосования',
               icon: 'how_to_vote',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -341,7 +341,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: 'Голосование',
                   icon: 'how_to_vote',
-                  roles: [],
+                  requires: 'Capital:access',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -356,7 +356,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Результаты',
               icon: 'assessment',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -368,7 +368,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: 'Результаты',
                   icon: 'assessment',
-                  roles: [],
+                  requires: 'Capital:access',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -383,7 +383,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Приглашения',
               icon: 'fa-solid fa-envelope-open-text',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -396,7 +396,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Участники',
               icon: 'fa-solid fa-users',
-              roles: ['chairman', 'member'],
+              requires: 'Capital:board',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -409,7 +409,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Меры',
               icon: 'straighten',
-              roles: ['chairman'],
+              requires: 'Capital:chairman',
               agreements: agreementsBase,
               requiresAuth: true,
               // Меры заводятся текстом прямо в плане компонента, отдельный
@@ -426,7 +426,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Аллокации',
               icon: 'savings',
-              roles: ['chairman', 'member'],
+              requires: 'Capital:board',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -439,7 +439,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Расходы',
               icon: 'receipt_long',
-              roles: ['chairman', 'member'],
+              requires: 'Capital:board',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -451,7 +451,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: 'Расход',
                   icon: 'receipt_long',
-                  roles: ['chairman', 'member'],
+                  requires: 'Capital:board',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -467,7 +467,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Лента',
               icon: 'fa-solid fa-stream',
-              roles: [],
+              requires: 'Capital:access',
               agreements: agreementsBase,
               requiresAuth: true,
             },
