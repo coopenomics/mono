@@ -74,6 +74,7 @@ import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates';
 import type { VerificationNaming } from 'src/shared/lib/verification';
 import type { IVerificationReview } from '../api';
 import { useVerificationReviews, verificationReviewStatusView } from '../model';
+import VerificationReviewDialog from './VerificationReviewDialog.vue';
 
 const PENDING = Zeus.VerificationReviewStatus.Pending;
 

@@ -32,7 +32,7 @@ async function load(): Promise<void> {
     const config = await getEconomyConfig()
     currentPercent.value = config.membership_fee_percent
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить кооперативную наценку')
+    FailAlert(e, 'Не удалось загрузить наценку')
   } finally {
     loading.value = false
   }
@@ -49,7 +49,7 @@ async function onSave(): Promise<void> {
     const config = await setMembershipFee({ membership_fee_percent: Number(draftPercent.value) })
     currentPercent.value = config.membership_fee_percent
     dialogOpen.value = false
-    SuccessAlert('Кооперативная наценка установлена')
+    SuccessAlert('Наценка установлена')
   } catch (e) {
     FailAlert(e, 'Не удалось установить ставку')
   } finally {
@@ -65,7 +65,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
-    | Кооперативная наценка добавляется к стоимости каждого заказа Стола заказов и
+    | Наценка добавляется к стоимости каждого заказа Стола заказов и
     | после исполнения заказа распределяется кооперативному участку выдачи.
     | Наценка идёт на обеспечение хозяйственной деятельности кооператива и
     | едина для всех участков и категорий — так исключаются
@@ -74,7 +74,7 @@ q-page.admin-economy
 
   .admin-economy__card
     .admin-economy__stat
-      .admin-economy__label Кооперативная наценка
+      .admin-economy__label Наценка
       .admin-economy__value
         span.admin-economy__amount {{ displayValue }}
         span.admin-economy__unit %
@@ -89,7 +89,7 @@ q-page.admin-economy
         q-icon(name='edit', size='16px')
       | Изменить
 
-  BaseDialog(v-model='dialogOpen', title='Кооперативная наценка', size='sm')
+  BaseDialog(v-model='dialogOpen', title='Наценка', size='sm')
     p.admin-economy__dialog-hint
       | Наценка идёт на обеспечение хозяйственной деятельности кооператива.
       | Новое значение применится к заказам, созданным после сохранения. Уже

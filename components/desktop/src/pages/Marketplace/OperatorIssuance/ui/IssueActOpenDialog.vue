@@ -520,7 +520,7 @@ BaseDialog(
           span.issue-act__sum-label Себестоимость ({{ includedCount }} из {{ positionsCount }} позиц.)
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
         .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label Кооперативная наценка ({{ feePercent }}%)
+          span.issue-act__sum-label Наценка ({{ feePercent }}%)
           span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
         .issue-act__sum
           span.issue-act__sum-label Итого к оплате
