@@ -37,7 +37,10 @@ export class MigrationManager {
   private vaultDomainService!: VaultDomainService;
 
   constructor() {
-    this.migrationDir = path.join(process.cwd(), '/migrations');
+    // Каталог миграций ищется от текущего файла, а не от места запуска:
+    // компилятор кладёт миграции рядом с кодом (`dist/migrations`), и оба
+    // режима — исходники и сборка — дают один и тот же относительный путь
+    this.migrationDir = path.resolve(__dirname, '..', '..', 'migrations');
 
     // Создаем экземпляр логгера для блокчейн-сервиса
     const loggerService = new WinstonLoggerService();

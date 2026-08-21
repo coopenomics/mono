@@ -117,6 +117,8 @@ export class ResultSubmissionService {
 
     this.logger.info(`Глубокая сверка документов успешна для результата ${result.result_hash}`);
 
+    this.assertStatementMatchesResultHash(generatedDocument, result.result_hash);
+
     // Находим сегмент пользователя по проекту
     const segment = await this.segmentRepository.findOne({
       project_hash: data.project_hash,
@@ -158,6 +160,22 @@ export class ResultSubmissionService {
     // Событие снято вместе с перечитыванием результата, которое делалось
     // только ради него.
     return await this.segmentMapper.toDTO(segmentEntity);
+  }
+
+  /**
+   * Заявление сгенерировано от конкретного result_hash (лежит в meta документа).
+   * Если документ результата пересобрался после генерации заявления (пришли новые
+   * коммиты и сегмент обновили), в цепь ушёл бы хэш, которого нет в подписанном
+   * заявлении, — связка документов разорвалась бы. Отказываем с просьбой перегенерировать.
+   */
+  private assertStatementMatchesResultHash(generatedDocument: { meta?: Record<string, any> }, resultHash: string): void {
+    const statementResultHash =
+      typeof generatedDocument.meta?.result_hash === 'string' ? generatedDocument.meta.result_hash.toLowerCase() : null;
+    if (statementResultHash && statementResultHash !== resultHash.toLowerCase()) {
+      throw new Error(
+        'Результат изменился после генерации заявления (появились новые коммиты). Сгенерируйте и подпишите заявление заново.'
+      );
+    }
   }
 
   /**
@@ -297,10 +315,31 @@ export class ResultSubmissionService {
    * Публичный метод для генерации текста результата
    * Вызывается при обновлении сегмента
    */
+  /** Статусы, при которых документ результата можно пересобрать: результат ещё не отправлен в цепь, отклонён либо цикл приёмки завершён. */
+  private static readonly RESULT_REGENERATION_ALLOWED_STATUSES: readonly ResultStatus[] = [
+    ResultStatus.PENDING,
+    ResultStatus.DECLINED,
+    ResultStatus.ACT2,
+  ];
+
   async generateResultData(
     projectHash: string,
     username: string
   ): Promise<ResultDomainEntity> {
+    // Хэш результата фиксируется подписанным заявлением и уходит в блокчейн:
+    // пока результат идёт по приёмке, пересборка документа изменила бы
+    // result_hash и разорвала связку с уже подписанными документами.
+    const existingResult = await this.resultRepository.findByProjectHashAndUsername(projectHash, username);
+    if (
+      existingResult &&
+      !ResultSubmissionService.RESULT_REGENERATION_ALLOWED_STATUSES.includes(existingResult.status)
+    ) {
+      this.logger.warn(
+        `Результат ${existingResult.result_hash} (${projectHash}/${username}) идёт по приёмке (статус ${existingResult.status}) — документ не пересобирается, хэш сохранён`
+      );
+      return existingResult;
+    }
+
     // Находим проект
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -337,8 +376,8 @@ export class ResultSubmissionService {
     // Вычисляем хеш результата
     const result_hash = createHash('sha256').update(resultContributionDocument).digest('hex');
 
-    // Проверяем, существует ли уже Result для этого пользователя и проекта
-    let resultEntity = await this.resultRepository.findByProjectHashAndUsername(projectHash, username);
+    // Result уже перечитан гардом выше — работаем с ним
+    let resultEntity = existingResult;
 
     if (resultEntity) {
       // Обновляем существующий Result

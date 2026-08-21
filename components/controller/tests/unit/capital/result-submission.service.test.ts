@@ -380,6 +380,51 @@ describe('ResultSubmissionService', () => {
       expect(segmentRepository.findOne).toHaveBeenCalledWith({ project_hash: 'ph', username: 'alice' });
     });
 
+    // ── cap.rid.side.52: guard'ы обязательных полей ─────────────────────
+    //
+    // Мутационный прогон показал, что порча этих условий не роняла ни одного
+    // теста: guard'ы написаны, но не защищены. Заявление о результате уходит
+    // в реестр документов и подписывается пайщиком, поэтому пустое поле в нём
+    // хуже отказа — документ будет выглядеть законченным.
+    //
+    // Проверено повторной мутацией: обезвредить сами условия компилятор уже не
+    // даёт — они сужают тип, и без них поля уходят в DTO как string|undefined
+    // (TS2322). Тесты ниже фиксируют вторую половину — что отказ приходит с
+    // называющим поле текстом, а не падает где-то глубже.
+
+    it('cap.rid.side.52: отказывает, если у компонента нет названия', async () => {
+      const { service, documentPort } = makeService({
+        project: { project_hash: 'ph', parent_hash: 'parent', fact: { total: '1000.0000 RUB' } },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Название компонента не найдено');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
+    it('cap.rid.side.52: отказывает, если у сегмента нет стоимости интеллектуального вклада', async () => {
+      const { service, documentPort } = makeService({
+        segment: { project_hash: 'ph', username: 'alice', share_percent: 50 },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Сумма сегмента не найдена');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
+    it('cap.rid.side.52: отказывает, если у проекта нет фактической суммы', async () => {
+      const { service, documentPort } = makeService({
+        project: { project_hash: 'ph', title: 'Компонент', parent_hash: 'parent', fact: {} },
+      });
+
+      await expect(
+        service.generateResultContributionStatement({ project_hash: 'ph', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Сумма проекта не найдена');
+      expect(documentPort.generate).not.toHaveBeenCalled();
+    });
+
     // cap.rid.side.42
     it('отказывает, если сумма проекта не положительна — доля неисчислима', async () => {
       const { service } = makeService({

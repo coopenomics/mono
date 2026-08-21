@@ -7,7 +7,7 @@
 // Прежняя версия требовала ручного ввода «ID кооперативного участка» —
 // такого шага больше нет, участок берётся из контекста стола.
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import { cleanViteOverlays, env, loginAs, dismissOnboardingDialogs , pickBranchIfAsked } from '../../../lib/harness.mjs';
 import fs from 'node:fs';

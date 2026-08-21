@@ -56,24 +56,13 @@ BaseCard.active-timer(variant='flat')
 
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base'
 import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model'
-
-type OpenTimerSession = {
-  _id: string
-  issue_hash: string
-  project_hash: string
-  started_at: string | Date
-  paused_at?: string | Date | null
-  total_paused_ms?: number
-  is_paused: boolean
-  elapsed_seconds: number
-  issue_title?: string | null
-}
 
 const props = defineProps<{
   coopname?: string
@@ -85,9 +74,12 @@ const { info } = useSystemStore()
 const sessionStore = useSessionStore()
 const timeEntriesStore = useTimeEntriesStore()
 
+// Сессия таймера — общая на всё приложение: её же показывает и переключает
+// всплывающий чип времени в строке задачи. Держим её в сторе, иначе карточка
+// показывает протухшее состояние после старта таймера из списка задач.
+const { openTimer: session } = storeToRefs(timeEntriesStore)
 const loading = ref(false)
 const busy = ref(false)
-const session = ref<OpenTimerSession | null>(null)
 const tickNow = ref(Date.now())
 let tickTimer: ReturnType<typeof setInterval> | null = null
 
@@ -139,10 +131,10 @@ async function refresh() {
   }
   loading.value = true
   try {
-    session.value = (await timeEntriesStore.getOpenTimer({
-      coopname: coopname.value,
-      username: username.value,
-    })) as OpenTimerSession | null
+    await timeEntriesStore.loadOpenTimer(
+      { coopname: coopname.value, username: username.value },
+      { force: true },
+    )
     tickNow.value = Date.now()
     syncTick()
   } catch (error) {
@@ -156,10 +148,10 @@ async function refresh() {
 async function onPause() {
   busy.value = true
   try {
-    session.value = (await timeEntriesStore.pauseTimer({
+    await timeEntriesStore.pauseTimer({
       coopname: coopname.value,
       username: username.value,
-    })) as OpenTimerSession
+    })
     SuccessAlert('Таймер на паузе')
     syncTick()
   } catch (error) {
@@ -172,10 +164,10 @@ async function onPause() {
 async function onResume() {
   busy.value = true
   try {
-    session.value = (await timeEntriesStore.resumeTimer({
+    await timeEntriesStore.resumeTimer({
       coopname: coopname.value,
       username: username.value,
-    })) as OpenTimerSession
+    })
     tickNow.value = Date.now()
     SuccessAlert('Таймер продолжен')
     syncTick()
@@ -193,7 +185,6 @@ async function onStop() {
       coopname: coopname.value,
       username: username.value,
     })
-    session.value = null
     SuccessAlert('Таймер остановлен')
     syncTick()
   } catch (error) {
@@ -224,6 +215,12 @@ onUnmounted(() => {
 
 watch([coopname, username], () => {
   void refresh()
+})
+
+// Таймер могли включить/остановить из чипа времени — подхватываем тик отсюда
+watch(session, () => {
+  tickNow.value = Date.now()
+  syncTick()
 })
 
 defineExpose({ refresh })

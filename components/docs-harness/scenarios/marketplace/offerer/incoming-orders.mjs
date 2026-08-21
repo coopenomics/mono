@@ -86,7 +86,7 @@ export default async ({ page, shot, expect }) => {
       expect: async (p) => {
         // Заказ, оформленный заказчицей, обязан быть виден поставщику:
         // пустой список здесь означал бы разрыв в цепочке.
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
         await expect(p.locator('button:has-text("Принять заказ")').first()).toBeVisible({ timeout: 20000 });
       },
     },

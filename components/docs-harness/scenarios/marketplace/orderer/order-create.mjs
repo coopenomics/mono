@@ -38,8 +38,8 @@ export const ORDER_QUANTITY = 10;
 
 export const meta = {
   title: 'Стол заказчика — оформление заказа',
-  docPath: 'new/marketplace/orderer/order-create.md',
-  assetsDir: 'assets/new/marketplace/orderer/order-create',
+  docPath: 'new/marketplace/orderer/cart-order.md',
+  assetsDir: 'assets/new/marketplace/orderer/cart-order',
   role: 'user',
   mode: 'docs',
   fixture: 'ekaterina',
@@ -135,7 +135,7 @@ export default async ({ page, shot, expect }) => {
     {
       expect: async (p) => {
         // Пустая корзина здесь означала бы, что «В корзину» ничего не добавила.
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );
@@ -167,7 +167,7 @@ export default async ({ page, shot, expect }) => {
     'Раздел «Мои заказы»: оформленный заказ со статусом ожидания решения поставщика.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

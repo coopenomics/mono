@@ -47,13 +47,17 @@ export async function processDecision(blockchain: Blockchain, decisionId: number
         {
           account: SovietContract.contractName.production,
           name: SovietContract.Actions.Decisions.Authorize.actionName,
-          authorization: [{ actor: 'ant', permission: 'active' }],
+          // soviet::authorize и soviet::exec требуют require_auth(coopname) —
+          // подпись председателя их не удовлетворяет (в отличие от votefor,
+          // который принимает и пайщика, и кооператив). С actor: 'ant' вызов
+          // падал «missing authority of voskhod».
+          authorization: [{ actor: 'voskhod', permission: 'active' }],
           data: authData,
         },
         {
           account: SovietContract.contractName.production,
           name: SovietContract.Actions.Decisions.Exec.actionName,
-          authorization: [{ actor: 'ant', permission: 'active' }],
+          authorization: [{ actor: 'voskhod', permission: 'active' }],
           data: execData,
         },
       ],

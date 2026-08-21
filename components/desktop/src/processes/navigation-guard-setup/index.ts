@@ -2,6 +2,7 @@ import { Router } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 
@@ -17,6 +18,38 @@ export function setupNavigationGuard(router: Router) {
   const desktops = useDesktopStore();
   const session = useSessionStore();
   const systemStore = useSystemStore();
+  const account = useAccountStore();
+
+  // Данные, из которых выводятся права: аккаунт (роль) и рабочий стол (гранты).
+  const desktopFresh = () =>
+    Boolean(desktops.currentDesktop) &&
+    desktops.loadedForUsername === session.username;
+  const hasAccessData = () =>
+    Boolean(session.currentUserAccount) && desktopFresh();
+
+  // Однократная дозагрузка; параллельные переходы делят один промис.
+  let reloading: Promise<void> | null = null;
+  const reloadAccessData = (): Promise<void> => {
+    if (!reloading) {
+      reloading = (async () => {
+        try {
+          await session.init();
+          const [acc] = await Promise.all([
+            session.currentUserAccount
+              ? Promise.resolve(undefined)
+              : account.getAccount(session.username),
+            desktopFresh() ? Promise.resolve() : desktops.loadDesktop(),
+          ]);
+          if (acc) session.setCurrentUserAccount(acc);
+        } catch (e) {
+          console.warn('[guard] дозагрузка прав не удалась:', e);
+        } finally {
+          reloading = null;
+        }
+      })();
+    }
+    return reloading;
+  };
 
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
@@ -118,6 +151,29 @@ export function setupNavigationGuard(router: Router) {
     if (desktops.hasRouteAccess(matchedNames, to.meta)) {
       next();
       return;
+    }
+
+    // «Прав нет» ≠ «права неизвестны». Роль (chairman/member) живёт в
+    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся одним
+    // запросом на старте без ретрая. Если бэкенд в этот момент перезапускался
+    // (dev-рестарт, апгрейд), запросы падали молча: аккаунт пуст → роль 'user',
+    // стол пуст → grants нет — и авторизованного председателя уносило на
+    // «Недостаточно прав доступа». Здесь пробуем дозагрузить данные один раз
+    // и перепроверить; если бэкенд всё ещё лежит — пропускаем (fail-open:
+    // отказ всё равно даст резолвер, а ложный отказ при живых правах хуже).
+    if (session.isAuth && !hasAccessData()) {
+      await reloadAccessData();
+      if (desktops.hasRouteAccess(matchedNames, to.meta)) {
+        next();
+        return;
+      }
+      if (!hasAccessData()) {
+        console.warn(
+          '[guard] права пользователя недоступны (бэкенд молчит) — пропускаем без проверки',
+        );
+        next();
+        return;
+      }
     }
 
     // Права на страницу нет — но у стола может быть шлюз (`meta.gate`), на

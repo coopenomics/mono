@@ -22,8 +22,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол заказчика — «Мои заказы»',
-  docPath: 'new/marketplace/orderer/orders.md',
-  assetsDir: 'assets/new/marketplace/orderer/orders',
+  docPath: 'new/marketplace/orderer/my-orders.md',
+  assetsDir: 'assets/new/marketplace/orderer/my-orders',
   role: 'user',
   fixture: 'ekaterina',
   fixtures: ['ekaterina'],

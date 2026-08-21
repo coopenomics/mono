@@ -7,7 +7,7 @@
 // поучастковая: один протокол совета может касаться складов нескольких КУ, и
 // каждый подтверждает своё.
 //
-// Фикстура: chairkrg — председатель КУ Красногорск.
+// Фикстура: chairkrg — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,8 +23,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — проведение списания со склада',
-  docPath: 'new/marketplace/operator/writeoff-confirm.md',
-  assetsDir: 'assets/new/marketplace/operator/writeoff-confirm',
+  docPath: 'new/marketplace/operator/writeoffs.md',
+  assetsDir: 'assets/new/marketplace/operator/writeoffs',
   role: 'user',
   mode: 'docs',
   fixture: 'chairkrg',

@@ -619,6 +619,49 @@ describe('тест контракта CAPITAL', () => {
     expect(project.plan.total).toBe('535166.9832 RUB')
   })
 
+  it('стартуем мета-проект — без активного родителя компонент не запускается', async () => {
+    // startproject отказывается запускать компонент, пока родитель в pending
+    // («Невозможно запустить компонент: родительский проект не в статусе
+    // active»). Мастер у мета-проекта обязателен так же, как у компонента, а
+    // приложение к договору по мета-проекту у tester1 подписано выше.
+    await blockchain.api.transact({
+      actions: [{
+        account: CapitalContract.contractName.production,
+        name: CapitalContract.Actions.SetMaster.actionName,
+        authorization: [{ actor: 'voskhod', permission: 'active' }],
+        data: {
+          coopname: 'voskhod',
+          project_hash: metaProject.project_hash,
+          master: tester1,
+        } as CapitalContract.Actions.SetMaster.ISetMaster,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+
+    await blockchain.api.transact({
+      actions: [{
+        account: CapitalContract.contractName.production,
+        name: CapitalContract.Actions.StartProject.actionName,
+        authorization: [{ actor: 'voskhod', permission: 'active' }],
+        data: {
+          coopname: 'voskhod',
+          project_hash: metaProject.project_hash,
+        } as CapitalContract.Actions.StartProject.IStartProject,
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+
+    const meta = (await blockchain.getTableRows(
+      CapitalContract.contractName.production,
+      'voskhod',
+      'projects',
+      1,
+      metaProject.project_hash,
+      metaProject.project_hash,
+      3,
+      'sha256',
+    ))[0]
+    expect(meta.status).toBe('active')
+  })
+
   it('стартовать проект на приём коммитов', async () => {
     const data: CapitalContract.Actions.StartProject.IStartProject = {
       coopname: 'voskhod',

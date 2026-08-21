@@ -6,7 +6,7 @@
 // кооперативу — обратно в тот самый обезличенный остаток, из которого оно
 // было продано, а не первому заказчику, чей заказ этот остаток породил.
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +21,6 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — приём возврата по заказу из остатка',
-  docPath: 'new/marketplace/operator/stock-return-accept.md',
   assetsDir: 'assets/new/marketplace/operator/stock-return-accept',
   role: 'user',
   mode: 'docs',

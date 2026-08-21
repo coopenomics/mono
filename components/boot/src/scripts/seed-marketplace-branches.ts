@@ -40,7 +40,7 @@ const BRANCHES: BranchSeed[] = [
   {
     braname: 'krg',
     trustee: 'chairkrg',
-    short_name: 'КУ Красногорск',
+    short_name: 'Красногорск',
     full_name: 'Кооперативный участок «Красногорск»',
     city: 'Красногорск',
     fact_address: 'Московская область, г. Красногорск, ул. Заводская, д. 1',
@@ -51,7 +51,7 @@ const BRANCHES: BranchSeed[] = [
   {
     braname: 'odn',
     trustee: 'chairodn',
-    short_name: 'КУ Одинцово',
+    short_name: 'Одинцово',
     full_name: 'Кооперативный участок «Одинцово»',
     city: 'Одинцово',
     fact_address: 'Московская область, г. Одинцово, ул. Центральная, д. 12',
@@ -62,7 +62,7 @@ const BRANCHES: BranchSeed[] = [
   {
     braname: 'myt',
     trustee: 'chairmyt',
-    short_name: 'КУ Мытищи',
+    short_name: 'Мытищи',
     full_name: 'Кооперативный участок «Мытищи»',
     city: 'Мытищи',
     fact_address: 'Московская область, г. Мытищи, Олимпийский проспект, д. 5',

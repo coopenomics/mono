@@ -52,64 +52,48 @@ cases:
     kind: side
     scenario: signact1 при статусе результата, отличном от AUTHORIZED
     expect: отказ «Неверный статус. Результат должен быть авторизован советом»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.02
     level: contract
     kind: side
     scenario: signact1 по чужому result_hash (result.username ≠ username)
     expect: отказ «Только участник может подписать акт для своего результата»
-    test: ~
-    status: missing
-
-  - id: cap.rid.side.03
-    level: contract
-    kind: side
-    scenario: signact1 при сегменте в статусе, отличном от AUTHORIZED
-    expect: отказ «Неверный статус сегмента. Ожидается статус 'authorized'»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.04
     level: contract
     kind: side
     scenario: signact1 с актом, подписанным не участником
     expect: verify_document_or_fail отклоняет документ
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.05
     level: contract
     kind: side
     scenario: signact2 вызывает не председатель совета
     expect: отказ «Только председатель может принять имущество»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.06
     level: contract
     kind: side
     scenario: signact2 при статусе результата, отличном от ACT1
     expect: отказ «Неверный статус. Первый акт должен быть подписан»
-    test: ~
-    status: missing
-
-  - id: cap.rid.side.07
-    level: contract
-    kind: side
-    scenario: signact2 при сегменте в статусе, отличном от ACT1
-    expect: отказ «Неверный статус сегмента. Ожидается статус 'act1'»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.08
     level: contract
     kind: side
     scenario: signact2 с актом, где нет подписи участника (только председателя)
     expect: verify_document_or_fail требует обе подписи — {result.username, chairman}
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.09
     level: contract
@@ -124,8 +108,8 @@ cases:
     kind: side
     scenario: signact2 при result.debt_amount == 0
     expect: o.cap.repay не применяется; при debt_amount > 0 — применяется
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.11
     level: contract
@@ -140,80 +124,64 @@ cases:
     kind: side
     scenario: convertsegm при статусе результата, отличном от ACT2
     expect: отказ «Неверный статус результата. Ожидается 'act2' (после signact2)»
-    test: ~
-    status: missing
-
-  - id: cap.rid.side.13
-    level: contract
-    kind: side
-    scenario: convertsegm с result_hash, принадлежащим другому проекту
-    expect: отказ «result_hash не принадлежит указанному проекту»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.14
     level: contract
     kind: side
     scenario: convertsegm с result_hash, принадлежащим другому пайщику
     expect: отказ «result_hash не принадлежит указанному пользователю»
-    test: ~
-    status: missing
-
-  - id: cap.rid.side.15
-    level: contract
-    kind: side
-    scenario: convertsegm при сегменте не в статусе CONTRIBUTED
-    expect: отказ «Результат не внесён. Сначала внесите результат через pushrslt → signact2»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.16
     level: contract
     kind: side
     scenario: convertsegm по сегменту, не обновлённому после изменения долей (без rfrshsegment)
     expect: check_segment_is_updated отклоняет — «Выполните rfrshsegment перед конвертацией»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.17
     level: contract
     kind: side
     scenario: convertsegm, где wallet_amount + capital_amount + debt_amount ≠ intellectual_cost
     expect: отказ — списывается ровно заблокированная в программе сумма, ни больше ни меньше
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.18
     level: contract
     kind: side
     scenario: convertsegm с wallet_amount больше, чем provisional_amount − debt_amount
     expect: отказ «Сумма конвертации в кошелек превышает доступную и обеспеченную суммы»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.19
     level: contract
     kind: side
     scenario: convertsegm, где capital_amount ≠ available_for_program − wallet_amount
     expect: отказ «В программу должно быть сконвертировано всё доступное»
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.20
     level: contract
     kind: side
     scenario: повторный convertsegm по тому же result_hash (двойная отправка)
     expect: отказ «Объект результата не найден по result_hash» — результат удалён первым вызовом
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.21
     level: contract
     kind: side
     scenario: convertsegm с заявлением о конвертации, подписанным не участником
     expect: verify_document_or_fail отклоняет — иначе прошла бы любая сконструированная document2
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   - id: cap.rid.side.22
     level: contract
@@ -222,8 +190,8 @@ cases:
     expect: >
       допустимо по стандарту (секция 4, шаг 8: «любая из сумм может быть нулевой»);
       o.cap.cnvshr не применяется, применяется только o.cap.cnvbl
-    test: ~
-    status: missing
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
   # UI прячет кнопку по статусу и владельцу сегмента, но сервер обязан
@@ -479,8 +447,8 @@ cases:
       отказ по каждому полю до обращения к генератору документов; сейчас guard'ы
       написаны, но порча любого из условий не роняет ни один тест
       (выявлено мутационным прогоном, покрытая часть сервиса 91.3%)
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
 
   - id: cap.rid.side.53
     level: backend

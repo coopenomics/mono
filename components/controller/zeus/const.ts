@@ -4224,11 +4224,13 @@ export const ReturnTypes: Record<string,any> = {
 		hours:"Float"
 	},
 	CapitalIssueLinkedGitCommit:{
+		branch:"String",
 		commit_message:"String",
 		committed_at:"DateTime",
 		consumed:"Boolean",
 		github_sha:"String",
 		html_url:"String",
+		in_default_branch:"Boolean",
 		username:"String"
 	},
 	CapitalIssueMetricBinding:{

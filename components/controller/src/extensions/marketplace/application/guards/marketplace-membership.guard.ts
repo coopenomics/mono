@@ -50,17 +50,36 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // composition root, и сюда оно не попадает вовсе. Читать его из конфига
     // ядра расширению нельзя — это ровно тот секрет, который не должен
     // разъезжаться по коду.
-    if (hasServerSecret(request?.headers)) {
-      return true;
-    }
-
     const user = request?.user as { username?: string; role?: string; status?: string } | undefined;
 
-    if (!user?.username) {
+    // Межсервисный `server-secret` — это супер-админский доступ: запрос с ним
+    // проходит, проверки членства и статуса пайщика не применяются. Но выйти
+    // из гварда сразу нельзя: `currentMember` остался бы незаполненным, и
+    // резолвер с `@CurrentMarketplaceMember()` падал бы невнятным
+    // «MarketplaceMembershipGuard не отработал — currentMember отсутствует в
+    // context» вместо того, чтобы отработать. Поэтому контекст заполняем и
+    // здесь: от лица пользователя, если он в запросе есть, иначе — служебным
+    // членом без ролей.
+    const bypass = hasServerSecret(request?.headers);
+
+    if (!bypass && !user?.username) {
       throw new UnauthorizedException('Требуется авторизованный пользователь');
     }
 
-    if (user.status !== MonoAccountStatus.Active) {
+    if (bypass && !user?.username) {
+      const serviceMember: IMarketplaceCurrentMember = {
+        username: '',
+        core_roles: [],
+        marketplace_roles: [],
+      };
+      request.currentMember = serviceMember;
+      gqlContext.currentMember = serviceMember;
+      return true;
+    }
+
+    // Под межсервисным секретом статус не проверяется: это служебный вызов,
+    // а не запрос пайщика.
+    if (!bypass && user.status !== MonoAccountStatus.Active) {
       throw new ForbiddenException('Доступ только для пайщиков кооператива');
     }
 

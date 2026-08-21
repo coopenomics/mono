@@ -50,8 +50,8 @@ export const meta = {
     'marketplace-deposits:fund',
   ],
   title: 'Стол заказчика — заявление на гарантийный возврат',
-  docPath: 'new/marketplace/orderer/return-claim.md',
-  assetsDir: 'assets/new/marketplace/orderer/return-claim',
+  docPath: 'new/marketplace/orderer/returns.md',
+  assetsDir: 'assets/new/marketplace/orderer/returns',
   role: 'user',
   fixture: 'ekaterina',
   fixtures: ['ekaterina'],
@@ -95,7 +95,7 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
 
-  await page.getByText('Берёзовый сок').first().click({ force: true });
+  await page.getByText('Яблочный сок').first().click({ force: true });
   await page.waitForSelector('text=Факт выдачи', { timeout: 30000 });
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
@@ -112,6 +112,10 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
+  // Кадр блока возврата отличается от общего вида карточки: прокручиваем к
+  // блоку гарантийного возврата, иначе два кадра выходят почти одинаковыми.
+  await page.locator('text=/[Гг]арантийн/').first().scrollIntoViewIfNeeded().catch(() => {});
+  await page.waitForTimeout(600);
   await shot(
     page,
     '02-return-available',

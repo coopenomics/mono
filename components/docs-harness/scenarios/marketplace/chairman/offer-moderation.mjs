@@ -5,6 +5,7 @@
 // каталоге Story 3.5. Канон UI — CatalogOfferCard (UX-DR10) с slot actions.
 
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
+import { runSeedPhase } from '../../../lib/fixtures.mjs';
 
 /**
  * Гарантийный срок возврата, который председатель назначает предложению при
@@ -12,7 +13,7 @@ import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mj
  * превращается в дату окончания гарантии на выдаче, так что задним числом его
  * не поднять. С нулём вся ветка гарантийного возврата на стенде недостижима.
  */
-const WARRANTY_DAYS = 30;
+const WARRANTY_DAYS = 3;
 
 export const meta = {
   mode: 'docs',
@@ -20,8 +21,8 @@ export const meta = {
   cases: ['mkt.offer.happy.02'],
   prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
   title: 'Стол председателя — модерация предложений',
-  docPath: 'new/marketplace/chairman/offer-moderation.md',
-  assetsDir: 'assets/new/marketplace/chairman/offer-moderation',
+  docPath: 'new/marketplace/admin/moderation.md',
+  assetsDir: 'assets/new/marketplace/admin/moderation',
   role: 'chairman',
 };
 
@@ -113,6 +114,12 @@ export default async ({ page, shot, expect }) => {
     }
     console.log(`[offer-moderation] approve mutation sent=${approveSent} status=${approveStatus} waitedMs=${waited} totalGraphqlPosts=${allGraphqlPosts}`);
 
+    // Витрина фонового поставщика (фаза 06) до этого момента лежала в
+    // PENDING_MODERATION — ради кадров пустой витрины и списка модерации.
+    // Одобряем её той же властью председателя ДО финального кадра: очередь
+    // на нём обязана быть пустой, а дальше по цепочке каталог — полным.
+  runSeedPhase('06b-approve-catalog', { log: (m) => console.log(`[offer-moderation] ${m}`) });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(2000);
     await cleanViteOverlays(page);
@@ -129,4 +136,5 @@ export default async ({ page, shot, expect }) => {
       },
     );
   }
+
 };

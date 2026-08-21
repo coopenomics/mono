@@ -6,7 +6,6 @@ import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAsChairman } fro
 
 export const meta = {
   title: 'Стол председателя ПВЗ — список ПВЗ кооператива',
-  docPath: 'new/marketplace/chairman/branches.md',
   assetsDir: 'assets/new/marketplace/chairman/branches',
   role: 'chairman',
 };

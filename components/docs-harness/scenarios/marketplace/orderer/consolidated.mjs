@@ -24,8 +24,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол администратора — реестр заказов кооператива',
-  docPath: 'new/marketplace/chairman/orders-registry.md',
-  assetsDir: 'assets/new/marketplace/chairman/orders-registry',
+  docPath: 'new/marketplace/admin/orders-registry.md',
+  assetsDir: 'assets/new/marketplace/admin/orders-registry',
   role: 'chairman',
   mode: 'docs',
   feature: 'marketplace.order',
@@ -61,7 +61,7 @@ export default async ({ page, shot, expect, context }) => {
     'Реестр всех заказов кооператива с текущими статусами. Фильтры по стадиям повторяют жизненный цикл заказа: ожидает сборки партии, ждёт акцепта поставщика, в работе, получен. Открыв заказ, председатель видит документы, операции и проводки процесса.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Яблочный сок').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

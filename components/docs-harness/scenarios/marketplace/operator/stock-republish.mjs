@@ -9,7 +9,7 @@
 // Публикуется ОДНА позиция: остальные нужны списанию (там список кандидатов
 // строится из того же свободного остатка).
 //
-// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,7 +28,6 @@ export const REPUBLISH_WARRANTY_DAYS = 14;
 
 export const meta = {
   title: 'Стол ПВЗ — перепредложение остатка кооператива',
-  docPath: 'new/marketplace/operator/stock-republish.md',
   assetsDir: 'assets/new/marketplace/operator/stock-republish',
   role: 'user',
   mode: 'docs',

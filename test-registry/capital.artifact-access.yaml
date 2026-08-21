@@ -21,17 +21,6 @@ title: Кто читает документы проекта и его пере�
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
-# Правка 2026-08-17 (раздел «Компоненты», фильтры и сортировка): в репозиториях
-# задач, проектов и артефактов имя поля сортировки перестало подставляться в
-# ORDER BY как есть — оно сверяется с колонками сущности (capital.list-filters-sort).
-# Правила доступа и набор случаев не менялись.
-
-# Правка 2026-08-18 (приоритеты, capital.priorities): в permissions-сервисах
-# появились расчёт can_set_priority проекта/компонента и председательский
-# override приоритета задач; в project-management добавлена офчейн-мутация
-# приоритета, в репозитории проектов — setter и фильтр по priority.
-# VIEW_ARTIFACTS / READ_COMMUNICATION и набор случаев этого слайса не менялись.
-
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -58,7 +47,7 @@ cases:
     scenario: ведущий проекта запрашивает документы и переписку своего проекта
     expect: доступно и то, и другое
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.happy.02
     level: backend
@@ -66,7 +55,7 @@ cases:
     scenario: пайщик с подтверждённым допуском запрашивает документы проекта
     expect: документы доступны
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.01
     level: backend
@@ -74,7 +63,7 @@ cases:
     scenario: пайщик с допуском запрашивает переписку проекта
     expect: отказ — допуск к работам переписку не открывает
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.02
     level: backend
@@ -82,7 +71,7 @@ cases:
     scenario: соавтор проекта запрашивает документы и переписку
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.03
     level: backend
@@ -90,7 +79,7 @@ cases:
     scenario: член совета без допуска запрашивает переписку чужого проекта
     expect: доступно — совет видит всё
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.01
     level: backend
@@ -98,7 +87,7 @@ cases:
     scenario: посторонний пайщик запрашивает документы и переписку проекта
     expect: отказ по обоим
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   # ── Каскад по иерархии ────────────────────────────────────────────────────
 
@@ -108,7 +97,7 @@ cases:
     scenario: ведущий проекта запрашивает переписку компонента этого проекта
     expect: доступно — роль на проекте распространяется на компоненты
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.05
     level: backend
@@ -116,7 +105,7 @@ cases:
     scenario: пайщик с допуском к проекту запрашивает документы и переписку компонента
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.02
     level: backend
@@ -124,7 +113,7 @@ cases:
     scenario: запрос переписки по несуществующему проекту от ведущего другого проекта
     expect: отказ, а не пустой ответ «как будто проект есть и пуст»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   # ── Общие списки без указания проекта (синхронизация рабочей копии) ───────
 
@@ -134,7 +123,7 @@ cases:
     scenario: председатель запрашивает общий список задач и требований кооператива
     expect: ограничения не ставится, виден весь кооператив
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.06
     level: backend
@@ -142,7 +131,7 @@ cases:
     scenario: ведущий запрашивает общий список без указания проекта
     expect: область сужается до его проектов и их компонентов
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.07
     level: backend
@@ -150,7 +139,7 @@ cases:
     scenario: область доступа к переписке для пайщика с допуском
     expect: пустая — по этой роли переписка не открывается
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.03
     level: backend
@@ -158,7 +147,7 @@ cases:
     scenario: запрос общего списка без авторизации
     expect: пустая область, а не «ограничения нет»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.04
     level: backend
@@ -195,16 +184,16 @@ cases:
     expect: >
       отказ — доступ проверяется по комнате и её проекту, а не по тому, что
       комната названа в запросе
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    status: passing
 
   - id: cap.access.break.06
     level: backend
     kind: break
     scenario: пайщик запрашивает комнаты пайщиков, совета или секретаря
     expect: пустой список — эти комнаты к проектам не привязаны и читаются только советом
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    status: passing
 
   - id: cap.access.break.07
     level: backend
@@ -212,7 +201,7 @@ cases:
     scenario: пайщик запрашивает список записей звонков без указания комнаты
     expect: возвращаются только записи комнат, которые ему доступны
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.side.09
     level: backend
@@ -222,7 +211,7 @@ cases:
       разрешено — заметку правит тот же круг, что и читает запись; раньше это
       мог только совет
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.happy.04
     level: backend
@@ -232,7 +221,7 @@ cases:
       расшифровкой по репликам
     expect: доступно обоим
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.09
     level: backend
@@ -245,7 +234,7 @@ cases:
       идентификатору комнаты звонка комната не ищется — иначе отказ получает
       даже председатель
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.10
     level: backend
@@ -253,7 +242,7 @@ cases:
     scenario: запись звонка комнаты, которой нет в реестре комнат кооператива
     expect: отказ всем, включая совет — читать нечего и права считать не от чего
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
-    status: written
+    status: passing
 
   # ── Кэш справочных чтений ─────────────────────────────────────────────────
 
@@ -265,7 +254,7 @@ cases:
       проект, допуск и участие читаются по одному разу на весь список, а не
       заново на каждую задачу
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
+    status: passing
 
   - id: cap.access.break.08
     level: backend
@@ -275,8 +264,4 @@ cases:
       ошибка не запоминается — следующий запрос в том же расчёте читает
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
-    status: written
-
-# 2026-08-18: в репозитории проектов явно типизирован сбор уникальных адресов
-# репозиториев разработки — в production-образе devDeps вырезаны, вывод типов
-# деградировал и контроллер не стартовал. Поведение выборки прежнее.
+    status: passing

@@ -14,6 +14,9 @@ title: Списание скоропорта — проект председат
 # расширения. Сам тип, поведение сервиса и набор случаев не менялись.
 
 sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.wroff/confirmwroff.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.wroff/execwroff.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-writeoff*.ts
   ui:
@@ -110,4 +113,79 @@ cases:
     scenario: Проект списания без единой выбранной позиции
     expect: подписание Заявления недоступно
     test: components/docs-harness/scenarios/marketplace/chairman/writeoff-submit.mjs
+    status: passing
+
+  # ── Контрактный уровень: денежное место утилизации (задача 598-51) ────────
+  # Между решением совета и выбытием имущества стоит подпись председателя
+  # участка: совет признаёт списание допустимым, но склад закрывает человек,
+  # который за него отвечает. Проверяется, что деньги не двигаются раньше
+  # времени и что выбытие ложится ровно один раз.
+
+  - id: mkt.wof.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель собирает черновик списания из кандидатов склада участка.
+    expect: >
+      проект заводится в статусе черновика на сумму выбранных позиций; сам по
+      себе черновик денег не двигает
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
+    status: passing
+
+  - id: mkt.wof.happy.31
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель подписывает Заявление о списании — проект уходит на повестку
+      совета.
+    expect: >
+      проект получает собственный хэш нитки и статус «на повестке», проводки
+      o.mkt.wroff в нитке ещё НЕТ — имущество остаётся на балансе
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
+    status: passing
+
+  - id: mkt.wof.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Совет проголосовал и авторизовал проект списания.
+    expect: >
+      решение совета — разрешение, а не выбытие: проводки на этом шаге по-прежнему
+      нет, имущество ждёт подписи ответственного за склад
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
+    status: passing
+
+  - id: mkt.wof.happy.32
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель кооперативного участка подписывает Служебную записку о
+      списании по своему складу.
+    expect: >
+      имущество выбывает проводкой o.mkt.wroff ровно на сумму позиции: Дт 86
+      (закрывается целевое финансирование) / Кт 10 (выбытие со склада), разрез —
+      кооперативный участок, а не пайщик
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
+    status: passing
+
+  - id: mkt.wof.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Утилизация исполнена; смотрим кошельковые движения нитки.
+    expect: >
+      кошельковых движений нет вовсе — утилизация чисто бухгалтерское выбытие
+      имущества, ничьи средства при ней не перекладываются
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
+    status: passing
+
+  - id: mkt.wof.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Проект списания прошёл весь путь до исполнения.
+    expect: >
+      нитка процесса — утилизация (p.mkt.wroff), отдельная от нитки поставки, по
+      хэшу проекта
+    test: components/boot/src/tests/marketplace-writeoff.test.ts
     status: passing

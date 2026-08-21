@@ -18,8 +18,8 @@ const loadFixture = (username) =>
 
 export const meta = {
   title: 'Стол ПВЗ — ожидаемые поставки',
-  docPath: 'new/marketplace/operator/incoming-shipments.md',
-  assetsDir: 'assets/new/marketplace/operator/incoming-shipments',
+  docPath: 'new/marketplace/operator/reception.md',
+  assetsDir: 'assets/new/marketplace/operator/reception',
   role: 'user',
   fixture: 'chairkrg',
   fixtures: ['chairkrg'],

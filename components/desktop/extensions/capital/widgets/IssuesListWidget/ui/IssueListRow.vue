@@ -54,6 +54,7 @@
         :project-hash='issue.project_hash'
         :estimate='issue.estimate'
         :fact='Number(issue.fact) || 0'
+        :creators='issue.creators || []'
         :readonly='!canChangeEstimate'
       )
     .cell-side

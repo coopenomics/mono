@@ -3,18 +3,29 @@
 // ACCEPTED_TO_COOP (ожидают открытия первой подписью signiss1) и
 // READY_TO_RECEIVE (ожидают финальной подписи заказчика signiss2).
 
-import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAsChairman } from '../../../lib/harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAs } from '../../../lib/harness.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const loadFixture = (username) =>
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
 export const meta = {
   title: 'Стол ПВЗ — открытие выдачи',
-  docPath: 'new/marketplace/branch-chairman/issuance-open.md',
-  assetsDir: 'assets/new/marketplace/branch-chairman/issuance-open',
-  role: 'chairman',
+  docPath: 'new/marketplace/operator/issuance.md',
+  assetsDir: 'assets/new/marketplace/operator/issuance',
+  role: 'user',
+  fixture: 'chairkrg',
+  fixtures: ['chairkrg'],
 };
 
 export default async ({ page, shot }) => {
   await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
-  await loginAsChairman(page);
+  // Выдача доступна оператору участка и его доверенным — председатель
+  // КООПЕРАТИВА видит здесь только гейт «Вы не оператор».
+  await loginAs(page, loadFixture('chairkrg'));
   await dismissOnboardingDialogs(page);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/issuance`, { waitUntil: 'domcontentloaded', timeout: 45000 });
@@ -25,7 +36,7 @@ export default async ({ page, shot }) => {
 
   await shot(
     page,
-    '01-issuance-empty',
-    'Стол «Выдача заказов» председателя КУ: лента заказов, готовых к выдаче. По каждому заказу видны заказчик, количество, сумма и статус («Готов к выдаче»), кнопка «Завершить выдачу» накладывает финальную подпись заказчика (signiss2) и переводит заказ в «Получен».',
+    '01-issuance-queue',
+    'Стол «Выдача заказов»: очередь заказов, готовых к выдаче. По каждому видны заказчик, количество, сумма и статус «Готов к выдаче». Открыть выдачу с карточки нельзя — путь начинается со сканирования кода получателя в шапке.',
   );
 };

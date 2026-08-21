@@ -3,6 +3,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Router } from 'vue-router';
+import { watch } from 'vue';
 import { useBranchOverlayProcess } from '../watch-branch-overlay';
 import { useExitOverlayProcess } from '../watch-exit-overlay';
 import { setupNavigationGuard } from '../navigation-guard-setup';
@@ -132,6 +133,27 @@ export async function useInitAppProcess(router: Router) {
 
   setupNavigationGuard(router);
   bootrace('navigationGuard installed');
+
+  // Бэкенд вернулся после паузы (dev-рестарт, апгрейд): данные, от которых
+  // зависят права (аккаунт → роль, стол → гранты), могли не загрузиться на
+  // старте и сами не обновляются — гард в таком состоянии уводил на
+  // «Недостаточно прав доступа». Перечитываем их при переходе
+  // backendAvailable false → true.
+  if (!isServer) {
+    watch(
+      () => system.backendAvailable,
+      (ok, was) => {
+        if (!ok || was !== false || !session.isAuth) return;
+        bootrace('backend is back — reloading desktop & account');
+        desktops
+          .loadDesktop()
+          .catch((e) => console.warn('Reload desktop after backend recovery failed:', e));
+        useInitWalletProcess()
+          .run(true)
+          .catch((e) => console.warn('Reload account after backend recovery failed:', e));
+      },
+    );
+  }
 
   await useInitExtensionsProcess(router);
   bootrace(`initExtensions done (routes=${router.getRoutes().length})`);

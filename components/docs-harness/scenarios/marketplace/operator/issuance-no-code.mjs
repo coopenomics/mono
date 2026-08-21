@@ -8,7 +8,7 @@
 // Проверяем обе стороны: действие на столе одно — «Сканировать QR заказа», и
 // произвольный код сканер не принимает, а объясняет, что именно он ждёт.
 //
-// Фикстура: chairkrg — председатель КУ Красногорск.
+// Фикстура: chairkrg — председатель Красногорск.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,7 +28,6 @@ const BOGUS_CODE = 'НЕТ-ТАКОГО-КОДА-123';
 
 export const meta = {
   title: 'Стол ПВЗ — выдача не открывается без кода получателя',
-  docPath: 'new/marketplace/operator/issuance-no-code.md',
   assetsDir: 'assets/new/marketplace/operator/issuance-no-code',
   role: 'user',
   mode: 'docs',

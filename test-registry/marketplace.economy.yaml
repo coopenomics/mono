@@ -203,3 +203,15 @@ cases:
     test: components/controller/src/extensions/marketplace/application/shared/ndfl.util.spec.ts
     status: passing
     # Расхождение округления развело бы платёжку кассира и проводку контракта.
+
+  - id: mkt.eco.ui.03
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает «Экономику» — единая кооперативная наценка
+      кооператива с пояснением и кнопкой изменения
+    expect: >
+      текущая наценка отображается в процентах; пояснение говорит, что наценка
+      единая для всех участков и действует на новые заказы
+    test: components/docs-harness/scenarios/marketplace/chairman/economy.mjs
+    status: passing

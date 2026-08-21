@@ -121,6 +121,8 @@ export class GenerationService {
       committed_at: r.committed_at,
       consumed: r.consumed_by_commit_hash != null,
       commit_message: r.commit_message ?? '',
+      branch: r.first_seen_branch ?? null,
+      in_default_branch: r.in_default_branch,
     }));
   }
 
