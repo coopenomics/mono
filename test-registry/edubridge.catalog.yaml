@@ -17,6 +17,9 @@ sources:
   ui:
     - components/desktop/extensions/edubridge/pages/CatalogPage/**
     - components/desktop/extensions/edubridge/pages/AdminCoursesPage/**
+    - components/desktop/extensions/edubridge/pages/CourseCardPage/**
+    - components/desktop/extensions/edubridge/widgets/CourseForm/**
+    - components/desktop/extensions/edubridge/entities/Course/**
 
 cases:
   - id: edu.catalog.happy.01

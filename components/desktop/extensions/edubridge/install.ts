@@ -5,6 +5,7 @@ import {
   AdminCoursesPage,
   CatalogPage,
   ConfigurePage,
+  CourseCardPage,
   MemberLearnersPage,
   MemberOnboardingPage,
   TeacherAssignmentsPage,
@@ -43,6 +44,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'edubridge-catalog',
               component: markRaw(CatalogPage),
               meta: { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' },
+              children: [],
+            },
+            {
+              path: 'catalog/:id',
+              name: 'edubridge-catalog-course',
+              component: markRaw(CourseCardPage),
+              meta: { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true },
               children: [],
             },
             {

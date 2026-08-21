@@ -1,4 +1,5 @@
 export { CatalogPage } from './CatalogPage';
+export { CourseCardPage } from './CourseCardPage';
 export { ConfigurePage } from './ConfigurePage';
 export { AdminCoursesPage } from './AdminCoursesPage';
 export { MemberOnboardingPage } from './MemberOnboardingPage';
