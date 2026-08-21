@@ -11,15 +11,19 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   LOGGER_PORT,
+  REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
 } from '@coopenomics/innercoop';
 
 export const edubridgePorts = {
   required: [
+    DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     LOGGER_PORT,
+    REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   ],
   optional: [
     // Без реестра оферт расширение ставится, но свои программы и оферты

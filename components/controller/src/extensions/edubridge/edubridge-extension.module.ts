@@ -9,6 +9,7 @@ import {
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from './constants/edubridge.constants';
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
+import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
 import { defaultConfig, type IConfig, Schema } from './types';
 
 /**
@@ -22,7 +23,8 @@ import { defaultConfig, type IConfig, Schema } from './types';
 export class EdubridgeExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly configHolder: EdubridgeConfigHolder
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -37,6 +39,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     const extensionData = await this.extensionRepository.findByName(this.name);
     if (!extensionData) throw new Error('Конфиг расширения edubridge не найден');
     this.extension = { ...extensionData, config: merge({}, defaultConfig, extensionData.config) };
+    this.configHolder.set(this.extension.config);
     this.logger.info('edubridge-extension готов');
   }
 }

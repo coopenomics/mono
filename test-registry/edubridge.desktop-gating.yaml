@@ -13,6 +13,8 @@ sources:
     - components/controller/src/extensions/edubridge/application/desktop/**
     - components/controller/src/extensions/edubridge/application/access/**
     - components/controller/src/extensions/edubridge/application/membership/**
+    - components/controller/src/extensions/edubridge/application/policies/**
+    - components/controller/src/extensions/edubridge/application/config/**
   ui:
     - components/desktop/extensions/edubridge/install.ts
 
@@ -52,3 +54,10 @@ cases:
     expect: Все три стола получают маршруты, предупреждений «стол не объявлен» нет.
     test: ~
     status: missing
+  - id: edu.gating.happy.05
+    level: backend
+    kind: happy
+    scenario: Связка с Благоростом включена; рядовой пайщик, преподаватель, совет, гость.
+    expect: Столы capital — преподавателю и совету; рядовому и гостю — нет; оферты/программы capital при вступлении скрыты; при выключенной связке ничего не сужается.
+    test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    status: passing
