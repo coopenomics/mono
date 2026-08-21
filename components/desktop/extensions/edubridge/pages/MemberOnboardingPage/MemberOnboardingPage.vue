@@ -1,13 +1,13 @@
 <template lang="pug">
-EduStubPage(
-  storage-key="member-onboarding"
-  icon="how_to_reg"
-  hint="Чтобы записать обучающихся на курсы, подпишите оферту родителя-слушателя по ЦПП «Образование»."
-  title="Оферта не подписана"
-  body="Подпишите оферту родителя-слушателя."
+EduOfferGate(
+  kind="parent"
+  hint="Чтобы записывать обучающихся на курсы, подпишите оферту родителя-слушателя по ЦПП «Образование». Это можно сделать один раз — дальше только взносы и курсы."
+  description="Оферта родителя-слушателя определяет условия участия в образовательной программе кооператива и включает согласие на передачу почты обучающегося образовательной площадке."
+  offer-title="офертой родителя-слушателя по ЦПП «Образование»"
+  target-route="edubridge-learners"
 )
 </template>
 
 <script setup lang="ts">
-import { EduStubPage } from '../../shared/ui/EduStubPage';
+import { EduOfferGate } from '../../features/OfferGate';
 </script>

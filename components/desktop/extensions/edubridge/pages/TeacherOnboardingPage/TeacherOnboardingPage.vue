@@ -1,13 +1,13 @@
 <template lang="pug">
-EduStubPage(
-  storage-key="teacher-onboarding"
-  icon="how_to_reg"
-  hint="Чтобы преподавать, подпишите оферту преподавателя и договор участия в хозяйственной деятельности."
-  title="Оферта не подписана"
-  body="Подпишите оферту преподавателя."
+EduOfferGate(
+  kind="teacher"
+  hint="Чтобы преподавать в кооперативе, подпишите оферту преподавателя. Договор участия в хозяйственной деятельности будет предложен следом, на столе преподавания."
+  description="Оферта преподавателя определяет условия участия в хозяйственной деятельности кооператива: назначения на курсы, взнос результатами работы и расчёт по нему."
+  offer-title="офертой преподавателя по ЦПП «Образование»"
+  target-route="edubridge-assignments"
 )
 </template>
 
 <script setup lang="ts">
-import { EduStubPage } from '../../shared/ui/EduStubPage';
+import { EduOfferGate } from '../../features/OfferGate';
 </script>

@@ -17,6 +17,12 @@ sources:
     - components/controller/src/extensions/edubridge/application/membership/edubridge-role-facts.adapter.ts
     - components/controller/src/extensions/edubridge/edubridge-extension.module.ts
     - components/controller/src/extensions/edubridge/constants/edubridge-agreement-ids.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-onboarding.service.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/ConfigurePage/**
+    - components/desktop/extensions/edubridge/pages/MemberOnboardingPage/**
+    - components/desktop/extensions/edubridge/pages/TeacherOnboardingPage/**
+    - components/desktop/extensions/edubridge/features/OfferGate/**
 
 cases:
   - id: edu.onb.happy.01
@@ -52,5 +58,12 @@ cases:
     kind: side
     scenario: Пайщик, вступивший по программе «Обучение», позже подписывает оферту преподавателя со стола.
     expect: Обе роли суммируются, столы обоих видны.
+    test: ~
+    status: missing
+  - id: edu.onb.happy.05
+    level: ui
+    kind: happy
+    scenario: Председатель проходит четыре шага подключения; пайщик без оферты видит гейт, подписывает оферту и попадает на стол.
+    expect: После подписи столы перечитываются, гейт уводит на рабочую страницу; при NOT_CONFIGURED — предупреждение вместо кнопки.
     test: ~
     status: missing
