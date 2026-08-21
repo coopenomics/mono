@@ -6,9 +6,16 @@ import {
 } from '@coopenomics/auth';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 
-/** Данные аккаунта, достаточные для вывода уровней верификации. */
+/**
+ * Данные аккаунта, достаточные для вывода уровней верификации.
+ *
+ * Даты пайщик-записи описаны как `unknown`: в схеме это кастомный скаляр
+ * `DateTime`, и SDK отдаёт его именно так. Приводим к строке на входе в ядро
+ * (`toIsoDate`), а не требуем от вызывающих кастовать у себя — иначе каждый
+ * экран с реестром пайщиков обзаводится своим приведением.
+ */
 export interface VerificationSourceAccount {
-  participant_account?: { status?: string | null; created_at?: string | null } | null;
+  participant_account?: { status?: string | null; created_at?: unknown } | null;
   user_account?: {
     verifications?: Array<{
       verificator: string;
@@ -107,10 +114,20 @@ export function participantVerificationView(
   account: VerificationSourceAccount,
   naming: VerificationNaming = {},
 ): ParticipantVerificationView[] {
+  const participant = account.participant_account;
   return deriveVerificationTypes({
-    participant_account: account.participant_account ?? null,
+    participant_account: participant
+      ? { status: participant.status ?? null, created_at: toIsoDate(participant.created_at) }
+      : null,
     user_account: account.user_account ?? null,
   }).map((entry) => verificationLevelView(entry, naming));
+}
+
+/** Скаляр DateTime из SDK — ISO-строка; всё остальное уровню даты не даёт. */
+function toIsoDate(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return null;
 }
 
 /**

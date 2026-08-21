@@ -40,11 +40,8 @@ q-table.participants-table(
 
       q-td
         .participants-table__verification
-          template(v-if='currentLevel(props.row)')
-            BaseBadge(:variant='verificationBadgeVariant(currentLevel(props.row).type)') {{ currentLevel(props.row).short }}
-              q-tooltip {{ currentLevel(props.row).label }}{{ currentLevel(props.row).hint ? ` — ${currentLevel(props.row).hint}` : '' }}
-          BaseBadge(v-else, variant='neutral') Не верифицирован
-            q-tooltip Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок
+          BaseBadge(:variant='verificationCell(props.row).variant') {{ verificationCell(props.row).short }}
+            q-tooltip {{ verificationCell(props.row).tooltip }}
 
     q-tr.q-virtual-scroll--with-prev.no-hover(
       no-hover,
@@ -85,6 +82,7 @@ import {
   verificationBadgeVariant,
   type VerificationNaming,
 } from 'src/shared/lib/verification';
+import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 import {
   type IAccount,
   type IIndividualData,
@@ -161,10 +159,26 @@ const columns: any[] = [
   },
 ];
 
-// Текущий уровень верификации пайщика — один, самый высокий из достигнутых:
-// уровни складываются в лестницу, и совету важно, докуда пайщик поднялся.
-const currentLevel = (row: IAccount) =>
-  highestVerificationLevel(participantVerificationView(row, props.naming));
+// Ячейка верификации: показываем один уровень — самый высокий из достигнутых
+// (уровни складываются в лестницу, и совету важно, докуда пайщик поднялся), а
+// у неверифицированного — тот же бейдж со своей подписью. Хелпер возвращает
+// ячейку всегда: ветвление по null в шаблоне обходится без сужения типов,
+// которого Vue-шаблону не даёт вызов функции.
+const NOT_VERIFIED_CELL = {
+  variant: 'neutral' as BaseBadgeVariant,
+  short: 'Не верифицирован',
+  tooltip: 'Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок',
+};
+
+const verificationCell = (row: IAccount) => {
+  const level = highestVerificationLevel(participantVerificationView(row, props.naming));
+  if (!level) return NOT_VERIFIED_CELL;
+  return {
+    variant: verificationBadgeVariant(level.type),
+    short: level.short,
+    tooltip: level.hint ? `${level.label} — ${level.hint}` : level.label,
+  };
+};
 
 // Форматирование даты
 const formatDate = (date?: string) =>

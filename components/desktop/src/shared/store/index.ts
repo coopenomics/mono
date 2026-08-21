@@ -170,8 +170,10 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
    * подпись.
    */
   const ensureSigningKey = async (): Promise<string> => {
-    if (wif.value) return wif.value.toString();
-    if (unlockProvider) await unlockProvider();
+    // Одним условием, а не ранним `return` на заполненном ключе: после раннего
+    // выхода TypeScript считает ключ навсегда пустым и не верит, что отпирание
+    // его вернуло (тип схлопывается в never).
+    if (!wif.value && unlockProvider) await unlockProvider();
     if (!wif.value) throw new Error('Приватный ключ не установлен');
     return wif.value.toString();
   };

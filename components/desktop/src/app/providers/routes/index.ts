@@ -241,7 +241,7 @@ baseRoutes.push({
   path: '/verify',
   name: 'verify-certificate',
   component: () => import('src/pages/Verify/VerifyCertificatePage.vue'),
-  meta: { title: 'Проверка удостоверения' },
+  meta: { title: 'Проверка удостоверения', icon: 'verified_user' },
 });
 
 const rs = baseRoutes;
