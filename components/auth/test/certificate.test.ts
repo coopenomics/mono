@@ -128,7 +128,7 @@ describe('certificateStatus', () => {
 
 describe('verificationTypeLabel', () => {
   it('известный тип → человекочитаемое описание', () => {
-    expect(verificationTypeLabel('coop_baseline')).toBe('Начальный: подтверждён кооперативом')
+    expect(verificationTypeLabel('coop_baseline')).toBe('Начальный: подтверждён платежом')
   })
 
   it('базовый уровень (сверка паспорта) имеет своё название', () => {
