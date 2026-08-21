@@ -1,0 +1,98 @@
+feature: capital.time-tracking
+title: Учёт рабочего времени по задаче — план, факт, таймер и точки их редактирования
+
+# Факт по задаче (IIssue.fact) — read-only агрегат: backend считает его суммой
+# всех TimeEntry. Записи создаются двумя путями: вручную (capitalAddWorklog,
+# entry_type=manual) и таймером (capitalStartTimer → pause/resume → stop,
+# entry_type=timer). Сессия таймера у участника ровно одна на кооператив:
+# capitalGetOpenTimer возвращает её независимо от того, по какой задаче она
+# открыта, поэтому таймер по второй задаче включить нельзя, пока идёт первый.
+#
+# Показывают и переключают это состояние три места сразу: всплывающее окно
+# времени в строке списка задач (IssueTimeChip), блок «История рабочего
+# времени» на странице задачи (TimeEntriesWidget) и карточка активного таймера
+# на странице «Время» (ActiveTimerWidget). Общая сессия живёт в сторе
+# timeEntriesStore, доменная логика — в composable useIssueTimeTracking; отсюда
+# ключевая ветвь проверки: действие в одном месте видно в остальных без
+# перезагрузки страницы.
+#
+# Права: план (estimate) правится по permissions.can_set_estimate, а таймер и
+# ручные часы — только исполнителями задачи (issue.creators). Это разные
+# ограничения, и окно времени открывается при любом из них.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/time-tracker.resolver.ts
+    - components/controller/src/extensions/capital/application/services/time-tracking.service.ts
+    - components/controller/src/extensions/capital/application/dto/time_tracker/**
+    - components/controller/src/extensions/capital/infrastructure/entities/time-entry.entity.ts
+  ui:
+    - components/desktop/extensions/capital/entities/TimeEntries/**
+    - components/desktop/extensions/capital/features/Issue/TrackTime/**
+    - components/desktop/extensions/capital/features/Issue/UpdateIssue/ui/UpdateEstimate/**
+    - components/desktop/extensions/capital/widgets/TimeEntriesWidget/**
+    - components/desktop/extensions/capital/widgets/ActiveTimerWidget/**
+
+cases:
+  - id: cap.time.ui.01
+    level: ui
+    kind: happy
+    scenario: в строке списка задач открыть окно времени, задать план и тут же добавить фактические часы кнопкой «Факт»
+    expect: план сохранён, факт вырос на добавленные часы, запись появилась в «Последних записях» и в блоке «История рабочего времени» на странице задачи
+    status: missing
+
+  - id: cap.time.ui.02
+    level: ui
+    kind: happy
+    scenario: включить таймер из окна времени в строке задачи, поставить на паузу, продолжить и остановить
+    expect: часы идут посекундно, пауза останавливает отсчёт, после остановки появляется запись типа «таймер», факт задачи пересчитан
+    status: missing
+
+  - id: cap.time.side.01
+    level: ui
+    kind: side
+    scenario: таймер включён из строки списка, затем открыта страница «Время» и страница самой задачи
+    expect: карточка активного таймера и блок истории показывают ту же идущую сессию без перезагрузки страницы; остановка из любого места гасит её во всех
+    status: missing
+
+  - id: cap.time.break.01
+    level: ui
+    kind: break
+    scenario: идёт таймер по одной задаче — открыть окно времени у другой задачи
+    expect: кнопка запуска недоступна, показана подсказка «Таймер уже идёт по другой задаче»; вторая сессия не создаётся
+    status: missing
+
+  - id: cap.time.break.02
+    level: ui
+    kind: break
+    scenario: пользователь не исполнитель задачи открывает окно времени
+    expect: таймер и добавление часов не показаны, факт и последние записи видны; при праве can_set_estimate план всё равно правится
+    status: missing
+
+  - id: cap.time.side.02
+    level: ui
+    kind: side
+    scenario: открыт список задач с идущим таймером по одной из них
+    expect: строка с этой задачей помечена идущим таймером; список не шлёт запрос записей времени по каждой строке — записи грузятся только при открытии окна
+    status: missing
+
+  - id: cap.time.break.03
+    level: backend
+    kind: break
+    scenario: capitalAddWorklog с нулём, отрицательным числом и нечисловым значением часов
+    expect: отказ, запись не создаётся, факт задачи не меняется
+    status: missing
+
+  - id: cap.time.break.04
+    level: backend
+    kind: break
+    scenario: capitalStartTimer от имени участника, у которого уже есть открытая сессия по другой задаче
+    expect: отказ; первая сессия остаётся единственной открытой
+    status: missing
+
+  - id: cap.time.break.05
+    level: backend
+    kind: break
+    scenario: pause/resume/stop без открытой сессии и повтор терминального stop
+    expect: отказ, состояние сессий не меняется
+    status: missing
