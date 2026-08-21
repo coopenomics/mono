@@ -20,8 +20,13 @@ import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.ba
  *  - GET /api/open/v1/school/course/list?token=…  — курсы {id, name, slug, …};
  *  - GET /api/open/v1/school/group/list?token=…   — группы {id, courseId, name, studentsCount};
  *  - GET /api/open/v1/course/structure?token=…&courseId=… — структура курса.
- * Ответы: 200 `{}`/пусто — успех; 400 — неверные данные; 401 — неверный ключ;
- * 403 — доступ запрещён; 405 — метод не поддерживается.
+ * Ответы по документации: 200 `{}`/пусто — успех; 400 — неверные данные;
+ * 401 — неверный ключ; 403 — доступ запрещён; 405 — метод не поддерживается.
+ * Проверено на живой школе 2026-08-21: приглашение работает и на
+ * НЕопубликованный курс и без группы; первый invite нового ученика отвечает
+ * 200 `{"passwordSetupLink": …}`, повторный — 200 `{}` (идемпотентно);
+ * remove идемпотентен (200 `{}`); ошибки приходят как 404 с кодом в теле —
+ * `{"COURSE_NOT_FOUND": …}`, `{"SCHOOL_PUBLIC_TOKEN_NOT_FOUND": …}`.
  *
  * `course_ref` курса — `<ID_КУРСА>` или `<ID_КУРСА>:<ID_ГРУППЫ>` (UUID).
  * Площадке передаётся только почта обучающегося; имя не передаём.
@@ -63,9 +68,15 @@ export class SkillspaceConnector implements AccessCarrierConnector {
         body,
       });
       if (res.ok) return { code: 'ok' };
-      if (res.status === 401) return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
+      const apiCode = this.apiErrorCode(res.body);
+      if (res.status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND') {
+        return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
+      }
+      if (apiCode === 'COURSE_NOT_FOUND') return { code: 'fatal', message: 'Skillspace: курс не найден в школе', error_code: 'COURSE_NOT_FOUND' };
       if (res.status === 403) return { code: 'fatal', message: 'Skillspace: доступ запрещён для этого ключа', error_code: 'FORBIDDEN' };
-      if (res.status === 400) return { code: 'fatal', message: `Skillspace: неверные данные — ${res.text.slice(0, 200)}`, error_code: 'BAD_REQUEST' };
+      if (res.status === 400 || res.status === 404) {
+        return { code: 'fatal', message: `Skillspace: ${apiCode ?? res.text.slice(0, 200)}`, error_code: apiCode ?? 'BAD_REQUEST' };
+      }
       return classifyStatus(res.status, res.text);
     } catch (e) {
       return classifyHttpFailure(e);
@@ -75,11 +86,22 @@ export class SkillspaceConnector implements AccessCarrierConnector {
   private async getJson<T>(path: string): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
     try {
       const res = await httpCall(`${SKILLSPACE_API_BASE}${path}`, { method: 'GET', headers: { Accept: 'application/json' } });
-      if (!res.ok) return { ok: false, status: res.status, message: res.status === 401 ? 'Skillspace: неверный API-ключ школы' : `HTTP ${res.status}` };
+      if (!res.ok) {
+        const apiCode = this.apiErrorCode(res.body);
+        const unauthorized = res.status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND';
+        return { ok: false, status: res.status, message: unauthorized ? 'Skillspace: неверный API-ключ школы' : `HTTP ${res.status}${apiCode ? ` ${apiCode}` : ''}` };
+      }
       return { ok: true, data: res.body as T };
     } catch (e) {
       return { ok: false, status: 0, message: e instanceof Error ? e.message : String(e) };
     }
+  }
+
+  /** Ошибки площадки: `{"COURSE_NOT_FOUND": "api.error.COURSE_NOT_FOUND"}` — код в ключе объекта. */
+  private apiErrorCode(body: unknown): string | null {
+    if (!body || typeof body !== 'object') return null;
+    const key = Object.keys(body as Record<string, unknown>)[0];
+    return key && /^[A-Z_]+$/.test(key) ? key : null;
   }
 
   private guard(request: AccessRequest): ConnectorResult | null {
@@ -107,8 +129,9 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     if (blocked) return blocked;
     const { course } = splitSkillspaceRef(request.course_ref);
     const result = await this.post(`/course/${encodeURIComponent(course)}/student-remove`, new URLSearchParams({ token: this.token(), email: request.recipient.value }));
-    // Ученика уже нет на курсе — площадка отвечает 400; для отзыва это достигнутая цель.
-    if (result.code === 'fatal' && result.error_code === 'BAD_REQUEST') return { code: 'exists', message: 'Ученика уже нет на курсе' };
+    // Удаление идемпотентно (проверено: повторный remove — 200), но если курс
+    // уже удалён в школе — отзывать нечего, цель достигнута.
+    if (result.code === 'fatal' && result.error_code === 'COURSE_NOT_FOUND') return { code: 'exists', message: 'Курса уже нет в школе' };
     return result;
   }
 

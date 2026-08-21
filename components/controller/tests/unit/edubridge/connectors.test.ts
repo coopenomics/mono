@@ -26,13 +26,18 @@ describe('SkillspaceConnector', () => {
     expect(body).not.toContain('name=');
   });
 
-  it('revoke: POST /course/:id/student-remove; 401 — fatal, ученика уже нет — exists', async () => {
-    fetchMock.mockReturnValueOnce(status(401));
-    expect((await new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' })).revoke(req)).error_code).toBe('UNAUTHORIZED');
-    fetchMock.mockReturnValueOnce(status(400, 'not found'));
-    const r = await new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' })).revoke(req);
+  it('revoke: POST /course/:id/student-remove; ошибки площадки — 404 с кодом в теле (как на живой школе)', async () => {
+    const c = new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' }));
+    fetchMock.mockReturnValueOnce(status(404, '{"SCHOOL_PUBLIC_TOKEN_NOT_FOUND":"api.error.SCHOOL_PUBLIC_TOKEN_NOT_FOUND"}'));
+    expect((await c.revoke(req)).error_code).toBe('UNAUTHORIZED');
+    fetchMock.mockReturnValueOnce(status(404, '{"COURSE_NOT_FOUND":"api.error.COURSE_NOT_FOUND"}'));
+    const r = await c.revoke(req);
     expect(r.code).toBe('exists');
     expect(fetchMock.mock.calls[1]![0]).toBe('https://skillspace.ru/api/open/v1/course/777/student-remove');
+    fetchMock.mockReturnValueOnce(status(404, '{"COURSE_NOT_FOUND":"api.error.COURSE_NOT_FOUND"}'));
+    expect((await c.grant(req)).error_code).toBe('COURSE_NOT_FOUND');
+    fetchMock.mockReturnValueOnce(ok({ passwordSetupLink: 'https://x/register' }));
+    expect((await c.grant(req)).code).toBe('ok');
   });
 
   it('check: курс и группа сверяются по реестрам школы — название курса, принадлежность группы', async () => {

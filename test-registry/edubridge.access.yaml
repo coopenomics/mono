@@ -126,8 +126,7 @@ cases:
   - id: edu.access.side.08
     level: backend
     kind: side
-    scenario: "Живой ключ школы Skillspace владельца — проверка только чтением (course/list, group/list выполнены 2026-08-21: 31 курс, ~100 групп)."
-    expect: Пишущие методы (student-invite/remove) с боевым ключом не вызываются до явного разрешения владельца на тестовом курсе/группе.
-    test: ~
-    status: missing
-    decision_needed: true
+    scenario: "Живая проверка на тестовом курсе школы владельца (2026-08-21, «Тестовый курс [coop]», неопубликован, без групп): invite → повторный invite → remove → повторный remove; неверный курс; неверный ключ."
+    expect: "invite 200 на неопубликованный курс без группы (первый раз — passwordSetupLink, повторный — {}); remove 200 идемпотентен; неверный курс — 404 COURSE_NOT_FOUND; неверный ключ — 404 SCHOOL_PUBLIC_TOKEN_NOT_FOUND (не 401 по документации). Коннектор разбирает код из тела."
+    test: components/controller/tests/unit/edubridge/connectors.test.ts
+    status: passing
