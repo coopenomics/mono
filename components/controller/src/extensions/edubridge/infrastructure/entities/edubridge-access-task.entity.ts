@@ -29,6 +29,10 @@ export class EdubridgeAccessTaskEntity {
   @Column({ type: 'varchar', length: 80 })
   public trigger_trx!: string;
 
+  /** Переопределение получателя (при смене контакта отзываем старый адрес). */
+  @Column({ type: 'jsonb', nullable: true })
+  public recipient_override!: { type: string; value: string } | null;
+
   @Column({ type: 'enum', enum: EduAccessTaskStatus, default: EduAccessTaskStatus.PENDING })
   public status!: EduAccessTaskStatus;
 

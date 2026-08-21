@@ -1,0 +1,99 @@
+feature: edubridge.access
+title: Образовательный мост — выдача и отзыв доступа, коннекторы, outbox
+
+# E7 (задача 7DD-8). Взнос принят и оформлен независимо от площадки: факт
+# (доменное событие и/или он-чейн opensub/extendsub/expiresub) → задача в
+# PG-outbox (дедуп по kind+enrollment+trx) → воркер каждые 30 с → коннектор
+# фабрики (grant/revoke/check). Backoff 1→60 мин, N=10 → needs_attention;
+# fatal/LICENSE_LIMIT → сразу needs_attention; exists = успех. Перед выдачей —
+# сверка курса с площадкой (переименован/удалён → needs_attention). По границе
+# paid_until — expiresub ключом кооператива и отзыв; за expiry_notice_days —
+# уведомление; exitcoop — досрочный отзыв всех подписок пайщика.
+#
+# Коннекторы Skillspace/GetCourse написаны по публично известным схемам API;
+# состав эндпоинтов/параметров подлежит сверке с документацией аккаунтов
+# площадок (decision_needed).
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/domain/connectors/**
+    - components/controller/src/extensions/edubridge/infrastructure/connectors/**
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-access-task.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-connector-binding.repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-access-outbox.service.ts
+    - components/controller/src/extensions/edubridge/application/listeners/**
+    - components/controller/src/extensions/edubridge/application/workers/**
+    - components/notifications/src/workflows/edubridge-*/**
+
+cases:
+  - id: edu.access.happy.01
+    level: backend
+    kind: happy
+    scenario: Задача grant выполняется; площадке уходит только контакт обучающегося.
+    expect: done, access_state GRANTED, событие access.granted, в запросе нет ФИО/телефона.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.01
+    level: backend
+    kind: side
+    scenario: Площадка отвечает «пользователь уже существует».
+    expect: Трактуется как успех (exists).
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.02
+    level: backend
+    kind: side
+    scenario: Площадка недоступна (retryable).
+    expect: Задача остаётся pending с backoff 1,2,4…60 мин; после N=10 → needs_attention и уведомление владельцу.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.03
+    level: backend
+    kind: side
+    scenario: Лимит лицензии площадки.
+    expect: needs_attention сразу, здоровье площадки license_limit — обнаруживаемое состояние, не молчаливый отказ.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.04
+    level: backend
+    kind: side
+    scenario: Курс на площадке переименован/удалён; площадка недоступна при сверке.
+    expect: Переименован/удалён → needs_attention без выдачи; недоступна → retryable.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.05
+    level: backend
+    kind: side
+    scenario: Смена почты обучающегося при активной подписке.
+    expect: Отзыв старого адреса (override) не меняет состояние доступа; выдача нового — отдельная задача.
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    status: passing
+  - id: edu.access.side.06
+    level: backend
+    kind: side
+    scenario: Повторное подтверждение (доменное событие + он-чейн событие одной транзакции).
+    expect: Одна задача — дедуп по (kind, enrollment, trx); второго приглашения нет.
+    test: ~
+    status: missing
+  - id: edu.access.happy.02
+    level: backend
+    kind: happy
+    scenario: Наступила граница paid_until; за expiry_notice_days — предупреждение.
+    expect: expiresub ключом кооператива, статус EXPIRED, задача revoke; уведомление отправлено один раз.
+    test: ~
+    status: missing
+  - id: edu.access.happy.03
+    level: backend
+    kind: happy
+    scenario: Пайщик подал заявление о выходе (registrator::exitcoop).
+    expect: Все его подписки закрыты, доступы отозваны.
+    test: ~
+    status: missing
+  - id: edu.access.break.01
+    level: backend
+    kind: break
+    scenario: Реальные ответы Skillspace/GetCourse на grant/revoke/check.
+    expect: Коды ответов соответствуют ожиданиям коннекторов; эндпоинты подтверждены документацией площадок.
+    test: ~
+    status: missing
+    decision_needed: true

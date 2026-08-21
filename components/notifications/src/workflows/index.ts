@@ -49,6 +49,9 @@ import { workflow as marketplaceOfferRejectedWorkflow } from './marketplace-offe
 import { workflow as marketplaceSupplierApprovedWorkflow } from './marketplace-supplier-approved';
 import { workflow as marketplaceAidPayoutConfirmedWorkflow } from './marketplace-aid-payout-confirmed';
 import { workflow as marketplaceAidCouncilDecidedWorkflow } from './marketplace-aid-council-decided';
+import { workflow as edubridgeAccessGrantedWorkflow } from './edubridge-access-granted';
+import { workflow as edubridgeAccessExpiringWorkflow } from './edubridge-access-expiring';
+import { workflow as edubridgeAccessNeedsAttentionWorkflow } from './edubridge-access-needs-attention';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -105,6 +108,9 @@ export * as MarketplaceOfferRejected from './marketplace-offer-rejected';
 export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as MarketplaceAidPayoutConfirmed from './marketplace-aid-payout-confirmed';
 export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided';
+export * as EdubridgeAccessGranted from './edubridge-access-granted';
+export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
+export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
@@ -157,6 +163,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceOfferRejectedWorkflow,
   marketplaceSupplierApprovedWorkflow,
   marketplaceAidPayoutConfirmedWorkflow,
+  edubridgeAccessGrantedWorkflow,
+  edubridgeAccessExpiringWorkflow,
+  edubridgeAccessNeedsAttentionWorkflow,
   marketplaceAidCouncilDecidedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,

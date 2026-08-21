@@ -1,6 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EdubridgeDatabaseModule } from '../infrastructure/database/edubridge-database.module';
+import { ACCESS_CARRIER_CONNECTORS } from '../domain/connectors/access-carrier.connector';
 import { EdubridgeChainAdapter } from '../infrastructure/adapters/edubridge-chain.adapter';
+import { AccessCarrierRegistry } from '../infrastructure/connectors/access-carrier.registry';
+import { GetCourseConnector } from '../infrastructure/connectors/getcourse.connector';
+import { OnsiteConnector } from '../infrastructure/connectors/onsite.connector';
+import { SkillspaceConnector } from '../infrastructure/connectors/skillspace.connector';
+import { EdubridgeAccessTaskRepository } from '../infrastructure/repositories/edubridge-access-task.repository';
+import { EdubridgeConnectorBindingRepository } from '../infrastructure/repositories/edubridge-connector-binding.repository';
 import { EdubridgeCourseRepository } from '../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../infrastructure/repositories/edubridge-learner.repository';
@@ -15,7 +23,14 @@ import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-
 import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
+import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
+import { EdubridgeMembershipExitListener } from './listeners/edubridge-membership-exit.listener';
+import { EdubridgeNotificationListener } from './listeners/edubridge-notification.listener';
+import { EdubridgeOwnerDirectory } from './membership/edubridge-owner.directory';
 import { EdubridgeMemberResolver } from './resolvers/edubridge-member.resolver';
+import { EdubridgeAccessOutboxService } from './services/edubridge-access-outbox.service';
+import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
+import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
 import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
 import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.service';
 import { EdubridgeLearnerService } from './services/edubridge-learner.service';
@@ -24,7 +39,8 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
 
 /** Слой приложения: резолверы, сервисы, доступ, провайдер грантов, политики. */
 @Module({
-  imports: [EdubridgeDatabaseModule],
+  // ScheduleModule.forRoot() идемпотентен: AppModule уже инициализировал планировщик.
+  imports: [EdubridgeDatabaseModule, ScheduleModule.forRoot()],
   providers: [
     EdubridgeConfigHolder,
     { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },
@@ -37,12 +53,32 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeCourseRepository,
     EdubridgeLearnerRepository,
     EdubridgeEnrollmentRepository,
+    EdubridgeAccessTaskRepository,
+    EdubridgeConnectorBindingRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
+    // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
+    SkillspaceConnector,
+    GetCourseConnector,
+    OnsiteConnector,
+    {
+      provide: ACCESS_CARRIER_CONNECTORS,
+      useFactory: (s: SkillspaceConnector, g: GetCourseConnector, o: OnsiteConnector) => [s, g, o],
+      inject: [SkillspaceConnector, GetCourseConnector, OnsiteConnector],
+    },
+    AccessCarrierRegistry,
+    EdubridgeOwnerDirectory,
     // Сервисы
     EdubridgeCourseService,
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
     EdubridgeEnrollmentService,
+    EdubridgeAccessOutboxService,
+    // Воркеры и слушатели
+    EdubridgeOutboxWorker,
+    EdubridgeExpiryWorker,
+    EdubridgeAccessListener,
+    EdubridgeMembershipExitListener,
+    EdubridgeNotificationListener,
     // Резолверы
     EdubridgeCatalogResolver,
     EdubridgeCourseAdminResolver,
