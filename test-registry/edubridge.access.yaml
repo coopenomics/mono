@@ -113,7 +113,7 @@ cases:
     level: backend
     kind: break
     scenario: Пишущие вызовы к площадкам на стенде или при dry_run.
-    expect: Не отправляются ни при каких условиях (environment !== production ИЛИ dry_run) — задача done с last_result «dry-run».
+    expect: "Не отправляются ни при каких условиях (environment !== production ИЛИ dry_run) — задача done с last_result «dry-run»."
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
     status: passing
   - id: edu.access.happy.05
@@ -126,7 +126,7 @@ cases:
   - id: edu.access.side.08
     level: backend
     kind: side
-    scenario: Живой ключ школы Skillspace владельца — проверка только чтением (course/list, group/list выполнены 2026-08-21: 31 курс, ~100 групп).
+    scenario: "Живой ключ школы Skillspace владельца — проверка только чтением (course/list, group/list выполнены 2026-08-21: 31 курс, ~100 групп)."
     expect: Пишущие методы (student-invite/remove) с боевым ключом не вызываются до явного разрешения владельца на тестовом курсе/группе.
     test: ~
     status: missing
