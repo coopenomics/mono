@@ -193,6 +193,24 @@ export enum UdataKey {
 
   /** Дата создания оферты ЦПП «Стол заказов» */
   MARKETPLACE_AGREEMENT_CREATED_AT = 'marketplace_agreement_created_at',
+
+  /** Номер оферты родителя-слушателя ЦПП «Образование» */
+  EDUCATION_PARENT_AGREEMENT_NUMBER = 'education_parent_agreement_number',
+
+  /** Дата оферты родителя-слушателя ЦПП «Образование» */
+  EDUCATION_PARENT_AGREEMENT_CREATED_AT = 'education_parent_agreement_created_at',
+
+  /** Номер оферты преподавателя ЦПП «Образование» */
+  EDUCATION_TEACHER_AGREEMENT_NUMBER = 'education_teacher_agreement_number',
+
+  /** Дата оферты преподавателя ЦПП «Образование» */
+  EDUCATION_TEACHER_AGREEMENT_CREATED_AT = 'education_teacher_agreement_created_at',
+
+  /** Номер договора участия в хозяйственной деятельности (образование) */
+  EDUCATION_CONTRACT_NUMBER = 'education_contract_number',
+
+  /** Дата договора участия в хозяйственной деятельности (образование) */
+  EDUCATION_CONTRACT_CREATED_AT = 'education_contract_created_at',
 }
 
 /**

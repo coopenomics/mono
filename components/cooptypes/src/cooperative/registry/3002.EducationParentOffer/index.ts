@@ -11,9 +11,10 @@ export const registry_id = 3002
 export interface Action extends IGenerate {
   registry_id: number
   /** Персональный номер соглашения. */
-  agreement_number: string
+  /** Явно — при подписи со стола; иначе фабрика берёт из Udata */
+  agreement_number?: string
   /** Дата соглашения (дд.мм.гггг). */
-  agreement_created_at: string
+  agreement_created_at?: string
 }
 
 export type Meta = IMetaDocument & Action

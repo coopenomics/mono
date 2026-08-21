@@ -1,8 +1,9 @@
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationParticipationContract } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { Udata } from '../Models'
 
 export { EducationParticipationContract as Template } from '../Templates'
 
@@ -32,13 +33,31 @@ export class Factory extends DocFactory<EducationParticipationContract.Action> {
     const userData = await this.getUser(data.username, data.block_num)
     const common_user = this.getCommonUser(userData)
 
+    // Персональные номер и дата. Бэкенд edubridge пишет их в Udata ДО генерации,
+    // фабрика читает оттуда — повторный рендер даёт тот же хэш, что подписал
+    // пайщик. Явная передача в `data` имеет приоритет (подпись со стола).
+    const udataService = new Udata(this.storage)
+    let contract_number = data.contract_number
+    if (!contract_number) {
+      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, block_num: data.block_num })
+      contract_number = row?.value ? String(row.value) : ''
+    }
+    let contract_created_at = data.contract_created_at
+    if (!contract_created_at) {
+      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, block_num: data.block_num })
+      contract_created_at = row?.value ? String(row.value) : ''
+    }
+    if (!contract_number || !contract_created_at) {
+      throw new Error('Номер и дата договора участия в хозяйственной деятельности обязательны (не переданы и не найдены в Udata)')
+    }
+
     const combinedData: EducationParticipationContract.Model = {
       meta,
       coop,
       vars,
       common_user,
-      contract_number: data.contract_number,
-      contract_created_at: data.contract_created_at,
+      contract_number,
+      contract_created_at,
     }
 
     await this.validate(combinedData, template.model)

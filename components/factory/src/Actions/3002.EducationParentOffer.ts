@@ -1,8 +1,9 @@
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationParentOffer } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { Udata } from '../Models'
 
 export { EducationParentOffer as Template } from '../Templates'
 
@@ -32,13 +33,31 @@ export class Factory extends DocFactory<EducationParentOffer.Action> {
     const userData = await this.getUser(data.username, data.block_num)
     const common_user = this.getCommonUser(userData)
 
+    // Персональные номер и дата. Бэкенд edubridge пишет их в Udata ДО генерации,
+    // фабрика читает оттуда — повторный рендер даёт тот же хэш, что подписал
+    // пайщик. Явная передача в `data` имеет приоритет (подпись со стола).
+    const udataService = new Udata(this.storage)
+    let agreement_number = data.agreement_number
+    if (!agreement_number) {
+      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_NUMBER, block_num: data.block_num })
+      agreement_number = row?.value ? String(row.value) : ''
+    }
+    let agreement_created_at = data.agreement_created_at
+    if (!agreement_created_at) {
+      const row = await udataService.getOne({ coopname: data.coopname, username: data.username, key: Cooperative.Model.UdataKey.EDUCATION_PARENT_AGREEMENT_CREATED_AT, block_num: data.block_num })
+      agreement_created_at = row?.value ? String(row.value) : ''
+    }
+    if (!agreement_number || !agreement_created_at) {
+      throw new Error('Номер и дата оферты родителя-слушателя ЦПП «Образование» обязательны (не переданы и не найдены в Udata)')
+    }
+
     const combinedData: EducationParentOffer.Model = {
       meta,
       coop,
       vars,
       common_user,
-      agreement_number: data.agreement_number,
-      agreement_created_at: data.agreement_created_at,
+      agreement_number,
+      agreement_created_at,
     }
 
     await this.validate(combinedData, template.model)
