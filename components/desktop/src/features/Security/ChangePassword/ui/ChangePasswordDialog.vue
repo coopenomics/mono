@@ -2,8 +2,8 @@
 BaseDialog(v-model='open', title='Смена пароля', size='sm')
   .chpwd__form
     BaseBanner(variant='info')
-      | После смены пароля все сессии будут завершены — войдите заново с новым
-      | паролем. Цифровая подпись перевыпустится автоматически.
+      | Сеансы на других устройствах завершатся — там нужно будет войти заново.
+      | Здесь выходить не придётся. Цифровая подпись перевыпустится автоматически.
     BaseInput(
       v-model='oldPassword',
       label='Старый пароль',
@@ -45,20 +45,15 @@ BaseDialog(v-model='open', title='Смена пароля', size='sm')
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { BaseBanner, BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { useLogoutUser } from 'src/features/User/Logout';
 import { useChangePassword } from '../model';
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
-const route = useRoute();
-const router = useRouter();
 const { changePassword } = useChangePassword();
-const { logout } = useLogoutUser();
 
 const open = computed({
   get: () => props.modelValue,
@@ -104,12 +99,11 @@ async function onSubmit(): Promise<void> {
   try {
     await changePassword(oldPassword.value, newPassword.value);
     open.value = false;
-    SuccessAlert('Пароль изменён. Войдите заново с новым паролем.');
-    // Сессии отозваны сервером — локально выходим сами и ведём на вход, не
-    // дожидаясь, пока протухший токен уронит первый же запрос.
-    const coopname = route.params.coopname;
-    await logout();
-    void router.push({ name: 'signin', params: { coopname } });
+    // Сессии отозваны сервером, но свою `changePassword` подняла обратно новым
+    // паролём — выходить и вести на форму входа некого. Уходят только сеансы на
+    // других устройствах, и об этом стоит сказать прямо: иначе пайщик узнает об
+    // этом, когда его выбросит из кабинета на телефоне.
+    SuccessAlert('Пароль изменён. Здесь можно работать дальше, а на других устройствах нужно войти заново.');
   } catch (e) {
     FailAlert(e);
   } finally {
