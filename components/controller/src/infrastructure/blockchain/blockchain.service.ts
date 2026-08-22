@@ -108,9 +108,9 @@ export class BlockchainService implements BlockchainPort {
    * мониторинга остатка AXON у кооперативов-спиц (Epic 13 v5.1).
    */
   public async getCurrencyBalance(account: string, symbol: string, contract = 'eosio.token'): Promise<number> {
-    const rows = (await this.apiClient.v1.chain.get_currency_balance(contract, account, symbol)).map((a) =>
-      a.toString(),
-    );
+    const rows = (
+      await this.rpcPool.read((client) => client.v1.chain.get_currency_balance(contract, account, symbol))
+    ).map((a) => a.toString());
     if (!rows.length) return 0;
     const value = parseFloat(rows[0].split(' ')[0]);
     return Number.isFinite(value) ? value : 0;

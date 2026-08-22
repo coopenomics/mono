@@ -61,11 +61,16 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
     await this.initForCoop(data.coopname);
     const formattedQuantity = this.domainToBlockchainUtils.formatQuantityWithPrecision(data.quantity);
 
+    const document = data.document as BillingContract.Actions.Convert.IConvert['document'];
     const payload: BillingContract.Actions.Convert.IConvert = {
       coopname: data.coopname,
       username: data.username,
       amount: formattedQuantity,
-      document: data.document as BillingContract.Actions.Convert.IConvert['document'],
+      // Якорь одноактового процесса p.bil.fund: хэш подписанного заявления —
+      // по нему контракт кладёт документ в реестр совета и ledger2 ведёт
+      // process_hash; повтор того же заявления отклоняется контрактом.
+      convert_hash: document.hash,
+      document,
     };
 
     const result = (await this.blockchainService.transact({

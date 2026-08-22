@@ -1,11 +1,7 @@
 import { ref, computed } from 'vue';
-import { loadProviderSubscriptions, generateConvertToAxonStatement, processConvertToAxonStatement } from '../api';
+import { loadProviderSubscriptions } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
-import { useAccountStore } from 'src/entities/Account/model';
-import { Queries, Mutations } from '@coopenomics/sdk';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { Queries } from '@coopenomics/sdk';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -115,71 +111,5 @@ export function useProviderSubscriptions() {
     loadSubscriptions,
     startAutoRefresh,
     SERVER_IP,
-  };
-}
-
-export type IGenerateConvertToAxonStatementInput = Mutations.Provider.GenerateConvertToAxonStatement.IInput['data'];
-export type IGenerateConvertToAxonStatementResult = Mutations.Provider.GenerateConvertToAxonStatement.IOutput[typeof Mutations.Provider.GenerateConvertToAxonStatement.name];
-
-export type IProcessConvertToAxonStatementInput = Mutations.Provider.ProcessConvertToAxonStatement.IInput;
-export type IProcessConvertToAxonStatementResult = Mutations.Provider.ProcessConvertToAxonStatement.IOutput[typeof Mutations.Provider.ProcessConvertToAxonStatement.name];
-
-/**
- * Composable для конвертации валюты в AXON
- */
-export function useProviderAxonConvert() {
-  const loading = ref(false);
-
-  /**
-   * Конвертирует указанную сумму в AXON
-   */
-  const convertToAxon = async (params: {
-    convertAmount: string;
-    username: string;
-    coopname: string;
-  }) => {
-    try {
-      loading.value = true;
-
-      // Генерируем документ конвертации
-      const generatedDocument = await generateConvertToAxonStatement({
-        convert_amount: params.convertAmount,
-        username: params.username,
-        coopname: params.coopname
-      });
-
-      // Подписываем документ
-      const { signDocument } = useSignDocument();
-      const signedDocument = await signDocument(generatedDocument, params.username);
-
-
-      // Обрабатываем подписанный документ
-      await processConvertToAxonStatement({
-        signedDocument,
-        convertAmount: params.convertAmount,
-        username: params.username
-      });
-
-      // Обновляем баланс AXON после успешной конвертации
-      const session = useSessionStore();
-      const accountStore = useAccountStore();
-      const updatedAccount = await accountStore.getAccount(params.username);
-      if (updatedAccount) {
-        session.setCurrentUserAccount(updatedAccount);
-      }
-
-      SuccessAlert('Конвертация успешно выполнена');
-      return true;
-    } catch (error: any) {
-      FailAlert(error || 'Не удалось выполнить конвертацию');
-      return false;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  return {
-    loading,
-    convertToAxon
   };
 }

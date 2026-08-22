@@ -3,12 +3,9 @@ import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
-import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
-import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
-import { Throttle } from '@nestjs/throttler';
 
 @Resolver()
 export class ProviderResolver {
@@ -55,34 +52,5 @@ export class ProviderResolver {
   @AuthRoles(['member', 'chairman', 'user'])
   async getCurrentInstance(@CurrentUser() currentUser: IMonoAccount): Promise<CurrentInstanceDTO | null> {
     return this.providerService.getCurrentInstance(currentUser.username);
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'generateConvertToAxonStatement',
-    description: 'Генерирует заявление на конвертацию паевого взноса в членский взнос',
-  })
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
-  async generateConvertToAxonStatement(
-    @Args('data', { type: () => ConvertToAxonStatementGenerateDocumentInputDTO })
-    data: ConvertToAxonStatementGenerateDocumentInputDTO,
-    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    return this.providerService.generateConvertToAxonStatement(data, options);
-  }
-
-  @Mutation(() => Boolean, {
-    name: 'processConvertToAxonStatement',
-    description: 'Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
-  async processConvertToAxonStatement(
-    @Args('data', { type: () => ProcessConvertToAxonStatementInputDTO })
-    data: ProcessConvertToAxonStatementInputDTO
-  ): Promise<boolean> {
-    return this.providerService.processConvertToAxonStatement(data);
   }
 }

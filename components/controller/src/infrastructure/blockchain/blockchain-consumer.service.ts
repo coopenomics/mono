@@ -3,6 +3,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
 import { IAction, IDelta } from '~/types/common';
+import { BillingContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { EventsService } from '~/infrastructure/events/events.service';
 import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor';

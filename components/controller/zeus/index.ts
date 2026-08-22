@@ -1997,6 +1997,119 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BaseCapitalProject']?: Omit<ValueTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 }>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ValueTypes["BillingConversionStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Назначение платежа */
+	memo: string | Variable<any, string>,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingResult']?: Omit<ValueTypes["BillingResult"], "...on BillingResult">
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ValueTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummary']?: Omit<ValueTypes["BillingSummary"], "...on BillingSummary">
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummaryItem']?: Omit<ValueTypes["BillingSummaryItem"], "...on BillingSummaryItem">
+}>;
 	["BlockchainAccount"]: AliasType<{
 	/** Имя аккаунта */
 	account_name?:boolean | `@${string}`,
@@ -5408,70 +5521,6 @@ export type ValueTypes = {
 	/** Сумма для конвертации в главный кошелек */
 	wallet_amount: string | Variable<any, string>
 };
-	["ConvertToAxonStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["ConvertToAxonStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация для заявления на конвертацию */
-	meta: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["ConvertToAxonStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
 	["CoopAgreement"]: AliasType<{
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
@@ -5551,6 +5600,24 @@ export type ValueTypes = {
 	program_type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeProgram']?: Omit<ValueTypes["CooperativeProgram"], "...on CooperativeProgram">
+}>;
+	["CooperativeRegistryItem"]: AliasType<{
+	/** Анонсированный домен/сайт кооператива */
+	announce?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname?:boolean | `@${string}`,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?:boolean | `@${string}`,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data?:boolean | `@${string}`,
+	/** Наименование организации кооператива */
+	name?:boolean | `@${string}`,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status?:boolean | `@${string}`,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions?:ValueTypes["ProviderSubscription"],
+		__typename?: boolean | `@${string}`,
+	['...on CooperativeRegistryItem']?: Omit<ValueTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
 }>;
 	/** Страна регистрации пользователя */
 ["Country"]:Country;
@@ -7695,7 +7762,7 @@ export type ValueTypes = {
 	page?: number | undefined | null | Variable<any, string>,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null | Variable<any, string>,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null | Variable<any, string>,
 	sortOrder?: string | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>,
@@ -11798,6 +11865,8 @@ archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
+billingConvert?: [{	input: ValueTypes["BillingConvertInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
+billingPay?: [{	input: ValueTypes["BillingPayInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
@@ -11945,7 +12014,7 @@ generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeet
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-generateConvertToAxonStatement?: [{	data: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ValueTypes["BillingConversionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ValueTypes["ExpenseProposalStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -12083,7 +12152,6 @@ notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"
 overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
-processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
@@ -13173,14 +13241,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ProcessAction']?: Omit<ValueTypes["ProcessAction"], "...on ProcessAction">
 }>;
-	["ProcessConvertToAxonStatementInput"]: {
-	/** Сумма к конвертации */
-	convertAmount: string | Variable<any, string>,
-	/** Подписанный документ заявления на конвертацию */
-	signedDocument: ValueTypes["ConvertToAxonStatementSignedDocumentInput"] | Variable<any, string>,
-	/** Имя пользователя */
-	username: string | Variable<any, string>
-};
 	["ProcessDelta"]: AliasType<{
 	block_num?:boolean | `@${string}`,
 	code?:boolean | `@${string}`,
@@ -13580,8 +13640,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
 	is_trial?:boolean | `@${string}`,
+	/** Тип подписки: time или package */
+	kind?:boolean | `@${string}`,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
 	period_days?:boolean | `@${string}`,
 	/** Цена подписки */
@@ -13733,6 +13799,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>},ValueTypes["BillingSummary"]],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ValueTypes["CapabilitySet"],
@@ -13748,6 +13815,10 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry?:ValueTypes["CooperativeRegistryItem"],
 getCriticalActionAuditTrail?: [{	target_id: string | Variable<any, string>},ValueTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
@@ -16880,6 +16951,116 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 	/** Данные голосования по методу Водянова */
 	voting?:ResolverInputTypes["CapitalProjectVotingData"],
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ResolverInputTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ResolverInputTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ResolverInputTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummaryItem"]: AliasType<{
+	amount?:boolean | `@${string}`,
+	isFree?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	subscriptionId?:boolean | `@${string}`,
+	subscriptionTypeId?:boolean | `@${string}`,
+	subscriptionTypeName?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BlockchainAccount"]: AliasType<{
@@ -20209,70 +20390,6 @@ export type ResolverInputTypes = {
 	/** Сумма для конвертации в главный кошелек */
 	wallet_amount: string
 };
-	["ConvertToAxonStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ConvertToAxonStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для заявления на конвертацию */
-	meta: ResolverInputTypes["ConvertToAxonStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ConvertToAxonStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["CoopAgreement"]: AliasType<{
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
@@ -20348,6 +20465,23 @@ export type ResolverInputTypes = {
 	is_active?:boolean | `@${string}`,
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CooperativeRegistryItem"]: AliasType<{
+	/** Анонсированный домен/сайт кооператива */
+	announce?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname?:boolean | `@${string}`,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?:boolean | `@${string}`,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data?:boolean | `@${string}`,
+	/** Наименование организации кооператива */
+	name?:boolean | `@${string}`,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status?:boolean | `@${string}`,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions?:ResolverInputTypes["ProviderSubscription"],
 		__typename?: boolean | `@${string}`
 }>;
 	/** Страна регистрации пользователя */
@@ -22454,7 +22588,7 @@ export type ResolverInputTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -26425,6 +26559,8 @@ archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
+billingConvert?: [{	input: ResolverInputTypes["BillingConvertInput"]},ResolverInputTypes["BillingResult"]],
+billingPay?: [{	input: ResolverInputTypes["BillingPayInput"]},ResolverInputTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
@@ -26572,7 +26708,7 @@ generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGen
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-generateConvertToAxonStatement?: [{	data: ResolverInputTypes["ConvertToAxonStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ResolverInputTypes["BillingConversionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ResolverInputTypes["ExpenseProposalDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ResolverInputTypes["ExpenseProposalStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -26710,7 +26846,6 @@ notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMe
 overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
-processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
@@ -27746,14 +27881,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	transaction_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ProcessConvertToAxonStatementInput"]: {
-	/** Сумма к конвертации */
-	convertAmount: string,
-	/** Подписанный документ заявления на конвертацию */
-	signedDocument: ResolverInputTypes["ConvertToAxonStatementSignedDocumentInput"],
-	/** Имя пользователя */
-	username: string
-};
 	["ProcessDelta"]: AliasType<{
 	block_num?:boolean | `@${string}`,
 	code?:boolean | `@${string}`,
@@ -28138,8 +28265,14 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
 	is_trial?:boolean | `@${string}`,
+	/** Тип подписки: time или package */
+	kind?:boolean | `@${string}`,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
 	period_days?:boolean | `@${string}`,
 	/** Цена подписки */
@@ -28289,6 +28422,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string,	period?: number | undefined | null},ResolverInputTypes["BillingSummary"]],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ResolverInputTypes["CapabilitySet"],
@@ -28304,6 +28438,10 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry?:ResolverInputTypes["CooperativeRegistryItem"],
 getCriticalActionAuditTrail?: [{	target_id: string},ResolverInputTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
@@ -31356,6 +31494,113 @@ export type ModelTypes = {
 	title: string,
 	/** Данные голосования по методу Водянова */
 	voting: ModelTypes["CapitalProjectVotingData"]
+};
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ModelTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ModelTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+		paymentHash?: string | undefined | null,
+	transactionId: string
+};
+	["BillingSummary"]: {
+		coopname: string,
+	currency: string,
+	items: Array<ModelTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number
+};
+	["BillingSummaryItem"]: {
+		amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string
 };
 	["BlockchainAccount"]: {
 		/** Имя аккаунта */
@@ -34594,70 +34839,6 @@ export type ModelTypes = {
 	/** Сумма для конвертации в главный кошелек */
 	wallet_amount: string
 };
-	["ConvertToAxonStatementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ConvertToAxonStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для заявления на конвертацию */
-	meta: ModelTypes["ConvertToAxonStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ConvertToAxonStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["CoopAgreement"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -34731,6 +34912,22 @@ export type ModelTypes = {
 	is_active: boolean,
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type: string
+};
+	["CooperativeRegistryItem"]: {
+		/** Анонсированный домен/сайт кооператива */
+	announce?: string | undefined | null,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname: string,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?: string | undefined | null,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data: boolean,
+	/** Наименование организации кооператива */
+	name?: string | undefined | null,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status: string,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions: Array<ModelTypes["ProviderSubscription"]>
 };
 	["Country"]:Country;
 	["CreateAnnualGeneralMeetInput"]: {
@@ -36781,7 +36978,7 @@ export type ModelTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -40582,6 +40779,14 @@ export type ModelTypes = {
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: ModelTypes["ForceRecoveryAuthorization"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: ModelTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: ModelTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте
@@ -41130,10 +41335,10 @@ export type ModelTypes = {
 
 Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: ModelTypes["GeneratedDocument"],
-	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto.
 
 Требуемые роли: member, chairman.  */
-	generateConvertToAxonStatement: ModelTypes["GeneratedDocument"],
+	generateBillingConversionStatement: ModelTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.
@@ -41514,10 +41719,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	payWithheldTax: string,
-	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
-
-Требуемые роли: member, chairman.  */
-	processConvertToAxonStatement: boolean,
 	/** Опубликовать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -42572,14 +42773,6 @@ export type ModelTypes = {
 	name: string,
 	transaction_id: string
 };
-	["ProcessConvertToAxonStatementInput"]: {
-	/** Сумма к конвертации */
-	convertAmount: string,
-	/** Подписанный документ заявления на конвертацию */
-	signedDocument: ModelTypes["ConvertToAxonStatementSignedDocumentInput"],
-	/** Имя пользователя */
-	username: string
-};
 	["ProcessDelta"]: {
 		block_num: number,
 	code: string,
@@ -42945,8 +43138,14 @@ export type ModelTypes = {
 	instance_username?: string | undefined | null,
 	/** Пробный период */
 	is_trial: boolean,
+	/** Тип подписки: time или package */
+	kind?: string | undefined | null,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */
 	period_days: number,
 	/** Цена подписки */
@@ -43254,6 +43453,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: ModelTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Каталог наборов возможностей с правами, которые они открывают */
@@ -43272,6 +43475,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry: Array<ModelTypes["CooperativeRegistryItem"]>,
 	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
 	getCriticalActionAuditTrail: Array<ModelTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
@@ -46507,6 +46714,119 @@ export type GraphQLTypes = {
 	/** Данные голосования по методу Водянова */
 	voting: GraphQLTypes["CapitalProjectVotingData"],
 	['...on BaseCapitalProject']: Omit<GraphQLTypes["BaseCapitalProject"], "...on BaseCapitalProject">
+};
+	["BillingConversionStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: GraphQLTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: GraphQLTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+	__typename: "BillingResult",
+	paymentHash?: string | undefined | null,
+	transactionId: string,
+	['...on BillingResult']: Omit<GraphQLTypes["BillingResult"], "...on BillingResult">
+};
+	["BillingSummary"]: {
+	__typename: "BillingSummary",
+	coopname: string,
+	currency: string,
+	items: Array<GraphQLTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number,
+	['...on BillingSummary']: Omit<GraphQLTypes["BillingSummary"], "...on BillingSummary">
+};
+	["BillingSummaryItem"]: {
+	__typename: "BillingSummaryItem",
+	amount: number,
+	isFree: boolean,
+	status: string,
+	subscriptionId: number,
+	subscriptionTypeId: number,
+	subscriptionTypeName: string,
+	['...on BillingSummaryItem']: Omit<GraphQLTypes["BillingSummaryItem"], "...on BillingSummaryItem">
 };
 	["BlockchainAccount"]: {
 	__typename: "BlockchainAccount",
@@ -49919,70 +50239,6 @@ export type GraphQLTypes = {
 	/** Сумма для конвертации в главный кошелек */
 	wallet_amount: string
 };
-	["ConvertToAxonStatementGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["ConvertToAxonStatementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация для заявления на конвертацию */
-	meta: GraphQLTypes["ConvertToAxonStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["ConvertToAxonStatementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Сумма к конвертации в формате строки */
-	convert_amount: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["CoopAgreement"]: {
 	__typename: "CoopAgreement",
 	/** Имя аккаунта кооператива */
@@ -50062,6 +50318,24 @@ export type GraphQLTypes = {
 	/** Тип программы: wallet/generator/blagorost/marketplace и т.п. */
 	program_type: string,
 	['...on CooperativeProgram']: Omit<GraphQLTypes["CooperativeProgram"], "...on CooperativeProgram">
+};
+	["CooperativeRegistryItem"]: {
+	__typename: "CooperativeRegistryItem",
+	/** Анонсированный домен/сайт кооператива */
+	announce?: string | undefined | null,
+	/** Имя аккаунта кооператива (coopname) */
+	coopname: string,
+	/** Дата регистрации заявки кооператива (on-chain) */
+	created_at?: string | undefined | null,
+	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
+	has_provider_data: boolean,
+	/** Наименование организации кооператива */
+	name?: string | undefined | null,
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+	status: string,
+	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
+	subscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
+	['...on CooperativeRegistryItem']: Omit<GraphQLTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
 };
 	/** Страна регистрации пользователя */
 ["Country"]: Country;
@@ -52206,7 +52480,7 @@ export type GraphQLTypes = {
 	page?: number | undefined | null,
 	/** global_sequence родительского apply: возвращает только inline-сибсов (walletop/debit/credit) этого apply через точечную связь parser2 (transaction_id + creator_action_ordinal=apply.action_ordinal). */
 	parentApplyGlobalSequence?: string | undefined | null,
-	/** process_hash для выборки всех действий одной операции */
+	/** process_hash (hex-64) для выборки всех действий одной операции */
 	processHash?: string | undefined | null,
 	sortOrder?: string | undefined | null,
 	username?: string | undefined | null,
@@ -56331,6 +56605,14 @@ export type GraphQLTypes = {
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: GraphQLTypes["ForceRecoveryAuthorization"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement.
+
+Требуемые роли: user, member, chairman.  */
+	billingConvert: GraphQLTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash.
+
+Требуемые роли: chairman.  */
+	billingPay: GraphQLTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте
@@ -56879,10 +57161,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: GraphQLTypes["GeneratedDocument"],
-	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto.
 
 Требуемые роли: member, chairman.  */
-	generateConvertToAxonStatement: GraphQLTypes["GeneratedDocument"],
+	generateBillingConversionStatement: GraphQLTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.
@@ -57263,10 +57545,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	payWithheldTax: string,
-	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
-
-Требуемые роли: member, chairman.  */
-	processConvertToAxonStatement: boolean,
 	/** Опубликовать карточку
 
 Требуемые роли: chairman, member, user.  */
@@ -58455,14 +58733,6 @@ export type GraphQLTypes = {
 	transaction_id: string,
 	['...on ProcessAction']: Omit<GraphQLTypes["ProcessAction"], "...on ProcessAction">
 };
-	["ProcessConvertToAxonStatementInput"]: {
-		/** Сумма к конвертации */
-	convertAmount: string,
-	/** Подписанный документ заявления на конвертацию */
-	signedDocument: GraphQLTypes["ConvertToAxonStatementSignedDocumentInput"],
-	/** Имя пользователя */
-	username: string
-};
 	["ProcessDelta"]: {
 	__typename: "ProcessDelta",
 	block_num: number,
@@ -58863,8 +59133,14 @@ export type GraphQLTypes = {
 	instance_username?: string | undefined | null,
 	/** Пробный период */
 	is_trial: boolean,
+	/** Тип подписки: time или package */
+	kind?: string | undefined | null,
+	/** Месячный потолок RUB для пакетной модели */
+	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Сумма RUB, докупленная в текущем месячном периоде */
+	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */
 	period_days: number,
 	/** Цена подписки */
@@ -59176,6 +59452,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода.
+
+Требуемые роли: chairman, member.  */
+	getBillingSummary: GraphQLTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Каталог наборов возможностей с правами, которые они открывают */
@@ -59194,6 +59474,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
+	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
+
+Требуемые роли: member, chairman.  */
+	getCooperativesRegistry: Array<GraphQLTypes["CooperativeRegistryItem"]>,
 	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
 	getCriticalActionAuditTrail: Array<GraphQLTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
@@ -62575,6 +62859,11 @@ type ZEUS_VARIABLES = {
 	["AuthorizeForceRecoveryInput"]: ValueTypes["AuthorizeForceRecoveryInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BillingConversionStatementGenerateDocumentInput"]: ValueTypes["BillingConversionStatementGenerateDocumentInput"];
+	["BillingConversionStatementSignedDocumentInput"]: ValueTypes["BillingConversionStatementSignedDocumentInput"];
+	["BillingConversionStatementSignedMetaDocumentInput"]: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"];
+	["BillingConvertInput"]: ValueTypes["BillingConvertInput"];
+	["BillingPayInput"]: ValueTypes["BillingPayInput"];
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionSignedDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"];
@@ -62658,9 +62947,6 @@ type ZEUS_VARIABLES = {
 	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
-	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
-	["ConvertToAxonStatementSignedDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedDocumentInput"];
-	["ConvertToAxonStatementSignedMetaDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchExpenseInput"]: ValueTypes["CreateBranchExpenseInput"];
@@ -63044,7 +63330,6 @@ type ZEUS_VARIABLES = {
 	["PaymentFiltersInput"]: ValueTypes["PaymentFiltersInput"];
 	["PaymentStatus"]: ValueTypes["PaymentStatus"];
 	["PaymentType"]: ValueTypes["PaymentType"];
-	["ProcessConvertToAxonStatementInput"]: ValueTypes["ProcessConvertToAxonStatementInput"];
 	["ProcessEdgeInput"]: ValueTypes["ProcessEdgeInput"];
 	["ProcessInstanceStatus"]: ValueTypes["ProcessInstanceStatus"];
 	["ProcessStepPositionInput"]: ValueTypes["ProcessStepPositionInput"];

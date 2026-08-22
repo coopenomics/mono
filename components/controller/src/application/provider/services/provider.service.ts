@@ -8,20 +8,12 @@ import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { ORGANIZATION_REPOSITORY, type OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AmountFormatterUtils } from '@coopenomics/extension-kit';
-import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
-import { SystemBlockchainPort, SYSTEM_BLOCKCHAIN_PORT } from '~/domain/system/interfaces/system-blockchain.port';
-import { AmountComparisonUtils } from '~/shared/utils/amount-comparison.utils';
 
 @Injectable()
 export class ProviderService {
   private readonly logger = new Logger(ProviderService.name);
 
   constructor(
-    private readonly documentDomainService: DocumentDomainService,
-    @Inject(SYSTEM_BLOCKCHAIN_PORT) private readonly systemBlockchainPort: SystemBlockchainPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository
   ) {
@@ -192,52 +184,5 @@ export class ProviderService {
       this.logger.error(`Ошибка при получении инстанса для ${username}: ${error.message}`);
       throw error;
     }
-  }
-
-  /**
-   * Генерирует заявление на конвертацию паевого взноса в членский взнос
-   */
-  async generateConvertToAxonStatement(
-    data: ConvertToAxonStatementGenerateDocumentInputDTO,
-    options: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    // Устанавливаем registry_id для ConvertToAxonStatement
-    data.registry_id = 51;
-    // Форматируем сумму в читаемый формат (1000.0000 RUB -> 1 000,00 RUB)
-    data.convert_amount = AmountFormatterUtils.formatAmount(data.convert_amount);
-    const document = await this.documentDomainService.generateDocument({ data, options });
-    // TODO: чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
-    return document as unknown as GeneratedDocumentDTO;
-  }
-
-  /**
-   * Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
-   */
-  async processConvertToAxonStatement(data: ProcessConvertToAxonStatementInputDTO): Promise<boolean> {
-    // Извлекаем документ из реестра по хэшу для проверки целостности
-    const storedDocument = await this.documentDomainService.getDocumentByHash(data.signedDocument.doc_hash);
-
-    if (!storedDocument) {
-      throw new BadRequestException('Документ не найден в реестре');
-    }
-
-    // Проверяем совпадение хэшей
-    if (storedDocument.hash !== data.signedDocument.doc_hash) {
-      throw new BadRequestException('Хэш документа не совпадает с хранимым');
-    }
-
-    // Проверяем совпадение сумм (число и валюта)
-    AmountComparisonUtils.validateAmountsMatch(data.signedDocument.meta.convert_amount, data.convertAmount);
-
-    // Вызываем блокчейн-транзакцию для конвертации
-    await this.systemBlockchainPort.convertToAxon({
-      coopname: config.coopname,
-      username: data.username,
-      document: data.signedDocument,
-      convert_amount: data.convertAmount,
-    });
-
-    this.logger.log(`Успешно обработано заявление на конвертацию для пользователя ${data.username}`);
-    return true;
   }
 }
