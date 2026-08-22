@@ -11,9 +11,9 @@ const HASH = 'c'.repeat(64);
 
 const build = (existing: any = null, updateAffected = 1) => {
   const repository = {
-    findOne: jest.fn(async () => existing),
-    insert: jest.fn(async () => undefined),
-    update: jest.fn(async () => ({ affected: updateAffected })),
+    findOne: jest.fn<Promise<any>, [any]>(async () => existing),
+    insert: jest.fn<Promise<void>, [any]>(async () => undefined),
+    update: jest.fn<Promise<{ affected: number }>, [any, any]>(async () => ({ affected: updateAffected })),
   };
   return { svc: new BillingPaymentLogService(repository as any), repository };
 };

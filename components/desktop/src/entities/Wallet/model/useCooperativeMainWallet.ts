@@ -10,6 +10,20 @@ import { client } from 'src/shared/api/client'
  *
  * coopname/username реактивны: смена → перезапрос.
  */
+const errorMessage = (e: unknown) => (e as any)?.message ?? String(e)
+// У пайщика может ещё не быть MAIN-кошелька (новый coop) — нули, а не ошибка.
+const isMissingWallet = (msg: string) => /not found|null/i.test(msg)
+
+const unwrap = (v: Ref<string> | (() => string)) => (typeof v === 'function' ? v() : v.value)
+
+const fetchMainWallet = async (coopname: string, username: string) => {
+  const { [Queries.Wallet.GetProgramWallet.name]: wallet } = await client.Query(
+    Queries.Wallet.GetProgramWallet.query,
+    { variables: { filter: { coopname, username, program_type: Zeus.ProgramType.MAIN } } },
+  )
+  return wallet
+}
+
 const splitAsset = (asset?: string | null) => {
   if (!asset) return { amount: '0', symbol: '' }
   const [amount, sym = ''] = String(asset).split(' ')
@@ -21,20 +35,16 @@ export function useCooperativeMainWallet(
   username: Ref<string> | (() => string),
 ) {
   const loading = ref(false)
-  // initialLoading — true ТОЛЬКО до первого успешного ответа. UI должен
-  // ориентироваться на него (а не на loading), иначе при тихих рефрешах
-  // (закрытие диалога конвертации, реактивная смена coopname в две фазы)
-  // плашка моргает «загрузка → значение → загрузка → значение».
+  // initialLoading — true ТОЛЬКО до первого успешного ответа: UI смотрит на него,
+  // иначе при тихих рефрешах плашка моргает «загрузка → значение → загрузка».
   const initialLoading = ref(true)
   const error = ref('')
   const available = ref('0')
   const membership = ref('0')
   const symbol = ref('')
 
-  const getCoopname = () =>
-    typeof coopname === 'function' ? coopname() : coopname.value
-  const getUsername = () =>
-    typeof username === 'function' ? username() : username.value
+  const getCoopname = () => unwrap(coopname)
+  const getUsername = () => unwrap(username)
 
   const applyWallet = (wallet?: { available?: string | null; membership_contribution?: string | null } | null) => {
     const av = splitAsset(wallet?.available)
@@ -44,15 +54,10 @@ export function useCooperativeMainWallet(
     symbol.value = av.symbol || mb.symbol
   }
 
-  // У пайщика может ещё не быть MAIN-кошелька (новый coop) —
-  // показываем нули, а не ошибку.
   const applyError = (e: unknown) => {
-    const msg = (e as any)?.message ?? String(e)
-    if (/not found|null/i.test(msg)) {
-      applyWallet(null)
-    } else {
-      error.value = msg
-    }
+    const msg = errorMessage(e)
+    if (isMissingWallet(msg)) applyWallet(null)
+    else error.value = msg
   }
 
   let inFlight = 0
@@ -70,19 +75,7 @@ export function useCooperativeMainWallet(
     loading.value = true
     error.value = ''
     try {
-      const { [Queries.Wallet.GetProgramWallet.name]: wallet } = await client.Query(
-        Queries.Wallet.GetProgramWallet.query,
-        {
-          variables: {
-            filter: {
-              coopname: c,
-              username: u,
-              program_type: Zeus.ProgramType.MAIN,
-            },
-          },
-        },
-      )
-      applyWallet(wallet)
+      applyWallet(await fetchMainWallet(c, u))
     } catch (e: unknown) {
       applyError(e)
     } finally {
