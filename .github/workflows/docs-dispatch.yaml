@@ -1,0 +1,44 @@
+# ============================================================================
+# Пересборка сайта документации docs.blago.coop при правке страниц в mono.
+#
+# Сайт «Благономика» склеивается из двух репозиториев: каркас и слой блокчейна
+# лежат в C9S/coopenomics, а страницы платформы и приложений — здесь, в
+# components/docs. Релизный триггер обновляет сайт только по выпуску версии,
+# поэтому правки документации между релизами доезжали бы с задержкой в релиз.
+#
+# Сюда же попадают справочники: их собирает CI документации из components/sdk
+# и components/contracts, но пересборку на каждый коммит кода мы не заводим —
+# это тяжёлая сборка с doxygen и typedoc, и её достаточно по релизу.
+# ============================================================================
+name: Trigger docs rebuild
+
+on:
+  push:
+    branches:
+      - dev
+      - testnet
+      - main
+    paths:
+      - 'components/docs/**'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Разбудить сборку docs.blago.coop
+        env:
+          DOCS_DISPATCH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          GITEA_SERVER_URL: ${{ vars.GITEA_SERVER_URL }}
+        run: |
+          if [ -z "$DOCS_DISPATCH_TOKEN" ]; then
+            echo "DOCS_DISPATCH_TOKEN не задан — пропускаем"
+            exit 0
+          fi
+          GITEA_SERVER_URL="${GITEA_SERVER_URL:-https://git.coopenomics.world}"
+          curl -fsSL -X POST \
+            -H "Authorization: token ${DOCS_DISPATCH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"master"}' \
+            "${GITEA_SERVER_URL}/api/v1/repos/C9S/coopenomics/actions/workflows/publish-blago-docs.yaml/dispatches"
+          echo "✓ сборка документации запущена"
