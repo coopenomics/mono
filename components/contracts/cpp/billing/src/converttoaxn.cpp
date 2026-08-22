@@ -63,6 +63,7 @@ void billing::converttoaxn(name coopname, asset amount, checksum256 payment_hash
     _billing,
     _provider,
     operations::billing::CONVERT_TO_AXON,
+    processes::billing::PAY,
     amount,
     coopname,    // L3-разрез: кооператив-пайщик, владелец биллинг-кошелька.
     payment_hash,
