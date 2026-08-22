@@ -59,33 +59,40 @@ export class BillingConversionListener {
       return;
     }
 
+    const parsed = this.parseConvertToAxn(action);
+    if (!parsed) return;
+
     try {
-      const data: any = action.data ?? {};
-      const coopname = String(data.coopname ?? '');
-      const paymentHash = String(data.payment_hash ?? '');
-      const amountRub = this.parseAssetAmount(data.amount);
-      const txId = String(action.transaction_id ?? '');
-
-      if (!coopname || !paymentHash || amountRub == null) {
-        this.logger.warn(
-          `converttoaxn: неполные данные (coop=${coopname}, hash=${paymentHash}, amount=${String(data.amount)}) — пропуск`,
-        );
-        return;
-      }
-
       await this.providerClient.confirmTopupAxon({
-        paymentHash,
-        blockchainTransactionId: txId,
-        coopname,
-        amountRub,
+        paymentHash: parsed.paymentHash,
+        blockchainTransactionId: parsed.txId,
+        coopname: parsed.coopname,
+        amountRub: parsed.amountRub,
       });
       // Дозакрываем PG-журнал: конвертация точно в блоке. Если записи нет
       // (конвертация вне hub-cron'а) — no-op.
-      await this.paymentLog.markConfirmed(paymentHash, txId);
+      await this.paymentLog.markConfirmed(parsed.paymentHash, parsed.txId);
     } catch (err: any) {
       this.logger.error(`converttoaxn → provider: ${err?.message}`, err?.stack);
       // намеренно не пробрасываем — см. docstring класса
     }
+  }
+
+  /** Поля action'а converttoaxn; null (с warn) при неполных данных. */
+  private parseConvertToAxn(
+    action: ActionDomainInterface,
+  ): { coopname: string; paymentHash: string; amountRub: number; txId: string } | null {
+    const data: any = action.data ?? {};
+    const coopname = String(data.coopname ?? '');
+    const paymentHash = String(data.payment_hash ?? '');
+    const amountRub = this.parseAssetAmount(data.amount);
+    if (!coopname || !paymentHash || amountRub == null) {
+      this.logger.warn(
+        `converttoaxn: неполные данные (coop=${coopname}, hash=${paymentHash}, amount=${String(data.amount)}) — пропуск`,
+      );
+      return null;
+    }
+    return { coopname, paymentHash, amountRub, txId: String(action.transaction_id ?? '') };
   }
 
   /**

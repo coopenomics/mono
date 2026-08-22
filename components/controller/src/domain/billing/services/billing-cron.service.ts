@@ -5,7 +5,8 @@ import {
   BILLING_BLOCKCHAIN_PORT,
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
-import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { BillingProviderClient, type ProviderBillingSummary, type ProviderPackageInvoice } from '~/infrastructure/billing/billing-provider.client';
+import { CooperativeChainStatus, ProviderBillingInvoiceStatus, ProviderPackageInvoiceStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { BillingPaymentLogStatus } from '~/infrastructure/billing/entities/billing-payment-log.entity';
 import { ProviderService } from '~/application/provider/services/provider.service';
@@ -90,7 +91,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
    */
   private async activeCoopnames(): Promise<string[]> {
     const registry = await this.providerService.getCooperativesRegistry();
-    return registry.filter((c) => c.status === 'active').map((c) => c.coopname);
+    return registry.filter((c) => c.status === CooperativeChainStatus.ACTIVE).map((c) => c.coopname);
   }
 
   /**
@@ -118,24 +119,18 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   private async processCoop(coopname: string): Promise<void> {
     try {
       const summary = await this.providerClient.getBillingSummary(coopname);
-
-      if (!summary || summary.total_amount <= 0) {
-        return; // всё free или нет подписок — пустые транзакции не гоняем
+      // всё free / нет подписок / срок не подошёл — пустые транзакции не гоняем
+      if (!summary || summary.total_amount <= 0 || !this.isDue(summary.next_payment_due)) {
+        return;
       }
-      if (!this.isDue(summary.next_payment_due)) {
-        return; // срок ещё не подошёл
-      }
-
-      const payableItems = (summary.items ?? [])
-        .filter((item) => !item.is_free && item.amount > 0)
-        .map((item) => ({ subscription_id: item.subscription_id, period_days: summary.period_days }));
+      const payableItems = this.payableItems(summary);
       if (!payableItems.length) {
         return;
       }
 
       // Шаг 2: PENDING-invoice у провайдера (идемпотентно).
       const invoice = await this.providerClient.createInvoice(coopname, payableItems);
-      if (invoice.status === 'PAID') {
+      if (invoice.status === ProviderBillingInvoiceStatus.PAID) {
         this.logger.log(`Invoice ${invoice.payment_hash} (${coopname}) уже PAID — пропуск`);
         return;
       }
@@ -156,33 +151,15 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       // username — пайщик-кооператив, владелец биллинг-кошелька.
       // coopname контракта = кооператив-оператор (его леджер: w.wal.bill —
       // USER_SHARED с L3-разрезом по пайщику, решение @ant 2026-06-11).
-      let transactionId = '';
-      try {
-        const result = await this.blockchainPort.pay({
+      const transactionId = await this.submitToChain(invoice.payment_hash, () =>
+        this.blockchainPort.pay({
           coopname: config.coopname,
           username: coopname,
           quantity,
           paymentHash: invoice.payment_hash,
           memo: `Оплата подписок за ${summary.period_days} дн.`,
-        });
-        transactionId =
-          result && typeof result === 'object' && 'transaction_id' in result
-            ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
-            : '';
-      } catch (error: any) {
-        if (this.isDomainRejection(error)) {
-          // Нода отклонила транзакцию по делу (assert контракта, нехватка
-          // средств) — деньги не списаны, повтор в следующий тик безопасен.
-          await this.paymentLog.markFailed(invoice.payment_hash, String(error?.message ?? error));
-        } else {
-          // Сетевая ошибка/timeout: транзакция МОГЛА пройти. Запись остаётся
-          // SUBMITTING — автоповтор заблокирован; если pay попал в блок,
-          // реактивный листенер парсера доведёт запись до CONFIRMED.
-          await this.paymentLog.recordError(invoice.payment_hash, String(error?.message ?? error));
-        }
-        throw error;
-      }
-      await this.paymentLog.markSubmitted(invoice.payment_hash, transactionId);
+        }),
+      );
 
       // Шаг 5: синхронное подтверждение (реактивный BillingPaymentListener
       // продублирует — провайдер идемпотентен по payment_hash).
@@ -219,65 +196,60 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       // Тарифные guard'ы (квота месяца, cooldown, наличие package-подписки) —
       // у провайдера; при BLOCKED он сам уведомляет кооператив.
       const invoice = await this.providerClient.createPackageInvoice(coopname);
-      if (invoice.status !== 'PENDING' || !invoice.payment_hash || !invoice.total_amount) {
-        if (invoice.status === 'BLOCKED') {
-          this.logger.warn(
-            `Пакет для ${coopname} не докуплен: провайдер заблокировал (${invoice.reason ?? 'без причины'}), AXON=${balance}`,
-          );
-        }
+      if (!this.isPendingPackageInvoice(invoice, coopname, balance)) {
         return;
       }
-
-      const quantity = `${invoice.total_amount.toFixed(config.blockchain.root_govern_precision)} ${config.blockchain.root_govern_symbol}`;
+      const paymentHash = invoice.payment_hash;
+      const amountRub = invoice.total_amount;
+      const quantity = `${amountRub.toFixed(config.blockchain.root_govern_precision)} ${config.blockchain.root_govern_symbol}`;
 
       // Журнал платежей ДО transact — та же идемпотентность, что и в pay-потоке.
-      const begin = await this.paymentLog.begin(invoice.payment_hash, coopname, quantity);
+      const begin = await this.paymentLog.begin(paymentHash, coopname, quantity);
       if (!begin.started) {
-        await this.handleExistingPackageTopup(coopname, invoice.payment_hash, invoice.total_amount, begin.existing?.status, begin.existing?.tx_id);
+        await this.handleExistingPackageTopup(coopname, paymentHash, amountRub, begin.existing?.status, begin.existing?.tx_id);
         return;
       }
 
-      let transactionId = '';
-      try {
-        const result = await this.blockchainPort.convertToAxn({
-          username: coopname,
-          quantity,
-          paymentHash: invoice.payment_hash,
-        });
-        transactionId =
-          result && typeof result === 'object' && 'transaction_id' in result
-            ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
-            : '';
-      } catch (error: any) {
-        if (this.isDomainRejection(error)) {
-          // Доменный отказ (например, на w.wal.bill спицы меньше 1500 ₽) —
-          // деньги не списаны, повтор в следующий тик безопасен.
-          await this.paymentLog.markFailed(invoice.payment_hash, String(error?.message ?? error));
-        } else {
-          // Сетевая ошибка: tx могла пройти. Запись остаётся SUBMITTING,
-          // листенер парсера доведёт до CONFIRMED.
-          await this.paymentLog.recordError(invoice.payment_hash, String(error?.message ?? error));
-        }
-        throw error;
-      }
-      await this.paymentLog.markSubmitted(invoice.payment_hash, transactionId);
+      const transactionId = await this.submitToChain(paymentHash, () =>
+        this.blockchainPort.convertToAxn({ username: coopname, quantity, paymentHash }),
+      );
 
       await this.providerClient.confirmTopupAxon({
-        paymentHash: invoice.payment_hash,
+        paymentHash,
         blockchainTransactionId: transactionId,
         coopname,
-        amountRub: invoice.total_amount,
+        amountRub,
       });
-      await this.paymentLog.markConfirmed(invoice.payment_hash);
+      await this.paymentLog.markConfirmed(paymentHash);
 
       this.logger.log(
-        `Докуплен пакет документооборота для ${coopname}: ${quantity} (payment_hash=${invoice.payment_hash}, AXON был ${balance})`,
+        `Докуплен пакет документооборота для ${coopname}: ${quantity} (payment_hash=${paymentHash}, AXON был ${balance})`,
       );
     } catch (error: any) {
       this.logger.error(
         `BillingCronService: докупка пакета для ${coopname} не выполнена: ${error?.message ?? error}`,
       );
     }
+  }
+
+  /**
+   * PENDING с payment_hash и суммой — можно конвертировать. BLOCKED логируем
+   * (уведомление кооперативу шлёт провайдер), NO_PACKAGE — молча.
+   */
+  private isPendingPackageInvoice(
+    invoice: ProviderPackageInvoice,
+    coopname: string,
+    balance: number,
+  ): invoice is ProviderPackageInvoice & { payment_hash: string; total_amount: number } {
+    if (invoice.status === ProviderPackageInvoiceStatus.PENDING && invoice.payment_hash && invoice.total_amount) {
+      return true;
+    }
+    if (invoice.status === ProviderPackageInvoiceStatus.BLOCKED) {
+      this.logger.warn(
+        `Пакет для ${coopname} не докуплен: провайдер заблокировал (${invoice.reason ?? 'без причины'}), AXON=${balance}`,
+      );
+    }
+    return false;
   }
 
   /**
@@ -344,6 +316,40 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Доменный отказ ноды (assert контракта / walletop): транзакция точно не прошла. */
+  /**
+   * Общий шаг «транзакция под журналом» для pay и converttoaxn: отправить,
+   * при доменном отказе — FAILED (деньги не списаны, повтор безопасен), при
+   * сетевой ошибке — ERROR с записью в SUBMITTING (tx могла пройти, доведёт
+   * листенер парсера); при успехе — SUBMITTED с tx_id.
+   */
+  private async submitToChain(paymentHash: string, send: () => Promise<unknown>): Promise<string> {
+    let transactionId = '';
+    try {
+      const result = await send();
+      transactionId =
+        result && typeof result === 'object' && 'transaction_id' in result
+          ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
+          : '';
+    } catch (error: any) {
+      const message = String(error?.message ?? error);
+      if (this.isDomainRejection(error)) {
+        await this.paymentLog.markFailed(paymentHash, message);
+      } else {
+        await this.paymentLog.recordError(paymentHash, message);
+      }
+      throw error;
+    }
+    await this.paymentLog.markSubmitted(paymentHash, transactionId);
+    return transactionId;
+  }
+
+  /** Позиции invoice: только платные (не free, сумма > 0). */
+  private payableItems(summary: ProviderBillingSummary): Array<{ subscription_id: number; period_days: number }> {
+    return (summary.items ?? [])
+      .filter((item) => !item.is_free && item.amount > 0)
+      .map((item) => ({ subscription_id: item.subscription_id, period_days: summary.period_days }));
+  }
+
   private isDomainRejection(error: any): boolean {
     const message = String(error?.message ?? error ?? '');
     return message.includes('assertion failure') || message.includes('eosio_assert') || message.includes('недостаточно');

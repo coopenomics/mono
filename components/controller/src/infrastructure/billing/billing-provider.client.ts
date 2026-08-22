@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import config from '~/config/config';
+import {
+  ProviderBillingInvoiceStatus,
+  ProviderPackageInvoiceStatus,
+  ProviderSubscriptionStatus,
+} from '~/domain/billing/enums/billing-statuses.enum';
 
 /**
  * Позиция разбивки суммы к оплате (из provider getBillingSummary, Story 12.5).
@@ -9,7 +14,7 @@ export interface ProviderBillingSummaryItem {
   subscription_id: number;
   subscription_type_id: number;
   subscription_type_name: string;
-  status: string;
+  status: ProviderSubscriptionStatus;
   amount: number;
   is_free: boolean;
 }
@@ -37,7 +42,7 @@ export interface ProviderBillingInvoice {
   payment_hash: string;
   coopname: string;
   total_amount: number;
-  status: string;
+  status: ProviderBillingInvoiceStatus;
   expires_at: string;
 }
 
@@ -49,7 +54,7 @@ export interface ProviderBillingInvoice {
  * `NO_PACKAGE` — у кооператива нет активной package-подписки.
  */
 export interface ProviderPackageInvoice {
-  status: 'PENDING' | 'BLOCKED' | 'NO_PACKAGE';
+  status: ProviderPackageInvoiceStatus;
   reason?: string | null;
   payment_hash?: string;
   coopname?: string;

@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { ProviderSubscriptionDTO } from './provider-subscription.dto';
 
 /**
@@ -22,8 +23,8 @@ export class CooperativeRegistryItemDTO {
   @Field(() => String, { nullable: true, description: 'Анонсированный домен/сайт кооператива' })
   announce?: string;
 
-  @Field(() => String, { description: 'Статус кооператива в блокчейне: pending | active | blocked' })
-  status!: string;
+  @Field(() => CooperativeChainStatus, { description: 'Статус кооператива в блокчейне' })
+  status!: CooperativeChainStatus;
 
   @Field(() => String, { nullable: true, description: 'Дата регистрации заявки кооператива (on-chain)' })
   created_at?: string;

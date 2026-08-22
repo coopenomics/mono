@@ -1,4 +1,5 @@
 import { Field, ObjectType, Int, Float } from '@nestjs/graphql';
+import { ProviderSubscriptionStatus } from '~/domain/billing/enums/billing-statuses.enum';
 
 /**
  * Позиция разбивки «суммы к оплате» по подписке (из provider getBillingSummary).
@@ -14,8 +15,8 @@ export class BillingSummaryItemDTO {
   @Field(() => String)
   subscriptionTypeName!: string;
 
-  @Field(() => String)
-  status!: string;
+  @Field(() => ProviderSubscriptionStatus)
+  status!: ProviderSubscriptionStatus;
 
   @Field(() => Float)
   amount!: number;

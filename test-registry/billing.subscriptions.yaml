@@ -1,0 +1,202 @@
+feature: billing.subscriptions
+title: Биллинг инфраструктурных подписок (Epic 12/13/14, проект «Облачный провайдер»)
+
+# Хаб-спицевая модель: Восход (BILLING_HUB_MODE=true) — единственный узел с
+# BillingModule. Пайщик-кооператив переводит паевой → членский на свой
+# биллинг-кошелёк w.wal.bill (billing::convert по подписанному заявлению);
+# хаб-крон списывает оплату подписок (billing::pay) и докупает AXON при
+# исчерпании (billing::converttoaxn) подписью оператора. Состав/цены подписок
+# и квоты — у провайдера (REST /billing/*, server-secret); в цепи только суммы
+# и payment_hash. Журнал платежей PG хаба — единственный барьер от двойного
+# списания (on-chain таблиц контракт не ведёт).
+#
+# Решение @ant 2026-06-11: w.wal.bill — USER_SHARED в леджере оператора;
+# прямой путь soviet::converttoaxn упразднён (кнопка «Пополнить AXON» убрана).
+# На спицах (hub_mode=false) ни крон, ни GraphQL Billing.* не регистрируются.
+
+sources:
+  contract:
+    - components/contracts/cpp/billing/**
+    - components/contracts/cpp/lib/core/ledger2/operations.hpp
+    - components/contracts/cpp/lib/core/ledger2/wallets.hpp
+  backend:
+    - components/controller/src/application/billing/**
+    - components/controller/src/domain/billing/**
+    - components/controller/src/infrastructure/billing/**
+    - components/controller/src/infrastructure/blockchain/adapters/billing-blockchain.adapter.ts
+    - components/controller/src/application/provider/**
+  ui:
+    - components/desktop/src/features/Billing/**
+    - components/desktop/src/entities/Billing/**
+    - components/desktop/src/entities/Wallet/model/useCooperativeMainWallet.ts
+    - components/desktop/src/widgets/ConnectionDashboard/ui/AxonWallet.vue
+    - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipWallet.vue
+
+cases:
+  # ── Хаб-крон: оплата подписок ───────────────────────────────────────────
+  - id: bill.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Активный кооператив в registrator.coops, у провайдера есть сумма к оплате
+      и срок подошёл.
+    expect: >
+      invoice у провайдера → запись SUBMITTING в журнале → billing::pay
+      подписью оператора за пайщика (coopname=оператор, username=спица) →
+      confirmPayment с tx → CONFIRMED; pending-кооперативы не трогаются
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Срок оплаты в будущем, сумма 0 или все позиции free.
+    expect: >
+      invoice не выписывается, транзакций нет
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Провайдер вернул invoice PAID; в журнале запись SUBMITTED; запись SUBMITTING.
+    expect: >
+      PAID → списания нет; SUBMITTED → повтора нет, подтверждение доносится;
+      SUBMITTING → ни повтора, ни подтверждения (сверка с чейном вручную)
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Нода отклонила pay доменно (нет средств на w.wal.bill) / сетевая ошибка.
+    expect: >
+      доменный отказ → FAILED и повтор в следующий тик; сетевая → last_error,
+      статус остаётся SUBMITTING; тик не падает, следующий кооп обрабатывается
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Второй тик пришёл поверх незавершённого.
+    expect: >
+      пропуск (running-guard)
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  # ── Хаб-крон: пакеты документооборота (Epic 13) ─────────────────────────
+  - id: bill.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Ликвидный AXON спицы ниже порога, провайдер выписал package-invoice PENDING.
+    expect: >
+      журнал → billing::converttoaxn (username=спица, payment_hash) →
+      confirmTopupAxon с суммой в рублях → CONFIRMED
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.break.03
+    level: backend
+    kind: break
+    scenario: >
+      AXON выше порога; провайдер ответил BLOCKED (квота/cooldown) или NO_PACKAGE.
+    expect: >
+      конвертации нет; уведомление кооперативу о квоте шлёт провайдер
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  # ── Реактивные листенеры парсера ────────────────────────────────────────
+  - id: bill.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Парсер поймал billing::converttoaxn в блоке (hub-cron мог упасть между
+      transact и confirm).
+    expect: >
+      confirmTopupAxon провайдеру + CONFIRMED в журнале; вне hub-режима / без
+      PROVIDER_BASE_URL / с неполным action — пропуск; ошибка провайдера не
+      роняет парсер
+    test: components/controller/tests/unit/billing/billing-conversion.listener.test.ts
+    status: passing
+
+  - id: bill.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Парсер поймал billing::pay.
+    expect: >
+      confirmPayment провайдеру по payment_hash, журнал CONFIRMED
+    status: missing
+
+  # ── Журнал платежей ─────────────────────────────────────────────────────
+  - id: bill.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Запись по payment_hash уже есть; FAILED; гонка двух тиков на insert (23505).
+    expect: >
+      есть → started=false; FAILED → CAS в SUBMITTING, проигранный CAS →
+      started=false; 23505 → started=false с перечитанной записью; прочие
+      ошибки БД пробрасываются; причины отказа режутся до 4000 символов
+    test: components/controller/tests/unit/billing/billing-payment-log.service.test.ts
+    status: passing
+
+  # ── Пайщик: паевой → членский на w.wal.bill ─────────────────────────────
+  - id: bill.happy.03
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик подписал заявление BillingConversionStatement на сумму N.
+    expect: >
+      billing::convert (convert_hash = хэш заявления) → o.bil.fund: TRANSFER
+      w.wal.share[username] → w.wal.bill[username], Dr 80 / Cr 86; документ в
+      реестре совета по convert_hash; повтор того же convert_hash отклоняется
+    status: missing
+
+  - id: bill.break.05
+    level: contract
+    kind: break
+    scenario: >
+      billing::pay повторно с тем же payment_hash; pay подписан не оператором;
+      на w.wal.bill меньше суммы.
+    expect: >
+      отказы контракта с доменным сообщением; средства не списаны
+    status: missing
+
+  - id: bill.side.05
+    level: contract
+    kind: side
+    scenario: >
+      billing::converttoaxn оператором за спицу.
+    expect: >
+      o.bil.axn: BURN w.wal.bill[username]; inline eosio::injection выпускает
+      AXON кооперативу; ledger2 нитка p.bil.pay
+    status: missing
+
+  # ── GraphQL / desktop ───────────────────────────────────────────────────
+  - id: bill.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Мутации Billing.convert / Billing.pay и generateBillingConversionStatement
+      на хабе и на спице.
+    expect: >
+      на хабе доступны member/chairman (JWT); на спице (hub_mode=false)
+      BillingModule не зарегистрирован — мутаций нет в схеме
+    status: missing
+
+  - id: bill.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Кошелёк членских взносов пайщика и диалог конвертации; кошелёк AXON.
+    expect: >
+      ConvertToBillingDialog: сумма > 0 обязательна, шаг «сформировать» →
+      «подписать»; AxonWallet показывает баланс без кнопки пополнения
+    status: missing

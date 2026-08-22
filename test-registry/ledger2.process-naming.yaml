@@ -267,3 +267,22 @@ cases:
 # вместе с кошельком `w.sov.ndfl`. Гейт согласованности реестров это и
 # поймал: имя было объявлено в processes.hpp, но не попало ни в
 # PROCESS_REGISTRY, ни в локатор бэкенда.
+
+# 2026-08-22 (B2D-17, биллинг-стек провайдера): заведены нитки `p.bil.fund`
+# (пополнение биллинг-кошелька пайщика, o.bil.fund по подписанному заявлению)
+# и `p.bil.pay` (оплата инфраструктурной подписки, o.bil.pay / o.bil.axn по
+# payment_hash из журнала провайдера). Контракт billing on-chain таблиц не
+# ведёт, поэтому локатор бэкенда для обеих пустой — как у p.sov.axncnv.
+
+  - id: l2.pnam.side.14
+    level: contract
+    kind: side
+    scenario: >
+      Контракт billing эмитит имя нитки p.bil.fund на convert и p.bil.pay на
+      pay / converttoaxn; реестры (PROCESS_REGISTRY, cooptypes, локатор) знают
+      обе нитки.
+    expect: >
+      ledger2::apply принимает операции; гейт check-ledger2-processes
+      согласован (25 процессов в контракте и cooptypes, локатор знает обе)
+    status: missing
+

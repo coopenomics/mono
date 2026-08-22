@@ -19,27 +19,26 @@ BaseDialog(
         :button-submit-txt="'Сформировать заявление'"
         @cancel="onCancel"
       )
-        q-input(
+        BaseInput(
           v-model="amountRub"
           type="number"
-          min="1"
-          step="0.01"
           label="Сумма конвертации, ₽"
-          :rules="[(v) => Number(v) > 0 || 'Введите сумму больше нуля']"
-          outlined
+          :error="amountError"
+          required
         ).q-mb-md
 
     div(v-else-if="step === 2")
       Loader(v-if="isLoading" :text="'Формируем документ...'")
       div(v-else-if="generated")
         DocumentHtmlReader(:html="generated.html")
-        div.q-mt-md
-          q-btn(@click="step = 1" flat) назад
-          q-btn(@click="onSign" color="primary" :loading="isSubmitting") подписать
+        div.q-mt-md.row.q-gutter-sm
+          BaseButton(variant="ghost" size="md" @click="step = 1") Назад
+          BaseButton(variant="primary" size="md" :loading="isSubmitting" @click="onSign") Подписать
 </template>
 
 <script setup lang="ts">
-import { BaseDialog } from 'src/shared/ui/base/BaseDialog'
+import { computed } from 'vue'
+import { BaseDialog, BaseButton, BaseInput } from 'src/shared/ui/base'
 import { Form } from 'src/shared/ui/Form'
 import { Loader } from 'src/shared/ui/Loader'
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
@@ -57,7 +56,16 @@ const {
   sign,
 } = useConvertToBilling()
 
+// Подсказка под полем резервируется BaseInput'ом — ошибка не сдвигает форму.
+const amountError = computed(() =>
+  amountRub.value !== '' && Number(amountRub.value) <= 0 ? 'Введите сумму больше нуля' : '',
+)
+
 const onGenerate = async () => {
+  if (!(Number(amountRub.value) > 0)) {
+    FailAlert('Введите сумму больше нуля')
+    return
+  }
   try {
     await generate()
   } catch (e: any) {

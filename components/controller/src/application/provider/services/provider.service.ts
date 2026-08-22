@@ -3,6 +3,7 @@ import { RegistratorContract } from 'cooptypes';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
 import { CooperativeRegistryItemDTO } from '../dto/cooperative-registry-item.dto';
+import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { InstanceStatus } from '~/domain/instance-status.enum';
 import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
@@ -62,7 +63,7 @@ export class ProviderService {
         item.coopname = coop.username;
         item.name = await this.resolveOrganizationName(coop.username, coop.description);
         item.announce = coop.announce;
-        item.status = coop.status;
+        item.status = coop.status as CooperativeChainStatus;
         item.created_at = coop.created_at;
         item.subscriptions = [];
 

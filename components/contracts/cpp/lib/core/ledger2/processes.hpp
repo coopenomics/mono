@@ -137,6 +137,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
+  billing::CONVERT,      billing::PAY,
   soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,

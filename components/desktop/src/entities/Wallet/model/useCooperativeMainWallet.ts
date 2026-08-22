@@ -10,6 +10,12 @@ import { client } from 'src/shared/api/client'
  *
  * coopname/username реактивны: смена → перезапрос.
  */
+const splitAsset = (asset?: string | null) => {
+  if (!asset) return { amount: '0', symbol: '' }
+  const [amount, sym = ''] = String(asset).split(' ')
+  return { amount: amount || '0', symbol: sym }
+}
+
 export function useCooperativeMainWallet(
   coopname: Ref<string> | (() => string),
   username: Ref<string> | (() => string),
@@ -30,10 +36,23 @@ export function useCooperativeMainWallet(
   const getUsername = () =>
     typeof username === 'function' ? username() : username.value
 
-  const splitAsset = (asset?: string | null) => {
-    if (!asset) return { amount: '0', symbol: '' }
-    const [amount, sym = ''] = String(asset).split(' ')
-    return { amount: amount || '0', symbol: sym }
+  const applyWallet = (wallet?: { available?: string | null; membership_contribution?: string | null } | null) => {
+    const av = splitAsset(wallet?.available)
+    const mb = splitAsset(wallet?.membership_contribution)
+    available.value = av.amount
+    membership.value = mb.amount
+    symbol.value = av.symbol || mb.symbol
+  }
+
+  // У пайщика может ещё не быть MAIN-кошелька (новый coop) —
+  // показываем нули, а не ошибку.
+  const applyError = (e: unknown) => {
+    const msg = (e as any)?.message ?? String(e)
+    if (/not found|null/i.test(msg)) {
+      applyWallet(null)
+    } else {
+      error.value = msg
+    }
   }
 
   let inFlight = 0
@@ -63,22 +82,9 @@ export function useCooperativeMainWallet(
           },
         },
       )
-      const av = splitAsset(wallet?.available)
-      const mb = splitAsset(wallet?.membership_contribution)
-      available.value = av.amount
-      membership.value = mb.amount
-      symbol.value = av.symbol || mb.symbol
-    } catch (e: any) {
-      // У пайщика может ещё не быть MAIN-кошелька (новый coop) —
-      // показываем нули, а не ошибку.
-      const msg = e?.message ?? String(e)
-      if (/not found|null/i.test(msg)) {
-        available.value = '0'
-        membership.value = '0'
-        symbol.value = ''
-      } else {
-        error.value = msg
-      }
+      applyWallet(wallet)
+    } catch (e: unknown) {
+      applyError(e)
     } finally {
       inFlight = Math.max(0, inFlight - 1)
       loading.value = false
