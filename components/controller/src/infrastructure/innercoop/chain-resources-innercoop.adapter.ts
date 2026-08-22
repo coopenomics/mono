@@ -18,6 +18,6 @@ export class ChainResourcesInnercoopAdapter implements IChainResourcesPort {
   }
 
   async powerUp(username: string, quantity: string): Promise<void> {
-    return this.blockchainPort.powerUp(username, quantity);
+    await this.blockchainPort.powerUp(username, quantity);
   }
 }

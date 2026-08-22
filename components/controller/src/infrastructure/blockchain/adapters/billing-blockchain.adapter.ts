@@ -5,7 +5,7 @@ import config from '~/config/config';
 import { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '../blockchain.service';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
-import { HttpApiError } from '~/utils/httpApiError';
+import { HttpApiError, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import type {
   BillingBlockchainPort,
@@ -13,7 +13,6 @@ import type {
   BillingConvertToAxnBlockchainDomainInterface,
   BillingPayBlockchainDomainInterface,
 } from '~/domain/billing/ports/billing-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 
 /**
  * Блокчейн-адаптер billing (Epic 12) — оплата подписок членскими взносами.

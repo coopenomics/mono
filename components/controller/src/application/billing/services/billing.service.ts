@@ -5,13 +5,10 @@ import {
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { AmountFormatterUtils, DomainToBlockchainUtils, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { TransactionUtils } from '~/shared/utils/transaction.utils';
 import { Cooperative } from 'cooptypes';
 import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import type { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
 import type { BillingResultDTO } from '../dto/billing-result.dto';
