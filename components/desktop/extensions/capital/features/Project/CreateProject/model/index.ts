@@ -9,6 +9,9 @@ import {
 export type ICreateProjectInput =
   Mutations.Capital.CreateProject.IInput['data'];
 
+export type ICreateLocalProjectOutput =
+  Mutations.Capital.CreateLocalProject.IOutput[typeof Mutations.Capital.CreateLocalProject.name];
+
 export function useCreateProject() {
   const store = useProjectStore();
 
@@ -51,5 +54,19 @@ export function useCreateProject() {
     return transaction;
   }
 
-  return { createProject, createProjectInput };
+  async function createLocalProject(
+    data: ICreateProjectInput,
+  ): Promise<ICreateLocalProjectOutput> {
+    const project = await api.createLocalProject(data);
+
+    await store.loadProject({
+      hash: data.project_hash,
+    });
+
+    resetInput(createProjectInput, initialCreateProjectInput);
+
+    return project;
+  }
+
+  return { createProject, createLocalProject, createProjectInput };
 }

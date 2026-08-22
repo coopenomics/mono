@@ -1,101 +1,95 @@
 <template lang="pug">
-div
-  q-card(flat)
-    div
+//- Родитель кооперативных проектов: список на корне, проект/компонент/задача — children через router-view
+//- (подсветка «Кооперативные проекты» в рейле через matched по name projects-list).
+router-view(v-if='!isWorkshopRoot')
+.projects-list-page(v-else)
+  //- Фильтры живут кнопкой в шапке (FilterDialogWithButton), отдельной
+  //- панели на странице нет
 
-      // Виджет списка проектов
-      ProjectsListWidget(
-        :key='projectsListKey',
-        :expanded='expanded',
-        :has-issues-with-statuses='hasIssuesWithStatuses',
-        :has-issues-with-priorities='hasIssuesWithPriorities',
-        :has-issues-with-creators='hasIssuesWithCreators',
-        :master='master',
-        @toggle-expand='handleProjectToggleExpand',
-        @data-loaded='handleProjectsDataLoaded',
-        @open-project='handleOpenProject'
-        @pagination-changed='handlePaginationChanged'
+  // Виджет списка проектов
+  ProjectsListWidget(
+    :key='projectsListKey',
+    :expanded='expanded',
+    :statuses='projectStatuses',
+    :priorities='projectPriorities',
+    :master='master',
+    :sort-by='sort.sortBy',
+    :sort-order='sort.sortOrder',
+    @toggle-expand='handleProjectToggleExpand',
+    @data-loaded='handleProjectsDataLoaded',
+    @open-project='handleOpenProject'
+    @pagination-changed='handlePaginationChanged'
+  )
+    template(#project-content='{ project }')
+      //- Компоненты приходят вложенными без ORDER BY — сортируем тем же полем локально
+      ComponentsListWidget(
+        :components='sortCapitalList(project.components, sort.sortBy, sort.sortOrder)',
+        :project='project',
+        :expanded='expandedComponents',
+        @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
+        @toggle-component='handleComponentToggle'
       )
-        template(#project-content='{ project }')
-          ComponentsListWidget(
-            :components='project.components',
-            :expanded='expandedComponents',
-            @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
-            @toggle-component='handleComponentToggle'
+        template(#component-content='{ component }')
+          IssuesListWidget(
+            :project-hash='component.project_hash',
+            :can-manage-issues='!!component.permissions?.can_manage_issues',
+            :compact='true',
+            :sort-by='sort.sortBy',
+            :sort-order='sort.sortOrder',
+            @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
           )
-            template(#component-content='{ component }')
-              IssuesListWidget(
-                :project-hash='component.project_hash',
-                :statuses='componentStatuses',
-                :priorities='componentPriorities',
-                :creators='componentCreators',
-                :master='componentMaster',
-                :compact='true',
-                @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
-              )
 
 
-  // Floating Action Button для создания проекта
-  Fab(v-if='session.isChairman || session.isMember')
-    template(#actions)
-      CreateProjectFabAction(ref='createProjectFabRef')
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeMount, onBeforeUnmount, ref, computed, markRaw, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, onBeforeMount, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
-import { Fab } from 'src/shared/ui';
-import { FilterDialogWithButton } from 'app/extensions/capital/shared/ui';
 import { useHeaderActions } from 'src/shared/hooks';
-import { CreateProjectFabAction } from 'app/extensions/capital/features/Project/CreateProject';
+import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Project/CreateProject';
+import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
+import { useListPreferences, sortCapitalList } from 'app/extensions/capital/shared/lib';
 import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
 
 const router = useRouter();
+const route = useRoute();
 const session = useSessionStore();
 
-const createProjectFabRef = ref<{ openDialog: () => void } | null>(null);
-const capitalFabHotkeysEnabled = computed(() => session.isChairman || session.isMember);
+/** Корень списка кооперативных проектов, не вложенный проект/компонент/задача. */
+const isWorkshopRoot = computed(() => route.name === 'projects-list');
+
+// openDialog кнопки-в-шапке прилетает колбэком (см. CreateProjectHeaderButton)
+const openProjectDialog = ref<(() => void) | null>(null);
+const capitalFabHotkeysEnabled = computed(
+  () => isWorkshopRoot.value && (session.isChairman || session.isMember),
+);
 
 useCapitalFabHotkeys(
   () => ({
-    project: () => createProjectFabRef.value?.openDialog(),
+    project: () => openProjectDialog.value?.(),
   }),
   { enabled: capitalFabHotkeysEnabled },
 );
 
-// Используем store для фильтров
 const projectStore = useProjectStore();
 
-// Вычисляемые свойства для фильтров
-const hasIssuesWithStatuses = computed(() => projectStore.projectFilters.statuses);
-const hasIssuesWithPriorities = computed(() => projectStore.projectFilters.priorities);
-const hasIssuesWithCreators = computed(() => projectStore.projectFilters.creators);
-const master = computed(() => projectStore.projectFilters.master);
+// Фильтры и сортировка списка — общие с кнопками в шапке, переживают перезагрузку
+const { filters, sort } = useListPreferences('projects');
 
-// Для компонентов используем те же фильтры
-const componentStatuses = computed(() => projectStore.projectFilters.statuses);
-const componentPriorities = computed(() => projectStore.projectFilters.priorities);
-const componentCreators = computed(() => projectStore.projectFilters.creators);
-const componentMaster = computed(() => projectStore.projectFilters.master);
+// Фильтруем сами проекты: задачи внутри дерева не отсеиваем, для них есть
+// отдельный раздел «Задачи» со своими фильтрами
+const projectStatuses = computed(() => filters.value.entityStatuses);
+const projectPriorities = computed(() => filters.value.entityPriorities);
+const master = computed(() => filters.value.master);
 
 const projectsListKey = ref(0);
 
-// Регистрируем кнопку фильтров в header
+// Регистрируем главное действие страницы в header
 const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
-
-// Кнопка фильтров для header
-const filterButton = computed(() => ({
-  id: 'projects-filter-menu',
-  component: markRaw(FilterDialogWithButton),
-  props: {},
-  stretch: true,
-  style: { height: 'var(--header-action-height)' },
-  order: 1,
-}));
 
 // Ключи для сохранения состояния в LocalStorage
 const PROJECTS_EXPANDED_KEY = 'capital_projects_expanded';
@@ -172,18 +166,53 @@ onBeforeMount(() => {
   };
 });
 
-// Регистрируем действия в header
+function registerListHeaderActions(): void {
+  registerHeaderAction({
+    id: 'capital-projects-filter',
+    component: FilterDialogWithButton,
+    props: { scope: 'projects' },
+    order: 2,
+  });
+  registerHeaderAction({
+    id: 'capital-projects-sort',
+    component: SortMenuButton,
+    props: { scope: 'projects' },
+    order: 3,
+  });
+
+  if (!(session.isChairman || session.isMember)) return;
+  registerHeaderAction({
+    id: 'capital-projects-create',
+    component: CreateProjectHeaderButton,
+    props: {
+      exposeOpen: (fn: () => void) => {
+        openProjectDialog.value = fn;
+      },
+    },
+    order: 1,
+  });
+}
+
+// Регистрируем действия в header только на корне списка
 onMounted(async () => {
   // Загружаем сохраненное состояние expanded из LocalStorage
   loadProjectsExpandedState();
   loadComponentsExpandedState();
 
-  // Регистрируем кнопку фильтров в header
-  registerHeaderAction(filterButton.value);
+  if (isWorkshopRoot.value) {
+    registerListHeaderActions();
+  }
+});
+
+// При уходе во вложенный маршрут / возврате на список — шапка списка
+watch(isWorkshopRoot, (isRoot) => {
+  if (isRoot) registerListHeaderActions();
+  else clearActions();
 });
 
 // Следим за изменениями фильтров и обновляем список
-watch(() => projectStore.projectFilters, () => {
+watch([filters, sort], () => {
+  if (!isWorkshopRoot.value) return;
   projectsListKey.value++;
 }, { deep: true });
 
@@ -196,7 +225,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.q-chip {
-  font-weight: 500;
+// Flex-колонка: панель фильтров сверху, список занимает остаток вьюпорта,
+// скролл живёт внутри списка (virtual-scroll), низ не уезжает за экран
+.projects-list-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 55px);
+
+  :deep(.projects-list-widget) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :deep(.projects-scroll-area) {
+    max-height: none;
+  }
 }
 </style>
+

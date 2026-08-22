@@ -3,7 +3,7 @@ import { ContractManagementInteractor } from '../use-cases/contract-management.i
 import type { SetConfigInputDTO } from '../dto/contract_management/set-config-input.dto';
 import type { GetCapitalConfigInputDTO } from '../dto/contract_management/get-config-input.dto';
 import { StateOutputDTO } from '../dto/contract_management/config-output.dto';
-import type { TransactResult } from '@wharfkit/session';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления контрактом CAPITAL
@@ -16,7 +16,7 @@ export class ContractManagementService {
   /**
    * Установка конфигурации CAPITAL контракта
    */
-  async setConfig(data: SetConfigInputDTO): Promise<TransactResult> {
+  async setConfig(data: SetConfigInputDTO): Promise<InnerTransactResult> {
     return await this.contractManagementInteractor.setConfig(data);
   }
 

@@ -9,10 +9,14 @@
  * @ingroup public_actions
  * @ingroup public_soviet_actions
 
- * @note Авторизация требуется от аккаунта: @p chairman
+ * @note Авторизация требуется от аккаунта: @p coopname
  */
-void soviet::authorize(eosio::name coopname, eosio::name chairman, uint64_t decision_id, document2 document) { 
-  require_auth(chairman);
+void soviet::authorize(eosio::name coopname, eosio::name chairman, uint64_t decision_id, document2 document) {
+  // Авторизует кооператив (действие проводится через бэкенд ключом кооператива).
+  // Согласие председателя при этом не теряется: оно подтверждается криптографически
+  // его личной подписью на документе (verify_document_or_fail ниже) и проверкой
+  // is_valid_chairman — без валидного подписанного председателем документа авторизация невозможна.
+  require_auth(coopname);
 
   boards_index boards(_soviet, coopname.value);
   autosigner_index autosigner(_soviet, coopname.value);
@@ -27,7 +31,9 @@ void soviet::authorize(eosio::name coopname, eosio::name chairman, uint64_t deci
 
   verify_document_or_fail(document);
 
-  decisions.modify(decision, chairman, [&](auto &d){
+  // RAM-плательщик — кооператив: транзакцию авторизует coopname (require_auth выше),
+  // поэтому увеличивать RAM аккаунта председателя нельзя (он tx не подписывал).
+  decisions.modify(decision, coopname, [&](auto &d){
     d.authorized_by = chairman;
     d.authorized = !decision -> authorized;
     d.authorization = document;

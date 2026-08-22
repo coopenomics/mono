@@ -1,7 +1,7 @@
 /**
  * Unit-тесты registerCapitalInAgreementRegistry (Эпик 1.2).
  *
- * Тест чистой функции — не тянет за собой импорт CapitalPlugin
+ * Тест чистой функции — не тянет за собой импорт CapitalExtension
  * (там цепочка с @octokit/rest ESM, которая ломает jest-transform).
  *
  * Покрывают:

@@ -1,6 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
+import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
 import { EventsInfrastructureModule } from '../events/events.module';
@@ -15,11 +17,8 @@ import { ACCOUNT_BLOCKCHAIN_PORT } from '~/domain/account/interfaces/account-blo
 import { AccountBlockchainAdapter } from './adapters/account.adapter';
 import { SovietBlockchainAdapter } from './adapters/soviet-blockchain.adapter';
 import { SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
-import { COOPLACE_BLOCKCHAIN_PORT } from '~/domain/cooplace/interfaces/cooplace-blockchain.port';
-import { CooplaceBlockchainAdapter } from './adapters/cooplace-blockchain.adapter';
 import { MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetBlockchainAdapter } from './adapters/meet-blockchain.adapter';
-import { DomainToBlockchainUtils } from '../../shared/utils/domain-to-blockchain.utils';
 import { GatewayBlockchainAdapter } from './adapters/gateway-blockchain.adapter';
 import { WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
 import { GATEWAY_BLOCKCHAIN_PORT } from '~/domain/gateway/ports/gateway-blockchain.port';
@@ -33,13 +32,17 @@ import { BILLING_BLOCKCHAIN_PORT } from '~/domain/billing/ports/billing-blockcha
 import { SovietContractInfoService } from './services/soviet-contract-info.service';
 import { WalletContractInfoService } from './services/wallet-contract-info.service';
 import { Ledger2ContractInfoService } from './services/ledger2-contract-info.service';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockchain-archive-retention.service';
 
 @Global()
 @Module({
   imports: [RedisModule, EventsInfrastructureModule, VaultInfrastructureModule, VaultDomainModule],
   providers: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
+    DraftRegistrySyncService,
     BlockchainRepeatService,
     {
       provide: BLOCKCHAIN_PORT,
@@ -61,10 +64,6 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     {
       provide: SOVIET_BLOCKCHAIN_PORT,
       useClass: SovietBlockchainAdapter,
-    },
-    {
-      provide: COOPLACE_BLOCKCHAIN_PORT,
-      useClass: CooplaceBlockchainAdapter,
     },
     {
       provide: MEET_BLOCKCHAIN_PORT,
@@ -99,8 +98,10 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
   exports: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
     BlockchainRepeatService,
@@ -109,7 +110,6 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SYSTEM_BLOCKCHAIN_PORT,
     ACCOUNT_BLOCKCHAIN_PORT,
     SOVIET_BLOCKCHAIN_PORT,
-    COOPLACE_BLOCKCHAIN_PORT,
     MEET_BLOCKCHAIN_PORT,
     GATEWAY_BLOCKCHAIN_PORT,
     WALLET_BLOCKCHAIN_PORT,
@@ -120,6 +120,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SovietContractInfoService,
     WalletContractInfoService,
     Ledger2ContractInfoService,
+    BlockchainArchiveRetentionService,
   ],
 })
 export class BlockchainModule {}

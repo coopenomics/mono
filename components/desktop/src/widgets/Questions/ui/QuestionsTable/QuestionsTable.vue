@@ -26,6 +26,7 @@
       :is-voted-against='isVotedAgainst',
       :is-voted-any='isVotedAny',
       @authorize='onAuthorizeDecision(row)',
+      @decline='onDeclineDecision(row)',
       @vote-for='onVoteFor(row)',
       @vote-against='onVoteAgainst(row)'
     )
@@ -73,7 +74,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['authorize', 'vote-for', 'vote-against']);
+const emit = defineEmits(['authorize', 'decline', 'vote-for', 'vote-against']);
 
 const isProcessing = (decisionId: number) => {
   return Boolean(props.processingDecisions[decisionId]);
@@ -81,6 +82,10 @@ const isProcessing = (decisionId: number) => {
 
 const onAuthorizeDecision = (row: IAgenda) => {
   emit('authorize', row);
+};
+
+const onDeclineDecision = (row: IAgenda) => {
+  emit('decline', row);
 };
 
 const onVoteFor = (row: IAgenda) => {

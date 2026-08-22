@@ -9,7 +9,7 @@ div
     outline
     type="textarea"
     autogrow
-    hide-bottom-space
+    :hide-bottom-space="!$slots.hint"
     :rules="[val => !!val || 'Название проекта обязательно']"
   ).full-width.capital-title-editor-input
     template(#prepend)
@@ -25,8 +25,10 @@ div
         @click="resetChanges"
       )
         q-tooltip Отменить изменения
-      slot(v-else name="prepend-icon")
-        q-icon(name='work', size='24px', color='primary')
+      .row.items-center.no-wrap.q-gutter-xs(v-else)
+        PrivateShieldIcon(:show='project?.origin === "local"')
+        slot(name="prepend-icon")
+          q-icon(name='work', size='24px', color='primary')
 
     template(#append)
       .capital-title-editor-append.column.items-end.justify-center.q-gutter-y-sm
@@ -41,12 +43,20 @@ div
             @click="saveChanges"
           )
             q-tooltip Сохранить изменения
-        EntityIdBadge(
-          v-if="!(hasChanges && project?.permissions?.can_edit_project)"
-          :raw-id="project?.id"
-          copy-on-click
-          address-clipboard
-        )
+        .row.items-center.no-wrap(v-if="!(hasChanges && project?.permissions?.can_edit_project)")
+          FavoriteStarButton(
+            v-if='project?.project_hash',
+            :target-type='favoriteTargetType',
+            :target-hash='project.project_hash'
+          )
+          EntityIdBadge(
+            :raw-id="project?.id"
+            copy-on-click
+            address-clipboard
+          )
+
+    template(v-if="$slots.hint", #hint)
+      slot(name="hint")
 </template>
 
 <script lang="ts" setup>
@@ -55,11 +65,22 @@ import type { IProject, IProjectPermissions } from 'app/extensions/capital/entit
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
 import { useEditProject } from 'app/extensions/capital/features/Project/EditProject';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
+import { Zeus } from '@coopenomics/sdk';
 
 const props = defineProps<{
   project: IProject | null | undefined;
   label?: string;
 }>();
+
+// Компонент — тот же CapitalProject с родителем; тип избранного по parent_hash
+const favoriteTargetType = computed(() =>
+  props.project && isProject(props.project)
+    ? Zeus.CapitalFavoriteTargetType.PROJECT
+    : Zeus.CapitalFavoriteTargetType.COMPONENT,
+);
 
 const emit = defineEmits<{
   fieldChange: [];

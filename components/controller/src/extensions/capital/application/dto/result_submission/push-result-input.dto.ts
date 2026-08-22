@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Type } from 'class-transformer';
 
 /**

@@ -13,20 +13,37 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
   }
 
   async generateDocument(data: GeneratorOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<GeneratorOffer.Model>
+    // Извлечение данных из Udata репозитория
+    const udataService = new Udata(this.storage)
 
-    if (process.env.SOURCE === 'local') {
-      template = GeneratorOffer.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, GeneratorOffer.registry_id, data.block_num)
-    }
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, vars, coop, user, generatorAgreementUdata, generatorAgreementCreatedAtUdata, docData } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(GeneratorOffer.Template as ITemplate<GeneratorOffer.Model>)
+        : this.getTemplate<GeneratorOffer.Model>(DraftContract.contractName.production, GeneratorOffer.registry_id, data.block_num),
+      vars: () => this.getVars(data.coopname),
+      coop: () => this.getCooperative(data.coopname),
+      user: () => this.getUser(data.username, data.block_num),
+      generatorAgreementUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
+        block_num: data.block_num,
+      }),
+      generatorAgreementCreatedAtUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
+        block_num: data.block_num,
+      }),
+      docData: () => this.loadDocData<GeneratorOffer.Model['doc_data']>(data),
+    })
 
+    // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const vars = await this.getVars(data.coopname)
-    const coop = await this.getCooperative(data.coopname)
-    const user = await this.getUser(data.username, data.block_num)
+
     const common_user = this.getCommonUser(user)
+    const doc_data = Cooperative.Registry.requireCapitalProgramPrivateData(docData, GeneratorOffer.registry_id)
 
     // Проверяем наличие данных протокола, утвердившего генерационную программу
     if (!vars.generator_program?.protocol_number || !vars.generator_program?.protocol_day_month_year) {
@@ -38,26 +55,9 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
       throw new Error('Данные протокола об утверждении шаблона оферты генератора не найдены. Сначала утвердите шаблон оферты генератора и сохраните данные протокола.')
     }
 
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
-    const generatorAgreementUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_NUMBER,
-      block_num: data.block_num,
-    })
-
     if (!generatorAgreementUdata?.value) {
       throw new Error('Данные генерационного соглашения не найдены в Udata')
     }
-
-    const generatorAgreementCreatedAtUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
-      block_num: data.block_num,
-    })
 
     if (!generatorAgreementCreatedAtUdata?.value) {
       throw new Error('Дата создания генерационного соглашения не найдена в Udata')
@@ -70,6 +70,7 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
       common_user,
       generator_agreement_number: String(generatorAgreementUdata.value),
       generator_agreement_created_at: String(generatorAgreementCreatedAtUdata.value),
+      doc_data,
     }
 
     await this.validate(combinedData, template.model)

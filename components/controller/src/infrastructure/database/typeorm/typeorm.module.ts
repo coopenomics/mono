@@ -3,11 +3,10 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import path from 'path';
 import config from '~/config/config';
-import { EXTENSION_REPOSITORY } from '~/domain/extension/repositories/extension-domain.repository';
+import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY, extensionEntities } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
-import { LOG_EXTENSION_REPOSITORY } from '~/domain/extension/repositories/log-extension-domain.repository';
 import { TypeOrmLogExtensionDomainRepository } from './repositories/typeorm-log-extension.repository';
 import { MeetPreEntity } from './entities/meet-pre.entity';
 import { MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
@@ -24,6 +23,9 @@ import { TypeOrmMeetProcessedRepository } from './repositories/typeorm-meet-proc
 import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
+import { PaymentFileEntity } from './entities/payment-file.entity';
+import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
+import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
 import { WebPushSubscriptionEntity } from './entities/web-push-subscription.entity';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
 import { TypeOrmWebPushSubscriptionRepository } from './repositories/typeorm-web-push-subscription.repository';
@@ -36,12 +38,21 @@ import { AgreementTypeormRepository } from './repositories/agreement.typeorm-rep
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { ActionEntity } from './entities/action.entity';
+import { DraftTemplateEntity } from './entities/draft-template.entity';
+import { DraftTranslationEntity } from './entities/draft-translation.entity';
+import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-registry.repository';
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
-import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
-import { EntityVersionRepository } from '~/shared/sync/repositories/entity-version.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import {
+  EntityVersionTypeormEntity,
+  EntityVersionRepository,
+  EntityVersioningService,
+  InvalidatedEntityTypeormEntity,
+  InvalidatedEntityVersionTypeormEntity,
+  InvalidatedEntityRepository,
+  InvalidatedEntityVersionRepository,
+} from '@coopenomics/extension-kit/sync';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -50,6 +61,9 @@ import { TypeOrmActionRepository } from './repositories/typeorm-action.repositor
 import { TypeOrmDeltaRepository } from './repositories/typeorm-delta.repository';
 import { TypeOrmForkRepository } from './repositories/typeorm-fork.repository';
 import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.repository';
+import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
+import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
+import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
 import { SettingsEntity } from './entities/settings.entity';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsTypeormRepository } from './repositories/settings.typeorm-repository';
@@ -88,25 +102,54 @@ import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
 import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-index-initializer.service';
+import { SignedDocumentEntity } from './entities/signed-document.entity';
+import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
+import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
+import { NotificationOutboxTypeormEntity } from './entities/notification-outbox.typeorm-entity';
+import { NotificationDeliveryTypeormEntity } from './entities/notification-delivery.typeorm-entity';
+import { NotificationInboxTypeormEntity } from './entities/notification-inbox.typeorm-entity';
 
 @Global()
 @Module({
   imports: [
-    NestTypeOrmModule.forRoot({
-      type: 'postgres',
-      host: config.postgres.host,
-      port: Number(config.postgres.port),
-      username: config.postgres.username,
-      password: config.postgres.password,
-      database: config.postgres.database,
-      entities: [
-        'src/infrastructure/**/entities/*entity.{ts,js}',
-        'src/extensions/**/entities/*entity.{ts,js}',
-        'src/shared/**/entities/*entity.{ts,js}',
-      ],
-      //      synchronize: config.env === 'development', // Используем миграции для production
-      synchronize: true, // Временно всегда синхронизируем
-      logging: false,
+    // forRootAsync, а не forRoot: состав таблиц расширений известен только
+    // после того, как загрузился реестр, а он загружается позже подключения к
+    // базе. Фабрика вычисляется при инициализации модуля — к этому моменту
+    // граф уже собран и каждое расширение свой состав объявило.
+    NestTypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres' as const,
+        host: config.postgres.host,
+        port: Number(config.postgres.port),
+        username: config.postgres.username,
+        password: config.postgres.password,
+        database: config.postgres.database,
+        entities: [
+          // Глоб от каталога самого модуля, а не от места запуска: в контейнере
+          // выполняется сборка (`dist/src/...`), и путь «src/...» не нашёл бы
+          // ни одной таблицы
+          path.join(__dirname, '../../..', 'infrastructure/**/entities/*entity.{ts,js}'),
+          path.join(__dirname, '../../..', 'shared/**/entities/*entity.{ts,js}'),
+          // Таблица версий приехала из `src/shared/sync/entities/` в
+          // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
+          // глоб по `src/` её больше не находит. Классом — находит; DataSource
+          // принимает и пути, и классы. Базовые классы каркаса (BaseTypeormEntity)
+          // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
+          // глобального хранилища метаданных по цепочке прототипов наследника.
+          EntityVersionTypeormEntity,
+          // Архив снесённых форком записей — из того же пакета и по той же
+          // причине: глоб по `src/` его не находит.
+          InvalidatedEntityTypeormEntity,
+          InvalidatedEntityVersionTypeormEntity,
+          // Таблицы расширений — по декларации самого расширения, а не по его
+          // положению на диске: установленное пакетом расширение ни под какой
+          // глоб по `src/` не попадёт и своих таблиц не получит.
+          ...extensionEntities(),
+        ],
+        //      synchronize: config.env === 'development', // Используем миграции для production
+        synchronize: true, // Временно всегда синхронизируем
+        logging: false,
+      }),
     }),
     NestTypeOrmModule.forFeature([
       ExtensionEntity,
@@ -116,14 +159,20 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
+      PaymentFileEntity,
       WebPushSubscriptionEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
+      DraftTemplateEntity,
+      DraftTranslationEntity,
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
+      ConsumerDedupEntity,
       EntityVersionTypeormEntity,
+      InvalidatedEntityTypeormEntity,
+      InvalidatedEntityVersionTypeormEntity,
       SettingsEntity,
       TokenEntity,
       UserEntity,
@@ -135,6 +184,10 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
+      SignedDocumentEntity,
+      NotificationOutboxTypeormEntity,
+      NotificationDeliveryTypeormEntity,
+      NotificationInboxTypeormEntity,
       BillingPaymentLogEntity,
     ]),
   ],
@@ -168,6 +221,10 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       useClass: TypeOrmPaymentRepository,
     },
     {
+      provide: PAYMENT_FILE_REPOSITORY,
+      useClass: TypeormPaymentFileRepository,
+    },
+    {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
       useClass: TypeOrmWebPushSubscriptionRepository,
     },
@@ -183,6 +240,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     AgreementTypeormRepository,
     AgreementDeltaMapper,
     AgreementSyncService,
+    TypeOrmDraftRegistryRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
       useClass: TypeOrmActionRepository,
@@ -198,6 +256,10 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     {
       provide: SYNC_STATE_REPOSITORY_PORT,
       useClass: TypeOrmSyncStateRepository,
+    },
+    {
+      provide: CONSUMER_DEDUP_REPOSITORY_PORT,
+      useClass: TypeOrmConsumerDedupRepository,
     },
     {
       provide: SETTINGS_REPOSITORY,
@@ -251,11 +313,19 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     UserWalletDeltaMapper,
     UserWalletSyncService,
     UserWalletIndexInitializer,
+    // Реестр подписанных документов (Postgres-проекция, C28-21)
+    {
+      provide: SIGNED_DOCUMENT_REPOSITORY,
+      useClass: SignedDocumentTypeormRepository,
+    },
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
   exports: [
     NestTypeOrmModule,
+    TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
@@ -263,6 +333,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     MIGRATION_REPOSITORY,
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
+    PAYMENT_FILE_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,
     AGREEMENT_REPOSITORY,
@@ -271,6 +342,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     DELTA_REPOSITORY_PORT,
     FORK_REPOSITORY_PORT,
     SYNC_STATE_REPOSITORY_PORT,
+    CONSUMER_DEDUP_REPOSITORY_PORT,
     SETTINGS_REPOSITORY,
     TOKEN_REPOSITORY,
     USER_REPOSITORY,
@@ -286,8 +358,11 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
     USER_WALLET_REPOSITORY,
     UserWalletDeltaMapper,
     UserWalletSyncService,
+    SIGNED_DOCUMENT_REPOSITORY,
     EntityVersionRepository,
     EntityVersioningService,
+    InvalidatedEntityRepository,
+    InvalidatedEntityVersionRepository,
   ],
 })
 export class TypeOrmModule {}

@@ -37,7 +37,7 @@ src/
 │   ├── accounts/, agenda/, agreements/, blockchain-explorer/
 │   ├── branches/, capital/, desktop/, documents/
 │   ├── extensions/, gateway/, ledger/, meet/
-│   ├── notification/, onecoop/, paymentMethods/
+│   ├── notification/, paymentMethods/
 │   ├── registration/, system/, wallet/
 │   └── ...
 ├── selectors/           — GraphQL Zeus селекторы — типобезопасные объекты выборки полей

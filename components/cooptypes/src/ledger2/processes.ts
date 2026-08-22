@@ -22,6 +22,7 @@ export interface ProcessMeta {
 export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   // registrator
   { type: 'p.reg.accept',   contract: 'registrator',  name: 'ACCEPT',      human_name: 'Приём пайщика' },
+  { type: 'p.reg.refund',   contract: 'registrator',  name: 'REFUND',      human_name: 'Возврат регистрационного взноса при отказе совета' },
 
   // wallet
   { type: 'p.wal.depo',     contract: 'wallet',       name: 'DEPOSIT',     human_name: 'Внесение паевого взноса' },
@@ -35,12 +36,24 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.cap.prop',     contract: 'capital',      name: 'PROPERTY',    human_name: 'Приём имущественного паевого взноса' },
   { type: 'p.cap.preimp',   contract: 'capital',      name: 'PREIMP',      human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
   { type: 'p.cap.wthcap',   contract: 'capital',      name: 'WTHCAP',      human_name: 'Возврат паевого из ЦПП «Благорост» в кошелёк' },
+  { type: 'p.cap.pgexp',    contract: 'capital',      name: 'PGEXP',       human_name: 'Пополнение пула программных расходов' },
+
+  // expense
+  { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 
   // marketplace
-  { type: 'p.mkt.reqst',    contract: 'marketplace',  name: 'REQUEST',     human_name: 'Запрос маркетплейса' },
+  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка и приобретение имущества пайщика' },
+  { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
+  { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
+
+  // branch — экономика кооперативного участка (requirement b6)
+  { type: 'p.brn.fees',     contract: 'branch',       name: 'FEES',        human_name: 'Членские взносы кооперативного участка' },
+  { type: 'p.brn.aid',      contract: 'branch',       name: 'AID',         human_name: 'Материальная помощь доверенного кооперативного участка' },
+  { type: 'p.brn.spend',    contract: 'branch',       name: 'SPEND',       human_name: 'Оплата расхода кооперативного участка' },
 
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },
+  { type: 'p.sov.tax',      contract: 'soviet',       name: 'TAX',         human_name: 'Перечисление удержанного налога в бюджет' },
 
   // migration
   { type: 'p.mig.trans',    contract: 'migration',    name: 'TRANSIT',     human_name: 'Миграция legacy → ledger2' },

@@ -4,14 +4,17 @@ import WebSocket from 'isomorphic-ws'
 
 import * as Classes from './classes'
 import * as Mutations from './mutations'
-import { type GraphQLResponse, Thunder, Subscription as ZeusSubscription } from './zeus/index'
+import { wsSubscription, type WsSubscriptionApi } from './utils/wsSubscription'
+import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
 
-import { ZeusScalars } from './zeus/index'
+/** Таймаут HTTP GraphQL — без него при мёртвом бэкенде fetch висит и копит запросы. */
+const HTTP_TIMEOUT_MS = 30_000
 
 export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
 export * as Selectors from './selectors'
+export * as Subscriptions from './subscriptions'
 
 export * as Types from './types'
 
@@ -21,14 +24,37 @@ if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket as any
 }
 
+/**
+ * Адрес GraphQL → адрес вебсокета.
+ *
+ * `api_url` может быть относительным (`/backend/v1/graphql`) — так фронт и бэкенд
+ * живут на одном адресе за общим прокси, и запрос не зависит от того, открыт стенд
+ * по localhost, по IP или по домену. Простая замена схемы на относительном пути
+ * ничего не делает, а конструктор WebSocket с относительным адресом ведёт себя
+ * по-разному в разных браузерах. Поэтому достраиваем адрес до абсолютного от
+ * origin страницы и только потом меняем схему.
+ */
+function toWebSocketUrl(apiUrl: string): string {
+  const absolute
+    = /^https?:\/\//.test(apiUrl)
+      ? apiUrl
+      : typeof window !== 'undefined' && window.location
+        ? new URL(apiUrl, window.location.origin).toString()
+        : apiUrl
+  return absolute.replace(/^http/, 'ws')
+}
+
 export class Client {
   private currentHeaders: Record<string, string> = {}
+  private accessTokenProvider?: () => Promise<string>
   private account: Classes.Account
   private blockchain: Classes.Blockchain
   private document: Classes.Document
   private crypto: Classes.Crypto
   private vote: Classes.Vote
   private thunder: ReturnType<typeof Thunder>
+  /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
+  private subscriptionApi: WsSubscriptionApi | null = null
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -120,6 +146,19 @@ export class Client {
   }
 
   /**
+   * Привязывает источник access-токена контура CoopID (`@coopenomics/auth.getAccessToken`):
+   * перед каждым GraphQL-запросом SDK берёт свежий токен (с авто-refresh) и кладёт его в
+   * заголовок Authorization. Так bearer остаётся внутри слоя SDK (D1, Эпик 7), а приложение
+   * не передаёт токен вручную. Передать `undefined` — отвязать (вернуться к setToken/login).
+   *
+   * Развязка по зависимостям умышленная: SDK НЕ импортирует `@coopenomics/auth` (тот тянет
+   * браузерный oidc-client-ts и сломал бы Node-потребителей SDK) — принимает лишь функцию.
+   */
+  public setAccessTokenProvider(provider?: () => Promise<string>): void {
+    this.accessTokenProvider = provider
+  }
+
+  /**
    * Установка WIF.
    * @param username Имя пользователя.
    * @param wif WIF для установки.
@@ -181,9 +220,28 @@ export class Client {
 
   /**
    * Подписка на GraphQL-события.
+   * Синглтон на экземпляр Client: повторный доступ к getter НЕ плодит
+   * graphql-ws клиентов (иначе при обрыве каждый orphan долбит реконнект).
    */
   public get Subscription() {
-    return ZeusSubscription(this.options.api_url.replace(/^http/, 'ws'))
+    if (!this.subscriptionApi) {
+      // headers как getter — Authorization актуален на каждом (ре)коннекте.
+      // Не сгенерированный Zeus-Subscription: тот теряет variables (см.
+      // utils/wsSubscription.ts), а правки генерята стирает регенерация.
+      this.subscriptionApi = wsSubscription(toWebSocketUrl(this.options.api_url), {
+        headers: () => this.currentHeaders,
+      })
+    }
+    return this.subscriptionApi
+  }
+
+  /**
+   * Полностью гасит shared ws-транспорт (logout / teardown).
+   * Обычное закрытие одной подписки — через `stream.ws.close()` (unsubscribe).
+   */
+  public disposeSubscriptions(): void {
+    this.subscriptionApi?.dispose()
+    this.subscriptionApi = null
   }
 
   /**
@@ -193,38 +251,59 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      const response = await fetch(baseUrl, {
-        body: JSON.stringify({ query, variables }),
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.currentHeaders,
-        },
-      })
+      if (this.accessTokenProvider) {
+        try {
+          this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
+        }
+        catch {
+          // Нет активной CoopID-сессии или refresh не удался — отправляем запрос с тем,
+          // что уже есть в заголовках (legacy-токен из setToken/login, если был). Итоговую
+          // авторизацию решает сервер; перехватывать здесь не нужно.
+        }
+      }
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const timeoutId = controller
+        ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
+        : null
 
-      if (!response.ok) {
-        return new Promise((resolve, reject) => {
-          response
-            .text()
-            .then((text) => {
-              try {
-                reject(JSON.parse(text))
-              }
-              catch {
-                reject(text)
-              }
-            })
-            .catch(reject)
+      try {
+        const response = await fetch(baseUrl, {
+          body: JSON.stringify({ query, variables }),
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.currentHeaders,
+          },
+          signal: controller?.signal,
         })
+
+        if (!response.ok) {
+          return new Promise((resolve, reject) => {
+            response
+              .text()
+              .then((text) => {
+                try {
+                  reject(JSON.parse(text))
+                }
+                catch {
+                  reject(text)
+                }
+              })
+              .catch(reject)
+          })
+        }
+
+        const json = (await response.json()) as GraphQLResponse
+
+        if (json.errors) {
+          throw json.errors
+        }
+
+        return json.data
       }
-
-      const json = (await response.json()) as GraphQLResponse
-
-      if (json.errors) {
-        throw json.errors
+      finally {
+        if (timeoutId) clearTimeout(timeoutId)
       }
-
-      return json.data
     }, { scalars: Client.scalars })
   }
 }

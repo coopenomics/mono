@@ -1,0 +1,14 @@
+# Target labels
+ wallet_contract
+# Source files and their labels
+/project/build/CMakeFiles/wallet_contract
+/project/build/CMakeFiles/wallet_contract.rule
+/project/build/CMakeFiles/wallet_contract-complete.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-build.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-configure.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-download.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-install.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-mkdir.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-patch.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-test.rule
+/project/build/wallet_contract-prefix/src/wallet_contract-stamp/wallet_contract-update.rule

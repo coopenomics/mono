@@ -4,10 +4,10 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MeetInteractor } from '../interactors/meet.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { MeetDecisionDomainInterface } from '~/domain/meet/interfaces/meet-decision-domain.interface';
 import { MeetContract } from 'cooptypes';
 import type { IAction } from '~/types';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Сервис обработки событий собраний
@@ -25,12 +25,15 @@ export class MeetEventService {
   @OnEvent(`action::${MeetContract.contractName.production}::${MeetContract.Actions.NewDecision.actionName}`)
   async handleMeetDecision(event: IAction): Promise<void> {
     try {
-      // Преобразуем блокчейн-документ в формат ISignedDocumentDomainInterface
+      // Преобразуем блокчейн-документ в формат ISignedDocument
       const decisionDocument = DomainToBlockchainUtils.convertChainDocumentToSignedDocument2(event.data.decision);
 
-      // Нормализуем числовые значения
+      // Нормализуем числовые значения.
+      // Поля действия описывает ABI контракта, а не контракт портов: он отдаёт
+      // их открытой формой, а здесь мы сверяем их с типом решения собрания.
+      const chainDecision = event.data as unknown as MeetDecisionDomainInterface;
       const decisionData: MeetDecisionDomainInterface = {
-        ...event.data,
+        ...chainDecision,
         signed_ballots: Number(event.data.signed_ballots),
         quorum_percent: Number(event.data.quorum_percent),
         results: event.data.results.map((item: any) => ({

@@ -1,5 +1,5 @@
 import { ObjectType, Field, Float } from '@nestjs/graphql';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 
 /**
  * GraphQL DTO для конфигурации CAPITAL контракта
@@ -75,6 +75,18 @@ export class StateOutputDTO extends BaseOutputDTO {
     description: 'Глобальный пул доступных для аллокации инвестиций в программу',
   })
   global_available_invest_pool!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Пул программных расходов — средства, переведённые под целевые расходы программы',
+  })
+  program_expense_pool?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Зарезервировано в пуле программных расходов под активные расходы (служебные записки в работе)',
+  })
+  program_expense_reserved?: string;
 
   @Field(() => String, {
     description: 'Общая сумма членских взносов по программе',

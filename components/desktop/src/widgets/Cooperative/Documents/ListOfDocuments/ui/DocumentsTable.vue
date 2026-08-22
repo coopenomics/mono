@@ -40,6 +40,10 @@
               td.col-date {{ getDocumentDate(row) }}
               td
                 .doc-primary {{ getDocumentTitle(row) }}
+                //- Заявление — инициирующий документ сделки: показываем, что
+                //- внутри пакета есть решение совета, акты и связанные бумаги.
+                //- Иначе протокол считают пропавшим (прогон 12.08).
+                .doc-related(v-if='relatedCount(row)') + связанные документы: {{ relatedCount(row) }}
               td.col-signers
                 .signers(v-if='getSigners(row).length')
                   BaseBadge(
@@ -175,6 +179,14 @@ function shortHash(row: IDocumentPackageAggregate): string {
   return h ? h.substring(0, 10) : '—';
 }
 
+/** Сколько документов в пакете кроме самого заявления: решение, акты, связанные. */
+function relatedCount(row: IDocumentPackageAggregate): number {
+  const decision = row.decision ? 1 : 0;
+  const acts = row.acts?.length ?? 0;
+  const links = row.links?.length ?? 0;
+  return decision + acts + links;
+}
+
 function getSigners(row: IDocumentPackageAggregate): string[] {
   return getSignersListFromDocumentPackage(row);
 }
@@ -295,6 +307,12 @@ const downloadPackage = async (
 
 .data-row {
   cursor: pointer;
+}
+
+.doc-related {
+  margin-top: var(--p-1, 4px);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm, 13px);
 }
 
 .expand-row td {

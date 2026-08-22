@@ -6,21 +6,19 @@ import { Zeus } from '@coopenomics/sdk';
 export const getProjectStatusColor = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.UNDEFINED:
-      return 'grey';
+      return 'grey-6';
     case Zeus.ProjectStatus.PENDING:
-      return 'orange';
+      return 'warning';
     case Zeus.ProjectStatus.ACTIVE:
-      return 'green';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'red';
+      return 'positive';
     case Zeus.ProjectStatus.RESULT:
-      return 'blue';
+      return 'info';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.VOTING:
-      return 'purple';
+      return 'primary';
     default:
-      return 'grey';
+      return 'grey-6';
   }
 };
 
@@ -37,8 +35,6 @@ export const getProjectStatusLabel = (status: string) => {
       return 'Приёмка';
     case Zeus.ProjectStatus.FINALIZED:
       return 'Завершен';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'Отменён';
     case Zeus.ProjectStatus.UNDEFINED:
       return 'Неопределен';
     case Zeus.ProjectStatus.VOTING:
@@ -55,23 +51,20 @@ export const getProjectStatusIcon = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.PENDING:
     case 'pending':
-      return 'fa-solid fa-pause';
+      return 'pause';
     case Zeus.ProjectStatus.ACTIVE:
     case 'active':
-      return 'fa-solid fa-play';
+      return 'play_arrow';
     case Zeus.ProjectStatus.VOTING:
-      return 'fa-solid fa-check-to-slot';
+      return 'how_to_vote';
     case Zeus.ProjectStatus.RESULT:
     case 'result':
-      return 'fa-solid fa-check';
+      return 'check';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'fa-solid fa-check-circle';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'fa-solid fa-lock';
+      return 'check_circle';
     case Zeus.ProjectStatus.UNDEFINED:
-    case 'cancelled':
     default:
-      return 'fa-regular fa-circle';
+      return 'radio_button_unchecked';
   }
 };
 
@@ -81,19 +74,49 @@ export const getProjectStatusIcon = (status: string) => {
 export const getProjectStatusDotColor = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.PENDING:
-      return 'grey';
+      return 'grey-6';
     case Zeus.ProjectStatus.ACTIVE:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.VOTING:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.RESULT:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'green';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'grey';
+      return 'positive';
     case Zeus.ProjectStatus.UNDEFINED:
     default:
-      return 'grey';
+      return 'grey-6';
   }
 };
+
+/**
+ * Вариант BaseChip для статуса проекта/компонента (инлайн-чип в строках списков)
+ */
+export const getProjectStatusChipVariant = (status: string) => {
+  switch (status) {
+    case Zeus.ProjectStatus.PENDING:
+      return 'warn' as const;
+    case Zeus.ProjectStatus.ACTIVE:
+      return 'pos' as const;
+    case Zeus.ProjectStatus.VOTING:
+      return 'accent' as const;
+    case Zeus.ProjectStatus.RESULT:
+      return 'info' as const;
+    case Zeus.ProjectStatus.FINALIZED:
+      return 'pos' as const;
+    default:
+      return 'neutral' as const;
+  }
+};
+
+/**
+ * Единый список статусов проекта для инлайн-меню и селектов.
+ * «Отменён» не предлагаем: прекращение проекта — это его удаление.
+ */
+export const PROJECT_STATUS_OPTIONS = [
+  Zeus.ProjectStatus.PENDING,
+  Zeus.ProjectStatus.ACTIVE,
+  Zeus.ProjectStatus.VOTING,
+  Zeus.ProjectStatus.RESULT,
+  Zeus.ProjectStatus.FINALIZED,
+].map((value) => ({ value, label: getProjectStatusLabel(value) }));

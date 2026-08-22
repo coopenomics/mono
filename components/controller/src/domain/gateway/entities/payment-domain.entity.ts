@@ -112,6 +112,14 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
       [PaymentTypeEnum.REGISTRATION]: 'Регистрационный взнос',
       [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
       [PaymentTypeEnum.WITHDRAWAL]: 'Возврат взноса',
+      [PaymentTypeEnum.PAYMENT]: 'Оплата',
+      [PaymentTypeEnum.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
+      [PaymentTypeEnum.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
+      [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
+      [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
+      [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
+      [PaymentTypeEnum.AID]: 'Материальная помощь',
+      [PaymentTypeEnum.TAX]: 'Перечисление удержанного НДФЛ',
     };
     return typeLabels[this.type] || this.type;
   }

@@ -175,6 +175,53 @@ nav:
   - Общие собрания: new/meet/index.md
   - Бухгалтерия: new/buh/index.md
 
+  - Стол заказов:
+    - Введение: new/marketplace/index.md
+    - Подключение:
+      - Установка приложения: new/marketplace/connection/install-market.md
+      - Подключение кооперативом: new/marketplace/connection/coop-accept-cpp.md
+      - Выбор ПВЗ пайщиком: new/marketplace/connection/member-pick-cpp.md
+    - Стол заказчика:
+      - new/marketplace/orderer/index.md
+      - Подключение к столу: new/marketplace/orderer/connect.md
+      - Каталог: new/marketplace/orderer/catalog.md
+      - Корзина и оформление заказа: new/marketplace/orderer/cart-order.md
+      - Мои заказы: new/marketplace/orderer/my-orders.md
+      - Получение на пункте выдачи: new/marketplace/orderer/receive.md
+      - Гарантийный возврат: new/marketplace/orderer/returns.md
+    - Стол поставщика:
+      - new/marketplace/offerer/index.md
+      - Подключение поставщика: new/marketplace/offerer/connect.md
+      - Мои предложения: new/marketplace/offerer/offers.md
+      - Создание предложения: new/marketplace/offerer/offer-create.md
+      - Входящие заказы: new/marketplace/offerer/incoming-orders.md
+      - Подготовка отгрузки: new/marketplace/offerer/shipment.md
+      - Подпись акта приёма-передачи: new/marketplace/offerer/reception-sign.md
+      - Выплаты: new/marketplace/offerer/payments.md
+    - Стол оператора ПВЗ:
+      - new/marketplace/operator/index.md
+      - Ожидаемые поставки: new/marketplace/operator/reception.md
+      - Приёмка партии: new/marketplace/operator/reception-flow.md
+      - Склад участка: new/marketplace/operator/warehouse.md
+      - Боксы и типы боксов: new/marketplace/operator/containers.md
+      - Выдача заказов: new/marketplace/operator/issuance.md
+      - Остатки: new/marketplace/operator/stock.md
+      - Гарантийные возвраты: new/marketplace/operator/returns.md
+      - Списание на участке: new/marketplace/operator/writeoffs.md
+      - Экономика участка: new/marketplace/operator/economy.md
+      - История заказов: new/marketplace/operator/orders-history.md
+    - Стол администратора:
+      - new/marketplace/admin/index.md
+      - Реестр заказов: new/marketplace/admin/orders-registry.md
+      - Реестр поставщиков: new/marketplace/admin/suppliers-registry.md
+      - Реестр предложений: new/marketplace/admin/offers-registry.md
+      - Модерация: new/marketplace/admin/moderation.md
+      - Экономика: new/marketplace/admin/economy.md
+      - Доступные категории: new/marketplace/admin/categories.md
+      - Пункты выдачи заказов: new/marketplace/admin/issuance-points.md
+      - Списания скоропорта: new/marketplace/admin/writeoffs.md
+    - Заключение: new/marketplace/conclusion.md
+
   - Благорост:
     - Адаптация: new/blagorost/adaptation.md
     - Профиль: new/blagorost/profile.md

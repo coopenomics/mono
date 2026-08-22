@@ -1,6 +1,6 @@
 // modules/appstore/dto/extension-log.dto.ts
 import { ObjectType, Field } from '@nestjs/graphql';
-import { LogExtensionDomainEntity } from '~/domain/extension/entities/log-extension-domain.entity';
+import { LogExtensionDomainEntity } from '@coopenomics/extension-kit';
 
 @ObjectType('ExtensionLog')
 export class ExtensionLogDTO<TLog = any> {

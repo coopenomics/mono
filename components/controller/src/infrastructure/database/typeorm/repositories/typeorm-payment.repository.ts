@@ -10,7 +10,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { getPaymentDirection, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 
 @Injectable()
 export class TypeOrmPaymentRepository implements PaymentRepository {
@@ -29,6 +29,11 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     const payment = await this.paymentRepository.findOneBy({ hash });
     if (!payment) return null;
     return this.mapToDomainEntity(payment);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.paymentRepository.delete({ id });
+    return (result.affected ?? 0) > 0;
   }
 
   async create(data: PaymentDomainInterface): Promise<PaymentDomainInterface> {
@@ -131,11 +136,11 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     if (filters.direction) {
       queryBuilder.where('payment.direction = :direction', { direction: filters.direction });
     } else if (filters.type) {
-      if (filters.type === PaymentTypeEnum.WITHDRAWAL) {
-        queryBuilder.where('payment.direction = :direction', { direction: PaymentDirectionEnum.OUTGOING });
-      } else {
-        queryBuilder.where('payment.direction = :direction', { direction: PaymentDirectionEnum.INCOMING });
-      }
+      // Направление выводится из типа (PAYMENT/WITHDRAWAL — исходящие),
+      // см. getPaymentDirection в payment-type.enum.ts.
+      queryBuilder.where('payment.direction = :direction', {
+        direction: getPaymentDirection(filters.type),
+      });
     }
 
     if (filters.username) {
@@ -160,6 +165,15 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
 
     if (filters.hash) {
       queryBuilder.andWhere('payment.hash = :hash', { hash: filters.hash });
+    }
+
+    // Все платежи, связанные с расходом (служебной запиской): proposal_hash
+    // лежит в json-поле blockchain_data у платежа выдачи аванса/оплаты и у
+    // расчётных платёжек (возврат/доплата). Извлекаем через ->> (json-оператор).
+    if (filters.proposal_hash) {
+      queryBuilder.andWhere("payment.blockchain_data ->> 'proposal_hash' = :proposalHash", {
+        proposalHash: filters.proposal_hash.toLowerCase(),
+      });
     }
 
     queryBuilder.orderBy('payment.created_at', 'DESC');
@@ -258,6 +272,21 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
       .andWhere('payment.symbol = :symbol', { symbol })
       .andWhere('payment.status = :status', { status: PaymentStatusEnum.PENDING })
       .andWhere('(payment.expired_at IS NULL OR payment.expired_at > :now)', { now })
+      .orderBy('payment.created_at', 'DESC')
+      .getOne();
+
+    if (!payment) return null;
+    return this.mapToDomainEntity(payment);
+  }
+
+  async findLatestByUsernameAndType(
+    username: string,
+    type: PaymentTypeEnum
+  ): Promise<PaymentDomainInterface | null> {
+    const payment = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .where('payment.username = :username', { username })
+      .andWhere('payment.type = :type', { type })
       .orderBy('payment.created_at', 'DESC')
       .getOne();
 

@@ -53,6 +53,17 @@ export interface IChangekey {
   public_key: IPublicKey
 }
 
+export interface ICompletexit {
+  coopname: IName
+  exit_hash: IChecksum256
+}
+
+export interface IConfirmexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  authorization: IDocument2
+}
+
 export interface IConfirmpay {
   coopname: IName
   registration_hash: IChecksum256
@@ -122,6 +133,12 @@ export interface IDeclinereg {
   reason: string
 }
 
+export interface IDeclinexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  reason: string
+}
+
 export interface IDelcoop {
   registrator: IName
   coopname: IName
@@ -149,6 +166,24 @@ export interface IDocument2 {
 
 export interface IEnabranches {
   coopname: IName
+}
+
+export interface IExit {
+  username: IName
+  coopname: IName
+  status: IName
+  created_at: ITimePointSec
+  statement: IDocument2
+  approved_statement: IDocument2
+  exit_hash: IChecksum256
+  quantity: IAsset
+}
+
+export interface IExitcoop {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+  statement: IDocument2
 }
 
 export interface IInit {
@@ -208,6 +243,24 @@ export interface IStcoopstatus {
   status: IName
 }
 
+/**
+ * Указание оператора, обслуживающего кооператив. Родитель в реестре кооперативов —
+ * это тот, кто развернул установку, а не учредитель: кооперативы друг друга не
+ * учреждают. Пустой оператор означает собственную установку.
+ */
+export interface ISetoperator {
+  coopname: IName
+  operator_name: IName
+}
+
+/**
+ * Снятие оператора: кооператив снова держит установку сам. Выданное заверение не
+ * отзывается — продлевать его будет некому, и оно погаснет в пределах своего срока.
+ */
+export interface IDeloperator {
+  coopname: IName
+}
+
 export interface IUpdateaccnt {
   username: IName
   account_to_change: IName
@@ -230,6 +283,22 @@ export interface IVerificate {
   procedure: IName
 }
 
+export interface IVerifyacc {
+  coopname: IName
+  /** Кооперативный участок, где проведена сверка; пусто, если верифицирует совет кооператива. */
+  braname: IName
+  verificator: IName
+  username: IName
+  procedure: IName
+}
+
+export interface IUnverifyacc {
+  coopname: IName
+  chairman: IName
+  username: IName
+  procedure: IName
+}
+
 export interface IVerification {
   verificator: IName
   is_verified: boolean
@@ -237,4 +306,32 @@ export interface IVerification {
   created_at: ITimePointSec
   last_update: ITimePointSec
   notice: string
+}
+
+export interface ICandidateLegacy {
+  username: IName
+  coopname: IName
+  braname: IName
+  status: IName
+  created_at: ITimePointSec
+  statement: IDocument
+  registration_hash: IChecksum256
+  initial: IAsset
+  minimum: IAsset
+}
+
+export interface IDeclinerfnd {
+  coopname: IName
+  registration_hash: IChecksum256
+  reason: string
+}
+
+export interface IDecparticpnt {
+  coopname: IName
+  username: IName
+}
+
+export interface IRefundpay {
+  coopname: IName
+  registration_hash: IChecksum256
 }

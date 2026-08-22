@@ -1,9 +1,8 @@
 // ========== ./dto/extension-graphql.dto.ts ==========
 import { ObjectType, Field } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import type { IRegistryExtension, IDesktopConfig } from '~/extensions/extensions.registry';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-
+import type { IResolvedRegistryExtension, IDesktopConfig, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { redactSecretConfig } from '@coopenomics/extension-kit';
 /**
  * GraphQL тип для конфигурации рабочего стола
  */
@@ -27,7 +26,7 @@ export class DesktopConfigDTO implements IDesktopConfig {
  * Оно реализует ExtensionDomainInterface, но содержит и дополнительные поля (title, tags...).
  */
 @ObjectType('Extension')
-export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 'readme' | 'instructions' | 'class'> {
+export class ExtensionDTO<TConfig = any> implements Omit<IResolvedRegistryExtension, 'readme' | 'instructions' | 'class'> {
   @Field(() => String, { description: 'Уникальное имя расширения' })
   name: string;
 
@@ -86,9 +85,13 @@ export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 're
   updated_at: Date;
 
   // Внутреннее поле для миграций (не экспортируется в GraphQL)
-  pluginClass: any;
+  extensionClass: any;
 
-  constructor(name: string, registryData: IRegistryExtension, installedExtension: ExtensionDomainEntity<TConfig> | null) {
+  constructor(
+    name: string,
+    registryData: IResolvedRegistryExtension,
+    installedExtension: ExtensionDomainEntity<TConfig> | null
+  ) {
     this.name = name;
     this.is_available = registryData.is_available;
     this.is_internal = registryData.is_internal;
@@ -97,7 +100,12 @@ export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 're
     this.is_installed = !!installedExtension;
     this.desktops = registryData.desktops;
     this.enabled = installedExtension?.enabled ?? false;
-    this.config = installedExtension?.config ?? ({} as TConfig);
+    // Секретные параметры наружу не уходят: председатель видит «задано», а не
+    // значение. До этого конфиг отдавался целиком, вместе с ключом кассы.
+    this.config = redactSecretConfig(
+      (installedExtension?.config ?? {}) as TConfig & Record<string, any>,
+      registryData.configPolicy
+    );
     this.created_at = installedExtension?.created_at ?? new Date(0);
     this.updated_at = installedExtension?.updated_at ?? new Date(0);
     this.schema = registryData.schema ?? null;
@@ -107,7 +115,7 @@ export class ExtensionDTO<TConfig = any> implements Omit<IRegistryExtension, 're
     this.tags = registryData.tags ?? [];
     this.readme = '';
     this.instructions = '';
-    this.pluginClass = registryData.pluginClass;
+    this.extensionClass = registryData.extensionClass;
   }
 
   /**

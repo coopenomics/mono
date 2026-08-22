@@ -1,19 +1,16 @@
 // infrastructure/blockchain/blockchain-consumer.service.ts
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
 import { IAction, IDelta } from '~/types/common';
-import { RedisStreamService, StreamMessage } from '~/infrastructure/redis/redis-stream.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { EventsService } from '~/infrastructure/events/events.service';
 import { ParserInteractor } from '~/domain/parser/interactors/parser.interactor';
+import { ForkRegistryService } from '~/shared/sync/fork';
+import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
+import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
+import { isDeltaOwnedByCoop } from './delta-ownership';
 import { config } from '~/config';
-
-export interface BlockchainEventData {
-  type: string;
-  event?: IAction;
-  delta?: IDelta;
-  block_num?: number;
-}
 
 // Выносим исключения в конфиг или отдельный файл
 const ACTION_EXCEPTIONS = {
@@ -21,205 +18,162 @@ const ACTION_EXCEPTIONS = {
 };
 
 /**
- * Инфраструктурный сервис потребления событий блокчейна из Redis
- * Читает события из Redis стрима и публикует их во внутреннюю шину событий
- * Не содержит бизнес-логики, только предварительную фильтрацию
+ * Потребление событий блокчейна из parser2 (@coopenomics/parser2).
+ *
+ * Транспорт: единственный — ParserClient поверх Redis Stream parser2
+ * (`ce:parser2:<chain_id>:events`). Старый самодельный consumer поверх стрима
+ * `notifications` (его писал parser1, components/parser) удалён. Никаких флагов и
+ * параллельной работы двух движков: либо контроллер работает на parser2, либо нет.
+ *
+ * ParserClient берёт на себя то, что раньше делала ручная обвязка консьюмера:
+ * consumer-group, XREADGROUP/XACK, single-active-lock, recover-own-pending,
+ * dead-letter после N провалов, XTRIM. Контроллеру остаётся только обработка.
+ *
+ * event_id (дедуп, INV-09) вычисляется локально из полей события — формат
+ * action/delta (см. event-id.util.ts). parser2 кладёт свой event_id в событие,
+ * но контроллер ведёт собственный consumer_dedup в привычном формате.
+ *
+ * Обработчики processAction/processDelta/processFork не изменились при смене
+ * транспорта — маппер переводит ParserEvent → IDelta/IAction (DEC-T09).
  */
 @Injectable()
 export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy {
-  private readonly streamName = 'notifications';
-  private readonly consumerGroup = 'blockchain-consumer';
-  /**
-   * Стабильное имя consumer'а. Раньше было `consumer-${random}`, и каждый
-   * рестарт coopback создавал нового consumer'а, а прежний оставался в
-   * группе со своими pending-сообщениями — зомби-consumer. Со стабильным
-   * именем мы всегда возвращаемся к «своему» pending-списку после рестарта
-   * и можем его доиграть (readOwnPending на старте).
-   *
-   * Если понадобится horizontal-scaling (несколько реплик coopback'а) —
-   * имя можно расширить до `coopback-${HOSTNAME}` через env.
-   */
-  private readonly consumerName = 'coopback-main';
+  /** Имя подписки = имя consumer-group parser2. Детерминировано по кооперативу. */
+  private readonly subscriptionId = `controller-${config.coopname}`;
 
-  /** Как долго pending другого consumer'а должен висеть, прежде чем его можно забрать. */
-  private readonly staleClaimIdleMs = 5 * 60 * 1000; // 5 минут
-  /** Период XAUTOCLAIM поиска stale pending. */
-  private readonly claimIntervalMs = 60 * 1000; // 1 минута
-  /** Период XTRIM MINID для освобождения памяти Redis от consumed сообщений. */
-  private readonly trimIntervalMs = 30 * 1000; // 30 секунд
+  /** Пауза перед переподключением, если поток ParserClient неожиданно упал. */
+  private readonly reconnectDelayMs = 5000;
 
-  private claimTimer?: NodeJS.Timeout;
-  private trimTimer?: NodeJS.Timeout;
+  private client?: ParserClient;
+  private running = false;
 
   constructor(
-    private readonly redisStreamService: RedisStreamService,
     private readonly logger: WinstonLoggerService,
     private readonly eventsService: EventsService,
-    private readonly parserInteractor: ParserInteractor
+    private readonly parserInteractor: ParserInteractor,
+    private readonly forkRegistry: ForkRegistryService
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
 
   async onModuleInit() {
-    this.logger.log('Инициализация сервиса потребителя блокчейна');
-    await this.redisStreamService.createConsumerGroup(this.streamName, this.consumerGroup);
-
-    // 1) Сначала доиграть свои pending (могли остаться после crash'а между
-    //    handleMessage и xack). Если их нет — мгновенно пройдёт.
-    await this.recoverOwnPending();
-
-    // 2) Забрать pending у зомби-consumer'ов предыдущих рестартов,
-    //    чтобы они не висели вечно. XAUTOCLAIM idempotent.
-    await this.reclaimStalePending();
-
-    // 3) Запустить основной consumer loop (на новые сообщения, `>`).
-    this.startConsuming();
-
-    // 4) Фоновые задачи: периодический XAUTOCLAIM + XTRIM MINID.
-    this.claimTimer = setInterval(
-      () => this.reclaimStalePending().catch((e) => this.logger.error(`claim tick: ${e?.message}`, e?.stack)),
-      this.claimIntervalMs,
-    );
-    this.trimTimer = setInterval(
-      () => this.trimConsumed().catch((e) => this.logger.error(`trim tick: ${e?.message}`, e?.stack)),
-      this.trimIntervalMs,
-    );
+    this.logger.log('Инициализация потребителя событий parser2');
+    this.running = true;
+    // Не await: цикл живёт всё время работы приложения.
+    void this.runConsumeLoop();
   }
 
-  onModuleDestroy() {
-    this.logger.log('Остановка сервиса потребителя блокчейна');
-    if (this.claimTimer) clearInterval(this.claimTimer);
-    if (this.trimTimer) clearInterval(this.trimTimer);
-    this.redisStreamService.stopConsumer(this.streamName, this.consumerGroup, this.consumerName);
+  async onModuleDestroy() {
+    this.logger.log('Остановка потребителя событий parser2');
+    this.running = false;
+    if (this.client) {
+      await this.client.close().catch((e) => this.logger.error(`Ошибка close ParserClient: ${e?.message}`, e?.stack));
+    }
   }
 
   /**
-   * После рестарта контроллера читаем pending, адресованные нашему consumer'у.
-   * Это сообщения, которые Redis считает выданными нам, но ещё не ACK'нутыми —
-   * например, процесс упал после handleMessage, до xack. Доигрываем в том же
-   * порядке, ACK'аем — и дальше работает `>`-поток.
+   * Внешний цикл: держит подписку живой. Если поток ParserClient завершился с
+   * ошибкой (обрыв Redis и т.п.) — пауза и переподключение, пока сервис running.
    */
-  private async recoverOwnPending(): Promise<void> {
-    let total = 0;
-    // Читаем порциями до тех пор, пока pending не закончится.
-    while (true) {
-      const messages = await this.redisStreamService.readOwnPending(
-        this.streamName,
-        this.consumerGroup,
-        this.consumerName,
-        100,
-      );
-      if (messages.length === 0) break;
-      for (const msg of messages) {
-        try {
-          await this.handleMessage(msg);
-          await this.redisStreamService.acknowledgeMessage(this.streamName, this.consumerGroup, msg.messageId);
-          total += 1;
-        } catch (err: any) {
-          this.logger.error(
-            `recoverOwnPending: не удалось переобработать ${msg.messageId}: ${err?.message}`,
-            err?.stack,
-          );
-          // Оставляем pending — claim retry по idle разберёт.
-        }
+  private async runConsumeLoop(): Promise<void> {
+    while (this.running) {
+      try {
+        await this.consume();
+      } catch (err: any) {
+        this.logger.error(`Поток ParserClient прерван: ${err?.message}`, err?.stack);
+      }
+      if (this.client) {
+        await this.client.close().catch(() => undefined);
+        this.client = undefined;
+      }
+      if (this.running) {
+        await new Promise((r) => setTimeout(r, this.reconnectDelayMs));
+        this.logger.warn('Переподключение к parser2…');
       }
     }
-    if (total > 0) this.logger.log(`recoverOwnPending: доиграно ${total} сообщений`);
   }
 
   /**
-   * Забрать pending другого consumer'а, который idle > staleClaimIdleMs.
-   * Обычный кейс: зомби-consumer из прошлой сессии (если в БД Redis остались
-   * следы старого случайного имени `consumer-${random}` до этого фикса).
-   * Также защита от split-brain, если когда-нибудь появится несколько реплик.
+   * Один проход подписки. Управляем генератором вручную: it.next() подтверждает
+   * (XACK внутри ParserClient) успешно обработанное событие, it.throw(err) при
+   * ошибке обработчика запускает учёт провалов parser2 (PEL-retry / dead-letter
+   * после порога) — событие НЕ ACK'ается молча. Наивный `for await` тут неверен:
+   * проброс из тела вызывает iterator.return(), catch вокруг yield не срабатывает,
+   * и одна ошибка убила бы консьюмер.
    */
-  private async reclaimStalePending(): Promise<void> {
-    let claimed = 0;
-    try {
-      const messages = await this.redisStreamService.autoClaimStale(
-        this.streamName,
-        this.consumerGroup,
-        this.consumerName,
-        this.staleClaimIdleMs,
-        100,
-      );
-      for (const msg of messages) {
-        try {
-          await this.handleMessage(msg);
-          await this.redisStreamService.acknowledgeMessage(this.streamName, this.consumerGroup, msg.messageId);
-          claimed += 1;
-        } catch (err: any) {
-          this.logger.error(
-            `reclaimStalePending: ошибка ${msg.messageId}: ${err?.message}`,
-            err?.stack,
-          );
-        }
-      }
-      if (claimed > 0) this.logger.warn(`reclaimStalePending: перехвачено и обработано ${claimed} stale-сообщений`);
-    } catch (err: any) {
-      this.logger.error(`reclaimStalePending: ${err?.message}`, err?.stack);
-    }
-  }
-
-  /**
-   * XTRIM MINID: освобождаем Redis от ACK-нутых сообщений.
-   * Parser больше не делает XTRIM MAXLEN (burst'ы удаляли не-consumed), так что
-   * обрезка — обязанность consumer'а, который _точно знает_ границу.
-   *
-   * Граница = first-pending-id (если pending не пусто) ИЛИ last-generated-id
-   * (если ВСЕ сообщения consumed — тогда stream можно почистить полностью).
-   * Всё что ≤ first-pending, уже ACK'нуто кем-то в группе — безопасно.
-   */
-  private async trimConsumed(): Promise<void> {
-    try {
-      const firstPending = await this.redisStreamService.getFirstPendingId(this.streamName, this.consumerGroup);
-      const trimId = firstPending ?? (await this.redisStreamService.getStreamLastId(this.streamName));
-      if (!trimId || trimId === '0-0') return;
-      await this.redisStreamService.trimUpTo(this.streamName, trimId);
-    } catch (err: any) {
-      this.logger.error(`trimConsumed: ${err?.message}`, err?.stack);
-    }
-  }
-
-  /**
-   * Запуск потребления сообщений из Redis стрима
-   */
-  private async startConsuming(): Promise<void> {
-    this.logger.log(`Starting consumer ${this.consumerName} for stream ${this.streamName}`);
-
-    await this.redisStreamService.startConsumer(
-      {
-        stream: this.streamName,
-        group: this.consumerGroup,
-        consumer: this.consumerName,
-        count: 1,
-        block: 1000,
+  private async consume(): Promise<void> {
+    this.client = new ParserClient({
+      subscriptionId: this.subscriptionId,
+      // Без фильтров: получаем все события, фильтрация по coopname — в processDelta/processAction.
+      //
+      // Точка старта — начало стрима, а не его конец ('last_known' = '$').
+      // Индексер читает цепь быстрее, чем поднимается приложение, поэтому к
+      // моменту первой подписки в стриме уже лежат события первых блоков:
+      // с '$' они не были бы прочитаны никогда, и состояние из них (участники,
+      // совет, кошельки) в базу бы не попало. Прежний консьюмер создавал группу
+      // ровно с '0' по той же причине. Повторной обработки это не вызывает:
+      // точка чтения группы живёт в Redis, а каждое событие проходит dedup-gate
+      // по event_id.
+      startFrom: 0,
+      redis: {
+        url: `redis://${config.redis.host}:${config.redis.port}`,
+        password: config.redis.password || undefined,
       },
-      this.handleMessage.bind(this)
-    );
+      chain: { id: config.blockchain.id },
+      // Жизненным циклом управляет NestJS (onModuleDestroy), не SIGTERM-хуки parser2.
+      noSignalHandlers: true,
+    });
+
+    this.logger.log(`Подписка parser2 "${this.subscriptionId}" на цепь ${config.blockchain.id}`);
+
+    const iterator = this.client.stream();
+    let result = await iterator.next();
+    while (!result.done && this.running) {
+      try {
+        await this.handleEvent(result.value);
+        result = await iterator.next(); // успех → XACK внутри ParserClient
+      } catch (err: any) {
+        this.logger.error(`Ошибка обработки события parser2: ${err?.message}`, err?.stack);
+        result = await iterator.throw(err); // провал → FailureTracker / dead-letter parser2
+      }
+    }
   }
 
   /**
-   * Обработка входящего сообщения из стрима
+   * Диспетчеризация события parser2 на обработчики контроллера.
+   * native-delta контроллер не потребляет (нет легаси-пути) — пропускаем.
+   *
+   * fork-event (Story 4.1, AC INV-09): dedup-gate в handleEvent — повторно
+   * доставленный fork с уже отмеченным event_id делает ранний return. Иначе
+   * runAll/deleteAfterBlock/saveFork выполнятся повторно, что для ForkEntity
+   * без UNIQUE-constraint породит дубль и нагрузку на репозитории syncer'ов.
+   * markApplied идёт ПОСЛЕ успешного processFork (порядок симметричен dispatch'у
+   * action/delta: save → mark, иначе сбой между save и mark = silent loss).
    */
-  private async handleMessage(message: StreamMessage): Promise<void> {
-    try {
-      const eventData: BlockchainEventData = JSON.parse(
-        message.fields.event || message.fields.delta || message.fields.fork || '{}'
-      );
-
-      if (eventData.event) {
-        await this.processAction(eventData.event);
-      } else if (eventData.delta) {
-        await this.processDelta(eventData.delta);
-      } else if (eventData.block_num !== undefined) {
-        await this.processFork(eventData.block_num);
-      } else {
-        this.logger.warn(`Unknown message format: ${JSON.stringify(message.fields)}`);
+  private async handleEvent(event: ParserEvent): Promise<void> {
+    switch (event.kind) {
+      case 'action':
+        return this.processAction(mapParserActionToIAction(event));
+      case 'delta':
+        return this.processDelta(mapParserDeltaToIDelta(event));
+      case 'fork': {
+        // event_id вычисляем локально в controller-формате (chain:fork:...), а НЕ
+        // берём event.event_id из parser2 (его формат chain:f:...) — иначе в
+        // consumer_dedup смешаются две формулы, и дедуп между controller и
+        // транспортом расползётся. См. event-id.util.ts.
+        const eventId = computeForkEventId(event.chain_id, event.forked_from_block, event.new_head_block_id);
+        if (await this.parserInteractor.isEventApplied(eventId)) {
+          this.logger.debug(`Fork-дубликат пропущен (no-op): ${eventId}`);
+          return;
+        }
+        await this.processFork(event.forked_from_block, eventId);
+        await this.parserInteractor.markEventApplied(eventId, event.forked_from_block);
+        return;
       }
-    } catch (error: any) {
-      this.logger.error(`Ошибка обработки сообщения ${message.messageId}: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
+      case 'native-delta':
+        return;
+      default:
+        this.logger.warn(`Неизвестный тип события parser2: ${JSON.stringify(event)}`);
     }
   }
 
@@ -228,7 +182,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * Выполняет минимальную предварительную фильтрацию, сохраняет в базу и
    * с задержкой публикует событие во внутреннюю шину.
    *
-   * Порядок writes: сохранение → ACK (по возврату из handleMessage) →
+   * Порядок writes: сохранение → ACK (по возврату из handleEvent) →
    * отложенный emit события через ACTION_EMIT_DELAY_MS. Задержка нужна
    * чтобы дельты, попавшие в стрим из того же блока что и action, успели
    * пройти обработчики и прописаться в БД ДО того, как обработчики action
@@ -236,9 +190,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * apprvappndx ищет appendix в capital_appendixes — без задержки гонится
    * с дельтой capital::appendixes того же блока). См. задачу #53.
    *
-   * Ошибка saveAction бросается наверх в handleMessage → сообщение НЕ
-   * подтверждается и остаётся pending (consumer перечитает его через
-   * XCLAIM/re-delivery). Emit'ится только то, что успешно сохранено.
+   * Ошибка saveAction бросается наверх в consume → событие НЕ подтверждается
+   * (iterator.throw → parser2 учитывает провал). Emit'ится только сохранённое.
    */
   private async processAction(action: IAction): Promise<void> {
     if (action.receiver != action.account) {
@@ -247,14 +200,6 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     this.logger.debug(`Обработка действия: ${action.name} от ${action.account}: ${JSON.stringify(action.data)}`);
     await this.processActionDelayed(action);
   }
-
-  /**
-   * Задержка emit'а action-события — даёт время дельтам того же блока
-   * (capital_appendixes, capital_projects, ...) сохраниться раньше, чем
-   * обработчики action полезут их читать. Подобрана опытно: при <1.5с
-   * на быстрой машине race ещё происходит, при ~3с гонок не наблюдаем.
-   */
-  private static readonly ACTION_EMIT_DELAY_MS = 3000;
 
   private async processActionDelayed(action: IAction): Promise<void> {
     // Проверяем, является ли действие исключением
@@ -274,21 +219,40 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       return;
     }
 
+    // Idempotency: признак уникальности события (INV-09). Повторно доставленное
+    // событие с уже отмеченным event_id игнорируется как no-op.
+    const eventId = computeActionEventId(action);
+    if (await this.parserInteractor.isEventApplied(eventId)) {
+      this.logger.debug(`Action-дубликат пропущен (no-op): ${eventId}`);
+      return;
+    }
+
     try {
       // Сохраняем действие в базу данных через интерактор
       await this.parserInteractor.saveAction(action);
-      this.logger.debug(
-        `Action saved to database: ${action.account}::${action.name} with sequence ${action.global_sequence}`
+      // Уровень log, а не debug: это единственная строка, по которой на проде
+      // видно, что транспорт живой и что именно поймано. Шума не создаёт —
+      // сюда доходят только действия, прошедшие фильтры receiver == account
+      // (иначе одно действие логировалось бы по разу на каждого нотифицируемого)
+      // и coopname == нашего кооператива.
+      this.logger.log(
+        `Действие поймано: ${action.account}::${action.name} (блок ${action.block_num}, seq ${action.global_sequence})`
       );
     } catch (error: any) {
       this.logger.error(`Не удалось сохранить действие ${action.account}::${action.name}: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
+      throw error; // Перебрасываем ошибку чтобы событие не было подтверждено
     }
 
-    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока.
-    // saveAction уже выполнен, так что данные не потеряем; задерживаем только emit.
+    // Метка в consumer_dedup ПОСЛЕ save, ДО отложенного emit.
+    // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
+    await this.parserInteractor.markEventApplied(eventId, action.block_num);
+
+    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
+    // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
+    // уже персистентное состояние. saveAction уже выполнен, так что данные не
+    // потеряем; задерживаем только emit. Задержка вынесена в конфиг (DEC-007).
     const eventName = `action::${action.account}::${action.name}`;
-    const delayMs = BlockchainConsumerService.ACTION_EMIT_DELAY_MS;
+    const delayMs = config.blockchain.action_emit_delay_ms;
     setTimeout(() => {
       this.eventsService.emit(eventName, action);
       this.logger.debug(
@@ -312,10 +276,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * Обработка дельты (delta) из блокчейна
    * Выполняет минимальную предварительную фильтрацию, сохраняет в базу и публикует событие во внутреннюю шину.
    *
-   * Ошибка saveDelta поднимается наверх в handleMessage → сообщение остаётся
-   * pending в consumer group. См. processAction — тот же контракт.
-   * Раньше здесь был try/catch, который глотал ошибки и log-only'ил их: это
-   * приводило к silent data loss (ACK шёл, дельта в PG не попадала).
+   * Ошибка saveDelta поднимается наверх в consume → событие остаётся pending в
+   * consumer-group parser2 (iterator.throw). См. processAction — тот же контракт.
    */
   private async processDelta(delta: IDelta): Promise<void> {
     this.logger.debug(`Обработка дельты: ${delta.table} от ${delta.code}`);
@@ -323,30 +285,41 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async processDeltaDelayed(delta: IDelta): Promise<void> {
-    // Пропускаем дельту, если она не относится к нашему кооперативу.
-    // coopname может быть в value (таблицы с value.coopname: candidates2,
-    // deposits, withdraws, debts, contributors, ...) ИЛИ в scope (ончейн-
-    // таблицы с scope=coopname: ledger2 accounts/wallets, capital results/
-    // segments/pgproperties, marketplace requests, ...).
-    //
-    // Строгая проверка непустой строки: если value.coopname = "" (битый
-    // ABI) — `?? scope` НЕ сработает, и пустая строка пройдёт `!= config.coopname`,
-    // но саму дельту мы потеряем. Поэтому пустой value.coopname — тоже fallback на scope.
-    const valueCoop = (delta.value as any)?.coopname;
-    const valueCoopValid = typeof valueCoop === 'string' && valueCoop.length > 0;
-    const deltaCoop = valueCoopValid ? valueCoop : delta.scope;
-    if (deltaCoop !== config.coopname) {
+    // Пропускаем дельту, если она не относится к нашему кооперативу. Правило
+    // принадлежности вместе со всеми исключениями из него живёт в
+    // delta-ownership: обычные таблицы называют кооператив в value.coopname
+    // либо в scope, реестр шаблонов принадлежит платформе целиком, а реестр
+    // кооперативов сети — полю username.
+    if (!isDeltaOwnedByCoop(delta, config.coopname)) {
+      return;
+    }
+
+    // Idempotency: признак уникальности события (INV-09).
+    const eventId = computeDeltaEventId(delta);
+    if (await this.parserInteractor.isEventApplied(eventId)) {
+      this.logger.debug(`Дельта-дубликат пропущена (no-op): ${eventId}`);
       return;
     }
 
     try {
       // Сохраняем дельту в базу данных через интерактор
       await this.parserInteractor.saveDelta(delta);
-      this.logger.log(`Дельта сохранена в базу: ${delta.code}::${delta.table} с primary_key ${delta.primary_key}`);
+      // present=false — запись стёрта из он-чейн таблицы (терминальный переход),
+      // это стоит видеть отдельно: по логу иначе не отличить правку от удаления.
+      this.logger.log(
+        `Дельта сохранена: ${delta.code}::${delta.table}#${delta.primary_key} ` +
+          `(блок ${delta.block_num}${delta.present === false ? ', удаление' : ''})`
+      );
     } catch (error: any) {
       this.logger.error(`Не удалось сохранить дельту ${delta.code}::${delta.table}: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
+      throw error; // Перебрасываем ошибку чтобы событие не было подтверждено
     }
+
+    // Метка в consumer_dedup ПОСЛЕ save. Если markApplied упадёт — consume
+    // пробросит ошибку, событие останется pending и переиграется (saveDelta
+    // идемпотентен через block_num-guard, mark — через ON CONFLICT DO NOTHING).
+    // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
+    await this.parserInteractor.markEventApplied(eventId, delta.block_num);
 
     // Публикуем событие во внутреннюю шину с типизированным именем
     const eventName = `delta::${delta.code}::${delta.table}`;
@@ -356,28 +329,39 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   }
 
   /**
-   * Обработка форка (fork) из блокчейна
-   * Сохраняет форк в базу и публикует событие форка во внутреннюю шину
+   * Обработка форка (fork) из блокчейна (ADR-005).
+   *
+   * Порядок шагов (контрактный):
+   *   1) ForkRegistry.runAll(blockNum) — sequential откат сущностей всех syncer'ов.
+   *      Любая ошибка re-throw, parser2 не ACK'нет, повторная доставка пересыграет.
+   *   2) consumer_dedup.deleteAfterBlock(blockNum) — очистка дедупа отрезанной ветки.
+   *      Делается ПОСЛЕ успешного rollback (иначе при сбое syncer'ов мы потеряем
+   *      возможность повторить весь форк по тому же event_id).
+   *   3) saveFork(blockNum) — фиксация форка для аудита и future-pool re-submit (Epic 5).
+   *
+   * INV-T03: к моменту, когда handleEvent resolves и parser2 берёт следующее событие,
+   * вся цепочка rollback завершена (sequential XREADGROUP = natural barrier).
    */
-  private async processFork(block_num: number): Promise<void> {
-    this.logger.debug(`Обработка форка на блоке: ${block_num}`);
+  private async processFork(block_num: number, forkEventId?: string | null): Promise<void> {
+    this.logger.log(`Обработка форка на блоке ${block_num} (eventId=${forkEventId ?? 'n/a'}): запуск ForkRegistry rollback`);
 
-    try {
-      // Сохраняем форк в базу данных через интерактор
-      await this.parserInteractor.saveFork({
-        chain_id: config.blockchain.id, // Используем chain id из конфига
-        block_num: block_num,
-      });
-      this.logger.debug(`Форк сохранен в базу данных на блоке: ${block_num}`);
-    } catch (error: any) {
-      this.logger.error(`Не удалось сохранить форк на блоке ${block_num}: ${error.message}`, error.stack);
-      throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
-    }
+    // 1. Sequential rollback всех зарегистрированных syncer'ов.
+    //    Story 4.4: forkEventId пробрасывается syncer'ам — они кладут его в архив
+    //    invalidated_entities для forensic-группировки.
+    await this.forkRegistry.runAll(block_num, forkEventId);
+    this.logger.debug(`ForkRegistry: rollback завершён для ${this.forkRegistry.size()} syncer(s)`);
 
-    // Публикуем событие во внутреннюю шину с типизированным именем
-    const eventName = `fork::${block_num}`;
-    this.eventsService.emit(eventName, { block_num });
+    // 2. Очистка consumer_dedup для блоков отрезанной ветки.
+    const purged = await this.parserInteractor.deleteDedupAfterBlock(block_num);
+    this.logger.debug(`consumer_dedup: удалено ${purged} записей с block_num > ${block_num}`);
 
-    this.logger.debug(`Форк опубликован в событийную шину: ${eventName}`);
+    // 3. Фиксация форка для аудита.
+    await this.parserInteractor.saveFork({
+      chain_id: config.blockchain.id,
+      block_num: block_num,
+    });
+    this.logger.debug(`Форк сохранён в БД на блоке ${block_num}`);
+
+    this.logger.log(`Форк обработан на блоке ${block_num}`);
   }
 }

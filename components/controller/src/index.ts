@@ -12,6 +12,9 @@ import { migrateData } from './migrator/migrate';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
+// Настройки контура и секрет межсервисного обхода передаются каркасу в
+// './config/platform-bootstrap' — он импортирован первой строкой app.module.ts,
+// то есть раньше любого расширения. См. комментарий в самом файле.
 
 export let nestApp;
 
@@ -62,15 +65,33 @@ async function bootstrap() {
   // Проверяем, был ли запущен режим миграций
   const args = process.argv.slice(2);
   if (args.includes('--migrate')) {
-    await migrateData();
-    process.exit(0);
+    try {
+      await migrateData();
+      process.exit(0);
+    } catch (error) {
+      // migrateData() уже логирует причину; здесь важен только ненулевой
+      // exit code. В production Sentry.init() ставит свой глобальный
+      // process.on('unhandledRejection', ...) с дефолтным mode: 'warn' —
+      // он перехватывает необработанный reject этого await и НЕ роняет
+      // процесс (в отличие от штатного поведения Node без Sentry). Без
+      // явного process.exit(1) здесь deploy-скрипт получал ложноположительный
+      // exit code 0 при реально упавшей миграции (кейс V2.3.2 на testnet
+      // 2026-07-19 — TS-ошибка компиляции миграции проглатывалась именно так).
+      logger.error('Процесс миграции завершился с ошибкой, выходим с кодом 1', error);
+      process.exit(1);
+    }
   }
 
   // Проверяем, был ли запущен режим только миграций (для обратной совместимости)
   if (args.includes('--migrations-only')) {
-    await migrateData();
-    logger.info('Режим только миграций - миграции выполнены, сервер не будет запущен');
-    process.exit(0);
+    try {
+      await migrateData();
+      logger.info('Режим только миграций - миграции выполнены, сервер не будет запущен');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Процесс миграции завершился с ошибкой, выходим с кодом 1', error);
+      process.exit(1);
+    }
   }
 
   // Подключение к MongoDB
@@ -111,6 +132,35 @@ async function bootstrap() {
   // Подключаем глобальный интерсептор для логирования мутаций
   const mutationLoggingInterceptor = nestApp.get('MutationLoggingInterceptor');
   nestApp.useGlobalInterceptors(mutationLoggingInterceptor);
+
+  // Непринятые миграции — между инициализацией Nest и приёмом запросов.
+  //
+  // Место выбрано не случайно. Раньше их гнал скрипт подъёма отдельным заходом
+  // внутрь уже поднятого контейнера, и ради этого караулил готовность
+  // контроллера — человек сидел и ждал. Перенести прогон в самое начало старта
+  // нельзя: часть миграций правит таблицы, которые заводит сам TypeORM при
+  // инициализации модулей (V2.1.0 строит индексы по blockchain_actions), и до
+  // NestFactory.create их ещё нет — миграция падает на «relation does not
+  // exist». Поэтому гоним после создания приложения, но до listen: схема уже
+  // синхронизирована, а трафик ещё не принимается.
+  //
+  // Выключено по умолчанию и включается только на стендах (AUTO_MIGRATE): там
+  // база создаётся с нуля каждый ребут, и без миграций нет схемы CoopID —
+  // пароль в authentik ставится, а сохранить ключ и записать аудит уже некуда.
+  // На проде миграции раскатывает релиз, самовольный прогон при рестарте там
+  // недопустим.
+  //
+  // Падение фатально: поднявшись на неполной схеме, контроллер ломается не
+  // сразу и по частям, и причину потом ищут долго.
+  if (config.auto_migrate) {
+    logger.info('AUTO_MIGRATE включён — прогоняем непринятые миграции перед приёмом запросов');
+    try {
+      await migrateData();
+    } catch (error) {
+      logger.error('Миграции не прошли — не поднимаемся на неполной схеме', error);
+      process.exit(1);
+    }
+  }
 
   // Запуск сервера
   await nestApp.listen(config.port, () => {

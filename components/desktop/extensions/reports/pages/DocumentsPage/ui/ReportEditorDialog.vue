@@ -10,7 +10,7 @@ q-dialog(
   q-card.column.no-wrap
     q-bar.bg-primary.text-white
       .text-subtitle1.ellipsis
-        | {{ reportTitle }} за {{ year }}{{ period ? ` · период ${period}` : '' }}
+        | {{ reportTitle }} за {{ year }}{{ periodSuffix }}
       q-space
       q-chip(
         :color='saveStatusColor'
@@ -74,13 +74,34 @@ q-dialog(
           @dirty='onDirty'
         )
 
-        ZeroReportEditor(
-          v-else-if='reportType && reportType !== "BUHOTCH" && edits'
-          :report-type='reportType'
-          v-model:edits='zeroEdits'
-          :field-errors='fieldErrors'
-          @dirty='onDirty'
-        )
+        //- Обычный контейнер, а не <template>: фрагмент с несколькими корнями,
+        //- часть которых условная, при закрытии диалога роняет Vue на
+        //- размонтировании пустого узла («Cannot destructure property type of
+        //- vnode as it is null»), и окно перестаёт закрываться.
+        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+          ZeroReportEditor(
+            :report-type='reportType'
+            v-model:edits='zeroEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
+          //- Разделы с суммами и справки о доходах есть только у 6-НДФЛ:
+          //- это единственный отчёт, где кооператив выступает налоговым агентом.
+          Ndfl6TaxSection(
+            v-if='reportType === "NDFL6" && ndfl6Edits?.tax'
+            v-model:edits='ndfl6Edits'
+            :field-errors='fieldErrors'
+            :is-annual='ndfl6Edits.header.period === 4'
+            @dirty='onDirty'
+          )
+
+          //- Уведомление по НДФЛ — та же шапка плюс одна сумма к перечислению.
+          UvNdflAmountSection(
+            v-if='reportType === "UV_NDFL" && uvNdflEdits?.payment'
+            v-model:edits='uvNdflEdits'
+            :field-errors='fieldErrors'
+            @dirty='onDirty'
+          )
 
         .stub-other(v-else-if='!isLoading && !reportType')
           q-icon(name='fa-solid fa-triangle-exclamation' size='48px' color='warning')
@@ -116,6 +137,21 @@ q-dialog(
             span(v-if='isValid') Форма валидна
             span(v-else) Ошибок: {{ errorsCount }}
 
+          //- Явный список ошибок полей — страховка на случай, если конкретное
+          //- поле формы не подсвечивается инлайн (не все секции формы ещё
+          //- подключены к fieldErrors). Без этого списка счётчик показывал
+          //- «Ошибок: N» без единой подсказки, где именно искать.
+          q-list.error-list.q-mb-sm(
+            v-if='!isValid && fieldErrorEntries.length'
+            dense bordered separator
+          )
+            q-item(v-for='err in fieldErrorEntries' :key='err.key' dense)
+              q-item-section(avatar top)
+                q-icon(name='fa-solid fa-circle-exclamation' color='negative' size='14px')
+              q-item-section
+                q-item-label.text-caption.text-weight-medium {{ err.label }}
+                q-item-label(caption) {{ err.message }}
+
           .text-subtitle2.q-mb-sm Действия
 
           q-btn.q-mb-sm(
@@ -126,7 +162,6 @@ q-dialog(
             :loading='isGenerating'
             @click='downloadXml'
             no-caps
-            stack
           )
             q-tooltip Сохраняет черновик, генерирует XML, валидирует XSD и скачивает файл
           q-btn.q-mb-sm(
@@ -137,7 +172,6 @@ q-dialog(
             :loading='pdfLoading'
             @click='downloadPdf'
             no-caps
-            stack
           )
             q-tooltip(v-if='!hasPdfPaperView') PDF-экспорт для {{ reportTitle }} пока не поддерживается
             q-tooltip(v-else) Заполненный отчёт в PDF (из бумажного вида)
@@ -152,7 +186,6 @@ q-dialog(
             :disable='isLoading'
             @click='regenerate'
             no-caps
-            stack
           )
             q-tooltip Подтянуть актуальные данные из реестра; ваши правки сохраняются
 
@@ -164,7 +197,6 @@ q-dialog(
             label='Удалить черновик'
             @click='clearDraft'
             no-caps
-            stack
           )
             q-tooltip Вернуть форму к дефолтам
 
@@ -192,7 +224,6 @@ q-dialog(
             :loading='markLoading'
             @click='clearMark'
             no-caps
-            stack
           )
             q-tooltip Вернуть обычный статус периода
 
@@ -207,7 +238,6 @@ q-dialog(
             :loading='markLoading'
             @click='clearMark'
             no-caps
-            stack
           )
             q-tooltip Вернуть обычный статус периода
 
@@ -220,7 +250,6 @@ q-dialog(
             :loading='markLoading'
             @click='markSubmittedExternally'
             no-caps
-            stack
           )
             q-tooltip Если отчёт уже сдан в бумаге / через стороннюю систему. В архив XML не попадает, но ячейка станет зелёной.
           q-btn(
@@ -231,7 +260,6 @@ q-dialog(
             :loading='markLoading'
             @click='markNotRequired'
             no-caps
-            stack
           )
             q-tooltip Отметить, что этот период сдавать не нужно — ячейка станет серой
 
@@ -280,6 +308,16 @@ q-dialog(
         :requisites='requisites'
         :year='year'
       )
+      //- Уведомление об исчисленных суммах — одна форма КНД 1110355 на все
+      //- налоги: КБК, период и сумма читаются из XML, в бланке ничего от
+      //- конкретного налога нет. Поэтому НДФЛ печатается тем же бланком, что
+      //- УСН и взносы, а не своей копией.
+      UusnForm(
+        v-else-if='lastGeneratedXml && reportType === "UV_NDFL"'
+        :xml='lastGeneratedXml'
+        :requisites='requisites'
+        :year='year'
+      )
 </template>
 
 <script setup lang="ts">
@@ -297,11 +335,17 @@ import {
 } from 'src/entities/Report'
 import BuhotchEditor from 'extensions/reports/widgets/report-forms/BuhotchEditor.vue'
 import ZeroReportEditor from 'extensions/reports/widgets/report-forms/ZeroReportEditor.vue'
+import Ndfl6TaxSection from 'extensions/reports/widgets/report-forms/Ndfl6TaxSection.vue'
+import type { Ndfl6Edits } from 'extensions/reports/widgets/report-forms/ndfl6-edits'
+import UvNdflAmountSection from 'extensions/reports/widgets/report-forms/UvNdflAmountSection.vue'
+import { uvNdflPeriodTitle } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
+import type { UvNdflEdits } from 'extensions/reports/widgets/report-forms/uv-ndfl-edits'
 import BuhotchForm from 'extensions/reports/widgets/report-forms/BuhotchForm.vue'
 import Ndfl6Form from 'extensions/reports/widgets/report-forms/Ndfl6Form.vue'
 import RsvForm from 'extensions/reports/widgets/report-forms/RsvForm.vue'
 import PsvForm from 'extensions/reports/widgets/report-forms/PsvForm.vue'
 import Efs1Form from 'extensions/reports/widgets/report-forms/Efs1Form.vue'
+import UusnForm from 'extensions/reports/widgets/report-forms/UusnForm.vue'
 import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/report-forms/pdf-export'
 
 // Набор типов отчётов, для которых у нас есть paper-view для PDF-экспорта.
@@ -309,7 +353,7 @@ import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/rep
 // Сравниваем через строковое представление IReportType (Zeus-enum тип
 // нестыкуется с литералами напрямую).
 const PDF_SUPPORTED_TYPES: ReadonlySet<string> = new Set<string>([
-  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4',
+  'BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4', 'UV_NDFL',
 ])
 
 interface BalanceRow {
@@ -366,6 +410,7 @@ const REPORT_TITLES: Record<string, string> = {
   PSV: 'Персонифицированные сведения',
   UUSN: 'Уведомление УСН',
   UV_VZNOSY: 'Уведомление о взносах',
+  UV_NDFL: 'Уведомление об исчисленном НДФЛ',
 }
 
 const props = defineProps<{
@@ -475,6 +520,7 @@ interface ZeroReportEdits {
     okpo: string | null
     ogrn: string | null
     address: string | null
+    phone: string | null
   }
   signer: {
     type: 'chairman' | 'representative'
@@ -484,6 +530,7 @@ interface ZeroReportEdits {
     repDoc: string | null
     snils: string | null
     sfrRegNumber: string | null
+    pfrRegNumber: string | null
     chairmanPosition: string | null
   }
 }
@@ -493,9 +540,30 @@ const zeroEdits = computed<ZeroReportEdits | null>({
   set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
 })
 
+// 6-НДФЛ — та же шапка плюс собственные разделы с суммами: редактируется
+// двумя компонентами поверх одного состояния.
+const ndfl6Edits = computed<Ndfl6Edits | null>({
+  get: () => edits.value as unknown as Ndfl6Edits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
+const uvNdflEdits = computed<UvNdflEdits | null>({
+  get: () => edits.value as unknown as UvNdflEdits | null,
+  set: (v) => { edits.value = v as unknown as BuhotchEdits | null },
+})
+
 const reportTitle = computed(() =>
   props.reportType ? (REPORT_TITLES[props.reportType] ?? props.reportType) : '',
 )
+
+// У уведомления по НДФЛ период — сквозной номер 1..24, который человеку ничего
+// не говорит; в шапке показываем месяц и половину месяца. Остальным формам
+// хватает номера квартала или месяца.
+const periodSuffix = computed(() => {
+  if (!props.period) return ''
+  if (props.reportType === 'UV_NDFL') return ` · ${uvNdflPeriodTitle(props.period)}`
+  return ` · период ${props.period}`
+})
 
 const notReady = computed(() => readiness.value !== null && readiness.value.ready === false)
 
@@ -511,6 +579,34 @@ const errorsCount = computed(() => {
   let count = 0
   for (const msgs of Object.values(fieldErrors.value)) count += msgs.length
   return count
+})
+
+// Человекочитаемые названия секций формы — для расшифровки JSONPath из
+// серверной ошибки валидации (см. error-list ниже).
+const FIELD_SECTION_LABELS: Record<string, string> = {
+  header: 'Шапка',
+  organization: 'Организация',
+  signer: 'Подписант',
+  balance: 'Баланс',
+  notes: 'Пояснения',
+}
+
+function humanizeFieldPath(path: string): string {
+  const [section, ...rest] = path.split('.')
+  const sectionLabel = FIELD_SECTION_LABELS[section] ?? section
+  return rest.length ? `${sectionLabel} → ${rest.join(' → ')}` : sectionLabel
+}
+
+interface FieldErrorEntry { key: string; label: string; message: string }
+
+const fieldErrorEntries = computed<FieldErrorEntry[]>(() => {
+  const out: FieldErrorEntry[] = []
+  for (const [path, messages] of Object.entries(fieldErrors.value)) {
+    messages.forEach((message, i) => {
+      out.push({ key: `${path}#${i}`, label: humanizeFieldPath(path), message })
+    })
+  }
+  return out
 })
 
 const saveStatusColor = computed(() => {
@@ -739,6 +835,16 @@ function goToRequisites(): void {
   position: relative;
 }
 
+// Отступы и зазор между карточками живут здесь, а не внутри форм: разделы
+// 6-НДФЛ и уведомления — соседи ZeroReportEditor, и без общего контейнера они
+// прижимались к краям диалога и слипались с формой над ними.
+.editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  padding: var(--p-3, 12px);
+}
+
 .action-panel {
   width: 260px;
   flex: 0 0 260px;
@@ -836,6 +942,22 @@ function goToRequisites(): void {
   &.bad {
     background: var(--p-neg-soft);
     color: var(--p-neg);
+  }
+}
+
+.error-list {
+  background: var(--p-surface-1, #fff);
+  border-color: var(--p-neg-soft);
+  max-height: 220px;
+  overflow-y: auto;
+
+  :deep(.q-item) {
+    min-height: unset;
+    padding: 6px 8px;
+  }
+
+  :deep(.q-item__label--caption) {
+    color: var(--p-ink-2);
   }
 }
 

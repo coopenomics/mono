@@ -1,0 +1,14 @@
+# Target labels
+ gateway_contract
+# Source files and their labels
+/project/build/CMakeFiles/gateway_contract
+/project/build/CMakeFiles/gateway_contract.rule
+/project/build/CMakeFiles/gateway_contract-complete.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-build.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-configure.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-download.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-install.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-mkdir.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-patch.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-test.rule
+/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-update.rule

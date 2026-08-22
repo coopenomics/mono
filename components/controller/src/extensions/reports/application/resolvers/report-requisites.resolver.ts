@@ -1,11 +1,9 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { config } from '~/config';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
+  platformSettings,
+} from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   ReportRequisitesViewDTO,
   UpdateReportRequisitesInputDTO,
@@ -30,7 +28,7 @@ export class ReportRequisitesResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async getReportRequisites(): Promise<ReportRequisitesViewDTO> {
-    const merged = await this.service.getMerged(config.coopname);
+    const merged = await this.service.getMerged(platformSettings().coopname);
     return toView(merged);
   }
 
@@ -42,10 +40,10 @@ export class ReportRequisitesResolver {
   @AuthRoles(['chairman'])
   async updateReportRequisites(
     @Args('input', { type: () => UpdateReportRequisitesInputDTO }) input: UpdateReportRequisitesInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
   ): Promise<ReportRequisitesViewDTO> {
     const merged = await this.service.upsert({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       updated_by: currentUser?.username ?? 'system',
       okved: input.okved ?? undefined,
       okfs: input.okfs ?? undefined,
@@ -53,6 +51,7 @@ export class ReportRequisitesResolver {
       oktmo: input.oktmo ?? undefined,
       okpo: input.okpo ?? undefined,
       sfr_reg_number: input.sfrRegNumber ?? undefined,
+      pfr_reg_number: input.pfrRegNumber ?? undefined,
       chairman_position: input.chairmanPosition ?? undefined,
       signer_snils: input.signerSnils ?? undefined,
       signer_rep_doc: input.signerRepDoc ?? undefined,
@@ -72,7 +71,7 @@ export class ReportRequisitesResolver {
   async checkReportReadiness(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
   ): Promise<ReportReadinessViewDTO> {
-    const r = await this.service.checkReadiness(config.coopname, reportType);
+    const r = await this.service.checkReadiness(platformSettings().coopname, reportType);
     return {
       reportType,
       ready: r.ready,
@@ -109,6 +108,7 @@ function toView(m: MergedRequisites): ReportRequisitesViewDTO {
     oktmo: f(m.oktmo),
     okpo: f(m.okpo),
     sfrRegNumber: f(m.sfrRegNumber),
+    pfrRegNumber: f(m.pfrRegNumber),
     chairmanPosition: f(m.chairmanPosition),
     signerSnils: f(m.signerSnils),
     signerRepDoc: f(m.signerRepDoc),

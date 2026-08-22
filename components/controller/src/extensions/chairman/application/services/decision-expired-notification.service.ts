@@ -1,20 +1,12 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import cron from 'node-cron';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '~/domain/extension/repositories/log-extension-domain.repository';
-import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
+import { LOGGER_PORT, type ILoggerPort, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
+} from '@coopenomics/innercoop';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { SovietContract } from 'cooptypes';
-import config from '~/config/config';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 
 /**
@@ -24,19 +16,19 @@ import { Workflows } from '@coopenomics/notifications';
 export class DecisionExpiredNotificationService implements OnModuleInit, OnModuleDestroy {
   private cronJob: cron.ScheduledTask | null = null;
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountPort: AccountDataPort,
-    @Inject(VARS_REPOSITORY)
-    private readonly varsRepository: VarsRepository,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: INotificationPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort,
+    @Inject(COOPERATIVE_VARS_PORT)
+    private readonly cooperativeVars: ICooperativeVarsPort,
     @Inject(EXTENSION_REPOSITORY)
     private readonly extensionRepository: ExtensionDomainRepository,
     @Inject(LOG_EXTENSION_REPOSITORY)
     private readonly logExtensionRepository: LogExtensionDomainRepository,
-    @Inject(SOVIET_BLOCKCHAIN_PORT)
-    private readonly sovietBlockchainPort: SovietBlockchainPort,
-    private readonly logger: WinstonLoggerService
+    @Inject(COUNCIL_PORT)
+    private readonly sovietBlockchainPort: ICouncilPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(DecisionExpiredNotificationService.name);
   }
@@ -56,14 +48,14 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
   /**
    * Инициализирует cron-задачу для проверки истекших решений
    */
-  async initialize(plugin: ExtensionDomainEntity): Promise<void> {
+  async initialize(extension: ExtensionDomainEntity): Promise<void> {
 
     // Регистрация cron-задачи для проверки истекших решений
-    const cronExpression = `*/${plugin.config.checkInterval || 5} * * * *`; // каждые N минут, значение по умолчанию 5
+    const cronExpression = `*/${extension.config.checkInterval || 5} * * * *`; // каждые N минут, значение по умолчанию 5
     this.cronJob = cron.schedule(cronExpression, async () => {
       this.logger.debug('Запуск задачи проверки истекших решений');
       try {
-        await this.checkExpiredDecisions(plugin);
+        await this.checkExpiredDecisions(extension);
       } catch (error) {
         const errorObj = error as Error;
         this.logger.error(
@@ -105,7 +97,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       const subscriberId = userAccount.provider_account?.subscriber_id?.trim();
 
       if (!subscriberId) {
-        this.logger.warn(`subscriber_id пайщика ${username} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id пайщика ${username} не найден`);
         return;
       }
 
@@ -118,13 +110,13 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       const userName = await this.accountPort.getDisplayName(username);
 
       // Получаем данные кооператива из Vars
-      const vars = await this.varsRepository.get();
+      const vars = await this.cooperativeVars.get();
       if (!vars) {
         this.logger.warn(`Vars для кооператива ${coopname} не найдены`);
         return;
       }
 
-      const short_abbr = vars.short_abbr;
+      const short_abbr = vars.shortAbbr;
       const name = vars.name;
 
       // Формируем данные для workflow
@@ -137,17 +129,17 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
         name,
       };
 
-      // Отправляем уведомление пайщику
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.DecisionExpired.id,
+      // Отправляем уведомление пайщику через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname,
+        workflowId: Workflows.DecisionExpired.id,
         to: {
           subscriberId,
           email: userEmail,
+          username,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление об отмене решения ${decisionId} отправлено пайщику ${username}`
       );
@@ -159,10 +151,10 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
   /**
    * Проверяет и отменяет истекшие решения
    */
-  async checkExpiredDecisions(plugin: ExtensionDomainEntity): Promise<void> {
+  async checkExpiredDecisions(extension: ExtensionDomainEntity): Promise<void> {
     try {
       // Получаем coopname из конфигурации
-      const coopname = config.coopname;
+      const coopname = platformSettings().coopname;
 
       this.logger.debug(`Проверка решений для кооператива ${coopname}`);
 
@@ -183,9 +175,9 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
         // Если поле expired_at не существует, добавляем
         if (!decision.expired_at) return true;
 
-        // Если решение уже принято и не требуется отменять принятые решения, пропускаем
-        if (decision.approved && !plugin.config.cancelApprovedDecisions) return false;
-
+        // По истечению срока гасим ВСЕ решения (и принятые, и нет). Отрицательно
+        // принятые решения отдельно снимает председатель действием declinedec —
+        // авто-отмена по сроку и явный отказ по консенсусу теперь развязаны.
         // Конвертируем дату из формата блокчейна в JavaScript Date
         const expiredDate = new Date(decision.expired_at);
 
@@ -257,14 +249,14 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       }
 
       // Обновляем дату последней проверки. ВАЖНО: read-modify-write по СВЕЖЕМУ
-      // config из БД, а не по захваченному при initialize() снимку `plugin`.
+      // config из БД, а не по захваченному при initialize() снимку `extension`.
       // Cron-замыкание держит in-memory снимок с момента boot; за время между
       // boot и тиком онбординг-флаги (`onboarding_*_done/_hash`) и прочие поля
       // могли быть записаны в БД другими сервисами. Перезапись устаревшего
       // снимка стёрла бы их (lost update). Поэтому берём актуальный config и
       // трогаем только lastCheckDate.
       const fresh = await this.extensionRepository.findByName('chairman');
-      const baseConfig = fresh?.config ?? plugin.config;
+      const baseConfig = fresh?.config ?? extension.config;
       const updatedConfig = {
         ...baseConfig,
         lastCheckDate: new Date().toISOString(),

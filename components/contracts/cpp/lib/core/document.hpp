@@ -73,4 +73,20 @@ namespace Document {
     return document.hash == checksum256{};
   }
 
+  /**
+   * @brief Удалить документ по имени из вектора
+   * @param docs Вектор документов
+   * @param name Имя документа для удаления
+   * @return true если документ был найден и удалён
+   */
+  inline bool remove_document(std::vector<named_document>& docs, const name& name) {
+    for (auto it = docs.begin(); it != docs.end(); ++it) {
+      if (it->name == name) {
+        docs.erase(it);
+        return true;
+      }
+    }
+    return false;
+  }
+
 }

@@ -2,7 +2,6 @@ import { DraftContract } from 'cooptypes'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import DataService from '../Services/Databazor/DataService'
 import { SelectBranchStatement } from '../Templates'
 import { isEmpty } from '../Utils'
 
@@ -14,16 +13,14 @@ export class Factory extends DocFactory<SelectBranchStatement.Action> {
   }
 
   async generateDocument(data: SelectBranchStatement.Action, _options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<SelectBranchStatement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = SelectBranchStatement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, SelectBranchStatement.registry_id, data.block_num)
-    }
-
-    const user = await super.getUser(data.username, data.block_num)
+    const { template, user, coop, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(SelectBranchStatement.Template as ITemplate<SelectBranchStatement.Model>)
+        : this.getTemplate<SelectBranchStatement.Model>(DraftContract.contractName.production, SelectBranchStatement.registry_id, data.block_num),
+      user: () => super.getUser(data.username, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
     const userData = {
       [user.type]: {
@@ -31,16 +28,12 @@ export class Factory extends DocFactory<SelectBranchStatement.Action> {
       },
     }
 
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-
     if (coop.is_branched && !data.braname)
       throw new Error('Кооперативный участок должен быть указан')
 
     const branch = await super.getOrganization(data.braname, data.block_num)
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data }) // Генерируем мета-данные
-
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     if (!vars?.participant_application || isEmpty(vars.participant_application.protocol_number) || isEmpty(vars.participant_application.protocol_day_month_year))
       throw new Error('Реквизиты протокола для заявления на вступление не заполнены. Заполните номер и дату протокола в настройках кооператива.')

@@ -1,5 +1,5 @@
 import type { Cooperative } from 'cooptypes';
-import type { GeneratedDocumentDomainInterface } from '../interfaces/generated-document-domain.interface';
+import type { GeneratedDocumentDomainInterface } from '@coopenomics/extension-kit';
 
 export class DocumentDomainEntity implements GeneratedDocumentDomainInterface {
   full_title: string;

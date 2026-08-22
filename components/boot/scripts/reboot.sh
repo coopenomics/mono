@@ -1,57 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Чистый перезапуск ВСЕГО стенда одной командой: `pnpm run reboot`.
+#
+# Полная очистка (контейнеры, тома баз, данные цепи) и подъём всего, что есть в
+# компоузе: базы, файловое хранилище, authentik, цепь с контрактами, парсер,
+# бэкенд, рабочий стол и единый вход nginx. Руками доподнимать ничего не нужно.
+#
+# Нужен собранный код: `pnpm run build:lib` и `pnpm run build:contracts:all:test`
+# (boot деплоит в цепь именно собранные wasm — без них подъём осмысленно не пройдёт).
+#
+# Варианты: reboot:clean (без очистки томов), reboot:extra (совет и пайщики),
+# reboot:blago (extra + сид Благороста). Общие шаги — в lib/stack.sh.
 
-# Загружаем per-instance конфиг из корня репо (для CHAIN_URL/MONGODB_URL/API_URL,
-# которые читают TS-код boot и шелл-скрипты networks.sh/preactivate.sh).
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-if [ -f "$ROOT_DIR/.env" ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/.env"
-  set +a
-fi
+set -uo pipefail
 
-# Останавливаем и удаляем контейнеры вместе с volumes
-echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/stack.sh
+source "$SCRIPT_DIR/lib/stack.sh"
 
-# Останавливаем blockchain контейнер перед удалением данных
-echo "Останавливаем blockchain контейнер..."
-docker compose stop node || true
+stack_load_env
 
-# Удаляем blockchain data
-echo "Удаляем blockchain data..."
-# sudo chmod -R 755 ../blockchain-data/ 2>/dev/null || true
-docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null || true'
+echo "══ Чистый перезапуск стенда ${STACK_PROJECT} ══"
 
-# Пересоздаем и запускаем базы данных
-echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres monoredis
+stack_wipe_all
+stack_up_infra
+stack_up_authentik
 
-# Ждем готовности MongoDB (standalone, ping вместо ожидания PRIMARY).
-echo "Ждем готовности MongoDB..."
-until docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand({ping:1}).ok" > /dev/null 2>&1; do
-  echo "MongoDB еще не готов, ждем..."
-  sleep 2
-done
-echo "MongoDB готов!"
-
-# Ждем готовности PostgreSQL
-echo "Ждем готовности PostgreSQL..."
-until docker compose exec -T postgres pg_isready -U postgres -d voskhod > /dev/null 2>&1; do
-  echo "PostgreSQL еще не готов, ждем..."
-  sleep 2
-done
-echo "PostgreSQL готов!"
-
-# Запускаем boot процесс
-echo "Запускаем boot процесс..."
+echo "▸ Запускаем boot: поднимаем цепь и деплоим контракты..."
 pnpm run boot
 
-# Запускаем parser
-echo "Запускаем parser..."
-docker compose up -d cooparser
+stack_up_app
+stack_summary
 
-echo "Запускаем контроллер..."
-docker compose up -d --force-recreate coopback || true
-
-echo "Перезапуск завершен!"
+echo "Перезапуск завершён."

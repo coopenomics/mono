@@ -1,9 +1,9 @@
 import type { CapitalContract } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Интерфейс данных возврата из программы из блокчейна
  */
 export type IProgramWithdrawBlockchainData = Omit<CapitalContract.Tables.ProgramWithdraws.IProgramWithdraw, 'statement'> & {
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 };

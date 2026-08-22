@@ -3,10 +3,10 @@ import type * as Soviet from '../../../../interfaces/soviet'
 import { Actors } from '../../../../common'
 
 /**
- * Действие выполняется за подписью любого {@link Actors._username | пользователя}.
+ * Действие выполняется за подписью {@link Actors._coopname | кооператива} (проводится через бэкенд).
  */
 export const authorizations = [
-  { permissions: [Permissions.active], actor: Actors._username },
+  { permissions: [Permissions.active], actor: Actors._coopname },
 ] as const
 
 /**

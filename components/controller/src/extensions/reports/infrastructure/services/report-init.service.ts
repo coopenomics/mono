@@ -8,6 +8,7 @@ import { DusnGenerator } from '../generators/dusn.generator';
 import { Fss4Generator } from '../generators/fss4.generator';
 import { UvVznosyGenerator } from '../generators/uv-vznosy.generator';
 import { UusnGenerator } from '../generators/uusn.generator';
+import { UvNdflGenerator } from '../generators/uv-ndfl.generator';
 
 @Injectable()
 export class ReportInitService implements OnModuleInit {
@@ -22,5 +23,6 @@ export class ReportInitService implements OnModuleInit {
     this.registry.register(new Fss4Generator());
     this.registry.register(new UvVznosyGenerator());
     this.registry.register(new UusnGenerator());
+    this.registry.register(new UvNdflGenerator());
   }
 }

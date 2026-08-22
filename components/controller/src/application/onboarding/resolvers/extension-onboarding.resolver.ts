@@ -1,10 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExtensionOnboardingService } from '~/domain/onboarding/services/extension-onboarding.service';
 import { ExtensionOnboardingStateDTO } from '../dto/extension-onboarding-state.dto';
 import { CompleteExtensionOnboardingStepInputDTO } from '../dto/complete-extension-onboarding-step.input';
@@ -47,7 +44,7 @@ export class ExtensionOnboardingResolver {
   async completeStep(
     @Args('data', { type: () => CompleteExtensionOnboardingStepInputDTO })
     data: CompleteExtensionOnboardingStepInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ExtensionOnboardingStateDTO> {
     const state = await this.onboardingService.completeStep(
       {

@@ -3,10 +3,19 @@ import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
+import { capitalProgramPrivateData } from './utils/capitalProgramPrivateData'
+
+let capitalProgramDocDataHash = ''
 
 describe('тест генератора документов ЦПП БЛАГОРОСТ', async () => {
   beforeAll(async () => {
     await generator.connect(mongoUri)
+
+    // Документы 998-1000 требуют приватные данные программы через
+    // doc_data_hash (cooptypes: requireCapitalProgramPrivateData). Без него
+    // генерация падает с «PrivateData для документа #N не найдены».
+    const { hash } = await generator.saveDocData(capitalProgramPrivateData, 998)
+    capitalProgramDocDataHash = hash
 
     const udataRecords = [
       { key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER, value: 'БЛ-001/2024' },
@@ -29,6 +38,7 @@ describe('тест генератора документов ЦПП БЛАГОР
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -47,6 +57,7 @@ describe('тест генератора документов ЦПП БЛАГОР
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -65,6 +76,7 @@ describe('тест генератора документов ЦПП БЛАГОР
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 })

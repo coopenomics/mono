@@ -1,0 +1,217 @@
+feature: marketplace.economy
+title: Экономика кооперативного участка — членские взносы на балансе и распределение по доверенным
+
+# Членский взнос с каждого исполненного заказа оседает в общем кошельке
+# участка (`w.brn.common`). Председатель участка распределяет его между
+# доверенными по сетке весов: доля каждого = вес / Σ весов, деньги уходят в
+# персональные кошельки (`w.brn.person`). Часть общего кошелька заморожена
+# плановым резервом расходов ближайших 30 дней — распределить её нельзя.
+#
+# Дальше персональные средства доверенный либо переводит в «Стол заказов»
+# (o.brn.conv), либо получает деньгами через заявление на материальную помощь
+# (o.brn.aid) — оно идёт на решение совета, платит кассир.
+#
+# Источник истины конфигурации — цепь: marketplace::config (ставка взноса),
+# branch::weights / branch::weighttotals (сетка), ledger2::userwallets
+# (балансы). Плановые расходы — общесистемный реестр расширения `expenses`.
+
+# 2026-08-18: перечисление удержанного налога целиком уехало на стол бухгалтера
+# (reports.withheld-tax) — вместе с чтением кошелька, заявкой на цепи и
+# слушателем кассира. Долг перед бюджетом общекооперативный: в один кошелёк
+# стекаются удержания любой программы, поэтому распоряжаться им Стол заказов не
+# вправе. Здесь остался только расчёт удержания в момент выплаты, а ставка для
+# него берётся из справочника юрисдикций — того же, откуда её берут формы.
+#
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-economy.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-economy.dto.ts
+    - components/controller/src/extensions/marketplace/application/shared/ndfl.util.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/**Economy**/**
+
+cases:
+  - id: mkt.eco.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Экономика участка показывает общий кошелёк, плановый резерв и доступную к распределению сумму раздельно
+    expect: >
+      доступно = общий кошелёк минус резерв ближайших 30 дней; резерв неприкосновенен
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Доли доверенных считаются по сетке весов, рядом видны их персональные кошельки
+    expect: >
+      доля = вес / Σ весов в процентах; персональный баланс каждого доверенного показан рядом с долей
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель участка распределяет доступную сумму по сетке
+    expect: >
+      распределение уходит на цепь с источником «marketplace» и запрошенной суммой
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.01
+    level: backend
+    kind: side
+    scenario: Распределение затрагивает плановый резерв расходов участка
+    expect: отказ с указанием остатка, резерва и доступной суммы; на цепь ничего не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.02
+    level: backend
+    kind: side
+    scenario: Распределение запрашивает не председатель этого участка
+    expect: отказ доступа, сетка и кошельки не меняются
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.03
+    level: backend
+    kind: side
+    scenario: Распределение при ненастроенной сетке весов
+    expect: отказ — распределять некому, пока веса не заданы
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.04
+    level: backend
+    kind: side
+    scenario: Сумма распределения нулевая или отрицательная
+    expect: отказ, на цепь ничего не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.05
+    level: backend
+    kind: side
+    scenario: >
+      В реестре весов есть записи другого участка и другого контракта-источника
+    expect: в сетку участка попадают только его собственные веса по «marketplace»
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.06
+    level: backend
+    kind: side
+    scenario: Вес доверенного дробный, нулевой или задаётся чужим председателем
+    expect: отказ; сетка не меняется ни при задании веса, ни при исключении участника
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив не задавал ставку членского взноса, либо задаёт её вне диапазона 0…100 процентов
+    expect: >
+      без своей ставки действует умолчание 30%; ставка вне диапазона на цепь не уходит
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+    # Умолчание обязано совпадать с DEFAULT_MEMBERSHIP_FEE_PERCENT контракта:
+    # пока кооператив не вызвал setfee, сумма в чекауте считается бэкендом, а
+    # списывается контрактом — разойдутся ставки, разойдутся и деньги.
+
+  - id: mkt.eco.side.08
+    level: backend
+    kind: side
+    scenario: Плановый резерв больше остатка общего кошелька
+    expect: доступно к распределению ноль, а не отрицательная сумма
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      После исполненных заказов председатель участка видит накопленные членские взносы на балансе участка
+    expect: >
+      общий кошелёк участка вырос ровно на сумму взносов по исполненным заказам
+    test: components/docs-harness/scenarios/marketplace/operator/branch-economy.mjs
+    status: passing
+    # Пункт плана заказчика «экономика показывает членские взносы на балансе
+    # после операций». Требует прогона цепочки заказов до выдачи, поэтому
+    # ставится после сценария выдачи и читает баланс на экране участка.
+
+  - id: mkt.eco.side.09
+    level: ui
+    kind: side
+    scenario: >
+      Председатель кооперативного участка открывает «Распределение» на своём столе ПВЗ
+    expect: >
+      он вправе задать веса и распределить средства своего участка — сервер это разрешает, проверяя председательство по данным участка
+    test: components/docs-harness/scenarios/marketplace/operator/branch-economy.mjs
+    status: passing
+    # Дефект прав (прогон 2026-08-12) устранён: поле объекта открывается его
+    # владельцу — председатель участка читает `trustee`/`trusted` своего КУ и
+    # видит управление. Зелёный прогон от чистой цепи 2026-08-15.
+
+  - id: mkt.eco.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель распределяет накопленные взносы, и они появляются в персональных кошельках доверенных согласно сетке
+    expect: >
+      каждый доверенный получает долю по своему весу; общий кошелёк уменьшается на распределённую сумму
+    test: components/docs-harness/scenarios/marketplace/operator/branch-economy.mjs
+    status: passing
+    # Пункт плана заказчика «экономика распределяет членские взносы по
+    # доверенным согласно сетке».
+
+  # --- Удержание НДФЛ при выплате материальной помощи ---
+  # Кооператив — налоговый агент: заявление подаётся на сумму до налога,
+  # получатель получает её за вычетом ставки, разница становится долгом перед
+  # бюджетом. Здесь остаётся только расчёт удержания в момент выплаты —
+  # перечислением долга распоряжается стол бухгалтера (reports.withheld-tax):
+  # в один кошелёк стекаются удержания любой программы, и владеть ими Стол
+  # заказов не может.
+
+  - id: mkt.eco.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Заявление на материальную помощь подано на сумму до удержания налога
+    expect: >
+      кассиру выставляется платёж за вычетом налога, с персонального кошелька
+      списывается вся сумма заявления
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    status: passing
+
+  - id: mkt.eco.side.10
+    level: backend
+    kind: side
+    scenario: Налог считается от суммы, не кратной рублю
+    expect: >
+      налог округляется до целого рубля по правилам налогового кодекса, и
+      контракт с бэкендом округляют одинаково
+    test: components/controller/src/extensions/marketplace/application/shared/ndfl.util.spec.ts
+    status: passing
+    # Расхождение округления развело бы платёжку кассира и проводку контракта.
+
+  - id: mkt.eco.ui.03
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает «Экономику» — единая кооперативная наценка
+      кооператива с пояснением и кнопкой изменения
+    expect: >
+      текущая наценка отображается в процентах; пояснение говорит, что наценка
+      единая для всех участков и действует на новые заказы
+    test: components/docs-harness/scenarios/marketplace/chairman/economy.mjs
+    status: passing

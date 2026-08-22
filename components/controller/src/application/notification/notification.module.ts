@@ -5,30 +5,20 @@ import { SubscriptionService } from './services/subscription.service';
 import { NotificationService } from './services/notification.service';
 import { NotificationInteractor } from './interactors/notification.interactor';
 import { CleanupService } from './services/cleanup.service';
-import { NotificationWebhookController } from './controllers/notification-webhook.controller';
-import { NotificationWebhookService } from './services/notification-webhook.service';
-import { DeviceTokenService } from './services/device-token.service';
 import { NotificationSenderService } from './services/notification-sender.service';
 import { NotificationEventService } from './services/notification-event.service';
 import { WebPushService } from './services/web-push.service';
-import { NotificationDomainModule } from '~/domain/notification/notification-domain.module';
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
-import { NovuCredentialsAdapter } from '~/infrastructure/novu/novu-credentials.adapter';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NovuAdapter } from '~/infrastructure/novu/novu.adapter';
-import { NOVU_CREDENTIALS_PORT } from '~/domain/notification/interfaces/novu-credentials.port';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
-import { NOTIFICATION_PORT } from '~/domain/notification/interfaces/notification.port';
 
 /**
- * Модуль приложения для управления уведомлениями
- * Включает веб-пуш подписки, webhook обработку и NOVU интеграцию
+ * Модуль приложения для управления уведомлениями.
+ * Веб-пуш подписки (web_push_subscriptions), резолверы и фасады отправки.
+ * Доставка по каналам — Центр уведомлений (NotificationCenterModule).
  */
 @Global()
 @Module({
-  imports: [NotificationDomainModule, AccountDomainModule, UserDomainModule],
-  controllers: [NotificationWebhookController],
+  imports: [AccountDomainModule, UserDomainModule],
   providers: [
     SubscriptionResolver,
     NotificationResolver,
@@ -36,36 +26,16 @@ import { NOTIFICATION_PORT } from '~/domain/notification/interfaces/notification
     NotificationService,
     NotificationInteractor,
     CleanupService,
-    NotificationWebhookService,
-    DeviceTokenService,
     NotificationSenderService,
     NotificationEventService,
     WebPushService,
-    // Биндинги портов к адаптерам
-    {
-      provide: NOTIFICATION_PORT,
-      useClass: NovuAdapter,
-    },
-    {
-      provide: NOVU_CREDENTIALS_PORT,
-      useClass: NovuCredentialsAdapter,
-    },
-    {
-      provide: NOVU_WORKFLOW_PORT,
-      useClass: NovuWorkflowAdapter,
-    },
   ],
   exports: [
     CleanupService,
-    NotificationWebhookService,
     NotificationService,
-    DeviceTokenService,
     NotificationSenderService,
     WebPushService,
     NotificationInteractor,
-    NOTIFICATION_PORT,
-    NOVU_CREDENTIALS_PORT,
-    NOVU_WORKFLOW_PORT,
   ],
 })
 export class NotificationModule {}

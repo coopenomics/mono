@@ -27,6 +27,7 @@ export const rawBlockchainDecisionSelector = {
   username_certificate: rawUserCertificateUnionSelector,
   votes_for_certificates: rawUserCertificateUnionSelector,
   votes_against_certificates: rawUserCertificateUnionSelector,
+  council_members_count: true,
 }
 
 // Проверка валидности

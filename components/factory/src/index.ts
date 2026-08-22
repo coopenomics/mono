@@ -1,4 +1,5 @@
 export * from './Interfaces'
+export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
 
@@ -8,9 +9,12 @@ import type { IFilterDocuments, IGeneratedDocument, Numbers, externalDataTypes, 
 import type { IGenerate, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
 
-import { type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
+import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
 import type { ExternalIndividualData } from './Models/Individual'
 import { Individual } from './Models/Individual'
+import type { IChainDataSource } from './DataSource'
+import { ChainRpcDataSource } from './DataSource'
+import { getEnvVar } from './config'
 import type { ExternalEntrepreneurData, ExternalOrganizationData, IVars } from './Models'
 import { Entrepreneur, Organization, Vars } from './Models'
 import { Cooperative, type CooperativeData } from './Models/Cooperative'
@@ -39,6 +43,16 @@ export interface IGenerator {
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
   getDocument: (filter: Filter<IFilterDocuments>) => Promise<IGeneratedDocument>
 
+  /**
+   * Сохранить приватные данные документа off-chain; возвращает hash для
+   * публикации on-chain как `doc_data_hash`. См. раздел
+   * «Document Generation Pattern: doc_data» в архитектуре.
+   */
+  saveDocData: <P extends Record<string, unknown>>(payload: P, registry_id: number) => Promise<{ hash: string }>
+
+  /** Прочитать приватный payload по `doc_data_hash`. null — если запись удалена. */
+  getDocData: <P = Record<string, unknown>>(hash: string) => Promise<P | null>
+
   constructCooperative: (username: string, block_num?: number) => Promise<CooperativeData | null>
   save: ((type: 'individual', data: ExternalIndividualData) => Promise<InsertOneResult>) & ((type: 'entrepreneur', data: ExternalEntrepreneurData) => Promise<InsertOneResult>) & ((type: 'organization', data: ExternalOrganizationData) => Promise<InsertOneResult>) & ((type: 'paymentMethod', data: PaymentData) => Promise<InsertOneResult>) & ((type: 'vars', data: IVars) => Promise<InsertOneResult>) & ((type: 'project', data: ExternalProjectData) => Promise<InsertOneResult>) & ((type: 'udata', data: ExternalUdata) => Promise<InsertOneResult>)
   get: (type: dataTypes, filter: Filter<internalFilterTypes>) => Promise<externalDataTypes | null>
@@ -53,6 +67,44 @@ export interface IGenerator {
 }
 
 export class Generator implements IGenerator {
+  /**
+   * Откуда брать данные цепи. Не задан — читаем прямо из цепи по адресу из
+   * окружения: так генерация работает у инструментов развёртывания, у которых
+   * своей базы нет. Узел передаёт сюда собственную реализацию — с историей
+   * версий шаблонов и историей действий, которых у цепи не спросить.
+   */
+  private givenDataSource?: IChainDataSource
+  private chainDataSource?: IChainDataSource
+
+  constructor(dataSource?: IChainDataSource) {
+    this.givenDataSource = dataSource
+  }
+
+  /**
+   * Адрес цепи спрашиваем только тогда, когда за данными действительно идут.
+   * Генератор создают и там, где до цепи дело не доходит: сборка шаблонов из
+   * локальных исходников, поиск по хранилищу, набор тестов документов. Пока
+   * источник не передали, фабрики получают вот этот переходник — он поднимет
+   * чтение из цепи при первом же запросе, а до тех пор переменная окружения не
+   * нужна.
+   */
+  private get dataSource(): IChainDataSource {
+    if (this.givenDataSource) return this.givenDataSource
+
+    return {
+      getTableRows: (query) => this.chainSource().getTableRows(query),
+      getActions: (query) => this.chainSource().getActions(query),
+      getCurrentBlock: () => this.chainSource().getCurrentBlock(),
+    }
+  }
+
+  private chainSource(): IChainDataSource {
+    if (!this.chainDataSource)
+      this.chainDataSource = new ChainRpcDataSource(getEnvVar('CHAIN_URL'))
+
+    return this.chainDataSource
+  }
+
   // Определение фабрик
   factories!: {
     [K in Numbers]: DocFactory<IGenerate>
@@ -64,12 +116,18 @@ export class Generator implements IGenerator {
   // Сервис поиска
   private searchService!: SearchService
 
+  // Сервис приватных данных документов (off-chain payload + on-chain hash)
+  private docDataService!: DocDataService
+
   // Метод подключения к хранилищу
   async connect(mongoUri: string): Promise<void> {
     this.storage = new MongoDBConnector(mongoUri)
 
     // Инициализация сервиса поиска
     this.searchService = new SearchService(this.storage)
+
+    // Инициализация сервиса приватных данных документов
+    this.docDataService = new DocDataService(this.storage)
 
     // Инициализация фабрик документов
     this.factories = {
@@ -81,6 +139,8 @@ export class Generator implements IGenerator {
       [Actions.ConvertToAxonStatement.Template.registry_id]: new Actions.ConvertToAxonStatement.Factory(this.storage), // 51
       [Actions.BillingConversionStatement.Template.registry_id]: new Actions.BillingConversionStatement.Factory(this.storage), // 1095
       [Actions.ParticipantApplication.Template.registry_id]: new Actions.ParticipantApplication.Factory(this.storage), // 100
+      [Actions.ParticipantExitApplication.Template.registry_id]: new Actions.ParticipantExitApplication.Factory(this.storage), // 200
+      [Actions.DecisionOfParticipantExit.Template.registry_id]: new Actions.DecisionOfParticipantExit.Factory(this.storage), // 201
       [Actions.SelectBranchStatement.Template.registry_id]: new Actions.SelectBranchStatement.Factory(this.storage), // 101
 
       // общее собрание
@@ -89,6 +149,18 @@ export class Generator implements IGenerator {
       [Actions.AnnualGeneralMeetingNotification.Template.registry_id]: new Actions.AnnualGeneralMeetingNotification.Factory(this.storage), // 302
       [Actions.AnnualGeneralMeetingVotingBallot.Template.registry_id]: new Actions.AnnualGeneralMeetingVotingBallot.Factory(this.storage), // 303
       [Actions.AnnualGeneralMeetingDecision.Template.registry_id]: new Actions.AnnualGeneralMeetingDecision.Factory(this.storage), // 304
+
+      // самоорганизация кооперативных участков
+      [Actions.BranchMeetingProposal.Template.registry_id]: new Actions.BranchMeetingProposal.Factory(this.storage), // 320
+      [Actions.BranchMeetingBallot.Template.registry_id]: new Actions.BranchMeetingBallot.Factory(this.storage), // 322
+      [Actions.BranchMeetingDecision.Template.registry_id]: new Actions.BranchMeetingDecision.Factory(this.storage), // 323
+      [Actions.BranchEstablishmentPetition.Template.registry_id]: new Actions.BranchEstablishmentPetition.Factory(this.storage), // 324
+      [Actions.BranchEstablishmentSovietDecision.Template.registry_id]: new Actions.BranchEstablishmentSovietDecision.Factory(this.storage), // 325
+      [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
+      [Actions.BranchTrustedLiabilityAgreement.Template.registry_id]: new Actions.BranchTrustedLiabilityAgreement.Factory(this.storage), // 327
+      [Actions.BranchTrusteeLiabilityAgreement.Template.registry_id]: new Actions.BranchTrusteeLiabilityAgreement.Factory(this.storage), // 328
+      [Actions.BranchTrusteePowerOfAttorney.Template.registry_id]: new Actions.BranchTrusteePowerOfAttorney.Factory(this.storage), // 329
+      [Actions.BranchTrustedPowerOfAttorney.Template.registry_id]: new Actions.BranchTrustedPowerOfAttorney.Factory(this.storage), // 330
 
       [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
       [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599
@@ -127,6 +199,10 @@ export class Generator implements IGenerator {
       [Actions.ExpenseStatement.Template.registry_id]: new Actions.ExpenseStatement.Factory(this.storage), // 1010
       [Actions.ExpenseDecision.Template.registry_id]: new Actions.ExpenseDecision.Factory(this.storage), // 1011
 
+      // Шасси расходов — программные расходы (служебные записки)
+      [Actions.ExpenseProposalStatement.Template.registry_id]: new Actions.ExpenseProposalStatement.Factory(this.storage), // 2010
+      [Actions.ExpenseProposalDecision.Template.registry_id]: new Actions.ExpenseProposalDecision.Factory(this.storage), // 2011
+
       [Actions.GenerationMoneyInvestStatement.Template.registry_id]: new Actions.GenerationMoneyInvestStatement.Factory(this.storage), // 1020
       [Actions.GenerationMoneyReturnUnusedStatement.Template.registry_id]: new Actions.GenerationMoneyReturnUnusedStatement.Factory(this.storage), // 1025
 
@@ -150,7 +226,34 @@ export class Generator implements IGenerator {
       [Actions.GenerationConvertStatement.Template.registry_id]: new Actions.GenerationConvertStatement.Factory(this.storage), // 1080
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
+
+      // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
+      [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
+      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1101
+      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
+
+      // Marketplace (Стол заказов) — Эпик 5
+      [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
+      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
+      [Actions.MarketplaceAplIssuance.Template.registry_id]: new Actions.MarketplaceAplIssuance.Factory(this.storage), // 1105 — выдача (кооператив → заказчик)
+
+      // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106
+
+      // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
+      [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
+      [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
+      [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
+      [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
+      [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
+      [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
     }
+
+    // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
+    // тянуть через конструктор каждой из десятков фабрик выше.
+    for (const factory of Object.values(this.factories))
+      factory.setDataSource(this.dataSource)
+
     await this.storage.connect()
   }
 
@@ -172,6 +275,14 @@ export class Generator implements IGenerator {
 
   async getDocument(filter: Filter<IFilterDocuments>): Promise<IGeneratedDocument> {
     return await this.storage.getDocument(filter)
+  }
+
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return this.docDataService.save(payload, registry_id)
+  }
+
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return this.docDataService.get<P>(hash)
   }
 
   async save(type: 'individual', data: ExternalIndividualData): Promise<InsertOneResult>
@@ -239,7 +350,7 @@ export class Generator implements IGenerator {
   }
 
   async constructCooperative(username: string, block_num?: number): Promise<CooperativeData | null> {
-    return new Cooperative(this.storage).getOne(username, block_num)
+    return new Cooperative(this.storage, this.dataSource).getOne(username, block_num)
   }
 
   // Новый метод поиска

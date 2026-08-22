@@ -1,4 +1,4 @@
-import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { ISignedDocument } from '@coopenomics/innercoop';
 import { ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 /**
@@ -13,14 +13,18 @@ export interface CandidateDomainInterface {
   created_at: Date;
   registered_at?: Date;
   documents?: {
-    statement?: ISignedDocumentDomainInterface;
-    wallet_agreement?: ISignedDocumentDomainInterface;
-    signature_agreement?: ISignedDocumentDomainInterface;
-    privacy_agreement?: ISignedDocumentDomainInterface;
-    user_agreement?: ISignedDocumentDomainInterface;
-    blagorost_offer?: ISignedDocumentDomainInterface;
-    generator_offer?: ISignedDocumentDomainInterface;
+    statement?: ISignedDocument;
+    wallet_agreement?: ISignedDocument;
+    signature_agreement?: ISignedDocument;
+    privacy_agreement?: ISignedDocument;
+    user_agreement?: ISignedDocument;
+    /** @deprecated legacy capital — новые оферты → program_agreements */
+    blagorost_offer?: ISignedDocument;
+    /** @deprecated legacy capital — новые оферты → program_agreements */
+    generator_offer?: ISignedDocument;
   };
+  /** Подписанные оферты расширений по agreement_id из AgreementRegistry. */
+  program_agreements?: Record<string, ISignedDocument>;
   registration_hash: string;
   referer?: string;
   public_key: string;

@@ -145,7 +145,7 @@ src/
 │   └── wallet/                #   Кошельки
 │
 ├── extensions/                # 🟣 Система расширений (плагины)
-│   ├── base.extension.module.ts   # Абстрактный базовый класс расширения
+│   ├── innercoop-bridge.module.ts  # Биндинг портов @coopenomics/innercoop
 │   ├── extensions.module.ts       # Динамический модуль регистрации всех расширений
 │   ├── extensions.registry.ts     # Реестр расширений (AppRegistry)
 │   ├── builtin/               #   Встроенное расширение-заглушка
@@ -157,7 +157,6 @@ src/
 │   ├── yookassa/              #   Платёжный провайдер ЮKassa
 │   ├── sberpoll/              #   Автоматический приём через Сбербанк
 │   ├── qrpay/                 #   QR-оплата через банк
-│   ├── 1ccoop/                #   Интеграция с 1С
 │   └── orders/ (заглушка)     #   Стол заказов (в разработке)
 │
 ├── shared/                    # Общие утилиты и абстракции
@@ -391,9 +390,9 @@ export class TypeOrmPaymentRepository implements PaymentRepository { ... }
 
 ### Архитектура
 
-Расширения — это модульные плагины, подключаемые к основному приложению. Каждое расширение:
+Расширения — это модульные приложения, подключаемые к контроллеру. Каждое расширение:
 
-1. **Наследует** `BaseExtModule` (или специализированный класс, например `PaymentProvider`, `IPNProvider`, `PollingProvider`)
+1. **Наследует** `BaseExtensionModule` (или специализированный класс, например `PaymentProvider`, `IPNProvider`, `PollingProvider`)
 2. **Реализует** `OnModuleInit` (NestJS lifecycle)
 3. **Регистрируется** в `AppRegistry` (`extensions.registry.ts`)
 4. **Загружается** через `ExtensionsModule.register()` (динамический NestJS-модуль)
@@ -403,9 +402,9 @@ export class TypeOrmPaymentRepository implements PaymentRepository { ... }
 
 ```typescript
 @Injectable()
-export abstract class BaseExtModule implements OnModuleInit {
+export abstract class BaseExtensionModule implements OnModuleInit {
   abstract name: string;                    // Уникальное имя
-  abstract plugin: ExtensionDomainEntity;   // Сущность из БД
+  abstract extension: ExtensionDomainEntity;   // Сущность из БД
   abstract defaultConfig: Record<string, any>;  // Дефолтная конфигурация
   public configSchemas: ZodObject<any>;     // Zod-схема конфигурации
   abstract initialize(): Promise<void>;     // Инициализация при старте
@@ -438,18 +437,17 @@ AppRegistry = {
 
 - **Desktop-расширения** — предоставляют рабочий стол (UI workspace): `soviet`, `chairman`, `capital`, `participant`, `chatcoop`, `powerup`, `orders`
 - **Платёжные расширения** — реализуют `PaymentProvider` / `IPNProvider` / `PollingProvider`: `yookassa`, `sberpoll`, `qrpay`
-- **Интеграционные расширения** — синхронизация с внешними системами: `1ccoop`
 
 ### Иерархия платёжных провайдеров
 
 ```
-BaseExtModule
-├── PaymentProvider (extends BaseExtModule, implements PaymentProviderPort)
-│   └── QrPayPlugin — генерация QR-кода для оплаты
-├── IPNProvider (extends BaseExtModule)
-│   └── YookassaPlugin — приём IPN-уведомлений от ЮKassa
-└── PollingProvider (extends BaseExtModule)
-    └── SberpollPlugin — опрос API Сбербанка
+BaseExtensionModule
+├── PaymentProvider (extends BaseExtensionModule, implements PaymentProviderPort)
+│   └── QrPayExtension — генерация QR-кода для оплаты
+├── IPNProvider (extends BaseExtensionModule)
+│   └── YookassaExtension — приём IPN-уведомлений от ЮKassa
+└── PollingProvider (extends BaseExtensionModule)
+    └── SberpollExtension — опрос API Сбербанка
 ```
 
 ---
@@ -472,7 +470,7 @@ BaseExtModule
   - `ChairmanBlockchainAdapter` — взаимодействие с контрактом `soviet`
 - **Резолверы**: `ApprovalResolver`, `ChairmanOnboardingResolver`
 - **Крон**: Проверка решений каждые N минут (`checkInterval`)
-- **Конфигурация**: `checkInterval`, `cancelApprovedDecisions`, `onboarding_*` — флаги прохождения мастера настройки
+- **Конфигурация**: `checkInterval`, `onboarding_*` — флаги прохождения мастера настройки
 
 ### `capital` — Благорост (целевая программа)
 - **Структура**: `domain/`, `infrastructure/`, `application/` — самое крупное расширение
@@ -544,18 +542,6 @@ BaseExtModule
 - **Метод**: `createPayment(hash)` — формирует URL оплаты с реквизитами кооператива из `@coopenomics/factory`
 - **Комиссия**: `fee_percent: 0%`
 - **Конфигурация**: Пустая (использует реквизиты из `constructCooperative`)
-
-### `1ccoop` — Интеграция с 1С
-- **Структура**: `domain/`, `infrastructure/`, `application/`
-- **Назначение**: Двухсторонняя синхронизация документов кооператива с бухгалтерией 1С
-- **Ключевые сервисы**:
-  - `OneCoopApplicationService` — основной сервис синхронизации
-  - `OneCoopBlockchainService` — чтение данных из блокчейна для 1С
-  - `DocumentAdapterFactoryService` — фабрика адаптеров документов
-  - `JoinCoopDocumentAdapter` — адаптер для документа вступления
-- **REST-API**: Защищён `OneCoopSecretKeyGuard` (API-ключ в заголовке)
-- **Резолвер**: `OneCoopResolver` — GraphQL-интерфейс для 1С
-- **Конфигурация**: `secret_key` (авто-генерация), `base_url`
 
 ---
 

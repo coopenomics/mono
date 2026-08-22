@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { InterRoomMessageLine } from '@coopenomics/inter';
+import type { InnerRoomMessageLine } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../entities/project.entity';
 import type { IssueDomainEntity } from '../entities/issue.entity';
 import type { StoryDomainEntity } from '../entities/story.entity';
@@ -580,7 +580,7 @@ export class FileFormatService {
     projectTitle: string,
     projectHash: string,
     utcDate: string,
-    sections: { displayLabel: string; matrixRoomId: string; lines: InterRoomMessageLine[] }[]
+    sections: { displayLabel: string; matrixRoomId: string; lines: InnerRoomMessageLine[] }[]
   ): string {
     const header = [
       `# ${utcDate}`,

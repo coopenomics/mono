@@ -67,6 +67,10 @@ static constexpr eosio::name _free_decision_action = "freedecision"_n;
 static constexpr eosio::name _change_action = "change"_n;
 static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
+static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
+
+// branch linked actions
+static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
 
 // capitalization linked actions
 
@@ -80,17 +84,23 @@ static constexpr eosio::name _wallet_program = "wallet"_n; ///< Главный �
 static constexpr eosio::name _marketplace_program = "marketplace"_n; ///< Кошелёк программы "Маркетплейс"
 
 static constexpr eosio::name _source_program = "generator"_n; ///< Кошелёк для генерации по договору УХД
-static constexpr eosio::name _capital_program = "blagorost"_n; ///< Кошелёк программы "Благорост"
+static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк программы "Благорост"
 
 
 static const std::set<eosio::name> soviet_actions = {
     "joincoop"_n, //регистрация пайщика
-    
+    "leavecoop"_n, //выход пайщика из кооператива (возврат паевого взноса)
+
     //MEET
     "creategm"_n,//предложение повестки планового общего собрание
     "completegm"_n, //решение общего собрания пайщиков
     "ballot"_n, //бюллетень участника общего собрания пайщиков
     "gmnotify"_n, //уведомление участника общего собрания пайщиков
+    //BRANCH
+    "branchdec"_n, //решение собрания пайщиков об учреждении кооперативного участка
+    "branchliab"_n, //договор о полной материальной ответственности председателя участка (линк в пакет совета)
+    "branchauth"_n, //доверенность председателю кооперативного участка (линк в пакет совета)
+    "brnaid"_n, //заявление на материальную помощь доверенному участка на повестку совета (p.brn.aid)
     //CAPITAL
     "capitalinvst"_n, //заявление на инвестиции по договору УХД
     "createresult"_n, //клайм прироста благороста из задания
@@ -102,13 +112,17 @@ static const std::set<eosio::name> soviet_actions = {
 
     //WALLET
     "createwthd"_n, //создать заявление на возврат паевого взноса
-    
+
+    //EXPENSE
+    "createexp"_n, //служебная записка-смета о расходах (шасси расходов)
+
     //LEDGER
     "ledgerwthd"_n, //заявление на списание со счета через ledger
     
     //MARKETPLACE
     "authoffs2c"_n, //заявление на взнос имуществом
     "authoffc2r"_n, //заявление на возврат паевого взноса имуществом
+    "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
 };
 
 //program_ids
@@ -166,6 +180,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
     static constexpr eosio::name _apps = "apps"_n;
+    static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _billing = "billing"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
@@ -196,6 +211,7 @@ static constexpr uint64_t _capital_program_id = 4;
         "ledger2"_n,
         "capital"_n,
         "apps"_n,
+        "expense"_n,
         "billing"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
@@ -215,7 +231,14 @@ static constexpr uint64_t _capital_program_id = 4;
 
 
     static constexpr eosio::symbol _root_symbol = eosio::symbol(eosio::symbol_code("AXON"), 4); /*!< системный токен */
-    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4); 
+    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4);
+
+    // Единицы измерения количества имущества marketplace (Эпик 17, L14):
+    // количество — fixed-point asset с символом единицы. Точность = младшая
+    // единица: KG(3)=граммы, LTR(3)=миллилитры, PCS(0)=штука неделима.
+    static constexpr eosio::symbol _unit_kg    = eosio::symbol(eosio::symbol_code("KG"),  3);
+    static constexpr eosio::symbol _unit_liter = eosio::symbol(eosio::symbol_code("LTR"), 3);
+    static constexpr eosio::symbol _unit_piece = eosio::symbol(eosio::symbol_code("PCS"), 0);
     static const eosio::asset _provider_initial = eosio::asset(1000000, _root_govern_symbol);
     static const eosio::asset _provider_minimum = eosio::asset(3000000, _root_govern_symbol);
     
@@ -241,8 +264,10 @@ static constexpr uint64_t _capital_program_id = 4;
 
 #ifdef IS_TESTNET
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 1; /*!< минимальное количество членов совета (тест) */
+    static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = false; /*!< один пайщик может возглавлять несколько кооперативных участков (тест) */
 #else
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 3; /*!< минимальное количество членов совета (прод) */
+    static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = true; /*!< председатель возглавляет ровно один кооперативный участок (прод) */
 #endif
 
 /**

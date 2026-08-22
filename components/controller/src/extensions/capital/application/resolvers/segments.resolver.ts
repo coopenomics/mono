@@ -3,12 +3,9 @@ import { SegmentsService } from '../services/segments.service';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { RefreshSegmentInputDTO } from '../dto/segments/refresh-segment-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { UseGuards } from '@nestjs/common';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-
+import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { ForbiddenException, UseGuards } from '@nestjs/common';
 // Пагинированные результаты
 const paginatedSegmentsResult = createPaginationResult(SegmentOutputDTO, 'PaginatedCapitalSegments');
 
@@ -28,9 +25,24 @@ export class SegmentsResolver {
   })
   @UseGuards(GqlJwtAuthGuard)
   async getSegments(
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<SegmentOutputDTO>> {
+    // Сводный список долей — по всему кооперативу — читает только совет.
+    // На клиенте вкладка с ним и так закрыта по роли, но сам запрос ролью не
+    // ограничивался: рядовой пайщик получал чужие доли, обратившись напрямую.
+    //
+    // Запрос ПО КОНКРЕТНОМУ ПРОЕКТУ не трогаем: на нём стоят все рабочие
+    // виджеты (голосование, состав участников, подача результата), и они
+    // должны работать у любого участника проекта.
+    const isBoardMember = currentUser?.role === 'chairman' || currentUser?.role === 'member';
+    if (!filter?.project_hash && !isBoardMember) {
+      throw new ForbiddenException(
+        'Сводный список долей кооператива доступен только совету. Укажите проект в фильтре.'
+      );
+    }
+
     return await this.segmentsService.getSegments(filter, options);
   }
 

@@ -153,7 +153,12 @@ export class UserTypeormRepository implements UserRepository {
     const result = await this.repository.update({ username }, updateData);
 
     if (result.affected && result.affected > 0) {
-      const updatedEntity = await this.repository.findOne({ where: { username } });
+      // Обновление может ПЕРЕИМЕНОВАТЬ пользователя (повторная регистрация со
+      // старым незавершённым аккаунтом генерирует новый username) — перечитка по
+      // старому имени находила пустоту, и успешное обновление превращалось в
+      // «Пользователь не найден».
+      const currentUsername = updateData.username ?? username;
+      const updatedEntity = await this.repository.findOne({ where: { username: currentUsername } });
       return updatedEntity ? updatedEntity.toDomainEntity() : null;
     }
 

@@ -59,6 +59,11 @@ import {
 interface Props {
   modelValue: Zeus.IssueStatus;
   issueHash: string;
+  /** Явный hash проекта/компонента — на вложенных списках мастерской в URL нет project_hash */
+  // null допустим: у свободной задачи проекта нет (IIssue.project_hash
+  // приходит из GraphQL как string | null). Пустое значение компонент
+  // обрабатывает сам — ниже по коду.
+  projectHash?: string | null;
   readonly?: boolean;
   allowedTransitions?: string[];
 }
@@ -72,7 +77,9 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const projectHash = computed(() => route.params.project_hash as string);
+const resolvedProjectHash = computed(
+  () => props.projectHash || (route.params.project_hash as string) || ''
+);
 
 const { saveImmediately } = useUpdateIssue();
 const issueStore = useIssueStore();
@@ -138,11 +145,11 @@ const handleStatusChange = async (option: {
     // 2) Сохраняем без debounce — статус это discrete действие, не текстовый ввод.
     await saveImmediately(
       { issue_hash: props.issueHash, status: option.value },
-      projectHash.value
+      resolvedProjectHash.value
     );
     // 3) Перезагружаем задачу для свежих permissions/allowed_transitions.
     //    Watch на props.modelValue сбросит optimisticStatus, когда придёт новое значение.
-    await issueStore.updateIssueByHash(projectHash.value, props.issueHash);
+    await issueStore.updateIssueByHash(resolvedProjectHash.value, props.issueHash);
   } catch (error) {
     console.error('IssueStatusChip: failed to update status', error);
     optimisticStatus.value = null;
@@ -178,14 +185,14 @@ const handleStatusChange = async (option: {
 .status-menu {
   min-width: 200px;
   padding: 6px;
-  background-color: var(--q-color-white, #fff);
+  background-color: var(--p-surface);
   border-radius: 8px;
 }
 
 .status-menu-header {
   font-size: 11px;
   font-weight: 500;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 8px 6px;
@@ -208,7 +215,7 @@ const handleStatusChange = async (option: {
   }
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--p-surface-2);
   }
 }
 

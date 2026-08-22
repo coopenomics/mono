@@ -1,53 +1,72 @@
 <template lang="pug">
-div
+//- Мои приглашения: surface-плоскость + канон-карточки шапки (как профиль / расходы).
+.invitations-page
   WindowLoader(v-show='isInitialLoading', text='Загрузка моих приглашений...')
-  q-card(v-show='!isInitialLoading', flat)
+  .invitations-page__body(v-show='!isInitialLoading')
+    //- Ссылка — тот же .wallet, что WalletCard: иконка + заголовок + URL слева, копировать справа.
+    .wallet.invitations-link(
+      role='button',
+      tabindex='0',
+      title='Нажмите, чтобы скопировать ссылку',
+      @click='copyReferralLink',
+      @keydown.enter.prevent='copyReferralLink',
+      @keydown.space.prevent='copyReferralLink'
+    )
+      span.wallet__icon
+        q-icon(name='link')
+      .wallet__body
+        .wallet__main
+          .wallet__title Ссылка для приглашений
+          .wallet__sub.t-mono(:title='referralLink') {{ referralLink }}
+        .wallet__amount
+          .wallet__metric
+            .wallet__metric-label
+              q-icon(name='content_copy')
+              | Копировать
 
-    .row.q-mb-md.justify-center.q-pt-md
-      .col-md-4.col-xs-12.q-pl-sm.q-pr-sm
-        ReferralLinkCard(:link='referralLink' :transparent="false")
-      .col-md-4.col-xs-12.q-pl-sm.q-pr-sm
-        ColorCard
-          .card-label
-            span Процент координатора
-            q-icon.q-ml-xs(name="help_outline", size="14px", color="grey-6")
-            q-tooltip(anchor="top middle" self="bottom middle" :offset="[10, 10]")
-              | Размер доли в объекте авторских прав, передаваемой координатору. Рассчитывается как 5% от суммы каждого денежного взноса привлеченного инвестора при условии активной связи
-          .card-value 5%
-      .col-md-4.col-xs-12.q-pl-sm.q-pr-sm
-        ColorCard
-          .card-label
-            span Срок активности связи
-            q-icon.q-ml-xs(name="help_outline", size="14px", color="grey-6")
-              q-tooltip(anchor="top middle" self="bottom middle" :offset="[10, 10]")
-                | Период времени после регистрации, в течение которого взносы инвестора учитываются для координатора
-          .card-value 30 дней
+    .row.q-col-gutter-md
+      .col-12.col-md-6
+        WalletCard(
+          neutral,
+          title='Процент координатора',
+          balance='5',
+          symbol='%',
+          balance-label='от денежного взноса инвестора',
+          icon='percent'
+        )
+      .col-12.col-md-6
+        WalletCard(
+          neutral,
+          title='Срок активности связи',
+          balance='30',
+          symbol='дн.',
+          balance-label='после регистрации приглашённого',
+          icon='schedule'
+        )
 
     InvitationsListWidget(
-      :expanded='expandedInvitations'
-      @toggle-expand='handleInvitationToggleExpand'
-      @invitation-click='handleInvitationClick'
+      :expanded='expandedInvitations',
+      @toggle-expand='handleInvitationToggleExpand',
+      @invitation-click='handleInvitationClick',
       @data-loaded='handleInvitationsDataLoaded'
     )
 </template>
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { copyToClipboard } from 'quasar';
 import { useExpandableState, useReferralLink } from 'src/shared/lib/composables';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { InvitationsListWidget } from 'app/extensions/capital/widgets';
-import { ReferralLinkCard } from 'src/shared/ui/ReferralLinkCard';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
+import { WalletCard } from 'src/shared/ui/domain/WalletCard';
+import { SuccessAlert, FailAlert } from 'src/shared/api';
 
 const { referralLink } = useReferralLink();
 
-// Ключ для сохранения состояния развернутости в LocalStorage
 const INVITATIONS_EXPANDED_KEY = 'capital_my_invitations_expanded';
 
-// Состояние первичной загрузки
 const isInitialLoading = ref(true);
 
-// Управление развернутостью приглашений (участников)
 const {
   expanded: expandedInvitations,
   loadExpandedState: loadInvitationsExpandedState,
@@ -55,14 +74,22 @@ const {
   toggleExpanded: toggleInvitationExpanded,
 } = useExpandableState(INVITATIONS_EXPANDED_KEY);
 
+async function copyReferralLink(): Promise<void> {
+  try {
+    await copyToClipboard(referralLink.value);
+    SuccessAlert('Ссылка скопирована в буфер обмена');
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    FailAlert('Не удалось скопировать ссылку: ' + msg);
+  }
+}
+
 const handleInvitationToggleExpand = (username: string) => {
   toggleInvitationExpanded(username);
 };
 
 const handleInvitationsDataLoaded = (usernames: string[]) => {
-  // Очищаем устаревшие записи expanded после загрузки данных
   cleanupInvitationsExpanded(usernames);
-  // Отключаем WindowLoader после завершения первичной загрузки
   isInitialLoading.value = false;
 };
 
@@ -70,9 +97,46 @@ const handleInvitationClick = (username: string) => {
   toggleInvitationExpanded(username);
 };
 
-// Инициализация
-onMounted(async () => {
-  // Загружаем сохраненное состояние expanded из LocalStorage
+onMounted(() => {
   loadInvitationsExpandedState();
 });
 </script>
+
+<style lang="scss" scoped>
+.invitations-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+  padding: var(--p-6);
+  background: var(--p-surface);
+  min-height: calc(100vh - var(--p-topbar-h));
+}
+
+.invitations-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+  flex: 1;
+  min-height: 0;
+}
+
+/* Нейтральная иконка как у WalletCard(neutral); кликабельность карточки. */
+.invitations-link {
+  --prog-bg: var(--p-canvas-2);
+  --prog-fg: var(--p-ink-2);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.invitations-link:focus-visible {
+  outline: none;
+  box-shadow: var(--p-focus-ring);
+}
+
+@media (max-width: 768px) {
+  .invitations-page {
+    padding: var(--p-4);
+  }
+}
+</style>

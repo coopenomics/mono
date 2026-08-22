@@ -1,4 +1,4 @@
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { BlagorostOfferTemplate } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
@@ -12,19 +12,17 @@ export class Factory extends DocFactory<BlagorostOfferTemplate.Action> {
   }
 
   async generateDocument(data: BlagorostOfferTemplate.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<BlagorostOfferTemplate.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = BlagorostOfferTemplate.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, BlagorostOfferTemplate.registry_id, data.block_num)
-    }
+    const { template, vars, coop, docData } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(BlagorostOfferTemplate.Template as ITemplate<BlagorostOfferTemplate.Model>)
+        : this.getTemplate<BlagorostOfferTemplate.Model>(DraftContract.contractName.production, BlagorostOfferTemplate.registry_id, data.block_num),
+      vars: () => this.getVars(data.coopname),
+      coop: () => this.getCooperative(data.coopname),
+      docData: () => this.loadDocData<BlagorostOfferTemplate.Model['doc_data']>(data),
+    })
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-
-    const vars = await this.getVars(data.coopname)
-    const coop = await this.getCooperative(data.coopname)
+    const doc_data = Cooperative.Registry.requireCapitalProgramPrivateData(docData, BlagorostOfferTemplate.registry_id)
 
     // Проверяем наличие данных протокола, утвердившего Положение (документ 998)
     if (!vars.blagorost_program?.protocol_number || !vars.blagorost_program?.protocol_day_month_year) {
@@ -35,6 +33,7 @@ export class Factory extends DocFactory<BlagorostOfferTemplate.Action> {
       meta,
       coop,
       vars,
+      doc_data,
     }
 
     await this.validate(combinedData, template.model)

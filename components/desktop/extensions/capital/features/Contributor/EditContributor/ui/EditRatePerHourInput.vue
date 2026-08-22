@@ -1,47 +1,44 @@
 <template lang="pug">
-ColorCard(color='orange' :transparent="true")
-  .card-label Стоимость часа
-  template(v-if="!isEditing")
-    .card-value(:class="{ 'cursor-pointer': isOwnProfile }" @click="isOwnProfile ? startEditing() : null")
-      template(v-if="isOwnProfile")
-        q-icon(
-          name="edit"
-          size="16px"
-          color="grey-6"
-          style="margin-right: 8px;"
-        )
-      | {{ hasRate ? formattedRate : 'Не указано' }}
-  template(v-else)
-    .q-pa-sm
-      q-input(
-        v-model="localRate"
-        type="number"
-        label="Стоимость часа"
-        outlined
-        min="0"
-        max="3000"
-        step="0.01"
-        :rules="[val => !val || (val >= 0 && val <= 3000) || 'От 0 до 3000']"
-        dense
-      )
-        template(#append)
-          .text-body2 RUB
-      .row.q-gutter-sm.q-mt-sm.justify-end
-        q-btn(
-          flat
-          dense
-          label="Отмена"
-          color="grey-7"
-          @click="cancelEditing"
-        )
-        q-btn(
-          color="primary"
-          dense
-          label="Сохранить"
-          :loading="isSaving"
-          :disable="!hasChanges"
-          @click="saveRate"
-        )
+.edit-field
+  .edit-field__view
+    span.edit-field__icon
+      q-icon(name='payments', size='20px')
+    .edit-field__main
+      template(v-if='!isEditing')
+        .edit-field__head
+          span.t-sm.t-muted Стоимость часа
+          BaseButton(
+            v-if='isOwnProfile',
+            variant='ghost',
+            size='sm',
+            icon-only,
+            aria-label='Редактировать стоимость часа',
+            @click='startEditing'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='16px')
+        .edit-field__value.t-mono(:class='{ "t-muted": !hasRate }') {{ hasRate ? formattedRate : 'Не указано' }}
+      template(v-else)
+        BaseForm(:loading='isSaving', @submit='saveRate')
+          AmountInput(
+            v-model='localRate',
+            label='Стоимость часа',
+            placeholder='0,00',
+            :symbol='governSymbol',
+            :precision='2',
+            :min='0',
+            :max='3000',
+            :error='rateError'
+          )
+          template(#footer)
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(
+              variant='primary',
+              size='sm',
+              type='submit',
+              :loading='isSaving',
+              :disabled='!hasChanges || !!rateError'
+            ) Сохранить
 </template>
 
 <script setup lang="ts">
@@ -51,7 +48,8 @@ import { useEditContributor } from '../model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { ColorCard } from 'src/shared/ui';
+import { BaseButton, BaseForm } from 'src/shared/ui/base';
+import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 const emit = defineEmits<{
@@ -64,7 +62,8 @@ const { info } = useSystemStore();
 const { editContributor, isLoading } = useEditContributor();
 
 const isEditing = ref(false);
-const localRate = ref<string>('');
+// AmountInput эмитит number | null
+const localRate = ref<number | string | null>('');
 const isSaving = computed(() => isLoading.value);
 
 const governSymbol = computed(() => info.symbols.root_govern_symbol);
@@ -85,13 +84,21 @@ const formattedRate = computed(() => {
   return formatAsset2Digits(contributorStore.self.rate_per_hour);
 });
 
+// Валидация диапазона
+const rateError = computed(() => {
+  if (!localRate.value || !localRate.value.toString().trim()) return undefined;
+  const numericValue = parseFloat(localRate.value.toString());
+  if (isNaN(numericValue)) return 'Введите число';
+  return numericValue >= 0 && numericValue <= 3000 ? undefined : 'От 0 до 3000';
+});
+
 // Проверяем, есть ли изменения
 const hasChanges = computed(() => {
-  if (!localRate.value.trim()) return false;
+  if (!localRate.value || !localRate.value.toString().trim()) return false;
 
   const currentRate = contributorStore.self?.rate_per_hour || '';
   const currentNumeric = currentRate.split(' ')[0];
-  const localNumeric = parseFloat(localRate.value.trim());
+  const localNumeric = parseFloat(localRate.value.toString().trim());
 
   if (!currentNumeric || isNaN(localNumeric)) return true;
 
@@ -131,8 +138,9 @@ const formatRateForBackend = (rate: string): string | undefined => {
 
 // Сохраняем изменения
 const saveRate = async () => {
+  if (rateError.value) return;
   try {
-    const formattedRate = formatRateForBackend(localRate.value);
+    const formattedRate = formatRateForBackend(String(localRate.value ?? ''));
 
     // Отправляем все текущие значения из store + новое значение rate_per_hour
     await editContributor({
@@ -160,3 +168,39 @@ watch(() => contributorStore.self?.rate_per_hour, (newRate) => {
   }
 }, { immediate: true });
 </script>
+
+<style lang="scss" scoped>
+.edit-field__view {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
+
+.edit-field__icon {
+  width: var(--p-8);
+  height: var(--p-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-canvas-2);
+  color: var(--p-ink-2);
+}
+
+.edit-field__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-field__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+.edit-field__value {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+}
+</style>

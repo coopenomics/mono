@@ -3,7 +3,7 @@ import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchai
 import config from '~/config/config';
 import { SovietContract } from 'cooptypes';
 import type { AgendaWithDocumentsDomainInterface } from '~/domain/agenda/interfaces/agenda-with-documents-domain.interface';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import type { VotingAgendaDomainInterface } from '~/domain/agenda/interfaces/voting-agenda-domain.interface';
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
 
@@ -11,7 +11,8 @@ import { DocumentPackageAggregator } from '~/domain/document/aggregators/documen
 export class AgendaInteractor {
   constructor(
     private readonly documentPackageAggregator: DocumentPackageAggregator,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   async getAgenda(): Promise<AgendaWithDocumentsDomainInterface[]> {
@@ -55,18 +56,11 @@ export class AgendaInteractor {
     const agenda: VotingAgendaDomainInterface[] = [];
     for (const decision of decisions) {
       // Ищем экшен, связанный с конкретным решением
-      const actionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-        filter: JSON.stringify({
-          account: SovietContract.contractName.production,
-          name: SovietContract.Actions.Registry.NewSubmitted.actionName,
-          receiver: process.env.COOPNAME,
-          'data.package': String(decision.hash.toUpperCase()),
-        }),
-        page: 1,
-        limit: 1,
+      const action = await this.actionHistory.findLast({
+        account: SovietContract.contractName.production,
+        name: SovietContract.Actions.Registry.NewSubmitted.actionName,
+        data: { package: String(decision.hash).toUpperCase() },
       });
-
-      const action = actionResponse?.results?.[0];
 
       // if (action)
       //TODO: здесь нужно добавить в action actor_certificate
@@ -79,5 +73,41 @@ export class AgendaInteractor {
       }
     }
     return agenda;
+  }
+
+  /**
+   * Собирает ОДИН пункт повестки по хэшу документа-заявления. Нужен сразу после
+   * публикации свободного решения: возвращаем только что созданный вопрос фронту
+   * немедленно, без ожидания общего поллинга. Возвращает null, пока парсер ещё не
+   * проиндексировал действие newsubmitted или документ-заявление — тогда
+   * вызывающая сторона повторит попытку через паузу.
+   */
+  async getAgendaItemByHash(coopname: string, hash: string): Promise<AgendaWithDocumentsDomainInterface | null> {
+    const target = String(hash).toUpperCase();
+
+    // decision появляется на чейне почти мгновенно после публикации.
+    const decisions = (await this.blockchainPort.getAllRows(
+      SovietContract.contractName.production,
+      coopname,
+      'decisions'
+    )) as SovietContract.Tables.Decisions.IDecision[];
+
+    const decision = decisions.find((d) => String(d.hash).toUpperCase() === target);
+    if (!decision) return null;
+
+    // action newsubmitted индексируется парсером с лагом (~2 c) — пока его нет,
+    // вернём null, и вызывающая сторона повторит тик.
+    const action = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewSubmitted.actionName,
+      data: { package: target },
+    });
+    if (!action) return null;
+
+    const documents = await this.documentPackageAggregator.buildDocumentPackageAggregate(action);
+    // Тот же фильтр, что в getAgenda: без агрегата заявления пункт не отображается.
+    if (!documents.statement?.documentAggregate) return null;
+
+    return { table: decision, action, documents };
   }
 }

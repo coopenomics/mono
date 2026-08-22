@@ -31,6 +31,9 @@ export class TokenDomainService {
       iat: moment().unix(),
       exp: Math.floor(input.expires.getTime() / 1000), // Конвертируем Date в timestamp
       type: input.type,
+      // Только когда токен принадлежит конкретной сессии: сервисные токены и
+      // одноразовые (сброс пароля, подтверждение почты) сессии не имеют.
+      ...(input.sessionId ? { sid: input.sessionId } : {}),
     };
 
     return jwt.sign(payload, input.secret || config.jwt.secret);
@@ -96,22 +99,26 @@ export class TokenDomainService {
    * Генерирует пару токенов авторизации (access + refresh)
    */
   async generateAuthTokens(userId: string): Promise<TokenPairDomainInterface> {
-    const accessTokenExpires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
-    const accessToken = this.generateToken({
-      userId,
-      expires: accessTokenExpires.toDate(),
-      type: tokenTypes.ACCESS,
-    });
-
+    // Порядок важен: сессия — это строка refresh-токена, и её id нужен ДО выпуска
+    // access-токена, чтобы попасть в него claim'ом `sid`. Без такой привязки
+    // завершение сессии оставалось декоративным: строка refresh-токена удалялась,
+    // а access-токен, ни с чем не связанный, продолжал открывать доступ до самого
+    // истечения срока.
     const refreshTokenExpires = moment().add(config.jwt.refreshExpirationDays, 'days');
     const refreshToken = this.generateToken({
       userId,
       expires: refreshTokenExpires.toDate(),
       type: tokenTypes.REFRESH,
     });
+    const session = await this.saveToken(refreshToken, userId, refreshTokenExpires.toDate(), tokenTypes.REFRESH);
 
-    // Сохраняем refresh токен
-    await this.saveToken(refreshToken, userId, refreshTokenExpires.toDate(), tokenTypes.REFRESH);
+    const accessTokenExpires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
+    const accessToken = this.generateToken({
+      userId,
+      expires: accessTokenExpires.toDate(),
+      type: tokenTypes.ACCESS,
+      sessionId: session.id,
+    });
 
     return {
       access: {
@@ -122,6 +129,42 @@ export class TokenDomainService {
         token: refreshToken,
         expires: refreshTokenExpires.toDate(),
       },
+    };
+  }
+
+  /**
+   * Обновляет пару токенов, СОХРАНЯЯ личность сессии: строка refresh-токена та же,
+   * меняются только сам токен и срок.
+   *
+   * Зачем не «удалить старую строку и создать новую»: id строки — это и есть id
+   * сессии, он попадает в access-токены claim'ом `sid`. Пересоздание строки меняло
+   * бы id на каждом обновлении: в списке устройств одна и та же сессия выглядела бы
+   * каждый раз новой, а access-токены, выданные до обновления (например, в соседней
+   * вкладке), мгновенно переставали бы работать.
+   */
+  async rotateAuthTokens(userId: string, sessionId: string): Promise<TokenPairDomainInterface> {
+    const refreshTokenExpires = moment().add(config.jwt.refreshExpirationDays, 'days');
+    const refreshToken = this.generateToken({
+      userId,
+      expires: refreshTokenExpires.toDate(),
+      type: tokenTypes.REFRESH,
+    });
+    await this.tokenRepository.updateById(sessionId, {
+      token: refreshToken,
+      expires: refreshTokenExpires.toDate(),
+    });
+
+    const accessTokenExpires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
+    const accessToken = this.generateToken({
+      userId,
+      expires: accessTokenExpires.toDate(),
+      type: tokenTypes.ACCESS,
+      sessionId,
+    });
+
+    return {
+      access: { token: accessToken, expires: accessTokenExpires.toDate() },
+      refresh: { token: refreshToken, expires: refreshTokenExpires.toDate() },
     };
   }
 
@@ -191,10 +234,40 @@ export class TokenDomainService {
   }
 
   /**
+   * Находит токены пользователя заданного типа (напр. все refresh-сессии)
+   */
+  async findByUserIdAndType(userId: string, type: TokenType): Promise<TokenDomainInterface[]> {
+    return this.tokenRepository.findByUserIdAndType(userId, type);
+  }
+
+  /**
+   * Генерирует токен подтверждения выхода из кооператива (ссылка в письме).
+   * Срок жизни — как у верификации email (это тоже подтверждение по почте).
+   */
+  async generateConfirmExitToken(userId: string): Promise<string> {
+    const expires = moment().add(config.jwt.verifyEmailExpirationMinutes, 'minutes');
+    const confirmExitToken = this.generateToken({
+      userId,
+      expires: expires.toDate(),
+      type: tokenTypes.CONFIRM_EXIT,
+    });
+
+    await this.saveToken(confirmExitToken, userId, expires.toDate(), tokenTypes.CONFIRM_EXIT);
+    return confirmExitToken;
+  }
+
+  /**
    * Удаляет токены по критериям
    */
   async deleteTokens(criteria: Partial<TokenDomainInterface>): Promise<number> {
     return this.tokenRepository.deleteMany(criteria);
+  }
+
+  /**
+   * Удаляет токен по его идентификатору (отзыв конкретной сессии)
+   */
+  async deleteById(id: string): Promise<boolean> {
+    return this.tokenRepository.deleteById(id);
   }
 
   /**

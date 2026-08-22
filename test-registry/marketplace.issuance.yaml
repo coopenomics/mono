@@ -1,0 +1,238 @@
+feature: marketplace.issuance
+title: Выдача заказа на пункте выдачи — открытие по коду, подписи оператора и заказчика
+
+# Слайс от готового к получению заказа до подтверждения получения заказчиком.
+# Порядок подписей по решению L1 проекта: при выдаче первым подписывает
+# председатель участка (оператор), финальную подпись ставит заказчик — то есть
+# зеркально приёмке, где финальная подпись у председателя.
+
+#
+# Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
+# из `@coopenomics/innercoop` вместо прямого `WinstonLoggerService` ядра —
+# расширение не должно знать, чем именно пишется лог. Сменились только тип
+# параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
+
+# Правка 2026-08-20 (верификация личности, 105-28): открытие выдачи получило
+# гейт верификации получателя — сервер отказывает до подписи акта, если у
+# получателя нет уровня passport_onsite (правило marketplace.issue_property в
+# verification_rules). Лента выдач несёт вердикт (orderer_verification_passed),
+# страница оператора блокирует открытие диалогом «Проверка личности».
+# Случаи гейта — в test-registry/coopid.verification.yaml (cid.ver.side.07,
+# cid.ver.happy.05); набор случаев этого слайса не менялся.
+
+sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/signiss2.cpp
+    - components/contracts/cpp/branch/src/accrue.cpp
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    - components/desktop/src/pages/Marketplace/OrdererReceiveCode/**
+    - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
+
+cases:
+  - id: mkt.iss.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор открывает выдачу по коду получателя, сверяет имущество и подписывает акт выдачи.
+    expect: >
+      выдача открывается только по коду пайщика; после подписи акт уходит заказчику на подтверждение
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
+    status: passing
+
+  - id: mkt.iss.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Заказчик видит выданный заказ в «Моих заказах» после подписи оператора
+    expect: статус «Получен», сохранены количество, сумма и пункт выдачи
+    test: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
+    status: passing
+
+  - id: mkt.iss.side.01
+    level: ui
+    kind: side
+    scenario: Оператор пытается открыть выдачу без кода получателя
+    expect: выдача не открывается
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
+    status: passing
+
+  - id: mkt.iss.side.02
+    level: backend
+    kind: side
+    scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
+    expect: отказ — выдать чужой заказ нельзя
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
+    status: passing
+
+  - id: mkt.iss.side.03
+    level: backend
+    kind: side
+    scenario: Оператор указывает к выдаче больше единиц, чем принято на складе
+    expect: отказ — выдать больше принятого нельзя
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
+
+  - id: mkt.iss.side.04
+    level: backend
+    kind: side
+    scenario: Заказчик забирает не всё принятое по его заказу
+    expect: >
+      невыданное отделяется в обезличенный остаток кооператива по выданному количеству, к оплате идёт только выданное
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+    # Денежная сторона недовыдачи закрыта отдельно
+    # (marketplace-discrepancy-matrix), здесь — имущественная: остаток обязан
+    # перестать быть адресным, иначе имущество числится за пайщиком, который
+    # его не получал, и не попадает ни в перепубликацию, ни в списание.
+    # В цепочке сюиты недовыдача проходит целиком (принято 9, выдано 8) —
+    # см. operator/issuance-open и operator/stock-republish.
+
+  - id: mkt.iss.side.05
+    level: backend
+    kind: side
+    scenario: Повторная подпись акта выдачи оператором
+    expect: повторная подпись не создаёт второй акт
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
+
+  - id: mkt.iss.side.06
+    level: backend
+    kind: side
+    scenario: Заказчик подтверждает получение по акту, который ему не адресован
+    expect: отказ доступа
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
+
+  - id: mkt.iss.side.07
+    level: ui
+    kind: side
+    scenario: >
+      Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
+    expect: >
+      снижение цены уменьшает итог к оплате, повышение увеличивает; количество сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог без возврата (остаётся на складе), а нулевое количество у оставленной позиции показывает всю сумму как возврат в кошелёк Стола заказов
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: passing
+    # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
+    # количество и сумму заказа, а от них считаются возврат и остаток склада —
+    # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
+    # который показывают оператору до подписи; проводки закрывает mkt.iss.side.04.
+    #
+    # Разница снятой позиции и нулевого количества существенна — расчёт
+    # возврата идёт только по включённым позициям, поэтому снятая позиция это
+    # отложенная выдача (деньги остаются в резерве заказа), а не возврат.
+    # Настоящая частичная выдача идёт в цепочке сюиты отдельно: заказ на
+    # десять единиц, принято девять, выдано восемь.
+
+  - id: mkt.iss.break.01
+    level: backend
+    kind: break
+    scenario: Цепь недоступна в момент подписи акта выдачи
+    expect: акт не считается подписанным, повторная попытка возможна
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
+
+  - id: mkt.iss.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      После выдачи оператор видит заказ в истории участка, а поток выдач пуст.
+    expect: >
+      выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
+    status: passing
+
+  - id: mkt.iss.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Заказчица открывает «Показать QR» — пропуск на выдачу для сканирования оператором ПВЗ
+    expect: >
+      QR-код отображается, когда заказ готов к получению
+    test: components/docs-harness/scenarios/marketplace/orderer/receive-code.mjs
+    status: passing
+
+  # ── Контрактный уровень: денежные места выдачи (задача 598-51) ────────────
+
+  - id: mkt.iss.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Оператор подписывает акт выдачи и кладёт его в бандл, пайщица
+      контрподписывает — связка signiss1+signiss2 уходит на цепь.
+    expect: >
+      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 86 / Кт 10), а не
+      по цене продажи
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Выдано меньше заказанного (три единицы из четырёх).
+    expect: >
+      невыданный остаток резерва возвращается заказчице на членский «Стола
+      заказов» (o.mkt.unlock) ровно на разницу заказа и факта
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Недовыдача закрыта; сводим резерв заказа.
+    expect: >
+      выданное и разблокированное вместе закрывают весь резерв — резерв не
+      уходит дважды и не зависает частью
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Членский взнос пересчитывается по факту выдачи, факт меньше заказа.
+    expect: >
+      неиспользованная часть взноса возвращается заказчице (o.mkt.refund)
+      пропорционально факту — той же пропорцией, что применяется при
+      гарантийном возврате
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.33
+    level: contract
+    kind: side
+    scenario: >
+      Фактический взнос зачисляется экономике кооперативного участка
+      инлайн-вызовом при финализации.
+    expect: >
+      участку уходит взнос, приходящийся на фактически выданное (o.brn.common,
+      разрез — имя участка), и физически он уходит с пула взносов «Стола
+      заказов» на общий кошелёк участка
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.34
+    level: contract
+    kind: side
+    scenario: >
+      Выдача закрыта; сводим членский взнос.
+    expect: >
+      зачисленное участку плюс возвращённое пайщице ровно равны сумме,
+      заблокированной при оформлении — взнос не раздваивается
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.iss.side.35
+    level: contract
+    kind: side
+    scenario: >
+      Заказ прошёл весь путь от оформления до получения.
+    expect: >
+      в нитке заказа нет посторонних денежных кодов — ровно семь ожидаемых
+      проводок и ни одной лишней
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing

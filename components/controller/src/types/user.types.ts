@@ -8,6 +8,7 @@ export enum userStatus {
   '4_Registered' = 'registered',
   '5_Active' = 'active',
   '10_Failed' = 'failed',
+  '90_Refunding' = 'refunding',
   '100_Refunded' = 'refunded',
   '200_Blocked' = 'blocked',
 }

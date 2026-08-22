@@ -24,12 +24,14 @@ export function createEnvObject(): EnvVars {
     TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
     VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
     VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
-    NOVU_APP_ID: process.env.NOVU_APP_ID as string,
-    NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
-    NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
     VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY as string,
     SENTRY_DSN: process.env.SENTRY_DSN as string,
     OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,
+    // CoopID (Эпик 11) — опциональны; инжектируются в prod через config.js.
+    COOPID_ISSUER: process.env.COOPID_ISSUER as string,
+    COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
+    COOPID_TRUST_ANCHOR_KEY: process.env.COOPID_TRUST_ANCHOR_KEY as string,
+    YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
   };
 
   return envObj;

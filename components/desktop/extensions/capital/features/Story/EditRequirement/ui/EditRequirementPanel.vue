@@ -4,52 +4,65 @@ q-card.column.no-wrap.edit-req-panel(
   :class='{ "edit-req-panel--dialog": variant === "dialog", "edit-req-panel--page": variant === "page" }'
   flat
 )
-  q-bar.bg-primary.text-white(style='min-height: 40px')
-    q-input(
-      v-if='canEdit'
+  //- Шапка — тот же паттерн, что ProjectTitleEditor/IssueTitleEditor: outline-textarea
+  //- с иконкой типа в prepend; при изменениях слева undo, справа save; в покое
+  //- справа звёздочка избранного (и close в диалоге)
+  //- Обёртка и отступы — как у заголовка задачи на IssuePage: .q-px-md.q-pb-sm
+  .edit-req-panel__head.q-px-md.q-pb-sm
+    q-input.full-width.capital-title-editor-input(
       v-model='localTitle'
+      label='Артефакт'
       :readonly='!canEdit'
-      dense
-      color='white'
-      input-class='text-white'
-      input-style='color: white;'
-      placeholder='Заголовок артефакта'
+      outline
+      type='textarea'
+      autogrow
+      hide-bottom-space
       :rules='[(val) => !!val?.trim() || "Заголовок обязателен"]'
-      style='font-size: 1.25rem; font-weight: 500'
-    ).q-mt-md.full-width
-    .text-h6(v-else) {{ requirement?.title || "Артефакт" }}
-    q-space
-    q-btn(
-      v-if='variant === "dialog"'
-      dense
-      flat
-      icon='close'
-      @click='handleClose'
     )
-      q-tooltip Закрыть
-
-  .edit-req-panel__toolbar.row.items-center.no-wrap.full-width(
-    v-if='variant === "page"'
-  )
-    .col-auto.row.items-center.no-wrap
-      slot(name='toolbar-leading')
-    q-space
-    .col-auto.row.items-center.q-gutter-sm(v-if='canEdit')
-      q-btn(
-        flat
-        color='primary'
-        label='Отменить'
-        @click='resetChanges'
-        :disable='isSaving || !hasChanges'
-      )
-      q-btn(
-        unelevated
-        color='primary'
-        label='Сохранить'
-        @click='handleSave'
-        :loading='isSaving'
-        :disable='isSaving || !hasChanges || !titleOk'
-      )
+      template(#prepend)
+        q-btn(
+          v-if='canEdit && hasChanges'
+          flat
+          round
+          dense
+          color='negative'
+          icon='undo'
+          size='sm'
+          :disable='isSaving'
+          @click='resetChanges'
+        )
+          q-tooltip Отменить изменения
+        q-icon(v-else :name='formatIcon' size='24px' color='primary')
+      template(#append)
+        .capital-title-editor-append.column.items-end.justify-center
+          q-btn(
+            v-if='canEdit && hasChanges'
+            round
+            dense
+            color='primary'
+            icon='save'
+            size='sm'
+            :loading='isSaving'
+            :disable='!titleOk'
+            @click='handleSave'
+          )
+            q-tooltip Сохранить изменения
+          .row.items-center.no-wrap(v-else)
+            FavoriteStarButton(
+              v-if='requirement'
+              :target-type='FavoriteTargetType.ARTIFACT'
+              :target-hash='requirement.story_hash'
+            )
+            BaseButton(
+              v-if='variant === "dialog"'
+              variant='ghost'
+              size='sm'
+              icon-only
+              aria-label='Закрыть'
+              @click='handleClose'
+            )
+              template(#icon-left)
+                q-icon(name='close' size='18px')
 
   q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
     template(v-if='requirement && isBpmnFormat')
@@ -89,25 +102,6 @@ q-card.column.no-wrap.edit-req-panel(
         :show-focus-ring="variant === 'dialog'"
       )
 
-  q-card-actions.q-pa-md(
-    v-if='variant === "dialog" && (canEdit && hasChanges)'
-    align='right'
-  )
-
-    q-btn(
-      v-if='variant === "dialog" && !hasChanges'
-      flat
-      label='Закрыть'
-      @click='handleClose'
-    )
-    template(v-if='canEdit && hasChanges')
-      q-btn(flat label='Отменить' @click='resetChanges' :disable='isSaving')
-      q-btn(
-        label='Сохранить'
-        color='primary'
-        @click='handleSave'
-        :loading='isSaving'
-      )
 </template>
 
 <script setup lang="ts">
@@ -116,6 +110,9 @@ import { useEditorViewportMinHeight } from 'src/shared/lib/composables/useEditor
 import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
+import { BaseButton } from 'src/shared/ui/base';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
 import { MermaidStoryEditor } from 'app/extensions/capital/features/Story/MermaidStoryEditor';
 import { DrawioStoryEmbedEditor } from 'app/extensions/capital/features/Story/DrawioStoryEmbedEditor';
@@ -144,6 +141,12 @@ const emit = defineEmits<{
   close: [];
   updated: [requirement: IStory];
 }>();
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
+
+const formatIcon = computed(() =>
+  props.requirement ? storyContentIcon(props.requirement) : 'description',
+);
 
 const localTitle = ref('');
 const localDescription = ref('');
@@ -281,11 +284,19 @@ defineExpose({
   flex-direction: column;
 }
 
-.edit-req-panel__toolbar {
+.edit-req-panel__head {
   flex-shrink: 0;
-  min-height: 48px;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Как в Project/IssueTitleEditor: append по центру высоты поля */
+.capital-title-editor-input :deep(.q-field__append) {
+  align-items: center;
+  align-self: stretch;
+}
+
+.capital-title-editor-append {
+  min-height: 100%;
+  max-width: min(100%, 14rem);
 }
 
 .edit-req-panel__body {

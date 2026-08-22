@@ -13,19 +13,18 @@ export class Factory extends DocFactory<UserAgreement.Action> {
   }
 
   async generateDocument(data: UserAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<UserAgreement.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars, user } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(UserAgreement.Template as ITemplate<UserAgreement.Model>)
+        : this.getTemplate<UserAgreement.Model>(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      user: () => super.getUser(data.username, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = UserAgreement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, UserAgreement.registry_id, data.block_num)
-    }
-
+    // meta зависит от template.title, full_name зависит от user — резолвим после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-    const user = await super.getUser(data.username, data.block_num)
     const full_name = super.getFullName(user.data)
 
     if (!vars?.user_agreement || isEmpty(vars.user_agreement.protocol_number) || isEmpty(vars.user_agreement.protocol_day_month_year))

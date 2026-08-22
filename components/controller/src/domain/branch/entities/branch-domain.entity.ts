@@ -33,6 +33,10 @@ export class BranchDomainEntity implements BranchDomainInterface {
     ogrn: string;
     kpp: string;
   };
+  public readonly participants_count: number;
+  public readonly is_private: boolean;
+  public readonly is_available: boolean;
+  public readonly whitelist_members: IndividualDomainInterface[];
 
   constructor(
     coopname: string,
@@ -40,7 +44,10 @@ export class BranchDomainEntity implements BranchDomainInterface {
     organizationDatabaseData: OrganizationDomainInterface,
     trusteeData: IndividualDomainInterface,
     trustedData: IndividualDomainInterface[],
-    bankAccount: BankPaymentMethodDomainInterface
+    bankAccount: BankPaymentMethodDomainInterface,
+    participantsCount = 0,
+    whitelistMembers: IndividualDomainInterface[] = [],
+    isAvailable = true
   ) {
     if (branchBlockchainData.braname != organizationDatabaseData.username)
       throw new Error(`Неверные данные для агрегата: username и braname кооперативного участка должны совпадать`);
@@ -63,5 +70,11 @@ export class BranchDomainEntity implements BranchDomainInterface {
     this.phone = organizationDatabaseData.phone;
     this.email = organizationDatabaseData.email;
     this.details = organizationDatabaseData.details;
+    this.participants_count = participantsCount;
+
+    // признак приватности приходит из binary_extension контракта: у старых записей отсутствует → публичный
+    this.is_private = branchBlockchainData.is_private ?? false;
+    this.whitelist_members = whitelistMembers;
+    this.is_available = isAvailable;
   }
 }

@@ -20,7 +20,7 @@ q-step(
 </template>
 
 <script lang="ts" setup>
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, onBeforeUnmount } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -28,15 +28,50 @@ const { info } = useSystemStore();
 
 import { useCooperativeStore } from 'src/entities/Cooperative';
 import { useRegistratorStore } from 'src/entities/Registrator';
+import { useSessionStore } from 'src/entities/Session';
+import { useAccountStore } from 'src/entities/Account';
 import { PayWithProvider } from 'src/shared/ui/PayWithProvider';
 import { Loader } from 'src/shared/ui/Loader';
+import { Zeus } from '@coopenomics/sdk';
 
 const store = useRegistratorStore();
 const api = useCreateUser();
+const session = useSessionStore();
+const accountStore = useAccountStore();
 
 const step = computed(() => store.state.step);
 const coop = useCooperativeStore();
 const isCreatingPayment = ref(false);
+
+// Поллинг приёма оплаты. Провайдер QR (Bank) не эмитит success-колбэк, а деньги
+// подтверждаются вебхуком на бэке асинхронно — без поллинга экран висит на форме
+// оплаты до перезагрузки. Каждые 10с подтягиваем аккаунт; как только вступительный
+// платёж покинул статус PENDING (принят/отклонён) — уходим на шаг ожидания решения
+// совета, который сам показывает «платёж принят» либо причину отказа.
+const pollInterval = ref();
+
+const POLL_TERMINAL_STATUSES = [
+  Zeus.PaymentStatus.PAID,
+  Zeus.PaymentStatus.COMPLETED,
+  Zeus.PaymentStatus.CANCELLED,
+  Zeus.PaymentStatus.EXPIRED,
+  Zeus.PaymentStatus.FAILED,
+];
+
+const pollPaymentStatus = async () => {
+  if (!session.username) return;
+  try {
+    const account = await accountStore.getAccount(session.username);
+    session.setCurrentUserAccount(account);
+    const status = session.registrationPayment?.status;
+    if (status && POLL_TERMINAL_STATUSES.includes(status)) {
+      clearInterval(pollInterval.value);
+      store.goTo('WaitingRegistration');
+    }
+  } catch (e) {
+    console.error('Ошибка опроса статуса оплаты:', e);
+  }
+};
 
 // Computed property для payment с правильной типизацией
 const payment = computed(() => store.state.payment);
@@ -67,8 +102,18 @@ const createInitialPayment = async () => {
 
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(step, (newValue) => {
-  if (newValue === currentStep) createInitialPayment();
+  if (newValue === currentStep) {
+    createInitialPayment();
+    clearInterval(pollInterval.value);
+    pollInterval.value = setInterval(() => pollPaymentStatus(), 10000);
+  } else {
+    clearInterval(pollInterval.value);
+  }
 }, { immediate: true });
+
+onBeforeUnmount(() => {
+  clearInterval(pollInterval.value);
+});
 
 watch(
   () => store.state.is_paid,

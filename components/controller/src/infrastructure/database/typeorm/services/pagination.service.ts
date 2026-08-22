@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SelectQueryBuilder, ObjectLiteral } from 'typeorm';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class PaginationService {

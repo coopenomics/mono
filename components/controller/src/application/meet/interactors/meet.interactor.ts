@@ -19,8 +19,8 @@ import { ProcessMeetDecisionInputDomainInterface } from '~/domain/meet/interface
 import { MeetProcessedDomainEntity } from '~/domain/meet/entities/meet-processed-domain.entity';
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeetInteractor {

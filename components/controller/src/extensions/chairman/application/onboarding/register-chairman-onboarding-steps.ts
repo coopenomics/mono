@@ -1,4 +1,4 @@
-import type { OnboardingStepRegistrationPort } from '~/domain/onboarding/ports/onboarding-step-registration.port';
+import { type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 
 /**
  * Регистрирует 7 шагов онбординга chairman в платформенном реестре.
@@ -16,7 +16,7 @@ import type { OnboardingStepRegistrationPort } from '~/domain/onboarding/ports/o
  * чтобы платформенный QUERY-резолвер возвращал состояние для chairman.
  */
 export function registerChairmanOnboardingSteps(
-  port: OnboardingStepRegistrationPort
+  port: IOnboardingStepRegistryPort
 ): void {
   port.unregisterStepsByExtension('chairman');
 

@@ -72,7 +72,7 @@ padding-bottom: 20px;
 {% elif type == 'entrepreneur' %}
 <h1 class="header">{% trans 'application_entrepreneur' %}</h1>
 <p style="text-align: center">{% trans 'in' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>  <p>{% trans 'to_council_of' %} {{ coop.short_name }} {% trans 'from_entrepreneur' %} {{ entrepreneur.last_name }} {{ entrepreneur.first_name }} {{ entrepreneur.middle_name }}, {% trans 'birthdate' %} {{ entrepreneur.birthdate }}, {% trans 'registration_address' %} {{ entrepreneur.full_address }}, {% trans 'entrepreneur_details', entrepreneur.details.inn, entrepreneur.details.ogrn, entrepreneur.bank_account.account_number, entrepreneur.bank_account.details.kpp, entrepreneur.bank_account.details.corr, entrepreneur.bank_account.details.bik, entrepreneur.bank_account.bank_name %}, {% trans 'phone_and_email_notice', entrepreneur.phone, entrepreneur.email %}</p>
+<p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>  <p>{% trans 'to_council_of' %} {{ coop.short_name }} {% trans 'from_entrepreneur' %} {{ entrepreneur.last_name }} {{ entrepreneur.first_name }} {{ entrepreneur.middle_name }}, {% trans 'birthdate' %} {{ entrepreneur.birthdate }}, {% trans 'registration_address' %} {{ entrepreneur.full_address }}, {% trans 'entrepreneur_details', entrepreneur.details.inn, entrepreneur.details.ogrn, entrepreneur.bank_account.account_number, entrepreneur.bank_account.details.corr, entrepreneur.bank_account.details.bik, entrepreneur.bank_account.bank_name %}, {% trans 'phone_and_email_notice', entrepreneur.phone, entrepreneur.email %}</p>
 <p>{% trans 'request_to_join' %} {{ coop.full_name }}. {% trans 'acknowledge_documents_entrepreneur' %}</p> 
 <p>{% if coop.is_branched %}{% trans 'authorize_chairman_branch', branch.short_name %} {% endif %} </p>
 <p>{% trans 'obligation_to_pay_entrepreneur', initial, minimum %} </p>
@@ -87,7 +87,7 @@ padding-bottom: 20px;
 <h1 class="header">{% trans 'application_legal_entity' %}</h1>
 <p style="text-align: center">{% trans 'in' %} {{ coop.full_name }}<p>
 <p style="text-align: right">{{ meta.created_at }}, {{coop.city}}</p>
-<p>{% trans 'to_council_of' %} «{{ coop.full_name }}» {% trans 'from_legal_entity' %} {{ organization.full_name }}, {% trans 'legal_address' %}: {{ organization.full_address }}, {% trans 'fact_address' %}: {{organization.fact_address}}, {% trans 'legal_entity_details', organization.details.inn, organization.details.ogrn, organization.bank_account.account_number, organization.bank_account.details.kpp, organization.bank_account.details.corr, organization.bank_account.details.bik, organization.bank_account.bank_name %}, {% trans 'phone_and_email_notice', organization.phone, organization.email %}</p>
+<p>{% trans 'to_council_of' %} «{{ coop.full_name }}» {% trans 'from_legal_entity' %} {{ organization.full_name }}, {% trans 'legal_address' %}: {{ organization.full_address }}, {% trans 'fact_address' %}: {{organization.fact_address}}, {% trans 'legal_entity_details', organization.details.inn, organization.details.ogrn, organization.bank_account.account_number, organization.bank_account.details.corr, organization.bank_account.details.bik, organization.bank_account.bank_name %}, {% trans 'phone_and_email_notice', organization.phone, organization.email %}</p>
 <p>{% trans 'request_to_join_legal_entity', organization.represented_by.position, organization.represented_by.last_name, organization.represented_by.first_name, organization.represented_by.middle_name, organization.represented_by.based_on %} {{ coop.full_name }}.</p>
 <p>{% trans 'acknowledge_documents_legal_entity' %}</p> 
 <p>{% if coop.is_branched %}{% trans 'authorize_chairman_branch_organization', branch.short_name %} {% endif %}</p>
@@ -119,13 +119,13 @@ export const translations = {
     application_legal_entity: 'Заявление юридического лица о приеме в пайщики',
     from_legal_entity: 'от юридического лица',
     legal_address: 'юридический адрес',
-    legal_entity_details: 'ИНН {0}, ОГРН {1}, Р/с {2}, КПП {3}, К/с {4}, БИК {5}, банк получателя {6}',
+    legal_entity_details: 'ИНН {0}, ОГРН {1}, Р/с {2}, К/с {3}, БИК {4}, банк получателя {5}',
     acknowledge_documents_legal_entity: 'Подтверждает, что с Уставом и иными нормативными документами Общества ознакомлен.',
     agreement_on_sms_email_notice_legal_entity: 'Выражает свое согласие с тем, что информация, отправляемая Обществом в sms-сообщениях на указанный номер телефона, в сообщениях на указанный адрес электронной почты, или в PUSH уведомлениях с сайта, приравнивается к уведомлению Заявителя Обществом в письменной форме.',
     obligation_to_pay_individual: 'Обязуюсь своевременно внести в Общество вступительный {0} и минимальный паевой {1} взносы в порядке, предусмотренном Уставом Общества.',
     obligation_to_pay_entrepreneur: 'Обязуюсь своевременно внести в Общество вступительный {0} и минимальный паевой {1} взносы в порядке, предусмотренном Уставом Общества.',
     obligation_to_pay_legal_entity: 'Обязуется своевременно внести в Общество вступительный {0} и минимальный паевой {1} взносы в порядке, предусмотренном Уставом Общества.',
-    entrepreneur_details: 'ИНН {0}, ОГРНИП {1}, Р/с {2}, КПП {3}, К/с {4}, БИК {5}, банк получателя {6}',
+    entrepreneur_details: 'ИНН {0}, ОГРНИП {1}, Р/с {2}, К/с {3}, БИК {4}, банк получателя {5}',
     authorize_chairman_branch: 'Уполномочиваю Председателя кооперативного участка {0} принимать участие с правом голоса в Общих собраниях уполномоченных Общества, на период моего членства в Обществе при указанном кооперативном участке.',
     request_to_join_legal_entity: 'Заявитель, в лице представителя юридического лица - {0} {1} {2} {3}, действующий на основании {4}, просит принять в пайщики ',
     authorize_chairman_branch_organization: 'Уполномочивает Председателя кооперативного участка {0} принимать участие с правом голоса в Общих собраниях уполномоченных Общества, на период моего членства в Обществе при указанном кооперативном участке.',
@@ -181,7 +181,6 @@ export const exampleData = {
     bank_account: {
       account_number: '234234234234',
       details: {
-        kpp: '23423423423',
         corr: '234234234234234',
         bik: '234234234234',
       },
@@ -207,7 +206,6 @@ export const exampleData = {
     bank_account: {
       account_number: '23423423423423',
       details: {
-        kpp: '234234234234',
         corr: '234234234234',
         bik: '234234234234',
       },

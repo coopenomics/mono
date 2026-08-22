@@ -20,6 +20,32 @@ morgan.token('message', (req, res) => {
   return '';
 });
 
+// Имя GraphQL-операции. Без него весь трафик рабочего стола выглядит в логе как
+// однообразный поток `POST /v1/graphql`, и вопрос «кто именно долбит и что
+// весит 200 КБ» по логам не решается.
+//
+// SDK шлёт запросы БЕЗ поля operationName (см. createThunder в
+// @coopenomics/sdk — в теле только query и variables), а zeus генерирует
+// анонимные операции вида `query{getAgenda{...}}`. Поэтому берём то, что
+// реально идентифицирует запрос, — корневое поле выборки. operationName, если
+// он всё же пришёл, имеет приоритет.
+//
+// Разбор регуляркой, а не парсером graphql: токен зовётся на каждый ответ, и
+// платить за построение AST ради строки лога не стоит. Не распознали — «-».
+const GQL_ROOT_FIELD =
+  /^\s*(?:query|mutation|subscription)?\s*(?:[A-Za-z_]\w*)?\s*(?:\([^)]*\))?\s*\{\s*(?:[A-Za-z_]\w*\s*:\s*)?([A-Za-z_]\w*)/;
+
+morgan.token('gql-operation', (req) => {
+  const body = (req as unknown as { body?: unknown }).body;
+  if (!body || typeof body !== 'object') return '-';
+
+  const { operationName, query } = body as { operationName?: unknown; query?: unknown };
+  if (typeof operationName === 'string' && operationName.length > 0) return operationName.slice(0, 64);
+  if (typeof query !== 'string') return '-';
+
+  return GQL_ROOT_FIELD.exec(query)?.[1]?.slice(0, 64) ?? '-';
+});
+
 // Новый токен для определения IP с проверкой нескольких заголовков
 morgan.token('client-ip', (req) => {
   return req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -27,8 +53,11 @@ morgan.token('client-ip', (req) => {
 
 // Форматы с использованием нового токена 'client-ip'
 const getIpFormat = () => (config.env === 'production' ? ':client-ip - ' : ':remote-addr - ');
-const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms`;
-const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - message: :message`;
+// Операция дописывается В КОНЕЦ строки, а не в середину: у Loki/promtail разбор
+// идёт по началу строки, и вставка поля посередине сломала бы существующие
+// запросы к логам.
+const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - op: :gql-operation`;
+const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - message: :message - op: :gql-operation`;
 
 const successHandler = morgan(successResponseFormat, {
   skip: (req, res) => res.statusCode >= 400,

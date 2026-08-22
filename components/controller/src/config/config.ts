@@ -1,37 +1,37 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import path from 'path';
+import fs from 'fs';
+import { PLACEHOLDER_ENV_DEFAULTS } from './placeholder-env';
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// Файл настроек лежит в корне пакета, а глубина текущего файла зависит от
+// режима запуска: в исходниках это `src/config`, в сборке — `dist/src/config`.
+// Поэтому поднимаемся вверх, пока не найдём .env, и не привязываемся к числу
+// уровней
+const envPath = (() => {
+  let dir = __dirname;
+  for (let depth = 0; depth < 5; depth += 1) {
+    const candidate = path.join(dir, '.env');
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  return path.join(__dirname, '../../.env');
+})();
+
+dotenv.config({ path: envPath });
 
 /** Устанавливается через `scripts/register-schema-gen-env.cjs` (-r) перед запуском generate-schema */
 const isSchemaGeneration = process.env.CONTROLLER_SCHEMA_GEN === '1';
 
 /**
- * Заглушки только для режима генерации schema.gql: реальные сервисы не вызываются,
- * но Zod и импорты резолверов получают валидный объект env.
+ * Идентификатор основной сети Коопеномики.
+ *
+ * NODE_ENV различить контуры не может: в шаблоне docker-compose плейбука он
+ * жёстко выставлен в `production` и на тестовом узле, и на боевом. Единственный
+ * параметр, который реально приходит из inventory разным, — CHAIN_ID.
  */
-const SCHEMA_GEN_ENV_DEFAULTS: Record<string, string> = {
-  NODE_ENV: 'development',
-  BACKEND_URL: 'http://127.0.0.1:2998',
-  FRONTEND_URL: 'http://127.0.0.1:2999',
-  SERVER_SECRET: 'schema-gen-server-secret',
-  MONGODB_URL: 'mongodb://127.0.0.1:27017/schema-gen',
-  JWT_SECRET: 'schema-gen-jwt-secret-min-length-placeholder-32',
-  POSTGRES_USERNAME: 'postgres',
-  POSTGRES_PASSWORD: 'postgres',
-  POSTGRES_DATABASE: 'postgres',
-  REDIS_HOST: '127.0.0.1',
-  REDIS_PASSWORD: '',
-  BLOCKCHAIN_RPC: 'http://127.0.0.1:8888',
-  CHAIN_ID: 'cf057bbfb72640471fd910bcb67639c22df9f238706fab5919ce743a1f9efa38',
-  NOVU_APP_ID: 'schema-gen',
-  NOVU_API_KEY: 'schema-gen',
-  VAPID_PUBLIC_KEY: 'BM_schema_gen_placeholder_public_key____________________________',
-  VAPID_PRIVATE_KEY: 'schema_gen_placeholder_private_key',
-  MATRIX_ADMIN_USERNAME: 'schema-gen',
-  MATRIX_ADMIN_PASSWORD: 'schema-gen',
-};
+const MAINNET_CHAIN_ID = '6e37f9ac0f0ea717bfdbf57d1dd5d7f0e2d773227d9659a63bbf86eec0326c1b';
+
 
 const envVarsSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
@@ -44,6 +44,14 @@ const envVarsSchema = z.object({
     .min(1)
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
+  LOG_LEVEL: z
+    .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
+    .optional()
+    .describe(
+      'Уровень логов winston. По умолчанию info на проде и debug в разработке. ' +
+        'На debug в лог попадают успешные HTTP-запросы с временем ответа (morgan successHandler) — ' +
+        'без этого в логе видны только ответы 4xx/5xx, и латентность по логам не измерить',
+    ),
   PORT: z
     .string()
     .default('3000')
@@ -78,6 +86,10 @@ const envVarsSchema = z.object({
   SMTP_USERNAME: z.string().default(''), // Пустая строка для необязательного значения
   SMTP_PASSWORD: z.string().default(''), // Пустая строка для необязательного значения
   EMAIL_FROM: z.string().default(''), // Пустая строка для необязательного значения
+  // HTTP→SMTP релей (@coopenomics/email-relay). Если URL задан — письма уходят
+  // POST'ом на релей вместо прямого SMTP (хостинг кооператива может резать порты).
+  EMAIL_RELAY_URL: z.string().default(''),
+  EMAIL_RELAY_TOKEN: z.string().default(''),
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
@@ -138,19 +150,155 @@ const envVarsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
   REDIS_PASSWORD: z.string(),
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // CSV-список RPC-endpoint'ов COOPOS (CoopID, Story 1.3): на prod ≥2 для
+  // failover (механика — Story 9.4). Не задан — используется [BLOCKCHAIN_RPC].
+  BLOCKCHAIN_RPC_LIST: z
+    .string()
+    .optional()
+    .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
+    .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
+  // Устойчивость COOPOS RPC (CoopID, Эпик 9). Интервал health-check каждого узла
+  // (get_info); 0 — отключить фоновую проверку (Story 9.4).
+  BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS: z.coerce.number().default(10000),
+  // Таймаут одиночного RPC-запроса (read + health-probe); по истечении — переключение
+  // на следующий здоровый узел (Story 9.4).
+  BLOCKCHAIN_RPC_TIMEOUT_MS: z.coerce.number().default(5000),
+  // Сколько узлов опрашивать для M-of-N консенсуса при обновлении кэша ключей
+  // (Story 9.7). <2 здоровых узлов — консенсус не проверяется (single-node).
+  BLOCKCHAIN_RPC_QUORUM_SIZE: z.coerce.number().default(2),
+  // Интервал блока цепи (мс) — для оценки времени LIB-блока, когда узел не отдаёт
+  // last_irreversible_block_time напрямую (Story 9.6).
+  BLOCKCHAIN_BLOCK_INTERVAL_MS: z.coerce.number().default(500),
+  // Запас (мс) к границе финализации: ключ считается финализированным, только если
+  // его last_updated не позже (время LIB − запас) — компенсирует оценку времени LIB
+  // (Story 9.6).
+  BLOCKCHAIN_FINALITY_MARGIN_MS: z.coerce.number().default(500),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
+  // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
+  // Дефолт-порт 5532 = host-маппинг существующего postgres (PG_HOST_PORT) для запуска вне контейнера.
+  COOP_DOMAIN_DB_HOST: z.string().default('127.0.0.1'),
+  COOP_DOMAIN_DB_PORT: z.coerce.number().default(5532),
+  COOP_DOMAIN_DB_USERNAME: z.string().default('coop_app_user'),
+  COOP_DOMAIN_DB_DATABASE: z.string().default('coop_domain_db'),
+  COOP_DOMAIN_DB_PASSWORD: z.string().optional(),
+  COOP_DOMAIN_DB_PASSWORD_FILE: z.string().optional(),
+  // auth-v2 (CoopID): shared-токен вебхука authentik→controller (Story 1.5).
+  AUTH_V2_WEBHOOK_TOKEN: z.string().optional(),
+  AUTH_V2_WEBHOOK_TOKEN_FILE: z.string().optional(),
+  // auth-v2 (CoopID, Story 1.6): секрет подписи session_binding_token (HS256) + адрес authentik.
+  AUTH_V2_SESSION_BINDING_SECRET: z.string().optional(),
+  AUTH_V2_SESSION_BINDING_SECRET_FILE: z.string().optional(),
+  AUTHENTIK_INTERNAL_URL: z.string().default('http://authentik-server:9000'),
+  // auth-v2 (CoopID, Эпик 11): admin-API токен authentik для записи пароля пайщику
+  // (ensure user + set_password) — миграция «ключ→пароль» (11.4) и recovery-confirm (12.1).
+  AUTHENTIK_ADMIN_TOKEN: z.string().optional(),
+  AUTHENTIK_ADMIN_TOKEN_FILE: z.string().optional(),
+  // auth-v2 (CoopID, Story 1.8): PEM приватного ключа (ES256K/secp256k1) permission `cert`
+  // аккаунта vostok — им подписывается participant_certificate. Тот же ключ дериватится
+  // в vostok.cert миграцией 052 (on-chain цепь обязана совпасть с ключом подписи).
+  COOP_CERT_KEY: z.string().optional(),
+  COOP_CERT_KEY_FILE: z.string().optional(),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
     .default('1000')
     .transform((val) => parseInt(val, 10)),
-
-  // Параметры NOVU
-  NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
-  NOVU_BACKEND_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/api'),
-  NOVU_SOCKET_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/ws'),
-  NOVU_API_KEY: z.string().min(1, { message: 'Не должно быть пустым' }),
-  NOVU_WEBHOOK_SECRET: z.string().min(1, { message: 'Не должно быть пустым' }).default('default-webhook-secret'),
+  /**
+   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
+   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
+   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   */
+  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Story 4.4: глобальный выключатель ежечасного retention-крона архива
+   * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
+   * кооператив) данные могут копиться годами — отключить кроном.
+   */
+  /**
+   * Прогонять непринятые миграции самому при старте, не дожидаясь отдельной
+   * команды. Нужно стендам: там база каждый раз создаётся с нуля, и без
+   * миграций нет схемы CoopID (coop_domain_db) — сохранить ключ и записать
+   * аудит некуда. Раньше это делал скрипт подъёма отдельным заходом и ради
+   * этого караулил готовность контроллера, растягивая ребут.
+   *
+   * По умолчанию выключено: на проде миграции раскатывает релиз осознанно,
+   * и самовольный прогон при каждом рестарте там недопустим. Включается явно
+   * (`AUTO_MIGRATE=true` в окружении стенда).
+   */
+  AUTO_MIGRATE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
+  /**
+   * Story 4.4: cron-расписание retention. Default — ежечасно. RETENTION_HORIZON_BLOCKS
+   * (=1000) хардкод в BlockchainArchiveRetentionService — не вынесен в env намеренно
+   * (свойство сети, не оператора).
+   */
+  BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
+  /**
+   * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
+   * быть silent loss и поднимается `UnsupportedContractVersionError` из
+   * `AbstractEntitySyncService.processDelta`. Парсер не ACK'ает delta — DLQ
+   * сработает. Default `false` для не-ломать-прод-немедленно; включается после
+   * подтверждения, что schema drift отсутствует (например на стенде).
+   */
+  BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  /**
+   * Как часто пересчитывается отставание узла от головы цепи. Тик стоит один
+   * RPC `get_info` и одно чтение Redis, поэтому дёшев; от него же зависит,
+   * насколько быстро рабочий стол узнает, что узел вернулся в строй.
+   */
+  BLOCKCHAIN_SYNC_TICK_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание (в блоках), с которого рабочий стол считается неработоспособным
+   * и закрывается заглушкой. Порог входа выше порога выхода намеренно —
+   * см. `BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS`.
+   */
+  BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS: z
+    .string()
+    .default('40')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Отставание, ниже которого узел снова считается догнавшим. Обязано быть
+   * меньше порога входа: на живой сети отставание колеблется вокруг границы, и
+   * при одном пороге заглушка замигает посреди работы.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько тиков подряд узел обязан продержаться у головы, чтобы заглушка
+   * снялась. Вторая половина гистерезиса: порог по блокам гасит дрожание
+   * амплитуды, счётчик тиков — дрожание по времени.
+   */
+  BLOCKCHAIN_SYNC_HEALTHY_TICKS: z
+    .string()
+    .default('3')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Окно, после которого неподвижный курсор парсера считается обрывом чтения
+   * цепи, а не медленным догоном. Курсор обновляется на каждом обработанном
+   * блоке, поэтому тишина дольше нескольких десятков секунд — это остановка.
+   */
+  BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS: z
+    .string()
+    .default('60')
+    .transform((val) => parseInt(val, 10)),
 
   // Параметры VAPID для web push
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
@@ -187,6 +335,30 @@ const envVarsSchema = z.object({
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
+  // Параметры геокодера (провайдер-агностично; реализация выбирается через GEOCODER_PROVIDER)
+  GEOCODER_PROVIDER: z
+    .enum(['yandex', 'noop'])
+    .default('noop')
+    .describe('Провайдер геокодинга адресов: yandex | noop (отключён). Будущие: google, maps.me'),
+  GEOCODER_API_KEY: z
+    .string()
+    .optional()
+    .describe('API ключ выбранного провайдера геокодинга'),
+  GEOCODER_BASE_URL: z
+    .string()
+    .optional()
+    .describe('Базовый URL HTTP API геокодера (пусто — дефолт провайдера)'),
+  GEOCODER_RATE_LIMIT_RPS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .describe('Локальный rate-limit на запросы к провайдеру геокодинга (req/sec)'),
+  GEOCODER_TIMEOUT_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10))
+    .describe('Таймаут одиночного HTTP-запроса к провайдеру геокодинга (ms)'),
+
   // Параметры OpenAI Whisper для STT
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
@@ -214,9 +386,13 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
+  MIN_SOVIET_MEMBERS_COUNT: z
+    .string()
+    .optional()
+    .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
-const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
+const envInput = isSchemaGeneration ? { ...PLACEHOLDER_ENV_DEFAULTS, ...process.env } : process.env;
 
 // Валидация переменных окружения
 const envVars = envVarsSchema.safeParse(envInput);
@@ -230,7 +406,7 @@ if (!envVars.success) {
     .join('\n');
 
   const hint = isSchemaGeneration
-    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в SCHEMA_GEN_ENV_DEFAULTS в src/config/config.ts.)\n'
+    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в PLACEHOLDER_ENV_DEFAULTS в src/config/placeholder-env.ts.)\n'
     : '\n';
   console.error('❌ Ошибка конфигурации:\n', errorMessages, hint);
   process.exit(1); // Завершаем приложение в случае ошибки
@@ -239,19 +415,111 @@ if (!envVars.success) {
 // Экспорт настроек
 export default {
   env: envVars.data.NODE_ENV,
+  log_level: envVars.data.LOG_LEVEL ?? (envVars.data.NODE_ENV === 'development' ? 'debug' : 'info'),
+  auto_migrate: envVars.data.AUTO_MIGRATE,
   backend_url: envVars.data.BACKEND_URL,
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
   server_secret: envVars.data.SERVER_SECRET,
   timezone: envVars.data.TIMEZONE,
+  coopDomainDb: {
+    host: envVars.data.COOP_DOMAIN_DB_HOST,
+    port: envVars.data.COOP_DOMAIN_DB_PORT,
+    username: envVars.data.COOP_DOMAIN_DB_USERNAME,
+    database: envVars.data.COOP_DOMAIN_DB_DATABASE,
+    // Ленивый геттер: отсутствие секрет-файла бьёт только по потребителям
+    // coop_domain_db (миграция V2.4.0+), а не по импорту config всем coopback'ом.
+    get password(): string {
+      const file = envVars.data!.COOP_DOMAIN_DB_PASSWORD_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch (e) {
+          throw new Error(`COOP_DOMAIN_DB_PASSWORD_FILE недоступен (${file}): ${e instanceof Error ? e.message : e}`);
+        }
+      }
+      return envVars.data!.COOP_DOMAIN_DB_PASSWORD ?? '';
+    },
+  },
+  authV2: {
+    authentikInternalUrl: envVars.data.AUTHENTIK_INTERNAL_URL,
+    get webhookToken(): string {
+      const file = envVars.data!.AUTH_V2_WEBHOOK_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_WEBHOOK_TOKEN ?? '';
+    },
+    get sessionBindingSecret(): string {
+      const file = envVars.data!.AUTH_V2_SESSION_BINDING_SECRET_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_SESSION_BINDING_SECRET ?? '';
+    },
+    // auth-v2 (CoopID, Эпик 11): admin-токен authentik для записи пароля пайщику.
+    // '' при отсутствии — адаптер бросает явную ошибку конфигурации при попытке записи.
+    get authentikAdminToken(): string {
+      const file = envVars.data!.AUTHENTIK_ADMIN_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTHENTIK_ADMIN_TOKEN ?? '';
+    },
+    // PEM cert-ключа: многострочный, .trim() убирает только хвостовой перевод строки
+    // (createPrivateKey терпим к нему). '' при отсутствии — потребитель (CertificateService)
+    // отдаёт явную ошибку конфигурации, не падая на импорте config.
+    get certKey(): string {
+      const file = envVars.data!.COOP_CERT_KEY_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.COOP_CERT_KEY ?? '';
+    },
+  },
   blockchain: {
     url: envVars.data.BLOCKCHAIN_RPC,
+    rpcList: envVars.data.BLOCKCHAIN_RPC_LIST.length
+      ? envVars.data.BLOCKCHAIN_RPC_LIST
+      : [envVars.data.BLOCKCHAIN_RPC],
+    rpcHealthCheckIntervalMs: envVars.data.BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS,
+    rpcTimeoutMs: envVars.data.BLOCKCHAIN_RPC_TIMEOUT_MS,
+    rpcQuorumSize: envVars.data.BLOCKCHAIN_RPC_QUORUM_SIZE,
+    blockIntervalMs: envVars.data.BLOCKCHAIN_BLOCK_INTERVAL_MS,
+    finalityMarginMs: envVars.data.BLOCKCHAIN_FINALITY_MARGIN_MS,
     id: envVars.data.CHAIN_ID,
+    /** Узел работает в основной сети. Любая другая цепь (тестовая, локальная) — false. */
+    is_mainnet: envVars.data.CHAIN_ID === MAINNET_CHAIN_ID,
     root_symbol: envVars.data.ROOT_SYMBOL,
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
+    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
+    archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
+    unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,
+    sync_tick_ms: envVars.data.BLOCKCHAIN_SYNC_TICK_MS,
+    sync_lagging_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_LAGGING_LAG_BLOCKS,
+    sync_healthy_lag_blocks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_LAG_BLOCKS,
+    sync_healthy_ticks: envVars.data.BLOCKCHAIN_SYNC_HEALTHY_TICKS,
+    sync_stale_cursor_seconds: envVars.data.BLOCKCHAIN_SYNC_STALE_CURSOR_SECONDS,
   },
   mongoose: {
     url: envVars.data.MONGODB_URL + (envVars.data.NODE_ENV === 'test' ? '-test' : ''),
@@ -279,8 +547,17 @@ export default {
       },
     },
     from: envVars.data.EMAIL_FROM,
+    relay: {
+      url: envVars.data.EMAIL_RELAY_URL,
+      token: envVars.data.EMAIL_RELAY_TOKEN,
+    },
   },
   coopname: envVars.data.COOPNAME,
+  min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
+    ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
+    : envVars.data.NODE_ENV === 'production'
+      ? 3
+      : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
   billing: {
@@ -313,13 +590,6 @@ export default {
     port: envVars.data.REDIS_PORT,
     password: envVars.data.REDIS_PASSWORD,
   },
-  novu: {
-    app_id: envVars.data.NOVU_APP_ID,
-    backend_url: envVars.data.NOVU_BACKEND_URL,
-    socket_url: envVars.data.NOVU_SOCKET_URL,
-    api_key: envVars.data.NOVU_API_KEY,
-    webhook_secret: envVars.data.NOVU_WEBHOOK_SECRET,
-  },
   vapid: {
     public_key: envVars.data.VAPID_PUBLIC_KEY,
     private_key: envVars.data.VAPID_PRIVATE_KEY,
@@ -348,6 +618,13 @@ export default {
     base_url: envVars.data.OPENAI_BASE_URL,
     whisper_model: envVars.data.WHISPER_MODEL,
     whisper_language: envVars.data.WHISPER_LANGUAGE,
+  },
+  geocoder: {
+    provider: envVars.data.GEOCODER_PROVIDER,
+    api_key: envVars.data.GEOCODER_API_KEY,
+    base_url: envVars.data.GEOCODER_BASE_URL,
+    rate_limit_rps: envVars.data.GEOCODER_RATE_LIMIT_RPS,
+    timeout_ms: envVars.data.GEOCODER_TIMEOUT_MS,
   },
   file_storage: {
     endpoint: envVars.data.MINIO_ENDPOINT,

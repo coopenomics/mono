@@ -1,44 +1,41 @@
 <template lang="pug">
-ColorCard
-  .card-label О себе
-  template(v-if="!isEditing")
-    .card-value(:class="{ 'cursor-pointer': isOwnProfile }" :style="{ 'white-space': 'pre-line' }" @click="isOwnProfile ? startEditing() : null")
-      template(v-if="isOwnProfile")
-        q-icon(
-          name="edit"
-          size="16px"
-          color="grey-6"
-          style="margin-right: 8px;"
-        )
-      | {{ hasAbout ? contributorStore.self?.about : 'Не указано' }}
-  template(v-else)
-    .q-pa-sm
-      q-input(
-        v-model="localAbout"
-        type="textarea"
-        label="Расскажите о себе и чем можете быть полезны кооперативу"
-        outlined
-        rows="3"
-        :rules="[val => !val || val.length <= 1000 || 'Максимум 1000 символов']"
-        dense
-        autogrow
-      )
-      .row.q-gutter-sm.q-mt-sm.justify-end
-        q-btn(
-          flat
-          dense
-          label="Отмена"
-          color="grey-7"
-          @click="cancelEditing"
-        )
-        q-btn(
-          color="primary"
-          dense
-          label="Сохранить"
-          :loading="isSaving"
-          :disable="!hasChanges"
-          @click="saveAbout"
-        )
+.edit-field
+  .edit-field__view
+    span.edit-field__icon
+      q-icon(name='notes', size='20px')
+    .edit-field__main
+      template(v-if='!isEditing')
+        .edit-field__head
+          span.t-sm.t-muted О себе
+          BaseButton(
+            v-if='isOwnProfile',
+            variant='ghost',
+            size='sm',
+            icon-only,
+            aria-label='Редактировать информацию о себе',
+            @click='startEditing'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='16px')
+        .edit-field__value(:class='{ "t-muted": !hasAbout }') {{ hasAbout ? contributorStore.self?.about : 'Не указано' }}
+      template(v-else)
+        BaseForm(:loading='isSaving', @submit='saveAbout')
+          BaseInput(
+            v-model='localAbout',
+            type='textarea',
+            autogrow,
+            label='Расскажите о себе и чем можете быть полезны кооперативу',
+            :error='aboutError'
+          )
+          template(#footer)
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(
+              variant='primary',
+              size='sm',
+              type='submit',
+              :loading='isSaving',
+              :disabled='!hasChanges || !!aboutError'
+            ) Сохранить
 </template>
 
 <script setup lang="ts">
@@ -47,7 +44,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useEditContributor } from '../model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useSessionStore } from 'src/entities/Session/model';
-import { ColorCard } from 'src/shared/ui';
+import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 
 const emit = defineEmits<{
   'about-updated': [];
@@ -71,6 +68,11 @@ const hasAbout = computed(() => {
   return contributorStore.self?.about && contributorStore.self.about.trim().length > 0;
 });
 
+// Валидация длины текста
+const aboutError = computed(() =>
+  localAbout.value.length > 1000 ? 'Максимум 1000 символов' : undefined,
+);
+
 // Проверяем, есть ли изменения
 const hasChanges = computed(() => {
   const currentAbout = contributorStore.self?.about || '';
@@ -91,6 +93,7 @@ const cancelEditing = () => {
 
 // Сохраняем изменения
 const saveAbout = async () => {
+  if (aboutError.value) return;
   try {
     const aboutValue = localAbout.value.trim() || undefined;
 
@@ -119,3 +122,39 @@ watch(() => contributorStore.self?.about, (newAbout) => {
   }
 }, { immediate: true });
 </script>
+
+<style lang="scss" scoped>
+.edit-field__view {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
+
+.edit-field__icon {
+  width: var(--p-8);
+  height: var(--p-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-canvas-2);
+  color: var(--p-ink-2);
+}
+
+.edit-field__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-field__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+.edit-field__value {
+  white-space: pre-line;
+  font-weight: 500;
+}
+</style>

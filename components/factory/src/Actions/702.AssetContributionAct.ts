@@ -13,26 +13,22 @@ export class Factory extends DocFactory<AssetContributionAct.Action> {
   }
 
   async generateDocument(data: AssetContributionAct.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AssetContributionAct.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = AssetContributionAct.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AssetContributionAct.registry_id, data.block_num)
-    }
+    const { template, coop, vars, user, request, receiver } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AssetContributionAct.Template as ITemplate<AssetContributionAct.Model>)
+        : this.getTemplate<AssetContributionAct.Model>(DraftContract.contractName.production, AssetContributionAct.registry_id, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      vars: () => this.getVars(data.coopname, data.block_num),
+      user: () => this.getUser(data.username, data.block_num),
+      request: () => this.getRequest(data.request_id, data.block_num),
+      receiver: () => this.getUser(data.receiver, data.block_num),
+    })
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-    const user = await this.getUser(data.username, data.block_num)
-
-    const request = await this.getRequest(data.request_id, data.block_num)
 
     // Извлекаем данные уже принятого решения совета
     const decision = await this.getApprovedDecision(coop, data.coopname, data.decision_id)
     const commonUser = this.getCommonUser(user)
-    const receiver = await this.getUser(data.receiver, data.block_num)
 
     if (coop.is_branched && !data.braname)
       throw new Error('Branch name is required')

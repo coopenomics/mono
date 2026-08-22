@@ -2,21 +2,19 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { InvestsManagementService } from '../services/invests-management.service';
 import { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
+import { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
+import {
+  DeallocationLimitInputDTO,
+  DeallocationLimitOutputDTO,
+} from '../dto/invests_management/deallocation-limit.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import { GetInvestInputDTO } from '../dto/invests_management/get-invest-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 // Пагинированные результаты
 const paginatedInvestsResult = createPaginationResult(InvestOutputDTO, 'PaginatedCapitalInvests');
@@ -39,7 +37,7 @@ export class InvestsManagementResolver {
   @AuthRoles(['participant'])
   async createCapitalProjectInvest(
     @Args('data', { type: () => CreateProjectInvestInputDTO }) data: CreateProjectInvestInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.investsManagementService.createProjectInvest(data, currentUser);
     return result;
@@ -56,16 +54,57 @@ export class InvestsManagementResolver {
   @AuthRoles(['participant'])
   async createCapitalProgramInvest(
     @Args('data', { type: () => CreateProgramInvestInputDTO }) data: CreateProgramInvestInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return await this.investsManagementService.createProgramInvest(data, currentUser);
   }
 
   /**
-   * Мутация для возврата неиспользованных инвестиций CAPITAL контракта
+   * Мутация для направления средств программы в проект или компонент (allocate)
    */
+  @Mutation(() => TransactionDTO, {
+    name: 'capitalAllocateFunds',
+    description: 'Направление средств программы в проект или компонент',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async allocateFunds(
+    @Args('data', { type: () => AllocateFundsInputDTO }) data: AllocateFundsInputDTO
+  ): Promise<TransactionDTO> {
+    return await this.investsManagementService.allocateFunds(data);
+  }
+
+  /**
+   * Мутация для возврата средств из компонента в программу (diallocate)
+   */
+  @Mutation(() => TransactionDTO, {
+    name: 'capitalDeallocateFunds',
+    description: 'Возврат ранее направленных средств из компонента в программу',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async deallocateFunds(
+    @Args('data', { type: () => DeallocateFundsInputDTO }) data: DeallocateFundsInputDTO
+  ): Promise<TransactionDTO> {
+    return await this.investsManagementService.deallocateFunds(data);
+  }
 
   // ============ ЗАПРОСЫ ИНВЕСТИЦИЙ ============
+
+  /**
+   * Предел возврата средств из компонента в программу
+   */
+  @Query(() => DeallocationLimitOutputDTO, {
+    name: 'capitalDeallocationLimit',
+    description: 'Сколько средств можно вернуть из компонента в программу и чем сумма ограничена',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async getDeallocationLimit(
+    @Args('data', { type: () => DeallocationLimitInputDTO }) data: DeallocationLimitInputDTO
+  ): Promise<DeallocationLimitOutputDTO> {
+    return await this.investsManagementService.getDeallocationLimit(data);
+  }
 
   /**
    * Получение всех инвестиций с фильтрацией

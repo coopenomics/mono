@@ -57,15 +57,22 @@ function onClick(): void {
   font: inherit;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.base-radio-card:hover {
+.base-radio-card:not(.base-radio-card--selected):hover {
   border-color: var(--p-primary-soft, var(--p-primary));
-  background: var(--p-surface);
+  background: var(--p-canvas-2);
 }
 .base-radio-card:focus-visible {
   outline: 2px solid var(--p-primary);
   outline-offset: 2px;
 }
 .base-radio-card--selected {
+  border-color: var(--p-primary);
+  background: var(--p-primary-soft, rgba(13, 148, 136, 0.08));
+}
+/* Hover по уже выбранной карточке не должен «сбрасывать» её в нейтральный
+   surface (иначе зелёная выбранная белеет при наведении). Спецификность выше,
+   чем у .base-radio-card:hover, и правило идёт ниже по исходнику. */
+.base-radio-card--selected:hover {
   border-color: var(--p-primary);
   background: var(--p-primary-soft, rgba(13, 148, 136, 0.08));
 }

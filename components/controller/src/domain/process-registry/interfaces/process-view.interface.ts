@@ -1,4 +1,4 @@
-import type { ExtendedSignedDocumentDomainInterface } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
+import type { IExtendedSignedDocument } from '~/domain/document/interfaces/extended-signed-document-domain.interface';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
 /**
@@ -32,7 +32,7 @@ export interface ProcessDeltaView {
 export interface ProcessDocumentView {
   hash: string;
   source: { code: string; table: string; field: string; primary_key: string };
-  document: ExtendedSignedDocumentDomainInterface;
+  document: IExtendedSignedDocument;
   raw?: DocumentDomainEntity | null;
 }
 
@@ -72,6 +72,8 @@ export interface ProcessesFilter {
   coopname: string;
   processType?: string;
   username?: string;
+  /** Точечная адресация одного процесса по его хэшу (deep-link из реестров операций/проводок). */
+  processHash?: string;
   fromBlock?: number;
   toBlock?: number;
 }

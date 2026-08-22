@@ -80,6 +80,7 @@ import { FailAlert } from 'src/shared/api';
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
 import { useSystemStore } from 'src/entities/System/model';
 import { notEmpty } from 'src/shared/lib/utils';
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
@@ -124,7 +125,6 @@ const createDefaultOrganizationData = (): ICreateOrganizationData => ({
       details: {
         corr: '',
         bik: '',
-        kpp: '',
       },
       account_number: '',
       currency: 'RUB',
@@ -160,7 +160,6 @@ const isValidData = computed(() => {
     data?.bank_account?.bank_name &&
     data?.bank_account?.details?.corr &&
     data?.bank_account?.details?.bik &&
-    data?.bank_account?.details?.kpp &&
     data?.bank_account?.account_number
   );
 });
@@ -189,7 +188,7 @@ const loadData = async () => {
         organizationData.type = organizationData.type.toUpperCase();
       }
 
-      installStore.organization_data = organizationData;
+      installStore.organization_data = stripLegacyBankKpp(organizationData);
     }
   } catch (error: any) {
     const errorMessage = extractGraphQLErrorMessages(error);

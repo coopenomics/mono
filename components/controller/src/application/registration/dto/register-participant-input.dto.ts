@@ -1,7 +1,7 @@
 import { Field, InputType, registerEnumType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { ParticipantApplicationSignedDocumentInputDTO } from '../../document/documents-dto/participant-application-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { ProgramKey } from '~/domain/registration/enum';
 
@@ -73,6 +73,14 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
   @ValidateNested()
   @IsOptional()
   generator_offer?: SignedDigitalDocumentInputDTO;
+
+  @Field(() => SignedDigitalDocumentInputDTO, {
+    description: 'Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace)',
+    nullable: true,
+  })
+  @ValidateNested()
+  @IsOptional()
+  marketplace_offer?: SignedDigitalDocumentInputDTO;
 
   @Field(() => ProgramKey, { description: 'Ключ выбранной программы регистрации', nullable: true })
   @IsOptional()

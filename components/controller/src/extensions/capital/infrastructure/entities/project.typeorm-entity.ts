@@ -1,9 +1,11 @@
 import { Entity, Column, Index, OneToMany } from 'typeorm';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
+import { ProjectPriority } from '../../domain/enums/project-priority.enum';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import { IssueTypeormEntity } from './issue.typeorm-entity';
 import { StoryTypeormEntity } from './story.typeorm-entity';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_projects';
 @Entity(EntityName)
@@ -11,12 +13,13 @@ export const EntityName = 'capital_projects';
 @Index(`idx_${EntityName}_hash`, ['project_hash'])
 @Index(`idx_${EntityName}_coopname`, ['coopname'])
 @Index(`idx_${EntityName}_status`, ['status'])
+@Index(`idx_${EntityName}_priority`, ['priority'])
 export class ProjectTypeormEntity extends BaseTypeormEntity {
   static getTableName(): string {
     return EntityName;
   }
   @Column({ type: 'integer', nullable: true, unique: true })
-  id!: number;
+  id!: number | null;
 
   // Поля из блокчейна (projects.hpp)
   @Column({ type: 'varchar', length: 12 })
@@ -87,6 +90,15 @@ export class ProjectTypeormEntity extends BaseTypeormEntity {
   })
   status!: ProjectStatus;
 
+  /** Приоритет проекта/компонента (только БД, в блокчейн не пишется). */
+  @Column({
+    type: 'enum',
+    enum: ProjectPriority,
+    enumName: 'capital_project_priority',
+    default: ProjectPriority.MEDIUM,
+  })
+  priority!: ProjectPriority;
+
   @Column({ type: 'varchar', length: 3 })
   prefix!: string;
 
@@ -106,6 +118,19 @@ export class ProjectTypeormEntity extends BaseTypeormEntity {
   /** URL репозитория Git (github.com), опрос маркеров коммитов — PRD §6.2.1. */
   @Column({ type: 'varchar', length: 2048, nullable: true })
   development_repository_url!: string | null;
+
+  /** blockchain — кооперативный; local — персональный (только PG) */
+  @Column({
+    type: 'enum',
+    enum: ProjectOrigin,
+    enumName: 'capital_project_origin',
+    default: ProjectOrigin.BLOCKCHAIN,
+  })
+  origin!: ProjectOrigin;
+
+  /** Владелец персонального проекта (= master для LOCAL) */
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  local_owner!: string | null;
 
   // Связи
   @OneToMany(() => IssueTypeormEntity, (issue) => issue.project, { cascade: true })

@@ -1,11 +1,8 @@
 import { TimeEntryDomainEntity } from '../entities/time-entry.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { TimeEntriesFilterDomainInterface } from '../interfaces/time-entries-filter-domain.interface';
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../interfaces/time-entries-by-issues-domain.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Репозиторий для работы с записями времени
@@ -20,6 +17,12 @@ export interface TimeEntryRepository {
    * Найти записи времени по участнику и дате
    */
   findByContributorAndDate(contributorHash: string, date: string): Promise<TimeEntryDomainEntity[]>;
+
+  /**
+   * Сумма часов участника за день только по кооперативным (blockchain) проектам.
+   * LOCAL и свободные задачи (без project / empty hash) не учитываются.
+   */
+  sumCooperativeHoursByContributorAndDate(contributorHash: string, date: string): Promise<number>;
 
   /**
    * Найти незакоммиченные записи времени по участнику
@@ -99,8 +102,8 @@ export interface TimeEntryRepository {
    */
   findByProjectWithPagination(
     filter: TimeEntriesFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<TimeEntryDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<TimeEntryDomainEntity>>;
 
   /**
    * Получить агрегированные записи времени по задачам с пагинацией
@@ -142,6 +145,11 @@ export interface TimeEntryRepository {
    * по которым есть хотя бы одна запись; отсутствующие задачи нужно считать нулевым фактом.
    */
   getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>>;
+
+  /**
+   * Найти запись времени по id
+   */
+  findById(id: string): Promise<TimeEntryDomainEntity | null>;
 }
 
 /**

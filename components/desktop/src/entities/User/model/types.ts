@@ -29,7 +29,9 @@ export interface IUserAccountData {
     | 'registered'
     | 'active'
     | 'blocked'
-    | 'failed';
+    | 'failed'
+    | 'refunding'
+    | 'refunded';
   is_registered: boolean;
   type: 'individual' | 'entrepreneur' | 'organization';
   public_key: string;

@@ -5,8 +5,7 @@ import { ProgramPropertyDomainEntity } from '../../domain/entities/program-prope
 import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeorm-entity';
 import { ProgramPropertyMapper } from '../mappers/program-property.mapper';
 import type { ProgramPropertyRepository } from '../../domain/repositories/program-property.repository';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramPropertyDatabaseData } from '../../domain/interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/program-property-blockchain.interface';
 

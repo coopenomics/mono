@@ -39,4 +39,8 @@ void capital::declinedebt(name coopname, eosio::name username, checksum256 debt_
   
   // Уменьшаем сумму использованных для компенсации инвестиций
   Capital::Projects::subtract_used_for_compensation(coopname, project.id, exist_debt.amount);
+
+  // Держим агрегат ссуд проекта в актуальном состоянии — от него зависит
+  // граница деаллокации (calculate_max_deallocatable)
+  Capital::Projects::sync_total_debt(coopname, project.id);
 }

@@ -1,0 +1,165 @@
+feature: marketplace.stock
+title: Обезличенный остаток кооператива — перепредложение, заказ и возврат в кооператив
+
+# Остаток появляется двумя путями: недовыдача (заказчик забрал меньше, чем
+# приняли на склад) и принятый гарантийный возврат. Адресность с такого
+# имущества снята — оно принадлежит кооперативу (`ownership = COOP`) и может
+# быть предложено пайщикам заново: председатель участка публикует его в
+# каталоге со своей ценой (обычно с уценкой) и своим сроком гарантийного
+# возврата.
+#
+# Заказ такого предложения идёт без цикла поставки: имущество уже на участке,
+# позиции резервируются (`reserved_order_id`), выдача — сразу со склада.
+# Уценка при выдаче выбывает как прочий расход (o.mkt.loss), чтобы на складе
+# не зависала разница между ценой прибытия и фактической суммой.
+#
+# Ключевое отличие возврата: имущество возвращается КООПЕРАТИВУ, а не первому
+# заказчику, чей заказ породил остаток.
+
+# Мердж dev 2026-08-12 (FC1-7): в файлах фичи изменились только строки импорта —
+# пагинация, базовый DTO, порт документов и тип аккаунта переехали в
+# `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
+# правила доступа и набор случаев прежние.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
+  ui:
+    - components/desktop/src/widgets/Marketplace/CoopStockSection/**
+    - components/desktop/src/pages/Marketplace/OperatorOwnWarehouse/**
+
+cases:
+  - id: mkt.stock.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка публикует обезличенный остаток в каталог со своей ценой и своим сроком гарантийного возврата
+    expect: >
+      позиция переходит в состояние «На витрине»; цена публикации заменяет цену исходного предложения поставщика
+    test: components/docs-harness/scenarios/marketplace/operator/stock-republish.mjs
+    status: passing
+
+  - id: mkt.stock.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Другой пайщик заказывает опубликованный остаток кооператива
+    expect: >
+      предложение видно в каталоге как «Со склада кооператива — выдача сразу»; заказ оформляется по цене публикации и принадлежит второму пайщику
+    test: components/docs-harness/scenarios/marketplace/orderer/stock-order.mjs
+    status: passing
+
+  - id: mkt.stock.happy.03
+    level: ui
+    kind: happy
+    scenario: Оператор выдаёт второму пайщику заказ из остатка
+    expect: >
+      выдача открывается по коду второго пайщика и закрывается его актом; остаток кооператива на складе уменьшается на выданное
+    test: components/docs-harness/scenarios/marketplace/operator/stock-issuance.mjs
+    status: passing
+
+  - id: mkt.stock.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      Второй пайщик подаёт гарантийный возврат по имуществу, купленному из остатка
+    expect: >
+      действует срок гарантии, назначенный при публикации остатка, а не срок исходного предложения поставщика; сумма к возврату — по цене публикации
+    test: components/docs-harness/scenarios/marketplace/orderer/stock-return.mjs
+    status: passing
+
+  - id: mkt.stock.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель принимает возврат по заказу из остатка: имущество возвращается кооперативу
+    expect: >
+      деньги восстановлены второму пайщику; имущество снова числится обезличенным остатком кооператива на том же участке — первый заказчик к нему отношения не имеет
+    test: components/docs-harness/scenarios/marketplace/operator/stock-return-accept.mjs
+    status: passing
+
+  - id: mkt.stock.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Партия возвращаемого имущества по заказу из остатка определяется через резерв, а не через прямую принадлежность заказу
+    expect: >
+      возврат находит исходную позицию по `reserved_order_id` (у заказов из остатка `order_id` на позицию не переносится) и зачисляет имущество в ту же партию поставки
+    test: components/controller/tests/unit/marketplace/marketplace-return-restock.test.ts
+    status: passing
+    # Второй путь разбора (`reserved_order_id`) существует именно ради заказов
+    # из остатка: без него возврат по такому заказу не нашёл бы партию и не
+    # зачислил имущество на склад вовсе.
+
+  - id: mkt.stock.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Выдача заказа из остатка по цене ниже цены прибытия
+    expect: >
+      разница выбывает прочим расходом (o.mkt.loss) вместе со списанием себестоимости — на складе не зависает непокрытая стоимость; сбой отправки расхода не роняет выдачу, но виден в логе с суммой
+    test: components/controller/tests/unit/marketplace/marketplace-stock-markdown.test.ts
+    status: passing
+
+  - id: mkt.stock.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Заказ остатка на количество больше, чем свободно на складе участка
+    expect: >
+      отказ — зарезервировать больше свободного остатка нельзя; оптимистический счётчик предложения при отказе не двигается
+    test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    status: passing
+
+  - id: mkt.stock.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Председатель публикует остаток дороже цены прибытия
+    expect: >
+      отказ — допускается только уценка: продажа дороже потребовала бы доходной проводки, которой в модели нет
+    test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    status: passing
+
+  - id: mkt.stock.side.05
+    level: backend
+    kind: side
+    scenario: >
+      К публикации выбрана позиция, которую публиковать нельзя: адресная под заказ пайщика, уже зарезервированная, чужого кооператива, ушедшая со склада либо уже опубликованная
+    expect: отказ по каждой из причин; предложение кооператива не создаётся
+    test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    status: passing
+
+  - id: mkt.stock.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Предложение поставщика заказывают путём заказа из остатка, либо предложение остатка неактивно
+    expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
+    test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    status: passing
+
+  # 2026-08-18: в файлах фичи изменилась только строка импорта — чистка отказа
+  # цепи (`rethrowChainError`) уехала в каркас расширений, потому что в цепь
+  # ходит не одно расширение. Поведение операций прежнее.
+
+  - id: mkt.stock.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор заводит тип боксов (габариты, объём) и партию боксов с QR-кодами на вкладках склада «Типы боксов» и «Боксы»
+    expect: >
+      тип с габаритами появляется в реестре типов; партия получает сквозные коды BX-NNNN и открывает лист QR-этикеток на печать
+    test: components/docs-harness/scenarios/marketplace/operator/containers.mjs
+    status: passing
+
+  - id: mkt.stock.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор заводит координатную сетку склада (секции и ярусы) и перекладывает принятую позицию в ячейку перетаскиванием
+    expect: >
+      ячейка A-01 появляется на карте; позиция получает адрес и уходит из колонки «Поступило»
+    test: components/docs-harness/scenarios/marketplace/operator/warehouse-cells.mjs
+    status: passing

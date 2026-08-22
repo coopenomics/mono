@@ -3,7 +3,7 @@ import type { ActionRepositoryPort } from '~/domain/parser/ports/action-reposito
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import type { ActionFilterDomainInterface } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор приложения для получения действий с фильтрацией и пагинацией

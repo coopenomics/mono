@@ -24,6 +24,11 @@ on:
     branches: [dev, testnet, main]
     paths:
       - 'components/boot/**'
+      # Образ несёт реестр шаблонов документов (`drafts:sync` вкатывает его
+      # в сеть), а шаблоны живут в фабрике и cooptypes — правка документа
+      # обязана пересобирать образ.
+      - 'components/factory/**'
+      - 'components/cooptypes/**'
       - '.github/workflows/build-bootstrap.yaml'
   workflow_dispatch:
 

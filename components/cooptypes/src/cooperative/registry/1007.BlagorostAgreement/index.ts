@@ -109,7 +109,6 @@ export const exampleData = {
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '772801001',
       },
     },
     chairman: {

@@ -1,13 +1,11 @@
 <template>
-  <q-btn
-    color="black"
-    label="жидание"
-    icon="schedule"
-    disable
-    fab
-  />
+  <BaseChip variant="warn" size="sm">
+    <q-icon name="schedule" size="14px" class="q-mr-xs" />
+    Запрос на рассмотрении
+  </BaseChip>
 </template>
 
 <script setup lang="ts">
-// Компонент кнопки ожидания допуска к проекту
+// Индикатор ожидания допуска к проекту/компоненту
+import { BaseChip } from 'src/shared/ui/base';
 </script>

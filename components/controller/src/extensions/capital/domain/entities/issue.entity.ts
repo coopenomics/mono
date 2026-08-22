@@ -1,7 +1,7 @@
 import { IssuePriority } from '../enums/issue-priority.enum';
 import { IssueStatus } from '../enums/issue-status.enum';
 import type { IIssueDatabaseData } from '../interfaces/issue-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность задачи
@@ -22,7 +22,8 @@ export class IssueDomainEntity extends BaseDomainEntity<IIssueDatabaseData> {
   public created_by: string; // Имя пользователя, создавшего задачу
   public submaster?: string; // Имя пользователя ответственного (contributor)
   public creators: string[]; // Массив имен пользователей создателей (contributors)
-  public project_hash: string; // Хеш проекта
+  /** Хеш проекта/компонента; пусто — свободная задача */
+  public project_hash?: string | null;
   public cycle_id?: string; // ID цикла
   public metadata: {
     labels: string[];
@@ -51,7 +52,9 @@ export class IssueDomainEntity extends BaseDomainEntity<IIssueDatabaseData> {
     this.created_by = databaseData.created_by;
     this.creators = databaseData.creators;
     this.submaster = databaseData.submaster;
-    this.project_hash = databaseData.project_hash.toLowerCase();
+    this.project_hash = databaseData.project_hash
+      ? databaseData.project_hash.toLowerCase()
+      : null;
     this.cycle_id = databaseData.cycle_id;
     this.metadata = databaseData.metadata;
   }

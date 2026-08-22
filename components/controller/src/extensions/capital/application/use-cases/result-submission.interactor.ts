@@ -10,15 +10,14 @@ import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { Classes } from '@coopenomics/sdk';
 import type { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для подведения результатов в CAPITAL контракте
@@ -33,10 +32,12 @@ export class ResultSubmissionInteractor {
     private readonly resultRepository: ResultRepository,
     @Inject(SEGMENT_REPOSITORY)
     private readonly segmentRepository: SegmentRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly resultSyncService: ResultSyncService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionInteractor.name);
   }
@@ -45,6 +46,9 @@ export class ResultSubmissionInteractor {
    * Внесение результата в CAPITAL контракте
    */
   async pushResult(data: PushResultDomainInput): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'внесение результата');
+
     // Вызываем блокчейн порт
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
@@ -76,8 +80,10 @@ export class ResultSubmissionInteractor {
    */
   async convertSegment(
     data: ConvertSegmentDomainInput,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'конвертацию сегмента');
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -88,8 +94,16 @@ export class ResultSubmissionInteractor {
     await this.capitalBlockchainPort.convertSegment(blockchainData);
 
     // После успешной конвертации сегмент удаляется из блокчейна,
-    // поэтому устанавливаем флаг завершения вместо синхронизации
-    const segmentEntity = await this.segmentRepository.markAsCompleted(data.coopname, data.project_hash, data.username);
+    // поэтому устанавливаем флаг завершения вместо синхронизации.
+    // Хэш приводим к нижнему регистру, как и при поиске проекта выше: в базе
+    // project_hash всегда нормализован (segment.entity.ts, segment.mapper.ts),
+    // а цепь регистр не различает — checksum256 парсится из hex. Без этого
+    // запрос с заглавными проходил в цепи, но не находил строку в базе.
+    const segmentEntity = await this.segmentRepository.markAsCompleted(
+      data.coopname,
+      data.project_hash.toLowerCase(),
+      data.username
+    );
 
     if (!segmentEntity) {
       throw new Error(
@@ -108,8 +122,8 @@ export class ResultSubmissionInteractor {
    */
   async getResults(
     filter?: ResultFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ResultDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ResultDomainEntity>> {
     return await this.resultRepository.findAllPaginated(filter, options);
   }
 
@@ -169,10 +183,15 @@ export class ResultSubmissionInteractor {
    * Акт НЕ генерируется заново - используется существующий акт с первой подписью.
    */
   async signActAsChairman(data: SignActAsChairmanDomainInput): Promise<SegmentDomainEntity> {
-    // Получаем результат из базы данных, чтобы узнать username участника
+    // Получаем результат из базы данных, чтобы узнать участника и его проект.
+    // project_hash проверяется наравне с username: ниже по нему синхронизируется
+    // сегмент, и пустое значение молча уводило бы синхронизацию в никуда
+    // (как это делал прежний `|| ''`).
     const resultEntity = await this.resultRepository.findByResultHash(data.result_hash);
-    if (!resultEntity || !resultEntity.username) {
-      throw new Error(`Результат с хэшем ${data.result_hash} не найден или не содержит username`);
+    if (!resultEntity || !resultEntity.username || !resultEntity.project_hash) {
+      throw new Error(
+        `Результат с хэшем ${data.result_hash} не найден или не содержит username и project_hash`
+      );
     }
 
     // Валидация подписей: должны быть подписи от username (участника) и chairman (председателя)
@@ -191,8 +210,8 @@ export class ResultSubmissionInteractor {
     // Синхронизируем сегмент
     const segmentEntity = await this.segmentSyncService.syncSegment(
       data.coopname,
-      resultEntity.project_hash || '',
-      resultEntity.username || '',
+      resultEntity.project_hash,
+      resultEntity.username,
       transactResult
     );
 

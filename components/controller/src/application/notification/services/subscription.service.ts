@@ -5,17 +5,12 @@ import { WebPushSubscriptionDto } from '../dto/web-push-subscription.dto';
 import { CreateSubscriptionResponse } from '../dto/create-subscription-response.dto';
 import { SubscriptionStatsDto } from '../dto/subscription-stats.dto';
 import { CreateSubscriptionInput } from '../dto/create-subscription-input.dto';
-import { DeviceTokenService } from './device-token.service';
-import { generateHashFromString } from '~/utils/generate-hash.util';
 
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
 
-  constructor(
-    private readonly notificationInteractor: NotificationInteractor,
-    private readonly deviceTokenService: DeviceTokenService
-  ) {}
+  constructor(private readonly notificationInteractor: NotificationInteractor) {}
 
   /**
    * Создать веб-пуш подписку
@@ -27,18 +22,6 @@ export class SubscriptionService {
     const inputInstance = plainToClass(CreateSubscriptionInput, input);
     const domainInput = inputInstance.toDomainInterface();
     const subscription = await this.notificationInteractor.createOrUpdateSubscription(domainInput);
-
-    // Синхронизируем device tokens с NOVU после создания подписки
-    try {
-      await this.deviceTokenService.syncDeviceTokensWithSubscriptions(input.username);
-      this.logger.log(`Device tokens синхронизированы для пользователя: ${input.username}`);
-    } catch (error: any) {
-      this.logger.error(
-        `Ошибка синхронизации device tokens для пользователя ${input.username}: ${error.message}`,
-        error.stack
-      );
-      // Не прерываем выполнение, так как подписка уже создана
-    }
 
     const subscriptionDto = WebPushSubscriptionDto.fromDomainEntity(subscription);
 
@@ -64,39 +47,7 @@ export class SubscriptionService {
    */
   async deactivateSubscriptionById(subscriptionId: string): Promise<void> {
     this.logger.log(`Деактивация подписки с ID: ${subscriptionId}`);
-
-    // Получаем подписку перед деактивацией для получения username и endpoint
-    const allSubscriptions = await this.notificationInteractor.getAllActiveSubscriptions();
-    const targetSubscription = allSubscriptions.find((sub) => sub.id === subscriptionId);
-
-    if (targetSubscription) {
-      // Генерируем device token для этой подписки (аналогично логике в DeviceTokenService)
-      const deviceToken = generateHashFromString(targetSubscription.endpoint);
-
-      // Удаляем device token из NOVU перед деактивацией подписки
-      try {
-        await this.deviceTokenService.removeDeviceTokenForUser(targetSubscription.username, deviceToken);
-        this.logger.log(`Device token удален для подписки: ${subscriptionId}`);
-      } catch (error: any) {
-        this.logger.error(`Ошибка удаления device token для подписки ${subscriptionId}: ${error.message}`, error.stack);
-        // Продолжаем выполнение, даже если удаление device token не удалось
-      }
-    }
-
     await this.notificationInteractor.deactivateSubscriptionById(subscriptionId);
-
-    // Синхронизируем оставшиеся device tokens с NOVU после деактивации подписки
-    if (targetSubscription) {
-      try {
-        await this.deviceTokenService.syncDeviceTokensWithSubscriptions(targetSubscription.username);
-        this.logger.log(`Device tokens синхронизированы для пользователя: ${targetSubscription.username}`);
-      } catch (error: any) {
-        this.logger.error(
-          `Ошибка синхронизации device tokens для пользователя ${targetSubscription.username}: ${error.message}`,
-          error.stack
-        );
-      }
-    }
   }
 
   /**

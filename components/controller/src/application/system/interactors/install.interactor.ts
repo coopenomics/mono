@@ -10,7 +10,6 @@ import { generateUsername } from '~/utils/generate-username';
 import { userStatus } from '~/types/user.types';
 import { UserDomainEntity } from '~/domain/user/entities/user-domain.entity';
 import type { CreateUserInputDomainInterface } from '~/domain/registration/interfaces/create-user-input-domain.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
@@ -20,12 +19,14 @@ import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/va
 import { MONO_STATUS_REPOSITORY, MonoStatusRepository } from '~/domain/common/repositories/mono-status.repository';
 import { SystemStatus } from '~/application/system/dto/system-status.dto';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+
+/** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
+const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;
 
 @Injectable()
 export class InstallInteractor {
@@ -33,7 +34,7 @@ export class InstallInteractor {
     @Inject(VARS_REPOSITORY) private readonly varsRepository: VarsRepository,
     @Inject(MONO_STATUS_REPOSITORY) private readonly monoStatusRepository: MonoStatusRepository,
     @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
-    @Inject(NOVU_WORKFLOW_PORT) private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     private readonly tokenApplicationService: TokenApplicationService,
@@ -120,12 +121,28 @@ export class InstallInteractor {
 
   async install(data: InstallInputDomainInterface): Promise<void> {
     const status = await this.monoStatusRepository.getStatus();
+    const savedVars = await this.varsRepository.get();
+    const isIncompleteInstallMaintenance =
+      status === SystemStatus.maintenance && !savedVars?.name;
 
-    // Разрешаем установку ТОЛЬКО если система в статусе 'initialized' (после initSystem)
-    if (status !== SystemStatus.initialized) {
+    // Разрешаем установку если:
+    // - initialized (нормальный прогон)
+    // - maintenance без сохранённых vars (прерванная установка, можно повторить)
+    if (status !== SystemStatus.initialized && !isIncompleteInstallMaintenance) {
       throw new BadRequestException(
         `Установка невозможна. Текущий статус: ${status}. Требуется статус: ${SystemStatus.initialized}`
       );
+    }
+
+    if (data.soviet.length < MIN_SOVIET_MEMBERS_COUNT) {
+      throw new BadRequestException(
+        `Количество членов совета должно быть не менее ${MIN_SOVIET_MEMBERS_COUNT}`
+      );
+    }
+
+    // Повтор после прерванной установки: снимаем maintenance, дальше — обычный прогон.
+    if (isIncompleteInstallMaintenance) {
+      await this.monoStatusRepository.setStatus(SystemStatus.initialized);
     }
 
     const info = await this.blockchainPort.getInfo();
@@ -133,10 +150,29 @@ export class InstallInteractor {
 
     if (!coop) throw new BadRequestException('Информация о кооперативе не обнаружена');
 
+    // ВНИМАНИЕ про лок установки: статус НЕ трогаем здесь, до цикла. Раньше тут
+    // стоял setStatus(maintenance), но 'maintenance' на фронте включает
+    // полноэкранную заглушку «Техническое обслуживание» (watch-desktop-health),
+    // которая накрыла бы саму страницу установки во время нормального прогона.
+    // Поэтому статус остаётся 'initialized' на всё время установки (фронт
+    // показывает страницу install, как и прежде), а в 'maintenance' переводим
+    // ТОЛЬКО в catch при падении ПОСЛЕ записи в цепь — это блокирует повторный
+    // запуск install (guard выше требует 'initialized') и корректно сигналит,
+    // что коопа в полу-установленном состоянии и требует ручного разбора.
+    // Так на gorozhane (fgrtejiwnynn) образовались дубли: install падал после
+    // adduser, статус оставался 'initialized', повторный запуск проходил guard
+    // и заново минтил аккаунты совета (инцидент 2026-06-04).
+
     const users = [] as UserDomainEntity[];
     const members = [] as any;
     const sovietExt = [] as any;
     const soviet = data.soviet;
+
+    // Флаг необратимого следа: стал true после первой успешной on-chain
+    // регистрации (adduser). On-chain операции откатить нельзя, поэтому при
+    // ошибке ПОСЛЕ этого момента off-chain rollback НЕ делаем — иначе теряется
+    // привязка личность↔username, нужная для последующей сверки/очистки.
+    let chainWriteHappened = false;
 
     try {
       for (const member of soviet) {
@@ -157,6 +193,8 @@ export class InstallInteractor {
         };
 
         await this.blockchainPort.addUser(addUser);
+        // С этого момента на цепи есть необратимый аккаунт + оплаченный паевой.
+        chainWriteHappened = true;
 
         const createUser: CreateUserInputDomainInterface = {
           email: member.individual_data.email,
@@ -178,7 +216,7 @@ export class InstallInteractor {
         try {
           await this.accountDomainService.setupNotificationSubscriber(username, 'члена совета');
         } catch (error: any) {
-          logger.error(`Ошибка настройки подписчика NOVU для члена совета ${username}: ${error.message}`, error.stack);
+          logger.error(`Ошибка настройки identity получателя для члена совета ${username}: ${error.message}`, error.stack);
         }
 
         // Добавляем в массив членов для отправки в блокчейн
@@ -220,7 +258,7 @@ export class InstallInteractor {
         const subscriberId = user.subscriber_id?.trim();
         if (!subscriberId) {
           throw new Error(
-            `subscriber_id не задан для пользователя ${user.username} — нельзя отправить приглашение через Novu`
+            `subscriber_id не задан для пользователя ${user.username} — нельзя отправить приглашение`
           );
         }
         const token = await this.tokenApplicationService.generateInviteToken(inviteEmail, user.id);
@@ -230,23 +268,44 @@ export class InstallInteractor {
           inviteUrl,
         };
 
-        const triggerData: WorkflowTriggerDomainInterface = {
-          name: Workflows.Invite.id,
+        await this.notificationPort.notify({
+          coopname: config.coopname,
+          workflowId: Workflows.Invite.id,
           to: {
             subscriberId,
             email: inviteEmail,
+            username: user.username,
           },
           payload,
-        };
-
-        await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+        });
       }
     } catch (e: any) {
-      // Откат изменений в случае ошибки
+      if (chainWriteHappened) {
+        // На цепи уже созданы аккаунты пайщиков (откату не подлежат). НЕ удаляем
+        // off-chain записи — сохраняем привязку личность↔username для ручной
+        // сверки/очистки. Переводим систему в 'maintenance': повторный запуск
+        // install заблокирован (guard требует 'initialized'), фронт показывает
+        // заглушку техобслуживания (коопа в полу-установленном состоянии);
+        // сначала нужно вручную доустановить или вычистить частично созданное.
+        await this.monoStatusRepository.setStatus(SystemStatus.maintenance);
+        logger.error(
+          `Установка прервана ПОСЛЕ on-chain регистрации (${users.length} аккаунтов уже на цепи): ${e.message}. ` +
+            `Система переведена в '${SystemStatus.maintenance}'. Off-chain данные сохранены для ручного разбора. ` +
+            `Повторный install заблокирован до очистки/доустановки.`,
+          e.stack
+        );
+        throw new BadRequestException(
+          `Установка прервана после создания аккаунтов на цепи: ${e.message}. Требуется ручной разбор (статус '${SystemStatus.maintenance}').`
+        );
+      }
+
+      // On-chain след отсутствует — безопасно откатываем off-chain и
+      // возвращаем 'initialized', чтобы установку можно было повторить чисто.
       for (const user of users) {
         await this.userDomainService.deleteUserByUsername(user.username);
         await this.generatorPort.del('individual', { username: user.username });
       }
+      await this.monoStatusRepository.setStatus(SystemStatus.initialized);
       throw new BadRequestException(e.message);
     }
 

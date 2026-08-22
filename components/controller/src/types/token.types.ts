@@ -4,6 +4,7 @@ export const tokenTypes = {
   RESET_KEY: 'resetPassword',
   VERIFY_EMAIL: 'verifyEmail',
   INVITE: 'invite',
+  CONFIRM_EXIT: 'confirmExit',
 } as const;
 
 export type TokenType = (typeof tokenTypes)[keyof typeof tokenTypes];

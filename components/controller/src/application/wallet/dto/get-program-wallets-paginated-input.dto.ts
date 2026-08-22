@@ -1,6 +1,6 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { ProgramWalletFilterInputDTO } from './program-wallet-filter-input.dto';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Input DTO для запроса программных кошельков с пагинацией

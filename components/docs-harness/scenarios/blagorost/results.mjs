@@ -83,7 +83,7 @@ export default async ({ page, shot, env }) => {
 
   // --- Открываем страницу результатов компонента ---
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/results`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/results`,
     { waitUntil: 'domcontentloaded' },
   );
 

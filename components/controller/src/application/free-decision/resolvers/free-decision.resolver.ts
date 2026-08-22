@@ -1,17 +1,14 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { ProjectFreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/project-free-decision-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';
 import { PublishProjectFreeDecisionInputDTO } from '../dto/publish-project-free-decision-input.dto';
 import { CreatedProjectFreeDecisionDTO } from '../dto/created-project-free-decision.dto';
 import { CreateProjectFreeDecisionInputDTO } from '../dto/create-project-free-decision.dto';
 import { FreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/free-decision-document.dto';
 import { FreeDecisionService } from '../services/free-decision.service';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 
 @Resolver()
 export class FreeDecisionResolver {
@@ -49,16 +46,18 @@ export class FreeDecisionResolver {
     return this.freeDecisionService.generateFreeDecision(data, options);
   }
 
-  @Mutation(() => Boolean, {
+  @Mutation(() => AgendaWithDocumentsDTO, {
     name: 'publishProjectOfFreeDecision',
-    description: 'Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему',
+    nullable: true,
+    description:
+      'Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async publishProjectOfFreeDecision(
     @Args('data', { type: () => PublishProjectFreeDecisionInputDTO })
     data: PublishProjectFreeDecisionInputDTO
-  ): Promise<boolean> {
+  ): Promise<AgendaWithDocumentsDTO | null> {
     return this.freeDecisionService.publishProjectOfFreeDecision(data);
   }
 

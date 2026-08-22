@@ -88,15 +88,24 @@ export class BlockchainDecisionDTO implements SovietContract.Tables.Decisions.ID
   @Field(() => String, { nullable: true })
   hash!: string;
 
+  @Field(() => Number, {
+    description:
+      'Текущее число членов совета (всего, как считает контракт). Нужно фронту для вычисления порога принятия/отклонения: за/против * 100 > council_members_count * 50',
+  })
+  council_members_count!: number;
+
   constructor(
     data?: any,
     usernameCertificate?: UserCertificateDomainInterface | null,
     votesForCertificates?: UserCertificateDomainInterface[],
-    votesAgainstCertificates?: UserCertificateDomainInterface[]
+    votesAgainstCertificates?: UserCertificateDomainInterface[],
+    councilMembersCount = 0
   ) {
     if (data) {
       Object.assign(this, data);
     }
+
+    this.council_members_count = councilMembersCount;
 
     // Вспомогательная функция для создания сертификата DTO
     const createCertificateDTO = (

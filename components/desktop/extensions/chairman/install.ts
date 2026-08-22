@@ -13,6 +13,7 @@ import { SystemSettingsPage } from 'app/extensions/chairman/pages/SystemSettings
 import { PaymentProviderPage } from 'app/extensions/chairman/pages/PaymentProviderPage';
 import { ConnectPage } from 'app/extensions/chairman/pages/ConnectPage';
 import { AgendaPresetsPage } from 'app/extensions/chairman/pages/AgendaPresetsPage';
+import { NotificationsJournalPage } from 'src/pages/Chairman/NotificationsJournalPage';
 
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -71,6 +72,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               agreements: agreementsBase,
               requiresAuth: true,
             },
+          },
+          {
+            path: 'notifications-journal',
+            name: 'chairman-notifications-journal',
+            component: markRaw(NotificationsJournalPage),
+            meta: {
+              title: 'Журнал уведомлений',
+              icon: 'notifications',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
           },
           {
             path: 'extensions',

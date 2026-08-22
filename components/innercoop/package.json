@@ -1,0 +1,42 @@
+{
+  "name": "@coopenomics/innercoop",
+  "type": "module",
+  "version": "2026.8.22-2",
+  "description": "Порты и DI-токены внутренней связи в контуре одного кооператива: ядро ↔ расширение и расширение ↔ расширение, без прямых зависимостей",
+  "author": "Alex Ant <dacom.dark.sun@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./core-ports": {
+      "types": "./dist/core-ports/index.d.ts",
+      "import": "./dist/core-ports/index.mjs",
+      "require": "./dist/core-ports/index.cjs"
+    },
+    "./cross-plugin-ports": {
+      "types": "./dist/cross-plugin-ports/index.d.ts",
+      "import": "./dist/cross-plugin-ports/index.mjs",
+      "require": "./dist/cross-plugin-ports/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0"
+  }
+}

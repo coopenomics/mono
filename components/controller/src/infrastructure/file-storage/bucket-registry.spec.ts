@@ -1,4 +1,4 @@
-import type { InterFileStorageBucketSpec } from '@coopenomics/inter';
+import type { InnerFileStorageBucketSpec } from '@coopenomics/innercoop';
 import { BucketRegistry } from './bucket-registry';
 
 describe('BucketRegistry', () => {
@@ -6,7 +6,7 @@ describe('BucketRegistry', () => {
     BucketRegistry._resetForTests();
   });
 
-  const spec = (name: string): InterFileStorageBucketSpec => ({
+  const spec = (name: string): InnerFileStorageBucketSpec => ({
     name,
     maxBytes: 1024,
     allowedMime: ['image/jpeg'],

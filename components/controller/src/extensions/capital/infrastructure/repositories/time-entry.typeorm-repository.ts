@@ -6,12 +6,10 @@ import { TimeEntryRepository, IssueFactAggregate } from '../../domain/repositori
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
 import type { ITimeEntryDatabaseData } from '../../domain/interfaces/time-entry-database.interface';
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../../domain/interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 /**
  * TypeORM реализация репозитория записей времени
@@ -34,6 +32,19 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       where: { contributor_hash: contributorHash, date },
     });
     return entities.map((entity) => this.toDomain(entity));
+  }
+
+  async sumCooperativeHoursByContributorAndDate(contributorHash: string, date: string): Promise<number> {
+    const row = await this.repository
+      .createQueryBuilder('te')
+      .select('COALESCE(SUM(te.hours), 0)', 'total')
+      .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
+      .where('te.contributor_hash = :contributorHash', { contributorHash })
+      .andWhere('te.date = :date', { date })
+      .andWhere('p.origin = :origin', { origin: 'blockchain' })
+      .getRawOne<{ total: string }>();
+
+    return Number(row?.total || 0);
   }
 
   async findUncommittedByContributor(contributorHash: string): Promise<TimeEntryDomainEntity[]> {
@@ -154,26 +165,24 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findProjectsByContributor(contributorHash: string): Promise<{ project_hash: string; project_name?: string }[]> {
-    // Получаем уникальные project_hash из записей времени участника
+    // Уникальные project_hash только кооперативных (blockchain) проектов с записями времени
     const result = await this.repository
       .createQueryBuilder('te')
       .select('DISTINCT te.project_hash', 'project_hash')
+      .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
+      .andWhere('p.origin = :origin', { origin: 'blockchain' })
       .getRawMany();
 
     const projectHashes = result.map((row) => row.project_hash);
 
-    // Если нет проектов, возвращаем пустой массив
     if (projectHashes.length === 0) {
       return [];
     }
 
-    // Получаем данные о проектах из блокчейна через deltas
-    // Пока что вернём просто project_hash без имени, так как это требует сложного запроса к deltas
-    // В будущем можно будет добавить join с таблицей deltas для получения названия проекта
     return projectHashes.map((project_hash) => ({
       project_hash,
-      project_name: undefined, // Временно undefined, можно получить из deltas по необходимости
+      project_name: undefined,
     }));
   }
 
@@ -190,8 +199,8 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
   async findByProjectWithPagination(
     filter: TimeEntriesFilterDomainInterface,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<TimeEntryDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<TimeEntryDomainEntity>> {
     const query = this.repository.createQueryBuilder('te');
 
     // Добавляем условие по project_hash только если он указан
@@ -217,8 +226,8 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
     // Применяем сортировку
     if (options?.sortBy) {
-      const sortOrder = options.sortOrder || 'DESC';
-      query.orderBy(`te.${options.sortBy}`, sortOrder);
+      const sortColumn = resolveSortColumn(this.repository, options.sortBy, 'date');
+      query.orderBy(`te.${sortColumn}`, options.sortOrder || 'DESC');
     } else {
       query.orderBy('te.date', 'DESC').addOrderBy('te._created_at', 'DESC');
     }
@@ -276,6 +285,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       .innerJoin('capital_issues', 'i', 'te.issue_hash = i.issue_hash')
       .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .innerJoin('capital_contributors', 'c', 'te.contributor_hash = c.contributor_hash')
+      .andWhere('p.origin = :projectOrigin', { projectOrigin: 'blockchain' })
       .groupBy('te.issue_hash, i.title, te.project_hash, p.title, te.contributor_hash, c.display_name, te.coopname')
       .orderBy('total_hours', 'DESC')
       .limit(limit)
@@ -379,6 +389,11 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     );
   }
 
+  async findById(id: string): Promise<TimeEntryDomainEntity | null> {
+    const entity = await this.repository.findOne({ where: { _id: id } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>> {
     const result = new Map<string, IssueFactAggregate>();
     if (issueHashes.length === 0) return result;
@@ -439,7 +454,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       hours: Number(entity.hours),
       commit_hash: entity.commit_hash,
       is_committed: entity.is_committed,
-      entry_type: entity.entry_type as 'hourly' | 'estimate' | undefined,
+      entry_type: entity.entry_type as ITimeEntryDatabaseData['entry_type'],
       estimate_snapshot: entity.estimate_snapshot,
     };
     return new TimeEntryDomainEntity(databaseData);

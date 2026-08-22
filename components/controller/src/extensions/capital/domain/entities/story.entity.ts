@@ -1,7 +1,7 @@
 import { StoryStatus } from '../enums/story-status.enum';
 import { StoryContentFormat } from '../enums/story-content-format.enum';
 import type { IStoryDatabaseData, IStoryMatrixRequirementAnnouncementEvent } from '../interfaces/story-database.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность истории (критерия выполнения)

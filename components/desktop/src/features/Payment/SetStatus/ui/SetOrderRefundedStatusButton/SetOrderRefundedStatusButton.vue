@@ -18,6 +18,12 @@ BaseDialog(
     @cancel="close"
   )
     p Вы уверены, что хотите отклонить платеж? При отклонении входящего платежа - верните средства пайщику. При отклонении исходящего платежа - система запустит соответствующую автоматическую цепочку обратных действий.
+    BaseInput(
+      v-model='reason',
+      label='Причина отклонения',
+      placeholder='Например: средства не поступили или пришли с чужого счёта',
+      hint='Причину увидит пайщик'
+    )
 </template>
 <script lang="ts" setup>
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -25,10 +31,12 @@ import { useSetStatus } from '../../model';
 import { ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { Form } from 'src/shared/ui/Form';
-const {setRefundedStatus} = useSetStatus()
+const {setCancelledStatus} = useSetStatus()
 const isSubmitting = ref(false)
 const showDialog = ref(false)
+const reason = ref('')
 
 const emit = defineEmits(['close'])
 
@@ -47,7 +55,7 @@ const close = () => {
 const setRefund = async() => {
   isSubmitting.value = true
   try {
-    await setRefundedStatus(props.id)
+    await setCancelledStatus(props.id, reason.value || undefined)
     SuccessAlert('Статус платежа обновлён')
     close()
   } catch(e: any) {

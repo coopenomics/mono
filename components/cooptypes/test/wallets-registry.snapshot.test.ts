@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXIT_REFUND_WALLET_NAMES,
+  LEDGER2_EXIT_REFUND_WALLETS,
   LEDGER2_USER_SHARED_PROGRAM_MAPPING,
   LEDGER2_WALLET_REGISTRY,
   programIdForWallet,
@@ -34,5 +36,14 @@ describe('ledger2 wallets registry (generated from C++)', () => {
 
   it('ЦК split: program_id=1 → share + member', () => {
     expect(walletNamesForProgram(1).sort()).toEqual(['w.wal.member', 'w.wal.share'])
+  })
+
+  it('exit-refund сет: ровно три паевых кошелька (minshr + share + blago)', () => {
+    expect(LEDGER2_EXIT_REFUND_WALLETS).toEqual(['w.reg.minshr', 'w.wal.share', 'w.cap.blago'])
+    // алиас-обёртка ссылается на тот же сет
+    expect(EXIT_REFUND_WALLET_NAMES).toEqual(LEDGER2_EXIT_REFUND_WALLETS)
+    // каждый кошелёк сета зарегистрирован в реестре
+    const known = new Set(LEDGER2_WALLET_REGISTRY.map(w => w.name))
+    for (const w of LEDGER2_EXIT_REFUND_WALLETS) expect(known.has(w)).toBe(true)
   })
 })

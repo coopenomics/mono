@@ -1,4 +1,4 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { AppendixDomainEntity } from '../entities/appendix.entity';
 
 export interface AppendixRepository extends IBlockchainSyncRepository<AppendixDomainEntity> {

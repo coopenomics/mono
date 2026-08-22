@@ -1,0 +1,3 @@
+/project/build/contracts/expense/CMakeFiles/expense.dir
+/project/build/contracts/expense/CMakeFiles/edit_cache.dir
+/project/build/contracts/expense/CMakeFiles/rebuild_cache.dir

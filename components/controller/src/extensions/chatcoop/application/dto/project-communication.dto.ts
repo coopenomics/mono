@@ -2,7 +2,7 @@ import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/g
 import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 
 /**
- * Тип строки истории Matrix в API (как в @coopenomics/inter — text | audio).
+ * Тип строки истории Matrix в API (как в @coopenomics/innercoop — text | audio).
  */
 export enum RoomMessageKindGql {
   TEXT = 'TEXT',

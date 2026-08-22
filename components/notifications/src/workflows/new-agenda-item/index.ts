@@ -40,7 +40,7 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createInAppStep(
       'new-agenda-item-notification',
       'Новый вопрос на повестке совета',
-      '{{payload.itemTitle}}<br>От: {{payload.authorName}}'
+      '{{payload.itemTitle}}\nОт: {{payload.authorName}}'
     ),
     createPushStep(
       'new-agenda-item-push',

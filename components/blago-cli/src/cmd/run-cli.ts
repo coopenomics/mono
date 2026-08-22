@@ -36,6 +36,7 @@ import { runAdd } from '../sync/add.js'
 import { runClean } from '../sync/clean.js'
 import { runDelete } from '../sync/delete.js'
 import { runDiff } from '../sync/diff.js'
+import { resolveProjectHashForPull } from '../sync/pull-target.js'
 import { runPull } from '../sync/pull.js'
 import { runPush } from '../sync/push.js'
 import { runClearStaging, runRemove } from '../sync/remove.js'
@@ -326,7 +327,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   program
     .command('login')
-    .description('Интерактивный вход (email + WIF); сохраняет сессию для активной среды')
+    .description('Интерактивный вход (email + пароль; ключ WIF — для аккаунтов без пароля); сохраняет сессию для активной среды')
     .action(async () => {
       const root = requireRoot()
       const cfg = await loadConfig(root)
@@ -341,14 +342,24 @@ export async function runCli(argv: string[]): Promise<void> {
 
   program
     .command('pull')
-    .description('Скачать с сервера проекты, задачи и требования (coopname в config или из blago init)')
+    .description(
+      'Скачать с сервера проекты, задачи и требования (coopname в config или из blago init). '
+      + 'С аргументом — только указанный проект/компонент и его содержимое: id проекта либо путь к его каталогу.',
+    )
+    .argument('[target]', 'id проекта/компонента или путь к его каталогу; без аргумента — вся рабочая копия')
     .option('--prune', 'удалить локально файлы и записи индекса для сущностей, отсутствующих на сервере (с защитой dirty/staged)')
-    .action(async (opts: { prune?: boolean }) => {
+    .option('--refresh-rooms', 'перечитать список комнат переписки, не дожидаясь истечения суточного кэша')
+    .action(async (target: string | undefined, opts: { prune?: boolean, refreshRooms?: boolean }) => {
       const root = requireRoot()
       const cfg = await loadConfig(root)
       const ctx = await ensureAuthenticatedContext(root, cfg)
-      await runPull(ctx, { prune: opts.prune === true })
-      success('pull завершён')
+      const projectHash = target === undefined ? undefined : await resolveProjectHashForPull(root, target)
+      await runPull(ctx, {
+        prune: opts.prune === true,
+        projectHash,
+        refreshRooms: opts.refreshRooms === true,
+      })
+      success(projectHash ? 'pull проекта завершён' : 'pull завершён')
     })
 
   program

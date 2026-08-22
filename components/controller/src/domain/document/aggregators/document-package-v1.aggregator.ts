@@ -1,4 +1,4 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DocumentAggregator } from './document.aggregator';
 import { DocumentPackageUtils } from './document-package-utils.aggregator';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
@@ -7,22 +7,24 @@ import {
   USER_CERTIFICATE_DOMAIN_SERVICE,
 } from '~/domain/user/services/user-certificate-domain.service';
 import { Cooperative, SovietContract } from 'cooptypes';
-import { getActions } from '~/utils/getFetch';
+import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import type { DocumentPackageAggregateDomainInterface } from '../interfaces/document-package-aggregate-domain.interface';
 import type { StatementDetailAggregateDomainInterface } from '../interfaces/statement-detail-aggregate-domain.interface';
 import type { DecisionDetailAggregateDomainInterface } from '../interfaces/decision-detail-aggregate-domain.interface';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ExtendedBlockchainActionDomainInterface } from '~/domain/agenda/interfaces/extended-blockchain-action-domain.interface';
 
 @Injectable()
 export class DocumentPackageV1Aggregator {
   constructor(
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => DocumentPackageUtils)) private readonly documentPackageUtils: DocumentPackageUtils,
-    @Inject(forwardRef(() => ACCOUNT_DOMAIN_SERVICE)) private readonly accountDomainService: AccountDomainService,
-    @Inject(forwardRef(() => USER_CERTIFICATE_DOMAIN_SERVICE))
-    private readonly userCertificateService: UserCertificateDomainService
+    // `forwardRef` снят: циклов между агрегаторами документов нет (FC1-18).
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(DocumentPackageUtils) private readonly documentPackageUtils: DocumentPackageUtils,
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
+    @Inject(USER_CERTIFICATE_DOMAIN_SERVICE)
+    private readonly userCertificateService: UserCertificateDomainService,
+    private readonly actionHistory: BlockchainActionHistoryService
   ) {}
 
   /**
@@ -79,37 +81,9 @@ export class DocumentPackageV1Aggregator {
 
     if (mainDocument?.meta?.links && Array.isArray(mainDocument.meta.links)) {
       for (const linkHash of mainDocument.meta.links) {
-        const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
-        if (linkedDoc) {
-          // поиск соглашения по документу
-          const rawAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-            filter: JSON.stringify({
-              account: SovietContract.contractName.production,
-              name: SovietContract.Actions.Registry.NewAgreement.actionName,
-              receiver: process.env.COOPNAME,
-              'data.document.doc_hash': String(linkHash.toUpperCase()),
-            }),
-            page: 1,
-            limit: 1,
-          });
-
-          const agreement: SovietContract.Actions.Registry.NewAgreement.INewAgreement = rawAgreement?.results?.[0]?.data;
-
-          if (agreement) {
-            const signedLinkedDoc: ISignedDocumentDomainInterface = {
-              version: rawData.document.version,
-              hash: linkedDoc.hash,
-              doc_hash: linkedDoc.hash,
-              meta_hash: agreement.document.meta_hash,
-              meta: JSON.parse(agreement.document.meta),
-              signatures: agreement.document.signatures || [],
-            };
-
-            const linkAggregate = await this.documentAggregator.buildDocumentAggregate(signedLinkedDoc);
-            if (linkAggregate) {
-              links.push(linkAggregate);
-            }
-          }
+        const linkAggregate = await this.buildLinkedAggregate(linkHash, rawData.document.version);
+        if (linkAggregate) {
+          links.push(linkAggregate);
         }
       }
     }
@@ -125,7 +99,7 @@ export class DocumentPackageV1Aggregator {
     };
 
     // signatures уже есть в rawData.document
-    const signedMainDoc: ISignedDocumentDomainInterface = {
+    const signedMainDoc: ISignedDocument = {
       version: rawData.document.version,
       hash: rawData.document.hash,
       doc_hash: rawData.document.doc_hash,
@@ -155,18 +129,11 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<DecisionDetailAggregateDomainInterface | null> {
-    const decisionActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Registry.NewDecision.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 1,
+    const decisionAction = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewDecision.actionName,
+      data: { package: String(rawData.package).toUpperCase() },
     });
-
-    const decisionAction = decisionActionResponse?.results?.[0];
     if (!decisionAction) return null;
 
     const account = await this.accountDomainService.getPrivateAccount(decisionAction.data?.username);
@@ -184,43 +151,15 @@ export class DocumentPackageV1Aggregator {
 
     if (decisionDocument?.meta?.links && Array.isArray(decisionDocument.meta.links)) {
       for (const linkHash of decisionDocument.meta.links) {
-        const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
-        if (linkedDoc) {
-          // поиск соглашения по документу
-          const rawAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-            filter: JSON.stringify({
-              account: SovietContract.contractName.production,
-              name: SovietContract.Actions.Registry.NewAgreement.actionName,
-              receiver: process.env.COOPNAME,
-              'data.document.doc_hash': String(linkHash.toUpperCase()),
-            }),
-            page: 1,
-            limit: 1,
-          });
-
-          const agreement: SovietContract.Actions.Registry.NewAgreement.INewAgreement = rawAgreement?.results?.[0]?.data;
-
-          if (agreement) {
-            const signedLinkedDoc: ISignedDocumentDomainInterface = {
-              version: decisionAction.data?.document?.version,
-              hash: linkedDoc.hash,
-              doc_hash: linkedDoc.hash,
-              meta_hash: agreement.document.meta_hash,
-              meta: JSON.parse(agreement.document.meta),
-              signatures: agreement.document.signatures || [],
-            };
-
-            const linkAggregate = await this.documentAggregator.buildDocumentAggregate(signedLinkedDoc);
-            if (linkAggregate) {
-              links.push(linkAggregate);
-            }
-          }
+        const linkAggregate = await this.buildLinkedAggregate(linkHash, decisionAction.data?.document?.version);
+        if (linkAggregate) {
+          links.push(linkAggregate);
         }
       }
     }
 
     // signatures уже есть в decisionAction.data.document
-    const signedDecisionDoc: ISignedDocumentDomainInterface = {
+    const signedDecisionDoc: ISignedDocument = {
       version: decisionAction.data?.document?.version,
       hash: decisionAction.data?.document?.hash,
       doc_hash: decisionAction.data?.document?.doc_hash,
@@ -252,16 +191,15 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<DecisionDetailAggregateDomainInterface[]> {
-    const actsActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
+    const actsActionResponse = await this.actionHistory.find(
+      {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Registry.NewAct.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 100, // Получаем до 100 актов для пакета
-    });
+        data: { package: String(rawData.package).toUpperCase() },
+      },
+      1,
+      100 // Получаем до 100 актов для пакета
+    );
 
     const actsResults = actsActionResponse?.results || [];
     const actsDetails: DecisionDetailAggregateDomainInterface[] = [];
@@ -282,43 +220,15 @@ export class DocumentPackageV1Aggregator {
 
       if (actDocument?.meta?.links && Array.isArray(actDocument.meta.links)) {
         for (const linkHash of actDocument.meta.links) {
-          const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
-          if (linkedDoc) {
-            // поиск соглашения по документу
-            const rawAgreement = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-              filter: JSON.stringify({
-                account: SovietContract.contractName.production,
-                name: SovietContract.Actions.Registry.NewAgreement.actionName,
-                receiver: process.env.COOPNAME,
-                'data.document.doc_hash': String(linkHash.toUpperCase()),
-              }),
-              page: 1,
-              limit: 1,
-            });
-
-            const agreement: SovietContract.Actions.Registry.NewAgreement.INewAgreement = rawAgreement?.results?.[0]?.data;
-
-            if (agreement) {
-              const signedLinkedDoc: ISignedDocumentDomainInterface = {
-                version: actAction.data?.document?.version,
-                hash: linkedDoc.hash,
-                doc_hash: linkedDoc.hash,
-                meta_hash: agreement.document.meta_hash,
-                meta: JSON.parse(agreement.document.meta),
-                signatures: agreement.document.signatures || [],
-              };
-
-              const linkAggregate = await this.documentAggregator.buildDocumentAggregate(signedLinkedDoc);
-              if (linkAggregate) {
-                links.push(linkAggregate);
-              }
-            }
+          const linkAggregate = await this.buildLinkedAggregate(linkHash, actAction.data?.document?.version);
+          if (linkAggregate) {
+            links.push(linkAggregate);
           }
         }
       }
 
       // signatures уже есть в actAction.data.document
-      const signedActDoc: ISignedDocumentDomainInterface = {
+      const signedActDoc: ISignedDocument = {
         version: actAction.data?.document?.version,
         hash: actAction.data?.document?.hash,
         doc_hash: actAction.data?.document?.doc_hash,
@@ -342,6 +252,88 @@ export class DocumentPackageV1Aggregator {
   }
 
   /**
+   * Строит агрегат связанного с заявлением документа (приложения) по его хэшу.
+   *
+   * Подписанный носитель соглашения ищется в двух источниках, потому что
+   * соглашения уходят на цепь двумя путями:
+   *   - непрограммные (program_id == 0) — через soviet::sndagreement,
+   *     создавая действие реестра soviet::newagreement;
+   *   - программные оферты ЦПП (program_id > 0, Эпик 2) — через wallet::signagree,
+   *     которое пишет в wallet::users.programs[] и НЕ создаёт soviet::newagreement.
+   *
+   * Раньше все соглашения шли через soviet::sndagreement, поэтому агрегатор искал
+   * приложение только в soviet::newagreement. После перевода программных оферт на
+   * wallet::signagree они перестали находиться и молча выпадали из приложений к
+   * заявлению на повестке совета. Связь восстанавливает фолбэк на
+   * soviet::newresolved — общее уведомление, которое make_complete_document шлёт
+   * на каждый вызов, включая wallet::signagree (см. findLinkedAgreementDocument).
+   * Сам wallet::signagree агрегатор не опрашивает.
+   *
+   * @returns агрегат документа либо null, если документ или носитель подписи не найдены
+   */
+  private async buildLinkedAggregate(
+    linkHash: string,
+    version: string
+  ): Promise<DocumentDomainAggregate | null> {
+    const linkedDoc = await this.documentPackageUtils.getDocumentByHash(linkHash);
+    if (!linkedDoc) return null;
+
+    const agreementDocument = await this.findLinkedAgreementDocument(linkHash);
+    if (!agreementDocument) return null;
+
+    const signedLinkedDoc: ISignedDocument = {
+      version,
+      hash: linkedDoc.hash,
+      doc_hash: linkedDoc.hash,
+      meta_hash: agreementDocument.meta_hash,
+      meta: typeof agreementDocument.meta === 'string' ? JSON.parse(agreementDocument.meta) : agreementDocument.meta,
+      signatures: agreementDocument.signatures || [],
+    };
+
+    return this.documentAggregator.buildDocumentAggregate(signedLinkedDoc);
+  }
+
+  /**
+   * Находит on-chain действие-носитель подписанного связанного документа по doc_hash.
+   * Сначала ищет в реестре соглашений совета (soviet::newagreement — второе,
+   * явное уведомление, которое дополнительно шлёт soviet::sndagreement), затем —
+   * в общем уведомлении о завершённом документе (soviet::newresolved), которое
+   * централизованно шлёт make_complete_document (lib/core/soviet/soviet.hpp) на
+   * КАЖДЫЙ вызов — и из soviet::sndagreement, и из wallet::signagree — с
+   * require_recipient(coopname), заданным один раз внутри newresolved.cpp.
+   * Программные оферты (capital: Благорост/Генератор, program_id>0) идут через
+   * wallet::signagree и не порождают newagreement, но newresolved у них есть
+   * всегда — расширять notification-поверхность самого wallet::signagree не
+   * нужно, единственное место для этого уже newresolved.cpp.
+   * Возвращает поле document найденного действия либо null.
+   */
+  private async findLinkedAgreementDocument(
+    linkHash: string
+  ): Promise<{ meta_hash: string; meta: string; signatures: any[] } | null> {
+    const docHashFilter = String(linkHash.toUpperCase());
+
+    const sovietAgreement = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewAgreement.actionName,
+      data: { 'document.doc_hash': docHashFilter },
+    });
+
+    const sovietDocument = sovietAgreement?.data?.document;
+    if (sovietDocument) return sovietDocument;
+
+    const resolvedAgreement = await this.actionHistory.findLast({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Registry.NewResolved.actionName,
+      data: { 'document.doc_hash': docHashFilter },
+    });
+
+    const resolvedDocument = resolvedAgreement?.data?.document;
+    if (resolvedDocument) return resolvedDocument;
+
+    return null;
+  }
+
+  /**
    * Собирает связанные документы (Links) для версии 1+
    * @param rawData Данные действия
    * @param links Массив связанных документов
@@ -350,16 +342,15 @@ export class DocumentPackageV1Aggregator {
     rawData: SovietContract.Actions.Registry.NewSubmitted.INewSubmitted,
     links: DocumentDomainAggregate[]
   ): Promise<void> {
-    const linksActionResponse = await getActions(`${process.env.SIMPLE_EXPLORER_API}/get-actions`, {
-      filter: JSON.stringify({
+    const linksActionResponse = await this.actionHistory.find(
+      {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Registry.NewLink.actionName,
-        receiver: process.env.COOPNAME,
-        'data.package': String(rawData.package.toUpperCase()),
-      }),
-      page: 1,
-      limit: 10000, // Получаем до 10000 связанных документов для пакета
-    });
+        data: { package: String(rawData.package).toUpperCase() },
+      },
+      1,
+      10000 // Получаем до 10000 связанных документов для пакета
+    );
 
     const linksResults = linksActionResponse?.results || [];
 

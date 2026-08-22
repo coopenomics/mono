@@ -1,5 +1,4 @@
 import { DraftContract } from 'cooptypes'
-import moment from 'moment-timezone'
 import { AnnualGeneralMeetingSovietDecision } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
@@ -13,18 +12,17 @@ export class Factory extends DocFactory<AnnualGeneralMeetingSovietDecision.Actio
   }
 
   async generateDocument(data: AnnualGeneralMeetingSovietDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AnnualGeneralMeetingSovietDecision.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AnnualGeneralMeetingSovietDecision.Template as ITemplate<AnnualGeneralMeetingSovietDecision.Model>)
+        : this.getTemplate<AnnualGeneralMeetingSovietDecision.Model>(DraftContract.contractName.production, AnnualGeneralMeetingSovietDecision.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = AnnualGeneralMeetingSovietDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AnnualGeneralMeetingSovietDecision.registry_id, data.block_num)
-    }
-
+    // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     // До авторизации решения — голоса в цепочке; после — запись решения удаляется, нужен authorize
     let decision: AnnualGeneralMeetingSovietDecision.Model['decision']

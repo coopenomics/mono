@@ -5,18 +5,14 @@ import { ContributorRepository } from '../../domain/repositories/contributor.rep
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import { ContributorMapper } from '../mappers/contributor.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import type { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class ContributorTypeormRepository
@@ -117,10 +113,10 @@ export class ContributorTypeormRepository
 
   async findAllPaginated(
     filter?: ContributorFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ContributorDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ContributorDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -175,11 +171,11 @@ export class ContributorTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Добавляем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder.orderBy(`contributor.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder.orderBy('contributor.created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    queryBuilder.orderBy(
+      `contributor.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Добавляем пагинацию
     queryBuilder.skip(offset).take(limit);

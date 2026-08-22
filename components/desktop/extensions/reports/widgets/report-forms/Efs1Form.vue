@@ -26,8 +26,8 @@
 
     .kv-row
       .kv-cell
-        .kv-label Регистрационный номер в СФР
-        .kv-value.code {{ header.sfrRegNumber || '—' }}
+        .kv-label Регистрационный номер страхователя
+        .kv-value.code {{ header.pfrRegNumber || '—' }}
       .kv-cell
         .kv-label ОГРН
         .kv-value.code {{ ogrn || '—' }}
@@ -234,4 +234,14 @@ function periodLabel(code: string): string {
 
 <style scoped lang="scss">
 @use './_printable-form.scss';
+
+.section-title {
+  font-size: var(--p-fs-h2);
+  font-weight: 600;
+  color: var(--p-ink);
+
+  @media (max-width: 768px) {
+    font-size: var(--p-fs-h3);
+  }
+}
 </style>

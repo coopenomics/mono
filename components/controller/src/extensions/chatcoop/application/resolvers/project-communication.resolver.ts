@@ -1,15 +1,11 @@
 import { Args, Float, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, Optional, UseGuards } from '@nestjs/common';
 import {
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+  PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+  type IProjectCommunicationArtifactsPort,
+} from '@coopenomics/innercoop';
+import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount, InnerNonProjectRoomKind } from '@coopenomics/innercoop';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,
   ChatcoopProjectCommunicationRoomDTO,
@@ -21,13 +17,13 @@ import {
   NonProjectRoomKindGql,
   RoomMessageKindGql,
 } from '../dto/project-communication.dto';
-import type { InterNonProjectRoomKind } from '@coopenomics/inter';
+import { ChatcoopCommunicationAccessService } from '../services/chatcoop-communication-access.service';
 
 function mapKind(kind: 'text' | 'audio'): RoomMessageKindGql {
   return kind === 'text' ? RoomMessageKindGql.TEXT : RoomMessageKindGql.AUDIO;
 }
 
-function mapNonProjectKind(kind: InterNonProjectRoomKind): NonProjectRoomKindGql {
+function mapNonProjectKind(kind: InnerNonProjectRoomKind): NonProjectRoomKindGql {
   switch (kind) {
     case 'members':
       return NonProjectRoomKindGql.MEMBERS;
@@ -40,7 +36,7 @@ function mapNonProjectKind(kind: InterNonProjectRoomKind): NonProjectRoomKindGql
 
 /**
  * Доступ к данным переписки Capital↔Matrix для синхронизации (blago-cli, секретарь).
- * Источник — порт `INTER_PROJECT_COMMUNICATION_ARTIFACTS` (пакет inter).
+ * Источник — порт `PROJECT_COMMUNICATION_ARTIFACTS_PORT` (пакет inter).
  *
  * {@link ActiveUserStatusGuard} — только `users.status === active`; inter-service обход по `server-secret`.
  */
@@ -51,8 +47,9 @@ export class ProjectCommunicationResolver {
 
   constructor(
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly comm: InterProjectCommunicationArtifactsPort | undefined
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly comm: IProjectCommunicationArtifactsPort | undefined,
+    private readonly access: ChatcoopCommunicationAccessService
   ) {}
 
   @Query(() => [ChatcoopProjectCommunicationRoomDTO], {
@@ -61,13 +58,17 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listProjectCommunicationRooms(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetProjectCommunicationRoomsInputDTO }) data: GetProjectCommunicationRoomsInputDTO
   ): Promise<ChatcoopProjectCommunicationRoomDTO[]> {
     this.ensureComm();
     this.logger.debug(
       `chatcoopListProjectCommunicationRooms user=${user.username} projectHash=${data.projectHash}`
     );
+    // Нет права на переписку проекта — комнат не показываем: синхронизация просто пропустит проект.
+    if (!(await this.access.canReadProjectRooms(user, data.projectHash))) {
+      return [];
+    }
     const rooms = await this.comm!.listCommunicationRoomsForProject(data.projectHash);
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
@@ -81,10 +82,14 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listNonProjectCommunicationRooms(
-    @CurrentUser() user: MonoAccountDomainInterface
+    @CurrentUser() user: IMonoAccount
   ): Promise<ChatcoopNonProjectCommunicationRoomDTO[]> {
     this.ensureComm();
     this.logger.debug(`chatcoopListNonProjectCommunicationRooms user=${user.username}`);
+    // Комнаты пайщиков, совета и секретаря к проектам не привязаны — их читает только совет.
+    if (!this.access.isBoardMember(user)) {
+      return [];
+    }
     const rooms = await this.comm!.listNonProjectCommunicationRooms();
     return rooms.map((r) => ({
       matrixRoomId: r.matrixRoomId,
@@ -100,7 +105,7 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async listUtcDatesWithNewRoomMessages(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => ListUtcDatesWithNewRoomMessagesInputDTO })
     data: ListUtcDatesWithNewRoomMessagesInputDTO
   ): Promise<string[]> {
@@ -108,6 +113,7 @@ export class ProjectCommunicationResolver {
     this.logger.debug(
       `chatcoopListUtcDatesWithNewRoomMessages user=${user.username} room=${data.matrixRoomId}`
     );
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     return this.comm!.listUtcDatesWithNewMessages(data.matrixRoomId, data.afterOriginServerTsExclusive);
   }
 
@@ -117,13 +123,14 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async getRoomMessagesForUtcDate(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetRoomMessagesForUtcDateInputDTO }) data: GetRoomMessagesForUtcDateInputDTO
   ): Promise<ChatcoopRoomMessageLineDTO[]> {
     this.ensureComm();
     this.logger.debug(
       `chatcoopGetRoomMessagesForUtcDate user=${user.username} room=${data.matrixRoomId} date=${data.utcDate}`
     );
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     const lines = await this.comm!.getMessagesForRoomAndUtcDate(data.matrixRoomId, data.utcDate);
     return lines.map((m) => ({
       originServerTs: m.originServerTs,
@@ -141,17 +148,18 @@ export class ProjectCommunicationResolver {
   })
   @AuthRoles(['chairman', 'member', 'user'])
   async getMaxOriginServerTsForRoom(
-    @CurrentUser() user: MonoAccountDomainInterface,
+    @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetMaxOriginServerTsForRoomInputDTO }) data: GetMaxOriginServerTsForRoomInputDTO
   ): Promise<number | null> {
     this.ensureComm();
     this.logger.debug(`chatcoopGetMaxOriginServerTsForRoom user=${user.username} room=${data.matrixRoomId}`);
+    await this.access.assertCanReadRoom(user, data.matrixRoomId);
     return this.comm!.getMaxOriginServerTsForRoom(data.matrixRoomId);
   }
 
   private ensureComm(): void {
     if (!this.comm) {
-      throw new Error('Порт артефактов переписки Capital (INTER_PROJECT_COMMUNICATION_ARTIFACTS) недоступен');
+      throw new Error('Порт артефактов переписки Capital (PROJECT_COMMUNICATION_ARTIFACTS_PORT) недоступен');
     }
   }
 }

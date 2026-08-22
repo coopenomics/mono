@@ -5,7 +5,7 @@
 # получить от совета согласие на выполнение действия. Поток:
 #
 #   контракт-инициатор → newpackage / create_agenda → soviet::decisions
-#       ↓ голосование (votefor / voteagainst / cancelvote)
+#       ↓ голосование (votefor / voteagainst)
 #   approved=true → authorize (председатель)
 #       ↓
 #   authorized=true → exec → callback в исходный контракт (confirmreg /
@@ -19,8 +19,8 @@
 #
 # Источники в коде:
 #   • cpp/soviet/src/doc/newpackage.cpp
-#   • cpp/soviet/src/vote/{votefor,voteagainst,cancelvote}.cpp
-#   • cpp/soviet/src/decision/{authorize,cancelexprd,exec}.cpp
+#   • cpp/soviet/src/vote/{votefor,voteagainst}.cpp
+#   • cpp/soviet/src/decision/{authorize,cancelexprd,declinedec,exec}.cpp
 # ─────────────────────────────────────────────────────────────────────────────
 
 process_type: sov.authpkg
@@ -74,17 +74,9 @@ actions:
     actor: Член совета
     role: reject
     purpose: >
-      Член совета голосует «против». При достижении консенсуса по отказу
-      решение помечается как rejected и при exec в исходный контракт
-      уйдёт decline-callback.
-
-  - name: soviet::cancelvote
-    human: Отозвать голос
-    actor: Член совета
-    role: progress
-    purpose: >
-      Член совета отзывает ранее поданный голос до перехода решения
-      в финальный статус.
+      Член совета голосует «против». Голос фиксируется; решение само не
+      закрывается. Когда против высказалось больше половины состава совета,
+      председатель снимает решение явным действием (см. «Отклонить решение»).
 
   - name: soviet::authorize
     human: Утвердить протокол
@@ -107,11 +99,22 @@ actions:
 
   - name: soviet::cancelexprd
     human: Отменить просроченное
-    actor: Председатель
+    actor: Кооператив
     role: reject
     purpose: >
       Если решение не было утверждено в срок, оно отменяется как
-      просроченное, в исходный контракт callback не уходит.
+      просроченное: в исходный процесс уходит уведомление об отказе,
+      решение закрывается. Снятие просроченных решений происходит
+      автоматически по истечении срока.
+
+  - name: soviet::declinedec
+    human: Отклонить решение
+    actor: Председатель
+    role: reject
+    purpose: >
+      Если против решения проголосовало больше половины состава совета,
+      председатель явно отклоняет его, не дожидаясь истечения срока: в
+      исходный процесс уходит уведомление об отказе, решение закрывается.
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 entity: soviet::decision
@@ -150,9 +153,9 @@ states:
   - name: rejected
     human: Отклонено
     description: >
-      Совет проголосовал «против» либо решение отменено как просроченное.
-      В исходный контракт уходит decline-callback (или callback
-      не вызывается, если просрочка).
+      Председатель отклонил решение по большинству «против» (declinedec) либо
+      решение отменено как просроченное (cancelexprd, автоматически по сроку).
+      В обоих случаях в исходный контракт уходит decline-callback.
     kind: virtual
     virtual: true
 
@@ -174,15 +177,15 @@ transitions:
 
   - from: pending
     to: rejected
-    action: soviet::voteagainst
-    actor: Член совета
+    action: soviet::declinedec
+    actor: Председатель
     guards:
       - Большинство голосов «против».
 
   - from: pending
     to: rejected
     action: soviet::cancelexprd
-    actor: Председатель
+    actor: Кооператив
     guards:
       - Истёк срок принятия решения.
 
@@ -223,8 +226,8 @@ scenario:
       actor: Член совета
       action: soviet::votefor
       description: >
-        Члены совета голосуют по решению (votefor / voteagainst /
-        cancelvote). При достижении большинства «за» — approved=true.
+        Члены совета голосуют по решению (votefor / voteagainst).
+        При достижении большинства «за» — approved=true.
       pre:
         - Решение в `pending`.
       post:
@@ -259,18 +262,21 @@ scenario:
   alternatives:
     - branch: Отказ совета
       at_step: 2
-      action: soviet::voteagainst
-      actor: Член совета
+      action: soviet::declinedec
+      actor: Председатель
       description: >
-        Большинство «против» — при exec в исходный контракт уйдёт
-        decline-callback (например, registrator::declinereg).
+        Когда против высказалось больше половины состава совета, голос «против»
+        лишь фиксируется. Председатель явно отклоняет решение (declinedec), не
+        дожидаясь срока: в исходный контракт уходит decline-callback (например,
+        registrator::declinereg), запись решения удаляется.
 
     - branch: Просрочка
       at_step: 2
       action: soviet::cancelexprd
-      actor: Председатель
+      actor: Кооператив
       description: >
-        Решение не принято в срок, отменяется без вызова callback.
+        Решение не принято в срок — автоматически отменяется по истечении
+        срока: в исходный контракт уходит decline-callback, запись удаляется.
 
 # ── Секция 5. Документы и подписи ───────────────────────────────────────────
 # Документ повестки приходит из исходного процесса — конкретный registry_id

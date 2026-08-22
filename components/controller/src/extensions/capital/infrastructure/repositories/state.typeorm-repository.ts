@@ -5,9 +5,8 @@ import { StateRepository } from '../../domain/repositories/state.repository';
 import { StateDomainEntity } from '../../domain/entities/state.entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import { StateMapper } from '../mappers/state.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IStateBlockchainData } from '../../domain/interfaces/state-blockchain.interface';
 import type { IStateDatabaseData } from '../../domain/interfaces/state-database.interface';
 

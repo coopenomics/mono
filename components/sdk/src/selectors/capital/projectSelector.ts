@@ -98,6 +98,7 @@ const rawProjectPermissionsSelector = {
   can_set_master: true,
   can_manage_authors: true,
   can_set_plan: true,
+  can_set_priority: true,
   has_clearance: true,
   pending_clearance: true,
   has_parent_clearance: true,
@@ -115,6 +116,8 @@ const rawBaseProjectSelector = {
   prefix: true,
   issue_counter: true,
   status: true,
+  /** Приоритет проекта/компонента (только БД) */
+  priority: true,
   project_hash: true,
   coopname: true,
   parent_hash: true,
@@ -129,6 +132,10 @@ const rawBaseProjectSelector = {
   description: true,
   /** URL репозитория для опроса маркеров коммитов (PRD §6.2.1) */
   development_repository_url: true,
+  /** Происхождение: blockchain | local */
+  origin: true,
+  /** Владелец персонального проекта */
+  local_owner: true,
   meta: true,
   created_at: true,
   counts: rawProjectCountsDataSelector,

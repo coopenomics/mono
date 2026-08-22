@@ -1,5 +1,4 @@
 import { DraftContract } from 'cooptypes'
-import moment from 'moment-timezone'
 import { AnnualGeneralMeetingDecision } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
@@ -13,21 +12,17 @@ export class Factory extends DocFactory<AnnualGeneralMeetingDecision.Action> {
   }
 
   async generateDocument(data: AnnualGeneralMeetingDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AnnualGeneralMeetingDecision.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = AnnualGeneralMeetingDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AnnualGeneralMeetingDecision.registry_id, data.block_num)
-    }
+    const { template, coop, vars, meet } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AnnualGeneralMeetingDecision.Template as ITemplate<AnnualGeneralMeetingDecision.Model>)
+        : this.getTemplate<AnnualGeneralMeetingDecision.Model>(DraftContract.contractName.production, AnnualGeneralMeetingDecision.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      // Собрание по хэшу — аргументы из data, не зависит от coop/vars
+      meet: () => super.getMeet(data.coopname, data.meet_hash, data.block_num),
+    })
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-
-    // Извлекаем данные собрания из блокчейна по хэшу
-    const meet = await super.getMeet(data.coopname, data.meet_hash, data.block_num)
     const questions = await super.getMeetQuestions(data.coopname, Number(meet.id), data.block_num)
 
     // Данные уже приходят отформатированными из метода getMeet,

@@ -36,9 +36,10 @@ const props = defineProps<{
   mask?: string
   /** Подставлять плейсхолдеры маски при вводе */
   fillMask?: boolean
-  /** Разрешить только цифры и точку (ОКВЭД: 94.99, 46.73.7). Блокирует
-   *  keypress/paste — буквы вообще не появляются в поле. */
-  digitsDotsOnly?: boolean
+  /** Разрешить только цифры + перечисленные доп. символы (напр. '.' для
+   *  ОКВЭД: 94.99, 46.73.7; '-' для Рег. номера СФР). Блокирует
+   *  keypress/paste — посторонние символы вообще не появляются в поле. */
+  digitsExtraChars?: string
   /** HTML maxlength. */
   maxLength?: number
   /** Допустимые точные длины (ИЛИ). Напр. `[8, 11]` для ОКТМО. */
@@ -60,11 +61,19 @@ const labelText = computed(() =>
 )
 
 const inputModeComputed = computed<'numeric' | 'decimal' | 'text'>(() => {
-  if (props.digitsDotsOnly) return 'decimal'
+  // '.' — десятичная клавиатура мобильных устройств её показывает; для
+  // прочих доп.символов (напр. '-') нужна полная клавиатура — 'text'.
+  if (props.digitsExtraChars === '.') return 'decimal'
+  if (props.digitsExtraChars) return 'text'
   // mask из одних `#` = чистая цифровая клавиатура на мобиле.
   if (props.mask && /^#+$/.test(props.mask)) return 'numeric'
   return 'text'
 })
+
+/** Экранирует спецсимволы regex, чтобы вставить строку в символьный класс `[...]`. */
+function escapeForCharClass(chars: string): string {
+  return chars.replace(/[\]\\^-]/g, '\\$&')
+}
 
 const NAV_KEYS = new Set([
   'Backspace',
@@ -81,19 +90,21 @@ const NAV_KEYS = new Set([
 ])
 
 // Блокируем keypress не-допустимых символов — буквы не попадают в поле даже
-// на миллисекунды. Работает только для digitsDotsOnly (для чисто цифровых
+// на миллисекунды. Работает только для digitsExtraChars (для чисто цифровых
 // полей используем Quasar-mask — он нативно блокирует не-# символы).
 function onKeydown(e: KeyboardEvent): void {
-  if (!props.digitsDotsOnly) return
+  if (!props.digitsExtraChars) return
   if (e.ctrlKey || e.metaKey || e.altKey) return
   if (NAV_KEYS.has(e.key)) return
-  if (!/^[\d.]$/.test(e.key)) e.preventDefault()
+  const re = new RegExp(`^[\\d${escapeForCharClass(props.digitsExtraChars)}]$`)
+  if (!re.test(e.key)) e.preventDefault()
 }
 
 function onPaste(e: ClipboardEvent): void {
-  if (!props.digitsDotsOnly) return
+  if (!props.digitsExtraChars) return
   const text = e.clipboardData?.getData('text') ?? ''
-  if (!/^[\d.]*$/.test(text)) e.preventDefault()
+  const re = new RegExp(`^[\\d${escapeForCharClass(props.digitsExtraChars)}]*$`)
+  if (!re.test(text)) e.preventDefault()
 }
 
 const rules = computed(() => {
@@ -128,7 +139,10 @@ function onInput(raw: string | number | null): void {
   // Фоллбек-фильтр на случай programmatic ввода (drop/autofill). Для ручного
   // набора актуальна либо mask (q-input сам режет), либо keydown-блокер.
   let s = String(raw ?? '')
-  if (props.digitsDotsOnly) s = s.replace(/[^\d.]+/g, '')
+  if (props.digitsExtraChars) {
+    const re = new RegExp(`[^\\d${escapeForCharClass(props.digitsExtraChars)}]+`, 'g')
+    s = s.replace(re, '')
+  }
   if (props.maxLength && s.length > props.maxLength) s = s.slice(0, props.maxLength)
   emit('update:value', s)
 }

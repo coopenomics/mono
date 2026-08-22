@@ -1,6 +1,10 @@
 <template lang="pug">
+//- Пока документ формируется, рамку-карточку не показываем: висячая пустая
+//- рамка вокруг спиннера выглядит как сломанный блок. Рамка появляется
+//- вместе с готовым документом.
 q-card.dynamic-padding(
-  :flat='isMobile',
+  :flat='isMobile || loading',
+  :class='{ "base-document--generating": loading }',
   style='word-break: break-all !important; white-space: normal !important'
 )
   .base-document__loader(v-if='loading')
@@ -8,7 +12,10 @@ q-card.dynamic-padding(
     span.base-document__loader-label Формируем документ{{ doc?.meta?.title ? ` «${doc.meta.title}»` : '' }}…
   div(v-if='!loading')
     ShadowHtml(:html='safeHtml', :styles='shadowStyles')
-    .row.q-mt-lg.q-pa-sm.justify-center
+    //- Блок контрольной суммы/подписей/скачивания показываем только у документов
+    //- с каноническим doc_hash (подписанные/зарегистрированные). Неподписанное
+    //- превью строится с пустым doc_hash — там сверять и скачивать нечего, блок прячем.
+    .row.q-mt-lg.q-pa-sm.justify-center(v-if='hasDocHash')
       .col-md-8.col-xs-12
         //- Кнопка «Сверить» (локальная пересборка + сверка хеша) временно скрыта
         //- через :hide-verify. Чтобы вернуть — убрать :hide-verify (обработчик @verify
@@ -16,6 +23,7 @@ q-card.dynamic-padding(
         DocumentSignatures(
           :doc-hash='documentAggregate?.document?.doc_hash ?? ""',
           :regenerated-hash='regeneratedHash',
+          :hash-loading='hashComputing',
           :signatures='canonSignatures',
           :verifying='onRegenerate',
           :hide-verify='true',
@@ -24,7 +32,7 @@ q-card.dynamic-padding(
         )
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import DOMPurify from 'dompurify';
 import { DigitalDocument, prepareDocumentArchive } from 'src/shared/lib/document';
@@ -32,6 +40,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useWindowSize } from 'src/shared/hooks';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
+import { sameHash } from 'src/shared/lib/utils/sameHash';
 import { ShadowHtml } from '../ShadowHtml';
 import { DocumentSignatures, type DocumentSignatureEntry } from 'src/shared/ui/domain/DocumentSignatures';
 
@@ -44,11 +53,19 @@ const props = defineProps({
 
 const doc = computed(() => props.documentAggregate.rawDocument);
 
+// Неподписанное превью строится с пустым doc_hash (канонического хэша ещё нет):
+// сверять не с чем, поэтому блок контрольной суммы скрываем и локальный пересчёт
+// не запускаем. Для реальных подписанных документов doc_hash присутствует → сверка работает.
+const hasDocHash = computed(() => !!props.documentAggregate?.document?.doc_hash);
+
 const loading = ref(false);
 const { isMobile } = useWindowSize();
-const regeneratedHash = ref();
+const regeneratedHash = ref<string | undefined>();
+const hashComputing = ref(false);
 const onRegenerate = ref(false);
 const regenerated = ref();
+
+let hashRequestId = 0;
 
 const regenerate = async () => {
   try {
@@ -59,7 +76,7 @@ const regenerate = async () => {
       { skip_save: true },
     );
 
-    if (regenerated.value.hash == regeneratedHash.value)
+    if (sameHash(regenerated.value.hash, regeneratedHash.value))
       SuccessAlert(
         'Сверка прошла успешно: аналогичный документ восстановлен из исходных данных',
       );
@@ -74,11 +91,26 @@ const regenerate = async () => {
   }
 };
 
-// Функция для декодирования и очистки HTML
+// Функция для декодирования и очистки HTML.
+//
+// WHOLE_DOCUMENT: true — иначе DOMPurify вырезает содержимое <style> целиком
+// (сам тег остаётся в списке разрешённых через ADD_TAGS, но его текстовый
+// узел стирается), даже с ADD_TAGS: ['style']. Проверено эмпирически. В
+// WHOLE_DOCUMENT-режиме DOMPurify оборачивает результат в <html><head>...
+// <style>...</style></head><body>...</body></html> и содержимое style
+// выживает. Обёртка html/head/body безвредна: при вставке через
+// `shadowRoot.innerHTML` (см. ShadowHtml.vue) браузер разбирает её по
+// алгоритму fragment-парсинга и просто не создаёт сами теги html/head/body,
+// а их содержимое (включая <style>) остаётся в дереве shadow-root — CSS
+// оттуда действует на всё поддерево независимо от вложенности. Благодаря
+// этому шаблонам документов больше не нужно держать в уме, что этот
+// компонент форсит pre-wrap и стирает их <style> — можно писать вёрстку один
+// раз, единообразно для PDF (weasyprint) и предпросмотра.
 function sanitizeHtml(html: string) {
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ['style'],
     ADD_ATTR: ['class', 'id'],
+    WHOLE_DOCUMENT: true,
   });
 }
 
@@ -127,6 +159,15 @@ const shadowStyles = computed(
     text-align: center;
   }
 
+  /* Заголовок документа (h1) — всегда по центру. Документы задают это в своём
+     <style>, но DOMPurify вырезает содержимое <style>-блока (инлайн-стили
+     выживают, блочные правила — нет), поэтому центрирование заголовка держим
+     здесь, в shadowStyles, — этот канал инжектится мимо санитайзера. h3 НЕ
+     трогаем: это левые подзаголовки секций (ЧЛЕНЫ СОВЕТА, ПОВЕСТКА и т.п.). */
+  .digital-document h1 {
+    text-align: center;
+  }
+
   .digital-document {
     word-break: break-word !important;
     white-space: pre-wrap;
@@ -163,9 +204,18 @@ const shadowStyles = computed(
 );
 
 const hashBuffer = async () => {
+  const binary = doc.value?.binary;
+  if (!binary) {
+    regeneratedHash.value = undefined;
+    hashComputing.value = hasDocHash.value;
+    return;
+  }
+
+  const requestId = ++hashRequestId;
+  hashComputing.value = true;
+
   try {
-    // Декодирование из base64
-    const binaryString = atob(doc.value?.binary ?? '');
+    const binaryString = atob(binary);
     const len = binaryString.length;
     const data = new Uint8Array(len);
 
@@ -173,15 +223,30 @@ const hashBuffer = async () => {
       data[i] = binaryString.charCodeAt(i);
     }
 
-    // Вычисление хэша из декодированных бинарных данных
-    regeneratedHash.value = (
-      await useGlobalStore().hashMessage(data)
-    ).toUpperCase();
-    console.log('Хэш успешно вычислен:', regeneratedHash.value);
+    const hash = (await useGlobalStore().hashMessage(data)).toUpperCase();
+    if (requestId !== hashRequestId) return;
+
+    regeneratedHash.value = hash;
   } catch (error) {
+    if (requestId !== hashRequestId) return;
+    regeneratedHash.value = undefined;
     console.error('Ошибка при вычислении хэша:', error);
+  } finally {
+    if (requestId === hashRequestId) {
+      hashComputing.value = false;
+    }
   }
 };
+
+watch(
+  () => (hasDocHash.value ? doc.value?.binary : undefined),
+  (binary, prevBinary) => {
+    if (binary === prevBinary) return;
+    regeneratedHash.value = undefined;
+    if (hasDocHash.value) void hashBuffer();
+  },
+  { immediate: true },
+);
 
 // Получение ФИО/названия подписанта по сертификату
 const getSignerName = (signer_certificate: any) => {
@@ -211,10 +276,7 @@ const verifySignatures = () => {
   // }
 };
 
-onMounted(() => {
-  hashBuffer();
-  verifySignatures();
-});
+verifySignatures();
 
 async function download() {
   try {
@@ -264,6 +326,14 @@ const canonSignatures = computed<DocumentSignatureEntry[]>(() =>
   .dynamic-padding {
     padding: 10px !important;
   }
+}
+
+/* Без рамки/фона на время генерации — flat-проп убирает тень, но не
+   hairline-границу канона; transparent, чтобы спиннер висел прямо на канвасе. */
+.base-document--generating {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .base-document__loader {

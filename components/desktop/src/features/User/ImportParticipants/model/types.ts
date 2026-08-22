@@ -53,7 +53,7 @@ export interface EntrepreneurCsvRow extends BaseRow {
     bank_name: string;
     account_number: string;
     currency: string;
-    details: { bik: string; corr: string; kpp: string };
+    details: { bik: string; corr: string };
   };
 }
 
@@ -79,7 +79,7 @@ export interface OrganizationCsvRow extends BaseRow {
     bank_name: string;
     account_number: string;
     currency: string;
-    details: { bik: string; corr: string; kpp: string };
+    details: { bik: string; corr: string };
   };
 }
 

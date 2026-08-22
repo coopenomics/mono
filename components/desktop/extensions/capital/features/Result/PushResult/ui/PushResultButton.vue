@@ -1,47 +1,58 @@
 <template lang="pug">
-div
-  q-btn(
-    color='primary',
-    @click='showDialog = true',
-    :loading='loading',
-    label='Внести результат'
-  )
+.push-result
+  BaseButton(
+    variant='primary',
+    size='sm',
+    :loading='loading || isSubmitting',
+    @click.stop='showDialog = true'
+  ) Внести результат
 
   BaseDialog(
     v-model='showDialog',
-    title='Подтверждение внесения результата',
+    title='Внесение результата',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
-    .q-pa-md
-      ColorCard(color='green')
-        .card-label Ваш паевой взнос
-        .card-value {{ contributionAmount }}
+    BaseForm(:loading='isSubmitting', @submit='handlePushResult')
+      .push-result__body
+        WalletCard(
+          compact,
+          neutral,
+          title='Паевой взнос',
+          :balance='contributionBalance',
+          :symbol='governSymbol',
+          balance-label='сумма',
+          icon='account_balance'
+        )
+        WalletCard(
+          v-if='hasDebt',
+          compact,
+          neutral,
+          title='Погашаемая ссуда',
+          :balance='debtBalance',
+          :symbol='governSymbol',
+          balance-label='ссуда',
+          icon='payments'
+        )
 
-      ColorCard(color='orange', v-if='parseFloat(debtAmount) > 0')
-        .card-label Сумма погашаемой ссуды
-        .card-value {{ debtAmount }}
-
-    Form.q-pa-md(
-      :handler-submit='handlePushResult',
-      :is-submitting='isSubmitting',
-      :button-submit-txt='"Подтвердить внесение"',
-      :button-cancel-txt='"Отмена"',
-      @cancel='clear'
-    )
-
-    .q-pa-md.text-center
-      p.text-caption Подтверждая внесение результата, вы соглашаетесь с генерацией и подписью заявления на паевой взнос
+      template(#footer)
+        BaseButton(variant='ghost', :disabled='isSubmitting', @click='clear')
+          | Отмена
+        BaseButton(
+          variant='primary',
+          type='submit',
+          :loading='isSubmitting'
+        ) Подтвердить
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { usePushResult } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
-import { Form } from 'src/shared/ui/Form';
-import { ColorCard } from 'src/shared/ui/ColorCard';
+import { BaseButton, BaseDialog, BaseForm } from 'src/shared/ui/base';
+import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { useSystemStore } from 'src/entities/System/model';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 
 interface Props {
@@ -50,27 +61,40 @@ interface Props {
 
 const props = defineProps<Props>();
 
+/** Заявление меняет статус доли — список обязан перечитать строку */
+const emit = defineEmits<{ submitted: [] }>();
+
+const { info } = useSystemStore();
 const { pushResultWithGeneratedStatement } = usePushResult();
 
 const loading = ref(false);
 const showDialog = ref(false);
 const isSubmitting = ref(false);
 
-// Вычисляемые суммы
-const contributionAmount = computed(() => {
-  if (!props.segment) return '0.00';
+const governSymbol = computed(
+  () => info.symbols?.root_govern_symbol || 'RUB',
+);
 
-  return formatAsset2Digits(
-    props.segment.intellectual_cost
-  );
-});
+const formatMoneyBalance = (raw: string | number | undefined): string => {
+  const src =
+    typeof raw === 'string' && /\s[A-Z]{3,7}$/.test(raw.trim())
+      ? raw
+      : `${raw || 0} ${governSymbol.value}`;
+  const formatted = formatAsset2Digits(src);
+  return formatted.replace(/\s*[A-Z]{3,7}\s*$/, '').trim() || '0,00';
+};
 
-const debtAmount = computed(() => {
-  if (!props.segment || !props.segment.debt_amount) return '0.00';
+const contributionBalance = computed(() =>
+  formatMoneyBalance(props.segment?.intellectual_cost),
+);
 
-  return formatAsset2Digits(props.segment.debt_amount);
-});
+const debtBalance = computed(() =>
+  formatMoneyBalance(props.segment?.debt_amount),
+);
 
+const hasDebt = computed(
+  () => parseFloat(String(props.segment?.debt_amount || '0')) > 0,
+);
 
 const clear = () => {
   showDialog.value = false;
@@ -80,14 +104,12 @@ const clear = () => {
 const handlePushResult = async () => {
   try {
     isSubmitting.value = true;
-
-    // Отправляем результат с генерацией и подписью заявления
     await pushResultWithGeneratedStatement(
       props.segment.project_hash,
       props.segment.username,
     );
-
     SuccessAlert('Заявление отправлено в совет на рассмотрение');
+    emit('submitted');
     clear();
   } catch (error) {
     FailAlert(error);
@@ -96,3 +118,13 @@ const handlePushResult = async () => {
   }
 };
 </script>
+
+<style lang="scss" scoped>
+.push-result__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-1) 0 var(--p-2);
+  min-width: 0;
+}
+</style>

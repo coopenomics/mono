@@ -11,18 +11,35 @@ name: Typecheck
 #     только в рантайме при загрузке модуля. Кейс PR #392 (rename 1080→1020
 #     в cooptypes) проскочил именно так.
 #
-# Триггеры:
-#  - pull_request на dev — гейт перед мерджем в основную ветку;
-#  - workflow_call — оставлен для переиспользования, но release.yaml его
-#    больше НЕ вызывает (гейт из релиза убран как избыточный — типы
-#    проверяются на PR в dev до того, как код доедет до тэга).
+# История триггеров:
+#  - до 2026-08-05 висел на одном `pull_request` и не запускался НИ РАЗУ:
+#    PR'ы с 19.05.2026 создаются в Gitea, а на GitHub, где работают Actions,
+#    приходит только зеркало пушей. `gh run list` возвращал пустой список.
+#    За это время накопилось 56 ошибок vue-tsc.
+#  - 2026-08-05 переведён на push в dev — долг вскрылся и был вычищен.
+#  - 2026-08-06 сужен до релизных веток: на каждый коммит прогон слишком
+#    дорог по лимитам раннеров.
+#  - 2026-08-21 dev возвращён. Экономия обернулась дороже прогонов: релиз
+#    32501986352 упал на сборке controller'а, потому что до testnet типы
+#    никто не проверял, и красным стал уже релизный прогон. Ветка dev —
+#    место, где ошибка стоит правки, а не отката релиза.
 #
-# Push в dev/testnet/main НЕ триггерит — намеренно (PR-гейт на dev достаточен).
-
+# pull_request не нужен: PR живут в Gitea, на GitHub-зеркале их нет —
+# триггер не срабатывал ни разу.
 on:
-  pull_request:
-    branches: [dev]
+  push:
+    branches: [dev, testnet, main]
   workflow_call:
+  workflow_dispatch:
+
+# Новый push в ветку отменяет ещё бегущий typecheck по той же ветке — иначе
+# при частых коммитах в dev 30-минутные прогоны копятся очередью и результат
+# приходит к уже неактуальному коду. Группа по head_ref (для PR/вызовов из
+# других workflow), для push fallback на ref. Отмена только своих же прежних
+# прогонов: dev, testnet и main друг друга не трогают.
+concurrency:
+  group: typecheck-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   desktop:
@@ -86,7 +103,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Полный lerna build по всему workspace — controller импортирует
-      # @coopenomics/sdk, @coopenomics/inter, @coopenomics/notifications
+      # @coopenomics/sdk, @coopenomics/innercoop, @coopenomics/notifications
       # помимо cooptypes/factory; их dist/ генерируется unbuild и без
       # этого шага tsc валится на 37 TS2307. См. root cause выше.
       - name: Build all workspace packages

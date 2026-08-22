@@ -1,6 +1,6 @@
 import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import type { ExtensionDomainInterface } from '~/domain/extension/interfaces/extension-domain.interface';
+import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import type { ExtensionDomainInterface } from '@coopenomics/extension-kit';
 
 @Entity('extensions')
 export class ExtensionEntity<TConfig = any> implements ExtensionDomainInterface<TConfig> {

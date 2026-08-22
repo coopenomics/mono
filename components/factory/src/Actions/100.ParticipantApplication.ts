@@ -15,16 +15,15 @@ export class Factory extends DocFactory<ParticipantApplication.Action> {
 
   async generateDocument(data: ParticipantApplication.Action, _options?: IGenerationOptions): Promise<IGeneratedDocument> {
     // TODO надо использовать skip_save из options вместо skip_save из data, для этого на фронте внести соответствующие правки
-    let template: ITemplate<ParticipantApplication.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = ParticipantApplication.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, ParticipantApplication.registry_id, data.block_num)
-    }
-
-    const user = await super.getUser(data.username, data.block_num)
+    const { template, user, coop, coop_bank_account, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(ParticipantApplication.Template as ITemplate<ParticipantApplication.Model>)
+        : this.getTemplate<ParticipantApplication.Model>(DraftContract.contractName.production, ParticipantApplication.registry_id, data.block_num),
+      user: () => super.getUser(data.username, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      coop_bank_account: () => super.getBankAccount(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
     let bank_account = {} as any
 
@@ -37,9 +36,6 @@ export class Factory extends DocFactory<ParticipantApplication.Action> {
         bank_account,
       },
     }
-
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const coop_bank_account = await super.getBankAccount(data.coopname, data.block_num)
 
     // добавлено для обратной совместимости с осенними версия 2024
     const extended_coop = { ...coop, bank_account: coop_bank_account }
@@ -83,8 +79,6 @@ export class Factory extends DocFactory<ParticipantApplication.Action> {
         await data_service.save({ username: data.username, block_num: meta.block_num, signature })
       }
     }
-
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     if (!vars?.participant_application || isEmpty(vars.participant_application.protocol_number) || isEmpty(vars.participant_application.protocol_day_month_year))
       throw new Error('Реквизиты протокола для заявления на вступление не заполнены. Заполните номер и дату протокола в настройках кооператива.')

@@ -1,24 +1,29 @@
-import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
-import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { getAmountPlusFee } from '~/shared/utils/payments';
 
-import { PaymentProvider } from '~/application/gateway/providers/payment-provider';
 import { Inject, Module } from '@nestjs/common';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+  platformSettings,
+  getAmountPlusFee,
+  PaymentProvider,
+  type PaymentDetails,
+} from '@coopenomics/extension-kit';
+import {
+  LOGGER_PORT,
+  type ILoggerPort,
+  PAYMENT_PORT,
+  type IPaymentPort,
+  PAYMENT_PROVIDER_REGISTRY_PORT,
+  type IPaymentProviderRegistryPort,
+  ORGANIZATION_PORT,
+  type IOrganizationPort,
+  PAYMENT_METHOD_PORT,
+  type IPaymentMethodPort,
+  type InnerBankTransferData,
+} from '@coopenomics/innercoop';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import config from '~/config/config';
 import type { Cooperative } from 'cooptypes';
-import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
-import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
-import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -26,27 +31,28 @@ export const defaultConfig = {};
 export const Schema = z.object({});
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export type IConfig = z.infer<typeof Schema>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class QrPayPlugin extends PaymentProvider {
+export class QrPayExtension extends PaymentProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
-    private readonly logger: WinstonLoggerService,
-    @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
-    @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(ORGANIZATION_PORT) private readonly organizations: IOrganizationPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethods: IPaymentMethodPort,
+    @Inject(PAYMENT_PROVIDER_REGISTRY_PORT) private readonly providerRegistry: IPaymentProviderRegistryPort
   ) {
     super();
-    this.logger.setContext(QrPayPlugin.name);
+    this.logger.setContext(QrPayExtension.name);
   }
 
   name = 'qrpay';
 
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
@@ -54,20 +60,20 @@ export class QrPayPlugin extends PaymentProvider {
   public fee_percent = 0; ///%
 
   async initialize(): Promise<void> {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension);
 
-    this.providerPort.registerProvider(this.name, this);
+    this.providerRegistry.registerProvider(this.name, this);
     this.logger.log(`Платежный провайдер ${this.name} успешно зарегистрирован.`);
   }
 
-  public async createPayment(hash: string): Promise<PaymentDetailsDomainInterface> {
+  public async createPayment(hash: string): Promise<PaymentDetails> {
     // Получаем данные платежа по hash
-    const payment = await this.paymentRepository.findByHash(hash);
+    const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
       throw new Error(`Платеж с hash ${hash} не найден`);
@@ -76,18 +82,18 @@ export class QrPayPlugin extends PaymentProvider {
     const amount = payment.quantity;
     const symbol = payment.symbol;
 
-    const cooperative = await this.generatorPort.constructCooperative(config.coopname);
+    const cooperative = await this.organizations.findByUsername(platformSettings().coopname);
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
     const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
-    const paymentMethod = (await this.generatorPort.get('paymentMethod', {
-      username: config.coopname,
+    const paymentMethod = await this.paymentMethods.get({
+      username: platformSettings().coopname,
       method_type: 'bank_transfer',
       is_default: true,
-    })) as Cooperative.Payments.IPaymentData;
+    });
 
-    const bankAccount = paymentMethod.data as Cooperative.Payments.IBankAccount;
+    const bankAccount = paymentMethod.data as InnerBankTransferData;
 
     const description = payment.memo || `Платеж для ${payment.username}`;
 
@@ -95,9 +101,9 @@ export class QrPayPlugin extends PaymentProvider {
       bankAccount.bank_name
     }|BIC=${bankAccount.details.bik}|CorrespAcc=${bankAccount.details.corr}|Sum=${parseInt(
       amount_plus_fee
-    )}00|Purpose=${description}. Без НДС.|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
+    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
 
-    const result: PaymentDetailsDomainInterface = {
+    const result: PaymentDetails = {
       data: invoice,
       amount_plus_fee: `${amount_plus_fee} ${symbol}`,
       amount_without_fee: `${amount.toFixed(2)} ${symbol}`,
@@ -112,24 +118,15 @@ export class QrPayPlugin extends PaymentProvider {
 }
 
 @Module({
-  imports: [GatewayDomainModule, GatewayInfrastructureModule],
   providers: [
-    QrPayPlugin,
-    {
-      provide: EXTENSION_REPOSITORY, // токен для инъекции
-      useClass: TypeOrmExtensionDomainRepository, // Реализация для интерфейса
-    },
-    {
-      provide: PAYMENT_REPOSITORY,
-      useClass: TypeOrmPaymentRepository,
-    },
-  ], // Регистрируем PowerupPlugin как провайдер
-  exports: [QrPayPlugin], // Экспортируем его для доступа в других модулях
+    QrPayExtension,
+  ], // Регистрируем PowerupExtension как провайдер
+  exports: [QrPayExtension], // Экспортируем его для доступа в других модулях
 })
-export class QrPayPluginModule {
-  constructor(private readonly qrPayPlugin: QrPayPlugin) {}
+export class QrPayExtensionModule {
+  constructor(private readonly qrPayExtension: QrPayExtension) {}
 
   async initialize() {
-    await this.qrPayPlugin.initialize();
+    await this.qrPayExtension.initialize();
   }
 }

@@ -84,15 +84,6 @@ BaseDialog(
         autocomplete='off'
       )
 
-      q-input(
-        v-model='bank_transfer.details.kpp',
-        standout='bg-teal text-white',
-        mask='#########',
-        label='КПП',
-        :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "ожидаем 9 цифр"]',
-        autocomplete='off'
-      )
-
       q-input.q-mb-lg(
         v-model='bank_transfer.account_number',
         standout='bg-teal text-white',
@@ -151,7 +142,6 @@ const bank_transfer = ref({
   details: {
     bik: '',
     corr: '',
-    kpp: '',
   },
 });
 
@@ -165,7 +155,6 @@ const clear = (): void => {
     details: {
       bik: '',
       corr: '',
-      kpp: '',
     },
   };
 };

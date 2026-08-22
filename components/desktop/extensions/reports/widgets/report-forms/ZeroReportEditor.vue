@@ -9,14 +9,18 @@
         type='number'
         :model-value='editsValue.header.reportYear'
         @update:model-value='v => updateField("header.reportYear", clampInt(v, 2000, 2100))'
+        :error='errFor("header.reportYear")'
+        :error-message='msgFor("header.reportYear")'
         dense filled
       )
       q-input(
         v-if='periodKind !== "none"'
-        :label='periodKind === "quarter" ? "Квартал (1-4)" : "Месяц (1-12)"'
+        :label='periodLabel'
         type='number'
         :model-value='editsValue.header.period'
-        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodKind === "quarter" ? 4 : 12))'
+        @update:model-value='v => updateField("header.period", clampInt(v, 1, periodMax))'
+        :error='errFor("header.period")'
+        :error-message='msgFor("header.period")'
         dense filled
       )
       q-input(
@@ -32,14 +36,12 @@
 
   .editor-section
     h3.section-title Организация
+    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
-    q-input(
+    q-input.org-name(
       label='Наименование организации'
       :model-value='editsValue.organization.orgName'
-      @update:model-value='v => updateField("organization.orgName", v)'
-      :rules='[reportRules.length(1, 1000)]'
-      :error='errFor("organization.orgName")'
-      :error-message='msgFor("organization.orgName")'
+      readonly disable
       dense filled
     )
 
@@ -47,30 +49,20 @@
       q-input(
         label='ИНН'
         :model-value='editsValue.organization.inn'
-        @update:model-value='v => updateField("organization.inn", v)'
-        :rules='[reportRules.innUl()]'
-        :error='errFor("organization.inn")'
-        :error-message='msgFor("organization.inn")'
+        readonly disable
         dense filled
       )
       q-input(
         label='КПП'
         :model-value='editsValue.organization.kpp'
-        @update:model-value='v => updateField("organization.kpp", String(v || "").toUpperCase())'
-        :rules='[reportRules.kpp()]'
-        :error='errFor("organization.kpp")'
-        :error-message='msgFor("organization.kpp")'
+        readonly disable
         dense filled
-        maxlength='9'
       )
       q-input(
         v-if='needs.oktmo'
         label='ОКТМО'
         :model-value='editsValue.organization.oktmo || ""'
-        @update:model-value='v => updateField("organization.oktmo", v || null)'
-        :rules='[reportRules.oktmo()]'
-        :error='errFor("organization.oktmo")'
-        :error-message='msgFor("organization.oktmo")'
+        readonly disable
         dense filled
       )
 
@@ -78,29 +70,24 @@
       q-input(
         label='ОКВЭД'
         :model-value='editsValue.organization.okved || ""'
-        @update:model-value='v => updateField("organization.okved", v || null)'
-        :rules='[reportRules.okved()]'
-        :error='errFor("organization.okved")'
-        :error-message='msgFor("organization.okved")'
+        readonly disable
         dense filled
       )
       q-input(
         label='ОГРН'
         :model-value='editsValue.organization.ogrn || ""'
-        @update:model-value='v => updateField("organization.ogrn", v || null)'
-        :rules='[reportRules.optionalRegex(/^\\d{13}$/, "ОГРН ЮЛ — 13 цифр")]'
-        :error='errFor("organization.ogrn")'
-        :error-message='msgFor("organization.ogrn")'
+        readonly disable
         dense filled
       )
 
   .editor-section
     h3.section-title Подписант
+    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
 
     q-option-group(
       :model-value='editsValue.signer.type'
-      @update:model-value='v => updateField("signer.type", v)'
       :options='signerTypeOptions'
+      disable
       inline
     )
 
@@ -108,25 +95,19 @@
       q-input(
         label='Фамилия'
         :model-value='editsValue.signer.lastName'
-        @update:model-value='v => updateField("signer.lastName", v)'
+        readonly disable
         dense filled
-        :rules='[v => !!v || "обязательно"]'
-        :error='errFor("signer.lastName")'
-        :error-message='msgFor("signer.lastName")'
       )
       q-input(
         label='Имя'
         :model-value='editsValue.signer.firstName'
-        @update:model-value='v => updateField("signer.firstName", v)'
+        readonly disable
         dense filled
-        :rules='[v => !!v || "обязательно"]'
-        :error='errFor("signer.firstName")'
-        :error-message='msgFor("signer.firstName")'
       )
       q-input(
         label='Отчество'
         :model-value='editsValue.signer.middleName || ""'
-        @update:model-value='v => updateField("signer.middleName", v || null)'
+        readonly disable
         dense filled
       )
 
@@ -134,10 +115,7 @@
       v-if='editsValue.signer.type === "representative"'
       label='Документ, подтверждающий полномочия'
       :model-value='editsValue.signer.repDoc || ""'
-      @update:model-value='v => updateField("signer.repDoc", v || null)'
-      :rules='[reportRules.length(1, 120)]'
-      :error='errFor("signer.repDoc")'
-      :error-message='msgFor("signer.repDoc")'
+      readonly disable
       dense filled
     )
 
@@ -145,25 +123,15 @@
       v-if='needs.snils'
       label='СНИЛС председателя'
       :model-value='editsValue.signer.snils || ""'
-      @update:model-value='v => updateField("signer.snils", v || null)'
-      :rules='[reportRules.snils()]'
-      :error='errFor("signer.snils")'
-      :error-message='msgFor("signer.snils")'
-      mask='###-###-### ##'
-      hint='Обязателен для ПСВ — попадает в ПерсСвФЛ @СНИЛС'
+      readonly disable
       dense filled
     )
 
     q-input(
       v-if='needs.sfrExtras'
-      label='Регистрационный номер СФР'
-      :model-value='editsValue.signer.sfrRegNumber || ""'
-      @update:model-value='v => updateField("signer.sfrRegNumber", v || null)'
-      :rules='[reportRules.sfrRegNumber()]'
-      :error='errFor("signer.sfrRegNumber")'
-      :error-message='msgFor("signer.sfrRegNumber")'
-      mask='###-###-######'
-      hint='XXX-XXX-XXXXXX — обязателен для ЕФС-1'
+      label='Регистрационный номер ПФР'
+      :model-value='editsValue.signer.pfrRegNumber || ""'
+      readonly disable
       dense filled
     )
 
@@ -171,18 +139,14 @@
       v-if='needs.sfrExtras'
       label='Должность подписанта'
       :model-value='editsValue.signer.chairmanPosition || ""'
-      @update:model-value='v => updateField("signer.chairmanPosition", v || null)'
-      hint='По умолчанию — "Председатель Совета"'
+      readonly disable
       dense filled
     )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Selectors } from '@coopenomics/sdk'
 import type { IReportType } from 'src/entities/Report'
-
-const { reportRules } = Selectors
 
 type SignerType = 'chairman' | 'representative'
 
@@ -206,6 +170,7 @@ interface ZeroReportEdits {
     okpo: string | null
     ogrn: string | null
     address: string | null
+    phone: string | null
   }
   signer: {
     type: SignerType
@@ -215,6 +180,7 @@ interface ZeroReportEdits {
     repDoc: string | null
     snils: string | null
     sfrRegNumber: string | null
+    pfrRegNumber: string | null
     chairmanPosition: string | null
   }
 }
@@ -253,12 +219,15 @@ const headerTitle = computed(() => {
     DUSN: 'Декларация УСН (КНД 1152017)',
     UUSN: 'Уведомление об исчисленных суммах УСН (КНД 1110355)',
     UV_VZNOSY: 'Уведомление об исчисленных взносах (КНД 1110355)',
+    UV_NDFL: 'Уведомление об исчисленном НДФЛ (КНД 1110355)',
   }
   return titles[props.reportType] ?? props.reportType
 })
 
-// Тип периода: квартал (1..4), месяц (1..12) или нет.
-const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
+// Тип периода: квартал (1..4), месяц (1..12), расчётный период НДФЛ (1..24)
+// или нет. У уведомления по НДФЛ на месяц приходится два периода — с 1 по 22
+// число и с 23 по последнее, — поэтому нумерация сквозная по году.
+const periodKind = computed<'quarter' | 'month' | 'semi-month' | 'none'>(() => {
   switch (props.reportType) {
     case 'NDFL6':
     case 'RSV':
@@ -268,14 +237,28 @@ const periodKind = computed<'quarter' | 'month' | 'none'>(() => {
     case 'PSV':
     case 'UV_VZNOSY':
       return 'month'
+    case 'UV_NDFL':
+      return 'semi-month'
     default:
       return 'none'
   }
 })
 
+const periodLabel = computed(() => {
+  if (periodKind.value === 'quarter') return 'Квартал (1-4)'
+  if (periodKind.value === 'semi-month') return 'Расчётный период (1-24)'
+  return 'Месяц (1-12)'
+})
+
+const periodMax = computed(() => {
+  if (periodKind.value === 'quarter') return 4
+  if (periodKind.value === 'semi-month') return 24
+  return 12
+})
+
 // Флаги опциональных полей per-форме.
 const needs = computed(() => ({
-  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY'].includes(props.reportType),
+  oktmo: ['NDFL6', 'DUSN', 'UUSN', 'UV_VZNOSY', 'UV_NDFL'].includes(props.reportType),
   snils: props.reportType === 'PSV',
   sfrExtras: props.reportType === 'FSS4',
 }))
@@ -329,17 +312,23 @@ function clampInt(v: unknown, min: number, max: number): number {
 }
 
 .editor-section {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 16px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-4, 16px);
 }
 
 .section-title {
-  margin: 0 0 12px;
-  font-size: 14px;
+  margin: 0 0 var(--p-3, 12px);
+  font-size: var(--p-fs-h3, 15px);
   font-weight: 600;
-  color: #222;
+  color: var(--p-ink);
+}
+
+// Наименование организации — отдельная строка над сеткой ИНН/КПП/ОКТМО:
+// без этого отступа поля слипаются в один блок и читаются как одна группа.
+.org-name {
+  margin-bottom: var(--p-3, 12px);
 }
 
 .fields-grid {

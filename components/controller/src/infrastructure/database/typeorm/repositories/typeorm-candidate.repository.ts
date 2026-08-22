@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { CandidateEntity } from '../entities/candidate.entity';
 import type { CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DocumentType, ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 @Injectable()
@@ -22,7 +22,10 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   }
 
   async findByRegistrationHash(hash: string): Promise<CandidateDomainInterface | null> {
-    const candidate = await this.candidateRepository.findOneBy({ registration_hash: hash });
+    // registration_hash в БД хранится lowercase (sha256().digest('hex')), а из
+    // цепи checksum256 приходит в UPPERCASE (напр. в declinereg.registration_hash).
+    // Нормализуем входящий хэш, иначе exact-match findOneBy не находит кандидата.
+    const candidate = await this.candidateRepository.findOneBy({ registration_hash: hash.toLowerCase() });
     if (!candidate) return null;
 
     return this.mapToDomainEntity(candidate);
@@ -41,6 +44,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
     candidate.public_key = data.public_key;
     candidate.meta = data.meta;
     candidate.program_key = data.program_key;
+    candidate.program_agreements = data.program_agreements ?? {};
 
     const createdEntity = await this.candidateRepository.save(candidate);
     return this.mapToDomainEntity(createdEntity);
@@ -68,6 +72,13 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
       if (data.documents.generator_offer) candidate.generator_offer = data.documents.generator_offer;
     }
 
+    if (data.program_agreements) {
+      candidate.program_agreements = {
+        ...(candidate.program_agreements ?? {}),
+        ...data.program_agreements,
+      };
+    }
+
     const updatedEntity = await this.candidateRepository.save(candidate);
     return this.mapToDomainEntity(updatedEntity);
   }
@@ -75,7 +86,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   async saveDocument(
     username: string,
     documentType: DocumentType,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
@@ -105,6 +116,24 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
         candidate.generator_offer = document;
         break;
     }
+
+    await this.candidateRepository.save(candidate);
+  }
+
+  async saveProgramAgreement(
+    username: string,
+    agreementId: string,
+    document: ISignedDocument
+  ): Promise<void> {
+    const candidate = await this.candidateRepository.findOneBy({ username });
+    if (!candidate) {
+      throw new Error(`Кандидат с username ${username} не найден`);
+    }
+
+    candidate.program_agreements = {
+      ...(candidate.program_agreements ?? {}),
+      [agreementId]: document,
+    };
 
     await this.candidateRepository.save(candidate);
   }
@@ -159,6 +188,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
       public_key: entity.public_key,
       meta: entity.meta,
       program_key: entity.program_key as ProgramKey | undefined,
+      program_agreements: entity.program_agreements ?? {},
     };
   }
 }

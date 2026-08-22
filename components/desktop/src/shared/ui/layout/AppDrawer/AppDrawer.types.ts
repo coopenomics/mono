@@ -11,6 +11,8 @@ export interface RailItem {
   badge?: string | number;
   /** Произвольный мета-текст справа */
   meta?: string;
+  /** Суб-пункты под пунктом (меньший шрифт, без иконок) — например, избранное */
+  children?: RailItem[];
 }
 
 export interface RailSection {

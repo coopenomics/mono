@@ -1,16 +1,17 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='handleCalculateVotes',
+BaseButton(
+  variant='secondary',
+  size='sm',
   :loading='loading',
-  label='Рассчитать голоса'
-)
+  @click='handleCalculateVotes'
+) Рассчитать голоса
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useCalculateVotes } from '../model';
 import { FailAlert } from 'src/shared/api/alerts';
+import { BaseButton } from 'src/shared/ui/base';
 
 interface Props {
   coopname: string;
@@ -19,6 +20,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+/** После разнесения голосов доля готова к внесению — строка перечитывается */
+const emit = defineEmits<{ calculated: [] }>();
 
 const { calculateVotes } = useCalculateVotes();
 const loading = ref(false);
@@ -31,6 +35,7 @@ const handleCalculateVotes = async () => {
       project_hash: props.projectHash,
       username: props.username,
     });
+    emit('calculated');
   } catch (error) {
     FailAlert(error);
   } finally {

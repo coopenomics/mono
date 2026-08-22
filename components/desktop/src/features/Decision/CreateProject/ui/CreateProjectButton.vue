@@ -76,6 +76,7 @@ import {
 import { notEmpty } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
+import { useAgendaStore } from 'src/entities/Agenda/model';
 import { useWindowSize } from 'src/shared/hooks';
 
 const { isMobile } = useWindowSize();
@@ -85,17 +86,22 @@ const isLoading = ref(false);
 const { createProjectInput, createProject } = useCreateProjectOfFreeDecision();
 const session = useSessionStore();
 const system = useSystemStore();
+const agendaStore = useAgendaStore();
 
 const create = async () => {
   try {
     isSubmitting.value = true;
-    await createProject(system.info.coopname, session.username);
+    const createdItem = await createProject(system.info.coopname, session.username);
     isSubmitting.value = false;
     show.value = false;
     SuccessAlert('Вопрос добавлен на повестку для голосования');
     createProjectInput.value.title = '';
     createProjectInput.value.question = '';
     createProjectInput.value.decision = '';
+    // Бэкенд вернул созданный вопрос (извлёк из блокчейна) — показываем его в
+    // таблице немедленно; голос/правка по нему заблокированы до подтверждения
+    // ближайшим getAgenda-поллингом.
+    if (createdItem) agendaStore.insertCreated(createdItem);
   } catch (e) {
     isSubmitting.value = false;
     FailAlert(`Ошибка: ${extractGraphQLErrorMessages(e)}`);

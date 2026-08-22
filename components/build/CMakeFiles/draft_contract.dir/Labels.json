@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/draft_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/draft_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/draft_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"draft_contract"
+		],
+		"name" : "draft_contract"
+	}
+}

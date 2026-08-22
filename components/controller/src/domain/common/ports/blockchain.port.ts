@@ -5,11 +5,58 @@ import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 
 // domain/common/ports/blockchain.port.ts
+
+/**
+ * Результат кворумного чтения активных ключей аккаунта (CoopID, Story 9.7):
+ * параллельный опрос нескольких COOPOS RPC для M-of-N консенсуса при обновлении
+ * кэша ключей. `agreed=false` при ≥2 расходящихся ответах — кэш обновлять нельзя.
+ */
+export interface ActiveKeysQuorum {
+  /** Узлы сошлись (или доступен лишь один — single-source, проверить нечем). */
+  agreed: boolean;
+  /** Согласованный нормализованный набор активных ключей (пуст — узлов нет). */
+  keys: string[];
+  /** Что вернул каждый опрошенный узел (url + его набор ключей) — для аудита. */
+  samples: Array<{ url: string; keys: string[] }>;
+}
+
+/**
+ * Заверение из цепочки доверия: заверяющий признаёт, что субъект вправе заверять
+ * указанным ключом. `credential` — подписанное заверение целиком, то самое, что
+ * поедет внутри удостоверения пайщика и позволит проверить цепочку без сети.
+ * Остальные поля дублируют подписанное содержимое, чтобы отбирать записи, не
+ * разбирая подпись на каждой.
+ */
+export interface EndorsementRecord {
+  issuer: string;
+  subject: string;
+  chain_id: string;
+  cert_key: string;
+  expires_at: string;
+  credential: string;
+}
+
+/**
+ * Кооператив, которого обслуживает оператор: его установку оператор развернул и
+ * держит, а значит он же продлевает ему заверение. Статус здесь тот же, что в
+ * реестре кооперативов, и он решает, продлевать ли: заблокированному заверение
+ * гаснет само в пределах своего срока.
+ */
+export interface ServedCooperative {
+  username: string;
+  status: string;
+}
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
   getInfo(): Promise<GetInfoResult>;
   getAccount(name: string): Promise<BlockchainAccountInterface | null>;
+  /**
+   * Кворумное чтение активных ключей аккаунта с нескольких COOPOS RPC (Story 9.7):
+   * для M-of-N консенсуса при обновлении кэша ключей. См. {@link ActiveKeysQuorum}.
+   */
+  readActiveKeysQuorum(account: string): Promise<ActiveKeysQuorum>;
   getAllRows(code: string, scope: string, tableName: string): Promise<any[]>;
   getSingleRow(
     code: string,
@@ -33,6 +80,49 @@ export interface BlockchainPort {
 
   // Authentication related methods
   hasActiveKey(account: any, publicKey: string): boolean;
+  /**
+   * Восстановить публичный ключ из COOPOS-native recoverable подписи (`SIG_K1_…`)
+   * над utf8-сообщением. Зеркало клиентского `signMessage` (SDK signTimestamp,
+   * Story 2.4): сервер собирает то же каноническое сообщение и восстанавливает
+   * pubkey для сверки с аккаунтом. Крипто инкапсулировано в инфраструктуре —
+   * application/auth-v2 не импортирует wharfkit напрямую (гексагональный инвариант).
+   */
+  recoverPublicKey(message: string, signature: string): string;
+  /**
+   * Публичный ключ permission `cert` аккаунта (нормализованный `PUB_K1_…`) — звено
+   * cert-цепи доверия CoopID (ano→voskhod→vostok). Требует строго single-key
+   * (threshold=1, один ключ, без accounts/waits). null — если cert-permission нет
+   * или он не single-key. Используется при сборке claim `coop_chain` сертификата.
+   */
+  getCertPublicKey(accountName: string): Promise<string | null>;
+  /**
+   * Публикует право заверения `cert` кооператива — строго один ключ без делегирования.
+   * Подписывает сам кооператив своим действующим ключом. Вызывается при старте, когда
+   * право отсутствует или разошлось с ключом, который держит приложение.
+   */
+  publishCertPermission(account: string, publicKey: string, signer?: string): Promise<void>;
+  /**
+   * Читает заверение субъекта из цепочки доверия. `null` — заверения нет, то есть
+   * никто не подтверждал, что субъект вправе выпускать удостоверения.
+   */
+  getEndorsement(subject: string): Promise<EndorsementRecord | null>;
+  /**
+   * Кооперативы, которых обслуживает оператор — те, у кого он указан оператором в
+   * реестре кооперативов.
+   */
+  getServedCooperatives(operator: string): Promise<ServedCooperative[]>;
+  /**
+   * Записывает заверение в цепочку доверия. Подписывает заверяющий — либо сам, либо
+   * кооператив, которому переданы его распорядительные права (так подписывают за
+   * АНО, не владея её ключами).
+   */
+  publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void>;
+  /**
+   * Вправе ли `steward` распоряжаться аккаунтом `account` — то есть указан ли он в
+   * его распорядительных правах как аккаунт (делегирование по имени, не по ключу).
+   * Так кооператив получает возможность вести аккаунт АНО, не владея её ключами.
+   */
+  canManageAccount(account: string, steward: string): Promise<boolean>;
   getCooperative(coopname: string): Promise<any>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 

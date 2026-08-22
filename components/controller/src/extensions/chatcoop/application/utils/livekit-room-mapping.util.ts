@@ -1,39 +1,42 @@
 import crypto from 'crypto';
 
-/**
- * Преобразует Matrix room ID в LiveKit room name согласно алгоритму Element Call
- *
- * Алгоритм:
- * 1. Берется Matrix room ID (например: "!room:server.com")
- * 2. Добавляется суффикс "|m.call#ROOM"
- * 3. Вычисляется SHA256 хэш в бинарном формате
- * 4. Кодируется в base64
- * 5. Удаляются знаки равенства
- *
- * @param matrixRoomId Matrix room ID (например: "!room:server.com")
- * @returns LiveKit room name (например: "vl/abc123...")
- */
-export function matrixRoomIdToLivekitRoomName(matrixRoomId: string): string {
-  // Шаг 1: Добавляем суффикс
-  const input = `${matrixRoomId}|m.call#ROOM`;
-  // Шаг 2: Вычисляем SHA256 хэш в бинарном формате
-  const hashBuffer = crypto.createHash('sha256').update(input, 'utf8').digest();
+/** Слот звонка по умолчанию в Element Call / MatrixRTC (одна комната = один room-scoped звонок). */
+const DEFAULT_CALL_SLOT_ID = 'm.call#ROOM';
 
-  // Шаг 3: Кодируем в base64
-  const base64Hash = hashBuffer.toString('base64');
-
-  // Шаг 4: Удаляем знаки равенства
-  const cleanBase64 = base64Hash.replace(/=+$/, '');
-
-  // Шаг 5:
-  const result = `${cleanBase64}`;
-  return result;
+function sha256UnpaddedBase64(input: string): string {
+  return crypto.createHash('sha256').update(input, 'utf8').digest().toString('base64').replace(/=+$/, '');
 }
 
 /**
- * Находит соответствующий Matrix room ID для данного LiveKit room name
+ * Текущий алгоритм Element Call (call.element.io + lk-jwt-service, протокол MatrixRTC со слотами).
  *
- * @param livekitRoomName LiveKit room name (например: "vl/abc123...")
+ * Клиент шлёт в lk-jwt-service сырой room_id + slot_id="m.call#ROOM", а имя LiveKit-комнаты
+ * вычисляет САМ сервис: `unpaddedBase64(sha256(JSON.stringify([roomId, slotId])))`.
+ * Источник истины — element-hq/lk-jwt-service.
+ */
+export function matrixRoomIdToLivekitRoomName(matrixRoomId: string): string {
+  return sha256UnpaddedBase64(JSON.stringify([matrixRoomId, DEFAULT_CALL_SLOT_ID]));
+}
+
+/**
+ * Legacy-алгоритм Element Call (до перехода на слот-протокол MatrixRTC): клиент сам считал
+ * имя как `unpaddedBase64(sha256(roomId + "|m.call#ROOM"))` и слал готовым в поле `room`.
+ * Оставлен для совместимости со старыми клиентами Element, которые ещё могут слать этот формат.
+ */
+export function matrixRoomIdToLivekitRoomNameLegacy(matrixRoomId: string): string {
+  return sha256UnpaddedBase64(`${matrixRoomId}|${DEFAULT_CALL_SLOT_ID}`);
+}
+
+/** Все возможные имена LiveKit-комнаты для данного Matrix room ID (текущий + legacy форматы). */
+export function candidateLivekitRoomNames(matrixRoomId: string): string[] {
+  return [matrixRoomIdToLivekitRoomName(matrixRoomId), matrixRoomIdToLivekitRoomNameLegacy(matrixRoomId)];
+}
+
+/**
+ * Находит соответствующий Matrix room ID для данного LiveKit room name.
+ * Сверяет и с текущим, и с legacy-алгоритмом — иначе обновление Element Call молча ломает матчинг.
+ *
+ * @param livekitRoomName LiveKit room name из webhook
  * @param possibleMatrixRoomIds Массив возможных Matrix room IDs для проверки
  * @returns Matrix room ID если найден, иначе null
  */
@@ -42,8 +45,7 @@ export function findMatrixRoomIdForLivekitRoom(
   possibleMatrixRoomIds: string[]
 ): string | null {
   for (const matrixRoomId of possibleMatrixRoomIds) {
-    const computedLivekitName = matrixRoomIdToLivekitRoomName(matrixRoomId);
-    if (computedLivekitName === livekitRoomName) {
+    if (candidateLivekitRoomNames(matrixRoomId).includes(livekitRoomName)) {
       return matrixRoomId;
     }
   }
@@ -74,8 +76,7 @@ export function matchLivekitRoomToMatrixRooms(
   ];
 
   for (const room of possibleRooms) {
-    const computedName = matrixRoomIdToLivekitRoomName(room.id);
-    if (computedName === livekitRoomName) {
+    if (candidateLivekitRoomNames(room.id).includes(livekitRoomName)) {
       return {
         isMatch: true,
         matrixRoomId: room.id,

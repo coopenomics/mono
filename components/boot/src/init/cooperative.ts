@@ -76,7 +76,7 @@ export class CooperativeClass {
     await this.blockchain.createProgram({
       coopname,
       username: coopname,
-      type: 'blagorost',
+      type: 'capital',
       title: 'Целевая потребительская программа "Благорост"',
       announce: '',
       description: '',

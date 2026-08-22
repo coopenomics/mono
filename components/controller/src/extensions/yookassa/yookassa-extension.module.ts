@@ -1,29 +1,31 @@
 import { Module, Inject } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import config from '~/config/config';
-import { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { IPNProvider } from '~/application/gateway/providers/ipn-provider';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { TypeOrmPaymentRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-payment.repository';
-import { PaymentEntity } from '~/infrastructure/database/typeorm/entities/payment.entity';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
-import { IPN_REPOSITORY, IpnRepository } from '~/domain/gateway/repositories/ipn.repository';
-import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
-import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
-import { REDIS_PORT, RedisPort } from '~/domain/common/ports/redis.port';
-import { RedisModule } from '~/infrastructure/redis/redis.module';
-import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
-import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
-import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
 import {
+  ExtensionDomainEntity,
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
-import { checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '~/shared/utils/payments';
+  platformSettings,
+  checkPaymentAmount,
+  checkPaymentSymbol,
+  getAmountPlusFee,
+  IPNProvider,
+  type PaymentDetails,
+} from '@coopenomics/extension-kit';
+import {
+  LOGGER_PORT,
+  type ILoggerPort,
+  MESSAGE_CHANNEL_PORT,
+  type IMessageChannelPort,
+  PAYMENT_PORT,
+  type IPaymentPort,
+  PAYMENT_NOTICE_LOG_PORT,
+  type IPaymentNoticeLogPort,
+  PAYMENT_PROVIDER_REGISTRY_PORT,
+  type IPaymentProviderRegistryPort,
+  PaymentStatus,
+  PaymentDirection,
+} from '@coopenomics/innercoop';
 
 export const Schema = z.object({
   client: z.string(),
@@ -101,31 +103,31 @@ export type IConfig = z.infer<typeof Schema>;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class YookassaPlugin extends IPNProvider {
+export class YookassaExtension extends IPNProvider {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: TypeOrmPaymentRepository,
-    @Inject(IPN_REPOSITORY) private readonly ipnRepository: IpnRepository,
-    private readonly logger: WinstonLoggerService,
-    @Inject(REDIS_PORT) private readonly redisPort: RedisPort,
-    @Inject(PROVIDER_PORT) private readonly providerPort: ProviderPort
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(PAYMENT_NOTICE_LOG_PORT) private readonly noticeLog: IPaymentNoticeLogPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(MESSAGE_CHANNEL_PORT) private readonly messageChannel: IMessageChannelPort,
+    @Inject(PAYMENT_PROVIDER_REGISTRY_PORT) private readonly providerRegistry: IPaymentProviderRegistryPort
   ) {
     super();
-    this.logger.setContext(YookassaPlugin.name);
+    this.logger.setContext(YookassaExtension.name);
   }
 
   name = 'yookassa';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   async initialize(): Promise<void> {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin.config);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
 
-    this.providerPort.registerProvider(this.name, this);
+    this.providerRegistry.registerProvider(this.name, this);
     this.logger.info(`Платежный провайдер ${this.name} успешно зарегистрирован.`);
   }
 
@@ -138,16 +140,16 @@ export class YookassaPlugin extends IPNProvider {
   public async handleIPN(request: IIpnRequest): Promise<void> {
     const { event } = request;
 
-    const exist = await this.ipnRepository.findOne({ data: { object: { id: request.object.id } } });
+    const exist = await this.noticeLog.find({ data: { object: { id: request.object.id } } });
 
     if (!exist) {
-      await this.ipnRepository.create({ provider: 'yookassa', data: request });
+      await this.noticeLog.record({ provider: 'yookassa', data: request });
 
       const { secret } = request.object.metadata;
-      const payments = await this.paymentRepository.getAllPayments(
+      const payments = await this.payments.list(
         {
           secret,
-          direction: PaymentDirectionEnum.INCOMING, // Ищем только входящие платежи
+          direction: PaymentDirection.INCOMING, // Ищем только входящие платежи
         },
         { limit: 1, page: 1, sortOrder: 'DESC' }
       );
@@ -169,13 +171,13 @@ export class YookassaPlugin extends IPNProvider {
             });
 
             if (payment.id) {
-              await this.paymentRepository.update(payment.id, {
-                status: PaymentStatusEnum.FAILED,
+              await this.payments.update(payment.id, {
+                status: PaymentStatus.FAILED,
                 message: symbol_result.message,
               });
-              await this.redisPort.publish(
-                `${config.coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
+              await this.messageChannel.publish(
+                `${platformSettings().coopname}:orderStatusUpdate`,
+                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
             return;
@@ -195,10 +197,10 @@ export class YookassaPlugin extends IPNProvider {
             });
 
             if (payment.id) {
-              await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.PAID });
-              await this.redisPort.publish(
-                `${config.coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatusEnum.PAID })
+              await this.payments.update(payment.id, { status: PaymentStatus.PAID });
+              await this.messageChannel.publish(
+                `${platformSettings().coopname}:orderStatusUpdate`,
+                JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
               );
             }
           } else {
@@ -210,13 +212,13 @@ export class YookassaPlugin extends IPNProvider {
             });
 
             if (payment.id) {
-              await this.paymentRepository.update(payment.id, {
-                status: PaymentStatusEnum.FAILED,
+              await this.payments.update(payment.id, {
+                status: PaymentStatus.FAILED,
                 message: result.message,
               });
-              await this.redisPort.publish(
-                `${config.coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
+              await this.messageChannel.publish(
+                `${platformSettings().coopname}:orderStatusUpdate`,
+                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
               );
             }
           }
@@ -225,10 +227,10 @@ export class YookassaPlugin extends IPNProvider {
           this.logger.warn('Получено событие неудачного платежа', { source: 'handleIPN', id: payment.id });
 
           if (payment.id) {
-            await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.FAILED });
-            this.redisPort.publish(
-              `${config.coopname}:orderStatusUpdate`,
-              JSON.stringify({ id: payment.id, status: PaymentStatusEnum.FAILED })
+            await this.payments.update(payment.id, { status: PaymentStatus.FAILED });
+            this.messageChannel.publish(
+              `${platformSettings().coopname}:orderStatusUpdate`,
+              JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
             );
           }
         }
@@ -244,9 +246,9 @@ export class YookassaPlugin extends IPNProvider {
     }
   }
 
-  public async createPayment(hash: string): Promise<PaymentDetailsDomainInterface> {
+  public async createPayment(hash: string): Promise<PaymentDetails> {
     // Получаем данные платежа по hash
-    const payment = await this.paymentRepository.findByHash(hash);
+    const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
       throw new Error(`Платеж с hash ${hash} не найден`);
@@ -261,8 +263,8 @@ export class YookassaPlugin extends IPNProvider {
     }
 
     const checkout = new YooCheckout({
-      shopId: this.plugin.config.client,
-      secretKey: this.plugin.config.secret,
+      shopId: this.extension.config.client,
+      secretKey: this.extension.config.secret,
     });
 
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
@@ -304,24 +306,15 @@ export class YookassaPlugin extends IPNProvider {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PaymentEntity]), RedisModule, GatewayDomainModule, GatewayInfrastructureModule],
   providers: [
-    YookassaPlugin,
-    {
-      provide: PAYMENT_REPOSITORY,
-      useClass: TypeOrmPaymentRepository,
-    },
-    {
-      provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
-    },
+    YookassaExtension,
   ],
-  exports: [YookassaPlugin],
+  exports: [YookassaExtension],
 })
-export class YookassaPluginModule {
-  constructor(private readonly yookassaPlugin: YookassaPlugin) {}
+export class YookassaExtensionModule {
+  constructor(private readonly yookassaExtension: YookassaExtension) {}
 
   async initialize() {
-    await this.yookassaPlugin.initialize();
+    await this.yookassaExtension.initialize();
   }
 }

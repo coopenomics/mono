@@ -6,6 +6,7 @@
     v-model='userData.organization_data.short_name',
     outlined color='primary',
     label='Краткое наименование организации',
+    placeholder='ПК "Ромашка"',
     :rules='[(val) => notEmpty(val)]',
     autocomplete='off'
   )
@@ -14,6 +15,7 @@
     v-model='userData.organization_data.full_name',
     outlined color='primary',
     label='Полное наименование организации',
+    placeholder='Потребительский Кооператив "Ромашка"',
     :rules='[(val) => notEmpty(val)]',
     autocomplete='off'
   )
@@ -61,6 +63,7 @@
     v-model='userData.organization_data.represented_by.position',
     outlined color='primary',
     label='Должность представителя',
+    placeholder='Председатель совета',
     :rules='[(val) => notEmpty(val)]',
     autocomplete='off'
   )
@@ -148,6 +151,7 @@
     v-model='userData.organization_data.bank_account.bank_name',
     outlined color='primary',
     label='Наименование банка',
+    placeholder='ПАО "Сбербанк"',
     :rules='[(val) => notEmpty(val)]',
     autocomplete='off'
   )
@@ -166,15 +170,6 @@
     mask='#########',
     label='БИК (9 цифр)',
     :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "БИК должен содержать 9 цифр"]',
-    autocomplete='off'
-  )
-
-  q-input(
-    v-model='userData.organization_data.bank_account.details.kpp',
-    outlined color='primary',
-    mask='#########',
-    label='КПП банка (9 цифр)',
-    :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "КПП должен содержать 9 цифр"]',
     autocomplete='off'
   )
 

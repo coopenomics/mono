@@ -2,8 +2,8 @@ import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtBlockchainData>;
@@ -80,9 +80,9 @@ export class DebtMapper {
         status: domain.blockchain_status as any,
         repaid_at: domain.repaid_at ? new Date(domain.repaid_at) : new Date(),
         amount: domain.amount as string,
-        statement: domain.statement as ISignedDocumentDomainInterface,
-        approved_statement: domain.approved_statement as ISignedDocumentDomainInterface,
-        authorization: domain.authorization as ISignedDocumentDomainInterface,
+        statement: domain.statement as ISignedDocument,
+        approved_statement: domain.approved_statement as ISignedDocument,
+        authorization: domain.authorization as ISignedDocument,
         memo: domain.memo as string,
       };
     }

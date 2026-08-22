@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для создания исходящего платежа
@@ -10,5 +10,5 @@ export interface CreateOutgoingPaymentInputDomainInterface {
   symbol: string;
   method_id: string;
   memo?: string;
-  statement: ISignedDocumentDomainInterface;
+  statement: ISignedDocument;
 }

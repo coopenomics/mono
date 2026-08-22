@@ -14,6 +14,8 @@ export interface DocumentSignaturesProps {
   docHash: string;
   /** Контрольная сумма, пересчитанная на клиенте. Если задана и == docHash — отметка «верно». */
   regeneratedHash?: string;
+  /** Идёт локальный пересчёт контрольной суммы — показываем загрузку, не «не совпадает». */
+  hashLoading?: boolean;
   /** Список приложенных подписей */
   signatures?: DocumentSignatureEntry[];
   /** Идёт ли сейчас «сверка» — для loading-состояния кнопки */

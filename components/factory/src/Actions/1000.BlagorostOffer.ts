@@ -13,22 +13,37 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
   }
 
   async generateDocument(data: BlagorostOffer.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<BlagorostOffer.Model>
+    // Извлечение данных из Udata репозитория
+    const udataService = new Udata(this.storage)
 
-    if (process.env.SOURCE === 'local') {
-      template = BlagorostOffer.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, 1000, data.block_num)
-    }
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, vars, coop, userData, blagorostAgreementUdata, blagorostAgreementCreatedAtUdata, docData } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(BlagorostOffer.Template as ITemplate<BlagorostOffer.Model>)
+        : this.getTemplate<BlagorostOffer.Model>(DraftContract.contractName.production, 1000, data.block_num),
+      vars: () => this.getVars(data.coopname),
+      coop: () => this.getCooperative(data.coopname),
+      userData: () => this.getUser(data.username, data.block_num),
+      blagorostAgreementUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
+        block_num: data.block_num,
+      }),
+      blagorostAgreementCreatedAtUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
+        block_num: data.block_num,
+      }),
+      docData: () => this.loadDocData<BlagorostOffer.Model['doc_data']>(data),
+    })
 
+    // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
 
-    // Для данного документа используем минимальную модель, но собираем все данные для шаблона
-    const vars = await this.getVars(data.coopname)
-    const coop = await this.getCooperative(data.coopname)
-    const userData = await this.getUser(data.username, data.block_num)
     const common_user = this.getCommonUser(userData)
+    const doc_data = Cooperative.Registry.requireCapitalProgramPrivateData(docData, BlagorostOffer.registry_id)
 
     // Проверяем наличие данных протоколов, утвердивших предыдущие документы
     if (!vars.blagorost_program?.protocol_number || !vars.blagorost_program?.protocol_day_month_year) {
@@ -39,26 +54,9 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
       throw new Error('Данные протокола об утверждении шаблона публичной оферты ЦПП «БЛАГОРОСТ» не найдены. Сначала утвердите шаблон оферты и сохраните данные протокола.')
     }
 
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
-    const blagorostAgreementUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
-      block_num: data.block_num,
-    })
-
     if (!blagorostAgreementUdata?.value) {
       throw new Error('Данные соглашения благороста не найдены в Udata')
     }
-
-    const blagorostAgreementCreatedAtUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
-      block_num: data.block_num,
-    })
 
     if (!blagorostAgreementCreatedAtUdata?.value) {
       throw new Error('Дата создания соглашения благороста не найдена в Udata')
@@ -72,6 +70,7 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
       common_user,
       blagorost_agreement_number: String(blagorostAgreementUdata.value),
       blagorost_agreement_created_at: String(blagorostAgreementCreatedAtUdata.value),
+      doc_data,
     }
 
     await this.validate(combinedData, template.model)

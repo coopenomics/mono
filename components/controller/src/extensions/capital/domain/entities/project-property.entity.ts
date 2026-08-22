@@ -1,8 +1,8 @@
 import { ProjectPropertyStatus } from '../enums/project-property-status.enum';
 import type { IProjectPropertyDatabaseData } from '../interfaces/project-property-database.interface';
 import type { IProjectPropertyBlockchainData } from '../interfaces/project-property-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 /**
  * Доменная сущность проектного имущественного взноса
  *

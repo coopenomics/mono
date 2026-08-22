@@ -1,3 +1,5 @@
+#include <array>
+
 /**
  * @brief Универсальное миграционное действие контракта ledger2 — точка
  * расширения для разовых исправлений состояния, которые можно провести
@@ -67,6 +69,76 @@ void ledger2::migrate() {
         w.available += w.blocked;
         w.blocked    = eosio::asset(0, w.blocked.symbol);
       });
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Разовая коррекция СЧЕТОВ под удаление фантомных пайщиков fgrtejiwnynn
+  // (инцидент 2026-06-04). Каждый из 6 дублей-аккаунтов при регистрации внёс
+  // минимальный паевой 300 RUB (o.reg.putmin: Dr 51 / Cr 80, ISSUE w.reg.minshr).
+  // Эти суммы — фантомные (нет реального пайщика), их нужно убрать из паевого
+  // фонда и с расчётного счёта. Снимаем L3-доли фантомов на w.reg.minshr,
+  // суммируем фактически снятое и ровно на эту сумму уменьшаем L2-кошелёк и
+  // бухсчета 80 (Cr) и 51 (Dr). Реальные пайщики (их доли на том же w.reg.minshr
+  // и счетах) не затрагиваются — трогаем только перечисленные username.
+  //
+  // Список синхронизирован с registrator::migrate и soviet::migrate.
+  // Идемпотентно: после первого прогона L3-строк фантомов нет → removed == 0 →
+  // L2/бухсчета не трогаются (вся коррекция в одной atomic-tx).
+  {
+    const eosio::name PHANTOM_COOP = "fgrtejiwnynn"_n;
+    const std::array<eosio::name, 6> PHANTOMS = {
+      "bbsezpgufvmm"_n, "errwcgjwverm"_n, "hcfsluqsfehw"_n,
+      "kgkzdadfpzki"_n, "nzuyijobapsv"_n, "tplwfwbujugq"_n,
+    };
+    const eosio::name MINSHR = ledger2_wallets::MIN_SHARE_FUND; // w.reg.minshr
+
+    eosio::asset removed(0, _root_govern_symbol);
+
+    // 1) Снимаем L3-доли фантомов на w.reg.minshr, суммируем снятое.
+    userwallets_index uw(get_self(), PHANTOM_COOP.value);
+    auto uw_byuser = uw.get_index<"byuser"_n>();
+    for (const auto& u : PHANTOMS) {
+      auto it = uw_byuser.lower_bound(u.value);
+      while (it != uw_byuser.end() && it->username == u) {
+        if (it->wallet_name == MINSHR) {
+          removed += it->available + it->blocked;
+          it = uw_byuser.erase(it);
+        } else {
+          ++it;
+        }
+      }
+    }
+
+    if (removed.amount > 0) {
+      // 2) L2 w.reg.minshr: available -= removed; удалить кошелёк, если опустел.
+      wallets2_index w2(get_self(), PHANTOM_COOP.value);
+      auto wit = w2.find(MINSHR.value);
+      if (wit != w2.end()) {
+        w2.modify(wit, get_self(), [&](auto& w) { w.available -= removed; });
+        if (wit->is_empty()) w2.erase(wit);
+      }
+
+      // 3) Бухсчета (scope=coopname): Cr 80 (паевой фонд) -= removed,
+      //    Dr 51 (расчётный счёт) -= removed; пересчёт сальдо по типу счёта.
+      //    Инвариант Σ Dr == Σ Cr сохраняется (обе стороны уменьшены на removed).
+      accounts2_index acc(get_self(), PHANTOM_COOP.value);
+
+      auto a80 = acc.find(ledger2_accounts::SHARE_FUND);
+      if (a80 != acc.end()) {
+        acc.modify(a80, get_self(), [&](auto& a) {
+          a.credit_balance -= removed;
+          a.balance = account2::compute_balance(a.account_type, a.debit_balance, a.credit_balance);
+        });
+      }
+
+      auto a51 = acc.find(ledger2_accounts::BANK_ACCOUNT);
+      if (a51 != acc.end()) {
+        acc.modify(a51, get_self(), [&](auto& a) {
+          a.debit_balance -= removed;
+          a.balance = account2::compute_balance(a.account_type, a.debit_balance, a.credit_balance);
+        });
+      }
     }
   }
 }

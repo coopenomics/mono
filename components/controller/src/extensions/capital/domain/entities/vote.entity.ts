@@ -1,7 +1,7 @@
 import type { IVoteDatabaseData } from '../interfaces/vote-database.interface';
 import type { IVoteBlockchainData } from '../interfaces/vote-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 /**
  * Доменная сущность голоса
  *

@@ -20,18 +20,23 @@
       RailUserCard(
         v-if='walletReady',
         v-model:collapsed='userCardCollapsed',
+        :lockable='walletLockable',
         :name='userName',
         :role='userRoleLabel',
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
+        balance-label='Главный паевой кошелёк',
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,
-        signout-label='Выйти',
+        signout-label='Выйти из кабинета',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
+      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`')
+        NodeSyncIndicator
+        span v{{ updateWatch.currentVersion }}
 
   //- Невидимые носители canon-диалогов: рендерятся в q-portal,
   //- открываются глобальными ref'ами через useDepositDialog().open() /
@@ -39,16 +44,18 @@
   .left-drawer-menu__hidden-dialogs(aria-hidden='true')
     DepositButton(:micro='true')
     WithdrawButton(:micro='true')
+
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
+import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
@@ -59,10 +66,13 @@ import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
+import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
+import { useUpdateWatch } from 'src/entities/AppVersion/model';
 
 const router = useRouter();
+const updateWatch = useUpdateWatch();
 const desktop = useDesktopStore();
 const session = useSessionStore();
 const systemStore = useSystemStore();
@@ -70,6 +80,7 @@ const { info } = systemStore;
 const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
 const palette = useCommandPaletteStore();
+const { subItemsFor } = useMenuSubItemsReader();
 
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
@@ -119,25 +130,27 @@ interface MenuMeta {
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
   const ctx = filterContext.value;
+  const wsName = desktop.activeWorkspaceName;
+  if (!wsName) return [];
   return (desktop.activeSecondLevelRoutes as RouteRecordRaw[]).filter((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
-    const rolesOk =
-      !meta.roles ||
-      meta.roles.length === 0 ||
-      meta.roles.includes(ctx.userRole);
-    const condOk = evalCondition(meta.conditions, ctx);
-    const visibleOk = !meta.hidden;
-    return rolesOk && condOk && visibleOk;
+    if (meta.hidden) return false;
+    if (!evalCondition(meta.conditions, ctx)) return false;
+    // Canon-grants: для grant-стола проверяется meta.requires против выданных
+    // бэкендом прав; для legacy-стола fallback на meta.roles по core-роли.
+    return desktop.isPageVisible(r.meta, wsName);
   });
 });
 
 const railItems = computed<RailItem[]>(() =>
   filteredRoutes.value.map((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
+    const children = subItemsFor(String(r.name));
     return {
       key: String(r.name),
       label: meta.title ?? String(r.name),
       icon: meta.icon,
+      ...(children.length ? { children } : {}),
     };
   }),
 );
@@ -152,9 +165,6 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
-    if (r.name === 'projects-list' && currentName.startsWith('project-')) {
-      return String(r.name);
-    }
   }
   return undefined;
 });
@@ -163,7 +173,12 @@ const activeKey = computed<string | undefined>(() => {
 
 function onSelect(item: RailItem): void {
   const route = filteredRoutes.value.find((r) => String(r.name) === item.key);
-  if (!route) return;
+  if (!route) {
+    // Суб-пункт (например, избранное): переход делает его router-link,
+    // здесь остаётся только закрыть drawer на мобильном.
+    if (item.route) desktop.closeLeftDrawerOnMobile();
+    return;
+  }
   const meta = (route.meta ?? {}) as MenuMeta;
   if (meta.action) {
     actionsStore.executeAction(meta.action);
@@ -195,8 +210,11 @@ const coopMeta = computed<string | undefined>(() =>
 
 // --- Footer: RailUserCard (canon .rail__usercard) --------------------------
 
-const mainWallet = computed(() =>
-  walletStore.program_wallets.find((w) => w.program_type === Zeus.ProgramType.MAIN),
+// Мини-кошелёк показывает ТОЛЬКО паевой (`w.wal.share`) — сырой кошелёк без
+// сворачивания с членской частью ЦК. Членские средства сюда не примешиваются
+// (для них — карточка «Членский кошелёк» на странице кошелька).
+const shareWallet = computed(() =>
+  walletStore.user_wallets.find((w) => w.wallet_name === 'w.wal.share'),
 );
 const walletReady = computed<boolean>(() => walletStore.program_wallets.length > 0);
 
@@ -207,13 +225,13 @@ function splitAsset(asset?: string | null): { amount: string; symbol: string } {
   return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
 }
 
-const walletAvail = computed(() => splitAsset(mainWallet.value?.available));
+const walletAvail = computed(() => splitAsset(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
   () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
-  const split = splitAsset(mainWallet.value?.blocked);
+  const split = splitAsset(shareWallet.value?.blocked);
   if (split.amount === '0,00' || split.amount === '0.00') return undefined;
   return split.amount;
 });
@@ -237,18 +255,45 @@ const userRoleLabel = computed<string>(() =>
   session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
 );
 
-// --- Свёртка кошелька (canon v-model:collapsed) ---------------------------
+// --- Свёртка кошелька: замок или стрелка ----------------------------------
+//
+// Запирать кошелёк есть смысл только при заданном PIN-коде: без него отпирание
+// прозрачно — ключ поднимается из локального кэша, ничего не спрашивая, — и
+// замок обещал бы защиту, которой нет. Поэтому:
+//
+//   PIN задан — свёртка и есть запирание. Состояние карточки не хранится
+//   отдельно, его определяет сам кошелёк, и запирание по простою сворачивает
+//   карточку само, без чьей-либо помощи.
+//
+//   PIN не задан (или вход прежний, по ключу) — свёртка остаётся тем, чем была:
+//   спрятать и показать баланс, с запоминанием выбора и без единого вопроса.
 
 const STORAGE_KEY_USERCARD_COLLAPSED = 'monocoop-left-drawer-usercard-collapsed';
-const userCardCollapsed = ref<boolean>(false);
+const manualCollapsed = ref<boolean>(false);
+
+const walletLockable = computed<boolean>(() => session.isCoopIdSession && session.hasCustomPin);
+
+const userCardCollapsed = computed<boolean>({
+  get: () => (walletLockable.value ? session.walletLocked : manualCollapsed.value),
+  set: (val) => {
+    if (!walletLockable.value) {
+      manualCollapsed.value = val;
+      localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+      return;
+    }
+    if (val) {
+      session.lockWalletNow();
+      return;
+    }
+    // Отказ от ввода PIN оставляет кошелёк запертым — карточка так и не
+    // раскроется, и это верно: раскрытая карточка обещала бы доступ, которого нет.
+    void session.unlockWalletInteractive();
+  },
+});
 
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY_USERCARD_COLLAPSED);
-  if (saved !== null) userCardCollapsed.value = saved === 'true';
-});
-
-watch(userCardCollapsed, (val) => {
-  localStorage.setItem(STORAGE_KEY_USERCARD_COLLAPSED, String(val));
+  if (saved !== null) manualCollapsed.value = saved === 'true';
 });
 
 // --- Триггеры действий ----------------------------------------------------
@@ -290,5 +335,23 @@ async function onLogout(): Promise<void> {
    (диалоги портятся в body независимо от родителя); сами кнопки прячем. */
 .left-drawer-menu__hidden-dialogs {
   display: none;
+}
+/* Кнопка «Выйти из кабинета» из RailUserCard — урезаем нижний padding, чтобы версия
+   шла сразу под ней без лишнего вертикального зазора. */
+:deep(.rail__signout) {
+  padding-bottom: var(--p-1, 4px);
+}
+/* Версия приложения — приглушённая подпись под карточкой пользователя.
+   Рядом с ней кружок состояния узла: место видно с любого стола. */
+.left-drawer-menu__version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-1, 4px);
+  text-align: center;
+  padding: 0 var(--p-2, 8px) var(--p-1, 4px);
+  font-size: 10px;
+  color: var(--p-ink-3);
+  user-select: none;
 }
 </style>

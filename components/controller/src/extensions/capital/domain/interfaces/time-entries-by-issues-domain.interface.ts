@@ -1,4 +1,4 @@
-import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
+import type { PaginationResult } from '@coopenomics/extension-kit';
 
 /**
  * Доменный интерфейс для агрегированной статистики времени по задачам
@@ -44,4 +44,4 @@ export interface TimeEntriesByIssuesDomainInterface {
 /**
  * Доменный интерфейс для результата пагинированных агрегированных записей времени по задачам
  */
-export type TimeEntriesByIssuesResultDomainInterface = PaginationResultDomainInterface<TimeEntriesByIssuesDomainInterface>;
+export type TimeEntriesByIssuesResultDomainInterface = PaginationResult<TimeEntriesByIssuesDomainInterface>;

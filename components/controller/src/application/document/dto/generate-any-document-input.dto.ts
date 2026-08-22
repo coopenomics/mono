@@ -1,6 +1,6 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import { GenerateDocumentOptionsInputDTO } from './generate-document-options-input.dto';
+import { GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 
 @InputType('GenerateAnyDocumentInput')
 export class GenerateAnyDocumentInputDTO {

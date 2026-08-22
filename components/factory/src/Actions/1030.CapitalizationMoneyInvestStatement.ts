@@ -12,18 +12,16 @@ export class Factory extends DocFactory<CapitalizationMoneyInvestStatement.Actio
   }
 
   async generateDocument(data: CapitalizationMoneyInvestStatement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<CapitalizationMoneyInvestStatement.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, vars, userData } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(CapitalizationMoneyInvestStatement.Template as ITemplate<CapitalizationMoneyInvestStatement.Model>)
+        : this.getTemplate<CapitalizationMoneyInvestStatement.Model>(DraftContract.contractName.production, CapitalizationMoneyInvestStatement.registry_id, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      userData: () => super.getUser(data.username, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = CapitalizationMoneyInvestStatement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, CapitalizationMoneyInvestStatement.registry_id, data.block_num)
-    }
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const vars = await super.getVars(data.coopname, data.block_num)
-    const userData = await super.getUser(data.username, data.block_num)
+    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data }) // зависит от template.title
     const common_user = super.getCommonUser(userData)
 
     const combinedData: CapitalizationMoneyInvestStatement.Model = {

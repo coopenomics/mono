@@ -2,64 +2,71 @@
 div
   q-step(
     :name='store.steps.GenerateAccount',
-    title='Получите приватный ключ и надежно сохраните его для цифровой подписи',
+    title='Установите пароль для входа',
     :done='store.isStepDone("GenerateAccount")'
   )
     .generate
-      p.generate__hint Приватный ключ используется для входа в систему и подписи документов. Мы рекомендуем сохранить его в бесплатном менеджере паролей, таком как
-        a.generate__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
-        | .
+      //- Ключ доступа больше не показывается и не выдаётся на руки: он создаётся
+      //- здесь же, шифруется этим паролем и хранится в защищённом хранилище
+      //- кооператива. Пайщик знает только пароль — им и входит.
+      p.generate__hint Пароль понадобится для входа в кооператив с любого устройства. Цифровая подпись создаётся автоматически и хранится в зашифрованном виде — доступ к ней открывает только ваш пароль.
 
-      .generate__field(ref='privateKeyFieldRef' v-if='account.private_key')
-        BaseInput(
-          :model-value='account.private_key',
-          label='Приватный ключ',
-          mono,
-          readonly
-        )
-          template(#append)
-            q-btn(flat dense round icon='content_copy' size='sm' @click='copyMnemonic')
-
-      BaseCheckbox(v-model='i_save')
-        | Я сохранил ключ в надёжном месте
+      BaseInput(
+        v-model='password',
+        label='Пароль',
+        type='password',
+        autocomplete='new-password',
+        :hint='PASSWORD_POLICY_HINT',
+        :error='passwordError',
+        required,
+        @keydown.enter.prevent='repeatRef?.focus()'
+      )
+      BaseInput(
+        ref='repeatRef',
+        v-model='repeatPassword',
+        label='Повторите пароль',
+        type='password',
+        autocomplete='new-password',
+        :error='repeatError',
+        required,
+        @keydown.enter.prevent='onRepeatEnter'
+      )
 
       .generate__actions
         BaseButton(variant='ghost', @click='store.prev()')
-          i.fa.fa-arrow-left
+          q-icon(name='arrow_back')
           span.q-ml-md назад
 
         BaseButton(
           variant='primary',
-          :disabled='!i_save',
+          :disabled='!canContinue',
           :loading='isLoading',
           @click='setAccount'
         )
           | Продолжить
-          q-tooltip подтвердите сохранение ключа для продолжения
 </template>
 <script lang="ts" setup>
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
-import { copyToClipboard } from 'quasar';
 import { useRegistratorStore } from 'src/entities/Registrator';
-import { SuccessAlert } from 'src/shared/api';
 import { Classes } from '@coopenomics/sdk';
+import { migrate, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { updateOpenReplayUser } from 'src/shared/config';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
-import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
+import { FailAlert } from 'src/shared/api';
 
 const store = useRegistratorStore();
 const system = useSystemStore();
 
-import { FailAlert } from 'src/shared/api';
-
 const api = useCreateUser();
-const i_save = ref(false);
 const account = ref(store.state.account);
-const privateKeyFieldRef = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
+
+const password = ref('');
+const repeatPassword = ref('');
+const repeatRef = ref<{ focus: () => void } | null>(null);
 
 if (
   !account.value.private_key ||
@@ -71,37 +78,53 @@ if (
 const email = computed(() => store.state.email);
 const userData = computed(() => store.state.userData);
 
-// Автоматическое выделение приватного ключа при его генерации
+// Шаги q-stepper не размонтируются, поэтому введённый пароль «залипал» бы при
+// возврате к шагу. Сбрасываем оба поля при каждом входе в шаг.
 watch(
-  () => account.value.private_key,
-  (newKey) => {
-    if (newKey) {
-      void nextTick(() => {
-        const input = privateKeyFieldRef.value?.querySelector('input');
-        input?.select();
-      });
+  () => store.state.step,
+  (value) => {
+    if (value === store.steps.GenerateAccount) {
+      password.value = '';
+      repeatPassword.value = '';
     }
   },
   { immediate: true },
 );
 
-const copyMnemonic = () => {
-  const toCopy = `${account.value.private_key}`;
-
-  copyToClipboard(toCopy)
-    .then(() => {
-      SuccessAlert('Приватный ключ скопирован в буфер обмена');
-    })
-    .catch((e) => {
-      console.log(e);
-    });
-};
+const passwordError = computed(() => {
+  if (!password.value) return '';
+  return passwordPolicyErrors(password.value).join(', ');
+});
+const repeatError = computed(() =>
+  repeatPassword.value && repeatPassword.value !== password.value
+    ? 'Пароли не совпадают'
+    : '',
+);
+const canContinue = computed(
+  () =>
+    passwordPolicyErrors(password.value).length === 0 &&
+    repeatPassword.value === password.value,
+);
 
 const setAccount = async () => {
   isLoading.value = true;
   try {
-    await api.createUser(email.value, userData.value, account.value);
-    store.state.account = account.value;
+    if (!store.state.accountCreated) {
+      await api.createUser(email.value, userData.value, account.value);
+      store.state.account = account.value;
+      store.state.accountCreated = true;
+    }
+
+    // Пароль — сразу в контур CoopID: учётка входа + ключ, зашифрованный этим
+    // паролем, в защищённом хранилище. Владение доказывается подписью только что
+    // созданного ключа; `rotate: false` — ключ никому не показывался, ротировать
+    // нечего (да и нельзя до принятия в пайщики). Дальше пайщик входит паролем.
+    await migrate({
+      email: email.value,
+      privateKey: account.value.private_key,
+      newPassword: password.value,
+      rotate: false,
+    });
 
     // Обновляем username в OpenReplay tracker после создания пользователя
     updateOpenReplayUser({
@@ -113,13 +136,21 @@ const setAccount = async () => {
     if (store.isBranched) store.goTo('SelectBranch');
     else store.goTo('ReadStatement');
   } catch (e: any) {
-    store.goTo('SetUserData');
+    // createUser падает из-за данных анкеты — возвращаем к ним. Установка пароля
+    // (учётка уже создана) падает по сетевым причинам — остаёмся на шаге, пайщик
+    // просто повторяет: провижининг пароля идемпотентен.
+    if (!store.state.accountCreated) store.goTo('SetUserData');
     console.error(e);
     FailAlert(e);
   } finally {
     isLoading.value = false;
   }
 };
+
+/** Enter во втором поле = «Продолжить»: привычный набор без мыши. */
+function onRepeatEnter(): void {
+  if (canContinue.value && !isLoading.value) void setAccount();
+}
 </script>
 
 <style scoped>
@@ -134,17 +165,6 @@ const setAccount = async () => {
   line-height: var(--p-lh-body, 1.55);
   color: var(--p-ink);
   margin: 0;
-}
-.generate__link {
-  margin-left: var(--p-1, 4px);
-  color: var(--p-primary);
-  text-decoration: none;
-}
-.generate__link:hover {
-  text-decoration: underline;
-}
-.generate__field {
-  width: 100%;
 }
 .generate__actions {
   display: flex;

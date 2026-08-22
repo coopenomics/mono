@@ -35,14 +35,14 @@ const props = withDefaults(defineProps<BaseButtonProps>(), {
   iconOnly: false,
 });
 
-const isUnelevated = computed(() => props.variant === 'primary');
+const isUnelevated = computed(() => props.variant === 'primary' || props.variant === 'negative');
 const resolvedColor = computed(() => {
   if (props.variant === 'primary') return 'primary';
-  if (props.variant === 'danger') return 'negative';
+  if (props.variant === 'danger' || props.variant === 'negative') return 'negative';
   return undefined;
 });
 const resolvedTextColor = computed(() => {
-  if (props.variant === 'primary') return 'white';
+  if (props.variant === 'primary' || props.variant === 'negative') return 'white';
   return undefined;
 });
 const resolvedSize = computed(() => {

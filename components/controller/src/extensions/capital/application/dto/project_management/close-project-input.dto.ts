@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { CloseProjectDomainInput } from '~/extensions/capital/domain/actions/close-project-domain-input.interface';
+import type { CloseProjectDomainInput } from '../../../domain/actions/close-project-domain-input.interface';
 
 /**
  * GraphQL DTO для закрытия проекта от инвестиций CAPITAL контракта

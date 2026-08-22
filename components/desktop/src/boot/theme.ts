@@ -8,6 +8,12 @@ function applyTheme(isDark: boolean): void {
 }
 
 export default boot(() => {
+  // Только клиент: тема — это атрибут data-theme на documentElement, на сервере DOM нет.
+  // Вдобавок watch ниже подписан на ГЛОБАЛЬНЫЙ Quasar-реактив Dark (синглтон на все
+  // запросы): в SSR boot выполняется на каждый рендер-запрос, и эти подписки копились
+  // бы на синглтоне навсегда (утечка, как у Sentry). На сервере тема не нужна.
+  if (process.env.SERVER) return;
+
   applyTheme(Dark.isActive);
   watch(
     () => Dark.isActive,

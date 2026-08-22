@@ -1,12 +1,9 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import config from '~/config/config';
-import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort,
+  type InnerChainActionRecord,
+} from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
@@ -21,13 +18,13 @@ import { ApprovalStatus } from '../../domain';
 @Injectable()
 export class ApprovalResponseNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountPort: AccountDataPort,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: INotificationPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort,
     @Inject(APPROVAL_REPOSITORY)
     private readonly approvalRepository: ApprovalRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ApprovalResponseNotificationService.name);
   }
@@ -41,12 +38,12 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
    * Отправляет уведомление автору запроса об одобрении
    */
   @OnEvent(`action::${SovietContract.contractName.production}::${SovietContract.Actions.Approves.ConfirmApprove.actionName}`)
-  async handleConfirmApprove(actionData: ActionDomainInterface): Promise<void> {
+  async handleConfirmApprove(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as SovietContract.Actions.Approves.ConfirmApprove.IConfirmApprove;
 
       // Проверяем что это наш кооператив
-      if (action.coopname !== config.coopname) {
+      if (action.coopname !== platformSettings().coopname) {
         return;
       }
 
@@ -63,12 +60,12 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
    * Отправляет уведомление автору запроса об отклонении
    */
   @OnEvent(`action::${SovietContract.contractName.production}::${SovietContract.Actions.Approves.DeclineApprove.actionName}`)
-  async handleDeclineApprove(actionData: ActionDomainInterface): Promise<void> {
+  async handleDeclineApprove(actionData: InnerChainActionRecord): Promise<void> {
     try {
       const action = actionData.data as SovietContract.Actions.Approves.DeclineApprove.IDeclineApprove;
 
       // Проверяем что это наш кооператив
-      if (action.coopname !== config.coopname) {
+      if (action.coopname !== platformSettings().coopname) {
         return;
       }
 
@@ -93,8 +90,8 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
     }
 
     // Получаем кооператив для получения short_name
-    const coop = await this.accountPort.getAccount(config.coopname);
-    const coopShortName = coop.private_account?.organization_data?.short_name || config.coopname;
+    const coop = await this.accountPort.getAccount(platformSettings().coopname);
+    const coopShortName = coop.private_account?.organization_data?.short_name || platformSettings().coopname;
 
     const authorUsername = approval.username;
 
@@ -105,7 +102,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       const authorSubscriberId = authorAccount.provider_account?.subscriber_id?.trim();
 
       if (!authorSubscriberId) {
-        this.logger.warn(`subscriber_id автора запроса ${authorUsername} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id автора запроса ${authorUsername} не найден`);
         return;
       }
 
@@ -117,28 +114,34 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       // Получаем отображаемое имя автора
       const authorName = await this.accountPort.getDisplayName(authorUsername);
 
+      // Предмет запроса для текста уведомления — заголовок документа одобрения.
+      // WHY: раньше в тексте фигурировал approval_hash — пользователю он ничего
+      // не сообщает, а 64 символа без пробелов ломают вёрстку in-app/push.
+      const requestTitle = approval.document?.meta?.title?.trim() || 'Запрос на одобрение действия';
+
       // Формируем данные для workflow
       const payload: Workflows.ApprovalResponse.IPayload = {
         userName: authorName,
         approvalStatus: status,
         approvalStatusText: status === ApprovalStatus.APPROVED ? 'одобрен' : 'отклонён',
+        requestTitle,
         approvalId: approvalHash,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         coopShortName,
-        approvalUrl: `${config.frontend_url}`,
+        approvalUrl: `${platformSettings().frontendUrl}`,
       };
 
-      // Отправляем уведомление
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.ApprovalResponse.id,
+      // Отправляем уведомление через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname: platformSettings().coopname,
+        workflowId: Workflows.ApprovalResponse.id,
         to: {
           subscriberId: authorSubscriberId,
           email: authorEmail,
+          username: authorUsername,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление отправлено автору ${authorUsername} об ${
           status === 'approved' ? 'одобрении' : 'отклонении'

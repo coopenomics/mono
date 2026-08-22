@@ -1,15 +1,22 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { RepresentedByDTO } from '~/application/common/dto/represented-by.dto';
 import type { BranchDomainInterface } from '~/domain/branch/interfaces/branch-domain.interface';
 import type { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entity';
 import { OrganizationDetailsDTO } from '~/application/common/dto/organization-details.dto';
 import { IndividualDTO } from '~/application/common/dto/individual.dto';
+import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IsArray, IsJSON, IsString } from 'class-validator';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+
+/**
+ * Пути внутри карточки участка, по которым пайщик считается «своим»:
+ * председатель участка и его доверенные лица. Совпадение с именем аккаунта
+ * запрашивающего открывает поля состава без ролей кооператива.
+ */
+const SELF_AT_BRANCH = ['trustee.username', 'trusted[].username'];
 
 @ObjectType('Branch')
 export class BranchDTO implements BranchDomainInterface {
@@ -21,15 +28,33 @@ export class BranchDTO implements BranchDomainInterface {
   @IsString()
   public readonly braname: string;
 
-  @Field(() => IndividualDTO, { description: 'Председатель кооперативного участка' })
-  @AuthRoles(['chairman', 'member'])
+  // Состав участка виден совету кооператива, а также самому участку —
+  // председателю и его доверенным. Без этого председатель участка не может
+  // прочитать даже собственный участок: для кооператива он обычный пайщик, а
+  // отказ поля роняет весь запрос карточки.
+  @Field(() => IndividualDTO, {
+    nullable: true,
+    description: 'Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
   @IsString()
   public readonly trustee: IndividualDTO;
 
-  @Field(() => [IndividualDTO], { description: 'Доверенные аккаунты' })
-  @AuthRoles(['chairman', 'member'])
+  @Field(() => [IndividualDTO], {
+    nullable: true,
+    description: 'Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
   @IsArray()
   public readonly trusted: IndividualDTO[];
+
+  // публичная часть (сертификаты — только ФИО и имя аккаунта) доступна любому
+  // пайщику; полные персональные данные выше остаются под ограничением ролей
+  @Field(() => IndividualCertificateDTO, { description: 'Сертификат председателя кооперативного участка (ФИО)' })
+  public readonly trustee_certificate: IndividualCertificateDTO;
+
+  @Field(() => [IndividualCertificateDTO], { description: 'Сертификаты доверенных лиц участка (ФИО)' })
+  public readonly trusted_certificates: IndividualCertificateDTO[];
 
   @Field(() => String, { description: 'Тип организации' })
   @IsString()
@@ -79,11 +104,36 @@ export class BranchDTO implements BranchDomainInterface {
   @IsJSON()
   public readonly details: OrganizationDetailsDTO;
 
+  @Field(() => Int, { description: 'Количество пайщиков, состоящих в кооперативном участке' })
+  public readonly participants_count: number;
+
+  @Field(() => Boolean, {
+    description: 'Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка',
+  })
+  public readonly is_private: boolean;
+
+  @Field(() => Boolean, {
+    description: 'Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке)',
+  })
+  public readonly is_available: boolean;
+
+  // список ФИО пайщиков белого списка нужен председателю для управления приватным участком
+  @Field(() => [IndividualCertificateDTO], {
+    nullable: true,
+    description: 'Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой',
+  })
+  @AuthRoles(['chairman', 'member'], { self: SELF_AT_BRANCH })
+  public readonly whitelist_certificates: IndividualCertificateDTO[];
+
   constructor(entity: BranchDomainEntity) {
     this.coopname = entity.coopname;
     this.braname = entity.braname;
     this.trustee = new IndividualDTO(entity.trustee);
     this.trusted = entity.trusted.map((trustedEntity) => new IndividualDTO(trustedEntity));
+    this.trustee_certificate = new IndividualCertificateDTO({ ...entity.trustee, type: AccountType.individual });
+    this.trusted_certificates = entity.trusted.map(
+      (trustedEntity) => new IndividualCertificateDTO({ ...trustedEntity, type: AccountType.individual }),
+    );
     this.type = entity.type;
     this.short_name = entity.short_name;
     this.full_name = entity.full_name;
@@ -96,5 +146,11 @@ export class BranchDTO implements BranchDomainInterface {
     this.email = entity.email;
     this.details = new OrganizationDetailsDTO(entity.details);
     this.bank_account = new BankPaymentMethodDTO(entity.bank_account);
+    this.participants_count = entity.participants_count;
+    this.is_private = entity.is_private;
+    this.is_available = entity.is_available;
+    this.whitelist_certificates = entity.whitelist_members.map(
+      (member) => new IndividualCertificateDTO({ ...member, type: AccountType.individual }),
+    );
   }
 }

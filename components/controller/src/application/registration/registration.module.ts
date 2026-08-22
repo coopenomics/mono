@@ -1,6 +1,7 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { RegistrationResolver } from './resolvers/registration.resolver';
 import { RegistrationService } from './services/registration.service';
+import { CANDIDATE_DATA_PORT } from '~/domain/registration/ports/candidate-data.port';
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { RegistrationDomainModule } from '~/domain/registration/registration-domain.module';
 import { ParticipantModule } from '../participant/participant.module';
@@ -20,7 +21,12 @@ import { AccountInfrastructureModule } from '~/infrastructure/account/account-in
   providers: [
     RegistrationResolver,
     RegistrationService,
+    // Порт кандидатов раздаёт тот, кому сценарии вступления и принадлежат.
+    // Раньше его держал отдельный `RegistrationInfrastructureModule` с
+    // адаптером-транзитом, и ради одного метода инфраструктура импортировала
+    // приложение обратно — цикл, который обходили `forwardRef`.
+    { provide: CANDIDATE_DATA_PORT, useExisting: RegistrationService },
   ],
-  exports: [RegistrationService],
+  exports: [RegistrationService, CANDIDATE_DATA_PORT],
 })
 export class RegistrationModule {}

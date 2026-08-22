@@ -12,22 +12,21 @@ export class Factory extends DocFactory<AssetContributionDecision.Action> {
   }
 
   async generateDocument(data: AssetContributionDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AssetContributionDecision.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars, user, request } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AssetContributionDecision.Template as ITemplate<AssetContributionDecision.Model>)
+        : this.getTemplate<AssetContributionDecision.Model>(DraftContract.contractName.production, AssetContributionDecision.registry_id, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      vars: () => this.getVars(data.coopname, data.block_num),
+      user: () => this.getUser(data.username, data.block_num),
+      request: () => this.getRequest(data.request_id, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = AssetContributionDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AssetContributionDecision.registry_id, data.block_num)
-    }
-
+    // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-    const user = await this.getUser(data.username, data.block_num)
 
-    const request = await this.getRequest(data.request_id, data.block_num)
-
+    // decision зависит от coop и meta.created_at — после батча
     const decision = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at)
     const commonUser = this.getCommonUser(user)
 

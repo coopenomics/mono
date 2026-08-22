@@ -115,7 +115,7 @@ export default async ({ page, shot, env }) => {
   const newadapter = loadFixture('newadapter');
   await loginAs(page, newadapter);
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
 
   // На свежей цепочке у пайщика ещё нет кошелька — сначала подписываем wallet
   // onboarding (Положение о ЦПП, ЭП, политика, пользсоглашение). Без него

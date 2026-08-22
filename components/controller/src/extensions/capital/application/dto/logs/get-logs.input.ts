@@ -1,6 +1,6 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { LogFilterInputDTO } from './log-filter.input';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Input DTO для запроса логов с пагинацией

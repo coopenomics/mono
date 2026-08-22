@@ -1,98 +1,126 @@
 <template lang="pug">
-div.column.flex-1.min-h-0.min-w-0.no-wrap
-  // Мобильный layout - колонки одна под другой
-  div(v-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
-    div.q-px-md.q-pt-md(v-if="project")
-      ComponentToProjectPathWidget.capital-entity-header-path(:project="project")
-      ProjectTitleEditor(
-        :project="project"
-        label="Компонент"
-        @field-change="handleFieldChange"
-        @update:title="handleTitleUpdate"
-      ).full-width.q-mt-xs
-        template(#prepend-icon)
-          q-icon(name='fa-regular fa-file-code', size='24px', color='primary')
-    div
-      ComponentSidebarWidget(
-        :project="project"
-        compact-mobile
-        @project-deleted="handleProjectDeleted"
-      )
-
-    // Правая колонка: один скролл внутри (не дублировать с внешним overflow)
-    div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
-      div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-        router-view
-
-      Fab(v-if="project")
-        // Если доступно больше одного действия - показываем раскрывающийся список
-        template(#actions v-if="project?.permissions?.has_clearance && availableActions.length > 1")
-          // Показываем кнопку создания задачи и артефакта, если пользователь имеет допуск к проекту
-          CreateIssueFabAction(
-            ref="createIssueFabRef"
-            v-if="project?.permissions?.can_manage_issues"
+.component-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+  // Меню вкладок — сразу под шапкой, без внешних отступов
+  PageTabs(
+    v-if="project && !isIssueRoute"
+    :tabs="componentTabs"
+    :active-key="activeTabKey"
+  )
+    template(#actions)
+      template(v-if="isLocalProject")
+        CreateIssueButton(
+          v-if="activeTabKey.endsWith('component-tasks') && project.permissions?.can_manage_issues"
+          ref="createIssueRef"
+          :project-hash="projectHash"
+          size="sm"
+          label="Задача"
+          @action-completed="handleIssueCreated"
+        )
+        CreateRequirementButton(
+          v-if="activeTabKey.endsWith('component-requirements')"
+          ref="createRequirementRef"
+          :filter="{ project_hash: projectHash }"
+          :permissions="project.permissions"
+          @action-completed="handleRequirementCreated"
+        )
+        SetPlanButton(
+          v-if="activeTabKey.endsWith('component-planning') && (project.permissions?.can_manage_issues || project.permissions?.can_edit_project)"
+          ref="setPlanRef"
+          :project="project"
+          @action-completed="handlePlanSet"
+        )
+      template(v-else)
+        PendingClearanceButton(
+          v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
+        )
+        MakeClearanceButton(
+          v-else-if="!project.permissions?.has_clearance"
+          ref="makeClearanceRef"
+          :project="project"
+          @clearance-submitted="handleClearanceSubmitted"
+        )
+        template(v-else)
+          CreateIssueButton(
+            v-if="activeTabKey.endsWith('component-tasks') && project.permissions?.can_manage_issues"
+            ref="createIssueRef"
             :project-hash="projectHash"
+            size="sm"
+            label="Задача"
             @action-completed="handleIssueCreated"
           )
-          CreateRequirementFabAction(
-            ref="createRequirementFabRef"
+          CreateRequirementButton(
+            v-if="activeTabKey.endsWith('component-requirements')"
+            ref="createRequirementRef"
             :filter="{ project_hash: projectHash }"
-            :permissions="project?.permissions"
+            :permissions="project.permissions"
             @action-completed="handleRequirementCreated"
           )
-          SetPlanFabAction(
-            ref="setPlanFabRef"
-            v-if="project?.permissions?.can_set_plan"
+          SetPlanButton(
+            v-if="activeTabKey.endsWith('component-planning') && project.permissions?.can_set_plan"
+            ref="setPlanRef"
             :project="project"
             @action-completed="handlePlanSet"
           )
-          AddAuthorFabAction(
-            ref="addAuthorFabRef"
-            v-if="project?.permissions?.can_manage_authors"
+          AddAuthorButton(
+            v-if="activeTabKey.endsWith('component-contributors') && project.permissions?.can_manage_authors"
+            ref="addAuthorRef"
             :project="project"
-            @action-completed="handleAuthorsAdded"
-          )
-          ComponentInvestFabAction(
-            ref="componentInvestFabRef"
-            :project="project"
-            @action-completed="handleInvestCompleted"
+            @authors-added="handleAuthorsAdded"
           )
 
-        // Если доступно только одно действие - показываем его как основную кнопку
-        template(#default)
-          ComponentInvestFabAction(
-            ref="componentInvestFabRef"
-            v-if="project?.permissions?.has_clearance && availableActions.length === 1 && availableActions.includes('invest')"
-            :project="project"
-            fab
-            @action-completed="handleInvestCompleted"
-          )
+  // Скелетон первичной загрузки компонента
+  .component-page-skeleton(v-if="!project")
+    .component-page-skeleton__side(v-if="showSidebar")
+      .skel(v-for="i in 4", :key="i")
+    .component-page-skeleton__main
+      .skel.skel--title
+      .skel.skel--text(v-for="i in 3", :key="i")
 
-          // Показываем кнопку ожидания, если запрос на допуск в рассмотрении
-          PendingClearanceButton(
-            v-else-if="project?.permissions?.pending_clearance"
-          )
+  // Мобильный layout — сайдбар только на «Описание».
+  // no-wrap обязателен: quasar-«column» по умолчанию wrap, и контент, не
+  // влезший в фиксированную высоту оболочки, уезжал во «вторую колонку» вправо
+  // page-surface: контент на --p-surface, табы остаются на canvas
+  .page-surface.column.no-wrap.col.flex-1.min-h-0.min-w-0(
+    v-else-if="isMobileLayout"
+  )
+    //- «Описание»: заголовок, управление и контент прокручиваются одной лентой
+    div.col.min-h-0.overflow-auto.min-w-0(v-if="showSidebar")
+      .q-px-md
+        ProjectTitleEditor(
+          :project="project"
+          label="Компонент"
+          @field-change="handleFieldChange"
+          @update:title="handleTitleUpdate"
+        ).full-width
+          template(#prepend-icon)
+            q-icon(name='code', size='24px', color='primary')
+          template(#hint)
+            ComponentToProjectPathWidget(:project="project")
+        ComponentSidebarWidget(
+          :project="project"
+          compact-mobile
+          @project-deleted="handleProjectDeleted"
+        )
+      router-view
+    div.col.flex-1.min-h-0.min-w-0.column.no-wrap.overflow-hidden.relative-position(v-else)
+      div.col.min-h-0.overflow-auto.min-w-0
+        router-view
 
-          // Показываем кнопку участия, если пользователь не имеет допуска к проекту
-          MakeClearanceButton(
-            ref="makeClearanceFabRef"
-            v-else-if="!project?.permissions?.has_clearance"
-            :project="project"
-            fab
-            @clearance-submitted="handleClearanceSubmitted"
-          )
-
-  .column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
-    .q-px-md.q-pt-md(v-if="project")
-      ComponentToProjectPathWidget.capital-entity-header-path(:project="project")
+  // Десктоп «Описание»: название + сайдбар управления + контент на surface
+  .page-surface.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="showSidebar"
+  )
+    .q-px-md
       ProjectTitleEditor(
         :project="project"
         label="Компонент"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
-      ).full-width.q-mt-xs
+      ).full-width
         template(#prepend-icon)
-          q-icon(name='fa-regular fa-file-code', size='24px', color='primary')
+          q-icon(name='code', size='24px', color='primary')
+        template(#hint)
+          ComponentToProjectPathWidget(:project="project")
     q-splitter.col.flex-1.min-h-0(
       v-model="sidebarWidth"
       :limits="[200, 800]"
@@ -107,85 +135,39 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
           :project="project"
           @project-deleted="handleProjectDeleted"
         )
-
       template(#after)
         div.column.full-height.min-h-0.relative-position
-          div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
+          div.col.min-h-0.overflow-auto.min-w-0
             router-view
 
-          Fab(v-if="project")
-            template(#actions v-if="project?.permissions?.has_clearance && availableActions.length > 1")
-              CreateIssueFabAction(
-                ref="createIssueFabRef"
-                v-if="project?.permissions?.can_manage_issues"
-                :project-hash="projectHash"
-                @action-completed="handleIssueCreated"
-              )
-              CreateRequirementFabAction(
-                ref="createRequirementFabRef"
-                :filter="{ project_hash: projectHash }"
-                :permissions="project?.permissions"
-                @action-completed="handleRequirementCreated"
-              )
-              SetPlanFabAction(
-                ref="setPlanFabRef"
-                v-if="project?.permissions?.can_set_plan"
-                :project="project"
-                @action-completed="handlePlanSet"
-              )
-              AddAuthorFabAction(
-                ref="addAuthorFabRef"
-                v-if="project?.permissions?.can_manage_authors"
-                :project="project"
-                @action-completed="handleAuthorsAdded"
-              )
-              ComponentInvestFabAction(
-                ref="componentInvestFabRef"
-                :project="project"
-                @action-completed="handleInvestCompleted"
-              )
-
-            template(#default)
-              ComponentInvestFabAction(
-                ref="componentInvestFabRef"
-                v-if="project?.permissions?.has_clearance && availableActions.length === 1 && availableActions.includes('invest')"
-                :project="project"
-                fab
-                @action-completed="handleInvestCompleted"
-              )
-
-              PendingClearanceButton(
-                v-else-if="project?.permissions?.pending_clearance"
-              )
-
-              MakeClearanceButton(
-                ref="makeClearanceFabRef"
-                v-else-if="!project?.permissions?.has_clearance"
-                :project="project"
-                fab
-                @clearance-submitted="handleClearanceSubmitted"
-              )
+  // Остальные вкладки — контент на всю ширину, тоже surface.
+  // Заголовка с названием здесь нет, поэтому строкой сверху говорим, какой
+  // это компонент и в каком он проекте — иначе, придя из общего списка
+  // компонентов, ориентироваться не по чему.
+  .page-surface.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+    .component-page-context(v-if="project")
+      span.component-page-context__title {{ project.title }}
+      ComponentToProjectPathWidget(:project="project")
+    div.col.min-h-0.overflow-auto.min-w-0
+      router-view
 </template>
-
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount, computed, markRaw, watch, ref } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import { useBackButton } from 'src/shared/lib/navigation';
-import { useHeaderActions } from 'src/shared/hooks';
-import { RouteMenuButton, Fab } from 'src/shared/ui';
-import { CreateIssueFabAction } from 'app/extensions/capital/features/Issue/CreateIssue';
-import { CreateRequirementFabAction } from 'app/extensions/capital/features/Story/CreateStory';
+import { PageTabs } from 'src/shared/ui/layout';
+import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
+import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
+import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
+import { SetPlanButton } from 'app/extensions/capital/features/Project/SetPlan';
 import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
-import { SetPlanFabAction } from 'app/extensions/capital/features/Project/SetPlan';
-import { ComponentInvestFabAction } from 'app/extensions/capital/features/Invest/CreateProjectInvest';
-import { AddAuthorFabAction } from 'app/extensions/capital/features/Project/AddAuthor';
 import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/PendingClearanceButton';
 import { ComponentSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { ComponentToProjectPathWidget } from 'app/extensions/capital/widgets/ComponentToProjectPathWidget';
-import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
+import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -216,182 +198,127 @@ const saveSidebarWidth = (width: number) => {
 // Определение layout в зависимости от размера экрана
 const isMobileLayout = isMobile;
 
-// Список доступных действий для FAB
-const availableActions = computed(() => {
-  if (!project.value?.permissions?.has_clearance) return [];
+type CapitalActionOpen = { openDialog: () => void } | null;
 
-  const actions: any = [];
-  const p = project.value.permissions;
-
-  if (p.can_manage_issues) actions.push('issue');
-  if (p.can_create_requirement) actions.push('requirement');
-  if (p.can_set_plan) actions.push('plan');
-  if (p.can_manage_authors) actions.push('author');
-
-  // Инвестирование доступно всем участникам с допуском.
-  // Мы оставляем его в списке даже если проект не запланирован,
-  // чтобы кнопка отображалась в disabled состоянии.
-  actions.push('invest');
-
-  return actions;
-});
-
-type CapitalFabOpen = { openDialog: () => void } | null;
-
-const createIssueFabRef = ref<CapitalFabOpen>(null);
-const createRequirementFabRef = ref<CapitalFabOpen>(null);
-const setPlanFabRef = ref<CapitalFabOpen>(null);
-const addAuthorFabRef = ref<CapitalFabOpen>(null);
-const componentInvestFabRef = ref<CapitalFabOpen>(null);
-const makeClearanceFabRef = ref<CapitalFabOpen>(null);
+const createIssueRef = ref<CapitalActionOpen>(null);
+const createRequirementRef = ref<CapitalActionOpen>(null);
+const setPlanRef = ref<CapitalActionOpen>(null);
+const addAuthorRef = ref<CapitalActionOpen>(null);
+const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
 const { project, projectHash, loadProject } = useProjectLoader();
 
+const isLocalProject = computed(() => project.value?.origin === 'local');
+
+// Хоткеи действуют на той вкладке, где видна соответствующая кнопка
 useCapitalFabHotkeys(() => {
   const perms = project.value?.permissions;
   if (!perms) {
     return {};
   }
 
-  const joinHandler =
-    !perms.has_clearance && !perms.pending_clearance
-      ? () => makeClearanceFabRef.value?.openDialog()
-      : undefined;
+  if (isLocalProject.value) {
+    return {
+      issue: perms.can_manage_issues
+        ? () => createIssueRef.value?.openDialog()
+        : undefined,
+      requirement: perms.can_create_requirement
+        ? () => createRequirementRef.value?.openDialog()
+        : undefined,
+      plan:
+        perms.can_manage_issues || perms.can_edit_project
+          ? () => setPlanRef.value?.openDialog()
+          : undefined,
+    };
+  }
 
   if (!perms.has_clearance) {
-    return joinHandler ? { join: joinHandler } : {};
+    return !perms.pending_clearance
+      ? { join: () => makeClearanceRef.value?.openDialog() }
+      : {};
   }
 
   return {
     issue: perms.can_manage_issues
-      ? () => createIssueFabRef.value?.openDialog()
+      ? () => createIssueRef.value?.openDialog()
       : undefined,
     requirement: perms.can_create_requirement
-      ? () => createRequirementFabRef.value?.openDialog()
+      ? () => createRequirementRef.value?.openDialog()
       : undefined,
     plan: perms.can_set_plan
-      ? () => setPlanFabRef.value?.openDialog()
+      ? () => setPlanRef.value?.openDialog()
       : undefined,
     author: perms.can_manage_authors
-      ? () => addAuthorFabRef.value?.openDialog()
+      ? () => addAuthorRef.value?.openDialog()
       : undefined,
-    invest: () => componentInvestFabRef.value?.openDialog(),
   };
 });
 const route = useRoute();
 const router = useRouter();
+const { isMyProjects, listRoute, routeName } = useCapitalWorkspaceRoutes();
 
-// Массив кнопок меню для шапки
-const menuButtons = computed(() => {
+// На странице задачи субменю компонента не показываем
+const isIssueRoute = computed(() => {
+  const name = String(route.name ?? '')
+  return name.includes('component-issue')
+})
+
+// Активная вкладка: вложенные маршруты подсвечивают родительскую вкладку
+const activeTabKey = computed(() => {
+  const name = String(route.name ?? '');
+  if (name.endsWith('component-requirement-detail')) return routeName('component-requirements');
+  return name;
+});
+
+// Управление (статус, мастер, video, git, удалить) — только на вкладке «Описание»
+const showSidebar = computed(
+  () => !isIssueRoute.value && activeTabKey.value.endsWith('component-description'),
+);
+
+// Субменю компонента (вкладки)
+const componentTabs = computed(() => {
+  const params = { project_hash: projectHash.value };
   const currentBackRoute = route.query._backRoute as string;
   const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
-  return [
-    {
-      id: 'component-description-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-description',
-        label: 'Описание',
-        icon: 'description',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 1,
-    },
-    {
-      id: 'component-tasks-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-tasks',
-        label: 'Задачи',
-        icon: 'task_alt',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 2,
-    },
-    {
-      id: 'component-requirements-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-requirements',
-        label: 'Артефакты',
-        icon: 'inventory_2',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 3,
-    },
-    {
-      id: 'component-planning-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-planning',
-        label: 'План',
-        icon: 'timeline',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 4,
-    },
-    {
-      id: 'component-voting-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-voting',
-        label: 'Голосование',
-        icon: 'how_to_vote',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 5,
-    },
-    {
-      id: 'component-results-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-results',
-        label: 'Результаты',
-        icon: 'assessment',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 6,
-    },
-    {
-      id: 'component-contributors-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-contributors',
-        label: 'Участники',
-        icon: 'groups',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 8,
-    },
-    {
-      id: 'component-history-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'component-history',
-        label: 'История',
-        icon: 'history',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 9,
-    },
+  const tabs = [
+    { key: routeName('component-description'), label: 'Описание', route: { name: routeName('component-description'), params, query } },
+    { key: routeName('component-tasks'), label: 'Задачи', route: { name: routeName('component-tasks'), params, query } },
+    { key: routeName('component-requirements'), label: 'Артефакты', route: { name: routeName('component-requirements'), params, query } },
+    { key: routeName('component-planning'), label: 'План', route: { name: routeName('component-planning'), params, query } },
   ];
+
+  if (!isLocalProject.value) {
+    tabs.push(
+      { key: routeName('component-voting'), label: 'Голосование', route: { name: routeName('component-voting'), params, query } },
+      { key: routeName('component-results'), label: 'Результаты', route: { name: routeName('component-results'), params, query } },
+      { key: routeName('component-contributors'), label: 'Участники', route: { name: routeName('component-contributors'), params, query } },
+    );
+  }
+
+  tabs.push({ key: routeName('component-history'), label: 'История', route: { name: routeName('component-history'), params, query } });
+
+  return tabs;
 });
 
 // Настраиваем кнопку "Назад"
-useBackButton({
+const { setBackButton } = useBackButton({
   text: 'Назад',
   componentId: 'component-base-' + projectHash.value,
   onClick: () => {
+    const parentHash = project.value?.parent_hash;
+    if (parentHash) {
+      router.push({
+        name: routeName('project-description'),
+        params: { coopname: route.params.coopname, project_hash: parentHash },
+      });
+      return;
+    }
+    if (isMyProjects.value) {
+      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } });
+      return;
+    }
     const backRoute = route.query._backRoute as string;
     if (backRoute) {
       // Проверяем, является ли backRoute ключом sessionStorage
@@ -419,53 +346,10 @@ useBackButton({
   }
 });
 
-// Регистрируем кнопки меню в header
-const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
-
-// Регистрируем действия в header
-onMounted(async () => {
-  // Загружаем сохраненную ширину sidebar
-  loadSidebarWidth();
-
-  await loadProject();
-
-  // Регистрируем кнопки меню только если мы НЕ на странице задачи
-  if (route.name !== 'component-issue') {
-    menuButtons.value.forEach(button => {
-      registerHeaderAction(button);
-    });
-  }
+// Отслеживаем изменение backRoute для обновления кнопки "Назад"
+watch(() => route.query._backRoute, () => {
+  setBackButton();
 });
-
-// Явно очищаем кнопки при уходе со страницы
-onBeforeUnmount(() => {
-  clearActions();
-});
-
-// Обработчик изменения полей в sidebar
-const handleFieldChange = () => {
-  // Просто триггер реактивности
-};
-
-// Обработчик обновления названия компонента в sidebar
-const handleTitleUpdate = (value: string) => {
-  if (project.value) {
-    project.value.title = value;
-  }
-};
-
-const handleProjectDeleted = () => {
-  const coopname = route.params.coopname as string;
-  const parentHash = project.value?.parent_hash;
-  if (parentHash) {
-    router.push({
-      name: 'project-description',
-      params: { coopname, project_hash: parentHash },
-    });
-    return;
-  }
-  router.push({ name: 'projects-list', params: { coopname } });
-};
 
 // Обработчик создания задачи
 const handleIssueCreated = () => {
@@ -487,37 +371,125 @@ const handleAuthorsAdded = () => {
   // Можно добавить логику обновления данных проекта
 };
 
-// Обработчик создания инвестиции
-const handleInvestCompleted = () => {
-  // Можно добавить логику обновления данных проекта
-};
-
 // Обработчик успешной отправки запроса на допуск
 const handleClearanceSubmitted = async () => {
   // Обновляем данные проекта, чтобы отразить изменения в разрешениях
   await loadProject();
 };
 
-// Отслеживаем переходы на дочерние маршруты (например, на страницу задачи)
-watch(() => route.name, (newRouteName) => {
-  if (newRouteName === 'component-issue') {
-    // Если перешли на страницу задачи - очищаем кнопки меню компонента
-    clearActions();
-  } else if (newRouteName && newRouteName.toString().startsWith('component-') && newRouteName !== 'component-base') {
-    // Если вернулись на страницы компонента - регистрируем кнопки снова
-    menuButtons.value.forEach(button => {
-      registerHeaderAction(button);
-    });
+// Обработчик изменения полей в sidebar
+const handleFieldChange = () => {
+  // Просто триггер реактивности
+};
+
+// Обработчик обновления названия компонента
+const handleTitleUpdate = (value: string) => {
+  if (project.value) {
+    project.value.title = value;
   }
+};
+
+const handleProjectDeleted = () => {
+  const coopname = route.params.coopname as string;
+  const parentHash = project.value?.parent_hash;
+  if (parentHash) {
+    router.push({
+      name: routeName('project-description'),
+      params: { coopname, project_hash: parentHash },
+    });
+    return;
+  }
+  router.push({ name: listRoute.value, params: { coopname } });
+};
+
+onMounted(async () => {
+  // Загружаем сохраненную ширину sidebar
+  loadSidebarWidth();
+
+  // Загружаем компонент при монтировании
+  await loadProject();
 });
 </script>
 
 <style lang="scss" scoped>
-.q-chip {
-  font-weight: 500;
+// Оболочка заполняет вьюпорт под топбаром — иначе flex-1 у page-surface
+// схлопывается по контенту (План/Артефакты «короткие», Задачи с 100vh — длиннее экрана).
+.component-page-shell {
+  height: calc(100vh - var(--p-topbar-h));
+  max-height: calc(100vh - var(--p-topbar-h));
+  overflow: hidden;
 }
 
-.text-h6 {
-  margin-bottom: 4px;
+// Рабочая плоскость: контент на --p-surface, табы на --p-canvas
+.page-surface {
+  background: var(--p-surface);
+
+  // Вкладки уже на surface — вложенные q-card дают «карточку в карточке»
+  // (скругления/бордер срезают плоскость). Сглаживаем только здесь:
+  // те же виджеты вне оболочки (трекер, списки и т.п.) сохраняют карточный вид.
+  :deep(.q-card) {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+// Строка «какой компонент / чей проект» на вкладках без заголовка
+.component-page-context {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-wrap: wrap;
+  padding: var(--p-2) var(--p-4) 0;
+}
+
+.component-page-context__title {
+  font-size: var(--p-fs-body);
+  font-weight: 500;
+  color: var(--p-ink);
+}
+
+// Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
+.component-page-skeleton {
+  display: flex;
+  gap: var(--p-4);
+  padding: var(--p-4);
+  background: var(--p-surface);
+  flex: 1;
+  min-height: 0;
+
+  &__side {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel {
+      height: 40px;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel--title {
+      width: 240px;
+      max-width: 60%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    &__side {
+      width: 100%;
+    }
+  }
 }
 </style>

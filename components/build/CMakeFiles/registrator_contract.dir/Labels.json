@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/registrator_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/registrator_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/registrator_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/registrator_contract-prefix/src/registrator_contract-stamp/registrator_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"registrator_contract"
+		],
+		"name" : "registrator_contract"
+	}
+}

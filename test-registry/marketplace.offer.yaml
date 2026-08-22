@@ -1,0 +1,353 @@
+feature: marketplace.offer
+title: Предложение поставщика — публикация, модерация председателем, снятие и возврат на публикацию
+
+# Слайс жизненного цикла предложения: поставщик описывает товар и точки
+# поставки, председатель одобряет или отклоняет, поставщик снимает и
+# возвращает на публикацию. Заказ по предложению — соседний слайс
+# (marketplace.order), у него своя точка входа и свои акторы.
+#
+# Статусы предложения: PENDING_MODERATION → ACTIVE | REJECTED,
+# ACTIVE → WITHDRAWN → PENDING_MODERATION (возврат на публикацию).
+#
+# Изображения предложения хранятся через порт файлового хранилища
+# (`FILE_STORAGE_PORT` из `@coopenomics/innercoop/core-ports`, ранее
+# `INTER_FILE_STORAGE` из `@coopenomics/inter`). Переименование 2026-08-09 —
+# только имена, поведение и набор случаев не менялись.
+
+# Правка 2026-08-20 (верификация личности, 105-28): в notification-сервис
+# добавлено напоминание «возьмите паспорт» в уведомлении о готовности заказа
+# для неверифицированного получателя (best-effort, поверх VERIFICATION_PORT).
+# Правила модерации предложений и набор случаев этого слайса не менялись.
+
+sources:
+  backend:
+    # Модель предложения: что поставщик заполняет и что кооператив потом читает.
+    # Форма ответа тут не менее важна, чем сервис: обязательное поле, которого
+    # нет у ранее заведённых предложений, обнуляет каталог целиком.
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-offer.types.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-offer.entity.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-offer.dto.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-moderation.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer-images.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer-counters.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-vitrine.service.ts
+    # Уведомления вокруг модерации: кому уходит заявка и как поставщик узнаёт
+    # результат. Шаблоны писем/пушей живут в пакете уведомлений.
+    - components/controller/src/extensions/marketplace/application/services/marketplace-notification.service.ts
+    - components/notifications/src/workflows/marketplace-offer-on-moderation/**
+    - components/notifications/src/workflows/marketplace-offer-approved/**
+    - components/notifications/src/workflows/marketplace-offer-rejected/**
+  ui:
+    - components/desktop/src/pages/Marketplace/CreateMarketplaceOffer/**
+    - components/desktop/src/pages/Marketplace/OffererMyOffers/**
+    - components/desktop/src/pages/Marketplace/ChairmanModeration/**
+    - components/desktop/src/pages/Marketplace/MarketplaceCatalog/**
+    - components/desktop/src/pages/Marketplace/MarketplaceOfferDetail/**
+
+cases:
+  # ── Прямой путь ──────────────────────────────────────────────────────────
+  - id: mkt.offer.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Поставщик создаёт предложение: название, категория, цена, единица измерения, срок годности, точки поставки.
+    expect: предложение создано в статусе «на модерации» и видно в «Моих предложениях»
+    test: components/docs-harness/scenarios/marketplace/offerer/offer-create.mjs
+    status: passing
+
+  - id: mkt.offer.happy.02
+    level: ui
+    kind: happy
+    scenario: Председатель одобряет предложение на модерации
+    expect: статус «опубликовано», предложение появляется в каталоге витрины
+    test: components/docs-harness/scenarios/marketplace/chairman/offer-moderation.mjs
+    status: passing
+
+  - id: mkt.offer.happy.03
+    level: ui
+    kind: happy
+    scenario: Заказчик видит одобренное предложение в каталоге витрины
+    expect: карточка предложения с ценой и категорией, доступна к оформлению заказа
+    test: components/docs-harness/scenarios/marketplace/orderer/catalog.mjs
+    status: passing
+
+  # ── Границы данных при создании и правке ────────────────────────────────
+  - id: mkt.offer.side.01
+    level: backend
+    kind: side
+    scenario: Пустое название товара
+    expect: отказ «Укажите название товара», предложение не создаётся
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.02
+    level: backend
+    kind: side
+    scenario: Отрицательный срок годности
+    expect: отказ «Срок годности не может быть отрицательным»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.03
+    level: backend
+    kind: side
+    scenario: Цена с более чем четырьмя знаками после запятой
+    expect: отказ с указанием допустимой точности
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Не указано ни количество товара, ни признак «без ограничения»
+    expect: отказ с требованием указать количество либо снять ограничение
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.05
+    level: backend
+    kind: side
+    scenario: Указан размер упаковки без стратегии маркировки «по упаковке»
+    expect: отказ, объясняющий несовместимость размера упаковки и стратегии
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.06
+    level: backend
+    kind: side
+    scenario: Стратегия «по упаковке» без размера упаковки
+    expect: отказ с требованием указать размер упаковки (целое от 1)
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.07
+    level: backend
+    kind: side
+    scenario: Размер упаковки равен нулю или отрицателен
+    expect: отказ «Размер упаковки должен быть больше нуля»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.08
+    level: backend
+    kind: side
+    scenario: Отпуск упаковкой выбран, но не добавлено ни одной упаковки
+    expect: отказ с требованием добавить упаковку
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.09
+    level: backend
+    kind: side
+    scenario: Число упаковок превышает предел
+    expect: отказ с указанием максимума
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.10
+    level: backend
+    kind: side
+    scenario: Недопустимая единица измерения
+    expect: отказ «Выбрана недопустимая единица измерения»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.11
+    level: backend
+    kind: side
+    scenario: Не указано ни одной точки поставки
+    expect: отказ с требованием указать хотя бы один кооперативный участок
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.12
+    level: backend
+    kind: side
+    scenario: Один и тот же кооперативный участок указан в поставке дважды
+    expect: отказ с именем повторённого участка
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.13
+    level: backend
+    kind: side
+    scenario: Загружено пустое изображение товара (нет содержимого файла)
+    expect: отказ, предложение не создаётся и не правится
+    test: components/controller/tests/unit/marketplace/marketplace-offer-images-service.test.ts
+    status: passing
+
+  # ── Права и статусы ─────────────────────────────────────────────────────
+  - id: mkt.offer.side.14
+    level: backend
+    kind: side
+    scenario: Попытка вернуть на публикацию чужое предложение
+    expect: отказ «Можно изменять только свои предложения»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.15
+    level: backend
+    kind: side
+    scenario: Возврат на публикацию предложения, которое не было снято
+    expect: отказ «Вернуть на публикацию можно только снятое предложение»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.16
+    level: backend
+    kind: side
+    scenario: Повторное снятие уже снятого либо отклонённого предложения
+    expect: отказ «Нельзя снять предложение, которое уже снято/отклонено»
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.17
+    level: backend
+    kind: side
+    scenario: Модерация предложения, которое уже одобрено или отклонено
+    expect: конфликт «Это предложение уже одобрено/отклонено — модерация недоступна»
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.18
+    level: backend
+    kind: side
+    scenario: Отклонение предложения без указания причины
+    expect: отказ «Укажите причину отклонения предложения»
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.19
+    level: backend
+    kind: side
+    scenario: Причина отклонения длиннее допустимого предела
+    expect: отказ с указанием максимальной длины
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.20
+    level: backend
+    kind: side
+    scenario: Модерация несуществующего предложения
+    expect: «Предложение не найдено»
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.21
+    level: backend
+    kind: side
+    scenario: Одобрение с отрицательным либо дробным гарантийным сроком возврата
+    expect: отказ «Гарантийный срок возврата должен быть целым неотрицательным числом дней»
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.22
+    level: backend
+    kind: side
+    scenario: Модерация выполняется пайщиком без прав председателя
+    expect: отказ доступа, статус предложения не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-access.test.ts
+    status: passing
+
+  # Уровень backend, а не ui: после первого одобрения предложение уходит из
+  # очереди модерации, и повторно нажать «Одобрить» в интерфейсе физически
+  # нечем. Защита живёт в сервисе (`requirePending`) и там же проверяется —
+  # второе обращение любым путём, включая прямой вызов API, отбивается 409.
+  - id: mkt.offer.side.23
+    level: backend
+    kind: side
+    scenario: >
+      Повторное одобрение уже одобренного предложения (двойная отправка)
+    expect: одобрение применяется один раз, второе обращение отбивается конфликтом
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
+
+  - id: mkt.offer.side.24
+    level: ui
+    kind: side
+    scenario: Каталог витрины при отсутствии одобренных предложений
+    expect: пустое состояние с пояснением, без ошибок в интерфейсе
+    test: components/docs-harness/scenarios/marketplace/orderer/catalog-empty.mjs
+    status: passing
+
+  # ── Уведомления вокруг модерации ──────────────────────────────────────────
+  # До этого модерация шла молча в обе стороны: администратор не знал о новой
+  # заявке, поставщик — о её судьбе. Оба узнавали, только если сами открывали
+  # стол. Тексты при этом называли модератора председателем, хотя карточки
+  # проверяет администратор (право `Offer:moderate` в роли admin).
+  - id: mkt.offer.side.25
+    level: backend
+    kind: side
+    scenario: Поставщик отправил предложение на модерацию
+    expect: >
+      администратору уходит уведомление с названием имущества, именем поставщика и ссылкой на очередь модерации
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.26
+    level: backend
+    kind: side
+    scenario: Администратор одобрил предложение
+    expect: поставщику уходит уведомление, что предложение опубликовано в каталоге
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.27
+    level: backend
+    kind: side
+    scenario: Администратор отклонил предложение с причиной
+    expect: >
+      поставщику уходит уведомление с причиной отказа — по ней он правит карточку и отправляет её на повторную проверку
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.side.28
+    level: backend
+    kind: side
+    scenario: >
+      Ранее одобренное предложение возвращают на публикацию (модерация не нужна)
+    expect: >
+      уведомление о модерации НЕ отправляется, поставщик получает только сигнал о публикации — иначе администратора дёргали бы на каждый возврат в каталог
+    test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
+    status: passing
+
+  - id: mkt.offer.break.03
+    level: backend
+    kind: break
+    scenario: В кооперативе не найден аккаунт администратора
+    expect: >
+      уведомление о модерации пропускается с записью в журнал, публикация предложения не срывается
+    test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    status: passing
+
+  - id: mkt.offer.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Предложение заведено до появления вида упаковки — у сохранённой упаковки тары нет
+    expect: >
+      предложение читается, вид упаковки пуст и не выдумывается; каталог и стол поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару поставщик обязан при первой же правке
+    test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    status: passing
+
+  - id: mkt.offer.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр поставщиков — в нём все допущенные к публикации пайщики
+    expect: >
+      реестр непуст, допущенные фазой 04/06 поставщики видны; отсюда одобряются заявки и добавляются поставщики напрямую
+    test: components/docs-harness/scenarios/marketplace/chairman/suppliers-registry.mjs
+    status: passing
+
+  - id: mkt.offer.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор открывает реестр предложений — все предложения кооператива во всех статусах
+    expect: >
+      опубликованные позиции витрины видны в реестре; карточка предложения открывается в режиме просмотра
+    test: components/docs-harness/scenarios/marketplace/chairman/offers-registry.mjs
+    status: passing

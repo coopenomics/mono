@@ -11,6 +11,12 @@ export * as NewSubmitted from './newsubmitted'
 export * as NewResolved from './newresolved'
 
 /**
+ * Действие фиксирует в реестре отклонённый (аннулированный) документ.
+ * @private
+ */
+export * as NewDeclined from './newdeclined'
+
+/**
  * Действие фиксирует в реестре подписанные акты приёма-передачи имущества.
  * @private
  */

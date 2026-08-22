@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
 import { resolveCapitalGithubApiPlainToken } from '../../application/utils/capital-github-token';
+import { SECRET_CIPHER_PORT, type ISecretCipherPort, INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 
 /**
  * Интерфейс для измененного файла
@@ -17,10 +18,21 @@ export interface ChangedFile {
  */
 @Injectable()
 export class GitHubService {
+  /** Чем разжать сохранённый токен и чем заменить, если своего нет. */
+  private get tokenSources() {
+    return {
+      decrypt: (ciphertext: string) => this.secretCipher.decrypt(ciphertext),
+      fallbackToken: this.integrations.get<{ token?: string }>('capital', 'github')?.token,
+    };
+  }
+
   private readonly logger = new Logger(GitHubService.name);
   private octokit: Octokit | null = null;
 
-  constructor() {
+  constructor(
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort
+  ) {
     this.reconfigureWithCapitalExtensionEncrypted(undefined);
   }
 
@@ -28,7 +40,7 @@ export class GitHubService {
    * После миграции/обновления конфига Capital: токен из поля `github_api_token_encrypted` или GITHUB_TOKEN.
    */
   reconfigureWithCapitalExtensionEncrypted(githubApiTokenEncrypted: string | undefined): void {
-    const plain = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted);
+    const plain = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted, this.tokenSources);
     if (plain) {
       this.octokit = new Octokit({ auth: plain });
       this.logger.log('GitHub API инициализирован');
@@ -89,6 +101,30 @@ export class GitHubService {
       this.logger.error(`Ошибка получения последнего коммита: ${err.message ?? String(error)}`);
       throw error;
     }
+  }
+
+  /**
+   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   */
+  async listBranches(owner: string, repo: string): Promise<string[]> {
+    const octokit = this.octokit;
+    if (!octokit) throw new Error('GitHub API недоступен');
+
+    const names: string[] = [];
+    let page = 1;
+    const perPage = 100;
+    for (;;) {
+      const rows = await this.withGithubRetry(async () => {
+        const { data } = await octokit.repos.listBranches({ owner, repo, per_page: perPage, page });
+        return data;
+      });
+      names.push(...rows.map((b) => b.name));
+      if (rows.length < perPage) {
+        break;
+      }
+      page += 1;
+    }
+    return names;
   }
 
   /**

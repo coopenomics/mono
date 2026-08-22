@@ -13,18 +13,17 @@ export class Factory extends DocFactory<RegulationElectronicSignature.Action> {
   }
 
   async generateDocument(data: RegulationElectronicSignature.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<RegulationElectronicSignature.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(RegulationElectronicSignature.Template as ITemplate<RegulationElectronicSignature.Model>)
+        : this.getTemplate<RegulationElectronicSignature.Model>(DraftContract.contractName.production, RegulationElectronicSignature.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = RegulationElectronicSignature.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, RegulationElectronicSignature.registry_id, data.block_num)
-    }
-
+    // meta зависит от template.title — резолвим после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     if (!vars?.signature_agreement || isEmpty(vars.signature_agreement.protocol_number) || isEmpty(vars.signature_agreement.protocol_day_month_year))
       throw new Error('Реквизиты протокола по простой электронной подписи не заполнены. Добавьте номер и дату протокола в настройках кооператива.')

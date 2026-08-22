@@ -2,6 +2,15 @@
 q-form(ref="form")
   q-input(
     dense
+    v-model="data.email"
+    standout="bg-teal text-white"
+    label="Email"
+    :readonly="readonly"
+    :rules="[val => validEmail(val)]"
+    autocomplete="off"
+  )
+  q-input(
+    dense
     v-model="data.last_name"
     standout="bg-teal text-white"
     label="Фамилия"
@@ -124,6 +133,7 @@ q-form(ref="form")
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useEditableData } from 'src/shared/lib/composables/useEditableData';
+  import { validEmail } from 'src/shared/lib/utils/validEmailRule';
   import { notEmpty, notEmptyPhone, validatePersonalName } from 'src/shared/lib/utils';
   import { FailAlert, SuccessAlert } from 'src/shared/api';
   import { EditableActions } from 'src/shared/ui/EditableActions';

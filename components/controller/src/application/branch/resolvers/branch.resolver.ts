@@ -2,20 +2,19 @@ import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { BranchService } from '../services/branch.service';
 import { GetBranchesGraphQLInput } from '../dto/get-branches-input.dto';
 import { BranchDTO } from '../dto/branch.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 import { CreateBranchGraphQLInput } from '../dto/create-branch-input.dto';
 import { EditBranchGraphQLInput } from '../dto/edit-branch-input.dto';
 import { DeleteBranchGraphQLInput } from '../dto/delete-branch-input.dto';
 import { AddTrustedAccountGraphQLInput } from '../dto/add-trusted-account-input.dto';
 import { DeleteTrustedAccountGraphQLInput } from '../dto/delete-trusted-account-input.dto';
+import { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-input.dto';
+import { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
+import { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-
 @Resolver(() => BranchDTO)
 export class BranchResolver {
   constructor(private readonly branchService: BranchService) {}
@@ -26,9 +25,11 @@ export class BranchResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async getBranches(
-    @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput
+    @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<BranchDTO[]> {
-    return this.branchService.getBranches(data);
+    // имя текущего пайщика нужно, чтобы вычислить доступность приватных участков (is_available)
+    return this.branchService.getBranches(data, currentUser?.username);
   }
 
   @Mutation(() => BranchDTO, { name: 'createBranch', description: 'Создать кооперативный участок' })
@@ -80,11 +81,51 @@ export class BranchResolver {
     return this.branchService.deleteTrustedAccount(data);
   }
 
+  @Mutation(() => BranchDTO, {
+    name: 'setBranchPrivate',
+    description: 'Установить приватность кооперативного участка (выбор только из белого списка)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async setBranchPrivate(
+    @Args('data', { type: () => SetBranchPrivateGraphQLInput }) data: SetBranchPrivateGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.setBranchPrivate(data);
+  }
+
+  @Mutation(() => BranchDTO, {
+    name: 'addBranchWhitelist',
+    description: 'Добавить пайщика в белый список приватного кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async addBranchWhitelist(
+    @Args('data', { type: () => AddBranchWhitelistGraphQLInput }) data: AddBranchWhitelistGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.addBranchWhitelist(data);
+  }
+
+  @Mutation(() => BranchDTO, {
+    name: 'deleteBranchWhitelist',
+    description: 'Удалить пайщика из белого списка приватного кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async deleteBranchWhitelist(
+    @Args('data', { type: () => DeleteBranchWhitelistGraphQLInput }) data: DeleteBranchWhitelistGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.deleteBranchWhitelist(data);
+  }
+
   @Mutation(() => Boolean, { name: 'selectBranch', description: 'Выбрать кооперативный участок' })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
-  async selectBranch(@Args('data', { type: () => SelectBranchInputDTO }) data: SelectBranchInputDTO): Promise<boolean> {
-    return this.branchService.selectBranch(data);
+  async selectBranch(
+    @Args('data', { type: () => SelectBranchInputDTO }) data: SelectBranchInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
+  ): Promise<boolean> {
+    // заявление подаётся только за себя — имя из JWT, не из тела запроса
+    return this.branchService.selectBranch(data, currentUser?.username);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {

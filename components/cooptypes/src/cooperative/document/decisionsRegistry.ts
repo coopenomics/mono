@@ -1,6 +1,7 @@
 import {
   // AnnualGeneralMeetingDecision,
   AnnualGeneralMeetingSovietDecision, // 300
+  BranchEstablishmentSovietDecision, // 325
   DecisionOfParticipantApplication, // 501
   FreeDecision,
   ResultContributionDecision, // 1041
@@ -23,6 +24,7 @@ export const decisionsRegistry: Record<string, number> = {
   freedecision: FreeDecision.registry_id,
 
   creategm: AnnualGeneralMeetingSovietDecision.registry_id, // предложение повестки планового общего собрания
+  branchdec: BranchEstablishmentSovietDecision.registry_id, // решение совета об учреждении кооперативного участка
   // completegm: AnnualGeneralMeetingDecision.registry_id, // решение общего собрания пайщиков
   createwthd: ReturnByMoneyDecision.registry_id, // заявление на возврат паевого взноса
   // capitalinvst: InvestByResultDecision.registry_id, // заявление на инвестиции по договору УХД

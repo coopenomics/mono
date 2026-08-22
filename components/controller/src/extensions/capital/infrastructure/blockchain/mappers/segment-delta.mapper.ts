@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { SegmentDomainEntity } from '../../../domain/entities/segment.entity';
 import type { ISegmentBlockchainData } from '../../../domain/interfaces/segment-blockchain.interface';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import type { CapitalContract } from 'cooptypes';
 
 /**
@@ -12,7 +11,7 @@ import type { CapitalContract } from 'cooptypes';
  */
 @Injectable()
 export class SegmentDeltaMapper extends AbstractBlockchainDeltaMapper<ISegmentBlockchainData, SegmentDomainEntity> {
-  constructor(private readonly logger: WinstonLoggerService, private readonly contractInfo: CapitalContractInfoService) {
+  constructor(@Inject(LOGGER_PORT) private readonly logger: ILoggerPort, private readonly contractInfo: CapitalContractInfoService) {
     super();
     this.logger.setContext(SegmentDeltaMapper.name);
   }

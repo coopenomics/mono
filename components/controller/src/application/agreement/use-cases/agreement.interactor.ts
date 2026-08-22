@@ -2,16 +2,12 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { WALLET_BLOCKCHAIN_PORT, WalletBlockchainPort } from '~/domain/wallet/ports/wallet-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { Cooperative, SovietContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainToBlockchainUtils, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 @Injectable()
 export class AgreementInteractor {
   private readonly logger = new Logger(AgreementInteractor.name);

@@ -107,16 +107,22 @@
   border-color: var(--p-line-2) !important;
 }
 
-/* Ghost — flat */
-.q-btn--flat {
+/* Ghost — flat (не трогаем destructive: text-negative остаётся красным) */
+.q-btn--flat:not(.text-negative) {
   color: var(--p-ink) !important;
 }
-.q-btn--flat:hover {
+.q-btn--flat:not(.text-negative):hover {
   background: var(--p-surface-2);
 }
 .q-btn--flat.text-grey-7,
 .q-btn--flat.text-grey {
   color: var(--p-ink-2) !important;
+}
+.q-btn--flat.text-negative {
+  color: var(--p-neg) !important;
+}
+.q-btn--flat.text-negative:hover {
+  background: var(--p-neg-soft);
 }
 
 /* Danger */
@@ -258,6 +264,12 @@
 .q-item__section--main {
   font-size: var(--p-fs-body);
 }
+/* Caption (вторичный текст строки, напр. адрес) — Quasar по умолчанию красит
+   его хардкод-цветом rgba(0,0,0,.54), который не следует за темой и на dark
+   остаётся тёмным-на-тёмном. Привязываем к канон-токену — переключается сам. */
+.q-item__label--caption {
+  color: var(--p-ink-3);
+}
 .q-item:hover,
 .q-item.q-manual-focusable--focused {
   background: var(--p-surface-2);
@@ -287,7 +299,9 @@
   font-size: var(--p-fs-body);
   border-bottom: 1px solid var(--p-line);
 }
-.q-table tbody tr:hover {
+/* Не красить q-tr--no-hover: вложенные строки-обёртки (раскрытый
+   проект/компонент) иначе подсвечиваются при ховере дочерних задач. */
+.q-table tbody > tr:not(.q-tr--no-hover):hover {
   background: var(--p-surface-2);
 }
 .q-table__top {
@@ -343,6 +357,13 @@ body.body--dark {
      на dark-теме эти токены инвертируются и текст уходил в тёмный на тёмном —
      нечитаемо (баг 2026-05-28). Цветные иконки по типу остаются на токенах
      (--p-pos/--p-neg/--p-warn/--p-info) — они яркие в обеих темах. */
+  /* Акцент действия внутри тоста. НЕ var(--p-primary): на светлой теме это
+     тёмно-зелёный #0f766e, который на всегда-тёмной подложке тоста тонет, а на
+     тёмной — яркий #2dd4bf, поверх которого белая подпись кнопки читается
+     плохо. Тост живёт в своей тёмной среде, поэтому и акцент у него свой,
+     одинаковый в обеих темах (жалоба 2026-08-07 на кнопку «Перейти в корзину»). */
+  --toast-accent: #5eead4;
+  --toast-hairline: rgba(250, 250, 250, 0.16);
   background: #18181b !important;
   color: #fafafa !important;
   border: 0;
@@ -356,10 +377,20 @@ body.body--dark {
   line-height: 1.45;
   gap: 12px;
 }
+/* Текстовая колонка тоста должна сжиматься до ширины контейнера: без min-width:0
+   flex-элемент не уже своего содержимого, и «длинное слово» (хэш, id, ссылка)
+   распирало тост, вылезая текстом за пределы тёмной подложки. */
+.q-notification__content {
+  min-width: 0;
+}
 .q-notification__message {
   color: inherit;
   font-weight: 500;
   padding: 2px 0;
+  /* Переносим по границе слова, а неразрывные длинные токены (sha256-хэш,
+     account-id, URL) — в любом месте, иначе они рвут ширину тоста. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__caption {
   color: inherit;
@@ -367,13 +398,40 @@ body.body--dark {
   font-size: var(--p-fs-meta, 12px);
   line-height: 1.45;
   padding-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__icon {
   color: inherit;
   opacity: 0.7;
   font-size: 18px;
-  margin-right: 4px;
-  margin-top: 1px;
+  /* Центрируем иконку по вертикали (важно для multiLine-тостов, где caption
+     в 2 строки) и даём боковой отступ — иначе прижата к краю/тексту и
+     читается «вытянутой». Канон для всех тостов. */
+  align-self: center;
+  margin-left: 2px;
+  margin-right: 10px;
+}
+/* Тост обновления приложения — персистентный (timeout 0), поэтому крестик
+   закрытия выносим в правый верхний угол. Offset-родитель — встроенный
+   .q-notification__wrapper (Quasar вешает на него .relative-position), к нему
+   и прижимаем крестик. Резервируем правый отступ у текста, чтобы caption не
+   залезал под крестик. Прочие тосты авто-исчезают — им угловой крестик не
+   нужен (закрываются сами / экшеном). */
+.q-notification--app-update .q-notification__message {
+  padding-right: 24px;
+}
+.q-notification--app-update .app-update__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: auto;
+  min-width: auto;
+  padding: 2px;
+  opacity: 0.55;
+}
+.q-notification--app-update .app-update__close:hover {
+  opacity: 1;
 }
 .q-notification__avatar {
   margin-right: 4px;
@@ -394,6 +452,64 @@ body.body--dark {
 .q-notification__actions .q-btn:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.08) !important;
+}
+/* CTA-тост (SuccessAlert с action, напр. «В корзину»): при multiLine
+   Quasar кладёт content-строку и actions-строку в колонку — action уходит
+   на вторую строку под текстом, здесь только отступ сверху и выравнивание
+   по левому краю (без multiLine actions остаются в один ряд с текстом). */
+.q-notification--multi-line .q-notification__actions {
+  margin-top: 10px;
+  margin-left: 0;
+  justify-content: flex-start;
+  gap: 4px;
+}
+/* Сама CTA-кнопка. Не сплошная заливка-таблетка: на маленьком тосте она
+   читалась как отдельная посадочная кнопка и перевешивала сам текст
+   уведомления. Контур + акцентная подпись — действие видно, но тост остаётся
+   уведомлением, а не диалогом. */
+.q-notification__actions .q-btn.q-notification__cta-btn {
+  background: transparent !important;
+  color: var(--toast-accent) !important;
+  border: 1px solid var(--toast-hairline);
+  opacity: 1;
+  font-weight: 600;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--p-r-sm, 8px);
+}
+.q-notification__actions .q-btn.q-notification__cta-btn:hover {
+  background: rgba(94, 234, 212, 0.12) !important;
+  border-color: var(--toast-accent);
+}
+/* Отказное действие рядом с CTA («Продолжить покупки») — просто текст:
+   у двух равновесных кнопок в тосте пропадает главное действие. */
+.q-notification__actions .q-btn.q-notification__dismiss-btn {
+  min-height: 30px;
+  padding: 0 8px;
+  opacity: 0.6;
+}
+.q-notification__actions .q-btn.q-notification__dismiss-btn:hover {
+  opacity: 0.9;
+}
+/* У тоста с действиями крестик уезжает в правый верхний угол — в одном ряду с
+   CTA он читался как третья кнопка выбора. Offset-родитель — встроенный
+   .q-notification__wrapper (Quasar вешает на него .relative-position). */
+.q-notification--cta .q-notification__message,
+.q-notification--cta .q-notification__caption {
+  padding-right: 20px;
+}
+.q-notification--cta .q-btn.q-notification__close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: auto;
+  min-width: auto;
+  padding: 2px;
+  opacity: 0.5;
+}
+.q-notification--cta .q-btn.q-notification__close-btn:hover {
+  opacity: 1;
+  background: transparent !important;
 }
 
 /* Цветной deep-tinted фон + цветная иконка по типу */

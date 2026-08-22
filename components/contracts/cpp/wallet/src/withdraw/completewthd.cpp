@@ -11,7 +11,7 @@ void wallet::completewthd(COMPLETEWTHD_SIGNATURE) {
   
   std::string memo_in = "Возврат части паевого взноса по ЦПП 'Цифровой Кошелёк' пайщику с username=" + withdraw -> username.to_string();
 
-  Ledger2::apply(_wallet, coopname, operations::wallet::COMPLETE_WITHDRAW, withdraw -> quantity, withdraw -> username, withdraw_hash, memo_in);
+  Ledger2::apply(_wallet, coopname, operations::wallet::COMPLETE_WITHDRAW, processes::wallet::WITHDRAW, withdraw -> quantity, withdraw -> username, withdraw_hash, memo_in);
 
   withdraws.erase(withdraw);
 }

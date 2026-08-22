@@ -18,7 +18,7 @@ import { ref } from 'vue';
 import { SetPlanDialog } from '../Dialog';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
 
-const fabLabel = formatCapitalFabLabel('Финплан', 'plan');
+const fabLabel = formatCapitalFabLabel('План', 'plan');
 import type { IProject } from '../../../../../entities/Project/model';
 
 defineProps<{ project: IProject | null | undefined }>();

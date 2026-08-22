@@ -1,0 +1,1139 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "acceptorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "offerer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "accretrn",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "request_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "aprretrem",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "request_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "cancelorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "closeorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "confirmwroff",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "memo",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "convert",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "convert_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "offer_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "offerer",
+                    "type": "name"
+                },
+                {
+                    "name": "delivery_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unit_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "warranty_period_secs",
+                    "type": "uint32"
+                },
+                {
+                    "name": "batch_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "convert_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "declineorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "offerer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "execwroff",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "item_index",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "expireorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "markdown",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "mkt_config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "membership_fee_percent",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "onmktwoauth",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "onmktwodecl",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "order",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "offerer",
+                    "type": "name"
+                },
+                {
+                    "name": "offer_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "delivery_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "accept_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "current_warehouse_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "actual_quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unit_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "fact_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "warranty_period_secs",
+                    "type": "uint32"
+                },
+                {
+                    "name": "warranty_until",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "batch_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "acceptance_act_signsupp",
+                    "type": "document2"
+                },
+                {
+                    "name": "acceptance_act_signchair",
+                    "type": "document2"
+                },
+                {
+                    "name": "issue_act_signiss1",
+                    "type": "document2"
+                },
+                {
+                    "name": "issue_act_signiss2",
+                    "type": "document2"
+                },
+                {
+                    "name": "payout_status",
+                    "type": "name"
+                },
+                {
+                    "name": "payout_decline_reason",
+                    "type": "string"
+                },
+                {
+                    "name": "return_request_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "markdown_cost",
+                    "type": "asset$"
+                },
+                {
+                    "name": "membership_fee",
+                    "type": "asset$"
+                }
+            ]
+        },
+        {
+            "name": "payconfirm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "paydecline",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "payout",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "propwroff",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposed_by",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "items",
+                    "type": "wroff_item[]"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "rejretrem",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "request_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "rejretrn",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "request_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "return_request",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "original_order_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "original_order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "original_consume_op_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "actual_quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "fact_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "reason_text",
+                    "type": "string"
+                },
+                {
+                    "name": "photos",
+                    "type": "checksum256[]"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "setfee",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "membership_fee_percent",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "signchair",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "actual_quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "actual_unit_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signiss1",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signiss2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "actual_quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "actual_unit_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "delivery_signer",
+                    "type": "name"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signsupp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "offerer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "accept_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "stockorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "offer_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "delivery_braname",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unit_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "warranty_period_secs",
+                    "type": "uint32"
+                },
+                {
+                    "name": "batch_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "submretrn",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "orderer",
+                    "type": "name"
+                },
+                {
+                    "name": "request_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "original_order_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "actual_quantity",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reason_text",
+                    "type": "string"
+                },
+                {
+                    "name": "photos",
+                    "type": "checksum256[]"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "writeoff_proposal",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposed_by",
+                    "type": "name"
+                },
+                {
+                    "name": "decided_by",
+                    "type": "name"
+                },
+                {
+                    "name": "items",
+                    "type": "wroff_item[]"
+                },
+                {
+                    "name": "total_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "protocol",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "wroff_item",
+            "base": "",
+            "fields": [
+                {
+                    "name": "source_order_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "executed",
+                    "type": "bool"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "acceptorder",
+            "type": "acceptorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "accretrn",
+            "type": "accretrn",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "aprretrem",
+            "type": "aprretrem",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelorder",
+            "type": "cancelorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "closeorder",
+            "type": "closeorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "confirmwroff",
+            "type": "confirmwroff",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "convert",
+            "type": "convert",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createorder",
+            "type": "createorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declineorder",
+            "type": "declineorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "execwroff",
+            "type": "execwroff",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "expireorder",
+            "type": "expireorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "markdown",
+            "type": "markdown",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "onmktwoauth",
+            "type": "onmktwoauth",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "onmktwodecl",
+            "type": "onmktwodecl",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "payconfirm",
+            "type": "payconfirm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "paydecline",
+            "type": "paydecline",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "payout",
+            "type": "payout",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "propwroff",
+            "type": "propwroff",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rejretrem",
+            "type": "rejretrem",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rejretrn",
+            "type": "rejretrn",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setfee",
+            "type": "setfee",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signchair",
+            "type": "signchair",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signiss1",
+            "type": "signiss1",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signiss2",
+            "type": "signiss2",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signsupp",
+            "type": "signsupp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stockorder",
+            "type": "stockorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "submretrn",
+            "type": "submretrn",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "config",
+            "type": "mkt_config",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "orders",
+            "type": "order",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "retrequests",
+            "type": "return_request",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "wroffprops",
+            "type": "writeoff_proposal",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

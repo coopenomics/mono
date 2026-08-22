@@ -17,7 +17,11 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv11", "ss01", "ss03";
 }
-::selection { background: var(--p-primary-soft); color: var(--p-ink); }
+/* Выделение текста — solid accent + белый текст: видно на любом фоне (вкл.
+   тёмную поверхность тоста). Раньше --p-primary-soft (teal 10% alpha) —
+   болотно и почти невидимо. */
+::selection { background: var(--p-accent); color: #fff; }
+::-moz-selection { background: var(--p-accent); color: #fff; }
 
 /* ---- Typography utilities ---- */
 .t-display { font-family: var(--p-display); font-size: var(--p-fs-display); line-height: var(--p-lh-display); letter-spacing: var(--p-ls-display); font-weight: 600; }
@@ -43,6 +47,19 @@ body {
 .t-accent { color: var(--p-primary); }
 .t-pos { color: var(--p-pos); }
 .t-neg { color: var(--p-neg); }
+
+/* ---- Поле без нижнего резерва ------------------------------------------
+   Канон-поле резервирует строку под сообщение об ошибке, чтобы форма не
+   прыгала при первой же неудачной валидации. В ряду фильтров сообщений не
+   бывает, а резерв там вредит: поле оказывается выше соседнего переключателя
+   на половину резерва, и между рядом фильтров и таблицей висит пустой
+   промежуток.
+
+   Резерв даёт `padding-bottom` у `.q-field--with-bottom`, поэтому снимать
+   его надо именно там: обнулять `.q-field__bottom` бесполезно — этот блок
+   спозиционирован абсолютно и высоты не занимает.
+   --------------------------------------------------------------------- */
+.q-field.field-flush.q-field--with-bottom { padding-bottom: 0; }
 
 /* ---- Buttons ---- */
 .btn {
@@ -285,9 +302,9 @@ body {
    ------------------------------------------------------------------- */
 .wallet {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr);
   gap: var(--p-4);
-  align-items: center;
+  align-items: start;
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
@@ -303,12 +320,26 @@ body {
   background: var(--prog-bg, var(--p-primary-soft));
   color: var(--prog-fg, var(--p-primary));
   flex-shrink: 0;
+  /* Hairline-обводка плитки: в dark surface-3 всё ещё близко к surface —
+     без линии квадрат иконки «пропадает». */
+  box-shadow: inset 0 0 0 1px var(--p-line-1);
 }
 .wallet__icon svg { width: 20px; height: 20px; }
+/* Тело справа от иконки: заголовок приоритетен; сумма/действие уходят
+   на следующую строку только если горизонтали не хватает (flex-wrap). */
+.wallet__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2) var(--p-4);
+  min-width: 0;
+}
 .wallet__main {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1 1 12rem;
   min-width: 0;
 }
 .wallet__title {
@@ -316,13 +347,15 @@ body {
   font-weight: 600;
   color: var(--p-ink);
   letter-spacing: -0.005em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: var(--p-lh-h3, 1.35);
+  /* Заголовок не режем — перенос строк, полная ширина колонки main. */
+  white-space: normal;
+  overflow: visible;
 }
 .wallet__sub {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
+  /* Подзаголовок вторичен — одна строка с ellipsis (длинный URL и т.п.). */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -333,6 +366,10 @@ body {
   align-items: flex-end;
   gap: 6px;
   text-align: right;
+  /* Вторичный блок: на одной линии с main, если есть место; иначе — ниже. */
+  flex: 0 1 auto;
+  margin-left: auto;
+  max-width: 100%;
 }
 .wallet__metric { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .wallet__metric-val {
@@ -357,8 +394,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: normal;
+  text-align: right;
+  max-width: 16rem;
 }
-.wallet__metric-label svg { width: 11px; height: 11px; color: var(--p-ink-3); }
+.wallet__metric-label svg { width: 11px; height: 11px; color: var(--p-ink-3); flex-shrink: 0; }
 .wallet__submetric {
   display: inline-flex;
   align-items: center;
@@ -391,12 +431,20 @@ body {
 /* — Compact-row variant for dense lists — */
 .wallet--row {
   padding: 10px var(--p-4);
-  grid-template-columns: 32px minmax(0, 1fr) auto;
   gap: var(--p-3);
 }
 .wallet--row .wallet__icon { width: 32px; height: 32px; border-radius: var(--p-r-xs); }
 .wallet--row .wallet__icon svg { width: 16px; height: 16px; }
+.wallet--row .wallet__main { flex-basis: 8rem; }
 .wallet--row .wallet__metric-val { font-size: 16px; }
+
+/* — Сумма отдельной строкой под названием —
+   Обычно сумма встаёт справа от названия и переносится вниз сама, когда места
+   не хватает. В узкой колонке этот порог проходит по-разному у соседних
+   карточек: одна ломает заголовок на две строки и жмётся к сумме, другая уже
+   перенесла сумму вниз — ряд выглядит сбитым. `stacked` фиксирует нижний
+   вариант для всех карточек группы; выключка суммы вправо сохраняется. */
+.wallet--stacked .wallet__amount { flex: 1 0 100%; }
 
 /* ---- Table ---- */
 .table-wrap {
@@ -463,6 +511,35 @@ body {
   border-top: 1px solid var(--p-line);
   color: var(--p-ink-2);
   font-size: var(--p-fs-meta);
+}
+
+/* — Таблица переносит содержимое, а не скроллит по горизонтали —
+   UX-правило (везде, включая десктоп): если контент шире контейнера, длинные
+   значения/заголовки переносятся на следующую строку, без обрезки колонок и
+   внутреннего горизонтального скролла. Виджеты задают фиксированную min-width
+   локально (scoped .table), скелетон — inline-стилем; чтобы снять её
+   централизованно, нужен !important (иначе scoped/inline перебивают канон).
+   min-width:0 убирает переполнение → overflow-x:auto у .table-scroll не
+   срабатывает, таблица всегда влезает по ширине (width:100%). */
+.table {
+  min-width: 0 !important;
+}
+
+/* Узкие экраны: фиксированная раскладка колонок становится тесной — переходим
+   на auto-раскладку, разрешаем перенос в каждой ячейке и поджимаем паддинги,
+   чтобы 7 колонок читались на телефоне переносом, а не клиппингом. */
+@media (max-width: 599px) {
+  .table {
+    table-layout: auto !important;
+  }
+  .table thead th,
+  .table tbody td {
+    white-space: normal;
+    /* break-word, не anywhere: длинные значения переносятся по границам слов,
+       а не по каждой букве (иначе «Новая заявка» рассыпается в столбик). */
+    overflow-wrap: break-word;
+    padding: 12px 10px;
+  }
 }
 
 /* — Icon button used in tables — */
@@ -572,6 +649,26 @@ body {
   border-left: 1px solid var(--p-line);
   flex-shrink: 0;
   background: var(--p-canvas);
+}
+/* Кнопка в полосе табов не переносит подпись на вторую строку */
+.tabbar__actions .q-btn {
+  white-space: nowrap;
+}
+.tabbar__actions .q-btn .q-btn__content {
+  flex-wrap: nowrap;
+}
+/* Мобильный: любые кнопки страницы в полосе табов ужимаются централизованно —
+   место делится с табами, полноразмерная кнопка съедает половину строки */
+@media (max-width: 640px) {
+  .tabbar__actions {
+    padding: 6px var(--p-3);
+    gap: 6px;
+  }
+  .tabbar__actions .q-btn {
+    font-size: 12px;
+    min-height: 28px;
+    padding: 2px 10px;
+  }
 }
 
 /* ---- Avatar -----------------------------------------------------------
@@ -1237,7 +1334,13 @@ body {
   height: 100%;
   min-height: 0;
   flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+/* Контент выше вьюпорта (много пунктов, суб-пункты избранного, крупный масштаб)
+   прокручивается всей колонкой; без запрета сжатия flex вместо скролла
+   ужимал бы низ — карточка кошелька обрезалась и была недостижима. */
+.rail > * { flex-shrink: 0; }
 .rail__top {
   display: flex;
   align-items: center;
@@ -1314,6 +1417,61 @@ body {
   width: 2px;
   border-radius: 2px;
   background: var(--p-rail-rail-color);
+}
+
+/* Суб-пункты под пунктом меню (избранное и т.п.): меньший шрифт, без иконок,
+   отступ выравнивает текст под label родителя (12px padding + 18px icon + 12px gap
+   − 8px собственного padding). Название клэмпится в две строки. */
+.rail__subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 0 4px 34px;
+}
+.rail__subitem,
+.rail__subitem:visited {
+  display: block;
+  padding: 4px 8px;
+  border-radius: var(--p-r-xs);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--p-ink-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--p-dur-fast), color var(--p-dur-fast);
+}
+.rail__subitem:hover { background: var(--p-rail-item-hover); color: var(--p-ink-1); }
+.rail__subitem--active,
+.rail__subitem--active:visited {
+  background: var(--p-rail-item-active-bg);
+  color: var(--p-rail-item-active-fg);
+  font-weight: 500;
+}
+/* Тёмная тема: глобальные `.body--dark a` / `.q-dark a` из style.css красят
+   ссылки оранжевым и по специфичности бьют одиночный класс — возвращаем
+   суб-пунктам основной цвет (токены сами следуют теме). */
+.body--dark .rail__subitem,
+.body--dark .rail__subitem:visited,
+.q-dark .rail__subitem,
+.q-dark .rail__subitem:visited {
+  color: var(--p-ink-2);
+}
+.body--dark .rail__subitem:hover,
+.q-dark .rail__subitem:hover {
+  color: var(--p-ink-1);
+}
+.body--dark .rail__subitem--active,
+.body--dark .rail__subitem--active:visited,
+.q-dark .rail__subitem--active,
+.q-dark .rail__subitem--active:visited {
+  color: var(--p-rail-item-active-fg);
+}
+.rail__subitem-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .rail__spacer { flex: 1; }
@@ -1531,6 +1689,21 @@ body {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+/* Кнопка в шапке не переносит подпись на вторую строку: текст сокращается,
+   но остаётся однострочным — двухэтажная кнопка ломает высоту шапки */
+.topbar__actions .q-btn {
+  white-space: nowrap;
+}
+.topbar__actions .q-btn .q-btn__content {
+  flex-wrap: nowrap;
+}
+/* На мобильном крошка/заголовок страницы не показывается вовсе: от «Проекты ›
+   Компонент…» остаётся обрезанный огрызок, наезжающий на правую группу, а
+   ориентир пользователю дают табы и заголовок контента. Кнопка «Назад»
+   продолжает показываться. */
+.topbar--mobile .topbar__crumb > *:not(.back-button) {
+  display: none;
 }
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий
    (остался только пустой teleport-host) — прячем блок, чтобы не появлялся

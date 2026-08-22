@@ -122,6 +122,11 @@ const back = () => {
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(() => registratorStore.state.step, (value: number) => {
   if (value === registratorStore.steps.ReadStatement) {
+    // При входе в раздел сбрасываем согласие с Уставом — чтобы оно вело себя так
+    // же, как динамические doc-галочки (их сбрасывает loadDocuments при перегенерации).
+    // Иначе ustav из персист-стора «залипал» отмеченным при возврате к разделу и
+    // при повторной подаче после отказа совета. Пайщик проставляет заново.
+    registratorStore.state.agreements.ustav = false
     loadDocuments()
   }
 }, { immediate: true })

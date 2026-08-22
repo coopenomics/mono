@@ -16,10 +16,18 @@
         :key='getVoterKey(c)'
       ) {{ getShortNameFromCertificate(c) }}
 
-  //- Индикатор принятия решения советом — галочка закрашивается,
-  //- когда собрано достаточно голосов «за».
+  //- Индикатор исхода: красный крестик при отрицательном консенсусе (против
+  //- большинства), иначе галочка — закрашивается, когда собрано достаточно «за».
   .vote-status
+    q-icon(
+      v-if='isRejected',
+      name='cancel',
+      size='28px',
+      color='negative'
+    )
+      q-tooltip Решение отклонено советом (большинство против)
     q-checkbox(
+      v-else,
       :model-value='approved',
       disable,
       color='primary',
@@ -52,6 +60,10 @@ const props = defineProps({
   decision: {
     type: Object,
     required: true
+  },
+  isRejected: {
+    type: Boolean,
+    default: false
   },
   isVotedFor: {
     type: Function,

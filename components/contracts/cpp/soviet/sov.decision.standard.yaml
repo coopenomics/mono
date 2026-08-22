@@ -9,10 +9,10 @@
 #   • cpp/soviet/src/decision/freedecision.cpp
 #   • cpp/soviet/src/vote/votefor.cpp
 #   • cpp/soviet/src/vote/voteagainst.cpp
-#   • cpp/soviet/src/vote/cancelvote.cpp
 #   • cpp/soviet/src/decision/authorize.cpp
 #   • cpp/soviet/src/decision/exec.cpp
 #   • cpp/soviet/src/decision/cancelexprd.cpp
+#   • cpp/soviet/src/decision/declinedec.cpp (внутри cancelexprd.cpp)
 # ─────────────────────────────────────────────────────────────────────────────
 
 process_type: sov.decision
@@ -63,17 +63,9 @@ actions:
     actor: Член совета
     role: reject
     purpose: >
-      Член совета голосует «против». При достижении консенсуса по отказу
-      решение переходит в статус rejected; протокол не оформляется,
-      исполнения не происходит.
-
-  - name: soviet::cancelvote
-    human: Отозвать голос
-    actor: Член совета
-    role: progress
-    purpose: >
-      Член совета отзывает ранее поданный голос (за или против) до того,
-      как решение перешло в финальный статус.
+      Член совета голосует «против». Голос фиксируется; решение само не
+      закрывается. Когда против высказалось больше половины состава совета,
+      председатель снимает решение явным действием (см. «Отклонить решение»).
 
   - name: soviet::authorize
     human: Утвердить протокол
@@ -96,11 +88,21 @@ actions:
 
   - name: soviet::cancelexprd
     human: Отменить просроченное
-    actor: Член совета
+    actor: Кооператив
     role: reject
     purpose: >
-      Если решение не было утверждено в срок, оно может быть отменено
-      как просроченное. Запись удаляется без исполнения.
+      Если решение не было утверждено в срок, оно отменяется как
+      просроченное. Запись удаляется без исполнения. Снятие просроченных
+      решений происходит автоматически по истечении срока.
+
+  - name: soviet::declinedec
+    human: Отклонить решение
+    actor: Председатель
+    role: reject
+    purpose: >
+      Если против решения проголосовало больше половины состава совета,
+      председатель явно отклоняет его, не дожидаясь истечения срока.
+      Запись удаляется без исполнения.
 
 # ── Секция 3. Граф состояний ────────────────────────────────────────────────
 entity: soviet::decision
@@ -165,15 +167,15 @@ transitions:
 
   - from: created
     to: rejected
-    action: soviet::voteagainst
-    actor: Член совета
+    action: soviet::declinedec
+    actor: Председатель
     guards:
       - Большинство голосов «против».
 
   - from: created
     to: rejected
     action: soviet::cancelexprd
-    actor: Член совета
+    actor: Кооператив
     guards:
       - Истёк срок принятия решения.
 
@@ -214,7 +216,7 @@ scenario:
       actor: Член совета
       action: soviet::votefor
       description: >
-        Члены совета поочерёдно голосуют (votefor / voteagainst / cancelvote).
+        Члены совета поочерёдно голосуют (votefor / voteagainst).
         При достижении большинства «за» решение помечается как approved.
       pre:
         - Решение ещё не закрыто (created).
@@ -248,21 +250,22 @@ scenario:
         - События newresolved/newdecision разосланы.
 
   alternatives:
-    - branch: Отклонение голосованием
+    - branch: Отклонение советом
       at_step: 2
-      action: soviet::voteagainst
-      actor: Член совета
+      action: soviet::declinedec
+      actor: Председатель
       description: >
-        Большинство голосов «против» — решение помечается как rejected
-        и не утверждается председателем.
+        Когда против высказалось большинство состава совета, голос «против»
+        лишь фиксируется. Председатель явно отклоняет решение (declinedec) —
+        запись удаляется, протокол не оформляется.
 
     - branch: Просрочка
       at_step: 2
       action: soviet::cancelexprd
-      actor: Член совета
+      actor: Кооператив
       description: >
-        Если решение не было принято в срок, любой член совета может
-        вызвать cancelexprd — запись удаляется как просроченная.
+        Если решение не было принято в срок, оно автоматически отменяется
+        по истечении срока — запись удаляется как просроченная.
 
 # ── Секция 5. Документы и подписи ───────────────────────────────────────────
 documents:

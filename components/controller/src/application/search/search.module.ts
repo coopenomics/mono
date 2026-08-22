@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { SearchResolver } from './resolvers/search.resolver';
-import { SearchEventService } from './services/search-event.service';
-import { DocumentModule } from '~/application/document/document.module';
 
+/**
+ * Поиск по документам кооператива (C28-21).
+ * searchDocuments читает PG-реестр подписанных документов через SIGNED_DOCUMENT_REPOSITORY
+ * (глобальный TypeOrmModule). OpenSearch и его индексатор удалены.
+ */
 @Module({
-  imports: [DocumentModule],
-  providers: [SearchResolver, SearchEventService],
+  providers: [SearchResolver],
 })
 export class SearchModule {}

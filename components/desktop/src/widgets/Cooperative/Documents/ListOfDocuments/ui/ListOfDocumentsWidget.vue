@@ -1,5 +1,17 @@
 <template lang="pug">
+//- Реестр по умолчанию — канон карточки/плоские строки с переходом на страницу
+//- документа. Режим таблицы с инлайн-раскрытием (expand=true) оставлен для
+//- Union-страницы, где документы чужого кооператива смотрят на месте.
+DocumentCardsList(
+  v-if='!expand',
+  :documents='documentStore.documents',
+  :loading='documentStore.loading',
+  :pagination='documentStore.pagination',
+  @load='loadMoreDocuments'
+)
+
 DocumentsTable(
+  v-else,
   :documents='documentStore.documents',
   :loading='documentStore.loading',
   :pagination='documentStore.pagination',
@@ -22,7 +34,7 @@ DocumentsTable(
 <script setup lang="ts">
 import { onMounted, ref, onBeforeUnmount } from 'vue';
 import { DocumentModel } from 'src/entities/Document';
-import { DocumentsTable } from '../ui';
+import { DocumentsTable, DocumentCardsList } from '../ui';
 import { FailAlert } from 'src/shared/api';
 import type { DocumentType } from 'src/entities/Document/model/types';
 
@@ -37,6 +49,13 @@ const props = defineProps({
     default: () => ({}),
   },
   showFilter: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  // Режим таблицы с инлайн-раскрытием документа (для Union-страницы).
+  // По умолчанию — карточки с переходом на отдельную страницу документа.
+  expand: {
     type: Boolean,
     required: false,
     default: false,

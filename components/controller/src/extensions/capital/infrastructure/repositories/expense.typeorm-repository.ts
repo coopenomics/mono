@@ -5,17 +5,12 @@ import { ExpenseRepository } from '../../domain/repositories/expense.repository'
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import { ExpenseMapper } from '../mappers/expense.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { ExpenseFilterInputDTO } from '../../application/dto/expenses_management/expense-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ExpenseTypeormRepository
@@ -72,10 +67,10 @@ export class ExpenseTypeormRepository
 
   async findAllPaginated(
     filter?: ExpenseFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ExpenseDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ExpenseDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,

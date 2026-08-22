@@ -62,6 +62,11 @@ q-layout(view='lHh LpR fff')
     @select-workspace='onSelectWorkspace',
     @select-page='onSelectPage'
   )
+
+  //- Универсальный сканер стола ПВЗ: невидимый держатель всплывающего сканера,
+  //- регистрирует действие `marketplaceUniversalScan` (пункт меню «Сканировать
+  //- QR»). Смонтирован один раз; камера стартует только при открытии диалога.
+  UniversalScannerHost(v-if='loggedIn')
 </template>
 
 <script setup lang="ts">
@@ -74,11 +79,13 @@ import { LeftDrawerMenu } from 'src/widgets/Desktop/LeftDrawerMenu';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
 import type { CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
 import { ContactsFooter } from 'src/shared/ui/Footer';
+import { UniversalScannerHost } from 'src/widgets/Marketplace/UniversalScanner';
 
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
+import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useDefaultLayoutLogic } from './useDefaultLayoutLogic';
 import { usePWAThemeColor } from 'src/shared/lib/composables/usePWAThemeColor';
 import { useRightDrawerReader } from 'src/shared/hooks/useRightDrawer';
@@ -90,6 +97,7 @@ const desktop = useDesktopStore();
 const system = useSystemStore();
 const session = useSessionStore();
 const palette = useCommandPaletteStore();
+const actionsStore = useActionsStore();
 const { isOpen: paletteOpen } = storeToRefs(palette);
 const { rightDrawerActions } = useRightDrawerReader();
 
@@ -164,17 +172,21 @@ function evalCondition(
 
 const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
   const ctx = filterContext.value;
-  return desktop.workspaceMenus.map((ws) => {
+  return desktop.workspaceMenus
+    // Canon-grants: фильтр столов — для grant-стола виден если есть хотя бы одна
+    // доступная по грантам страница; для legacy — по meta.roles родительского
+    // маршрута.
+    .filter((ws) => desktop.isWorkspaceVisible(ws))
+    .map((ws) => {
     const children = (ws.mainRoute?.children ?? []) as RouteRecordRaw[];
     const pages = children
       .filter((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
         if (meta.hidden) return false;
         if (!evalCondition(meta.conditions, ctx)) return false;
-        if (meta.roles && meta.roles.length && !meta.roles.includes(userRole.value)) {
-          return false;
-        }
-        return true;
+        // Canon-grants: для grant-стола сверка meta.requires с выданными
+        // бэкендом правами; для legacy — fallback на meta.roles.
+        return desktop.isPageVisible(r.meta, ws.workspaceName);
       })
       .map((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
@@ -198,25 +210,42 @@ function onSelectWorkspace(workspaceName: string): void {
   palette.close();
   desktop.selectWorkspace(workspaceName);
   desktop.closeLeftDrawerOnMobile();
-  const ws = desktop.workspaceMenus.find((m) => m.workspaceName === workspaceName);
-  if (ws?.mainRoute?.name) {
-    void router.push({
-      name: ws.mainRoute.name as string,
-      params: { coopname: system.info.coopname },
-    });
-  }
+  // Переходим на реальную первую страницу стола И снимаем лоадер — ровно как
+  // WorkspaceSwitcher. Прямой push на mainRoute.name вёл на родительский
+  // layout-роут без компонента → серый экран, а лоадер оставался висеть.
+  desktop.goToDefaultPage(router);
 }
 
 function onSelectPage(workspaceName: string, pageName: string): void {
   palette.close();
-  if (workspaceName !== desktop.activeWorkspaceName) {
+  // Пункт-действие (meta.action, например «Сканировать QR») не ведёт на страницу
+  // — выполняем зарегистрированное действие, как делает левое меню (LeftDrawerMenu).
+  const ws = desktop.workspaceMenus.find((w) => w.workspaceName === workspaceName);
+  const page = ((ws?.mainRoute?.children ?? []) as RouteRecordRaw[]).find(
+    (r) => String(r.name) === pageName,
+  );
+  const action = (page?.meta as { action?: string } | undefined)?.action;
+  if (action) {
+    actionsStore.executeAction(action);
+    return;
+  }
+  // Считаем смену стола ДО selectWorkspace (он меняет activeWorkspaceName).
+  const isWorkspaceSwitch = workspaceName !== desktop.activeWorkspaceName;
+  if (isWorkspaceSwitch) {
     desktop.selectWorkspace(workspaceName);
   }
   desktop.closeLeftDrawerOnMobile();
-  void router.push({
-    name: pageName,
-    params: { coopname: system.info.coopname },
-  });
+  void router
+    .push({
+      name: pageName,
+      params: { coopname: system.info.coopname },
+    })
+    .finally(() => {
+      // Лоадер ставится только при смене стола — снимаем его тоже только тогда.
+      if (isWorkspaceSwitch) {
+        desktop.setWorkspaceChanging(false);
+      }
+    });
 }
 
 // --- Глобальный hotkey ⌘K / Ctrl+K ----------------------------------------

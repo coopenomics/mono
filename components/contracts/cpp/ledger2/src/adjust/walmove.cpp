@@ -57,7 +57,7 @@ void ledger2::walmove(eosio::name coopname,
 
   // -------- validate memo (обязательный для adjustment) --------
   eosio::check(!memo.empty(), "walmove: memo обязателен — укажите обоснование");
-  eosio::check(memo.size() < 256, "walmove: memo не должен превышать 255 символов");
+  // Длина memo не ограничивается — см. apply.cpp.
 
   // -------- dispatch inline walletop --------
   // TRANSFER без debit/credit inline-actions = перенос available между кошельками

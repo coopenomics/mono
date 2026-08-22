@@ -11,6 +11,5 @@ export interface BankTransferDataDomainInterface {
   details: {
     bik: string;
     corr: string;
-    kpp: string;
   };
 }

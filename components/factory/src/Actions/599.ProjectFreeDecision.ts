@@ -21,35 +21,31 @@ export class Factory extends DocFactory<ProjectFreeDecision.Action> {
     data: ProjectFreeDecision.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<ProjectFreeDecision.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, user, coop, project, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(ProjectFreeDecision.Template as ITemplate<ProjectFreeDecision.Model>)
+        : this.getTemplate<ProjectFreeDecision.Model>(DraftContract.contractName.production, ProjectFreeDecision.registry_id, data.block_num),
+      user: () => this.getUser(data.username, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      project: () => this.getProject(data.project_id, data.block_num) as Promise<Cooperative.Document.IProjectData>,
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = ProjectFreeDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, ProjectFreeDecision.registry_id, data.block_num)
-    }
-
-    const user = await this.getUser(data.username, data.block_num)
-    const suggester_name = await this.getFullName(user.data)
+    const suggester_name = await this.getFullName(user.data) // зависит от user
     const userData = {
       [user.type]: user.data,
     }
 
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-
-    const project: Cooperative.Document.IProjectData = await this.getProject(data.project_id, data.block_num)
-
     const metaTitle
       = data.title?.trim()?.substring(0, 200)
-      || project.title?.trim()?.substring(0, 200)
-      || template.title
+        || project.title?.trim()?.substring(0, 200)
+        || template.title
 
     const meta: IMetaDocument = await this.getMeta({
       ...data,
       title: metaTitle,
     }) // Генерируем мета-данные
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     const combinedData: ProjectFreeDecision.Model = {
       ...userData,

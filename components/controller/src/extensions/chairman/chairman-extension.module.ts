@@ -1,26 +1,12 @@
 import { Inject, Module } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort,
+  COUNCIL_PORT,
+  type ICouncilPort,
+} from '@coopenomics/innercoop';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
-import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { merge } from 'lodash';
-import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
-import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
-import { DocumentDomainModule } from '~/domain/document/document.module';
-import { FreeDecisionDomainModule } from '~/domain/free-decision/free-decision.module';
-import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
-import { SystemDomainModule } from '~/domain/system/system-domain.module';
 
 // Chairman Database and Infrastructure
 import { ChairmanDatabaseModule } from './infrastructure/database/chairman-database.module';
@@ -47,19 +33,14 @@ import { ChairmanSyncInteractor } from './application/use-cases/chairman-sync.in
 // Resolvers
 import { ApprovalResolver } from './application/resolvers/approval.resolver';
 import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.resolver';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
-import { FreeDecisionInfrastructureModule } from '~/infrastructure/free-decision/free-decision-infrastructure.module';
-import { DecisionTrackingInfrastructureModule } from '~/infrastructure/decision-tracking/decision-tracking-infrastructure.module';
 
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
-import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';
-import {
-  ONBOARDING_STEP_REGISTRATION_PORT,
-  type OnboardingStepRegistrationPort,
-} from '~/domain/onboarding/ports/onboarding-step-registration.port';
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -70,7 +51,6 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
 export const defaultConfig = {
   checkInterval: 10,
   lastCheckDate: '',
-  cancelApprovedDecisions: false,
   onboarding_init_at: '',
   onboarding_expire_at: '',
   onboarding_wallet_agreement_hash: '',
@@ -107,15 +87,6 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.lastCheckDate)
     .describe(describeField({ label: 'Дата последней проверки', visible: false })),
-  cancelApprovedDecisions: z
-    .boolean()
-    .default(defaultConfig.cancelApprovedDecisions)
-    .describe(
-      describeField({
-        label: 'Отменять принятые решения с истекшим сроком',
-        note: 'Если включено, истекшие принятые решения также будут отменяться',
-      })
-    ),
   onboarding_init_at: z
     .string()
     .default(defaultConfig.onboarding_init_at)
@@ -194,79 +165,70 @@ export interface ILog {
   timestamp?: string; // Делаем опциональным, так как будет добавляться внутри метода log
 }
 
-export class ChairmanPlugin extends BaseExtModule {
+export class ChairmanExtension extends BaseExtensionModule {
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
-    @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort,
-    @Inject(ONBOARDING_STEP_REGISTRATION_PORT)
-    private readonly onboardingStepRegistration: OnboardingStepRegistrationPort,
+    @Inject(COUNCIL_PORT) private readonly sovietBlockchainPort: ICouncilPort,
+    @Inject(ONBOARDING_STEP_REGISTRY_PORT)
+    private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     super();
-    this.logger.setContext(ChairmanPlugin.name);
+    this.logger.setContext(ChairmanExtension.name);
   }
 
   name = 'chairman';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
     // Применяем глубокий мердж дефолтных параметров с существующими
-    this.plugin = {
-      ...pluginData,
-      config: merge({}, defaultConfig, pluginData.config),
+    this.extension = {
+      ...extensionData,
+      config: merge({}, defaultConfig, extensionData.config),
     };
 
     // Инициализация таймера онбординга (30 дней с первого запуска)
     const nowIso = new Date().toISOString();
     let needUpdate = false;
-    if (!this.plugin.config.onboarding_init_at) {
-      this.plugin.config.onboarding_init_at = nowIso;
+    if (!this.extension.config.onboarding_init_at) {
+      this.extension.config.onboarding_init_at = nowIso;
       needUpdate = true;
     }
-    if (!this.plugin.config.onboarding_expire_at) {
-      const started = new Date(this.plugin.config.onboarding_init_at || nowIso);
-      this.plugin.config.onboarding_expire_at = computeOnboardingExpiresAt(started);
+    if (!this.extension.config.onboarding_expire_at) {
+      const started = new Date(this.extension.config.onboarding_init_at || nowIso);
+      this.extension.config.onboarding_expire_at = computeOnboardingExpiresAt(started);
       needUpdate = true;
     }
 
     if (needUpdate) {
-      await this.extensionRepository.update(this.plugin);
+      await this.extensionRepository.update(this.extension);
     }
 
-    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.plugin.config);
+    this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
 
     // Регистрация шагов онбординга в платформенном реестре
     registerChairmanOnboardingSteps(this.onboardingStepRegistration);
 
     // Инициализация сервиса проверки истекших решений
-    await this.decisionExpiredNotificationService.initialize(this.plugin);
+    await this.decisionExpiredNotificationService.initialize(this.extension);
   }
 }
 
 @Module({
   imports: [
     ChairmanDatabaseModule,
-    AccountInfrastructureModule,
-    MeetInfrastructureModule,
-    SystemInfrastructureModule,
-    DocumentDomainModule,
-    FreeDecisionDomainModule,
-    VaultDomainModule,
-    FreeDecisionInfrastructureModule,
-    DecisionTrackingInfrastructureModule,
-    SystemDomainModule,
   ],
   providers: [
-    ChairmanPlugin,
+    ChairmanExtension,
 
     // Репозитории
     {
@@ -304,10 +266,10 @@ export class ChairmanPlugin extends BaseExtModule {
   ],
   exports: [ApprovalSyncService, ChairmanSyncInteractor],
 })
-export class ChairmanPluginModule {
-  constructor(private readonly chairmanPlugin: ChairmanPlugin) {}
+export class ChairmanExtensionModule {
+  constructor(private readonly chairmanExtension: ChairmanExtension) {}
 
   async initialize() {
-    await this.chairmanPlugin.initialize();
+    await this.chairmanExtension.initialize();
   }
 }

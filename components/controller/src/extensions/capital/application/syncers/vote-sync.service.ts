@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { VoteDomainEntity } from '../../domain/entities/vote.entity';
 import { VoteRepository, VOTE_REPOSITORY } from '../../domain/repositories/vote.repository';
 import { VoteDeltaMapper } from '../../infrastructure/blockchain/mappers/vote-delta.mapper';
@@ -24,7 +24,7 @@ export class VoteSyncService
     @Inject(VOTE_REPOSITORY)
     voteRepository: VoteRepository,
     voteDeltaMapper: VoteDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(voteRepository, voteDeltaMapper, logger);
@@ -48,14 +48,5 @@ export class VoteSyncService
     });
 
     this.logger.debug('Сервис синхронизации голосов полностью инициализирован с подписками на паттерны');
-  }
-
-  /**
-   * Обработка форков для голосов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleVoteFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

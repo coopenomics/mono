@@ -2,7 +2,7 @@ import { ProjectPropertyDomainEntity } from '../../domain/entities/project-prope
 import { ProjectPropertyTypeormEntity } from '../entities/project-property.typeorm-entity';
 import type { IProjectPropertyDatabaseData } from '../../domain/interfaces/project-property-database.interface';
 import type { IProjectPropertyBlockchainData } from '../../domain/interfaces/project-property-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ProjectPropertyTypeormEntity>, keyof IProjectPropertyDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProjectPropertyTypeormEntity>, keyof IProjectPropertyBlockchainData>;

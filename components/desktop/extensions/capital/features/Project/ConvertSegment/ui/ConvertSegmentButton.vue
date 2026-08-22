@@ -1,12 +1,14 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='$emit("click", $event)',
-  label='Получить долю в ОАП'
-)
+BaseButton(
+  variant='primary',
+  size='sm',
+  @click='$emit("click", $event)'
+) Получить долю в ОАП
 </template>
 
 <script setup lang="ts">
+import { BaseButton } from 'src/shared/ui/base';
+
 defineEmits<{
   click: [event: Event];
 }>();

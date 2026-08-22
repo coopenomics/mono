@@ -2,21 +2,21 @@ import type { JSONSchemaType } from 'ajv'
 import moment from 'moment-timezone'
 import type { Cooperative, Interfaces, MeetContract } from 'cooptypes'
 import { DraftContract, SovietContract } from 'cooptypes'
-import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, IPaymentData, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
+import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
 import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
 import { PDFService } from '../Services/Generator'
+import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
 import type { CooperativeData } from '../Models/Cooperative'
 import { Cooperative as CooperativeModel } from '../Models/Cooperative'
 import { Entrepreneur } from '../Models/Entrepreneur'
-import { getFetch } from '../Utils/getFetch'
-import { getEnvVar } from '../config'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
-import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '..'
+import type { IOrganizationData } from '..'
 import { formatDateTime } from '../Utils'
+import type { IChainDataSource } from '../DataSource'
 
 const packageVersion = packageJson.version
 
@@ -26,13 +26,99 @@ export abstract class DocFactory<T extends IGenerate> {
   abstract generateDocument(data: T, options?: IGenerationOptions): Promise<IGeneratedDocument>
 
   public storage: MongoDBConnector
+  public docData: DocDataService
+
+  /**
+   * Откуда брать данные цепи. Проставляется Generator'ом сразу после создания
+   * фабрик — так источник задаётся одним местом и не тянется через конструктор
+   * каждой из десятков фабрик документов.
+   */
+  private dataSource?: IChainDataSource
 
   constructor(storage: MongoDBConnector) {
     this.storage = storage
+    this.docData = new DocDataService(storage)
+  }
+
+  setDataSource(dataSource: IChainDataSource): void {
+    this.dataSource = dataSource
+  }
+
+  /**
+   * Источник данных цепи. Отсутствует — это ошибка сборки приложения, а не
+   * повод молча вернуть пустой документ: без данных цепи документ выйдет
+   * без реквизитов кооператива и без текста шаблона.
+   */
+  protected get chain(): IChainDataSource {
+    if (!this.dataSource)
+      throw new Error('Источник данных цепи не задан: фабрика создана в обход Generator')
+
+    return this.dataSource
+  }
+
+  /**
+   * Параллельно резолвит ВЗАИМНО НЕЗАВИСИМЫЕ источники данных документа.
+   *
+   * Локальные чтения (mongo: getUser/getCooperative/getProject/getVars) дёшевы,
+   * но сетевые (getTemplate → explorer get-tables ×2, getMeta → getCurrentBlock
+   * → get_info) шли строго последовательно и складывались в заметную задержку
+   * сборки. Здесь они стартуют разом через Promise.all.
+   *
+   * ВАЖНО: сюда передавать ТОЛЬКО задачи без взаимных зависимостей. Зависимые
+   * вызывать ПОСЛЕ, на полученных результатах:
+   *   - getFullName(user.data) / getCommonUser(user) — зависят от user;
+   *   - getDecision(coop, …, meta.created_at) — зависит от coop и meta;
+   *   - getMeetQuestions(coopname, meet.id) / getGeneralMeetingDecision(meet) — от meet;
+   *   - getProgram(request.program_id) — от request;
+   *   - getMeta({ title: project.title }) — если title выводится из project/coop.
+   *
+   * Ключи объекта-результата соответствуют ключам переданных задач.
+   */
+  protected async resolveParallel<T extends Record<string, () => Promise<any>>>(
+    tasks: T,
+  ): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+    const entries = Object.entries(tasks)
+    const values = await Promise.all(entries.map(([, fn]) => fn()))
+    const result = {} as { [K in keyof T]: Awaited<ReturnType<T[K]>> }
+    entries.forEach(([key], index) => {
+      result[key as keyof T] = values[index]
+    })
+    return result
   }
 
   async validate(combinedData: ICombinedData, schema: any) {
     return new Validator(schema, combinedData).validate()
+  }
+
+  /**
+   * Сохранить приватный payload документа и получить его hash.
+   * Hash безопасно публикуется on-chain как `doc_data_hash`; сам payload
+   * остаётся off-chain в коллекции `doc_private_data`.
+   * См. раздел «Document Generation Pattern: doc_data» в архитектуре.
+   */
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return this.docData.save(payload, registry_id)
+  }
+
+  /**
+   * Прочитать приватный payload по `doc_data_hash`.
+   * Возвращает null если запись удалена (документ остаётся верифицируемым
+   * по хэшу подписи, но не регенерируется — graceful degradation).
+   */
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return this.docData.get<P>(hash)
+  }
+
+  /**
+   * Помощник для конкретных фабрик: подгружает приватный payload по
+   * `data.doc_data_hash` и возвращает его (или null, если хэш не задан /
+   * запись удалена). Фабрика кладёт результат в `combinedData.doc_data` —
+   * шаблон документа обращается к полям как `{{ doc_data.<field> }}`.
+   */
+  async loadDocData<P = Record<string, unknown>>(data: { doc_data_hash?: string }): Promise<P | null> {
+    if (!data.doc_data_hash)
+      return null
+    return this.getDocData<P>(data.doc_data_hash)
   }
 
   async getOrganization(username: string, block_num?: number): Promise<IOrganizationData> {
@@ -96,7 +182,7 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getCooperative(username: string, block_num?: number): Promise<CooperativeData> {
-    const coop = await new CooperativeModel(this.storage).getOne(username, block_num)
+    const coop = await new CooperativeModel(this.storage, this.chain).getOne(username, block_num)
 
     if (!coop)
       throw new Error('Кооператив не найден')
@@ -177,29 +263,11 @@ export abstract class DocFactory<T extends IGenerate> {
      * промежуточные дельты не фиксируются, а мы сможем увидеть только результат - удаление, т.е. пустой объект.
      * Позже перепроверить еще раз.
      */
-    // const decision = (await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-    //   filter: JSON.stringify({
-    //     code: SovietContract.contractName.production,
-    //     scope: coopname,
-    //     table: SovietContract.Tables.Decisions.tableName,
-    //     primary_key: String(decision_id),
-    //     present: true,
-    //   }),
-    //   limit: String(1),
-    // })))?.results[0]
-
-    // if (!decision)
-    //   throw new Error('Объект решения не найден')
-
-    const votes_for_actions = (await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-actions`, new URLSearchParams({
-      filter: JSON.stringify({
-        'account': SovietContract.contractName.production,
-        'name': SovietContract.Actions.Decisions.VoteFor.actionName,
-        'receiver': SovietContract.contractName.production,
-        'data.decision_id': String(decision_id),
-        'data.coopname': coopname,
-      }),
-    })))?.results
+    const votes_for_actions = await this.chain.getActions({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Decisions.VoteFor.actionName,
+      data: { 'decision_id': String(decision_id), 'coopname': coopname },
+    })
     const paramsss = JSON.stringify({
       'account': SovietContract.contractName.production,
       'name': SovietContract.Actions.Decisions.VoteFor.actionName,
@@ -212,15 +280,11 @@ export abstract class DocFactory<T extends IGenerate> {
       throw new Error(`Голоса за решение не найдены ${paramsss}`)
     }
 
-    const votes_against_actions = (await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-actions`, new URLSearchParams({
-      filter: JSON.stringify({
-        'account': SovietContract.contractName.production,
-        'name': SovietContract.Actions.Decisions.VoteAgainst.actionName,
-        'receiver': SovietContract.contractName.production,
-        'data.decision_id': String(decision_id),
-        'data.coopname': coopname,
-      }),
-    })))?.results
+    const votes_against_actions = await this.chain.getActions({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Decisions.VoteAgainst.actionName,
+      data: { 'decision_id': String(decision_id), 'coopname': coopname },
+    })
 
     const votes_against = votes_against_actions ? votes_against_actions.length : 0
     const votes_for = votes_for_actions.length
@@ -249,15 +313,12 @@ export abstract class DocFactory<T extends IGenerate> {
     /**
      * Получаем уже принятое решение из действия authorize.
      */
-    const decision = (await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-actions`, new URLSearchParams({
-      filter: JSON.stringify({
-        'account': SovietContract.contractName.production,
-        'name': SovietContract.Actions.Decisions.Authorize.actionName,
-        'receiver': SovietContract.contractName.production,
-        'data.decision_id': String(decision_id),
-        'data.coopname': coopname,
-      }),
-    })))?.results[0]?.data as SovietContract.Actions.Decisions.Authorize.IAuthorize
+    const decision = (await this.chain.getActions({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Decisions.Authorize.actionName,
+      data: { 'decision_id': String(decision_id), 'coopname': coopname },
+      limit: 1,
+    }))[0]?.data as SovietContract.Actions.Decisions.Authorize.IAuthorize
 
     if (!decision) {
       throw new Error(`Принятое решение не найдено в действиях authorize: decision_id=${decision_id}, coopname=${coopname}`)
@@ -291,18 +352,16 @@ export abstract class DocFactory<T extends IGenerate> {
   async getMeet(coopname: string, meet_hash: string, block_num?: number): Promise<Cooperative.Model.IMeetExtended> {
     const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
 
-    const meetResponse = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': 'meet',
-        'scope': coopname,
-        'table': 'meets',
-        'value.hash': meet_hash.toUpperCase(),
-        ...block_filter,
-      }),
-      limit: String(1),
-    }))
+    const meetRows = await this.chain.getTableRows<MeetContract.Tables.Meets.IOutput>({
+      code: 'meet',
+      scope: coopname,
+      table: 'meets',
+      filter: { hash: meet_hash.toUpperCase() },
+      ...(block_num ? { block_num } : {}),
+      limit: 1,
+    })
 
-    const meet = meetResponse.results[0]?.value as MeetContract.Tables.Meets.IOutput
+    const meet = meetRows[0]
 
     if (!meet)
       throw new Error('Собрание не найдено')
@@ -331,17 +390,13 @@ export abstract class DocFactory<T extends IGenerate> {
   async getMeetQuestions(coopname: string, meet_id: number, block_num?: number): Promise<Cooperative.Model.IQuestionExtended[]> {
     const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
 
-    const questionsResponse = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': 'meet',
-        'scope': coopname,
-        'table': 'questions',
-        'value.meet_id': String(meet_id),
-        ...block_filter,
-      }),
-    }))
-
-    const questions = questionsResponse.results?.map((result: any) => result.value) as MeetContract.Tables.Questions.IOutput[] || []
+    const questions = await this.chain.getTableRows<MeetContract.Tables.Questions.IOutput>({
+      code: 'meet',
+      scope: coopname,
+      table: 'questions',
+      filter: { meet_id: String(meet_id) },
+      ...(block_num ? { block_num } : {}),
+    })
 
     // Сортировка вопросов по номеру (с учетом, что number может быть строкой)
     questions.sort((a, b) => {
@@ -411,74 +466,42 @@ export abstract class DocFactory<T extends IGenerate> {
   }
 
   async getTemplate<T>(scope: string, registry_id: number, block_num?: number): Promise<ITemplate<T>> {
-    const block_filter = block_num ? { block_num: { $lte: block_num } } : {}
+    const draft = (await this.chain.getTableRows<DraftContract.Tables.Drafts.IDraft>({
+      code: DraftContract.contractName.production,
+      scope,
+      table: DraftContract.Tables.Drafts.tableName,
+      filter: { registry_id: String(registry_id) },
+      ...(block_num ? { block_num } : {}),
+      limit: 1,
+    }))[0]
 
-    const templateResponse = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': DraftContract.contractName.production,
-        'scope': scope,
-        'table': DraftContract.Tables.Drafts.tableName,
-        'value.registry_id': String(registry_id),
-        ...block_filter,
-      }),
-    }))
+    if (!draft)
+      throw new Error(`Шаблон ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
 
-    const draft = templateResponse.results[0]?.value as DraftContract.Tables.Drafts.IDraft
+    const translations = await this.chain.getTableRows<DraftContract.Tables.Translations.ITranslation>({
+      code: DraftContract.contractName.production,
+      scope,
+      table: DraftContract.Tables.Translations.tableName,
+      filter: { draft_id: String(draft.registry_id) },
+      ...(block_num ? { block_num } : {}),
+    })
 
-    if (!draft) {
-      throw new Error(`Шаблон не найден: ${JSON.stringify({
-        'code': DraftContract.contractName.production,
-        'scope': scope,
-        'table': DraftContract.Tables.Drafts.tableName,
-        'value.registry_id': String(registry_id),
-        ...block_filter,
-      })}`)
-    }
-
-    const translationsResponse = await getFetch(`${getEnvVar('SIMPLE_EXPLORER_API')}/get-tables`, new URLSearchParams({
-      filter: JSON.stringify({
-        'code': DraftContract.contractName.production,
-        'scope': scope,
-        'table': 'translations',
-        'value.draft_id': String(draft.registry_id),
-        ...block_filter,
-      }),
-    }))
-
-    const translations = translationsResponse.results
-
-    if (!translations.length) {
-      throw new Error(`Ни один перевод не найден: ${JSON.stringify({
-        'code': DraftContract.contractName.production,
-        'scope': scope,
-        'table': DraftContract.Tables.Translations.tableName,
-        'value.draft_id': String(draft.registry_id),
-        ...block_filter,
-      })}`)
-    }
+    if (!translations.length)
+      throw new Error(`Ни один перевод шаблона ${registry_id} не найден${block_num ? ` на блоке ${block_num}` : ''}`)
 
     /**
-     * Код ниже обеспечивает группировку языковых версий, если их было несколько, оставляя только актуальные.
-     * В целом, этот код можно исключить, если в запрос языковых версий добавить опцию лимита == 1. Т.к. в некоторых случаях
-     * мы можем получить несколько версий, что в дальнейшем при формировании объекта из массива приводит к неожиданным результатам, когда
-     * последней версией документа может стать одна из старых.
+     * На один язык может прийти несколько записей — перевод могли завести
+     * заново под другим идентификатором. Источник отдаёт строки от свежих
+     * блоков к старым, поэтому первая встреченная запись языка и есть
+     * актуальная: иначе документ собрался бы по устаревшей редакции текста.
      */
-    const filteredTranslations: any = Object.values(
-      translations.reduce((acc: any, curr: any) => {
-        const lang = curr.value.lang
+    const byLang = new Map<string, any>()
+    for (const translation of translations as any[]) {
+      if (!byLang.has(translation.lang))
+        byLang.set(translation.lang, JSON.parse(translation.data))
+    }
 
-        // Если ключ (язык) уже существует в аккумуляторе, проверяем block_num
-        if (!acc[lang] || acc[lang].block_num < curr.block_num) {
-          acc[lang] = curr // Обновляем запись, если block_num больше
-        }
-
-        return acc
-      }, {} as Record<string, typeof translations[0]>),
-    )
-
-    const translationsObj: any = Object.fromEntries(
-      filteredTranslations.map(({ value }: { value: any }) => [value.lang, JSON.parse(value.data)]),
-    )
+    const translationsObj = Object.fromEntries(byLang.entries())
 
     return {
       title: draft.title,

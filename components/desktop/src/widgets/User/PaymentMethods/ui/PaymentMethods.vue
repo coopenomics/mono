@@ -10,9 +10,7 @@
         DeletePaymentButton(
           :username='username',
           :method_id='method.method_id',
-          size='sm',
-          flat,
-          color='negative'
+          size='sm'
         )
 
       //- Система Быстрых Платежей
@@ -38,7 +36,6 @@
           mono
         )
         DataRow(label='БИК', :value='method.data.details.bik', copyable, mono)
-        DataRow(label='КПП', :value='method.data.details.kpp', copyable, mono)
 
   EmptyState(
     v-else,

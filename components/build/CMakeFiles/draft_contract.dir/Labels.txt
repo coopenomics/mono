@@ -1,0 +1,14 @@
+# Target labels
+ draft_contract
+# Source files and their labels
+/project/build/CMakeFiles/draft_contract
+/project/build/CMakeFiles/draft_contract.rule
+/project/build/CMakeFiles/draft_contract-complete.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-build.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-configure.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-download.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-install.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-mkdir.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-patch.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-test.rule
+/project/build/draft_contract-prefix/src/draft_contract-stamp/draft_contract-update.rule

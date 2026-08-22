@@ -1,33 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
-import { ParticipantRegisteredEvent } from '~/domain/participant/interfaces/participant-registered-event.interface';
-import { ProgramKey } from '~/domain/registration/enum';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { AccountDataPort, ACCOUNT_DATA_PORT } from '~/domain/account/ports/account-data.port';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent,
+  ProgramKey,
+  type InnerParticipantRegisteredEvent,
+} from '@coopenomics/innercoop';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import config from '~/config/config';
-import { generateRandomHash } from '~/utils/generate-hash.util';
-import {
-  ONBOARDING_COMPLETED_EVENT,
-  type OnboardingCompletedPayload,
-} from '~/domain/onboarding/events/onboarding-completed.event';
+import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
+import { generateRandomHash } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CapitalOnboardingEventsService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(CONTRIBUTOR_REPOSITORY) private readonly contributorRepository: ContributorRepository,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountDataPort: AccountDataPort,
-    private readonly logger: WinstonLoggerService,
+    @Inject(ACCOUNT_PORT) private readonly accountDataPort: IAccountPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(CapitalOnboardingEventsService.name);
@@ -57,8 +49,8 @@ export class CapitalOnboardingEventsService {
     this.logger.info(`Получено событие завершения онбординга capital для шага: ${step}`);
 
     try {
-      const plugin = await this.extensionRepository.findByName('capital');
-      if (!plugin) {
+      const extension = await this.extensionRepository.findByName('capital');
+      if (!extension) {
         this.logger.error('Конфигурация расширения capital не найдена');
         return;
       }
@@ -71,15 +63,14 @@ export class CapitalOnboardingEventsService {
         return;
       }
 
-      const wasAlreadyDone = !!(plugin.config as any)[flagKey];
+      const wasAlreadyDone = !!(extension.config as any)[flagKey];
 
-      // Обновляем флаг завершения шага
-      const updatedConfig = {
-        ...plugin.config,
+      // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
+      // config целиком: два решения совета по разным шагам, утверждённые почти
+      // одновременно, иначе теряли бы флаг друг друга (lost update на общем jsonb-блобе).
+      const updated = await this.extensionRepository.patchConfig('capital', {
         [flagKey]: true,
-      };
-
-      await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+      } as Partial<IConfig>);
 
       this.logger.info(`Флаг ${flagKey} установлен в true`);
 
@@ -89,13 +80,13 @@ export class CapitalOnboardingEventsService {
       // restartApp('capital'), чтобы initialize(config) увидел свежий config
       // и зарегистрировал оферты/программы в платформенном реестре.
       // Совет ничего не нажимает (раздел 7.1 плана C28-10, вариант (в)).
-      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+      if (!wasAlreadyDone && this.isL1Complete(updated.config as IConfig)) {
         this.logger.info(
           '[ONBOARDING_COMPLETED] capital L1 завершён последним шагом, эмиттим событие для auto-restart'
         );
         this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
           extension_name: 'capital',
-        } satisfies OnboardingCompletedPayload);
+        } satisfies InnerOnboardingCompletedPayload);
       }
     } catch (error) {
       const errorObj = error as Error;
@@ -104,10 +95,10 @@ export class CapitalOnboardingEventsService {
   }
 
   @OnEvent('participant::registered')
-  async handleParticipantRegistered(event: ParticipantRegisteredEvent): Promise<void> {
+  async handleParticipantRegistered(event: InnerParticipantRegisteredEvent): Promise<void> {
     const { username, program_key, blagorost_offer_hash, generator_offer_hash } = event;
 
-    this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${config.coopname}`);
+    this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${platformSettings().coopname}`);
 
     // Создаем Contributor только если указана программа (для кооперативов, поддерживающих CAPITAL)
     if (!program_key) {
@@ -116,8 +107,8 @@ export class CapitalOnboardingEventsService {
     }
 
     // Проверяем наличие необходимых данных
-    if (!config.coopname) {
-      this.logger.error(`config.coopname не определен, невозможно создать Contributor для ${username}`);
+    if (!platformSettings().coopname) {
+      this.logger.error(`platformSettings().coopname не определен, невозможно создать Contributor для ${username}`);
       return;
     }
 
@@ -195,7 +186,7 @@ export class CapitalOnboardingEventsService {
         _id: '',
         present: false,
         username,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         display_name: displayName,
         program_key,
         status: ContributorStatus.PENDING,

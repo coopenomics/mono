@@ -1,15 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import { ExpenseRepository, EXPENSE_REPOSITORY } from '../../domain/repositories/expense.repository';
-import type { TransactResult } from '@wharfkit/session';
 import type { CreateExpenseDomainInput } from '../../domain/actions/create-expense-domain-input.interface';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import type { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Интерактор домена для управления расходами CAPITAL контракта
@@ -28,7 +25,7 @@ export class ExpensesManagementInteractor {
   /**
    * Создание расхода в CAPITAL контракте
    */
-  async createExpense(data: CreateExpenseDomainInput): Promise<TransactResult> {
+  async createExpense(data: CreateExpenseDomainInput): Promise<InnerTransactResult> {
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -44,8 +41,8 @@ export class ExpensesManagementInteractor {
    */
   async getExpenses(
     filter?: ExpenseFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ExpenseDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ExpenseDomainEntity>> {
     return await this.expenseRepository.findAllPaginated(filter, options);
   }
 

@@ -1,0 +1,1 @@
+export { OperatorWarehouseDeskPage } from './ui';

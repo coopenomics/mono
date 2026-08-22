@@ -23,12 +23,22 @@ export default ssrMiddleware(({ app }) => {
       TIMEZONE: process.env.TIMEZONE || 'Europe/Moscow',
       VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
       VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
-      NOVU_APP_ID: process.env.NOVU_APP_ID as string,
-      NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
-      NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
       VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY as string,
       SENTRY_DSN: process.env.SENTRY_DSN as string,
       OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,
+      YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
+    // CoopID (Эпик 5): без этих трёх на клиенте вход по паролю недоступен —
+    // `loginWithPassword` проверяет `env.COOPID_ISSUER` и отдаёт «войдите по
+    // ключу доступа». Список здесь свой, а не из createEnvObject(): SPA и SSR
+    // получают переменные разными путями, и сводить их в один источник —
+    // отдельная задача. Поэтому при добавлении переменной клиента её нужно
+    // дописать в ОБА middleware (injectEnv + generateConfig) и в
+    // createEnvObject — иначе она просто не доедет до браузера.
+    // 22.08.2026: так и вышло — переменные стояли в контейнере, а до браузера
+    // не доезжали; пайщик после ротации ключа остался без входа вовсе.
+    COOPID_ISSUER: process.env.COOPID_ISSUER as string,
+    COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
+    COOPID_TRUST_ANCHOR_KEY: process.env.COOPID_TRUST_ANCHOR_KEY as string,
     };
 
     // Создаем скрипт, который добавит переменные в window.__ENV__

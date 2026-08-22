@@ -68,15 +68,6 @@
     :rules="[val => notEmpty(val), val => val.length === 9 || 'БИК должен содержать 9 цифр']"
   )
 
-  q-input(
-    v-model="data.bank_account.details.kpp"
-    outlined color="primary"
-    mask="#########"
-    label="КПП (банка) (9 цифр)"
-    :rules="[val => notEmpty(val), val => val.length === 9 || 'КПП должен содержать 9 цифр']"
-    autocomplete="off"
-  )
-
   q-select(v-model="data.bank_account.currency"
     label="Валюта счёта"
     outlined color="primary"

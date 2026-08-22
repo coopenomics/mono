@@ -1,0 +1,271 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addfee",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "contribute",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "global_state",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "total_shares",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_rewards_distributed",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_withdrawed",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_intellectual_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_property_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "accumulated_fees",
+                    "type": "asset"
+                },
+                {
+                    "name": "cumulative_reward_per_share",
+                    "type": "int64"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "participant",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "share_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "pending_rewards",
+                    "type": "asset"
+                },
+                {
+                    "name": "intellectual_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_contributions",
+                    "type": "asset"
+                },
+                {
+                    "name": "reward_per_share_last",
+                    "type": "int64"
+                },
+                {
+                    "name": "withdrawed",
+                    "type": "asset"
+                },
+                {
+                    "name": "queued_withdrawal",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "refresh",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "withdraw1",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "withdraw2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "withdrawal_request",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "uint64"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addfee",
+            "type": "addfee",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "contribute",
+            "type": "contribute",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "refresh",
+            "type": "refresh",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdraw1",
+            "type": "withdraw1",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdraw2",
+            "type": "withdraw2",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "globalstate",
+            "type": "global_state",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "participants",
+            "type": "participant",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "withdrawals",
+            "type": "withdrawal_request",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

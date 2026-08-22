@@ -24,6 +24,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import { IDocument } from 'src/shared/lib/types/document';
 import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 
 export interface ICreateUser {
   email: string;
@@ -132,17 +133,18 @@ export function useCreateUser() {
     const userDoc = registrationStore.getDocumentById('user_agreement');
     const capitalizationDoc = registrationStore.getDocumentById('blagorost_offer');
     const generatorDoc = registrationStore.getDocumentById('generator_offer');
+    const marketplaceDoc = registrationStore.getDocumentById('marketplace_offer');
 
     // Преобразуем program_key в правильный enum формат
     let programKey: Zeus.ProgramKey | undefined;
     if (registratorStore.state.selectedProgramKey) {
       const key = registratorStore.state.selectedProgramKey;
-      if (key === 'CAPITALIZATION' || key === 'GENERATION') {
+      if (key === 'CAPITALIZATION' || key === 'GENERATION' || key === 'MARKETPLACE') {
         programKey = key as Zeus.ProgramKey;
       }
     }
 
-    const data: ISendStatement & { blagorost_offer?: IDocument; generator_offer?: IDocument; program_key?: Zeus.ProgramKey } = {
+    const data: ISendStatement & { blagorost_offer?: IDocument; generator_offer?: IDocument; marketplace_offer?: IDocument; program_key?: Zeus.ProgramKey } = {
       username: store.account.username,
       braname: store.selectedBranch,
       statement: store.statement,
@@ -163,6 +165,11 @@ export function useCreateUser() {
     // Добавляем generator_offer если есть
     if (generatorDoc?.signed_document) {
       data.generator_offer = generatorDoc.signed_document;
+    }
+
+    // Добавляем marketplace_offer (ЦПП «Стол заказов») если есть
+    if (marketplaceDoc?.signed_document) {
+      data.marketplace_offer = marketplaceDoc.signed_document;
     }
 
     await api.sendStatement(data);
@@ -322,9 +329,10 @@ export function useCreateUser() {
     if (synthData.type === Zeus.AccountType.individual) {
       synthData.individual_data = userData.individual_data;
     } else if (synthData.type === Zeus.AccountType.organization) {
-      synthData.organization_data = userData.organization_data;
+      // TODO(удалить после 01.09.2026): strip устаревший «КПП банка» из persisted-localStorage
+      synthData.organization_data = stripLegacyBankKpp(userData.organization_data);
     } else if (synthData.type === Zeus.AccountType.entrepreneur) {
-      synthData.entrepreneur_data = userData.entrepreneur_data;
+      synthData.entrepreneur_data = stripLegacyBankKpp(userData.entrepreneur_data);
     }
 
     const referer = LocalStorage.getItem(`${info.coopname}:referer`) as string || undefined;

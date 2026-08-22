@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для закрытия собрания
@@ -6,5 +6,5 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 export interface CloseAnnualGeneralMeetInputDomainInterface {
   coopname: string;
   hash: string;
-  meet_decision: ISignedDocumentDomainInterface;
+  meet_decision: ISignedDocument;
 }

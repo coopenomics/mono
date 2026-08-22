@@ -4,13 +4,18 @@ import { ReportRegistryService } from './domain/services/report-registry.service
 import { ReportPreviewService } from './domain/services/report-preview.service';
 import { ReportRequisitesService } from './domain/services/report-requisites.service';
 import { ReportEditsBuilderService } from './domain/services/report-edits-builder.service';
+import { Ndfl6DataService } from './domain/services/ndfl6-data.service';
 import { ReportInitService } from './infrastructure/services/report-init.service';
 import { XsdValidatorService } from './infrastructure/services/xsd-validator.service';
 import { ReportResolver } from './application/resolvers/report.resolver';
 import { ReportRequisitesResolver } from './application/resolvers/report-requisites.resolver';
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
-import { Ledger2Module } from '~/application/ledger2/ledger2.module';
+import { WithheldTaxResolver } from './application/resolvers/withheld-tax.resolver';
+import { WithheldTaxService } from './application/services/withheld-tax.service';
+import { WithheldTaxPayoutSyncService } from './application/services/withheld-tax-payout-sync.service';
+import { WithheldTaxBlockchainAdapter } from './infrastructure/adapters/withheld-tax-blockchain.adapter';
+import { WITHHELD_TAX_BLOCKCHAIN_PORT } from './domain/ports/withheld-tax-blockchain.port';
 import { GeneratedReportEntity } from './infrastructure/entities/generated-report.entity';
 import { BalanceCorrectionEntity } from './infrastructure/entities/balance-correction.entity';
 import { ReportRequisitesEntity } from './infrastructure/entities/report-requisites.entity';
@@ -27,11 +32,10 @@ import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requi
 import { REPORT_DRAFT_REPOSITORY } from './domain/repositories/report-draft.repository';
 import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-submission-mark.repository';
 
-// ORGANIZATION_REPOSITORY приходит из @Global() GeneratorRepositoriesModule,
-// поэтому его явно импортировать в imports не надо.
+// ORGANIZATION_REPOSITORY и INDIVIDUAL_REPOSITORY приходят из @Global()
+// GeneratorRepositoriesModule, поэтому их явно импортировать в imports не надо.
 @Module({
   imports: [
-    Ledger2Module,
     NestTypeOrmModule.forFeature([
       GeneratedReportEntity,
       BalanceCorrectionEntity,
@@ -45,12 +49,18 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
     ReportPreviewService,
     ReportRequisitesService,
     ReportEditsBuilderService,
+    Ndfl6DataService,
     ReportInitService,
     XsdValidatorService,
     ReportResolver,
     ReportRequisitesResolver,
     ReportDraftResolver,
     ReportCalendarResolver,
+    WithheldTaxResolver,
+    WithheldTaxService,
+    WithheldTaxPayoutSyncService,
+    WithheldTaxBlockchainAdapter,
+    { provide: WITHHELD_TAX_BLOCKCHAIN_PORT, useExisting: WithheldTaxBlockchainAdapter },
     {
       provide: GENERATED_REPORT_REPOSITORY,
       useClass: GeneratedReportTypeormRepository,
@@ -85,7 +95,7 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
 })
 export class ReportsExtensionModule {
   // Lifecycle-сервис вызывает moduleInstance.initialize(config) после миграций схемы.
-  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinPluginModule.
+  // У reports нет собственного состояния/крона — initialize-стаб, как у BuiltinExtensionModule.
   async initialize(): Promise<void> {
     // no-op: reports-extension не имеет собственного crontab/state'а.
   }

@@ -4,13 +4,12 @@ import type { StartVotingInputDTO } from '../dto/voting/start-voting-input.dto';
 import type { SubmitVoteInputDTO } from '../dto/voting/submit-vote-input.dto';
 import type { CompleteVotingInputDTO } from '../dto/voting/complete-voting-input.dto';
 import type { CalculateVotesInputDTO } from '../dto/voting/calculate-votes-input.dto';
-import type { TransactResult } from '@wharfkit/session';
 import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
+import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { SegmentMapper } from '../../infrastructure/mappers/segment.mapper';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
+import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для голосования в CAPITAL
@@ -23,21 +22,21 @@ export class VotingService {
   /**
    * Запуск голосования в CAPITAL контракте
    */
-  async startVoting(data: StartVotingInputDTO): Promise<TransactResult> {
+  async startVoting(data: StartVotingInputDTO): Promise<InnerTransactResult> {
     return await this.votingInteractor.startVoting(data);
   }
 
   /**
    * Голосование в CAPITAL контракте
    */
-  async submitVote(data: SubmitVoteInputDTO, username: string): Promise<TransactResult> {
+  async submitVote(data: SubmitVoteInputDTO, username: string): Promise<InnerTransactResult> {
     return await this.votingInteractor.submitVote({ ...data, voter: username });
   }
 
   /**
    * Завершение голосования в CAPITAL контракте
    */
-  async completeVoting(data: CompleteVotingInputDTO): Promise<TransactResult> {
+  async completeVoting(data: CompleteVotingInputDTO): Promise<InnerTransactResult> {
     return await this.votingInteractor.completeVoting(data);
   }
 
@@ -56,7 +55,7 @@ export class VotingService {
    */
   async getVotes(filter?: VoteFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<VoteOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.votingInteractor.getVotes(filter, domainOptions);

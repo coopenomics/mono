@@ -1,11 +1,15 @@
 <template lang="pug">
-div
-  q-btn(
-    color='primary',
+span
+  BaseButton(
+    variant='ghost',
+    size='sm',
     :loading='isGenerating',
-    @click='showDialog = true',
-    label='Инвестировать в проект'
+    aria-label='Инвестировать в проект',
+    @click.stop='showDialog = true'
   )
+    template(#icon-left)
+      q-icon(name='add', size='18px')
+    | Инвестиция
 
   BaseDialog(
     v-model='showDialog',
@@ -13,29 +17,30 @@ div
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
-    Form.q-pa-sm(
-      :handler-submit='handleInvest',
-      :is-submitting='isGenerating',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Инвестировать"',
-      @cancel='clear'
-    )
-      q-input(
+    BaseForm(:loading='isGenerating', @submit='handleInvest')
+      AmountInput(
         v-model='quantity',
-        standout='bg-teal text-white',
-        placeholder='Введите сумму инвестиций',
-        type='number',
+        label='Сумма',
+        placeholder='0,00',
+        :symbol='currency',
+        :precision='2',
         :min='0',
-        :rules='[(val) => val > 0 || "Сумма инвестиций должна быть положительной"]'
+        :error='amountError'
       )
-        template(#append)
-          span.text-overline {{ currency }}
+      template(#footer)
+        BaseButton(variant='ghost', @click='clear') Отменить
+        BaseButton(
+          variant='primary',
+          type='submit',
+          :loading='isGenerating',
+          :disabled='!isValidAmount'
+        ) Инвестировать
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { Form } from 'src/shared/ui/Form';
-import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { ref, computed } from 'vue';
+import { BaseButton, BaseDialog, BaseForm } from 'src/shared/ui/base';
+import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { useCreateProjectInvest } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSetPlan } from '../../../Project/SetPlan/model';
@@ -43,18 +48,33 @@ import type { IProject } from '../../../../entities/Project/model';
 
 const props = defineProps<{ project: IProject | null | undefined }>();
 
+const emit = defineEmits<{
+  actionCompleted: [];
+}>();
+
 const {
   createProjectInvestWithGeneratedStatement,
   isGenerating
 } = useCreateProjectInvest();
 const { governSymbol } = useSetPlan();
 
-const quantity = ref();
+const quantity = ref<number | string | null>(null);
 const showDialog = ref(false);
+
+const currency = computed(() => governSymbol.value);
+
+const isValidAmount = computed(() => Number(quantity.value) > 0);
+
+// Ошибку показываем только после ввода, чтобы пустая форма не краснела
+const amountError = computed(() =>
+  quantity.value !== null && quantity.value !== '' && !isValidAmount.value
+    ? 'Сумма инвестиций должна быть положительной'
+    : undefined,
+);
 
 const clear = (): void => {
   showDialog.value = false;
-  quantity.value = 1000;
+  quantity.value = null;
 };
 
 // Обработка инвестирования (генерация + подпись + создание)
@@ -63,18 +83,18 @@ const handleInvest = async (): Promise<void> => {
     FailAlert('Не указан проект');
     return;
   }
+  if (!isValidAmount.value) return;
 
   isGenerating.value = true;
   try {
-    // Создаем инвестицию с сгенерированным и подписанным заявлением
     await createProjectInvestWithGeneratedStatement(
-      quantity.value.toString(),
+      String(quantity.value),
       props.project.project_hash
     );
 
-    // Показываем сообщение об успехе и закрываем диалог
     SuccessAlert('Инвестиция принята');
     clear();
+    emit('actionCompleted');
   } catch (e: any) {
     console.log('e.message', e.message);
     FailAlert(e);
@@ -83,10 +103,9 @@ const handleInvest = async (): Promise<void> => {
   }
 };
 
-const currency = computed(() => governSymbol.value);
-
-// Инициализация данных для инвестирования при изменении проекта
-watch(() => props.project, () => {
-  // Теперь инициализация происходит в createProjectInvestWithGeneratedStatement
-}, { immediate: true });
+defineExpose({
+  openDialog: () => {
+    showDialog.value = true;
+  },
+});
 </script>

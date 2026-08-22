@@ -1,0 +1,163 @@
+name: Tests
+
+# Автотесты на PR в dev. До этого workflow тесты в CI не гонялись вообще —
+# был только typecheck, а `pnpm test` никто не вызывал.
+#
+# Разделение на два job'а намеренное:
+#  - unit  — ничему внешнему не нужен, быстрая обратная связь;
+#  - component — нужен MongoDB, поэтому отдельно: падение сервиса не должно
+#    выглядеть как падение unit-тестов.
+#
+# test:integration (sdk + boot) сюда НЕ входит: ему нужен поднятый стек —
+# нода блокчейна, парсер и controller. Это отдельная задача.
+#
+# Почему всюду `pnpm lerna run build` перед тестами — та же причина, что в
+# typecheck.yaml: workspace-пакеты (cooptypes, sdk, inter, notifications,
+# factory) экспортируют типы и рантайм только из сгенерированного dist/.
+# Без него ts-jest и vitest валятся на резолве `cooptypes`.
+
+# Триггеры не включают pull_request: PR живут в Gitea, на GitHub-зеркале их
+# нет — такой триггер не срабатывает вовсе. Роль «проверки до релиза»
+# выполняет push в dev.
+#
+# Тесты выполняют роль релизного гейта: release.yaml вызывает этот workflow
+# через workflow_call, и job `release` объявлен `needs: tests`. Релиз не
+# состоится, если тесты красные.
+#
+# push в dev добавлен 2026-08-21: релиз 32504270957 упал на 13 юнит-тестах,
+# отставших от кода после мержа двух больших PR. Красный релиз — слишком
+# поздняя и слишком дорогая форма обратной связи; ветка dev даёт её там, где
+# правка стоит один коммит.
+#
+# Ветка-полигон `ci/tests` оставлена: она нужна, чтобы прогнать релизный
+# набор, не выпуская релиз, когда сам файл workflow правится (workflow_dispatch
+# для этого не годится — GitHub отдаёт 404, пока файл не появится на дефолтной
+# ветке main, а тесты приезжают туда только вместе с релизом).
+#
+# workflow_dispatch оставлен, чтобы прогнать набор вручную в любой момент,
+# не дожидаясь релиза.
+on:
+  push:
+    branches: [dev, ci/tests]
+  workflow_call:
+  workflow_dispatch:
+
+# Новый push в ту же ветку отменяет ещё бегущий прогон: при частых коммитах в
+# dev результат по устаревшему коду не нужен, а очередь съедает раннеры.
+# Ветки друг друга не трогают — группа по ref.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      # cooptypes + parser + notifications + controller.
+      # Юнит-тесты controller гоняются через `jest -i` (runInBand) — так же,
+      # как требует CLAUDE.md для локального запуска.
+      #
+      # Через скрипт, а не `pnpm run test:unit`: цепочка `&&` обрывалась на
+      # первом красном пакете, а в Job Summary попадал отчёт последнего
+      # отработавшего раннера — на вкладке результатов было «1 файл, 7 тестов»
+      # при тысяче с лишним реальных. Скрипт гоняет все пакеты и сводит их в
+      # одну таблицу с поимённым списком падений.
+      - name: Unit-тесты
+        run: node scripts/run-unit-tests.mjs
+
+  component:
+    runs-on: ubuntu-latest
+
+    # Тесты factory пишут документы в MongoDB (test/utils/index.ts →
+    # MongoDBConnector), хост берётся из MONGO_HOST.
+    #
+    # Обращаться к сервису ПО ИМЕНИ (`mongo`) нельзя: job выполняется прямо на
+    # VM раннера, а не в контейнере, поэтому DNS-имени сервиса не существует —
+    # получаем `getaddrinfo EAI_AGAIN mongo`. Имя резолвится только у job'ов
+    # с `container:`. Здесь сервис доступен по проброшенному порту на
+    # 127.0.0.1, поэтому MONGO_HOST оставляем локальным.
+    #
+    # health-опции обязательны: без них шаг стартует раньше, чем mongo примет
+    # соединения, и падение выглядит как ошибка тестов.
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      # Генератор документов спавнит `/venv/bin/python3` и импортирует weasyprint
+      # (components/factory/src/Services/Generator/index.ts, pythonBin()).
+      # На ubuntu-latest его нет, поэтому повторяем ровно то, что делает образ
+      # controller'а (components/controller/Dockerfile) — включая системный
+      # шрифт Arial: он влияет на вёрстку PDF, а base64-встраивание в html
+      # намеренно не используется.
+      # timeout-minutes и ретраи — из практики: шаг штатно занимает пару минут,
+      # но зеркала apt на раннере периодически залипают, и прогон висел по
+      # 20–40 минут вместо того, чтобы упасть и быть перезапущенным (кейс
+      # 2026-08-19, три залипания за ночь).
+      - name: WeasyPrint и шрифт Arial (как в образе controller)
+        timeout-minutes: 8
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            python3-venv \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0 \
+            libjpeg-dev \
+            libopenjp2-7-dev \
+            libffi-dev \
+            libharfbuzz-dev \
+            libcairo2 \
+            fontconfig
+          sudo python3 -m venv /venv
+          sudo /venv/bin/pip install --no-cache-dir --retries 3 --timeout 60 WeasyPrint==67
+          sudo install -D components/controller/assets/fonts/arial.ttf \
+            /usr/share/fonts/truetype/arial/arial.ttf
+          sudo fc-cache -f
+
+      # SKIP_BLOCK_FETCH=TRUE отключает поход в блокчейн за номером блока
+      # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
+      - name: Component-тесты (factory)
+        env:
+          MONGO_HOST: 127.0.0.1
+        run: pnpm run test:component

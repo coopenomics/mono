@@ -168,7 +168,9 @@ function applyMax(): void {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-sm, 8px);
   background: var(--p-surface);
-  color: var(--p-primary);
+  /* Вспомогательное действие: акцентный цвет тут спорил с основной кнопкой
+     формы и читался как второе главное действие. */
+  color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
   font-weight: 600;
   text-transform: uppercase;
@@ -179,6 +181,7 @@ function applyMax(): void {
 .amount-input__max:hover:not(:disabled) {
   background: var(--p-primary-soft);
   border-color: var(--p-primary);
+  color: var(--p-primary);
 }
 .amount-input__max:disabled {
   opacity: 0.5;

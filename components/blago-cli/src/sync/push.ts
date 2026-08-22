@@ -6,12 +6,14 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
 import { Mutations, Queries } from '@coopenomics/sdk'
+import { resolveCoopname } from '../config/index.js'
 import { parseBlagoMarkdown, peekBlagoEntityType } from '../format/index.js'
 import { sha256Hex } from '../lib/hash.js'
 import { effectiveParentHash } from '../lib/parent-hash.js'
 import { warn } from '../ui/output.js'
 import { validateParsedForPush } from '../validate/index.js'
 import { assertSameRemoteVersion } from './conflicts.js'
+import { loadContributorUsernameByHash, pushFactHoursDeltas } from './fact-hours.js'
 import {
   findByHash,
   loadIndex,
@@ -86,6 +88,13 @@ export async function runPush(ctx: AuthenticatedContext): Promise<void> {
     throw new Error('Нечего отправлять. Добавьте файлы: blago add <путь | id проекта | projectId-issueId>')
   }
   const index = await loadIndex(ctx.root)
+  const coopname = resolveCoopname(ctx.config)
+  if (!coopname) {
+    throw new Error(
+      'Укажите coopname в .blago/config.json в environments.<активнаяСреда> (или запасной «coopname» сверху), либо: blago init --coopname <имя>',
+    )
+  }
+  const usernameByHash = await loadContributorUsernameByHash(ctx, coopname)
 
   const normalizedList = [...new Set(staging.paths.map(p => normalizeRelativePath(p)))]
   const remaining = new Set(normalizedList)
@@ -268,6 +277,18 @@ export async function runPush(ctx: AuthenticatedContext): Promise<void> {
       if (updated == null) {
         throw new Error(`Не удалось обновить задачу «${hash}» (пустой ответ мутации).`)
       }
+      const remoteFact = remote as {
+        fact_by_contributor?: Array<{ contributor_hash: string, hours: number }> | null
+      }
+      await pushFactHoursDeltas({
+        ctx,
+        coopname,
+        issueHash: hash,
+        label: `задача ${hash}`,
+        localData: parsed.data,
+        remoteFactByContributor: remoteFact.fact_by_contributor,
+        usernameByHash,
+      })
       upsertEntry(index, {
         entity_type: 'issue',
         entity_hash: hash,

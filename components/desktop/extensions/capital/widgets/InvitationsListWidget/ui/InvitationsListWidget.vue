@@ -1,8 +1,17 @@
 <template lang="pug">
-q-card(flat)
+.invitations-list
+  //- Пустое состояние — канон EmptyState на surface (без серой «прижатой» зоны q-table)
+  EmptyState(
+    v-if='!loading && candidates.length === 0',
+    title='У вас пока нет приглашений',
+    body='Приглашайте новых участников по своей ссылке. При каждой регистрации создаётся связь на 30 дней: если в этот период приглашённый внесёт денежный взнос в проект, вы получите 5% от суммы в виде доли в ОАП того же проекта.'
+  )
+    template(#icon)
+      q-icon(name='people_outline')
 
-  // Таблица приглашений
+  //- Список приглашений
   q-table(
+    v-else,
     :rows='candidates',
     :columns='columns',
     row-key='username',
@@ -10,26 +19,16 @@ q-card(flat)
     flat,
     square,
     hide-header,
-    :no-data-label='loading ? "Загрузка..." : "У вас пока нет приглашений"'
+    hide-bottom,
     :pagination="{ rowsPerPage: 0 }"
   )
-    template(#no-data="{ message }")
-      .full-width.column.flex-center.q-pa-xl.text-grey-7
-        q-icon(name="people_outline" size="64px" color="grey-4")
-        .text-h6.q-mt-md {{ message }}
-        .text-body2.text-center.q-mt-sm(style="max-width: 400px")
-          | Приглашайте новых участников по своей ссылке.
-          | При каждой регистрации создается "связь", которая действует 30 дней.
-          | Если в этот период приглашенный вами участник внесет денежный взнос в любой проект кооператива,
-          | вы получите 5% от суммы его взноса в виде доли в объекте авторских прав в том же проекте.
     template(#body='tableProps')
       q-tr(
         :props='tableProps',
-        @click='handleInvitationClick(tableProps.row.username)'
-        style='cursor: pointer'
+        @click='handleInvitationClick(tableProps.row.username)',
         :class='{ "connection-expired": !isConnectionActive(tableProps.row) }'
       )
-        q-td(style='width: 35px')
+        q-td.invitations-list__expand
           ExpandToggleButton(
             :expanded='expanded[tableProps.row.username]',
             @click='handleToggleExpand(tableProps.row.username)'
@@ -38,23 +37,34 @@ q-card(flat)
           .participant-info
             .row.items-center.q-gutter-sm
               .participant-name {{ tableProps.row.username_display_name || tableProps.row.username }}
-              q-badge(:color='getConnectionStatusColor(tableProps.row)') {{ getConnectionStatusLabel(tableProps.row) }}
-            .row.items-center.q-gutter-sm.text-caption.text-grey-7
+              BaseBadge(:variant='getConnectionStatusVariant(tableProps.row)')
+                | {{ getConnectionStatusLabel(tableProps.row) }}
+            .row.items-center.q-gutter-sm.t-sm.t-muted
               q-icon(name='event', size='14px')
               div Дата регистрации: {{ tableProps.row.registered_at ? formatDateToHumanDateTime(tableProps.row.registered_at) : 'регистрация не завершена' }}
 
-            .row.q-col-gutter-sm
+            .row.q-col-gutter-sm.q-mt-sm
               .col-md-6.col-sm-12
-                ColorCard(color='blue')
-                  .card-label Взносы деньгами
-                  .card-value {{ formatAsset2Digits(`${tableProps.row.contributed_as_investor || 0} ${info.symbols.root_govern_symbol}`) }}
-
+                WalletCard(
+                  compact,
+                  neutral,
+                  title='Взносы деньгами',
+                  :balance='formatMoneyAmount(tableProps.row.contributed_as_investor)',
+                  :symbol='governSymbol',
+                  balance-label='как инвестор',
+                  icon='payments'
+                )
               .col-md-6.col-sm-12
-                ColorCard(color='teal')
-                  .card-label Прочие взносы
-                  .card-value {{ formatAsset2Digits(`${calculateOtherContributions(tableProps.row)} ${info.symbols.root_govern_symbol}`) }}
+                WalletCard(
+                  compact,
+                  neutral,
+                  title='Прочие взносы',
+                  :balance='formatMoneyAmount(calculateOtherContributions(tableProps.row))',
+                  :symbol='governSymbol',
+                  balance-label='прочие роли',
+                  icon='handshake'
+                )
 
-      // Детали на развороте
       q-tr.q-virtual-scroll--with-prev(
         no-hover,
         v-if='expanded[tableProps.row.username]',
@@ -65,13 +75,14 @@ q-card(flat)
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useCandidateStore } from 'app/extensions/capital/entities/Candidate';
 import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
 import { formatAsset2Digits, formatDateToHumanDateTime } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { EmptyState, BaseBadge } from 'src/shared/ui/base';
+import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { InvitationDetailsWidget } from '../../InvitationDetailsWidget';
 import { storeToRefs } from 'pinia';
 
@@ -93,15 +104,24 @@ const { candidates, loading } = storeToRefs(candidateStore);
 const sessionStore = useSessionStore();
 const { info } = useSystemStore();
 
-// Параметр истечения срока годности связи в днях
 const CONNECTION_EXPIRY_DAYS = 30;
+
+const governSymbol = computed(
+  () => info.symbols?.root_govern_symbol || 'RUB',
+);
 
 const columns = [
   { name: 'expand', label: '', align: 'left' as const, field: '' },
   { name: 'participant', label: 'Участник', align: 'left' as const, field: 'username' },
 ];
 
-const calculateOtherContributions = (candidate: any) => {
+const calculateOtherContributions = (candidate: {
+  contributed_as_creator?: string;
+  contributed_as_author?: string;
+  contributed_as_coordinator?: string;
+  contributed_as_contributor?: string;
+  contributed_as_propertor?: string;
+}) => {
   return (
     parseFloat(candidate.contributed_as_creator || '0') +
     parseFloat(candidate.contributed_as_author || '0') +
@@ -111,11 +131,12 @@ const calculateOtherContributions = (candidate: any) => {
   );
 };
 
-/**
- * Проверка, активна ли связь (не истекла ли она)
- * Связь активна в течение CONNECTION_EXPIRY_DAYS после создания (created_at)
- */
-const isConnectionActive = (candidate: any) => {
+function formatMoneyAmount(raw: string | number | undefined): string {
+  const formatted = formatAsset2Digits(`${raw || 0} ${governSymbol.value}`);
+  return formatted.split(' ')[0] || '0,00';
+}
+
+const isConnectionActive = (candidate: { registered_at?: string | null }) => {
   if (!candidate.registered_at) return false;
 
   const registeredAt = new Date(candidate.registered_at).getTime();
@@ -125,16 +146,19 @@ const isConnectionActive = (candidate: any) => {
   return diffDays <= CONNECTION_EXPIRY_DAYS;
 };
 
-const getConnectionStatusLabel = (candidate: any) => {
+const getConnectionStatusLabel = (candidate: { registered_at?: string | null }) => {
   return isConnectionActive(candidate) ? 'Связь активна' : 'Связь не активна';
 };
 
-const getConnectionStatusColor = (candidate: any) => {
-  return isConnectionActive(candidate) ? 'positive' : 'negative';
+const getConnectionStatusVariant = (candidate: { registered_at?: string | null }) => {
+  return isConnectionActive(candidate) ? 'pos' as const : 'neg' as const;
 };
 
 const loadMyInvitations = async () => {
-  if (!sessionStore.username) return;
+  if (!sessionStore.username) {
+    emit('data-loaded', []);
+    return;
+  }
 
   await candidateStore.loadCandidates({
     filter: {
@@ -143,11 +167,11 @@ const loadMyInvitations = async () => {
     options: {
       page: 1,
       limit: 1000,
-      sortOrder: 'DESC'
-    }
+      sortOrder: 'DESC',
+    },
   });
 
-  const usernames = candidates.value.map(c => c.username);
+  const usernames = candidates.value.map((c) => c.username);
   emit('data-loaded', usernames);
 };
 
@@ -165,21 +189,30 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+.invitations-list {
+  flex: 1;
+  min-height: 0;
+}
+
+.invitations-list__expand {
+  width: 35px;
+}
+
 .participant-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--p-2);
+  padding: var(--p-2) 0;
 }
 
 .participant-name {
   font-weight: 500;
-  color: #1976d2;
-  font-size: 1.1rem;
+  color: var(--p-primary);
+  font-size: var(--p-fs-body);
 }
 
 .expanded-row {
-  padding-left: 60px !important;
+  padding-left: var(--p-10) !important;
   @media (max-width: 1023px) {
     padding-left: 0;
   }
@@ -187,6 +220,14 @@ onMounted(async () => {
 
 .connection-expired {
   opacity: 0.7;
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--p-surface-2);
+}
+
+:deep(.q-table) {
+  background: transparent;
+}
+
+:deep(.q-tr) {
+  cursor: pointer;
 }
 </style>

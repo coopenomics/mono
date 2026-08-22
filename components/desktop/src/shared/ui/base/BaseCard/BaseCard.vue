@@ -42,7 +42,10 @@ const hasHead = computed(() => !!(props.title || props.subtitle || slots.head ||
 }
 .base-card__head {
   display: flex;
-  align-items: center;
+  /* flex-start, не center: при заголовке в 2 строки угловое действие
+     (например icon-only «удалить») остаётся в правом верхнем углу карточки,
+     а не «проваливается» к вертикальному центру. */
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--p-3, 12px);
   padding-bottom: 0;

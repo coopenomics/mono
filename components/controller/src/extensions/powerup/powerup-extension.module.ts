@@ -1,39 +1,29 @@
 import cron from 'node-cron';
-import config, { default as coopConfig } from '../../config/config';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtModule } from '../base.extension.module';
-import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort,
+  CHAIN_RESOURCES_PORT,
+  type IChainResourcesPort,
+} from '@coopenomics/innercoop';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
   return JSON.stringify(description);
 }
 
-// Дефолтные параметры конфигурации.
-//
-// Epic 13 v5.1 (решение @ant 2026-06-11): PowerupPlugin спицы управляет ТОЛЬКО
-// полученным AXON — `eosio::powerup` со своего баланса (coopname@active).
-// Докупку пакета (членский RUB → AXON, `billing::converttoaxn`) инициирует и
-// подписывает оператор `_provider`: hub-cron Восхода мониторит ликвидный
-// AXON-баланс спицы и при исчерпании конвертирует по тарифу провайдера
-// (квота/cooldown — на стороне провайдера). Поэтому здесь нет ни payment_hash,
-// ни RUB-счётчиков, ни runaway-guards — спица не имеет прав на членские взносы.
+// Символ и точность системного токена — свойство контура, а не расширения:
+// расширение обязано подставлять их в суммы пополнения ровно такими, какими их
+// понимает цепь. Настройки задаёт composition root до загрузки расширений.
+const { rootSymbol, rootPrecision } = platformSettings().blockchain;
+
+// Дефолтные параметры конфигурации
 export const defaultConfig = {
   dailyPackageSize: 5,
-  systemSymbol: config.blockchain.root_symbol,
-  systemPrecision: config.blockchain.root_precision,
+  systemSymbol: rootSymbol,
+  systemPrecision: rootPrecision,
   thresholds: {
     cpu: 70, // Процент использования (0-100)
     net: 70,
@@ -137,35 +127,35 @@ export interface ILog {
   };
 }
 
-export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
+export class PowerupExtension extends BaseExtensionModule implements OnModuleDestroy {
   private dailyCronJob: cron.ScheduledTask | null = null;
   private resourceCronJob: cron.ScheduledTask | null = null;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
-    private readonly logger: WinstonLoggerService,
-    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(CHAIN_RESOURCES_PORT) private readonly blockchainPort: IChainResourcesPort
   ) {
     super();
-    this.logger.setContext(PowerupPlugin.name);
+    this.logger.setContext(PowerupExtension.name);
   }
 
   name = 'powerup';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   public configSchemas = Schema;
   public defaultConfig = defaultConfig;
 
   async initialize() {
-    const pluginData = await this.extensionRepository.findByName(this.name);
-    if (!pluginData) throw new Error('Конфиг не найден');
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (!extensionData) throw new Error('Конфиг не найден');
 
-    this.plugin = pluginData;
+    this.extension = extensionData;
 
     // Проверяем, было ли ежедневное пополнение в последние 24 часа
-    const lastDate = this.plugin.config.lastDailyReplenishmentDate
-      ? new Date(this.plugin.config.lastDailyReplenishmentDate)
+    const lastDate = this.extension.config.lastDailyReplenishmentDate
+      ? new Date(this.extension.config.lastDailyReplenishmentDate)
       : null;
 
     const now = new Date();
@@ -179,19 +169,27 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       await this.runDailyTask();
     }
 
-    // Кроны на UTC, чтобы суточная отсечка не зависела от локального времени сервера.
+    // Регистрация cron-задачи для ежедневного пополнения
+    // Кроны на UTC, чтобы суточная отсечка не зависела от локального времени сервера;
+    // отклонённый промис ловится, иначе node-cron молча теряет ошибку.
     this.dailyCronJob = cron.schedule(
       '0 0 * * *',
-      () => { void this.runDailyTask().catch((err) =>
-        this.logger.error('PowerupPlugin: daily-cron fail', err as Error),
-      ); },
+      () => {
+        void this.runDailyTask().catch((err) =>
+          this.logger.error('PowerupExtension: daily-cron fail', err as Error),
+        );
+      },
       { timezone: 'UTC' },
     );
+
+    // Регистрация cron-задачи для проверки ресурсов каждую минуту
     this.resourceCronJob = cron.schedule(
       '* * * * *',
-      () => { void this.runTask().catch((err) =>
-        this.logger.error('PowerupPlugin: resource-cron fail', err as Error),
-      ); },
+      () => {
+        void this.runTask().catch((err) =>
+          this.logger.error('PowerupExtension: resource-cron fail', err as Error),
+        );
+      },
       { timezone: 'UTC' },
     );
   }
@@ -211,16 +209,16 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   }
 
   private getQuantity(amount: number): string {
-    return `${amount.toFixed(this.plugin.config.systemPrecision)} ${this.plugin.config.systemSymbol}`;
+    return `${amount.toFixed(this.extension.config.systemPrecision)} ${this.extension.config.systemSymbol}`;
   }
 
   // Ежедневная задача пополнения
   private async runDailyTask() {
-    const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
+    const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
 
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
-      const username = coopConfig.coopname;
+      const username = platformSettings().coopname;
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
@@ -230,17 +228,17 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       await this.blockchainPort.powerUp(username, quantity);
 
       // read-modify-write по СВЕЖЕМУ config: daily-cron держит in-memory снимок
-      // `this.plugin` с момента boot, а update() заменяет весь config JSONB
+      // `this.extension` с момента boot, а update() заменяет весь config JSONB
       // целиком. Перезапись устаревшего снимка стёрла бы поля, записанные за
       // сутки другими сервисами (онбординг и т.п.). Берём актуальный config и
       // трогаем только lastDailyReplenishmentDate.
       const fresh = await this.extensionRepository.findByName(this.name);
       const nextConfig = {
-        ...(fresh?.config ?? this.plugin.config),
+        ...(fresh?.config ?? this.extension.config),
         lastDailyReplenishmentDate: new Date().toISOString(),
       };
       await this.extensionRepository.update({ name: this.name, config: nextConfig });
-      this.plugin = { ...this.plugin, config: nextConfig };
+      this.extension = { ...this.extension, config: nextConfig };
 
       await this.log({
         type: 'daily',
@@ -266,7 +264,7 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
   private async runTask() {
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
-      const username = coopConfig.coopname;
+      const username = platformSettings().coopname;
 
       const account = await this.blockchainPort.getAccount(username);
 
@@ -294,34 +292,39 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
       // Проверяем пороги и пополняем при необходимости
       let needPowerUp = false;
 
-      if (cpuUsagePercent >= this.plugin.config.thresholds.cpu) {
+      if (cpuUsagePercent >= this.extension.config.thresholds.cpu) {
         needPowerUp = true;
       }
 
-      if (netUsagePercent >= this.plugin.config.thresholds.net) {
+      if (netUsagePercent >= this.extension.config.thresholds.net) {
         needPowerUp = true;
       }
 
-      if (ramUsagePercent >= this.plugin.config.thresholds.ram) {
+      if (ramUsagePercent >= this.extension.config.thresholds.ram) {
         needPowerUp = true;
       }
 
       if (needPowerUp) {
-        // Спица тратит ТОЛЬКО свой ликвидный AXON (coopname@active). Если его
-        // не хватает — powerup откажет, это штатно: пакет докупит hub-cron
-        // Восхода (`billing::converttoaxn` подписью _provider), как только
-        // увидит баланс ниже порога. Членских взносов плагин не касается.
-        const quantity = this.getQuantity(this.plugin.config.dailyPackageSize);
+        // Выполняем пополнение ресурсов на сумму ежедневной аренды
+        const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
         await this.blockchainPort.powerUp(username, quantity);
+
+        // Получаем актуальные данные после пополнения для логирования
+        const updatedAccount = await this.blockchainPort.getAccount(username);
+
+        if (!updatedAccount) {
+          throw new Error('Аккаунт не найден');
+        }
+
         await this.log({
           type: 'now',
           amount: quantity,
           resources: {
-            username: account.account_name,
-            ram_usage: account.ram_usage,
-            ram_quota: account.ram_quota,
-            net_limit: account.net_limit,
-            cpu_limit: account.cpu_limit,
+            username: updatedAccount.account_name,
+            ram_usage: updatedAccount.ram_usage,
+            ram_quota: updatedAccount.ram_quota,
+            net_limit: updatedAccount.net_limit,
+            cpu_limit: updatedAccount.cpu_limit,
           },
         });
       }
@@ -332,17 +335,13 @@ export class PowerupPlugin extends BaseExtModule implements OnModuleDestroy {
 }
 
 @Module({
-  // Epic 13 v5.1 (решение @ant 2026-06-11): PowerupPlugin спицы управляет только
-  // полученным AXON (eosio::powerup через BLOCKCHAIN_PORT). Докупку пакета
-  // (членский → AXON) инициирует и подписывает hub-cron Восхода (_provider);
-  // provider узнаёт о событии реактивно через парсер Восхода → callback.
-  providers: [PowerupPlugin],
-  exports: [PowerupPlugin],
+  providers: [PowerupExtension], // Регистрируем PowerupExtension как провайдер
+  exports: [PowerupExtension], // Экспортируем его для доступа в других модулях
 })
-export class PowerupPluginModule {
-  constructor(public readonly powerupPlugin: PowerupPlugin) {}
+export class PowerupExtensionModule {
+  constructor(public readonly powerupExtension: PowerupExtension) {}
 
   async initialize() {
-    await this.powerupPlugin.initialize();
+    await this.powerupExtension.initialize();
   }
 }

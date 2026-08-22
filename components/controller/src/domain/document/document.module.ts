@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { DocumentDomainService } from './services/document-domain.service';
 import { DocumentAggregator } from './aggregators/document.aggregator';
 import { DocumentPackageAggregator } from './aggregators/document-package.aggregator';
@@ -10,7 +10,7 @@ import { DocumentValidationService, DOCUMENT_VALIDATION_SERVICE } from './servic
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 
 @Module({
-  imports: [forwardRef(() => UserDomainModule)],
+  imports: [UserDomainModule],
   providers: [
     DocumentDomainService,
     DocumentAggregator,

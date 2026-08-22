@@ -19,4 +19,6 @@ export interface NotificationCenterProps {
   viewAllHref?: string;
   /** Подпись для «Показать все» */
   viewAllLabel?: string;
+  /** Показывать ли футер-ссылку «Показать все» (default true) */
+  showViewAll?: boolean;
 }

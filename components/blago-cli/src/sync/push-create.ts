@@ -11,12 +11,14 @@ import {
   issueToFrontmatterAndBody,
   issueWorkspaceTitlesFromProjects,
   parseBlagoMarkdown,
+  parseFactHoursFromFrontmatter,
   type ParsedBlagoFile,
   serializeBlagoMarkdown,
   storyToFrontmatterAndBody,
 } from '../format/index.js'
 import { sha256Hex } from '../lib/hash.js'
 
+import { loadContributorUsernameByHash, pushFactHoursDeltas } from './fact-hours.js'
 import {
   findByHash,
   normalizeRelativePath,
@@ -129,36 +131,60 @@ export async function pushCreateIssue(
   if (created == null) {
     throw new Error('Создание задачи: пустой ответ API')
   }
+  const createdIssueHash = String(created.issue_hash ?? '').trim()
+  const createdProjectHash = String(created.project_hash ?? '').trim()
+  if (!createdIssueHash || !createdProjectHash) {
+    throw new Error('Создание задачи: в ответе API нет issue_hash или project_hash')
+  }
 
-  const workspace = issueWorkspaceTitlesFromProjects(created.project_hash, projectRowByHash)
+  const usernameByHash = await loadContributorUsernameByHash(ctx, coopname)
+  await pushFactHoursDeltas({
+    ctx,
+    coopname,
+    issueHash: createdIssueHash,
+    label: `задача ${createdIssueHash}`,
+    localData: parsed.data,
+    remoteFactByContributor: [],
+    usernameByHash,
+  })
+
+  let fact_hours: ReturnType<typeof parseFactHoursFromFrontmatter>
+  try {
+    fact_hours = parseFactHoursFromFrontmatter(parsed.data)
+  }
+  catch {
+    fact_hours = undefined
+  }
+
+  const workspace = issueWorkspaceTitlesFromProjects(createdProjectHash, projectRowByHash)
   const { data, body } = issueToFrontmatterAndBody(
     {
       id: created.id,
-      title: created.title,
+      title: String(created.title ?? ''),
       description: created.description,
-      issue_hash: created.issue_hash,
-      project_hash: created.project_hash,
+      issue_hash: createdIssueHash,
+      project_hash: createdProjectHash,
       cycle_id: created.cycle_id,
       status: created.status,
       priority: created.priority,
       estimate: created.estimate,
       submaster: created.submaster,
       creators: created.creators,
+      fact_hours: fact_hours ?? [],
       metadata: created.metadata,
-      sort_order: created.sort_order,
-      _created_at: created._created_at,
-      _updated_at: created._updated_at,
+      _created_at: created._created_at as Date | string | null | undefined,
+      _updated_at: created._updated_at as Date | string | null | undefined,
     },
     workspace,
   )
   const content = serializeBlagoMarkdown(data, body)
-  const basePath = workspaceBasePath(projectByHash.get(created.project_hash)!, projectByHash)
+  const basePath = workspaceBasePath(projectByHash.get(createdProjectHash)!, projectByHash)
   const issueCapitalId
     = created.id !== undefined && created.id !== null && String(created.id).trim() !== ''
       ? String(created.id).trim()
-      : created.issue_hash
+      : createdIssueHash
   const newRel = normalizeRelativePath(
-    issueFileRelativePath(created.title, basePath, issueCapitalId),
+    issueFileRelativePath(String(created.title ?? ''), basePath, issueCapitalId),
   )
   const oldRel = normalizeRelativePath(rel)
   const absNew = path.join(ctx.root, newRel)
@@ -176,7 +202,7 @@ export async function pushCreateIssue(
   const etag = sha256Hex(await fs.readFile(absNew, 'utf8'))
   upsertEntry(index, {
     entity_type: 'issue',
-    entity_hash: created.issue_hash,
+    entity_hash: createdIssueHash,
     relative_path: newRel,
     remote_updated_at: toIso(created._updated_at),
     content_etag_local: etag,

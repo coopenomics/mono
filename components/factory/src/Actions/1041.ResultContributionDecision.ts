@@ -13,69 +13,75 @@ export class Factory extends DocFactory<ResultContributionDecision.Action> {
   }
 
   async generateDocument(data: ResultContributionDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<ResultContributionDecision.Model>
+    // Извлечение данных из Udata репозитория
+    const udataService = new Udata(this.storage)
 
-    if (process.env.SOURCE === 'local') {
-      template = ResultContributionDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, ResultContributionDecision.registry_id, data.block_num)
-    }
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const {
+      template,
+      coop,
+      vars,
+      userData,
+      contributorContractUdata,
+      contributorContractCreatedAtUdata,
+      blagorostAgreementUdata,
+      blagorostAgreementCreatedAtUdata,
+    } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(ResultContributionDecision.Template as ITemplate<ResultContributionDecision.Model>)
+        : this.getTemplate<ResultContributionDecision.Model>(DraftContract.contractName.production, ResultContributionDecision.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      userData: () => super.getUser(data.username, data.block_num),
+      contributorContractUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
+        block_num: data.block_num,
+      }),
+      contributorContractCreatedAtUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
+        block_num: data.block_num,
+      }),
+      blagorostAgreementUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
+        block_num: data.block_num,
+      }),
+      blagorostAgreementCreatedAtUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
+        block_num: data.block_num,
+      }),
+    })
 
+    // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-    const userData = await super.getUser(data.username, data.block_num)
     const common_user = super.getCommonUser(userData)
 
+    // decision зависит от coop и meta.created_at — после батча
     const decision: Cooperative.Document.IDecisionData = await this.getDecision(
       coop,
       data.coopname,
       data.decision_id,
       meta.created_at,
     )
-    // Извлечение данных из Udata репозитория
-    const udataService = new Udata(this.storage)
-
-    const contributorContractUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
-      block_num: data.block_num,
-    })
 
     if (!contributorContractUdata?.value) {
       throw new Error('Данные договора УХД участника не найдены в Udata')
     }
 
-    const contributorContractCreatedAtUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
-      block_num: data.block_num,
-    })
-
     if (!contributorContractCreatedAtUdata?.value) {
       throw new Error('Дата создания договора УХД участника не найдена в Udata')
     }
 
-    const blagorostAgreementUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
-      block_num: data.block_num,
-    })
-
     if (!blagorostAgreementUdata?.value) {
       throw new Error('Данные соглашения благороста не найдены в Udata')
     }
-
-    const blagorostAgreementCreatedAtUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
-      block_num: data.block_num,
-    })
 
     if (!blagorostAgreementCreatedAtUdata?.value) {
       throw new Error('Дата создания соглашения благороста не найдена в Udata')

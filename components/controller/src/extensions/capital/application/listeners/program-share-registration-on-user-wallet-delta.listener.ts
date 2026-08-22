@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Ledger2Contract } from 'cooptypes';
-import config from '~/config/config';
-import type { IDelta } from '~/types/common';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { ProgramShareRegistrationService } from '../services/program-share-registration.service';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
 
 const BLAGOROST_WALLET_NAME = 'w.cap.blago';
 
@@ -29,7 +29,7 @@ export class ProgramShareRegistrationOnUserWalletDeltaListener {
   @OnEvent(`delta::${Ledger2Contract.contractName.production}::${Ledger2Contract.Tables.UserWallets.tableName}`)
   async handleUserWalletDelta(delta: IDelta): Promise<void> {
     if (!delta.present) return;
-    if (delta.scope !== config.coopname) return;
+    if (delta.scope !== platformSettings().coopname) return;
 
     const value = delta.value as Ledger2Contract.Tables.UserWallets.IUserWallet | undefined;
     if (!value) return;

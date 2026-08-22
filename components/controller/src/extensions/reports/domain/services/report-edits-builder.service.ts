@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ReportType } from '../enums/report-type.enum';
 import { ReportRequisitesService } from './report-requisites.service';
-import { Ledger2Service } from '~/application/ledger2/services/ledger2.service';
 import {
   BALANCE_CORRECTION_REPOSITORY,
   type BalanceCorrectionRepository,
@@ -11,12 +10,16 @@ import { toThousands } from '../../infrastructure/generators/buhotch.generator';
 import { formatDate } from '../../infrastructure/generators/xml-utils';
 import type { BuhotchEditsShape } from '../edits-shapes/buhotch-edits.shape';
 import type { ZeroReportEditsShape } from '../edits-shapes/zero-report-edits.shape';
-import { REPORT_CONFIG } from '../enums/report-type.enum';
+import type { Ndfl6EditsShape } from '../edits-shapes/ndfl6-edits.shape';
+import type { UvNdflEditsShape } from '../edits-shapes/uv-ndfl-edits.shape';
+import { Ndfl6DataService } from './ndfl6-data.service';
+import { REPORT_CONFIG, splitUvNdflPeriod } from '../enums/report-type.enum';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort } from '@coopenomics/innercoop';
 
 /**
  * Строит «дефолтное» редактируемое состояние формы отчёта из:
  *   - реквизитов организации (`ReportRequisitesService.getMerged`),
- *   - остатков по счетам ledger2 (`Ledger2Service.getAccounts`),
+ *   - остатков по счетам ledger2 (`ILedger2HistoryPort.getAccounts`),
  *   - ручных корректировок прошлых периодов (`BalanceCorrectionRepository`).
  *
  * Результат — POJO той же формы, что `Buhotch/Ndfl6/…EditsDTO`. Сервис
@@ -48,15 +51,13 @@ type BalanceRowEdits = BuhotchEditsShape['balance']['assetsTotal'];
 export class ReportEditsBuilderService {
   constructor(
     private readonly requisitesService: ReportRequisitesService,
-    private readonly ledger2Service: Ledger2Service,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2Service: ILedger2HistoryPort,
+    private readonly ndfl6DataService: Ndfl6DataService,
     @Inject(BALANCE_CORRECTION_REPOSITORY)
     private readonly correctionRepo: BalanceCorrectionRepository,
   ) {}
 
-  /**
-   * Вернуть дефолтное состояние edits для указанного типа отчёта.
-   * Сейчас реализован BUHOTCH; остальные типы — в STORY-2-5.
-   */
+  /** Вернуть дефолтное состояние edits для указанного типа отчёта. */
   async build(
     reportType: ReportType,
     year: number,
@@ -66,7 +67,13 @@ export class ReportEditsBuilderService {
     if (reportType === ReportType.BUHOTCH) {
       return this.buildBuhotch(coopname, year);
     }
-    // Остальные 6 форм — нулёвки через общий ZeroReportEditsShape.
+    if (reportType === ReportType.NDFL6) {
+      return this.buildNdfl6(coopname, year, period ?? 1);
+    }
+    if (reportType === ReportType.UV_NDFL) {
+      return this.buildUvNdfl(coopname, year, period ?? 1);
+    }
+    // Остальные 5 форм — нулёвки через общий ZeroReportEditsShape.
     // Per-type отличается только генерируемый XML (хардкод КНД/ВерсФорм/
     // periodCode), но edits-состояние одинаковое по структуре.
     return this.buildZeroReport(reportType, coopname, year, period ?? null);
@@ -203,7 +210,12 @@ export class ReportEditsBuilderService {
 
     return {
       header: {
-        idFile: this.generateGenericFileName(reportType, merged.inn.value ?? '', merged.kpp.value ?? ''),
+        idFile: this.generateGenericFileName(
+          reportType,
+          merged.inn.value ?? '',
+          merged.kpp.value ?? '',
+          merged.pfrRegNumber.value,
+        ),
         versProgram: 'Платформа отчётности кооператива 1.0',
         docDate: formatDate(new Date()),
         reportYear: year,
@@ -221,6 +233,7 @@ export class ReportEditsBuilderService {
         okpo: merged.okpo.value,
         ogrn: merged.ogrn.value,
         address: merged.address.value,
+        phone: merged.phone.value,
       },
       signer: {
         type: signerTypeValue,
@@ -230,10 +243,54 @@ export class ReportEditsBuilderService {
         repDoc: merged.signerRepDoc.value,
         snils: merged.signerSnils.value,
         sfrRegNumber: merged.sfrRegNumber.value,
+        pfrRegNumber: merged.pfrRegNumber.value,
         chairmanPosition:
           merged.chairmanPosition.value || merged.chairmanPositionFromOrg.value,
       },
     };
+  }
+
+  /**
+   * 6-НДФЛ: шапка и реквизиты — как у любой формы, суммы — из ledger2 по
+   * удержаниям с материальной помощи.
+   *
+   * Справки о доходах (приложение № 1) добавляются только к годовому отчёту:
+   * схема прямо запрещает их при периодах «1 квартал», «полугодие» и
+   * «девять месяцев», так что в квартальных отчётах массив пуст.
+   */
+  private async buildNdfl6(
+    coopname: string,
+    year: number,
+    quarter: number,
+  ): Promise<Ndfl6EditsShape> {
+    const base = await this.buildZeroReport(ReportType.NDFL6, coopname, year, quarter);
+    const isAnnual = quarter === 4;
+    const [tax, certificates] = await Promise.all([
+      this.ndfl6DataService.buildTaxSection(coopname, year, quarter),
+      isAnnual ? this.ndfl6DataService.buildCertificates(coopname, year) : Promise.resolve([]),
+    ]);
+    return { ...base, tax, certificates };
+  }
+
+  /**
+   * Уведомление об исчисленных суммах НДФЛ. Сумма — налог, удержанный за один
+   * расчётный период месяца; она же попадёт одной из шести строк в раздел 1
+   * формы 6-НДФЛ за соответствующий квартал.
+   */
+  private async buildUvNdfl(
+    coopname: string,
+    year: number,
+    period: number,
+  ): Promise<UvNdflEditsShape> {
+    const base = await this.buildZeroReport(ReportType.UV_NDFL, coopname, year, period);
+    const { month, secondHalf } = splitUvNdflPeriod(period);
+    const amount = await this.ndfl6DataService.buildNotificationAmount(
+      coopname,
+      year,
+      month,
+      secondHalf,
+    );
+    return { ...base, payment: { amount } };
   }
 
   private defaultPeriodFor(reportType: ReportType, requested: number | null): number | null {
@@ -243,19 +300,33 @@ export class ReportEditsBuilderService {
     return 1;
   }
 
-  private generateGenericFileName(reportType: ReportType, inn: string, kpp: string): string {
-    // Упрощённый префикс по типу отчёта — точный формат имени зависит от
-    // формы (NO_NDFL6.2_..., СФР_..._ЕФС-1_...), но для предварительного
-    // idFile достаточно. Генератор сам перезапишет его при необходимости.
+  private generateGenericFileName(
+    reportType: ReportType,
+    inn: string,
+    kpp: string,
+    pfrRegNumber?: string | null,
+  ): string {
+    // Префикс = первые два underscore-сегмента имени XSD (например,
+    // 'NO_NDFL6.2_1_231_...xsd' → 'NO_NDFL6.2', 'UT_UVISCHSUMNAL_...xsd' →
+    // 'UT_UVISCHSUMNAL') — это и есть код формата в имени файла по формату
+    // ФНС/СФР. Брать только первый сегмент нельзя: для всех форм с 'NO_'
+    // в начале он всегда равен 'NO' и код формы (NDFL6.2/RASCHSV/PERSSVFL/
+    // USN) терялся — импорт стороннего ПО (Сбер и др.) отклонял файл как
+    // нераспознанный по имени.
     const xsd = REPORT_CONFIG[reportType]?.xsdFile ?? 'REPORT';
-    const prefix = xsd.split('_')[0] ?? 'REPORT';
+    const prefix = xsd.split('_').slice(0, 2).join('_') || 'REPORT';
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const unit = `${inn}${kpp}`;
     const tax = kpp.substring(0, 4);
     const uuid = randomUUID();
     if (reportType === ReportType.FSS4) {
-      return `СФР_0000000000_ЕФС-1_${dateStr}_${uuid}`;
+      // Сегмент отправителя в имени файла — рег. номер ПФР организации, не
+      // заглушка из нулей: сторонние бухгалтерские системы (СБИС и др.)
+      // сверяют этот сегмент со своим профилем организации и отклоняют файл,
+      // если он не совпадает ни с известным им номером ПФР, ни с номером
+      // СФР. См. также <ЕФС8:РегНомер> в fss4.generator.ts — то же значение.
+      return `СФР_${pfrRegNumber || '0000000000'}_ЕФС-1_${dateStr}_${uuid}`;
     }
     return `${prefix}_${tax}_${tax}_${unit}_${dateStr}_${uuid}`;
   }

@@ -57,7 +57,6 @@ const ENTREPRENEUR_HEADERS: HeaderMap = {
   'банк': 'bank_name',
   'расчетный счет': 'account_number',
   'бик': 'bik',
-  'кпп банка': 'kpp_bank',
   'корр счет': 'corr',
   'валюта': 'currency',
 };
@@ -83,7 +82,6 @@ const ORGANIZATION_HEADERS: HeaderMap = {
   'банк': 'bank_name',
   'расчетный счет': 'account_number',
   'бик': 'bik',
-  'кпп банка': 'kpp_bank',
   'корр счет': 'corr',
   'валюта': 'currency',
 };
@@ -315,7 +313,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
               'банк',
               'расчетный счет',
               'бик',
-              'кпп банка',
               'корр счет',
               'дата вступления',
             ]
@@ -338,7 +335,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
               'банк',
               'расчетный счет',
               'бик',
-              'кпп банка',
               'корр счет',
               'дата вступления',
             ];
@@ -457,7 +453,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
             details: {
               bik: row.bik ?? '',
               corr: row.corr ?? '',
-              kpp: row.kpp_bank ?? '',
             },
           },
         };
@@ -481,7 +476,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
           'bank_account.account_number',
           'bank_account.details.bik',
           'bank_account.details.corr',
-          'bank_account.details.kpp',
           'created_at',
         ].filter((field) => {
           const path = field.split('.');
@@ -553,7 +547,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
             details: {
               bik: row.bik ?? '',
               corr: row.corr ?? '',
-              kpp: row.kpp_bank ?? '',
             },
           },
         };
@@ -581,7 +574,6 @@ export function useParticipantCsvParser(options: ParserOptions) {
           'bank_account.account_number',
           'bank_account.details.bik',
           'bank_account.details.corr',
-          'bank_account.details.kpp',
           'created_at',
         ].filter((field) => {
           const path = field.split('.');

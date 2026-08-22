@@ -14,7 +14,7 @@ void registrator::declinepay(name coopname, checksum256 registration_hash, std::
   
   auto exist_candidate = Registrator::get_candidate_by_hash(coopname, registration_hash);
   
-  eosio::check(!exist_candidate.has_value(), "Кандидат не найден");
+  eosio::check(exist_candidate.has_value(), "Кандидат не найден");
   
   Registrator::candidates_index candidates(_registrator, coopname.value);
   

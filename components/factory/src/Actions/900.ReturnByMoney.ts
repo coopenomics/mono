@@ -3,7 +3,7 @@ import { ReturnByMoney } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import { type PaymentData, PaymentMethod } from '../Models/PaymentMethod'
+import { PaymentMethod } from '../Models/PaymentMethod'
 
 export { ReturnByMoney as Template } from '../Templates'
 
@@ -13,29 +13,29 @@ export class Factory extends DocFactory<ReturnByMoney.Action> {
   }
 
   async generateDocument(data: ReturnByMoney.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<ReturnByMoney.Model>
+    // Сервис платёжных методов нужен в батче (создаём до параллельного резолва)
+    const paymentMethodService = new PaymentMethod(this.storage)
 
-    if (process.env.SOURCE === 'local') {
-      template = ReturnByMoney.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, ReturnByMoney.registry_id, data.block_num)
-    }
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    // paymentMethod независим: getOne читает только data.method_id/data.username
+    const { template, coop, vars, user, paymentMethod } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(ReturnByMoney.Template as ITemplate<ReturnByMoney.Model>)
+        : this.getTemplate<ReturnByMoney.Model>(DraftContract.contractName.production, ReturnByMoney.registry_id, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      vars: () => this.getVars(data.coopname, data.block_num),
+      user: () => this.getUser(data.username, data.block_num),
+      paymentMethod: () => paymentMethodService.getOne({
+        method_id: data.method_id,
+        username: data.username,
+        deleted: false,
+      }),
+    })
+
     console.log(data)
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-    const vars = await this.getVars(data.coopname, data.block_num)
-    const user = await this.getUser(data.username, data.block_num)
+    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data }) // зависит от template.title
 
     const commonUser = this.getCommonUser(user)
-
-    // Извлекаем платежные данные из хранилища по method_id
-    const paymentMethodService = new PaymentMethod(this.storage)
-    const paymentMethod = await paymentMethodService.getOne({
-      method_id: data.method_id,
-      username: data.username,
-      deleted: false,
-    })
 
     if (!paymentMethod) {
       throw new Error(`Платежный метод с ID ${data.method_id} не найден для пользователя ${data.username}`)

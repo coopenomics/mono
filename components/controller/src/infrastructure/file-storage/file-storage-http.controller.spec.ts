@@ -4,9 +4,9 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import {
-  InterFileStorageBackendUnavailableError,
-  InterFileStorageObjectNotFoundError,
-} from '@coopenomics/inter';
+  InnerFileStorageBackendUnavailableError,
+  InnerFileStorageObjectNotFoundError,
+} from '@coopenomics/innercoop';
 import {
   FILE_STORAGE_OPTIONS,
   type FileStorageInfrastructureOptions,
@@ -55,6 +55,12 @@ function urlFor(bucket: string, key: string, ttlSeconds: number): { path: string
   const encodedKey = key.split('/').map(encodeURIComponent).join('/');
   return { path: `/api/storage/${encodeURIComponent(bucket)}/${encodedKey}`, exp, sig };
 }
+
+// Каждый тест поднимает свой Nest-контекст через makeApp: в одиночку это ~3 с,
+// то есть впритык к дефолтным 5 с jest. В полном прогоне под нагрузкой лимит
+// превышался, и спек падал по таймауту, проходя при этом изолированно.
+// Ассертов это не касается — поднят только предел ожидания.
+jest.setTimeout(30_000);
 
 describe('FileStorageHttpController', () => {
   let app: INestApplication;
@@ -158,7 +164,7 @@ describe('FileStorageHttpController', () => {
   it('404 при ObjectNotFoundError от адаптера', async () => {
     app = await makeApp(stub);
     stub.fetchObjectForReadProxy.mockRejectedValueOnce(
-      new InterFileStorageObjectNotFoundError('missing'),
+      new InnerFileStorageObjectNotFoundError('missing'),
     );
     const u = urlFor('orders-images', 'missing.jpg', 60);
     const res = await request(app.getHttpServer()).get(u.path).query({ exp: u.exp, sig: u.sig });
@@ -168,7 +174,7 @@ describe('FileStorageHttpController', () => {
   it('502 при BackendUnavailableError от адаптера', async () => {
     app = await makeApp(stub);
     stub.fetchObjectForReadProxy.mockRejectedValueOnce(
-      new InterFileStorageBackendUnavailableError('backend down'),
+      new InnerFileStorageBackendUnavailableError('backend down'),
     );
     const u = urlFor('orders-images', 'x.jpg', 60);
     const res = await request(app.getHttpServer()).get(u.path).query({ exp: u.exp, sig: u.sig });

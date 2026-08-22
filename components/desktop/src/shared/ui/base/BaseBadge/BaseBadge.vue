@@ -33,6 +33,14 @@ const resolvedTextColor = computed(() =>
 </script>
 
 <style scoped>
+/* Бейдж — атомарная метка: никогда не переносится по буквам и не сжимается
+   соседями в flex-строке. Иначе длинный статус («Ожидает обработки») воровал
+   ширину у имени рядом, и имя рассыпалось в столбик. */
+.base-badge {
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 100%;
+}
 .base-badge--dot {
   width: 8px;
   height: 8px;

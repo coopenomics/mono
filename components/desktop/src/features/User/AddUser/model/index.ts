@@ -4,6 +4,7 @@ import { Mutations, Zeus } from '@coopenomics/sdk';
 import emailRegex from 'email-regex';
 import { useCooperativeStore } from 'src/entities/Cooperative';
 import { convertToEOSDate } from 'src/shared/lib/utils/formatDateForEos';
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 
 const emailValidator = emailRegex({ exact: true });
 
@@ -45,15 +46,20 @@ export function useAddUser() {
           ? (state.userData
               .individual_data as Zeus.ModelTypes['CreateIndividualDataInput'])
           : undefined,
+      // TODO(удалить после 01.09.2026): stripLegacyBankKpp — временный shim persisted-localStorage
       organization_data:
         state.userData.type === 'organization'
-          ? (state.userData
-              .organization_data as Zeus.ModelTypes['CreateOrganizationDataInput'])
+          ? stripLegacyBankKpp(
+              state.userData
+                .organization_data as Zeus.ModelTypes['CreateOrganizationDataInput'],
+            )
           : undefined,
       entrepreneur_data:
         state.userData.type === 'entrepreneur'
-          ? (state.userData
-              .entrepreneur_data as Zeus.ModelTypes['CreateEntrepreneurDataInput'])
+          ? stripLegacyBankKpp(
+              state.userData
+                .entrepreneur_data as Zeus.ModelTypes['CreateEntrepreneurDataInput'],
+            )
           : undefined,
     };
 

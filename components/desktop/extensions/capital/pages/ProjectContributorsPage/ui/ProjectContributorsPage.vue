@@ -1,5 +1,5 @@
 <template lang="pug">
-div
+.project-contributors-page
   // Список участников
   ProjectContributorsList(:project='project')
 </template>
@@ -48,4 +48,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+// Заполняет page-surface, чтобы список мог взять height: 100% и держать
+// прокрутку внутри себя
+.project-contributors-page {
+  height: 100%;
+  min-height: 100%;
+}
 </style>

@@ -129,6 +129,16 @@ export default [
     target: 'apps',
   },
   {
+    name: 'expense',
+    path: path.join(userBase, 'expense'),
+    target: 'expense',
+  },
+  {
+    name: 'ano',
+    path: path.join(userBase, 'ano'),
+    target: 'ano',
+  },
+  {
     name: 'billing',
     path: path.join(userBase, 'billing'),
     target: 'billing',

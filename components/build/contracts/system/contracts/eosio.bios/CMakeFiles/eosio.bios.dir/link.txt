@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/eosio.bios.dir/src/eosio.bios.cpp.obj -o eosio.bios.wasm 

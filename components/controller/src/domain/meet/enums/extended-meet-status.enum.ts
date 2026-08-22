@@ -1,23 +1,13 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { ExtendedMeetStatus } from '@coopenomics/innercoop';
 
-// Расширенные статусы собрания
-export enum ExtendedMeetStatus {
-  // Начальное состояние
-  NONE = 'none',
-
-  // Базовые статусы блокчейна
-  CREATED = 'created',
-  AUTHORIZED = 'authorized',
-  PRECLOSED = 'preclosed',
-  CLOSED = 'closed',
-
-  // Дополнительные статусы
-  WAITING_FOR_OPENING = 'waitingForOpening', // Ожидает открытия
-  VOTING_IN_PROGRESS = 'votingInProgress', // Голосование идет
-  EXPIRED_NO_QUORUM = 'expiredNoQuorum', // Истекло без кворума
-  VOTING_COMPLETED = 'votingCompleted', // Ожидает подписей
-  ONRESTART = 'onrestart', // Ожидаем утверждения новой даты собрания
-}
+/**
+ * Сам перечень статусов живёт в `@coopenomics/innercoop`: расширения сравнивают
+ * с его значениями, а этого пути за пределами монолита нет. Здесь остаётся
+ * регистрация в схеме GraphQL — она нужна только ядру, которое отдаёт статус
+ * полем, и тянет за собой `@nestjs/graphql`, которого в контрактном пакете нет.
+ */
+export { ExtendedMeetStatus };
 
 // Регистрируем перечисление для GraphQL
 registerEnumType(ExtendedMeetStatus, {

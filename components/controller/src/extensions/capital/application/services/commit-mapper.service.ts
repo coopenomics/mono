@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CommitDomainEntity } from '../../domain/entities/commit.entity';
+import { Injectable, Inject } from '@nestjs/common';
+import { CommitDomainEntity, type CommitData } from '../../domain/entities/commit.entity';
 import { CommitOutputDTO, CommitAmountsOutputDTO } from '../dto/generation/commit.dto';
 import { BaseProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectRepository, PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
 import { ProjectMapperService } from './project-mapper.service';
-import { Inject } from '@nestjs/common';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { TimeTrackingService } from './time-tracking.service';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей коммитов в DTO
@@ -16,73 +16,80 @@ export class CommitMapperService {
   constructor(
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
-    private readonly projectMapperService: ProjectMapperService
+    private readonly projectMapperService: ProjectMapperService,
+    private readonly timeTrackingService: TimeTrackingService
   ) {}
 
   /**
    * Преобразование доменной сущности коммита в CommitOutputDTO
    * Обогащает коммит данными о проекте и amounts
    */
-  async toDTO(commitEntity: CommitDomainEntity, currentUser?: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
-    // Получаем проект, если есть project_hash
+  async toDTO(commitEntity: CommitDomainEntity, currentUser?: IMonoAccount): Promise<CommitOutputDTO> {
     let project: BaseProjectOutputDTO | undefined;
     if (commitEntity.project_hash) {
       const projectEntity = await this.projectRepository.findByHash(commitEntity.project_hash);
       if (projectEntity) {
-        // Маппим проект с permissions через projectMapperService
         const projectsWithPermissions = await this.projectMapperService.mapBatchToBaseDTO([projectEntity], currentUser);
         project = projectsWithPermissions[0];
       }
     }
 
-    // Маппим amounts
     const amounts = commitEntity.amounts ? this.mapAmountsToDTO(commitEntity.amounts) : undefined;
+    const data = await this.ensureCommittedIssuesInData(commitEntity);
 
-    // Возвращаем обогащенный коммит
     return {
       ...commitEntity,
       project,
       amounts,
+      data,
     } as CommitOutputDTO;
   }
 
   /**
    * Пакетное преобразование массива доменных сущностей коммитов в массив CommitOutputDTO
-   * Оптимизировано для работы с большим количеством коммитов
    */
   async toDTOBatch(
     commitEntities: CommitDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO[]> {
-    // Получаем уникальные project_hash из коммитов
     const projectHashes: string[] = commitEntities
       .map((commit) => commit.project_hash)
       .filter((hash): hash is string => hash !== null && hash !== undefined);
 
-    // Получаем проекты для обогащения данных
     const projects = projectHashes.length > 0 ? await this.projectRepository.findByHashes(projectHashes) : [];
-
-    // Маппим проекты в BaseProjectOutputDTO с permissions
     const projectsWithPermissions = await this.projectMapperService.mapBatchToBaseDTO(projects, currentUser);
-
-    // Создаем карту проектов для быстрого доступа
     const projectsMap = new Map(projectsWithPermissions.map((project) => [project.project_hash, project]));
 
-    // Обогащаем коммиты информацией о проекте и amounts
-    return commitEntities.map((commit) => {
+    const enriched: CommitOutputDTO[] = [];
+    for (const commit of commitEntities) {
       const project = commit.project_hash ? projectsMap.get(commit.project_hash) : undefined;
       const amounts = commit.amounts ? this.mapAmountsToDTO(commit.amounts) : undefined;
-      return {
+      const data = await this.ensureCommittedIssuesInData(commit);
+      enriched.push({
         ...commit,
         project,
         amounts,
-      } as CommitOutputDTO;
-    });
+        data,
+      } as CommitOutputDTO);
+    }
+    return enriched;
   }
 
   /**
-   * Маппинг объекта amounts из доменной сущности в DTO
+   * Для старых коммитов без снимка задач — подтянуть из time_entries (только в DTO, без записи в БД).
    */
+  private async ensureCommittedIssuesInData(commit: CommitDomainEntity): Promise<CommitData | null | undefined> {
+    const base = Array.isArray(commit.data) ? [...commit.data] : [];
+    const hasSnapshot = base.some((item) => item?.type === 'committed_issues');
+    if (hasSnapshot) return commit.data;
+
+    const issues = await this.timeTrackingService.getCommittedIssueSummaries(commit.commit_hash);
+    if (!issues.length) return commit.data;
+
+    base.push({ type: 'committed_issues', data: { issues } });
+    return base;
+  }
+
   private mapAmountsToDTO(amounts: any): CommitAmountsOutputDTO {
     return {
       hour_cost: amounts.hour_cost?.toString(),

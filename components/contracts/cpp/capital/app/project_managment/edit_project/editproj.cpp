@@ -31,8 +31,7 @@ void capital::editproj (
     auto exist = Capital::Projects::get_project_or_fail(coopname, project_hash);
       
     // Проверяем что проект не завершен
-    eosio::check(exist.status != Capital::Projects::Status::RESULT &&
-                 exist.status != Capital::Projects::Status::CANCELLED,
+    eosio::check(exist.status != Capital::Projects::Status::RESULT,
                  "Нельзя редактировать завершенный проект");
 
     Capital::Projects::edit_project(coopname, exist.id, title, description, invite, meta, data);

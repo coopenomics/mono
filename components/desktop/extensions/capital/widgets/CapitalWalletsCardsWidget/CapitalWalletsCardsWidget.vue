@@ -1,133 +1,94 @@
 <template lang="pug">
-.row
-  div.col-md-6.col-xs-12.q-pr-sm
-    // Кошелек Генерации (generator)
-    ColorCard(color='teal' :transparent="false")
-      .wallet-section
-        .wallet-header
-          .wallet-icon
-            q-icon(name="bolt", size="20px", color="blue")
-          .wallet-title Кошелек Генерации
-        .wallet-body
-          .wallet-available
-            .wallet-label Всего
-            .wallet-value {{ formatAmount(generatorWallet.total) }}
-  div.col-md-6.col-xs-12.q-pl-sm
-    // Кошелек Благороста (blagorost)
-    ColorCard(color='teal' :transparent="false")
-      .wallet-section
-        .wallet-header
-          .wallet-icon
-            q-icon(name="local_florist", size="20px", color="green")
-          .wallet-title Кошелек Благороста
-        .wallet-body
-          .wallet-available
-            .wallet-label Всего
-            .wallet-value {{ formatAmount(blagorostWallet.total) }}
-      CreateProgramInvestButton
-
+//- Слева — кошелёк ЦПП «Благорост»; справа — прирост, полученный из программы
+//- (не взнос участника). Генератор на профиле не показываем.
+.capital-wallets
+  .col
+    WalletCard(
+      program='blagorost',
+      :balance='blagorostWallet.amount',
+      :symbol='blagorostWallet.symbol',
+      balance-label='Всего'
+    )
+  .col
+    WalletCard(
+      program='blagorost',
+      title='Получено в Благорост',
+      :balance='receivedFromBlagorost.amount',
+      :symbol='receivedFromBlagorost.symbol',
+      balance-label='Прирост',
+      icon='trending_up',
+      :empty='receivedFromBlagorost.isEmpty'
+    )
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useWalletStore } from 'src/entities/Wallet/model';
-import { ColorCard } from 'src/shared/ui';
+import { useSystemStore } from 'src/entities/System/model';
+import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
+import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { Zeus } from '@coopenomics/sdk';
-import { CreateProgramInvestButton } from 'app/extensions/capital/features/ProgramInvest/CreateProgramInvest/ui';
 
 const walletStore = useWalletStore();
+const contributorStore = useContributorStore();
+const { info } = useSystemStore();
 
-// Находим кошелек генерации
-const generatorWallet = computed(() => {
-  const wallet = walletStore.program_wallets.find(
-    (wallet) => wallet.program_details.program_type.toLowerCase() === Zeus.ProgramType.GENERATOR.toLowerCase()
-  );
-
+function splitAsset(asset?: string | null): {
+  amount: string;
+  symbol: string;
+  isEmpty: boolean;
+} {
+  const fallbackSymbol = info?.symbols?.root_govern_symbol || 'RUB';
+  if (!asset) return { amount: '0,00', symbol: fallbackSymbol, isEmpty: true };
+  const formatted = formatAsset2Digits(asset);
+  const parts = formatted.split(' ');
+  const amount = parts[0] || '0,00';
+  const symbol = parts[1] || fallbackSymbol;
+  const numeric = parseFloat(String(asset).replace(',', '.').split(' ')[0] || '0');
   return {
-    available: wallet?.available || '0.00',
-    total: wallet?.available || '0.00',
+    amount,
+    symbol,
+    isEmpty: !Number.isFinite(numeric) || numeric === 0,
   };
-});
+}
 
-// Находим кошелек благороста
-const blagorostWallet = computed(() => {
-
-  const wallet = walletStore.program_wallets.find(
-    (wallet) => (wallet.program_details.program_type).toLowerCase() === Zeus.ProgramType.BLAGOROST.toLowerCase()
+function findProgramWallet(type: Zeus.ProgramType) {
+  return walletStore.program_wallets.find(
+    (wallet) => wallet.program_type?.toLowerCase() === type.toLowerCase(),
   );
+}
 
-  return {
-    available: wallet?.available || '0.00',
-    total: wallet?.available || '0.00',
-  };
+const blagorostWallet = computed(() =>
+  splitAsset(findProgramWallet(Zeus.ProgramType.BLAGOROST)?.available),
+);
+
+const receivedFromBlagorost = computed(() => {
+  const raw = contributorStore.self?.contributed_as_contributor;
+  if (!raw) return splitAsset(null);
+  // В DTO сумма уже с тикером («0.0000 RUB») либо голое число
+  const hasSymbol = /\s[A-Z]{3,7}$/.test(String(raw).trim());
+  const asset = hasSymbol
+    ? String(raw)
+    : `${raw} ${info?.symbols?.root_govern_symbol || 'RUB'}`;
+  return splitAsset(asset);
 });
-
-// Форматирование суммы
-const formatAmount = (amount: string | number | undefined) => {
-  if (!amount) return '0.00';
-  return formatAsset2Digits(`${amount}`);
-};
 </script>
 
 <style lang="scss" scoped>
+.capital-wallets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--p-3);
+}
 
-.wallet-section {
-  .wallet-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+.col {
+  min-width: 0;
+}
 
-    .wallet-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .wallet-title {
-      font-size: 16px;
-      font-weight: 500;
-    }
-  }
-
-  .wallet-body {
-    .wallet-available {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--q-grey-3, #e0e0e0);
-
-      .q-dark & {
-        border-color: var(--q-grey-7, #424242);
-      }
-
-      .wallet-label {
-        font-size: 14px;
-        font-weight: 400;
-        opacity: 0.7;
-      }
-
-      .wallet-value {
-        font-size: 18px;
-        font-weight: 600;
-      }
-    }
-
-    .wallet-detail {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding-top: 10px;
-
-      .wallet-address {
-        font-size: 12px;
-        font-family: monospace;
-        opacity: 0.6;
-        word-break: break-all;
-      }
-    }
+@media (max-width: 600px) {
+  .capital-wallets {
+    grid-template-columns: 1fr;
   }
 }
 </style>

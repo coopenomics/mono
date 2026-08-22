@@ -10,7 +10,7 @@ import { StartInstallInputDTO } from '../dto/start-install-input.dto';
 import { StartInstallResultDTO } from '../dto/start-install-result.dto';
 import { GetInstallationStatusInputDTO, InstallationStatusDTO } from '../dto/installation-status.dto';
 import { RegistrationConfigDTO } from '../dto/registration-config.dto';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
 @Resolver(() => SystemInfoDTO)

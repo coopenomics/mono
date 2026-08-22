@@ -1,10 +1,7 @@
-import { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { VoteDomainEntity } from '../entities/vote.entity';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { VoteFilterInputDTO } from '../../application/dto/voting/vote-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export interface VoteRepository extends IBlockchainSyncRepository<VoteDomainEntity> {
   create(vote: Omit<VoteDomainEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<VoteDomainEntity>;
@@ -16,8 +13,8 @@ export interface VoteRepository extends IBlockchainSyncRepository<VoteDomainEnti
   findByCoopname(coopname: string): Promise<VoteDomainEntity[]>;
   findAllPaginated(
     filter?: VoteFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<VoteDomainEntity>>;
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<VoteDomainEntity>>;
   update(entity: VoteDomainEntity): Promise<VoteDomainEntity>;
   delete(_id: string): Promise<void>;
 }

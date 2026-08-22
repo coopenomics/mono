@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { DeserializedDescriptionOfExtension } from '~/types/shared';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Определение интерфейса для хранения данных об обрабатываемых собраниях
 export interface TrackedMeet {

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/system_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/system_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/system_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/system_contract-prefix/src/system_contract-stamp/system_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"system_contract"
+		],
+		"name" : "system_contract"
+	}
+}

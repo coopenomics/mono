@@ -1,10 +1,10 @@
 import { ProgramPropertyStatus } from '../enums/program-property-status.enum';
 import type { IProgramPropertyDatabaseData } from '../interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../interfaces/program-property-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { randomUUID } from 'crypto';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность программного имущественного взноса
@@ -33,9 +33,9 @@ export class ProgramPropertyDomainEntity
   public blockchain_status?: IProgramPropertyBlockchainData['status']; // Статус из блокчейна
   public property_amount?: IProgramPropertyBlockchainData['property_amount'];
   public property_description?: IProgramPropertyBlockchainData['property_description'];
-  public statement?: ISignedDocumentDomainInterface;
-  public authorization?: ISignedDocumentDomainInterface;
-  public act?: ISignedDocumentDomainInterface;
+  public statement?: ISignedDocument;
+  public authorization?: ISignedDocument;
+  public act?: ISignedDocument;
   public created_at?: IProgramPropertyBlockchainData['created_at'];
 
   /**

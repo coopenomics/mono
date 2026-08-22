@@ -1,44 +1,68 @@
 name: Release
 
-# Единый релизный workflow по push'у тэга `v*`.
+# Релизный workflow по push'у в testnet/main (FF-промоушн-модель, см.
+# scripts/RELEASE.md).
 #
 # Порядок (через jobs.needs):
 #   1) release             — контракты + контейнеры + webhook деплоя (атомарно)
-#   2) publish-packages    — npm publish через lerna (если не -alpha)
+#   2) publish-packages    — npm publish через lerna (только ветка main)
 #   3) trigger-coopenomics — workflow_dispatch сборки сайта C9S/coopenomics на
-#                            Gitea (если не -alpha + ветка main); он сам тянет
-#                            mono и пересобирает доки.
+#                            Gitea (только ветка main); он сам тянет mono и
+#                            пересобирает доки.
 #
 # publish-docs (gh-pages на github.com) удалён 2026-05-25 — после переезда на
 # Gitea Pages-публикация невалидна; доки деплоятся через C9S/coopenomics.
 #
 # Зачем последовательно: пакеты/доки/внешний триггер не должны уезжать,
-# если релиз контрактов или контейнеров провалился. Раньше четыре workflow'а
-# стартовали параллельно по одному тэгу — отсюда гонка из инцидента 2026-05-13
-# с ledger2 walletop sweep'ом (см. историю release.yaml до объединения).
+# если релиз контрактов или контейнеров провалился.
 #
-# Гейт `-alpha` унифицирован: пакеты + доки + триггер docs пропускают только
-# не-alpha тэги. -beta/-rc/-test в проекте не используются (см. CLAUDE.md),
-# поэтому проще иметь один паттерн `!contains(github.ref, '-alpha')`.
-# IS_PROD в release-job остаётся на `(alpha|beta|rc|test)` — он определяет
-# деплой-webhook (testnet vs production) и тэг `:latest` у образов;
-# намеренно строже, чтобы случайный -rc-тэг не уехал на прод.
+# Триггер — push в testnet/main с изменением lerna.json. Версию бампает
+# `lerna version` ОДИН раз на dev (scripts/cut-release.sh); тот же коммит едет
+# вверх по fast-forward (scripts/promote.sh). lerna.json меняется только на
+# релизном бампе, поэтому обычные feature-пуши деплой не триггерят. dev в
+# триггере НЕТ: cut на dev только бампает версию, деплой начинается с testnet
+# (staging) и завершается main (production).
 #
-# Резолв ветки. Тэг семантики окружения не несёт (например `v2026.5.13-alpha-2`
-# может лежать на testnet или dev — определяет именно ветка, на которую сделан
-# merge перед тэгом). Поэтому ищем первое совпадение SHA с remote-ветками
-# main/testnet/dev. branch экспортируется как outputs.branch для downstream jobs.
+# Окружение определяет ВЕТКА (main → production, testnet → staging), а не
+# суффикс версии: единая версия едет во все среды, поэтому source of truth —
+# ветка, на которую сделан промоушн. Версия читается из закоммиченного
+# lerna.json. Гейты npm-publish/доки — `branch == main`.
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [testnet, main]
+    paths:
+      - 'lerna.json'
+  # Ручной деплой: выбрать окружение и (опционально) версию/коммит. Нужен для
+  # отката на старую версию, редеплоя без бампа и точечного hotfix в один контур —
+  # всё, что FF-промоушн (scripts/promote.sh, только вперёд) сделать не может.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Куда деплоить'
+        type: choice
+        options:
+          - testnet
+          - main
+        required: true
+      ref:
+        description: 'Релизный тег/коммит для сборки (пусто = верхушка выбранного окружения)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
 
 jobs:
+  # Релизный гейт. Тесты не гоняются на каждый push — только здесь, перед
+  # тем как что-либо собрать и выкатить. Если набор красный, job `release`
+  # не стартует, а значит не будет ни образов, ни публикации пакетов, ни
+  # вебхука деплоя: всё остальное объявлено `needs: release`.
+  tests:
+    uses: ./.github/workflows/test.yaml
+
   release:
+    needs: tests
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.resolve.outputs.tag_name }}
@@ -49,23 +73,32 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # push → собираем пушнутый коммит; ручной запуск → выбранный ref
+          # (пусто = верхушка ветки окружения, на которой запущен workflow).
+          ref: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.ref) || github.sha }}
 
-      - name: Resolve branch, build mode and tags
+      - name: Resolve branch, build mode and version
         id: resolve
         run: |
-          TAG_NAME="${{ github.ref_name }}"
-          SHA="${{ github.sha }}"
-          BRANCH=""
-          for candidate in main testnet dev; do
-            if git branch -r --contains "$SHA" 2>/dev/null | grep -qE "^[[:space:]]*origin/${candidate}$"; then
-              BRANCH="$candidate"
-              break
-            fi
-          done
-          if [ -z "$BRANCH" ]; then
-            echo "::error::Тэг $TAG_NAME ($SHA) не лежит ни на одной из dev/testnet/main"
+          # Окружение: при ручном workflow_dispatch — из inputs.environment;
+          # при push — это ветка push'а (testnet/main). Версия/сборка берутся
+          # из реально вычекнутого дерева, не из ветки-триггера.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRANCH="${{ github.event.inputs.environment }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          SHA="$(git rev-parse HEAD)"
+
+          # Версия — из закоммиченного lerna.json. Её бампит lerna version ОДИН
+          # раз на dev (scripts/cut-release.sh), и тот же коммит едет по FF в
+          # testnet/main. Тэг как триггер больше не используется.
+          RAW_VERSION="$(sed -nE 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' lerna.json | head -1)"
+          if [ -z "$RAW_VERSION" ]; then
+            echo "::error::Не удалось прочитать version из lerna.json"
             exit 1
           fi
+          TAG_NAME="v${RAW_VERSION}"
 
           case "$BRANCH" in
             main)
@@ -83,17 +116,22 @@ jobs:
               CONTRACTS_TAG=dev
               CONTRACTS_EXTRA=
               ;;
+            *)
+              echo "::error::Неподдерживаемая ветка $BRANCH (ожидались testnet/main/dev)"
+              exit 1
+              ;;
           esac
 
-          # IS_PROD определяет webhook деплоя (PRODUCTION vs TESTNET) и тэг :latest.
-          # Сознательно строже гейта publish-* — случайный -rc/-beta тэг не должен
-          # уехать на прод-вебхук, даже если в npm/docs его опубликовали.
-          if [[ "$TAG_NAME" =~ -(alpha|beta|rc|test) ]]; then
-            IS_PROD=false
-            WEBHOOK_URL='${{ vars.TESTNET_WEBHOOK_URL }}'
-          else
+          # Окружение деплоя определяет ВЕТКА: main → production, иначе → testnet.
+          # IS_PROD управляет деплой-webhook (PRODUCTION vs TESTNET) и тэгом :latest
+          # у образов. Раньше критерием был суффикс -alpha у тэга; теперь единая
+          # версия едет во все среды, поэтому источник истины — ветка промоушна.
+          if [ "$BRANCH" = "main" ]; then
             IS_PROD=true
             WEBHOOK_URL='${{ vars.PRODUCTION_WEBHOOK_URL }}'
+          else
+            IS_PROD=false
+            WEBHOOK_URL='${{ vars.TESTNET_WEBHOOK_URL }}'
           fi
 
           {
@@ -272,6 +310,46 @@ jobs:
           echo "---"
           docker run --rm "dicoop/contracts:$CONTRACTS_TAG" sha256
 
+      # === Этап 1.5: bootstrap-образ ===
+      # `dicoop/bootcoop:<branch>` несёт CLI раскатки сети: деплой контрактов
+      # на чистую цепь (`boot:remote`) и синхронизацию реестра документов
+      # (`drafts:sync`), который playbook деплоя контрактов запускает на каждой
+      # раскатке. Собирается здесь, а не только в build-bootstrap.yaml, чтобы
+      # к моменту деплой-вебхука образ гарантированно содержал шаблоны из
+      # этого релиза: build-bootstrap.yaml идёт отдельным workflow и на
+      # порядок относительно вебхука не завязан.
+      # FROM dicoop/contracts:<branch> берётся из локального демона — образ
+      # собран и запушен шагом выше.
+      - name: Build and push bootstrap image
+        run: |
+          dpush() {
+            local ref="$1" n=1
+            until docker push "$ref"; do
+              [ "$n" -ge 3 ] && { echo "::error::docker push $ref не удался после $n попыток"; return 1; }
+              echo "::warning::docker push $ref упал (попытка $n/3) — повтор через 10с"
+              n=$((n+1)); sleep 10
+            done
+          }
+
+          IMAGE="dicoop/bootcoop"
+          SHORT_SHA="${SHA::7}"
+          docker build \
+            --build-arg "CONTRACTS_TAG=$CONTRACTS_TAG" \
+            --label "org.opencontainers.image.revision=$SHA" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -f components/boot/Dockerfile \
+            -t "$IMAGE:$CONTRACTS_TAG" \
+            .
+          dpush "$IMAGE:$CONTRACTS_TAG"
+
+          docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+          dpush "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+
+          if [ -n "$CONTRACTS_EXTRA" ]; then
+            docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_EXTRA"
+            dpush "$IMAGE:$CONTRACTS_EXTRA"
+          fi
+
       # === Этап 2: контейнеры приложений ===
 
       - name: Build and push base image
@@ -334,14 +412,16 @@ jobs:
 
   # ============================================================================
   # publish-packages — npm publish (бывший publish-packages.yaml).
-  # Гейт: не-alpha. Не зависит от ветки.
+  # Гейт: ветка main. Версия для publish — из закоммиченного package.json
+  # (lerna publish from-package); её бампит cut-release.sh на dev, тот же коммит
+  # доезжает до main по FF.
   # Жёстко прибиваем версию pnpm, которой сгенерён lockfile (lockfileVersion 9.0
   # = pnpm 9/10). Иначе action-setup может подтянуть другую версию и переписать
   # pnpm-lock.yaml → Lerna EUNCOMMIT.
   # ============================================================================
   publish-packages:
     needs: release
-    if: ${{ !contains(github.ref, '-alpha') }}
+    if: ${{ needs.release.outputs.branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -350,53 +430,80 @@ jobs:
         with:
           version: 10.33.0
 
+      # Node 22 — как в остальных workflow'ах и в рантайм-образах (node:22-slim).
+      # Версия здесь не косметика: нативные модули привязаны к ABI ноды
+      # (Node 22 → 127, Node 24 → 137), а prebuild'ы лежат в vendor/prebuilds/
+      # по каталогам node-v<ABI>. Джоб стоял на 24 и падал на `require`
+      # libxmljs2 внутри generate-schema, пока вендорилась только ABI 127.
+      # Поднимать версию — только вместе с новым prebuild'ом в vendor/.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm lerna run build
+
+      # schema.gql не коммитится и не создаётся ничем в этом job'е, а
+      # @coopenomics/sdk's prepublishOnly (pnpm run docs → generate-index-comments.ts)
+      # читает components/controller/schema.gql и падает ENOENT без него — валя весь
+      # lerna publish (атомарный) молча с 30 мая. Скрипт изолированный (GraphQLSchemaBuilderModule,
+      # без TypeORM/Mongo/Redis) — не требует БД, но типизация controller'а резолвится через
+      # dist соседних workspace-пакетов (cooptypes/factory/notifications/inter) — ОБЯЗАТЕЛЬНО
+      # после `lerna run build`, иначе ts-node падает на их устаревших dist-типах.
+      - name: Generate controller schema.gql (required by sdk prepublishOnly)
+        working-directory: components/controller
+        run: pnpm run generate-schema
+
       - run: pnpm lerna publish from-package --yes
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ============================================================================
   # trigger-coopenomics-docs — пересборка сайта C9S/coopenomics.
-  # Гейт: не-alpha + ветка main.
+  # Гейт: ветка main + задан secret DOCS_DISPATCH_TOKEN.
   #
-  # coopenomics переехал на Gitea (C9S/coopenomics); его publish-docs.yaml
-  # клонирует mono и пересобирает сайт. Gitea НЕ имеет API для
-  # repository_dispatch — только workflow_dispatch, поэтому дёргаем целевой
-  # workflow через Gitea API с PAT (secret DOCS_DISPATCH_TOKEN — префикс GITEA_
-  # у секретов зарезервирован Gitea, нельзя; права write на C9S/coopenomics).
-  # Целевой workflow слушает workflow_dispatch с входами
-  # mono_sha/mono_ref.
+  # Dual-host: Actions могут бежать на GitHub или Gitea. Сайт доков живёт на
+  # Gitea (C9S/coopenomics), поэтому API всегда бьёт в GITEA_SERVER_URL
+  # (var, дефолт https://git.coopenomics.world) — НЕ в github.server_url
+  # (на GitHub Actions тот = github.com → 410).
+  #
+  # Без DOCS_DISPATCH_TOKEN job пропускается (GitHub-only режим: токен не
+  # задаём → релиз не валится). На Gitea задаём PAT (префикс GITEA_ у секретов
+  # зарезервирован, поэтому имя DOCS_DISPATCH_TOKEN; write на C9S/coopenomics).
   # ============================================================================
   trigger-coopenomics-docs:
     needs: release
-    if: ${{ !contains(github.ref, '-alpha') && needs.release.outputs.branch == 'main' }}
+    if: ${{ needs.release.outputs.branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger coopenomics website rebuild (Gitea workflow_dispatch)
+        env:
+          DOCS_DISPATCH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          GITEA_SERVER_URL: ${{ vars.GITEA_SERVER_URL }}
         run: |
+          if [ -z "$DOCS_DISPATCH_TOKEN" ]; then
+            echo "DOCS_DISPATCH_TOKEN не задан — skip (GitHub-only / без Gitea docs dispatch)"
+            exit 0
+          fi
+          GITEA_SERVER_URL="${GITEA_SERVER_URL:-https://git.coopenomics.world}"
           curl -fsSL -X POST \
-            -H "Authorization: token ${{ secrets.DOCS_DISPATCH_TOKEN }}" \
+            -H "Authorization: token ${DOCS_DISPATCH_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{"ref":"master","inputs":{"mono_sha":"${{ github.sha }}","mono_ref":"${{ github.ref }}"}}' \
-            "${{ github.server_url }}/api/v1/repos/C9S/coopenomics/actions/workflows/publish-docs.yaml/dispatches"
+            "${GITEA_SERVER_URL}/api/v1/repos/C9S/coopenomics/actions/workflows/publish-docs.yaml/dispatches"
 
   # ============================================================================
   # trigger-mono-docs — деплой ВТОРОЙ документации (сайт доков mono) через
   # webhook DOCS_DEPLOY_WEBHOOK_URL. Отдельная от coopenomics публикация —
   # обе доки уезжают синхронно по релизу. Извлечён из бывшего publish-docs:
   # gh-pages на github.com выпилен как мёртвый, остался реальный deploy-webhook
-  # (приёмник деплоит доки на своей стороне). Гейт: не-alpha + ветка main.
+  # (приёмник деплоит доки на своей стороне). Гейт: ветка main.
   # ============================================================================
   trigger-mono-docs:
     needs: release
-    if: ${{ !contains(github.ref, '-alpha') && needs.release.outputs.branch == 'main' }}
+    if: ${{ needs.release.outputs.branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger docs deployment webhook

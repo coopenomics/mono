@@ -1,11 +1,10 @@
 <template lang="pug">
-q-card(flat)
-  // Лоадер загрузки проектов (только при первой загрузке)
-  WindowLoader(v-if='isInitialLoading', text='')
+.projects-list-widget
+  // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
+  .projects-skeleton(v-if='isInitialLoading')
+    .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(
-    style='height: calc(100vh - 55px); overflow-y: auto'
-  )
+  .projects-scroll-area(v-else)
     q-table(
       ref='tableRef',
       :rows='projects?.items || []',
@@ -21,58 +20,60 @@ q-card(flat)
       :virtual-scroll-target='".projects-scroll-area"',
       :virtual-scroll-item-size='48',
       :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]',
-      :no-data-label='hasFiltersApplied ? "Нет результатов по фильтрам" : "Нет проектов"'
+      :rows-per-page-options='[0]'
     )
       template(#body='props')
         q-tr(
           :props='props'
         )
           q-td
-            .row.items-center(style='padding-left: 12px; min-height: 48px')
-              // Кнопка раскрытия (35px)
-              .col-auto(style='width: 35px; flex-shrink: 0')
+            .row.items-center.project-row
+              // Кнопка раскрытия
+              .col-auto.project-row__toggle
                 ExpandToggleButton(
                   :expanded='expanded[props.row.project_hash]',
                   @click='handleToggleExpand(props.row.project_hash)'
                 )
 
-              // ID с иконкой типа внутри бейджа (100px + отступ 0px)
-              .col-auto(style='width: 100px; padding-left: 0px; flex-shrink: 0')
+              // ID — плоский muted-текст фиксированной колонки (Linear-style)
+              .col-auto.project-row__id
                 EntityIdBadge(
                   v-if='props.row.id'
                   :raw-id='props.row.id'
                   copy-on-click
                   address-clipboard
+                  flat
                 )
-                  template(#prefix)
-                    q-icon(name='work', size='xs')
 
-              // Title со статусом (400px + отступ 0px)
-              .col(style='width: 400px; padding-left: 0px')
+              // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
+              .col-auto.row-status
+                ProjectPriorityChip(:project='props.row' variant='icon')
+
+              // Избранное — рядом со статусом, до заголовка
+              .col-auto.row-favorite
+                FavoriteStarButton(
+                  :target-type='FavoriteTargetType.PROJECT',
+                  :target-hash='props.row.project_hash'
+                )
+
+              // Title
+              .col.project-row__title-col
                 .list-item-title(
                   @click.stop='handleOpenProject(props.row.project_hash)'
-                  style='display: inline-block; vertical-align: top; word-wrap: break-word; white-space: normal'
                 )
-                  q-icon(
-                    :name='getProjectStatusIcon(props.row.status)',
-                    :color='getProjectStatusDotColor(props.row.status)',
-                    size='xs'
-                  ).q-mr-sm
+                  PrivateShieldIcon(:show='props.row.origin === "local"')
                   span {{ props.row.title }}
 
-              // Actions - только CreateComponentButton (140px, выравнивание по правому краю)
-              .col-auto.ml-auto(
-                v-if='props.row.permissions?.can_edit_project'
-                style='width: 140px'
-              )
-                .row.items-center.justify-end.q-gutter-xs
-                  CreateComponentButton(
-                    :project='props.row',
-                    :mini='true',
-                    flat,
-                    @click.stop
-                  )
+              // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+              // время на уровне проекта пока скрыто — почти всегда нули
+              .col-auto.row-cells
+                .cell-time
+                .cell-side
+                  // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
+                  ProjectStatusChip(:project='props.row')
+                .cell-actions
+                  // Мастер — ответственный за проект (зеркально исполнителям задач)
+                  SetMasterAvatar(:project='props.row')
 
         // Слот для дополнительного контента проекта (ComponentsListWidget)
         q-tr.q-virtual-scroll--with-prev(
@@ -80,20 +81,35 @@ q-card(flat)
           v-if='expanded[props.row.project_hash]',
           :key='`${props.row.project_hash}`'
         )
-          q-td(colspan='100%', style='padding: 0px !important')
+          //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
+          //- парсится браузером как 100 колонок и при table-layout: fixed
+          //- сжимает строку проекта в ширину первой из них
+          q-td.project-row__nested
             slot(name='project-content', :project='props.row')
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет проектов' }}
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { WindowLoader } from 'src/shared/ui/Loader';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
-import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
+import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { ProjectPriorityChip } from 'app/extensions/capital/features/Project/SetPriority';
+import { ProjectStatusChip } from 'app/extensions/capital/features/Project/UpdateProjectStatus';
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
+import { Zeus } from '@coopenomics/sdk';
+import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
 const props = defineProps<{
   coopname?: string;
@@ -104,6 +120,10 @@ const props = defineProps<{
   hasIssuesWithStatuses?: string[];
   hasIssuesWithPriorities?: string[];
   master?: string;
+  /** blockchain | local | any — по умолчанию backend режет blockchain */
+  origin?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }>();
 
 const { info } = useSystemStore();
@@ -122,8 +142,13 @@ const nextPage = ref(1);
 const lastPage = ref(1);
 
 // Используем computed для projects, чтобы всегда получать актуальные данные из store
-// Это предотвращает конфликты и "передергивание" списка при разворачивании проектов
-const projects = computed(() => projectStore.projects);
+// Фильтр isProject — защита от кратковременного попадания компонента в items
+// (раньше loadProject добавлял любой hash в начало списка мастерской)
+const projects = computed(() => {
+  const raw = projectStore.projects;
+  const items = (raw.items || []).filter((p) => isProject(p));
+  return { ...raw, items };
+});
 
 // Проверяем, применены ли фильтры
 const hasFiltersApplied = computed(() => {
@@ -176,14 +201,17 @@ const loadProjects = async (page = 1, append = false) => {
     if (props.master) {
       filter.master = props.master;
     }
+    if (props.origin) {
+      filter.origin = props.origin;
+    }
 
     await projectStore.loadProjects({
       filter,
       options: {
         page,
         limit: 25, // Фиксированный размер страницы для бесконечного скролла
-        sortBy: pagination.value.sortBy,
-        sortOrder: pagination.value.descending ? 'DESC' : 'ASC',
+        sortBy: props.sortBy || pagination.value.sortBy,
+        sortOrder: props.sortOrder || (pagination.value.descending ? 'DESC' : 'ASC'),
       },
     }, append);
 
@@ -278,45 +306,20 @@ onMounted(async () => {
 });
 
 // Следим за изменениями фильтров и сбрасываем состояние
-watch([() => props.statuses, () => props.priorities, () => props.hasIssuesWithStatuses, () => props.hasIssuesWithPriorities, () => props.master], () => {
+watch([() => props.statuses, () => props.priorities, () => props.hasIssuesWithStatuses, () => props.hasIssuesWithPriorities, () => props.master, () => props.sortBy, () => props.sortOrder], () => {
   resetScrollState();
   loadProjects(1, false);
 }, { deep: true });
 
-// Определяем столбцы таблицы
+// Ровно одна колонка: тело рендерит всю строку одной ячейкой (.project-row),
+// хедер скрыт. Больше колонок нельзя — virtual-scroll вставляет первой
+// padding-строку с colspan = числу колонок, и table-layout: fixed сжимает
+// единственную ячейку тела в ширину первой из N колонок
 const columns = [
   {
-    name: 'expand',
+    name: 'row',
     label: '',
-    align: 'center' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'prefix',
-    label: 'Префикс',
     align: 'left' as const,
-    field: 'prefix' as const,
-    sortable: true,
-  },
-  {
-    name: 'name',
-    label: 'Название',
-    align: 'left' as const,
-    field: 'title' as const,
-    sortable: true,
-  },
-  {
-    name: 'master',
-    label: '',
-    align: 'right' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'actions',
-    label: '',
-    align: 'right' as const,
     field: '' as const,
     sortable: false,
   },
@@ -324,28 +327,169 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
-.q-table {
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.projects-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
+}
+
+// Высоту задаёт страница (flex-колонка под шапкой и панелью фильтров);
+// fallback на полный вьюпорт минус шапка — для standalone-использования
+.projects-list-widget {
+  height: 100%;
+  min-height: 0;
+}
+
+.projects-scroll-area {
+  height: 100%;
+  max-height: calc(100vh - 55px);
+  overflow-y: auto;
+}
+
+// table-layout: fixed — иначе auto-раскладка считает ширину ячейки по
+// nowrap-контенту вложенных списков задач, таблица распирается шире
+// вьюпорта и появляется горизонтальный скролл. Обязательно через :deep —
+// <table.q-table> внутри QTable не несёт scoped-атрибут
+.projects-scroll-area :deep(.q-table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+// Структурные ширины колонок строки проекта (привязаны к
+// virtual-scroll-item-size=48 — не spacing, токенам не подлежат)
+.project-row {
+  padding-left: var(--p-3);
+  padding-right: var(--p-3);
+  min-height: 48px;
+}
+
+.project-row__toggle {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.project-row__id {
+  min-width: 28px;
+  padding-right: var(--p-1);
+  flex-shrink: 0;
+}
+
+.row-status {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+// Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,
+// сами виджеты при одиночном использовании отступа не имеют.
+// Раскрытый блок подкрашен целиком — однородный фон вместо линий, как в
+// разделе «Компоненты»: видно, где вложение начинается и где кончается
+.project-row__nested {
+  padding: 0 0 0 var(--p-7) !important;
+  min-width: 0;
+  background: var(--p-surface-2);
+
+  :deep(.list-surface) {
+    background: transparent;
+  }
+
+  @media (max-width: 640px) {
+    padding-left: var(--p-4) !important;
+  }
+}
+
+// Правая сетка строки — фиксированные колонки, общие для всех уровней
+// дерева (проект/компонент/задача): время | статус | люди. Ширины плотные,
+// по самому широкому контенту колонки — группа читается цельным блоком
+// у правого края, без растянутых пустот
+.row-cells {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+}
+
+.cell-time {
+  width: 80px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 112px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+
+@media (max-width: 640px) {
+  .cell-time,
+  .cell-side {
+    display: none;
+  }
+
+  .cell-actions {
+    width: auto;
+  }
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+}
+
+.projects-scroll-area :deep(.q-table) {
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
+    padding: 0; // строка использует внутренние отступы .project-row
   }
 }
 
-.q-chip {
-  font-weight: 500;
-}
-
-// Импорт глобального стиля для подсветки
 :deep(.list-item-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  vertical-align: top;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: var(--p-fs-body);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 </style>
