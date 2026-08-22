@@ -8,6 +8,14 @@ type MigrationLogger = { info: (message: string) => void; error: (message: strin
  * Story 1.1). Миграция открывает СОБСТВЕННОЕ подключение из config.coopDomainDb —
  * главный dataSource (voskhod) не используется и не передаётся дальше.
  *
+ * Номер 2.3.8, а не 2.4.0, с которым она приехала: тот номер уже занят
+ * `V2.4.0__backfill_parser_history_from_mongo`, а применённость менеджер
+ * считает ПО НОМЕРУ ВЕРСИИ, не по имени файла. На узле, где раньше прошёл
+ * backfill парсера, эта миграция молча пропускалась как «уже применённая»,
+ * coop_domain_db оставалась пустой, и следом падала V2.4.1 с
+ * `relation "vaults" does not exist` (voskhod, деплой 2026-08-22). Номер
+ * обязан остаться меньше 2.4.1: та правит созданные здесь таблицы.
+ *
  * Таблицы:
  *  - vaults                — зашифрованные блобы (subject_type-discriminated);
  *  - audit_events          — append-only журнал: месячные партиции + DEFAULT,
