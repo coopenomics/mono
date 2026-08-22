@@ -74,6 +74,13 @@ function userManager(issuer: string): UserManager {
     scope: oidcConfig.scope,
     post_logout_redirect_uri: oidcConfig.postLogoutRedirectUri,
     response_type: 'code', // Authorization Code + PKCE; oidc-client-ts включает PKCE по умолчанию.
+    // Библиотека ждёт ответа скрытого кадра десять секунд. Этого мало: кадр
+    // открывается в тот же момент, когда браузер может проверять обновление
+    // service worker'а (проверка запускается как раз на переходе), и пока
+    // рабочий переустанавливается, переход кадра до сети не доходит вовсе.
+    // Двадцать секунд закрывают эту паузу; на удачном входе задержки не
+    // добавляется — кадр отвечает за доли секунды.
+    silentRequestTimeoutInSeconds: 20,
   }
   const um = new UserManager(settings)
   managers.set(authority, um)
@@ -134,12 +141,30 @@ export async function authenticateWithAuthentik(params: { issuer: string, email:
   await um.removeUser().catch(() => undefined)
   await um.clearStaleState().catch(() => undefined)
 
-  let user: User | null
-  try {
-    user = await um.signinSilent()
+  // Одна повторная попытка. Скрытый кадр — единственное место входа, которое
+  // зависит не только от нас и от authentik, но и от того, чем занят браузер:
+  // его переход перехватывает service worker, и если тот в этот момент
+  // переустанавливается (а он это делает как раз на переходах, особенно вскоре
+  // после релиза), запрос страницы возврата не уходит никуда. Со стороны это
+  // выглядит как «вход просто не сработал», хотя пароль верный и authentik уже
+  // выдал код — ровно тот случай, что ловили на тестнете 22.08.2026.
+  //
+  // Повтор занимает доли секунды и к этому моменту рабочий уже сменился, так что
+  // вторая попытка проходит. Побочных эффектов нет: prompt=none только выдаёт
+  // новый код поверх той же сессии, неиспользованный протухает сам.
+  let user: User | null = null
+  let lastError: unknown
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      user = await um.signinSilent()
+      break
+    }
+    catch (e) {
+      lastError = e
+    }
   }
-  catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, `Не удалось завершить вход через authentik: ${e instanceof Error ? e.message : String(e)}`)
+  if (!user && lastError) {
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, `Не удалось завершить вход через authentik: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
   }
   if (!user)
     throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'authentik не вернул сессию после ввода пароля')
