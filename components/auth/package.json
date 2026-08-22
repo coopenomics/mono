@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/auth",
   "type": "module",
-  "version": "2026.8.21-1",
+  "version": "2026.8.22",
   "private": false,
   "packageManager": "pnpm@9.9.0",
   "description": "SDK аутентификации CoopID: OIDC, vault, кошелёк и подпись для браузера, Node и desktop",
