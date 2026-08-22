@@ -1,6 +1,7 @@
 import { decryptPrivateKey, fetchVaultBlob, migrate } from '@coopenomics/auth';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
+import { useLoginUser } from 'src/features/User/LoginUser';
 
 /**
  * Смена пароля из настроек (при известном старом пароле).
@@ -13,12 +14,19 @@ import { useSessionStore } from 'src/entities/Session';
  *
  * Дальше работает конвейер миграции (`migrate` с ротацией): новый пароль уходит
  * в authentik, в vault ложится НОВЫЙ ключ, зашифрованный новым паролем, старый
- * ключ гаснет on-chain, все сессии отзываются. Поэтому после смены пароля
- * пайщик входит заново — чужие (и возможно скомпрометированные) сессии
- * умирают вместе со старым паролем.
+ * ключ гаснет on-chain, все сессии отзываются — чужие (и возможно
+ * скомпрометированные) умирают вместе со старым паролем. Это остаётся: смена
+ * пароля обязана гасить сеансы, иначе она не защищает ни от чего.
+ *
+ * А вот выбрасывать на форму входа ТОГО, кто пароль и меняет, незачем: он уже
+ * в кабинете, новый пароль только что набрал сам и подтвердил знанием старого.
+ * Поэтому сразу за отзывом сессий поднимаем текущую заново — тем же способом,
+ * что и мастер перехода на пароль. Со стороны пайщика смена пароля выглядит
+ * как смена пароля, а не как выход из системы.
  */
 export function useChangePassword() {
   const session = useSessionStore();
+  const { loginWithPassword } = useLoginUser();
 
   async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
     const account = session.username;
@@ -39,6 +47,11 @@ export function useChangePassword() {
     }
 
     await migrate({ email, privateKey, newPassword });
+    // Свой сеанс поднимаем обратно новым паролём: сессии только что отозваны
+    // все разом, включая текущую. Второго фактора здесь не встретится — его
+    // спрашивают на входе по паролю, а этот вход выполняется сразу за сменой,
+    // подтверждённой знанием старого пароля.
+    await loginWithPassword(email, newPassword);
   }
 
   return { changePassword };
