@@ -3,15 +3,10 @@ import { ApprovalService } from '../services/approval.service';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
 import { ConfirmApproveInputDTO } from '../dto/confirm-approve-input.dto';
 import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { IMonoAccount } from '@coopenomics/innercoop';
 import { ApprovalDTO } from '../dto/approval.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 
 // Пагинированные результаты
 const paginatedApprovalsResult = createPaginationResult(ApprovalDTO, 'PaginatedChairmanApprovals');
@@ -37,7 +32,7 @@ export class ApprovalResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ApprovalDTO>> {
     // Конвертируем параметры пагинации в доменный формат
-    const domainOptions: PaginationInputDomainInterface | undefined = options
+    const domainOptions: PaginationInputDTO | undefined = options
       ? {
           page: options.page,
           limit: options.limit,
@@ -75,7 +70,7 @@ export class ApprovalResolver {
   @AuthRoles(['chairman'])
   async confirmApprove(
     @Args('data', { type: () => ConfirmApproveInputDTO }) data: ConfirmApproveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ApprovalDTO> {
     return await this.approvalService.confirmApprove(data, currentUser.username);
   }
@@ -91,7 +86,7 @@ export class ApprovalResolver {
   @AuthRoles(['chairman'])
   async declineApprove(
     @Args('data', { type: () => DeclineApproveInputDTO }) data: DeclineApproveInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ApprovalDTO> {
     return await this.approvalService.declineApprove(data, currentUser.username);
   }

@@ -12,14 +12,22 @@
 void soviet::migrate() {
     require_auth(_soviet); // Проверяем авторизацию
 
-    // Миграция program_type для кооператива voskhod, программа id=4 -> blagorost
-    eosio::name coopname = "voskhod"_n;
-    programs_index programs(_soviet, coopname.value);
-    auto program_it = programs.find(4);
-    if (program_it != programs.end() && program_it->program_type != "blagorost"_n) {
-        programs.modify(program_it, _soviet, [&](auto &pr) {
-            pr.program_type = "blagorost"_n;
-        });
+    // Откат program_type для кооператива voskhod, программа id=4: blagorost -> capital.
+    // Предыдущая версия этой миграции переименовывала programs.program_type в
+    // 'blagorost', но coagreements.type для той же программы (program_id=4) всегда
+    // оставался 'capital' и никогда не переименовывался — таблицы разъехались.
+    // 'capital' — каноничное значение (используется coagreements.type, contract-
+    // константой _capital_program и всем controller-кодом); эта миграция приводит
+    // programs.program_type к нему же. Идемпотентно.
+    {
+        eosio::name coopname = "voskhod"_n;
+        programs_index programs(_soviet, coopname.value);
+        auto program_it = programs.find(4);
+        if (program_it != programs.end() && program_it->program_type != "capital"_n) {
+            programs.modify(program_it, _soviet, [&](auto &pr) {
+                pr.program_type = "capital"_n;
+            });
+        }
     }
 
     // ────────────────────────────────────────────────────────────────────────

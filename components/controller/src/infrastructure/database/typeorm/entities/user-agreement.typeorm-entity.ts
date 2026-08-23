@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import type { IProgramAgreement } from '~/domain/wallet/interfaces/user-agreement-blockchain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'user_agreements';
 

@@ -45,7 +45,7 @@ void capital::act2pgprp(eosio::name coopname, eosio::name username, checksum256 
   std::string memo = Capital::Memo::get_program_property_memo(property_hash);
 
   // Увеличиваем паевой фонд через ledger2: ISSUE в BLAGOROST_FUND, Dr 51 / Cr 80.
-  Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_PROPERTY, property.property_amount, property.username, property_hash, memo);
+  Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, property.property_amount, property.username, property_hash, memo);
   
   // Удаляем предложение после успешной обработки
   Capital::ProgramProperties::delete_program_property(coopname, property.id);

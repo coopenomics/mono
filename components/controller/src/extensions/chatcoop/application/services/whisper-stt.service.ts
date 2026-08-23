@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import config from '~/config/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 
 // Утилита для создания WAV-заголовка из PCM-данных
 function createWavBuffer(pcmBuffer: Buffer, sampleRate: number, channels: number, bitsPerSample: number): Buffer {
@@ -64,11 +64,17 @@ export class WhisperSttService {
   private readonly model: string;
   private readonly language: string;
 
-  constructor() {
-    this.apiKey = config.openai?.api_key || '';
-    this.baseUrl = config.openai?.base_url || 'https://api.openai.com/v1';
-    this.model = config.openai?.whisper_model || 'whisper-1';
-    this.language = config.openai?.whisper_language || 'ru';
+  constructor(@Inject(INTEGRATION_SETTINGS_PORT) integrations: IIntegrationSettingsPort) {
+    const openai = integrations.get<{
+      api_key?: string;
+      base_url?: string;
+      whisper_model?: string;
+      whisper_language?: string;
+    }>('chatcoop', 'openai');
+    this.apiKey = openai?.api_key || '';
+    this.baseUrl = openai?.base_url || 'https://api.openai.com/v1';
+    this.model = openai?.whisper_model || 'whisper-1';
+    this.language = openai?.whisper_language || 'ru';
   }
 
   /**

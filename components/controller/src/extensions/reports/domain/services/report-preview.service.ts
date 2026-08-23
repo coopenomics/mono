@@ -155,7 +155,11 @@ export class ReportPreviewService {
           { key: 'year', label: 'Отчётный год', value: String(ctx.year) },
           { key: 'kbk', label: 'КБК', value: '18210102010011000110' },
           { key: 'rate', label: 'Ставка налога', value: '13 %' },
-          { key: 'allZero', label: 'Все числовые показатели', value: '0 (нулевой отчёт)' },
+          {
+            key: 'source',
+            label: 'Источник сумм',
+            value: 'Налог, удержанный из материальной помощи',
+          },
         ],
       },
     ];

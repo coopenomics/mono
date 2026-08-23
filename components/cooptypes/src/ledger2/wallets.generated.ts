@@ -24,6 +24,11 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.wal.member", human_name: "ЦК — членская часть пайщика", kind: "USER_SHARED" },
   { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
   { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED" },
+  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — резерв под заказ у пайщика", kind: "USER_SHARED" },
+  { name: "w.mkt.member", human_name: "ЦПП «Стол Заказов» — членский кошелёк пайщика программы", kind: "USER_SHARED" },
+  { name: "w.brn.person", human_name: "Персональный кошелёк доверенного кооперативного участка", kind: "USER_SHARED" },
+  { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED" },
+  { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED" },
   { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
@@ -35,6 +40,11 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.sov.mnused", human_name: "Использованные минимальные паевые взносы", kind: "COOPERATIVE" },
   { name: "w.cap.loan", human_name: "Выданные пайщикам беспроцентные займы", kind: "COOPERATIVE" },
   { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE" },
+  { name: "w.mkt.fee", human_name: "Резерв членских взносов «Стола заказов» под заказы", kind: "COOPERATIVE" },
+  { name: "w.brn.pool", human_name: "Транзитный пул ручного распределения кооперативного участка", kind: "COOPERATIVE" },
+  { name: "w.brn.expns", human_name: "Пул расходов кооперативного участка", kind: "COOPERATIVE" },
+  { name: "w.cap.pgexp", human_name: "Пул программных расходов ЦПП «Благорост»", kind: "COOPERATIVE" },
+  { name: "w.sov.ndfl", human_name: "Удержанный НДФЛ к перечислению", kind: "COOPERATIVE" },
 ] as const
 
 export interface ProgramWalletMapping {
@@ -57,5 +67,22 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.cap.blago", required_program_id: 4, program_label: "Благорост" },
   { wallet_name: "w.cap.gen", required_program_id: 3, program_label: "Генератор" },
   { wallet_name: "w.cap.preimp", required_program_id: 0, program_label: null },
+  { wallet_name: "w.mkt.order", required_program_id: 2, program_label: "Marketplace" },
+  { wallet_name: "w.mkt.member", required_program_id: 2, program_label: "Marketplace" },
+  { wallet_name: "w.brn.person", required_program_id: 0, program_label: null },
+  { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
+  { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
+] as const
+
+/**
+ * Сет паевых («боевых») кошельков пайщика, возвращаемых при выходе из кооператива.
+ * Точная копия `LEDGER2_EXIT_REFUND_WALLETS` из C++. Контракт `confirmexit` обходит
+ * этот сет, собирает доступные балансы и ставит их на возврат; backend-preview
+ * считает по нему же — расчёт на фронте всегда совпадает с тем, что вернёт контракт.
+ */
+export const LEDGER2_EXIT_REFUND_WALLETS: readonly IName[] = [
+  "w.reg.minshr",
+  "w.wal.share",
+  "w.cap.blago",
 ] as const

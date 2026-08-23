@@ -1,9 +1,11 @@
-import type { IBaseDatabaseData } from '~/shared/sync/interfaces/base-database.interface';
+import type { IBaseDatabaseData } from '@coopenomics/extension-kit/sync';
 
 /**
- * Тип начисления времени
+ * Тип / источник записи времени.
+ * hourly | estimate — старые авто-записи (новые не создаём).
+ * manual | timer — явный учёт (ручной ввод / таймер на одну задачу).
  */
-export type TimeEntryType = 'hourly' | 'estimate';
+export type TimeEntryType = 'hourly' | 'estimate' | 'manual' | 'timer';
 
 /**
  * Интерфейс данных записи времени из базы данных
@@ -17,6 +19,7 @@ export type ITimeEntryDatabaseData = IBaseDatabaseData & {
   hours: number;
   commit_hash?: string;
   is_committed: boolean;
-  entry_type?: TimeEntryType; // Тип начисления: 'hourly' (почасовое) или 'estimate' (по завершению)
-  estimate_snapshot?: number; // Снимок estimate на момент начисления (для отслеживания изменений)
+  entry_type?: TimeEntryType;
+  /** Снимок плана у старых записей типа estimate */
+  estimate_snapshot?: number;
 };

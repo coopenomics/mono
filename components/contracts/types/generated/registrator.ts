@@ -30,6 +30,7 @@ export interface IAdduser {
   minimum: IAsset
   spread_initial: boolean
   meta: string
+  registration_hash: IChecksum256
 }
 
 export interface ICandidate {
@@ -61,6 +62,17 @@ export interface IChangekey {
   changer: IName
   username: IName
   public_key: IPublicKey
+}
+
+export interface ICompletexit {
+  coopname: IName
+  exit_hash: IChecksum256
+}
+
+export interface IConfirmexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  authorization: IDocument2
 }
 
 export interface IConfirmpay {
@@ -132,6 +144,18 @@ export interface IDeclinereg {
   reason: string
 }
 
+export interface IDeclinerfnd {
+  coopname: IName
+  registration_hash: IChecksum256
+  reason: string
+}
+
+export interface IDeclinexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  reason: string
+}
+
 export interface IDecparticpnt {
   coopname: IName
   username: IName
@@ -166,6 +190,24 @@ export interface IEnabranches {
   coopname: IName
 }
 
+export interface IExit {
+  username: IName
+  coopname: IName
+  status: IName
+  created_at: ITimePointSec
+  statement: IDocument2
+  approved_statement: IDocument2
+  exit_hash: IChecksum256
+  quantity: IAsset
+}
+
+export interface IExitcoop {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+  statement: IDocument2
+}
+
 export interface IInit {
 }
 
@@ -189,6 +231,11 @@ export interface IOrgData {
   minimum: IAsset
   org_initial: IAsset
   org_minimum: IAsset
+}
+
+export interface IRefundpay {
+  coopname: IName
+  registration_hash: IChecksum256
 }
 
 export interface IRegcoop {

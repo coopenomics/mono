@@ -48,6 +48,8 @@
                 .notification-center__item-title {{ n.title }}
                 .notification-center__item-desc(v-if='n.description') {{ n.description }}
                 time.notification-center__item-date(:datetime='toIso(n.date)') {{ formatRelative(n.date) }}
+              //- Шеврон — знак, что нажатие ведёт к действию, а не только «прочитать».
+              q-icon.notification-center__item-go(v-if='n.link', name='chevron_right', size='18px')
 
   footer.notification-center__footer(v-if='!loading && notifications.length && showViewAll')
     a.notification-center__view-all(
@@ -148,13 +150,21 @@ function plural(n: number, one: string, few: string, many: string): string {
   display: flex;
   flex-direction: column;
   width: 360px;
-  max-width: 100vw;
+  max-width: 100%;
   background: var(--p-surface);
   color: var(--p-ink);
   border: 1px solid var(--p-line-1);
   border-radius: var(--p-r-md, 12px);
   box-shadow: var(--p-shadow-pop);
   overflow: hidden;
+}
+
+/* На мобиле панель занимает всю ширину раскрытого меню (см. .notification-center-menu
+   в виджете) — не узкий обрубок 360px. */
+@media (max-width: 600px) {
+  .notification-center {
+    width: 100%;
+  }
 }
 
 .notification-center__header {
@@ -332,6 +342,10 @@ function plural(n: number, one: string, few: string, many: string): string {
   font-weight: 600;
   line-height: var(--p-lh-body-sm, 1.4);
   color: var(--p-ink);
+  /* Неразрывные токены (хэш, account-id, ссылка) переносим, а не распираем
+     ими панель — иначе строка уезжает за правый край списка. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .notification-center__item.is-unread .notification-center__item-title {
   color: var(--p-ink);
@@ -347,19 +361,26 @@ function plural(n: number, one: string, few: string, many: string): string {
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
   /* In-app тела несут перенос строки как \n (не HTML <br> — тело рендерится
-     как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор). */
+     как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор).
+     Текст уведомления не обрезаем — председатель/пайщик должен видеть
+     причину/комментарий целиком, а не только первые два ряда (см. review
+     2026-07-27: решение по возврату обрезалось на полуслове названия КУ). */
   white-space: pre-line;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
 }
 
 .notification-center__item-date {
   font-size: var(--p-fs-caption, 12px);
   line-height: var(--p-lh-body-sm, 1.4);
   color: var(--p-ink-3);
+}
+
+/* Шеврон deep-link'а: приглушён, прижат к правому краю по центру строки. */
+.notification-center__item-go {
+  align-self: center;
+  margin-left: auto;
+  color: var(--p-ink-3);
+  flex-shrink: 0;
 }
 
 .notification-center__footer {

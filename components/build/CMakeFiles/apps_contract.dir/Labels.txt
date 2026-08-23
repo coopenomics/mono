@@ -1,0 +1,14 @@
+# Target labels
+ apps_contract
+# Source files and their labels
+/project/build/CMakeFiles/apps_contract
+/project/build/CMakeFiles/apps_contract.rule
+/project/build/CMakeFiles/apps_contract-complete.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-build.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-configure.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-download.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-install.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-mkdir.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-patch.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-test.rule
+/project/build/apps_contract-prefix/src/apps_contract-stamp/apps_contract-update.rule

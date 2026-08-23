@@ -3,11 +3,11 @@
 import type {
   ExtensionSchemaMigrationAfterContext,
   IExtensionSchemaMigration,
-} from '~/domain/extension/services/extension-schema-migration.service';
+} from '@coopenomics/extension-kit';
 import {
   EXTENSION_REPOSITORY,
   type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import {
   CHATCOOP_STATE_REPOSITORY,
   type ChatcoopStateMergeInput,

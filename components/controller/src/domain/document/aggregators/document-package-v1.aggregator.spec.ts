@@ -1,21 +1,23 @@
-import { getActions } from '~/utils/getFetch';
 import { DocumentPackageV1Aggregator } from './document-package-v1.aggregator';
 
-jest.mock('~/utils/getFetch', () => ({
-  getActions: jest.fn(),
-}));
-
-const mockedGetActions = getActions as unknown as jest.Mock;
-
 /**
- * Регрессия: программная оферта ЦПП уходит на цепь через wallet::signagree
- * (program_id > 0), а не через soviet::sndagreement. Агрегатор повестки обязан
- * находить такое приложение к заявлению и не терять его (раньше искал только
- * soviet::newagreement и оферта молча выпадала из links).
+ * Регрессия: программная оферта ЦПП (program_id > 0) уходит на цепь через
+ * wallet::signagree, а не через soviet::sndagreement, и потому НЕ порождает
+ * soviet::newagreement. Агрегатор повестки обязан всё равно находить такое
+ * приложение к заявлению и не терять его.
+ *
+ * Носитель подписи ищется не в самом wallet::signagree, а в soviet::newresolved:
+ * его централизованно шлёт make_complete_document на каждый вызов — и из
+ * sndagreement, и из signagree. Поэтому у программных оферт newagreement нет,
+ * а newresolved есть всегда.
+ *
+ * История действий читается из собственной базы узла (BlockchainActionHistoryService),
+ * а не из обозревателя парсера по HTTP — фильтр приходит объектом, а поле внутри
+ * полезной нагрузки адресуется путём `document.doc_hash`.
  */
 describe('DocumentPackageV1Aggregator — приложения к заявлению (links)', () => {
   const STATEMENT_HASH = 'AAAA';
-  const OFFER_HASH = 'BBBB'; // программная оферта — подписана через wallet::signagree
+  const OFFER_HASH = 'BBBB'; // программная оферта — носитель подписи в soviet::newresolved
   const PLATFORM_HASH = 'CCCC'; // платформенное соглашение — soviet::newagreement
 
   // Документы существуют в реестре документов независимо от пути подписи.
@@ -45,60 +47,55 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
     createCertificateFromUserData: jest.fn(() => ({})),
   };
 
+  const findLast = jest.fn();
+  const actionHistory = { findLast, find: jest.fn(async () => ({ results: [], page: 1, limit: 10, total: 0 })) };
+
   const aggregator = new DocumentPackageV1Aggregator(
     documentAggregator as any,
     documentPackageUtils as any,
     accountDomainService as any,
-    userCertificateService as any
+    userCertificateService as any,
+    actionHistory as any
   );
 
   beforeEach(() => {
-    mockedGetActions.mockReset();
-    // Маршрутизация по содержимому фильтра: имитируем explorer get-actions.
-    mockedGetActions.mockImplementation(async (_path: string, params: any) => {
-      const filter = JSON.parse(params.filter);
-      const docHash = filter['data.document.doc_hash'];
+    findLast.mockReset();
+    // Маршрутизация по содержимому фильтра: имитируем историю действий узла.
+    findLast.mockImplementation(async (filter: any) => {
+      const docHash = filter?.data?.['document.doc_hash'];
 
       // Платформенное соглашение зарегистрировано в реестре совета.
       if (filter.name === 'newagreement' && docHash === PLATFORM_HASH) {
         return {
-          results: [
-            {
-              data: {
-                document: {
-                  meta_hash: 'META_PLATFORM',
-                  meta: JSON.stringify({ title: 'Политика' }),
-                  signatures: [{ id: 'platform-sig' }],
-                },
-              },
+          data: {
+            document: {
+              meta_hash: 'META_PLATFORM',
+              meta: JSON.stringify({ title: 'Политика' }),
+              signatures: [{ id: 'platform-sig' }],
             },
-          ],
+          },
         };
       }
 
-      // Программная оферта подписана через wallet::signagree, soviet::newagreement по ней НЕТ.
-      if (filter.name === 'signagree' && docHash === OFFER_HASH) {
+      // Программная оферта: soviet::newagreement по ней НЕТ, есть только newresolved.
+      if (filter.name === 'newresolved' && docHash === OFFER_HASH) {
         return {
-          results: [
-            {
-              data: {
-                document: {
-                  meta_hash: 'META_OFFER',
-                  meta: JSON.stringify({ title: 'Оферта Генератор' }),
-                  signatures: [{ id: 'offer-sig' }],
-                },
-              },
+          data: {
+            document: {
+              meta_hash: 'META_OFFER',
+              meta: JSON.stringify({ title: 'Оферта Генератор' }),
+              signatures: [{ id: 'offer-sig' }],
             },
-          ],
+          },
         };
       }
 
-      // Всё прочее (newagreement по оферте, newdecision, newact, newlink) — пусто.
-      return { results: [] };
+      // Всё прочее (newagreement по оферте, newdecision) — пусто.
+      return null;
     });
   });
 
-  it('включает программную оферту (wallet::signagree) в приложения к заявлению', async () => {
+  it('включает программную оферту (soviet::newresolved) в приложения к заявлению', async () => {
     const rawAction = {
       data: {
         package: 'PACKAGE1',
@@ -123,7 +120,7 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
     expect(offerLink.signatures).toEqual([{ id: 'offer-sig' }]);
   });
 
-  it('ищет soviet::newagreement раньше, чем wallet::signagree', async () => {
+  it('ищет soviet::newagreement раньше, чем soviet::newresolved', async () => {
     const rawAction = {
       data: {
         package: 'PACKAGE1',
@@ -140,24 +137,18 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
 
     await aggregator.buildDocumentPackageAggregateV1(rawAction);
 
-    const callNames = mockedGetActions.mock.calls.map(([, params]) => JSON.parse(params.filter).name);
-    const offerNewagreementIdx = mockedGetActions.mock.calls.findIndex(
-      ([, params]) => {
-        const f = JSON.parse(params.filter);
-        return f.name === 'newagreement' && f['data.document.doc_hash'] === OFFER_HASH;
-      }
+    const callNames = findLast.mock.calls.map(([filter]) => filter.name);
+    const offerNewagreementIdx = findLast.mock.calls.findIndex(
+      ([filter]) => filter.name === 'newagreement' && filter?.data?.['document.doc_hash'] === OFFER_HASH
     );
-    const offerSignagreeIdx = mockedGetActions.mock.calls.findIndex(
-      ([, params]) => {
-        const f = JSON.parse(params.filter);
-        return f.name === 'signagree' && f['data.document.doc_hash'] === OFFER_HASH;
-      }
+    const offerResolvedIdx = findLast.mock.calls.findIndex(
+      ([filter]) => filter.name === 'newresolved' && filter?.data?.['document.doc_hash'] === OFFER_HASH
     );
 
     expect(callNames).toContain('newagreement');
-    expect(callNames).toContain('signagree');
-    // По одному и тому же хэшу soviet проверяется до wallet-фолбэка.
+    expect(callNames).toContain('newresolved');
+    // По одному и тому же хэшу реестр соглашений проверяется до общего newresolved.
     expect(offerNewagreementIdx).toBeGreaterThanOrEqual(0);
-    expect(offerSignagreeIdx).toBeGreaterThan(offerNewagreementIdx);
+    expect(offerResolvedIdx).toBeGreaterThan(offerNewagreementIdx);
   });
 });

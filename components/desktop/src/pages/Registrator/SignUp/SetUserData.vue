@@ -68,6 +68,9 @@ const onTypeCleared = () => {
 const setData = (userDataForm: any) => {
   userDataForm.validate().then(async (success: boolean) => {
     if (success) {
+      // Подтягиваем программы участия под выбранный тип аккаунта до перехода,
+      // чтобы шаг SelectProgram знал, показываться ему или быть пропущенным.
+      await store.loadAvailablePrograms();
       store.next();
     } else {
       const firstInvalid = document.querySelector(

@@ -21,7 +21,9 @@
     eosio::check(trusted_account.type == "individual"_n, "Только физическое лицо может быть назначено доверенным кооперативного участка");
 
     branches.modify(branch, coopname, [&](auto &b) {
-        eosio::check(std::find(b.trusted.begin(), b.trusted.end(), trusted) == b.trusted.end(), 
+        eosio::check(b.trustee != trusted,
+            "Председатель кооперативного участка не может быть добавлен доверенным лицом");
+        eosio::check(std::find(b.trusted.begin(), b.trusted.end(), trusted) == b.trusted.end(),
             "Доверенный уже добавлен в кооперативный участок");
         eosio::check(b.trusted.size() < 3, "Не больше трех доверенных на одном кооперативном участке");
         b.trusted.push_back(trusted);

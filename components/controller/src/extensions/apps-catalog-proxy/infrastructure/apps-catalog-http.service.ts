@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrivateKey } from '@wharfkit/antelope';
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import config from '~/config/config';
+import { ConfigService } from '@nestjs/config';
+import { platformSettings } from '@coopenomics/extension-kit';
 
 /**
  * Достать `exp` (мс) из JWT без проверки подписи — нужен только для
@@ -237,7 +238,42 @@ export class AppsCatalogHttpService {
   private tenantJwt: string | null = null;
   private tenantJwtExpMs = 0;
 
-  constructor() {
+  /**
+   * Настройки расширения — из env через ConfigService (как у chatcoop), а не
+   * из `~/config/config` ядра: за границей контейнера этого пути нет. Имена
+   * переменных и их валидация по-прежнему объявлены в zod-схеме ядра.
+   */
+  private readonly settings: {
+    catalogUrl: string | undefined;
+    catalogApiKey: string | undefined;
+    authUrl: string | undefined;
+    tenantJwt: string | undefined;
+    cooperativeWif: string | undefined;
+    orchestratorUrl: string | undefined;
+  };
+
+  constructor(configService: ConfigService) {
+    const env = (name: string): string | undefined => {
+      const value = configService.get<string>(name);
+      return value === undefined || value === '' ? undefined : value;
+    };
+    this.settings = {
+      catalogUrl: env('APPS_CATALOG_URL'),
+      catalogApiKey: env('APPS_CATALOG_API_KEY'),
+      authUrl: env('APPS_CATALOG_AUTH_URL'),
+      tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
+      cooperativeWif: env('COOPERATIVE_WIF'),
+      orchestratorUrl: env('ORCHESTRATOR_URL'),
+    };
+    const config = {
+      apps_catalog: { url: this.settings.catalogUrl, api_key: this.settings.catalogApiKey },
+      apps_catalog_auth: {
+        url: this.settings.authUrl,
+        tenant_jwt: this.settings.tenantJwt,
+        cooperative_wif: this.settings.cooperativeWif,
+      },
+      orchestrator: { url: this.settings.orchestratorUrl },
+    };
     if (config.apps_catalog.url && config.apps_catalog.api_key) {
       this.client = axios.create({
         baseURL: config.apps_catalog.url,
@@ -715,14 +751,14 @@ export class AppsCatalogHttpService {
     if (this.tenantJwt && Date.now() + REFRESH_MARGIN_MS < this.tenantJwtExpMs) {
       return this.tenantJwt;
     }
-    const wif = config.apps_catalog_auth.cooperative_wif;
+    const wif = this.settings.cooperativeWif;
     if (!wif) {
       throw new Error('COOPERATIVE_WIF не задан — tenant JWT выпустить нечем');
     }
-    const base = config.apps_catalog_auth.url;
+    const base = this.settings.authUrl;
     const challengeRes = await axios.post<{ challenge_string?: string }>(
       `${base}/v1/auth/challenge`,
-      { coopname: config.coopname },
+      { coopname: platformSettings().coopname },
       { timeout: 5000 },
     );
     const challenge = challengeRes.data?.challenge_string;
@@ -732,7 +768,7 @@ export class AppsCatalogHttpService {
     const signature = PrivateKey.from(wif).signMessage(Buffer.from(challenge)).toString();
     const verifyRes = await axios.post<{ token?: string }>(
       `${base}/v1/auth/verify`,
-      { coopname: config.coopname, challenge_string: challenge, signature },
+      { coopname: platformSettings().coopname, challenge_string: challenge, signature },
       { timeout: 5000 },
     );
     const token = verifyRes.data?.token;

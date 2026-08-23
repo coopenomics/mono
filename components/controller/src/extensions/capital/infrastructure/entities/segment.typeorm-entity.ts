@@ -1,6 +1,6 @@
 import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 import { ContributorTypeormEntity } from './contributor.typeorm-entity';
 import { ResultTypeormEntity } from './result.typeorm-entity';
 import { ProjectTypeormEntity } from './project.typeorm-entity';
@@ -47,6 +47,16 @@ export class SegmentTypeormEntity extends BaseTypeormEntity {
   @ManyToOne(() => ProjectTypeormEntity, { nullable: false })
   @JoinColumn({ name: 'project_hash', referencedColumnName: 'project_hash' })
   project?: ProjectTypeormEntity;
+
+  // Проект, в который входит компонент (заполняется в репозитории пакетно)
+  parent_title?: string;
+  parent_hash?: string;
+
+  // Отдан ли голос участником в этом проекте (заполняется в репозитории пакетно)
+  has_voted?: boolean;
+
+  // Закрыто ли голосование по проекту (заполняется в репозитории пакетно)
+  voting_completed?: boolean;
 
   // Роли участника в проекте
   @Column({ type: 'boolean', default: false })

@@ -5,17 +5,17 @@ export const _meet = {
 
 export const _draft = {
   production: 'draft',
-  testnet: 'drafttest222',
+  testnet: 'draft',
 } as const
 
 export const _fund = {
   production: 'fund',
-  testnet: 'fundtest2222',
+  testnet: 'fund',
 } as const
 
 export const _gateway = {
   production: 'gateway',
-  testnet: 'gateway2222',
+  testnet: 'gateway',
 } as const
 
 export const _system = {
@@ -25,17 +25,17 @@ export const _system = {
 
 export const _soviet = {
   production: 'soviet',
-  testnet: 'soviettest22',
+  testnet: 'soviet',
 } as const
 
 export const _marketplace = {
   production: 'marketplace',
-  testnet: 'markettest22',
+  testnet: 'marketplace',
 } as const
 
 export const _registrator = {
   production: 'registrator',
-  testnet: 'regtest22222',
+  testnet: 'registrator',
 } as const
 
 export const _token = {
@@ -81,4 +81,14 @@ export const _ledger2 = {
 export const _apps = {
   production: 'apps',
   testnet: 'apps',
+} as const
+
+export const _expense = {
+  production: 'expense',
+  testnet: 'expense',
+} as const
+
+export const _ano = {
+  production: 'ano',
+  testnet: 'ano',
 } as const

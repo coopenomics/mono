@@ -19,6 +19,13 @@ export const pluralizeHours = (count: number): string => {
 };
 
 /**
+ * Склонение слова "минута" в зависимости от количества
+ */
+export const pluralizeMinutes = (count: number): string => {
+  return pluralize(count, ['минута', 'минуты', 'минут']);
+};
+
+/**
  * Склонение слова "день" в зависимости от количества
  * @param count - количество дней
  * @returns правильно склоненное слово
@@ -37,11 +44,21 @@ export const pluralizeAccounts = (count: number): string => {
 };
 
 /**
- * Форматирование количества часов с правильным склонением
- * @param hours - количество часов
- * @returns строка вида "5 часов" или "1.3 часа"
+ * Форматирование длительности: меньше часа — в минутах, иначе в часах.
+ * @param hours - количество часов (дробные допустимы)
+ * @returns строка вида "12 минут", "1 час", "1.5 час"
  */
 export const formatHours = (hours: number): string => {
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return `0 ${pluralizeHours(0)}`;
+  }
+
+  // Меньше часа — минуты (1 мин таймера иначе схлопывалась в «0 часов» после toFixed(1))
+  if (hours < 1) {
+    const minutes = Math.max(1, Math.round(hours * 60));
+    return `${minutes} ${pluralizeMinutes(minutes)}`;
+  }
+
   // Форматируем дробные числа до 1 знака после запятой
   const formattedHours = hours % 1 === 0 ? hours : parseFloat(hours.toFixed(1));
 

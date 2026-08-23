@@ -6,7 +6,7 @@ q-input(
   outline
   :readonly="!permissions?.can_edit_issue"
   @input="handleTitleChange"
-  hide-bottom-space
+  :hide-bottom-space="!$slots.hint"
   :rules="[val => !!val || 'Название задачи обязательно']"
   type="textarea"
   autogrow
@@ -24,8 +24,10 @@ q-input(
       @click="resetChanges"
     )
       q-tooltip Отменить изменения
-    slot(v-else name="prepend-icon")
-      q-icon(name='task', size='24px', color='primary')
+    .row.items-center.no-wrap.q-gutter-xs(v-else)
+      PrivateShieldIcon(:show='isPrivateIssue')
+      slot(name="prepend-icon")
+        q-icon(name='task', size='24px', color='primary')
 
   template(#append)
     .capital-title-editor-append.column.items-end.justify-center.q-gutter-y-sm
@@ -40,12 +42,20 @@ q-input(
         @click="saveChanges"
       )
         q-tooltip Сохранить изменения
-      EntityIdBadge(
-        v-if="!(hasChanges && permissions?.can_edit_issue)"
-        :raw-id="issue?.id"
-        copy-on-click
-        address-clipboard
-      )
+      .row.items-center.no-wrap(v-if="!(hasChanges && permissions?.can_edit_issue)")
+        FavoriteStarButton(
+          v-if='issue?.issue_hash',
+          :target-type='FavoriteTargetType.ISSUE',
+          :target-hash='issue.issue_hash'
+        )
+        EntityIdBadge(
+          :raw-id="issue?.id"
+          copy-on-click
+          address-clipboard
+        )
+
+  template(v-if="$slots.hint", #hint)
+    slot(name="hint")
 </template>
 
 <script lang="ts" setup>
@@ -55,6 +65,12 @@ import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/
 import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui'
+import { useProjectStore } from 'app/extensions/capital/entities/Project/model'
+import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite'
+import { Zeus } from '@coopenomics/sdk'
+
+const FavoriteTargetType = Zeus.CapitalFavoriteTargetType
 
 const props = defineProps<{
   issue: IIssue | null | undefined
@@ -68,6 +84,15 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const projectHash = computed(() => route.params.project_hash as string)
+const projectStore = useProjectStore()
+
+const isPrivateIssue = computed(() => {
+  if (!props.issue?.project_hash) return true
+  const project =
+    projectStore.getProject(props.issue.project_hash) ||
+    (projectHash.value ? projectStore.getProject(projectHash.value) : undefined)
+  return project?.origin === 'local'
+})
 
 // Используем composable для обновления задач
 const { debounceSave, saveImmediately } = useUpdateIssue()

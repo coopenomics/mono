@@ -5,9 +5,7 @@ defineProps<{
   data: {
     label: string;
     title?: string;
-    summary?: string;
     purpose?: string;
-    hasRelated?: boolean;
     isFocus: boolean;
   };
 }>();
@@ -15,7 +13,7 @@ defineProps<{
 
 <template>
   <div class="end-wrap">
-    <div class="node-end" :class="{ 'node-end--focus': data.isFocus }" :title="data.summary">
+    <div class="node-end" :class="{ 'node-end--focus': data.isFocus }" :title="data.purpose">
       <span class="node-end__glyph">{{ data.label }}</span>
       <Handle type="target" :position="Position.Left" :connectable="false" />
       <Handle type="source" :position="Position.Right" :connectable="false" />

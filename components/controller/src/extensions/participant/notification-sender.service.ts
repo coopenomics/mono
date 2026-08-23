@@ -1,24 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DateUtils } from '~/shared/utils/date-utils';
-import { default as config } from '~/config/config';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort, ExtendedMeetStatus } from '@coopenomics/innercoop';
 import { TrackedMeet, NotificationTypes, ILog } from './types';
-import {
-  LOG_EXTENSION_REPOSITORY,
-  LogExtensionDomainRepository,
-} from '~/domain/extension/repositories/log-extension-domain.repository';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 
 @Injectable()
 export class NotificationSenderService {
   constructor(
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
-    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort
+    @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort
   ) {
     this.logger.setContext(NotificationSenderService.name);
   }
@@ -30,7 +22,7 @@ export class NotificationSenderService {
   private coopShortName: string | null = null;
 
   //TODO: разобраться с этим и упростить - чет тут усложнено все
-  // Функция для получения адресов - будет заменена на реальную в ParticipantPlugin
+  // Функция для получения адресов - будет заменена на реальную в ParticipantExtension
   private _getUserEmailsFunction: (() => Promise<Array<{ email: string; subscriberId: string }>>) | null = null;
 
   // Установка функции для получения email адресов и subscriberId
@@ -58,12 +50,13 @@ export class NotificationSenderService {
       return this.coopShortName;
     }
 
-    const account = await this.accountPort.getAccount(config.coopname);
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
 
-    const shortName = account.private_account?.organization_data?.short_name;
+    const shortName: string | undefined = account.private_account?.organization_data?.short_name;
 
-    this.coopShortName = shortName ?? '';
-    return this.coopShortName;
+    const resolved = shortName ?? '';
+    this.coopShortName = resolved;
+    return resolved;
   }
 
   // Логирование отправки уведомлений
@@ -79,12 +72,12 @@ export class NotificationSenderService {
 
   // Формирование URL для уведомлений
   private getNotificationUrl(meet: TrackedMeet): string {
-    return `${config.frontend_url}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
+    return `${platformSettings().frontendUrl}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
   }
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return config.timezone === 'Europe/Moscow' ? 'МСК' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
   }
 
   // Функции отправки уведомлений

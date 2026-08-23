@@ -64,10 +64,32 @@ struct ProgramInfo {
   uint64_t draft_id;
 };
 
+/**
+ * Реестр целевых потребительских программ: тип → (program_id, draft_id).
+ *
+ * Оба значения — константы протокола, а не настройка кооператива, и наружу не
+ * отдаются: `createprog` не принимает их параметрами, чтобы кооператив не мог
+ * подставить произвольный документ. ЦПП жёстко связана со своей офертой.
+ *
+ * `program_id` обязан совпадать во всех кооперативах — на него ссылается реестр
+ * кошельков ledger2 (`LEDGER2_USER_SHARED_PROGRAM_MAPPING`: `w.mkt.*` → 2,
+ * `w.cap.blago` → 4, `w.cap.gen` → 3).
+ *
+ * `draft_id` — шаблон оферты, которую подписывает ПАЙЩИК при вступлении в ЦПП
+ * (не положение о программе: его утверждает совет). По нему `wallet::signagree`
+ * фиксирует версию подписи, а рабочий стол просит переподписать, когда оферта
+ * обновилась. Значение обязано совпадать с реестром документов в cooptypes:
+ *   1    — WalletAgreement,
+ *   1102 — MarketplaceOffer (было 699 — «Согласие с условиями ЦПП «СОСЕДИ»»,
+ *          шаблон от прежней версии программы),
+ *   996  — GeneratorOffer (было 0 — при нуле signagree не сверяет шаблон и
+ *          пишет version=0, из-за чего переподпись не запрашивалась никогда),
+ *   1000 — BlagorostOffer.
+ */
 static const std::map<eosio::name, ProgramInfo> program_map = {
     {_wallet_program, {1, 1}},
-    {_marketplace_program, {2, 699}},
-    {_source_program, {3, 0}},
+    {_marketplace_program, {2, 1102}},
+    {_source_program, {3, 996}},
     {_capital_program, {4, 1000}}};
 
 inline void check_valid_program(const eosio::name &type) {

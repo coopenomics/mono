@@ -1,0 +1,307 @@
+feature: marketplace.supply
+title: Поставка — сборка партии поставщиком, приёмка на участке и подписи акта
+
+# Слайс от принятого заказа до оприходования имущества на склад участка:
+# поставщик собирает партию, привозит её на пункт выдачи, оператор сверяет
+# фактически привезённое с заказанным и формирует акт приёма-передачи,
+# поставщик подписывает акт, председатель участка ставит закрывающую подпись.
+#
+# Порядок подписей зафиксирован решением L1 проекта: при приёмке первым
+# подписывает поставщик, финальную подпись ставит председатель участка.
+# Обратный порядок — не «другая последовательность», а другой процесс.
+
+#
+# Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
+# из `@coopenomics/innercoop` вместо прямого `WinstonLoggerService` ядра —
+# расширение не должно знать, чем именно пишется лог. Сменились только тип
+# параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
+
+sources:
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/signchair.cpp
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-shipment*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-cycle*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OffererSupplyPreparation/**
+    - components/desktop/src/pages/Marketplace/OffererShipParty/**
+    - components/desktop/src/pages/Marketplace/OperatorReception/**
+
+cases:
+  - id: mkt.supply.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор участка принимает привезённую партию по коду поставщика, сверяет позиции с фактом и формирует акт приёма-передачи.
+    expect: >
+      партия переходит из «Ожидает приёмки» в «Ждёт подписи поставщика», проставлено время приёмки
+    test: components/docs-harness/scenarios/marketplace/operator/apl-reception-create.mjs
+    status: passing
+
+  - id: mkt.supply.happy.02
+    level: ui
+    kind: happy
+    scenario: Поставщик собирает партию из принятых заказов и отправляет её на участок
+    expect: партия создана в статусе «Собрана к отгрузке» с выбранным способом доставки
+    test: components/docs-harness/scenarios/marketplace/offerer/shipment-prep.mjs
+    status: passing
+
+  - id: mkt.supply.happy.03
+    level: ui
+    kind: happy
+    scenario: Поставщик подписывает акт приёмки, председатель участка ставит закрывающую подпись
+    expect: имущество оприходовано на склад участка
+    test: components/docs-harness/scenarios/marketplace/operator/apl-reception-chairman-sign.mjs
+    status: passing
+
+  - id: mkt.supply.side.01
+    level: ui
+    kind: side
+    scenario: Приёмка партии без единой выбранной позиции (все галки сняты)
+    expect: акт не создаётся, партия остаётся ждать
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  - id: mkt.supply.side.02
+    level: backend
+    kind: side
+    scenario: Оператор указывает к приёмке больше единиц, чем было заказано
+    expect: отказ — принять больше заказанного нельзя
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  - id: mkt.supply.side.03
+    level: backend
+    kind: side
+    scenario: Приёмка партии оператором чужого кооперативного участка
+    expect: отказ доступа, статус партии не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-apl-reception-resolver-scoping.test.ts
+    status: passing
+
+  - id: mkt.supply.side.04
+    level: backend
+    kind: side
+    scenario: Код передачи принадлежит пайщику, который не является поставщиком
+    expect: приёмка не открывается, состав партии не показывается
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  # Вопрос «что с подписанными актами при пересборке» снят чтением кода
+  # (2026-08-08): пересобрать можно только черновик до подписи поставщика.
+  # Кнопка «Отменить и пересобрать» на столе оператора
+  # (pages/Marketplace/OperatorReception) показывается лишь в статусе
+  # PENDING_SUPPLIER_SIGN; после подписи её место занимает «Подписать
+  # председателем», а сервер отвечает конфликтом. Подписанный акт пересобрать
+  # нельзя вообще — решения человека не требуется.
+  - id: mkt.supply.side.05
+    level: backend
+    kind: side
+    scenario: Повторное формирование акта по партии, где приёмка уже открыта
+    expect: отказ «уже сформирована», второй акт не создаётся
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  - id: mkt.supply.side.13
+    level: backend
+    kind: side
+    scenario: Формирование акта по партии после отмены прежнего черновика
+    expect: партия снова свободна — акт формируется заново
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+    # В интерфейсе у принятой партии есть «Отменить и пересобрать»; из кода не
+    # выводится, что происходит с уже подписанными актами при пересборке.
+
+  - id: mkt.supply.side.06
+    level: backend
+    kind: side
+    scenario: Закрывающая подпись председателя раньше подписи поставщика
+    expect: отказ — порядок подписей нарушать нельзя
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  - id: mkt.supply.side.07
+    level: ui
+    kind: side
+    scenario: Партия, собранная на один участок, открывается оператором другого участка
+    expect: партия не видна в ожидаемых поставках чужого участка
+    test: components/docs-harness/scenarios/marketplace/operator/incoming-shipments-foreign.mjs
+    status: passing
+
+  - id: mkt.supply.side.08
+    level: ui
+    kind: side
+    scenario: >
+      Поставщик смотрит партию, пока идёт приёмка на участке
+    expect: >
+      партия показана в статусе «Идёт приёмка» с пояснением, что нужно дождаться подписей акта; собственных действий у поставщика на этом шаге нет — подпись он ставит очно при передаче имущества
+    test: components/docs-harness/scenarios/marketplace/offerer/apl-reception-sign.mjs
+    status: passing
+
+  - id: mkt.supply.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      После закрывающей подписи оператор видит принятое имущество на складе участка в разделе «Раскладка и маркировка».
+    expect: >
+      позиция числится поступившей с указанием количества и заказчика, помечена как ещё не маркированная
+    test: components/docs-harness/scenarios/marketplace/operator/warehouse.mjs
+    status: passing
+
+  - id: mkt.supply.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор печатает лист этикеток для принятого имущества и открывает привязку этикетки к позиции.
+    expect: >
+      позиция числится немаркированной, доступны печать листа этикеток и сканер привязки
+    test: components/docs-harness/scenarios/marketplace/operator/inventory-label.mjs
+    status: passing
+
+  - id: mkt.supply.side.09
+    level: ui
+    kind: side
+    scenario: >
+      Привязка этикетки к позиции склада введённым вручную номером
+    expect: позиция перестаёт числиться немаркированной
+    test: components/docs-harness/scenarios/marketplace/operator/inventory-label.mjs
+    status: passing
+    # Номера этикеток сервером не выдаются: лист печатается со случайными
+    # EAN-13 на клиенте (randomEAN13), поэтому диалог привязки принимает любой
+    # корректный номер. Прежняя пометка «сканер отбивает произвольный код»
+    # была ошибкой — отбивает УНИВЕРСАЛЬНЫЙ сканер стола (он ищет код
+    # передачи, ТТН или код получения), а привязка этикетки — другой диалог.
+
+  - id: mkt.supply.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Оператор принимает партию по цене НИЖЕ заказанной (уценка на приёмке): какой ценой имущество приходуется на склад и по какой цене оно потом отпускается пайщику
+    expect: >
+      на склад имущество приходуется по цене ПРИЁМКИ; выдача открывается по ней же, поэтому пайщик платит цену приёмки, а разница по отношению к цене заказа возвращается ему как недостача
+    test: components/controller/tests/unit/marketplace/marketplace-arrival-price.test.ts
+    status: passing
+    # Решение владельца 2026-08-12: имущество живёт по цене приёмки на всём
+    # пути. До правки склад числил цену ЗАКАЗА, а выдача считалась от неё же:
+    # приход на счёт 10 шёл 1800 ₽ (9 × 200), выбытие 2000 ₽ (8 × 250), и счёт
+    # материалов уходил в минус. Проверено прогоном от чистой цепи 2026-08-15:
+    # дебет 2600 / кредит 2600, ноль. Цена выдачи сверяется UI-сценарием
+    # operator/issuance-open.
+
+  - id: mkt.supply.side.20
+    level: ui
+    kind: side
+    scenario: >
+      Кооператив требует указывать место хранения при приёмке, а на участке ещё не заведено ни одного бокса и ни одной ячейки: оператор доходит до шага оприходования
+    expect: >
+      подпись заблокирована и объяснено, что нужно завести бокс; окно не предлагает «подписать как есть»
+    test: ~
+    status: missing
+    # Прогон 2026-08-17, акт 773bd5e6: окно обещало «тара не заведена —
+    # подпишите как есть», кнопка оставалась активной, а сервер отвечал
+    # «Укажите место хранения для всего принятого: не размещено позиций — 1»
+    # уже ПОСЛЕ подписи документов («Подписано 0 из 1»). Условие блокировки на
+    # фронте исключало случай пустой тары, серверное — нет: оно смотрит на
+    # включённость боксов/ячеек в настройках, а не на их фактическое наличие.
+    # Теперь оба условия совпадают; выход из тупика — завести бокс либо снять
+    # «Требовать указание места при приёмке» в настройках Стола заказов.
+
+  - id: mkt.supply.side.21
+    level: ui
+    kind: side
+    scenario: >
+      Место при приёмке обязательно, но партия отклонена целиком (весь факт нулевой) — размещать нечего
+    expect: подпись доступна, места не требуют
+    test: ~
+    status: missing
+    # Граница обязательности: сервер считает недостачу мест только по заказам
+    # с фактом больше нуля, интерфейс обязан вести себя так же — иначе полный
+    # отказ партии становится неподписываемым.
+
+  - id: mkt.sup.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Поставщик открывает «Показать QR» партии перед передачей имущества на КУ
+    expect: >
+      QR партии отображается после подготовки отгрузки; сканирование открывает приёмку именно этой партии
+    test: components/docs-harness/scenarios/marketplace/offerer/ship-party.mjs
+    status: passing
+
+  # ── Контрактный уровень: денежные места поставки (задача 598-51) ──────────
+  # Проводки ассертятся по нитке процесса: `getLedger2History` фильтруется
+  # хэшем заказа, поэтому проверяется ровно та нитка, которую породила
+  # проверяемая цепочка, а не «счётчик операций вырос».
+
+  - id: mkt.supply.happy.30
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ: подписывает Заявление о конвертации паевого
+      взноса по позиции корзины, заказ уходит на цепь.
+    expect: >
+      резервируется тело заказа (o.mkt.lock) ровно на количество × цену
+      предложения, проводка ложится Дт 80 / Кт 86, разрез — заказчица
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.happy.31
+    level: contract
+    kind: happy
+    scenario: >
+      Тем же оформлением блокируется членский взнос по единой ставке
+      кооператива.
+    expect: >
+      o.mkt.fee уходит на сумму, зафиксированную в заказе, СВЕРХ тела: пайщица
+      платит тело плюс взнос, а не взнос внутри тела
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.happy.32
+    level: contract
+    kind: happy
+    scenario: >
+      Поставщик привозит имущество на пункт выдачи, оператор оформляет
+      экспресс-приёмку, поставщик и председатель участка подписывают акт.
+    expect: >
+      закрывающая подпись приходует имущество по ЦЕНЕ ПРИБЫТИЯ (o.mkt.purch,
+      Дт 10 / Кт 86) — по фактически принятому количеству и фактической цене,
+      а не по цене заказа
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.30
+    level: contract
+    kind: side
+    scenario: >
+      Приёмка оформлена; смотрим, перед кем у кооператива возникло
+      обязательство.
+    expect: >
+      разрез проводки приёмки — ПОСТАВЩИК, а не заказчица: имущество принято у
+      поставщика, и Кт 86 — обязательство перед ним
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.31
+    level: contract
+    kind: side
+    scenario: >
+      Акт приёмки подписан обеими сторонами, деньги поставщику ещё не
+      переводились.
+    expect: >
+      в нитке заказа НЕТ o.mkt.payout — выплата поставщику отдельное ленивое
+      действие кассира после подтверждения банковского перевода
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  - id: mkt.supply.side.32
+    level: contract
+    kind: side
+    scenario: >
+      Заказ оформлен, дельта доехала до журнала бэкенда.
+    expect: >
+      зеркало заказа сходится с цепью по телу и по членскому взносу — пайщица
+      видит в кабинете ту же сумму, которую у неё реально заблокировали
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing

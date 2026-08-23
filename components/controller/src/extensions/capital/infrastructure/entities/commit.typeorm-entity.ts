@@ -2,7 +2,7 @@ import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CommitStatus } from '../../domain/enums/commit-status.enum';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
 import type { CommitData } from '../../domain/entities/commit.entity';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 import { ContributorTypeormEntity } from './contributor.typeorm-entity';
 
 export const EntityName = 'capital_commits';

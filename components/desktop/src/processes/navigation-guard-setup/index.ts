@@ -2,13 +2,9 @@ import { Router } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-
-function hasAccess(to, userRole) {
-  if (!to.meta?.roles || to.meta?.roles.length === 0) return true;
-  return userRole && to.meta?.roles.includes(userRole);
-}
 
 // Функция для получения URL для редиректа
 function getRedirectUrl(router: Router, to: any): string {
@@ -22,11 +18,51 @@ export function setupNavigationGuard(router: Router) {
   const desktops = useDesktopStore();
   const session = useSessionStore();
   const systemStore = useSystemStore();
+  const account = useAccountStore();
+
+  // Данные, из которых выводятся права: аккаунт (роль) и рабочий стол (гранты).
+  const desktopFresh = () =>
+    Boolean(desktops.currentDesktop) &&
+    desktops.loadedForUsername === session.username;
+  const hasAccessData = () =>
+    Boolean(session.currentUserAccount) && desktopFresh();
+
+  // Однократная дозагрузка; параллельные переходы делят один промис.
+  let reloading: Promise<void> | null = null;
+  const reloadAccessData = (): Promise<void> => {
+    if (!reloading) {
+      reloading = (async () => {
+        try {
+          await session.init();
+          const [acc] = await Promise.all([
+            session.currentUserAccount
+              ? Promise.resolve(undefined)
+              : account.getAccount(session.username),
+            desktopFresh() ? Promise.resolve() : desktops.loadDesktop(),
+          ]);
+          if (acc) session.setCurrentUserAccount(acc);
+        } catch (e) {
+          console.warn('[guard] дозагрузка прав не удалась:', e);
+        } finally {
+          reloading = null;
+        }
+      })();
+    }
+    return reloading;
+  };
 
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
     const allowedRoutesDuringInstall = ['install', 'invite'];
-    if ((systemStore.info.system_status === Zeus.SystemStatus.install || systemStore.info.system_status === Zeus.SystemStatus.initialized) && !allowedRoutesDuringInstall.includes(to.name as string)) {
+    const isIncompleteInstallMaintenance =
+      systemStore.info.system_status === Zeus.SystemStatus.maintenance &&
+      !systemStore.info.vars?.name;
+    const requiresInstallFlow =
+      systemStore.info.system_status === Zeus.SystemStatus.install ||
+      systemStore.info.system_status === Zeus.SystemStatus.initialized ||
+      isIncompleteInstallMaintenance;
+
+    if (requiresInstallFlow && !allowedRoutesDuringInstall.includes(to.name as string)) {
       next({ name: 'install', params: { coopname: systemStore.info.coopname }, query: to.query });
       return;
     }
@@ -46,18 +82,6 @@ export function setupNavigationGuard(router: Router) {
       if (attempts >= maxAttempts) {
         session.loadComplete = true;
         console.warn('User data loading timeout');
-      }
-    }
-
-    // Определяем роль пользователя при каждом запросе
-    let userRole: string | null = null;
-    if (session.isAuth) {
-      if (session.isChairman) {
-        userRole = 'chairman';
-      } else if (session.isMember) {
-        userRole = 'member';
-      } else {
-        userRole = 'user'; // Авторизованный пользователь без специальной роли
       }
     }
 
@@ -120,11 +144,59 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
-    // проверка по ролям
-    if (hasAccess(to, userRole)) {
+    // Проверка доступа к маршруту: канон авторизации столов (grants).
+    // Стор сам решает — grant-стол (по `meta.requires` против выданных бэкендом
+    // прав) или legacy (по `meta.roles`). Настоящий enforcement — на резолверах.
+    const matchedNames = to.matched.map((r) => r.name ?? null);
+    if (desktops.hasRouteAccess(matchedNames, to.meta)) {
       next();
-    } else {
-      next({ name: 'permissionDenied', query: to.query });
+      return;
     }
+
+    // «Прав нет» ≠ «права неизвестны». Роль (chairman/member) живёт в
+    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся одним
+    // запросом на старте без ретрая. Если бэкенд в этот момент перезапускался
+    // (dev-рестарт, апгрейд), запросы падали молча: аккаунт пуст → роль 'user',
+    // стол пуст → grants нет — и авторизованного председателя уносило на
+    // «Недостаточно прав доступа». Здесь пробуем дозагрузить данные один раз
+    // и перепроверить; если бэкенд всё ещё лежит — пропускаем (fail-open:
+    // отказ всё равно даст резолвер, а ложный отказ при живых правах хуже).
+    if (session.isAuth && !hasAccessData()) {
+      await reloadAccessData();
+      if (desktops.hasRouteAccess(matchedNames, to.meta)) {
+        next();
+        return;
+      }
+      if (!hasAccessData()) {
+        console.warn(
+          '[guard] права пользователя недоступны (бэкенд молчит) — пропускаем без проверки',
+        );
+        next();
+        return;
+      }
+    }
+
+    // Права на страницу нет — но у стола может быть шлюз (`meta.gate`), на
+    // котором пайщик получает допуск сам: подписывает оферту ЦПП и выбирает
+    // пункт выдачи (заказчик), подаёт заявку на допуск (поставщик). Тогда
+    // правильный ответ на «хочу в каталог» — «сначала подключение», а не
+    // «недостаточно прав». На сам шлюз не перенаправляем (иначе цикл) — если
+    // закрыт он, это уже честный отказ.
+    const wsName = desktops.workspaceNameFromRoute(matchedNames);
+    const gate = wsName ? desktops.gateRouteFor(wsName) : null;
+    if (gate && gate.name !== to.name) {
+      next({ name: gate.name, params: to.params, query: to.query });
+      return;
+    }
+
+    next({ name: 'permissionDenied', query: to.query });
+  });
+
+  // Синхронизация активного рабочего стола с маршрутом после КАЖДОГО успешного
+  // перехода: прямой заход по URL и переход кнопкой со стола А на маршрут стола Б
+  // больше не оставляют активным «не тот» стол (см. DesktopStore). Только меняет
+  // состояние — навигацию afterEach не инициирует, цикла не будет.
+  router.afterEach((to) => {
+    desktops.syncActiveWorkspaceFromRoute(to.matched.map((r) => r.name ?? null));
   });
 }

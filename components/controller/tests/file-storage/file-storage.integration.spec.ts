@@ -5,12 +5,12 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import {
-  InterFileStorageMetadataValidationError,
-  InterFileStorageMimeRejectedError,
-  InterFileStorageObjectNotFoundError,
-  InterFileStorageObjectTooLargeError,
-  type InterFileStorageBucketSpec,
-} from '@coopenomics/inter';
+  InnerFileStorageMetadataValidationError,
+  InnerFileStorageMimeRejectedError,
+  InnerFileStorageObjectNotFoundError,
+  InnerFileStorageObjectTooLargeError,
+  type InnerFileStorageBucketSpec,
+} from '@coopenomics/innercoop';
 import {
   FileStorageHttpController,
   FILE_STORAGE_OPTIONS,
@@ -26,7 +26,7 @@ const BUCKET = process.env.FILE_STORAGE_TEST_BUCKET ?? `coop-test-${Date.now()}`
 const SIGNING_SECRET = 'integration-signing-secret-aaaaaaaaaaaaaaaa';
 const PUBLIC_BASE_URL = 'https://test.example.org';
 
-const SPEC: InterFileStorageBucketSpec = {
+const SPEC: InnerFileStorageBucketSpec = {
   name: 'orders:images',
   maxBytes: 10 * 1024,
   allowedMime: ['image/jpeg', 'image/png', 'application/pdf'],
@@ -164,7 +164,7 @@ describe('file-storage integration (real MinIO)', () => {
   itLive('head отсутствующего → ObjectNotFoundError', async () => {
     const bucket = adapter.getBucket(SPEC);
     await expect(bucket.head('does-not-exist.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageObjectNotFoundError,
+      InnerFileStorageObjectNotFoundError,
     );
   });
 
@@ -173,9 +173,9 @@ describe('file-storage integration (real MinIO)', () => {
     const tooBig = Buffer.alloc(SPEC.maxBytes + 1);
     await expect(
       bucket.put('too-big.jpg', tooBig, { contentType: 'image/jpeg', metadata: { ownerId: 'u' } }),
-    ).rejects.toBeInstanceOf(InterFileStorageObjectTooLargeError);
+    ).rejects.toBeInstanceOf(InnerFileStorageObjectTooLargeError);
     await expect(bucket.head('too-big.jpg')).rejects.toBeInstanceOf(
-      InterFileStorageObjectNotFoundError,
+      InnerFileStorageObjectNotFoundError,
     );
   });
 
@@ -186,9 +186,9 @@ describe('file-storage integration (real MinIO)', () => {
         contentType: 'application/octet-stream',
         metadata: { ownerId: 'u' },
       }),
-    ).rejects.toBeInstanceOf(InterFileStorageMimeRejectedError);
+    ).rejects.toBeInstanceOf(InnerFileStorageMimeRejectedError);
     await expect(bucket.head('bad.exe')).rejects.toBeInstanceOf(
-      InterFileStorageObjectNotFoundError,
+      InnerFileStorageObjectNotFoundError,
     );
   });
 
@@ -196,7 +196,7 @@ describe('file-storage integration (real MinIO)', () => {
     const bucket = adapter.getBucket(SPEC);
     await expect(
       bucket.put('no-meta.jpg', Buffer.from([0]), { contentType: 'image/jpeg', metadata: {} }),
-    ).rejects.toBeInstanceOf(InterFileStorageMetadataValidationError);
+    ).rejects.toBeInstanceOf(InnerFileStorageMetadataValidationError);
   });
 
   itLive('HMAC-роут: 200 → 403 (exp) → 403 (sig) → 404', async () => {

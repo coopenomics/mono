@@ -73,6 +73,10 @@ const props = defineProps<{
   filled?: boolean;
   outlined?: boolean;
   color?: string;
+  /** Имена аккаунтов, которые нужно исключить из результатов (например, аккаунты кооперативных участков — они не пайщики) */
+  exclude?: string[];
+  /** Ограничить выдачу типами аккаунтов (например, только физлица: ['individual']). */
+  types?: string[];
 }>();
 
 // Эмиты
@@ -127,7 +131,10 @@ const selectOptions = computed(() => {
   // console.log('searchResults.value:', searchResults.value); // Отладка
   // console.log('selectedUserData.value:', selectedUserData.value); // Отладка
 
-  const options = [...searchResults.value];
+  const allowed = props.types;
+  const options = searchResults.value.filter(
+    (r) => !allowed?.length || allowed.includes(r.type),
+  );
 
   // Если есть выбранный пользователь, но его нет в результатах поиска, добавляем
   if (selectedUserData.value) {
@@ -140,6 +147,12 @@ const selectOptions = computed(() => {
       options.unshift(selectedUserData.value);
       // console.log('Added selected user to options'); // Отладка
     }
+  }
+
+  // исключаем нежелательные аккаунты (например, кооперативные участки — они не пайщики)
+  if (props.exclude?.length) {
+    const excludeSet = new Set(props.exclude);
+    return options.filter((option) => !excludeSet.has(option.data.username));
   }
 
   // console.log('Final select options:', options); // Отладка

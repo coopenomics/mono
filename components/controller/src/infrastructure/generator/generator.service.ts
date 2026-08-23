@@ -3,14 +3,23 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
-import { HttpApiError } from '~/utils/httpApiError';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
 import { Generator, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
+import { HttpApiError } from '@coopenomics/extension-kit';
+import { ControllerChainDataSource } from './controller-chain-data.source';
 @Injectable()
 export class GeneratorInfrastructureService implements GeneratorPort, OnModuleInit {
-  private generator = new Generator();
+  /**
+   * Фабрика получает данные цепи из базы узла, а не по HTTP из обозревателя
+   * парсера: те же таблицы, действия и шаблоны узел уже хранит у себя.
+   */
+  private readonly generator: Generator;
+
+  constructor(private readonly chainDataSource: ControllerChainDataSource) {
+    this.generator = new Generator(this.chainDataSource);
+  }
 
   async onModuleInit() {
     await this.connect(config.mongoose.url);
@@ -31,8 +40,18 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await this.generator.generate(data, options);
   }
 
-  async getDocument(query: { hash: string }): Promise<Cooperative.Document.IGeneratedDocument | null> {
-    return await this.generator.getDocument(query);
+  async getDocument(query: {
+    hash: string;
+    block_num?: number;
+  }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+    // Черновики версионируются по (hash + meta.block_num). При наличии
+    // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
+    // любую версию с этим hash (легаси/превью).
+    const filter: Record<string, unknown> = { hash: query.hash };
+    if (query.block_num !== undefined && query.block_num !== null) {
+      filter['meta.block_num'] = query.block_num;
+    }
+    return await this.generator.getDocument(filter as never);
   }
 
   async get<T = any>(collection: string, query: Record<string, any>): Promise<T | null> {
@@ -61,6 +80,14 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   async search(query: string): Promise<ISearchResult[]> {
     return await this.generator.search(query);
+  }
+
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return await this.generator.saveDocData(payload, registry_id);
+  }
+
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return await this.generator.getDocData<P>(hash);
   }
 
   async generateDocument(body: GenerateDocumentDomainInterfaceWithOptions): Promise<DocumentDomainEntity> {

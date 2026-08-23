@@ -2,6 +2,7 @@ import { InputType, Field } from '@nestjs/graphql';
 import { ProjectStatus } from '../../../domain/enums/project-status.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
+import { ProjectPriority } from '../../../domain/enums/project-priority.enum';
 
 /**
  * Input DTO для фильтрации проектов
@@ -27,6 +28,12 @@ export class ProjectFilterInputDTO {
     description: 'Фильтр по статусам проектов',
   })
   statuses?: ProjectStatus[];
+
+  @Field(() => [ProjectPriority], {
+    nullable: true,
+    description: 'Фильтр по приоритетам проектов или компонентов',
+  })
+  priorities?: ProjectPriority[];
 
   @Field(() => String, {
     nullable: true,
@@ -87,4 +94,18 @@ export class ProjectFilterInputDTO {
     description: 'Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username',
   })
   has_issues_with_creators?: string[];
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain',
+  })
+  origin?: string;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Показывать только проекты и компоненты, документы которых доступны пайщику: где он ведущий или получил допуск. Председателю и члену совета видно всё',
+  })
+  only_with_artifact_access?: boolean;
 }

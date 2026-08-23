@@ -26,8 +26,8 @@
 
     .kv-row
       .kv-cell
-        .kv-label Регистрационный номер в СФР
-        .kv-value.code {{ header.sfrRegNumber || '—' }}
+        .kv-label Регистрационный номер страхователя
+        .kv-value.code {{ header.pfrRegNumber || '—' }}
       .kv-cell
         .kv-label ОГРН
         .kv-value.code {{ ogrn || '—' }}

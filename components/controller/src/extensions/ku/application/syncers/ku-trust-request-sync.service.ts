@@ -1,0 +1,36 @@
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
+import { KuTrustRequestDomainEntity } from '../../domain/entities/ku-trust-request.entity';
+import { KuTrustRequestRepository, KU_TRUST_REQUEST_REPOSITORY } from '../../domain/repositories/ku-trust-request.repository';
+import { KuTrustRequestDeltaMapper } from '../../infrastructure/blockchain/mappers/ku-trust-request-delta.mapper';
+import type { IKuTrustRequestBlockchainData } from '../../domain/interfaces/ku-blockchain-data.interface';
+
+/**
+ * Сервис синхронизации заявок доверенных участков с блокчейном (контракт branch).
+ * История сохраняется в PG после erase записи в блокчейне (present=false).
+ */
+@Injectable()
+export class KuTrustRequestSyncService extends AbstractEntitySyncService<KuTrustRequestDomainEntity, IKuTrustRequestBlockchainData> implements OnModuleInit {
+  protected readonly entityName = 'KuTrustRequestDomainEntity';
+
+  constructor(
+    @Inject(KU_TRUST_REQUEST_REPOSITORY)
+    repository: KuTrustRequestRepository,
+    mapper: KuTrustRequestDeltaMapper,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
+    private readonly eventEmitter: EventEmitter2
+  ) {
+    super(repository, mapper, logger);
+  }
+
+  async onModuleInit() {
+    const allPatterns = this.getAllEventPatterns();
+    this.logger.debug(`Подписка на ${allPatterns.length} паттернов событий: ${allPatterns.join(', ')}`);
+
+    allPatterns.forEach((pattern) => {
+      this.eventEmitter.on(pattern, this.processDelta.bind(this));
+    });
+  }
+}

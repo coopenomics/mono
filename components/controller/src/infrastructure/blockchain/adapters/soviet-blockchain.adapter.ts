@@ -5,8 +5,13 @@ import { TransactResult, UInt64 } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '~/utils/httpApiError';
-import type { SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
+import { HttpApiError, waitAfterTransactBeforeChainTableRead } from '@coopenomics/extension-kit';
+import type {
+  EnsureProgramParams,
+  EnsureProgramResult,
+  SovietBlockchainPort,
+} from '~/domain/common/ports/soviet-blockchain.port';
+import { config } from '~/config';
 
 @Injectable()
 export class SovietBlockchainAdapter implements SovietBlockchainPort {
@@ -65,6 +70,65 @@ export class SovietBlockchainAdapter implements SovietBlockchainPort {
       coopname,
       SovietContract.Tables.Programs.tableName
     );
+  }
+
+  async ensureProgram(params: EnsureProgramParams): Promise<EnsureProgramResult> {
+    const { coopname, type } = params;
+
+    // Ищем по coagreements: это индекс «тип программы → program_id», который
+    // `createprog` заполняет той же транзакцией, что и `programs`. Отсутствие
+    // записи означает, что программа в кооперативе не открыта.
+    const coagreement = await this.getCoagreement(coopname, type);
+    const existingProgramId = coagreement ? Number(coagreement.program_id) : 0;
+    if (existingProgramId > 0) {
+      return { created: false, program_id: existingProgramId };
+    }
+
+    const wif = await this.vaultDomainService.getWif(coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(coopname, wif);
+
+    // `username` = сам кооператив: `check_auth_or_fail` пропускает
+    // `has_auth(coopname)` без председателя, и RAM за строку `soviet::programs`
+    // (payer = username) платит кооператив, а не человек.
+    //
+    // `calculation_type: 'free'` с нулевыми взносами — единственная рабочая
+    // комбинация: контракт требует нули и для процента, и для фиксированного
+    // взноса. Членские взносы программ (`addmemberfee`/`progwallets`) —
+    // мёртвая ветка, её не вызывает ни один контракт, поэтому расчётных
+    // параметров у ЦПП сейчас нет.
+    const data: SovietContract.Actions.Programs.CreateProgram.ICreateProgram = {
+      coopname,
+      username: coopname,
+      type,
+      title: params.title,
+      announce: '',
+      description: '',
+      preview: '',
+      images: '',
+      calculation_type: 'free',
+      fixed_membership_contribution: `${Number(0).toFixed(config.blockchain.root_govern_precision)} ${
+        config.blockchain.root_govern_symbol
+      }`,
+      membership_percent_fee: 0,
+      is_can_coop_spend_share_contributions: params.is_can_coop_spend_share_contributions ?? true,
+      meta: '',
+    };
+
+    await this.blockchainService.transact({
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Programs.CreateProgram.actionName,
+      authorization: [{ actor: coopname, permission: 'active' }],
+      data,
+    });
+
+    // program_id и шаблон оферты назначает сам контракт по своему реестру ЦПП —
+    // перечитываем. Пауза обязательна: на узле-последователе строка появляется
+    // в chain state позже ответа RPC.
+    await waitAfterTransactBeforeChainTableRead();
+    const created = await this.getCoagreement(coopname, type);
+    return { created: true, program_id: created ? Number(created.program_id) : 0 };
   }
 
   async publishProjectOfFreeDecision(

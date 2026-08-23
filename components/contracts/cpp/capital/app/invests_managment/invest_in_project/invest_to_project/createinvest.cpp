@@ -110,7 +110,7 @@
 
   // ledger2: TRANSFER w.wal.share → w.cap.blago (без бухпроводки — оба счёта 80).
   // Источник правды UI для балансов кошельков пайщика — L3 ledger2::userwallets.
-  Ledger2::apply(_capital, coopname, operations::capital::INVEST, amount,
+  Ledger2::apply(_capital, coopname, operations::capital::INVEST, processes::capital::INVEST, amount,
                  contributor -> username, invest_hash, memo);
 
   // Фиксируем заявление об инвестиции в реестре

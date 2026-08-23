@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ProjectStatus } from '../../../domain/enums/project-status.enum';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { ProjectPriority } from '../../../domain/enums/project-priority.enum';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ProjectPermissionsOutputDTO } from './project-permissions.dto';
 
 /**
@@ -438,9 +439,10 @@ export class CapitalProjectMembershipCrpsOutputDTO {
 })
 export class BaseProjectOutputDTO extends BaseOutputDTO {
   @Field(() => Int, {
-    description: 'ID в блокчейне',
+    nullable: true,
+    description: 'ID в блокчейне; у персональных проектов отсутствует',
   })
-  id!: number;
+  id?: number | null;
 
   @Field(() => String, {
     description: 'Префикс проекта',
@@ -456,6 +458,11 @@ export class BaseProjectOutputDTO extends BaseOutputDTO {
     description: 'Статус проекта',
   })
   status!: ProjectStatus;
+
+  @Field(() => ProjectPriority, {
+    description: 'Приоритет проекта или компонента',
+  })
+  priority!: ProjectPriority;
 
   @Field(() => String, {
     description: 'Хеш проекта',
@@ -528,6 +535,17 @@ export class BaseProjectOutputDTO extends BaseOutputDTO {
     description: 'URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД',
   })
   development_repository_url?: string | null;
+
+  @Field(() => String, {
+    description: 'Происхождение проекта: blockchain (кооперативный) или local (персональный)',
+  })
+  origin!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Владелец персонального проекта',
+  })
+  local_owner?: string | null;
 
   @Field(() => String, {
     description: 'Дата создания',

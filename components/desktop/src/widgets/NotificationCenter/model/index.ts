@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { NotificationItem } from 'src/shared/ui/domain/NotificationCenter';
 import { useSystemStore } from 'src/entities/System/model';
 import { NotifyAlert } from 'src/shared/api';
+import { navigateToPath } from 'src/shared/lib/navigation';
 import { api } from '../api';
 import { categoryFromWorkflowId, type IInboxNotification } from './types';
 
@@ -13,14 +14,49 @@ const PAGE_LIMIT = 20;
 /** Интервал поллинга непрочитанных. Live-подписки в репо нет — обновляем опросом. */
 const POLL_INTERVAL_MS = 30_000;
 
-function toItem(n: IInboxNotification): NotificationItem {
+/**
+ * Тело уведомления шарится с email/push-шаблонами и несёт HTML (`<br>`, теги).
+ * In-app панель рендерит описание как ТЕКСТ (без v-html — payload содержит
+ * ФИО/заголовки = XSS-вектор), а перенос строки ждёт как `\n`
+ * (CSS `white-space: pre-line`). Поэтому приводим HTML к плоскому тексту.
+ */
+function plainText(s: string | null | undefined): string {
+  if (!s) return '';
+  return s
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
+/**
+ * Deep-link уведомления — внутренний маршрут, куда ведёт нажатие. Уведомления
+ * безопасности («вход с нового устройства») несут в payload `securityUrl` — по
+ * этому маркеру ведём на страницу настроек: там карточка активных сессий с
+ * кнопками завершения. Абсолютный URL из payload не используем — навигация
+ * внутри приложения идёт роутером, а не перезагрузкой.
+ */
+function linkFromNotification(n: IInboxNotification, coopname: string): string | undefined {
+  const p = (n.payload ?? null) as Record<string, unknown> | null;
+  if (p && typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  return undefined;
+}
+
+function toItem(n: IInboxNotification, coopname: string): NotificationItem {
   return {
     id: n.id,
     category: categoryFromWorkflowId(n.workflowId),
-    title: n.title,
-    description: n.body,
+    title: plainText(n.title),
+    description: plainText(n.body),
     date: n.createdAt as string,
     read: n.isRead,
+    link: linkFromNotification(n, coopname),
   };
 }
 
@@ -32,8 +68,17 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   const totalPages = ref(1);
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Первый опрос после загрузки страницы задаёт БАЗУ счётчика, а не «прирост».
+   * Без этого флага любое накопленное непрочитанное выглядело как «пришло
+   * только что» (0 → N) и всплывало тостом при каждом открытии приложения.
+   * Тостим только то, что реально пришло за время этой сессии.
+   */
+  let primed = false;
 
-  const items = computed<NotificationItem[]>(() => notifications.value.map(toItem));
+  const items = computed<NotificationItem[]>(() =>
+    notifications.value.map((n) => toItem(n, coopname())),
+  );
   const hasMore = computed(() => currentPage.value < totalPages.value);
 
   function coopname(): string {
@@ -63,13 +108,27 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   async function refreshUnreadCount(): Promise<void> {
     const next = await api.loadUnreadCount(coopname());
     // Прирост непрочитанных между опросами = пришло новое: тостим и подтягиваем ленту.
-    if (next > unreadCount.value) {
-      unreadCount.value = next;
-      await loadInbox(true);
-      const newest = notifications.value.find((n) => !n.isRead);
-      if (newest) NotifyAlert(newest.title, newest.body);
-    } else {
-      unreadCount.value = next;
+    // На ПЕРВОМ опросе прироста нет по определению — только фиксируем базу.
+    const grew = primed && next > unreadCount.value;
+    unreadCount.value = next;
+    primed = true;
+    if (!grew) return;
+
+    await loadInbox(true);
+    const newest = notifications.value.find((n) => !n.isRead);
+    // Тело шарится с email-шаблонами и несёт HTML — тост рендерит текстом,
+    // поэтому прогоняем через тот же plainText, что и лента (см. toItem).
+    if (newest) {
+      const link = linkFromNotification(newest, coopname());
+      NotifyAlert(
+        plainText(newest.title),
+        plainText(newest.body),
+        undefined,
+        // Тост должен не только сообщать, но и вести к действию: у уведомлений
+        // безопасности — сразу к активным сессиям. Роутер в сторе недоступен —
+        // переходим helper'ом, знающим режим роутера (hash в dev, history в проде).
+        link ? { label: 'Открыть', handler: () => navigateToPath(link) } : undefined,
+      );
     }
   }
 

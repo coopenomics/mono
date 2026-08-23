@@ -1,7 +1,7 @@
 import { ObjectType, Field } from '@nestjs/graphql';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ApprovalStatus } from '../../domain/enums/approval-status.enum';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности одобрения (Approval)

@@ -45,6 +45,14 @@ RUN corepack enable && npm install -g lerna --no-fund --no-audit
 # выкидывает node_modules/dist/.git, поэтому `COPY .` лёгкий.
 COPY . .
 
+# electron (devDep desktop → @vue/devtools) и puppeteer нигде в build/runtime
+# не запускаются (unbuild/tsc/vite их не трогают) — только их JS-обёртка нужна
+# для типов. Их postinstall тянет тяжёлые бинарники (Electron zip с GitHub
+# Releases, Chromium) по сети — периодически валит билд TLS-таймаутом.
+# Отключаем сами загрузки, пакеты всё равно ставятся.
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1 \
+    PUPPETEER_SKIP_DOWNLOAD=true
+
 # Используем существующий lockfile. Если он не совпадает с workspace —
 # падать сразу, не дрейфовать незаметно.
 RUN pnpm install --frozen-lockfile
@@ -68,7 +76,8 @@ RUN lerna run build
 # Все production-сервисы переведены на runtime без devDeps:
 #   cooparser     → `node ./dist/index.cjs`
 #   notifications → `node ./dist/sync/sync-runner.cjs` (entry добавлен в unbuild)
-#   coopback      → `ts-node` + `tsconfig-paths` (оба в deps)
+#   coopback      → `node dist/src/index.js` (сборка пакета в стадии builder;
+#                    `tsconfig-paths` в deps — только резолв алиасов `~/*`)
 #   desktop       → `node dist/ssr/index.js`
 #   boot:remote   → `node /app/components/boot/dist/index.cjs boot:remote`
 RUN CI=true pnpm prune --prod --ignore-scripts

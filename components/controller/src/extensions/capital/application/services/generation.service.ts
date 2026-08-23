@@ -1,5 +1,4 @@
 import { Injectable, Inject, Optional, Logger } from '@nestjs/common';
-import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { GenerationInteractor } from '../use-cases/generation.interactor';
 import type { CreateCommitInputDTO } from '../dto/generation/create-commit-input.dto';
 import { hoursAlmostEqual } from '../../domain/utils/hours-float';
@@ -34,45 +33,43 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, EMPTY_HASH,
+  CurrencyValidationUtil,
+} from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
+import { canViewPrivateScopedIssue } from '../../domain/utils/private-project-access';
+import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { ProjectAction } from '../../domain/services/access-policy.service';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { EMPTY_BPMN_STORY_XML } from '../constants/empty-bpmn-story-xml';
 import { DEFAULT_MERMAID_STORY_SOURCE } from '../constants/default-mermaid-story';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import { CycleStatus } from '../../domain/enums/cycle-status.enum';
+import { CommitStatus } from '../../domain/enums/commit-status.enum';
 import { StoryDomainEntity } from '../../domain/entities/story.entity';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import type { IStoryDatabaseData, IStoryMatrixRequirementAnnouncementEvent } from '../../domain/interfaces/story-database.interface';
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
-import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
-import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
+import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/capitalization-program-money-invest-statement-document.dto';
 import { Cooperative } from 'cooptypes';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import { IssuePermissionsService } from './issue-permissions.service';
 import { PermissionsService } from './permissions.service';
+import { ComponentMetricService } from './component-metric.service';
 import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import {
-  INTER_MATRIX_ROOM_MESSAGING,
-  INTER_PROJECT_COMMUNICATION_ARTIFACTS,
-  type InterMatrixRoomMessagingPort,
-  type InterProjectCommunicationArtifactsPort,
-} from '@coopenomics/inter';
-import config from '~/config/config';
-import { EMPTY_HASH } from '~/shared/utils/constants';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL
@@ -99,19 +96,20 @@ export class GenerationService {
     @Inject(CYCLE_REPOSITORY)
     private readonly cycleRepository: CycleRepository,
     private readonly issueIdGenerationService: IssueIdGenerationService,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly investsManagementInteractor: InvestsManagementInteractor,
     private readonly issuePermissionsService: IssuePermissionsService,
     private readonly permissionsService: PermissionsService,
+    private readonly componentMetricService: ComponentMetricService,
     private readonly projectMapperService: ProjectMapperService,
     private readonly commitMapperService: CommitMapperService,
     private readonly timeTrackingInteractor: TimeTrackingInteractor,
     @Optional()
-    @Inject(INTER_MATRIX_ROOM_MESSAGING)
-    private readonly matrixRoomMessaging: InterMatrixRoomMessagingPort | undefined,
+    @Inject(MATRIX_ROOM_MESSAGING_PORT)
+    private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
-    @Inject(INTER_PROJECT_COMMUNICATION_ARTIFACTS)
-    private readonly projectCommArtifacts: InterProjectCommunicationArtifactsPort | undefined
+    @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined
   ) {}
 
   private rowsToLinkedCommitSummaries(rows: IssueLinkedGitCommitRow[]): IssueLinkedGitCommitSummaryDTO[] {
@@ -123,6 +121,8 @@ export class GenerationService {
       committed_at: r.committed_at,
       consumed: r.consumed_by_commit_hash != null,
       commit_message: r.commit_message ?? '',
+      branch: r.first_seen_branch ?? null,
+      in_default_branch: r.in_default_branch,
     }));
   }
 
@@ -159,16 +159,9 @@ export class GenerationService {
   }
 
   /**
-   * Зачитываем fact только по задачам, у которых работа заведомо завершена или на ревью
-   * (DONE/ON_REVIEW). Для активных/backlog-задач TimeEntry могут лежать как «предварительная оценка»
-   * (estimate-записи создаются applyExplicitEstimateToTimeEntries сразу при выставлении estimate),
-   * и считать их за факт неправильно. Остальные статусы получают fact=0.
+   * Зачитываем fact по всем задачам как сумму TimeEntry (committed + uncommitted).
+   * План (estimate) на факт не влияет — источник истины только записи учёта времени.
    */
-  private readonly FACTUAL_STATUSES: ReadonlySet<IssueStatus> = new Set([
-    IssueStatus.DONE,
-    IssueStatus.ON_REVIEW,
-  ]);
-
   private async withFactBatch<T extends { issue_hash: string; status: IssueStatus }>(
     issues: T[]
   ): Promise<
@@ -182,14 +175,9 @@ export class GenerationService {
     >
   > {
     if (issues.length === 0) return [];
-    const factualIssues = issues.filter((i) => this.FACTUAL_STATUSES.has(i.status));
-    const factMap = factualIssues.length
-      ? await this.timeEntryRepository.getFactByIssues(factualIssues.map((i) => i.issue_hash))
-      : new Map();
+    const factMap = await this.timeEntryRepository.getFactByIssues(issues.map((i) => i.issue_hash));
     return issues.map((issue) => {
-      const agg = this.FACTUAL_STATUSES.has(issue.status)
-        ? factMap.get(issue.issue_hash.toLowerCase())
-        : undefined;
+      const agg = factMap.get(issue.issue_hash.toLowerCase());
       return {
         ...issue,
         fact: agg?.fact ?? 0,
@@ -210,7 +198,7 @@ export class GenerationService {
    * Создание коммита в CAPITAL контракте
    * Возвращает полный объект коммита с обогащенными данными
    */
-  async createCommit(data: CreateCommitInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async createCommit(data: CreateCommitInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const commitEntity = await this.generationInteractor.createCommit(data, currentUser);
     return await this.commitMapperService.toDTO(commitEntity, currentUser);
   }
@@ -218,7 +206,7 @@ export class GenerationService {
   /**
    * Одобрение коммита в CAPITAL контракте
    */
-  async approveCommit(data: CommitApproveInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async approveCommit(data: CommitApproveInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitApproveDomainInput = {
       ...data,
       master: currentUser.username,
@@ -231,7 +219,7 @@ export class GenerationService {
   /**
    * Отклонение коммита в CAPITAL контракте
    */
-  async declineCommit(data: CommitDeclineInputDTO, currentUser: MonoAccountDomainInterface): Promise<CommitOutputDTO> {
+  async declineCommit(data: CommitDeclineInputDTO, currentUser: IMonoAccount): Promise<CommitOutputDTO> {
     const domainInput: CommitDeclineDomainInput = {
       ...data,
       master: currentUser.username,
@@ -246,7 +234,7 @@ export class GenerationService {
   /**
    * Создание истории
    */
-  async createStory(data: CreateStoryInputDTO, currentUser: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async createStory(data: CreateStoryInputDTO, currentUser: IMonoAccount): Promise<StoryOutputDTO> {
     // Проверяем права доступа на создание требования
     if (data.project_hash) {
       // Получаем проект и проверяем права на создание требования
@@ -384,7 +372,7 @@ export class GenerationService {
       return null;
     }
     const pathPrefix = project.isComponent() ? 'components' : 'projects';
-    const baseUrl = config.frontend_url.replace(/\/$/, '');
+    const baseUrl = platformSettings().frontendUrl.replace(/\/$/, '');
     const path = `/${encodeURIComponent(coopname)}/capital/${pathPrefix}/${encodeURIComponent(anchorProjectHash)}/requirements/${encodeURIComponent(story.story_hash)}`;
     const desktopUrl = `${baseUrl}/#${path}`;
     return [`${story.title}`, desktopUrl].join('\n');
@@ -503,7 +491,7 @@ export class GenerationService {
    */
   private async assertCanEditStoryRequirement(
     anchor: { project_hash?: string | null; issue_hash?: string | null },
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
       throw new Error('Требуется авторизация');
@@ -540,7 +528,7 @@ export class GenerationService {
    */
   private async assertCanDeleteStoryRequirement(
     story: Pick<StoryDomainEntity, 'project_hash' | 'issue_hash'>,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<void> {
     const projectHash = story.project_hash?.trim();
     if (projectHash) {
@@ -572,7 +560,7 @@ export class GenerationService {
   /**
    * Обновление истории
    */
-  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: MonoAccountDomainInterface): Promise<StoryOutputDTO> {
+  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: IMonoAccount): Promise<StoryOutputDTO> {
     // Получаем существующую историю
     const existingStory = await this.storyRepository.findByStoryHash(data.story_hash);
 
@@ -653,7 +641,7 @@ export class GenerationService {
   async getStories(
     filter?: StoryFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<StoryOutputDTO>> {
     const emptyResult: PaginationResult<StoryOutputDTO> = {
       items: [],
@@ -663,15 +651,30 @@ export class GenerationService {
     };
 
     // Если указан issue_hash, ищем только по конкретной задаче.
-    // Артефакт задачи виден только тем, у кого есть допуск к проекту/компоненту задачи.
+    // Артефакт задачи виден только тем, у кого есть допуск к проекту/компоненту задачи
+    // (для свободных — ответственный/исполнитель/совет).
     if (filter?.issue_hash) {
       const issue = await this.issueRepository.findByIssueHash(filter.issue_hash);
       if (!issue) {
         return emptyResult;
       }
-      const project = await this.projectRepository.findByHash(issue.project_hash);
-      if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
-        return emptyResult;
+      if (issue.project_hash) {
+        const project = await this.projectRepository.findByHash(issue.project_hash);
+        if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
+          return emptyResult;
+        }
+      } else {
+        const u = currentUser?.username;
+        const allowed =
+          !!u &&
+          (issue.creators?.includes(u) ||
+            issue.created_by === u ||
+            issue.submaster === u ||
+            currentUser?.role === 'chairman' ||
+            currentUser?.role === 'member');
+        if (!allowed) {
+          return emptyResult;
+        }
       }
       const result = await this.storyRepository.findAllPaginated(filter, options);
       return {
@@ -796,15 +799,15 @@ export class GenerationService {
       };
     }
 
-    // Для остальных случаев (без project_hash/issue_hash) — стандартная пагинация только
-    // для председателя/члена совета. Обычным пайщикам общий список артефактов недоступен:
-    // обращение должно быть строго в скоупе проекта или задачи, где допуск проверен выше.
-    const role = currentUser?.role;
-    const isBoard = role === 'chairman' || role === 'member';
-    if (!isBoard) {
+    // Для остальных случаев (без project_hash/issue_hash) — общий список в границах допуска:
+    // председатель и член совета видят всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Это путь синхронизации рабочей копии, где проект заранее не назван.
+    const scope = await this.buildArtifactAccessScope(undefined, currentUser, new PermissionsLookupCache());
+    const listScope: ArtifactAccessScope | undefined = scope === 'denied' ? { projectHashes: [] } : scope;
+    if (listScope !== undefined && listScope.projectHashes.length === 0) {
       return emptyResult;
     }
-    const result = await this.storyRepository.findAllPaginated(filter, options);
+    const result = await this.storyRepository.findAllPaginated(filter, options, listScope);
     return {
       items: result.items as StoryOutputDTO[],
       totalCount: result.totalCount,
@@ -819,17 +822,17 @@ export class GenerationService {
    */
   async getStoryByHash(
     storyHash: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<StoryOutputDTO | null> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
       return null;
     }
     // Story может быть привязана к проекту (project_hash) или к задаче (issue_hash → её project_hash).
-    let scopeProjectHash: string | undefined = storyEntity.project_hash;
+    let scopeProjectHash: string | undefined = storyEntity.project_hash ?? undefined;
     if (!scopeProjectHash && storyEntity.issue_hash) {
       const issue = await this.issueRepository.findByIssueHash(storyEntity.issue_hash);
-      scopeProjectHash = issue?.project_hash;
+      scopeProjectHash = issue?.project_hash ?? undefined;
     }
     if (!scopeProjectHash) {
       // У артефакта нет ни проекта, ни задачи — некорректное состояние, не отдаём.
@@ -845,7 +848,7 @@ export class GenerationService {
   /**
    * Удаление истории по хэшу
    */
-  async deleteStoryByHash(storyHash: string, currentUser: MonoAccountDomainInterface): Promise<boolean> {
+  async deleteStoryByHash(storyHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
       throw new Error(`История с хэшем ${storyHash} не найдена`);
@@ -860,34 +863,50 @@ export class GenerationService {
   // ============ ISSUE METHODS ============
 
   /**
-   * Создание задачи
+   * Создание задачи.
+   * Без project_hash — свободная задача (не привязана к проекту/компоненту),
+   * создатель автоматически становится исполнителем.
    */
   async createIssue(
     data: CreateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
-    // Проверяем права на управление задачами
-    const project = await this.projectRepository.findByHash(data.project_hash);
-    if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+    const projectHash = data.project_hash?.trim() || null;
+    const isFree = !projectHash;
+
+    let creators = data.creators?.length ? [...data.creators] : [];
+    if (isFree && !creators.includes(username)) {
+      creators = [username, ...creators];
     }
-    const projectPermissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!projectPermissions.can_manage_issues) {
-      throw new Error('У вас нет прав на управление задачами в этом проекте. Только мастер проекта может управлять задачами.');
+
+    if (!isFree) {
+      const project = await this.projectRepository.findByHash(projectHash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${projectHash} не найден`);
+      }
+      const projectPermissions = await this.permissionsService.calculateProjectPermissions(
+        project,
+        currentUser
+      );
+      if (!projectPermissions.can_manage_issues) {
+        throw new Error(
+          'У вас нет прав на управление задачами в этом проекте. Только мастер проекта может управлять задачами.'
+        );
+      }
     }
 
     // Проверяем права на установку начального статуса (как у сохранённой задачи):
     // submaster по умолчанию = первый creator — иначе проверка видит роль CREATOR без CHANGE_STATUS.
-    const effectiveSubmasterForPermission
-      = data.submaster ?? (data.creators?.length ? data.creators[0] : undefined);
+    const effectiveSubmasterForPermission =
+      data.submaster ?? (creators.length ? creators[0] : undefined);
     if (data.status) {
       await this.issuePermissionsService.validateIssueStatusPermission(
         username,
         data.coopname,
-        data.project_hash,
+        projectHash ?? '',
         effectiveSubmasterForPermission,
-        data.creators || [],
+        creators,
         data.status,
         IssueStatus.BACKLOG, // Для новой задачи текущий статус - BACKLOG
         currentUser?.role
@@ -908,10 +927,11 @@ export class GenerationService {
       status: data.status || IssueStatus.BACKLOG,
       estimate: data.estimate ?? 0,
       sort_order: data.sort_order || 0,
-      created_by: username, // Сохраняем имя пользователя
-      submaster: data.submaster || (data.creators && data.creators.length > 0 ? data.creators[0] : undefined),
-      creators: data.creators || [],
-      project_hash: data.project_hash,
+      created_by: username,
+      submaster:
+        data.submaster || (creators.length > 0 ? creators[0] : undefined),
+      creators,
+      project_hash: projectHash,
       cycle_id: data.cycle_id,
       metadata: {
         labels: data.labels || [],
@@ -920,11 +940,25 @@ export class GenerationService {
       present: false,
     };
 
-    // Генерируем ID + увеличиваем счетчик атомарно в проекте
-    const { issueData, updatedProject } = this.issueIdGenerationService.generateIssueId(project, issueDataWithoutId);
-
-    // Сохраняем обновленный проект с новым счетчиком
-    await this.projectRepository.update(updatedProject);
+    let issueData: IIssueDatabaseData;
+    if (isFree) {
+      // ID свободной задачи: 000-N (как PREFIX-N у проектных)
+      issueData = {
+        ...issueDataWithoutId,
+        id: await this.issueRepository.getNextFreeIssueId(data.coopname),
+      };
+    } else {
+      const project = await this.projectRepository.findByHash(projectHash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${projectHash} не найден`);
+      }
+      const generated = this.issueIdGenerationService.generateIssueId(
+        project,
+        issueDataWithoutId
+      );
+      issueData = generated.issueData;
+      await this.projectRepository.update(generated.updatedProject);
+    }
 
     // Создаем доменную сущность с готовым ID
     const issueEntity = new IssueDomainEntity(issueData);
@@ -932,17 +966,20 @@ export class GenerationService {
     // Если указан ответственный, используем метод доменной сущности для правильного назначения
     if (data.submaster) {
       issueEntity.setSubmaster(data.submaster);
+    } else if (isFree) {
+      issueEntity.setSubmaster(username);
     }
 
     // Сохраняем задачу через репозиторий
     const savedIssue = await this.issueRepository.create(issueEntity);
 
-    if (data.estimate !== undefined && !hoursAlmostEqual(savedIssue.estimate ?? 0, 0)) {
-      await this.timeTrackingInteractor.applyExplicitEstimateToTimeEntries(savedIssue);
-    }
+    // 562-14: план больше не создаёт авто-билеты времени
 
     // Рассчитываем права доступа для задачи
-    const permissions = await this.permissionsService.calculateIssuePermissions(savedIssue, currentUser);
+    const permissions = await this.permissionsService.calculateIssuePermissions(
+      savedIssue,
+      currentUser
+    );
 
     const withLinks = await this.withLinkedGitCommits({
       ...savedIssue,
@@ -952,12 +989,12 @@ export class GenerationService {
   }
 
   /**
-   * Перенос задачи в другой компонент того же проекта (общий родительский проект): одна строка в БД — обновляется project_hash (и cycle_id),
-   * issue_hash и человекочитаемый id не меняются. Связанные time entries / stories / git-links — только смена project_hash.
+   * Перенос задачи в другой компонент того же проекта либо назначение свободной задачи компоненту.
+   * issue_hash и человекочитаемый id не меняются. Связанные time entries / stories / git-links — смена project_hash.
    */
   async moveIssueToComponent(
     data: MoveCapitalIssueToComponentInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     const targetHash = data.target_project_hash.toLowerCase();
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -968,40 +1005,60 @@ export class GenerationService {
       throw new Error('Задача уже принадлежит выбранному компоненту');
     }
 
-    const sourceProject = await this.projectRepository.findByHash(issue.project_hash);
     const targetProject = await this.projectRepository.findByHash(targetHash);
-    if (!sourceProject || !targetProject) {
-      throw new Error('Проект источника или проект назначения не найден');
+    if (!targetProject) {
+      throw new Error('Компонент назначения не найден');
     }
-    if (!sourceProject.isComponent() || !targetProject.isComponent()) {
-      throw new Error('Перенос возможен только между компонентами одного проекта');
-    }
-
-    const zeroParent = EMPTY_HASH;
-    const sourceParent = (sourceProject.parent_hash ?? '').toLowerCase();
-    const targetParent = (targetProject.parent_hash ?? '').toLowerCase();
-    if (!sourceParent || sourceParent === zeroParent || sourceParent !== targetParent) {
-      throw new Error('Компоненты должны иметь одного и того же родительского проекта');
+    if (!targetProject.isComponent()) {
+      throw new Error('Назначение возможно только в компонент проекта');
     }
 
     const blockedForTransfer = new Set<ProjectStatus>([
       ProjectStatus.VOTING,
       ProjectStatus.RESULT,
       ProjectStatus.FINALIZED,
-      ProjectStatus.CANCELLED,
       ProjectStatus.UNDEFINED,
     ]);
-    if (blockedForTransfer.has(sourceProject.status)) {
-      throw new Error('Нельзя переносить задачу из компонента на голосовании или из завершённого компонента');
-    }
     if (blockedForTransfer.has(targetProject.status)) {
       throw new Error('Нельзя переносить задачу в компонент на голосовании или в завершённый компонент');
     }
 
-    const sourcePerms = await this.permissionsService.calculateProjectPermissions(sourceProject, currentUser);
     const targetPerms = await this.permissionsService.calculateProjectPermissions(targetProject, currentUser);
-    if (!sourcePerms.can_manage_issues || !targetPerms.can_manage_issues) {
-      throw new Error('Недостаточно прав: нужны права мастера на оба компонента');
+    if (!targetPerms.can_manage_issues) {
+      throw new Error('Недостаточно прав на управление задачами в выбранном компоненте');
+    }
+
+    const sourceProjectHash = issue.project_hash?.trim();
+    if (!sourceProjectHash) {
+      // Свободная задача → назначение компоненту
+      const issuePerms = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
+      if (!issuePerms.can_edit_issue) {
+        throw new Error('Недостаточно прав для назначения этой задачи компоненту');
+      }
+    } else {
+      const sourceProject = await this.projectRepository.findByHash(sourceProjectHash);
+      if (!sourceProject) {
+        throw new Error('Проект источника не найден');
+      }
+      if (!sourceProject.isComponent()) {
+        throw new Error('Перенос возможен только между компонентами одного проекта');
+      }
+
+      const zeroParent = EMPTY_HASH;
+      const sourceParent = (sourceProject.parent_hash ?? '').toLowerCase();
+      const targetParent = (targetProject.parent_hash ?? '').toLowerCase();
+      if (!sourceParent || sourceParent === zeroParent || sourceParent !== targetParent) {
+        throw new Error('Компоненты должны иметь одного и того же родительского проекта');
+      }
+
+      if (blockedForTransfer.has(sourceProject.status)) {
+        throw new Error('Нельзя переносить задачу из компонента на голосовании или из завершённого компонента');
+      }
+
+      const sourcePerms = await this.permissionsService.calculateProjectPermissions(sourceProject, currentUser);
+      if (!sourcePerms.can_manage_issues) {
+        throw new Error('Недостаточно прав: нужны права мастера на оба компонента');
+      }
     }
 
     const hasCommitted = await this.timeEntryRepository.hasCommittedTimeByIssueHash(issue.issue_hash);
@@ -1063,7 +1120,7 @@ export class GenerationService {
   async updateIssue(
     data: UpdateIssueInputDTO,
     username: string,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<IssueOutputDTO> {
     // Получаем существующую задачу
     const existingIssue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1072,28 +1129,49 @@ export class GenerationService {
       throw new Error(`Задача с хэшем ${data.issue_hash} не найдена`);
     }
 
-    // Проверяем права на управление задачами
-    const project = await this.projectRepository.findByHash(existingIssue.project_hash);
-    if (!project) {
-      throw new Error(`Проект с хэшем ${existingIssue.project_hash} не найден`);
-    }
-    const projectPermissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
+    const isFree = !existingIssue.project_hash;
 
     // Рассчитываем права доступа для конкретной задачи
-    const issuePermissions = await this.permissionsService.calculateIssuePermissions(existingIssue, currentUser);
+    const issuePermissions = await this.permissionsService.calculateIssuePermissions(
+      existingIssue,
+      currentUser
+    );
 
-    // Проверяем права на управление задачами в проекте (мастер проекта) или на редактирование конкретной задачи (исполнитель)
-    if (!projectPermissions.can_manage_issues && !issuePermissions.can_edit_issue) {
-      throw new Error('У вас нет прав на редактирование этой задачи. Только мастер проекта или исполнитель задачи могут изменять её.');
+    let canManageViaProject = false;
+    if (!isFree) {
+      const project = await this.projectRepository.findByHash(existingIssue.project_hash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${existingIssue.project_hash} не найден`);
+      }
+      const projectPermissions = await this.permissionsService.calculateProjectPermissions(
+        project,
+        currentUser
+      );
+      canManageViaProject = projectPermissions.can_manage_issues;
+    }
+
+    // Мастер проекта или право редактировать задачу (для свободных — ответственный/исполнитель)
+    if (!canManageViaProject && !issuePermissions.can_edit_issue) {
+      throw new Error(
+        'У вас нет прав на редактирование этой задачи. Только мастер проекта или исполнитель задачи могут изменять её.'
+      );
     }
 
     // Проверяем права на назначение ответственного
     if (data.submaster !== undefined && data.submaster !== existingIssue.submaster) {
-      await this.issuePermissionsService.validateSubmasterAssignmentPermission(
-        username,
-        existingIssue.coopname,
-        existingIssue.project_hash
-      );
+      if (isFree) {
+        if (!issuePermissions.can_assign_creator) {
+          throw new Error(
+            'Недостаточно прав для назначения ответственного на свободную задачу'
+          );
+        }
+      } else {
+        await this.issuePermissionsService.validateSubmasterAssignmentPermission(
+          username,
+          existingIssue.coopname,
+          existingIssue.project_hash!
+        );
+      }
     }
 
     // Проверяем права на изменение статуса задачи
@@ -1101,7 +1179,7 @@ export class GenerationService {
       await this.issuePermissionsService.validateIssueStatusPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         data.status,
@@ -1124,7 +1202,7 @@ export class GenerationService {
       await this.issuePermissionsService.validateEstimateSettingPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         currentUser?.role
@@ -1136,7 +1214,7 @@ export class GenerationService {
       await this.issuePermissionsService.validatePrioritySettingPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         currentUser?.role
@@ -1181,16 +1259,17 @@ export class GenerationService {
     // Сохраняем через репозиторий
     const updatedIssue = await this.issueRepository.update(issueEntity);
 
-    const estimateChanged =
-      data.estimate !== undefined &&
-      !hoursAlmostEqual(existingIssue.estimate ?? 0, updatedIssue.estimate ?? 0);
-    const creatorsChanged =
-      data.creators !== undefined &&
-      !this.creatorsSetEquals(existingIssue.creators ?? [], updatedIssue.creators ?? []);
-
-    if (estimateChanged || creatorsChanged) {
-      await this.timeTrackingInteractor.applyExplicitEstimateToTimeEntries(updatedIssue);
+    // 562-34: журнал вкладов в метрики при переходе в/из DONE
+    if (data.status !== undefined && data.status !== existingIssue.status) {
+      await this.componentMetricService.handleIssueStatusTransition(
+        updatedIssue.issue_hash,
+        existingIssue.status,
+        updatedIssue.status,
+        username
+      );
     }
+
+    // 562-14: смена плана / creators больше не пересобирает авто-билеты
 
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(updatedIssue, currentUser);
@@ -1208,16 +1287,31 @@ export class GenerationService {
   async getIssues(
     filter?: IssueFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<IssueOutputDTO>> {
-    // Получаем результат с пагинацией из домена
-    const result = await this.issueRepository.findAllPaginated(filter, options);
+    // Кэш справочных чтений — один на весь список (проект, допуск, участие переспрашиваются
+    // для каждой задачи заново).
+    const cache = new PermissionsLookupCache();
+
+    // Область доступа: совет видит всё, остальные — только проекты, где они ведущие или
+    // получили допуск. Ограничение уходит в SQL, чтобы пагинация оставалась целой.
+    const scope = await this.buildArtifactAccessScope(filter?.project_hash, currentUser, cache);
+    if (scope === 'denied') {
+      return { items: [], totalCount: 0, currentPage: options?.page || 1, totalPages: 0 };
+    }
+
+    const result = await this.issueRepository.findAllPaginated(filter, options, scope);
+    const visibleIssues = await this.filterAccessibleIssues(result.items, currentUser?.username);
 
     // Рассчитываем права доступа для всех задач пакетно
-    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(result.items, currentUser);
+    const permissionsMap = await this.permissionsService.calculateBatchIssuePermissions(
+      visibleIssues,
+      currentUser,
+      cache
+    );
 
     // Обогащаем задачи правами доступа
-    const itemsWithPermissions = result.items.map((issue) => {
+    const itemsWithPermissions = visibleIssues.map((issue) => {
       const permissions = permissionsMap.get(issue.issue_hash);
       return {
         ...issue,
@@ -1230,19 +1324,22 @@ export class GenerationService {
 
     return {
       items,
-      totalCount: result.totalCount,
+      totalCount: visibleIssues.length === result.items.length ? result.totalCount : visibleIssues.length,
       currentPage: result.currentPage,
-      totalPages: result.totalPages,
+      totalPages:
+        visibleIssues.length === result.items.length
+          ? result.totalPages
+          : Math.ceil(visibleIssues.length / (options?.limit || 10)),
     };
   }
 
   /**
    * Получение задачи по ID
    */
-  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueById(data: GetIssueByIdInputDTO, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findById(data.id);
 
-    if (!issueEntity) {
+    if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
       return null;
     }
 
@@ -1260,10 +1357,10 @@ export class GenerationService {
   /**
    * Получение задачи по хэшу
    */
-  async getIssueByHash(issueHash: string, currentUser?: MonoAccountDomainInterface): Promise<IssueOutputDTO | null> {
+  async getIssueByHash(issueHash: string, currentUser?: IMonoAccount): Promise<IssueOutputDTO | null> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
 
-    if (!issueEntity) {
+    if (!issueEntity || !(await this.canAccessIssue(issueEntity, currentUser?.username))) {
       return null;
     }
 
@@ -1296,20 +1393,20 @@ export class GenerationService {
   // ============ COMMIT METHODS ============
 
   /**
-   * Получение коммитов с фильтрацией
+   * Получение коммитов с фильтрацией.
+   * Запрос «на проверке» (status=CREATED без username): совет видит все;
+   * мастер — только свои проекты/компоненты; остальные — пусто.
    */
   async getCommits(
     filter?: CommitFilterInputDTO,
     options?: PaginationInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<CommitOutputDTO>> {
-    // Получаем результат с пагинацией из домена
-    const result = await this.commitRepository.findAllPaginated(filter, options);
+    const resolvedFilter = this.resolveCommitFilterForViewer(filter, currentUser);
 
-    // Обогащаем коммиты через mapper
+    const result = await this.commitRepository.findAllPaginated(resolvedFilter, options);
     const itemsWithProjects = await this.commitMapperService.toDTOBatch(result.items, currentUser);
 
-    // Конвертируем результат в DTO
     return {
       items: itemsWithProjects,
       totalCount: result.totalCount,
@@ -1318,12 +1415,44 @@ export class GenerationService {
     };
   }
 
+  private resolveCommitFilterForViewer(
+    filter: CommitFilterInputDTO | undefined,
+    currentUser?: IMonoAccount
+  ): CommitFilterInputDTO | undefined {
+    if (!filter) {
+      return filter;
+    }
+
+    // «На проверке»: CREATED без привязки к автору/проекту/конкретному коммиту
+    const isReviewQuery =
+      filter.status === CommitStatus.CREATED &&
+      !filter.username &&
+      !filter.project_hash &&
+      !filter.commit_hash;
+    if (!isReviewQuery) {
+      return filter;
+    }
+
+    const next: CommitFilterInputDTO = { ...filter, review_for_master: undefined };
+    const role = currentUser?.role;
+    if (role === 'chairman' || role === 'member') {
+      return next;
+    }
+
+    const username = currentUser?.username;
+    if (!username) {
+      return { ...next, username: '__nobody__' };
+    }
+
+    return { ...next, review_for_master: username };
+  }
+
   /**
    * Получение коммита по ID
    */
   async getCommitById(
     data: GetCommitByIdInputDTO,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findById(data.id);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
@@ -1332,7 +1461,7 @@ export class GenerationService {
   /**
    * Получение коммита по хэшу
    */
-  async getCommitByHash(commitHash: string, currentUser?: MonoAccountDomainInterface): Promise<CommitOutputDTO | null> {
+  async getCommitByHash(commitHash: string, currentUser?: IMonoAccount): Promise<CommitOutputDTO | null> {
     const commitEntity = await this.commitRepository.findByCommitHash(commitHash);
     return commitEntity ? await this.commitMapperService.toDTO(commitEntity, currentUser) : null;
   }
@@ -1385,12 +1514,12 @@ export class GenerationService {
   async generateGenerationMoneyInvestStatement(
     data: GenerationMoneyInvestStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Подготавливаем данные через интерактор
     const enrichedData = await this.investsManagementInteractor.prepareGenerationMoneyInvestStatementData(data, currentUser);
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
         registry_id: Cooperative.Registry.GenerationMoneyInvestStatement.registry_id,
@@ -1409,7 +1538,7 @@ export class GenerationService {
   ): Promise<GeneratedDocumentDTO> {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестирования');
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: {
         ...data,
         registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,
@@ -1419,13 +1548,70 @@ export class GenerationService {
     return document as GeneratedDocumentDTO;
   }
 
-  private creatorsSetEquals(a: string[], b: string[]): boolean {
-    if (a.length !== b.length) return false;
-    const setA = new Set(a);
-    for (const item of b) {
-      if (!setA.has(item)) return false;
+  /** Чужие свободные / LOCAL-задачи не отдаём. */
+  /**
+   * Область доступа к артефактам для общих списков.
+   *
+   * Совет — `undefined` (ограничения нет). Остальным — проекты, где пайщик ведущий или получил
+   * допуск, плюс их компоненты. Если запрошен конкретный проект вне этого набора — `'denied'`:
+   * список пуст, содержимое чужого проекта не раскрывается даже количеством строк.
+   */
+  private async buildArtifactAccessScope(
+    requestedProjectHash: string | undefined,
+    currentUser: IMonoAccount | undefined,
+    cache: PermissionsLookupCache
+  ): Promise<ArtifactAccessScope | undefined | 'denied'> {
+    const accessible = await this.permissionsService.listAccessibleProjectHashes(
+      ProjectAction.VIEW_ARTIFACTS,
+      currentUser,
+      cache
+    );
+    if (accessible === null) {
+      return undefined;
     }
-    return true;
+    const username = currentUser?.username;
+    const requested = requestedProjectHash?.trim().toLowerCase();
+    if (requested) {
+      if (!accessible.has(requested)) {
+        return 'denied';
+      }
+      return { projectHashes: [requested], username };
+    }
+    return { projectHashes: [...accessible], username };
+  }
+
+  private async canAccessIssue(issue: IssueDomainEntity, username?: string): Promise<boolean> {
+    if (!issue.project_hash?.trim()) {
+      return canViewPrivateScopedIssue(issue, null, username);
+    }
+    const project = await this.projectRepository.findByHash(issue.project_hash);
+    return canViewPrivateScopedIssue(issue, project, username);
+  }
+
+  private async filterAccessibleIssues(
+    issues: IssueDomainEntity[],
+    username?: string
+  ): Promise<IssueDomainEntity[]> {
+    if (issues.length === 0) {
+      return issues;
+    }
+    const projectHashes = [
+      ...new Set(
+        issues
+          .map((issue) => issue.project_hash?.trim()?.toLowerCase())
+          .filter((hash): hash is string => !!hash)
+      ),
+    ];
+    const projects =
+      projectHashes.length > 0 ? await this.projectRepository.findByHashes(projectHashes) : [];
+    const projectMap = new Map(projects.map((project) => [project.project_hash.toLowerCase(), project]));
+
+    return issues.filter((issue) => {
+      const project = issue.project_hash?.trim()
+        ? projectMap.get(issue.project_hash.trim().toLowerCase())
+        : null;
+      return canViewPrivateScopedIssue(issue, project, username);
+    });
   }
 
 }

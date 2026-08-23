@@ -72,3 +72,4 @@ export * as AgreementsLegacy from './agreements_legacy'
  * Таблица хранит информацию о запросах утверждений от председателя.
  */
 export * as Approvals from './approves'
+export * as Taxes from './taxes'

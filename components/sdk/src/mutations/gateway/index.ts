@@ -6,3 +6,6 @@ export * as CreateInitialPayment from './createInitialPayment'
 
 /** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 export * as CreateDepositPayment from './createDepositPayment'
+
+/** Приложить чек об оплате к платежу (ядровая «культура денег»: исходящие сопровождаем чеком). Привязка по payment_hash, файл в бакете gateway:files. */
+export * as UploadPaymentProof from './uploadPaymentProof'

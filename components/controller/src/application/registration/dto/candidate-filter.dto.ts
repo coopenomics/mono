@@ -1,7 +1,4 @@
-import { Field, InputType } from '@nestjs/graphql';
-
-@InputType('CandidateFilterInput')
-export class CandidateFilterInputDTO {
-  @Field(() => String, { nullable: true })
-  referer?: string;
-}
+/**
+ * Отбор заявок живёт в `@coopenomics/extension-kit` рядом с формой заявки.
+ */
+export { CandidateFilterInputDTO } from '@coopenomics/extension-kit';

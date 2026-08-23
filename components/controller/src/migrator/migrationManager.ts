@@ -5,6 +5,7 @@ import { MigrationEntity } from '../infrastructure/database/typeorm/entities/mig
 import config from '../config/config';
 import logger from '../config/logger';
 import { BlockchainService } from '../infrastructure/blockchain/blockchain.service';
+import { RpcPool } from '../infrastructure/blockchain/rpc-pool.service';
 import { WinstonLoggerService } from '../application/logger/logger-app.service';
 import { MigrationLogger } from './migration-logger';
 import { VaultDomainService } from '../domain/vault/services/vault-domain.service';
@@ -36,7 +37,10 @@ export class MigrationManager {
   private vaultDomainService!: VaultDomainService;
 
   constructor() {
-    this.migrationDir = path.join(process.cwd(), '/migrations');
+    // Каталог миграций ищется от текущего файла, а не от места запуска:
+    // компилятор кладёт миграции рядом с кодом (`dist/migrations`), и оба
+    // режима — исходники и сборка — дают один и тот же относительный путь
+    this.migrationDir = path.resolve(__dirname, '..', '..', 'migrations');
 
     // Создаем экземпляр логгера для блокчейн-сервиса
     const loggerService = new WinstonLoggerService();
@@ -49,7 +53,7 @@ export class MigrationManager {
       hasWif: async () => false,
     } as any;
 
-    this.blockchainService = new BlockchainService(loggerService, vaultDomainServiceStub);
+    this.blockchainService = new BlockchainService(loggerService, new RpcPool(loggerService), vaultDomainServiceStub);
   }
 
   async initialize(): Promise<void> {
@@ -74,7 +78,7 @@ export class MigrationManager {
 
     // Пересоздаем BlockchainService с настоящим VaultDomainService
     const loggerService = new WinstonLoggerService();
-    this.blockchainService = new BlockchainService(loggerService, this.vaultDomainService);
+    this.blockchainService = new BlockchainService(loggerService, new RpcPool(loggerService), this.vaultDomainService);
 
     logger.info('Миграционный менеджер инициализирован');
   }

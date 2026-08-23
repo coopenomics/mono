@@ -300,8 +300,8 @@ async function ensureAgreementsAndWallet(blockchain: Blockchain, fix: IFixture):
   }
   // Согласие с ЦПП «Благорост» — для инвестиций в программу/компонент.
   // Блокировка идёт по своему пути; для безопасности дёргаем при первом запуске.
-  await signAgreement(blockchain, fix.username, 'blagorost').catch((e) => {
-    log(`signAgreement blagorost для ${fix.username} — пропуск (${(e as Error).message?.slice(0, 80)})`)
+  await signAgreement(blockchain, fix.username, 'capital').catch((e) => {
+    log(`signAgreement capital для ${fix.username} — пропуск (${(e as Error).message?.slice(0, 80)})`)
   })
 }
 

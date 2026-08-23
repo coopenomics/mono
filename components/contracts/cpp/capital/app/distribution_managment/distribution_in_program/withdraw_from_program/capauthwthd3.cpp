@@ -28,6 +28,7 @@ void capital::capauthwthd3(name coopname, checksum256 withdraw_hash, document2 a
 
   // ledger2: TRANSFER w.cap.blago → w.wal.share (без бухпроводки — оба счёта 80, зеркало INVEST).
   Ledger2::apply(_capital, coopname, operations::capital::WITHDRAW_FROM_CAPITAL,
+                 processes::capital::WTHCAP,
                  withdraw->amount, withdraw->username, withdraw_hash, memo);
 
   program_withdraws.erase(withdraw);

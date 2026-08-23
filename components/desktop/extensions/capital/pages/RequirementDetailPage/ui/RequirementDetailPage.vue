@@ -1,30 +1,23 @@
 <template lang="pug">
-q-page.requirement-detail-page(padding).column.no-wrap
+//- Без prop padding: q-pa на всю страницу давал огромную рамку вокруг артефакта
+q-page.requirement-detail-page.column.no-wrap
   .flex.flex-center.q-pa-lg(v-if='loading')
     q-spinner(color='primary' size='40px')
-  q-banner.q-ma-md(v-else-if='loadError' rounded dense class='bg-negative text-white')
-    | {{ loadError }}
+  .banner.banner--neg.q-ma-md(v-else-if='loadError')
+    q-icon.banner__icon(name='error')
+    .banner__body {{ loadError }}
   .column.col(v-else-if='story && permissionsLoaded' style='flex: 1 1 auto; min-height: 0')
     EditRequirementPanel(
-      ref='panelRef'
       variant='page'
       :requirement='story'
       :canEdit='canEdit'
       @updated='onUpdated'
     )
-      template(#toolbar-leading)
-        q-btn(
-          flat
-          color='primary'
-          icon='arrow_back'
-          label='К списку'
-          @click='onBackToList'
-        )
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
@@ -32,12 +25,7 @@ import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import { EditRequirementPanel } from 'app/extensions/capital/features/Story/EditRequirement';
 
-type PanelExposed = {
-  tryNavigateAway?: () => boolean;
-};
-
 const route = useRoute();
-const router = useRouter();
 const projectStore = useProjectStore();
 
 const loading = ref(true);
@@ -45,31 +33,11 @@ const loadError = ref('');
 const story = ref<IStory | null>(null);
 const projectPermissions = ref<IProjectPermissions | null>(null);
 const permissionsLoaded = ref(false);
-const panelRef = ref<PanelExposed | null>(null);
 
 const projectHash = computed(() => route.params.project_hash as string);
 const storyHash = computed(() => route.params.story_hash as string);
 
 const canEdit = computed(() => projectPermissions.value?.can_edit_requirement ?? false);
-
-const listRouteName = computed(() =>
-  route.name === 'component-requirement-detail' ? 'component-requirements' : 'project-requirements'
-);
-
-const goToList = () => {
-  void router.push({
-    name: listRouteName.value,
-    params: { project_hash: projectHash.value },
-  });
-};
-
-const onBackToList = () => {
-  const leave = panelRef.value?.tryNavigateAway?.() ?? true;
-  if (!leave) {
-    return;
-  }
-  goToList();
-};
 
 /** Проект, к которому привязан артефакт (с учётом задачи). */
 const resolveStoryProjectHash = async (row: IStory): Promise<string | undefined> => {
@@ -153,14 +121,14 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 /*
-  Вложенный q-page под router-view: родительский q-page в layout не задаёт flex-высоту,
-  поэтому опираемся на вьюпорт, чтобы карточка и BPMN могли занять оставшееся место.
+  Высоту не привязываем к вьюпорту: топбар и табы уже занимают часть экрана,
+  и 100vh давал пустую прокрутку. Минимумы редакторов держат сами редакторы
+  (viewport-хук у markdown, min-height у диаграмм).
 */
 .requirement-detail-page {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  min-height: calc(100dvh - 56px);
-  min-height: calc(100vh - 56px);
+  min-height: 0;
 }
 </style>

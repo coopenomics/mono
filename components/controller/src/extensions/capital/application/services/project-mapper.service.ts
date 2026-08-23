@@ -2,7 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectOutputDTO, ProjectComponentOutputDTO, BaseProjectOutputDTO } from '../dto/project_management/project.dto';
 import { PermissionsService } from './permissions.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+
+/** GraphQL CapitalProject.created_at: String! — Date из TypeORM недопустим. */
+function toCreatedAtString(value: unknown): string {
+  if (typeof value === 'string' && value) return value;
+  if (value instanceof Date) return value.toISOString();
+  if (value != null) {
+    const d = new Date(value as string | number);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return new Date().toISOString();
+}
 
 /**
  * Сервис для маппинга доменных сущностей проектов в DTO
@@ -16,12 +27,13 @@ export class ProjectMapperService {
    * Маппинг одного проекта в BaseProjectOutputDTO
    * Используется когда не нужно возвращать компоненты
    */
-  async mapToBaseDTO(project: ProjectDomainEntity, currentUser?: MonoAccountDomainInterface): Promise<BaseProjectOutputDTO> {
+  async mapToBaseDTO(project: ProjectDomainEntity, currentUser?: IMonoAccount): Promise<BaseProjectOutputDTO> {
     // Рассчитываем права доступа для проекта
     const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
 
     return {
       ...project,
+      created_at: toCreatedAtString(project.created_at),
       permissions,
     } as BaseProjectOutputDTO;
   }
@@ -30,13 +42,16 @@ export class ProjectMapperService {
    * Маппинг одного проекта в ProjectOutputDTO (без компонентов)
    * Используется для простых случаев без компонентов
    */
-  async mapToDTO(project: ProjectDomainEntity, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
+  async mapToDTO(project: ProjectDomainEntity, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
     // Рассчитываем права доступа для проекта
     const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
 
     return {
       ...project,
+      created_at: toCreatedAtString(project.created_at),
       permissions,
+      // SDK projectSelector всегда запрашивает components — без массива GraphQL падает на non-null
+      components: [],
     } as ProjectOutputDTO;
   }
 
@@ -46,7 +61,7 @@ export class ProjectMapperService {
    */
   async mapToDTOWithComponents(
     project: ProjectDomainEntity,
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     // Получаем компоненты (они добавлены динамически в репозитории)
     const components = (project as any).components as ProjectDomainEntity[] | undefined;
@@ -60,16 +75,18 @@ export class ProjectMapperService {
     // Обогащаем проект и компоненты правами доступа
     const projectPermissions = permissionsMap.get(project.project_hash);
 
-    const componentsWithPermissions = components?.map((component) => {
+    const componentsWithPermissions = (components || []).map((component) => {
       const componentPermissions = permissionsMap.get(component.project_hash);
       return {
         ...component,
+        created_at: toCreatedAtString(component.created_at),
         permissions: componentPermissions,
       } as ProjectComponentOutputDTO;
     });
 
     return {
       ...project,
+      created_at: toCreatedAtString(project.created_at),
       permissions: projectPermissions,
       components: componentsWithPermissions,
     } as ProjectOutputDTO;
@@ -81,7 +98,7 @@ export class ProjectMapperService {
    */
   async mapBatchToDTO(
     projects: ProjectDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO[]> {
     // Рассчитываем права доступа для всех проектов пакетно
     const permissionsMap = await this.permissionsService.calculateBatchProjectPermissions(projects, currentUser);
@@ -91,7 +108,9 @@ export class ProjectMapperService {
       const permissions = permissionsMap.get(project.project_hash);
       return {
         ...project,
+        created_at: toCreatedAtString(project.created_at),
         permissions,
+        components: [],
       } as ProjectOutputDTO;
     });
   }
@@ -102,7 +121,7 @@ export class ProjectMapperService {
    */
   async mapBatchToDTOWithComponents(
     projects: ProjectDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO[]> {
     // Собираем все проекты (родительские + компоненты) для расчета прав
     const allProjects = projects.flatMap((project) => {
@@ -121,16 +140,18 @@ export class ProjectMapperService {
       const components = (project as any).components as ProjectDomainEntity[] | undefined;
 
       // Обогащаем компоненты правами доступа
-      const componentsWithPermissions = components?.map((component) => {
+      const componentsWithPermissions = (components || []).map((component) => {
         const componentPermissions = permissionsMap.get(component.project_hash);
         return {
           ...component,
+          created_at: toCreatedAtString(component.created_at),
           permissions: componentPermissions,
         } as ProjectComponentOutputDTO;
       });
 
       return {
         ...project,
+        created_at: toCreatedAtString(project.created_at),
         permissions: projectPermissions,
         components: componentsWithPermissions,
       } as ProjectOutputDTO;
@@ -143,7 +164,7 @@ export class ProjectMapperService {
    */
   async mapBatchToBaseDTO(
     projects: ProjectDomainEntity[],
-    currentUser?: MonoAccountDomainInterface
+    currentUser?: IMonoAccount
   ): Promise<BaseProjectOutputDTO[]> {
     // Рассчитываем права доступа для всех проектов пакетно
     const permissionsMap = await this.permissionsService.calculateBatchProjectPermissions(projects, currentUser);
@@ -153,6 +174,7 @@ export class ProjectMapperService {
       const permissions = permissionsMap.get(project.project_hash);
       return {
         ...project,
+        created_at: toCreatedAtString(project.created_at),
         permissions,
       } as BaseProjectOutputDTO;
     });

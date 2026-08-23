@@ -7,6 +7,8 @@
       variant='accent'
     ) {{ badgeLabel }}
     q-menu(
+      ref='menuRef',
+      class='notification-center-menu',
       anchor='bottom right',
       self='top right',
       :offset='[0, 8]',
@@ -22,8 +24,11 @@
         )
         //- Управление push-подпиской ЭТОГО устройства. Колокольчик —
         //- единственное место, куда это логично встаёт (отдельной страницы
-        //- управления устройствами пока нет).
-        .push-strip(v-if='session.isAuth && pushSupport.isSupported')
+        //- управления устройствами пока нет). Strip показываем ТОЛЬКО когда
+        //- SW реально активен (hasServiceWorker) — иначе кнопка кликалась бы
+        //- вхолостую («Service Worker не активен»). В dev/без-PWA не рисуем
+        //- ничего (не путать с «браузер не поддерживает»).
+        .push-strip(v-if='session.isAuth && pushSupport.isSupported && hasServiceWorker')
           .push-strip__status
             q-icon.push-strip__icon(
               :name='pushStatusIcon',
@@ -31,21 +36,23 @@
               size='18px'
             )
             span.push-strip__text {{ pushStatusText }}
-          BaseButton(
+          BaseButton.push-strip__action(
             v-if='pushSupport.permission !== "denied"',
             :variant='isThisDeviceSubscribed ? "ghost" : "primary"',
             size='sm',
             :loading='isProcessing',
             @click='onPushAction'
           ) {{ isThisDeviceSubscribed ? 'Переподписать' : 'Включить на устройстве' }}
-        .push-strip(v-else-if='session.isAuth')
+        .push-strip(v-else-if='session.isAuth && !pushSupport.isSupported')
           .push-strip__status
             q-icon.push-strip__icon(name='notifications_off', size='18px')
             span.push-strip__text Браузер не поддерживает push-уведомления
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import type { QMenu } from 'quasar';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { NotificationCenter as NotificationPanel } from 'src/shared/ui/domain/NotificationCenter';
@@ -56,9 +63,12 @@ import { useNotificationInboxStore } from './model';
 const store = useNotificationInboxStore();
 const session = useSessionStore();
 const push = useWebPushNotifications();
+const router = useRouter();
+const menuRef = ref<QMenu | null>(null);
 
 // Локальные алиасы: вложенные под push.* ref'ы в шаблоне не авто-разворачиваются.
 const pushSupport = computed(() => push.support.value);
+const hasServiceWorker = computed(() => push.hasActiveServiceWorker.value);
 const isThisDeviceSubscribed = computed(() => push.isThisDeviceSubscribed.value);
 const isProcessing = computed(() => push.isProcessing.value);
 
@@ -91,6 +101,13 @@ function onOpen(): void {
 
 function onOpenNotification(id: string): void {
   void store.markRead(id);
+  // Уведомление с deep-link'ом не просто «прочитывается» — ведёт к действию
+  // (например, «вход с нового устройства» → активные сессии в настройках).
+  const item = store.items.find((i) => i.id === id);
+  if (item?.link) {
+    menuRef.value?.hide();
+    void router.push(item.link);
+  }
 }
 
 function onMarkAllRead(): void {
@@ -142,6 +159,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   gap: var(--p-2, 8px);
   padding: var(--p-3, 12px) var(--p-4, 16px);
   border-top: 1px solid var(--p-line);
@@ -153,6 +171,14 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--p-2, 8px);
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Кнопка не сжимается и не переносит подпись (на узких экранах «Включить на
+   устройстве» ломалось на 2 строки и распирало полосу). */
+.push-strip__action {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .push-strip__icon {
@@ -170,7 +196,22 @@ onBeforeUnmount(() => {
   font-size: var(--p-fs-caption, 12px);
   line-height: var(--p-lh-body-sm, 1.4);
   color: var(--p-ink-2);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+</style>
+
+<!-- q-menu рендерится порталом в body → стиль не может быть scoped. На мобиле
+     панель раскрываем во всю ширину вьюпорта (минус мелкий зазор), а не прижатым
+     справа обрубком 360px, у которого резало правый край. -->
+<style>
+@media (max-width: 600px) {
+  .notification-center-menu.q-menu {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
 }
 </style>

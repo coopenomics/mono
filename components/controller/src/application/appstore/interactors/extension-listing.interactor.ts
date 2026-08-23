@@ -24,7 +24,22 @@ export class ExtensionListingInteractor<TConfig = any> {
   /**
    * Проверить конфиг по схеме
    */
+  /**
+   * Вернуть на место секреты, пришедшие маркером «задано». Обязательно до
+   * `validateConfig` и до сохранения — иначе форма настроек затрёт ключ.
+   */
+  async prepareConfigForSave(name: string, incoming: any): Promise<any> {
+    return this.listingService.prepareConfigForSave(name, incoming);
+  }
+
   validateConfig(name: string, config: any): void {
     return this.listingService.validateConfig(name, config);
+  }
+
+  /**
+   * Проверить, что расширение вообще открыто для установки в этой сети
+   */
+  assertInstallable(name: string): void {
+    return this.listingService.assertInstallable(name);
   }
 }

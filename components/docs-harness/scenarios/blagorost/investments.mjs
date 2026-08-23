@@ -95,7 +95,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // --- Кадр 1. Карточка компонента с включённым toggle «Принимает инвестиции» ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/description`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/description`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector(`text=${COMPONENT_TITLE}`, { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
@@ -116,7 +116,7 @@ export default async ({ page, context, shot, env }) => {
   // Берём свежую page чтобы projectStore мониторов остался релевантным
   const planPage = await context.newPage();
   try {
-    await planPage.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
+    await planPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
     await planPage.waitForSelector('text=Привлекаемые инвестиции', { timeout: 30000 }).catch(() => {});
     await planPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await planPage.waitForTimeout(2000);
@@ -131,7 +131,7 @@ export default async ({ page, context, shot, env }) => {
   }
 
   // --- Кадр 3. Профиль с кнопкой «Инвестировать» на Кошельке Благороста ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/wallet`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/wallet`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('text=Иванов', { timeout: 30000 }).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);

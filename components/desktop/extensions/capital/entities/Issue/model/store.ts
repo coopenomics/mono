@@ -8,8 +8,9 @@ const namespace = 'issueStore';
 interface IIssueStore {
   issuesByProject: Ref<Record<string, IIssuesPagination>>;
   loadIssues: (data: IGetIssuesInput, projectHash: string, append?: boolean) => Promise<void>;
-  updateIssueByHash: (projectHash: string, issueHash: string) => Promise<void>;
-  addIssue: (projectHash: string, issueData: IIssue) => void;
+  // projectHash допускает null: у свободной задачи проекта нет (IIssue).
+  updateIssueByHash: (projectHash: string | null | undefined, issueHash: string) => Promise<void>;
+  addIssue: (projectHash: string | null | undefined, issueData: IIssue) => void;
   removeIssue: (projectHash: string, issueHash: string) => void;
   /** После переноса задачи в другой компонент: убрать из старого кэша и положить в новый */
   relocateIssue: (fromProjectHash: string, toProjectHash: string, issueData: IIssue) => void;
@@ -40,7 +41,15 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     }
   };
 
-  const updateIssueByHash = async (projectHash: string, issueHash: string): Promise<void> => {
+  // projectHash допускает null: у свободной задачи проекта нет (см. IIssue).
+  // Обновлять в этом случае нечего — кэша по проекту не существует.
+  const updateIssueByHash = async (
+    projectHash: string | null | undefined,
+    issueHash: string,
+  ): Promise<void> => {
+    if (!projectHash) {
+      return;
+    }
     try {
       const updatedIssue = await api.loadIssue({ issue_hash: issueHash });
       if (!updatedIssue) {
@@ -65,7 +74,14 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     }
   };
 
-  const addIssue = (projectHash: string, issueData: IIssue) => {
+  // projectHash допускает null по той же причине; пустой уже обрабатывался
+  // ниже, тип лишь приведён к фактическому контракту.
+  const addIssue = (projectHash: string | null | undefined, issueData: IIssue) => {
+    if (!projectHash) {
+      console.warn('issueStore.addIssue: empty projectHash, skip cache write');
+      return;
+    }
+
     const projectIssues = issuesByProject.value[projectHash];
     if (!projectIssues) {
       // Если для проекта еще нет данных, инициализируем пустой массив
@@ -84,8 +100,8 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     );
 
     if (existingIndex !== -1) {
-      // Заменяем существующую задачу
-      projectIssues.items[existingIndex] = issueData;
+      // splice — гарантирует реактивность массива в Pinia
+      projectIssues.items.splice(existingIndex, 1, issueData);
     } else {
       // Добавляем новую задачу в начало списка
       projectIssues.items = [issueData, ...projectIssues.items];
@@ -112,7 +128,9 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
   };
 
   const relocateIssue = (fromProjectHash: string, toProjectHash: string, issueData: IIssue) => {
-    removeIssue(fromProjectHash, issueData.issue_hash);
+    if (fromProjectHash) {
+      removeIssue(fromProjectHash, issueData.issue_hash);
+    }
     addIssue(toProjectHash, issueData);
   };
 

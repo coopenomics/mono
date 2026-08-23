@@ -37,7 +37,7 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           :value='manualInput[f.key]'
           :placeholder='f.placeholder'
           :mask='f.mask'
-          :digits-dots-only='f.digitsDotsOnly'
+          :digits-extra-chars='f.digitsExtraChars'
           :max-length='f.maxLength'
           :exact-lengths='f.exactLengths'
           :pattern='f.pattern'
@@ -46,11 +46,11 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           @update:value='v => (manualInput[f.key] = v)'
         )
 
-  //- СФР (ЕФС-1)
+  //- СФР/ПФР (ЕФС-1)
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
-      .text-h6 СФР (для ЕФС-1)
-      .text-caption.t-muted Регистрационный номер СФР и должность председателя
+      .text-h6 СФР/ПФР (для ЕФС-1)
+      .text-caption.t-muted Регистрационные номера страхователя и должность председателя
 
     q-separator
 
@@ -60,12 +60,26 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           id='field-sfrRegNumber'
           label='Рег. номер СФР'
           :value='manualInput.sfrRegNumber'
-          placeholder='XXX-XXX-XXXXXX'
-          mask='###-###-######'
+          placeholder='10 цифр'
+          mask='##########'
+          :max-length='10'
+          :exact-lengths='[10]'
           :pattern='SFR_REG_PATTERN'
-          pattern-message='Формат: XXX-XXX-XXXXXX (12 цифр)'
+          pattern-message='Формат: 10 цифр без разделителей'
           required
           @update:value='v => (manualInput.sfrRegNumber = v)'
+        )
+        RequisiteField.col-md-6.col-12(
+          id='field-pfrRegNumber'
+          label='Рег. номер ПФР'
+          :value='manualInput.pfrRegNumber'
+          placeholder='XXX-XXX-XXXXXX'
+          mask='###-###-######'
+          :max-length='14'
+          :pattern='PFR_REG_PATTERN'
+          pattern-message='Формат: XXX-XXX-XXXXXX (12 цифр с тире)'
+          required
+          @update:value='v => (manualInput.pfrRegNumber = v)'
         )
         RequisiteField.col-md-6.col-12(
           id='field-chairmanPosition'
@@ -163,6 +177,7 @@ type ManualKey =
   | 'oktmo'
   | 'okpo'
   | 'sfrRegNumber'
+  | 'pfrRegNumber'
   | 'chairmanPosition'
   | 'signerSnils'
   | 'signerRepDoc'
@@ -176,6 +191,7 @@ const manualInput = reactive<Record<ManualKey, string>>({
   oktmo: '',
   okpo: '',
   sfrRegNumber: '',
+  pfrRegNumber: '',
   chairmanPosition: '',
   signerSnils: '',
   signerRepDoc: '',
@@ -202,7 +218,7 @@ interface ClassifierField {
   label: string
   placeholder?: string
   mask?: string
-  digitsDotsOnly?: boolean
+  digitsExtraChars?: string
   maxLength?: number
   exactLengths?: number[]
   pattern?: RegExp
@@ -212,13 +228,13 @@ interface ClassifierField {
 // Placeholder'ы — правило ввода (кол-во цифр), а не конкретные примеры.
 // Для цифровых полей фиксированной/короткой длины — используем Quasar-mask
 // (`#` = только цифра, буквы блокируются на keypress нативно).
-// Для ОКВЭД (цифры + точка переменной длины) — digitsDotsOnly с @keydown-блокером.
+// Для ОКВЭД (цифры + точка переменной длины) — digitsExtraChars='.' с @keydown-блокером.
 const classifierFields: ClassifierField[] = [
   {
     key: 'okved',
     label: 'ОКВЭД',
     placeholder: 'XX.XX или XX.XX.XX',
-    digitsDotsOnly: true,
+    digitsExtraChars: '.',
     maxLength: 8,
     pattern: /^\d{2}(\.\d{1,2}){0,2}$/,
     patternMessage: 'Формат: XX.XX или XX.XX.XX',
@@ -265,7 +281,8 @@ const signerTypeOptions = [
 // пользователь прожал пару цифр и нажал «Сохранить»: mask не мешает
 // сохранить частичный ввод, паттерн-правило блокирует.
 const SNILS_PATTERN = /^\d{3}-\d{3}-\d{3} \d{2}$/
-const SFR_REG_PATTERN = /^\d{3}-\d{3}-\d{6}$/
+const SFR_REG_PATTERN = /^\d{10}$/
+const PFR_REG_PATTERN = /^\d{3}-\d{3}-\d{6}$/
 
 function getValue(key: keyof IReportRequisitesView): string {
   const v = requisites.value?.[key] as any

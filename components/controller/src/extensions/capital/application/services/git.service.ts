@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Octokit } from '@octokit/rest';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { LOGGER_PORT, type ILoggerPort,
+  SECRET_CIPHER_PORT,
+  type ISecretCipherPort,
+  INTEGRATION_SETTINGS_PORT,
+  type IIntegrationSettingsPort,
+} from '@coopenomics/innercoop';
 import { resolveCapitalGithubApiPlainToken } from '../utils/capital-github-token';
 
 /**
@@ -61,16 +66,28 @@ interface IParsedGitUrl {
  */
 @Injectable()
 export class GitService {
+  /** Чем разжать сохранённый токен и чем заменить, если своего нет. */
+  private get tokenSources() {
+    return {
+      decrypt: (ciphertext: string) => this.secretCipher.decrypt(ciphertext),
+      fallbackToken: this.integrations.get<{ token?: string }>('capital', 'github')?.token,
+    };
+  }
+
   private octokit: Octokit;
 
-  constructor(private readonly logger: WinstonLoggerService) {
+  constructor(
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(SECRET_CIPHER_PORT) private readonly secretCipher: ISecretCipherPort,
+    @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort
+  ) {
     this.logger.setContext(GitService.name);
     this.octokit = new Octokit({ auth: undefined });
     this.reconfigureWithCapitalExtensionEncrypted(undefined);
   }
 
   reconfigureWithCapitalExtensionEncrypted(githubApiTokenEncrypted: string | undefined): void {
-    const githubToken = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted);
+    const githubToken = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted, this.tokenSources);
     this.octokit = new Octokit({
       auth: githubToken || undefined,
     });

@@ -2,7 +2,7 @@ import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 import GraphQLJSON from 'graphql-type-json';
-import { BaseOutputDTO } from '~/shared/dto/base.dto';
+import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { IssuePermissionsOutputDTO } from './issue-permissions.dto';
 
 @ObjectType('CapitalIssueLinkedGitCommit', {
@@ -27,6 +27,12 @@ export class IssueLinkedGitCommitSummaryDTO {
   /** Полный текст сообщения коммита (маркеры PRD / формат) */
   @Field(() => String)
   commit_message!: string;
+
+  @Field(() => String, { nullable: true, description: 'Ветка, на которой коммит появился впервые' })
+  branch!: string | null;
+
+  @Field(() => Boolean, { description: 'Коммит уже дошёл до базовой ветки репозитория' })
+  in_default_branch!: boolean;
 }
 
 /**
@@ -94,9 +100,10 @@ export class IssueOutputDTO extends BaseOutputDTO {
   creators!: string[];
 
   @Field(() => String, {
-    description: 'Хеш проекта',
+    nullable: true,
+    description: 'Хеш проекта или компонента; пусто — свободная задача',
   })
-  project_hash!: string;
+  project_hash?: string | null;
 
   @Field(() => String, {
     nullable: true,

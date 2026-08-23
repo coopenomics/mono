@@ -13,7 +13,10 @@ import { floorDecimalString } from './floorDecimalString';
  * @param value — строка с активом (например "99999.9999 RUB")
  * @returns отформатированная строка (например "99 999,99 RUB")
  */
-export const formatAsset2Digits = (value: string): string => {
+// null/undefined допустимы: суммы приходят из GraphQL как string | null,
+// а функция и так возвращает '0.00' на пустом значении — тип лишь
+// приведён к фактическому поведению.
+export const formatAsset2Digits = (value: string | null | undefined): string => {
   if (!value || value === '0') return '0.00';
 
   const parts = value.trim().split(' ');

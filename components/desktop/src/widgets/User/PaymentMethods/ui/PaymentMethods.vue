@@ -10,9 +10,7 @@
         DeletePaymentButton(
           :username='username',
           :method_id='method.method_id',
-          size='sm',
-          flat,
-          color='negative'
+          size='sm'
         )
 
       //- Система Быстрых Платежей

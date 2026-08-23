@@ -17,10 +17,12 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { CreateProjectButton } from 'src/features/Decision/CreateProject';
+import { RefreshAgendaButton } from 'src/features/Decision/RefreshAgenda';
+import { useAgendaStore } from 'src/entities/Agenda/model';
 import { useDecisionProcessor } from 'src/processes/process-decisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { QuestionsTable } from 'src/widgets/Questions';
@@ -46,10 +48,15 @@ const setProcessing = (decision_id: number, value: boolean) => {
   };
 };
 
-// Инжектим кнопку создания решения в заголовок
+// Инжектим кнопки повестки в заголовок: обновление слева от создания решения.
 const { registerAction } = useHeaderActions();
 
 onMounted(() => {
+  registerAction({
+    id: 'refresh-agenda',
+    component: RefreshAgendaButton,
+    order: 0,
+  });
   registerAction({
     id: 'create-project',
     component: CreateProjectButton,
@@ -76,8 +83,8 @@ const {
 // неутверждённые вопросы, поэтому скрывать пункт нужно только после утверждения
 // (не после голосования — там пункт остаётся, лишь помечается голос). После
 // утверждения пункт исполняется и уходит из повестки, но данные из блокчейна
-// доходят с задержкой — поллинг успевал на мгновение вернуть уже утверждённый
-// пункт («исчез → вернулся → исчез»). Держим его скрытым локально; в пределах
+// доходят с задержкой — обновление успевало на мгновение вернуть уже
+// утверждённый пункт («исчез → вернулся → исчез»). Держим его скрытым; в пределах
 // сессии страницы обратно не показываем — намеренно просто.
 const actedDecisionIds = ref<Set<number>>(new Set());
 
@@ -88,6 +95,15 @@ const decisions = computed(() =>
   ),
 );
 
+// Дозагрузка повестки после действия пайщика. Guard от наложения и проглатывание
+// ошибки — внутри store.refresh: то же самое делает кнопка «Обновить» в шапке,
+// а она рендерится вне дерева страницы и обязана делить состояние с этой
+// дозагрузкой. Ошибка обновления сознательно не всплывает пайщику: список —
+// фоновая вещь, и его падение не означает, что голос не прошёл.
+const agendaStore = useAgendaStore();
+const refreshAgendaQuietly = () =>
+  agendaStore.refresh({ coopname: route.params.coopname as string });
+
 // Обработчики событий
 const onAuthorizeDecision = async (row) => {
   const decision_id = Number(row.table.id);
@@ -95,15 +111,17 @@ const onAuthorizeDecision = async (row) => {
 
   try {
     await authorizeAndExecuteDecision(row);
-    // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
-    actedDecisionIds.value.add(decision_id);
-    SuccessAlert('Решение принято и исполнено');
-    await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);
-  } finally {
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
+  actedDecisionIds.value.add(decision_id);
+  SuccessAlert('Решение принято и исполнено');
+  setProcessing(decision_id, false);
+  await refreshAgendaQuietly();
 };
 
 const onDeclineDecision = async (row) => {
@@ -112,66 +130,58 @@ const onDeclineDecision = async (row) => {
 
   try {
     await declineDecision(row);
-    // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
-    actedDecisionIds.value.add(decision_id);
-    SuccessAlert('Решение отклонено');
-    await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);
-  } finally {
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
+  actedDecisionIds.value.add(decision_id);
+  SuccessAlert('Решение отклонено');
+  setProcessing(decision_id, false);
+  await refreshAgendaQuietly();
 };
 
-const onVoteFor = async (row) => {
+// Голос «за»/«против» отличается только вызовом фичи — остальное общее.
+const submitVote = async (row, cast: typeof voteForDecision) => {
   const decision_id = Number(row.table.id);
   setProcessing(decision_id, true);
 
   try {
-    await voteForDecision(row);
-    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
-    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
-    SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string, true);
-    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
-    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
-    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
+    await cast(row);
   } catch (e) {
-    console.error(e)
+    console.error(e);
     FailAlert(e);
     setProcessing(decision_id, false);
+    return;
   }
+
+  // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
+  // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
+  SuccessAlert('Голос принят');
+  await refreshAgendaQuietly();
+
+  // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
+  // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
+  setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
 };
 
-const onVoteAgainst = async (row) => {
-  const decision_id = Number(row.table.id);
-  setProcessing(decision_id, true);
-
-  try {
-    await voteAgainstDecision(row);
-    // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
-    // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
-    SuccessAlert('Голос принят');
-    await loadDecisions(route.params.coopname as string, true);
-    // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
-    // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
-    setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
-  } catch (e) {
-    console.error(e)
-    FailAlert(e);
-    setProcessing(decision_id, false);
-  }
-};
+const onVoteFor = (row) => submitVote(row, voteForDecision);
+const onVoteAgainst = (row) => submitVote(row, voteAgainstDecision);
 
 // Инициализация
 loadDecisions(route.params.coopname as string);
 
-// Периодическое обновление данных
-const interval = setInterval(
-  () => loadDecisions(route.params.coopname as string, true),
-  10000,
-);
-onBeforeUnmount(() => clearInterval(interval));
+// Периодического обновления здесь НЕТ намеренно. Один ответ повестки — это
+// пакет документов по каждому решению (заявление вместе с положением ЦПП,
+// правилами электронной подписи и прочими: 4–5 документов по ~50 КБ, за 200 КБ
+// суммарно), и перечитывать его таймером раз в 10 секунд в открытой вкладке
+// незачем. Список обновляется тремя способами: при заходе на страницу, сам
+// после действия пайщика и по кнопке «Обновить» в шапке.
+//
+// Плата за это: голоса других членов совета, поданные прямо сейчас, появятся не
+// сами — нужно нажать «Обновить». Осознанный размен (C28-41).
 </script>
 
 <style lang="scss" scoped>

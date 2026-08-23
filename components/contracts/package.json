@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/contracts",
-  "version": "2026.6.9-2",
+  "version": "2026.8.22-3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,9 +9,6 @@
     "build:one": "./build.sh $1",
     "build:one:test": "contract=$1 mode=test ./build.sh",
     "enter": "./boot/scripts/enter.sh",
-    "testnet": "git checkout testnet && git merge dev && lerna publish prerelease && git push && git checkout dev && git merge testnet",
-    "production": "git checkout main && git merge -X theirs testnet && lerna publish --conventional-commits --conventional-graduate && git push && git checkout dev && git merge main",
-    "docs-publish": "pnpm gh-pages --nojekyll -d docs/site --repo git@github.com:coopenomics/monocoop.git",
     "standards:dev": "pnpm --filter @coopenomics/standards-site dev",
     "standards:build": "pnpm --filter @coopenomics/standards-site build",
     "standards:preview": "pnpm --filter @coopenomics/standards-site preview"

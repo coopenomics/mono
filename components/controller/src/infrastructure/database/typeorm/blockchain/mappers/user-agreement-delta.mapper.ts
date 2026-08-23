@@ -5,7 +5,7 @@ import { UserAgreementDomainEntity } from '~/domain/wallet/entities/user-agreeme
 import type { IUserAgreementBlockchainData } from '~/domain/wallet/interfaces/user-agreement-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { WalletContractInfoService } from '~/infrastructure/blockchain/services/wallet-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 
 /**
  * Маппер дельт `wallet::users` → blockchain-данные owner'а программных соглашений.

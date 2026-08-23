@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
-} from '~/domain/extension/extension-app-lifecycle.events';
+} from '@coopenomics/extension-kit';
 import { GitHubSyncSchedulerService } from '../../infrastructure/services/github-sync-scheduler.service';
 import { ProgramShareRegistrationSchedulerService } from '../../infrastructure/services/program-share-registration-scheduler.service';
 import { CapitalDevelopmentRepositoryGitSyncService } from '../services/capital-development-repository-git-sync.service';

@@ -17,7 +17,7 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
     const udataService = new Udata(this.storage)
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, vars, coop, user, generatorAgreementUdata, generatorAgreementCreatedAtUdata } = await this.resolveParallel({
+    const { template, vars, coop, user, generatorAgreementUdata, generatorAgreementCreatedAtUdata, docData } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
         ? Promise.resolve(GeneratorOffer.Template as ITemplate<GeneratorOffer.Model>)
         : this.getTemplate<GeneratorOffer.Model>(DraftContract.contractName.production, GeneratorOffer.registry_id, data.block_num),
@@ -36,12 +36,14 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
         key: Cooperative.Model.UdataKey.GENERATOR_AGREEMENT_CREATED_AT,
         block_num: data.block_num,
       }),
+      docData: () => this.loadDocData<GeneratorOffer.Model['doc_data']>(data),
     })
 
     // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
 
     const common_user = this.getCommonUser(user)
+    const doc_data = Cooperative.Registry.requireCapitalProgramPrivateData(docData, GeneratorOffer.registry_id)
 
     // Проверяем наличие данных протокола, утвердившего генерационную программу
     if (!vars.generator_program?.protocol_number || !vars.generator_program?.protocol_day_month_year) {
@@ -68,6 +70,7 @@ export class Factory extends DocFactory<GeneratorOffer.Action> {
       common_user,
       generator_agreement_number: String(generatorAgreementUdata.value),
       generator_agreement_created_at: String(generatorAgreementCreatedAtUdata.value),
+      doc_data,
     }
 
     await this.validate(combinedData, template.model)

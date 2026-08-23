@@ -5,20 +5,37 @@ import { ProjectRepository } from '../../domain/repositories/project.repository'
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { ProjectMapper } from '../mappers/project.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
-import { AssetUtils } from '~/shared/utils/asset.utils';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
+
+/**
+ * Среднее по процентным полям проекта и его компонентов.
+ *
+ * WHY: каждое значение приводится к числу явно. Проценты синхронизировались двумя путями и
+ * до нормализации в RPC-транспорте могли лечь в БД строкой — тогда `sum + value` склеивал
+ * строки, среднее выходило NaN и роняло сериализацию GraphQL Float на всём списке проектов.
+ * Записи, сохранённые до фикса, живут в БД до следующей дельты, поэтому усреднение обязано
+ * оставаться устойчивым к ним.
+ */
+function averagePercent(values: Array<number | string | null | undefined>): number {
+  if (values.length === 0) return 0;
+
+  const sum = values.reduce<number>((accumulator, value) => {
+    const parsed = Number(value ?? 0);
+    return accumulator + (Number.isFinite(parsed) ? parsed : 0);
+  }, 0);
+
+  return sum / values.length;
+}
 
 @Injectable()
 export class ProjectTypeormRepository
@@ -87,6 +104,8 @@ export class ProjectTypeormRepository
         voting_deadline: null,
         matrix_room_id: null,
         development_repository_url: inheritedDevUrl,
+        origin: ProjectOrigin.BLOCKCHAIN,
+        local_owner: null,
       };
 
       const newEntity = this.createDomainEntity(databaseData, blockchainData);
@@ -135,6 +154,55 @@ export class ProjectTypeormRepository
     await this.repository.update({ project_hash: h }, { development_repository_url: url });
   }
 
+  async setPriority(projectHash: string, priority: ProjectPriority): Promise<void> {
+    const h = projectHash.toLowerCase();
+    await this.repository.update({ project_hash: h }, { priority });
+  }
+
+  async updateLocalContent(
+    projectHash: string,
+    fields: {
+      title?: string;
+      description?: string;
+      invite?: string;
+      meta?: string;
+      data?: string;
+    }
+  ): Promise<ProjectDomainEntity> {
+    const h = projectHash.toLowerCase();
+    const existing = await this.repository.findOneBy({ project_hash: h });
+    if (!existing) {
+      throw new Error(`Проект с хэшем ${h} не найден`);
+    }
+    if (existing.origin !== ProjectOrigin.LOCAL) {
+      throw new Error('Обновление локальных полей доступно только для персональных проектов');
+    }
+    const patch: Partial<ProjectTypeormEntity> = {};
+    if (fields.title !== undefined) patch.title = fields.title;
+    if (fields.description !== undefined) patch.description = fields.description;
+    if (fields.invite !== undefined) patch.invite = fields.invite;
+    if (fields.meta !== undefined) patch.meta = fields.meta;
+    if (fields.data !== undefined) patch.data = fields.data;
+    await this.repository.update({ project_hash: h }, patch);
+    const updated = await this.findByHash(h);
+    if (!updated) {
+      throw new Error(`Не удалось перечитать проект ${h} после локального обновления`);
+    }
+    return updated;
+  }
+
+  async softDeleteLocal(projectHash: string): Promise<void> {
+    const h = projectHash.toLowerCase();
+    const existing = await this.repository.findOneBy({ project_hash: h });
+    if (!existing) {
+      throw new Error(`Проект с хэшем ${h} не найден`);
+    }
+    if (existing.origin !== ProjectOrigin.LOCAL) {
+      throw new Error('Мягкое удаление без блокчейна доступно только для персональных проектов');
+    }
+    await this.repository.update({ project_hash: h }, { present: false });
+  }
+
   async findDistinctDevelopmentRepositoryUrls(coopname: string): Promise<string[]> {
     const rows = await this.repository
       .createQueryBuilder('p')
@@ -144,8 +212,13 @@ export class ProjectTypeormRepository
       .andWhere('p.development_repository_url IS NOT NULL')
       .andWhere("btrim(p.development_repository_url) <> ''")
       .getRawMany<{ url: string }>();
-    const urls = rows.map((r) => (typeof r.url === 'string' ? r.url.trim() : '')).filter((u) => u.length > 0);
-    return [...new Set(urls)];
+    // Типы явные: в production-образе devDeps вырезаны, вывод типов деградирует
+    // до any, и `[...new Set(...)]` компилятор считает unknown[] — ts-node в
+    // контейнере отказывался стартовать.
+    const urls: string[] = rows
+      .map((r: { url: string }) => (typeof r.url === 'string' ? r.url.trim() : ''))
+      .filter((u: string) => u.length > 0);
+    return Array.from(new Set<string>(urls));
   }
 
   async countByCoopnameAndDevelopmentRepositoryUrl(coopname: string, normalizedRepositoryUrl: string): Promise<number> {
@@ -327,10 +400,10 @@ export class ProjectTypeormRepository
 
   async findAllPaginated(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -353,6 +426,9 @@ export class ProjectTypeormRepository
     if (filter?.statuses?.length) {
       where.status = In(filter.statuses);
     }
+    if (filter?.priorities?.length) {
+      where.priority = In(filter.priorities);
+    }
     if (filter?.project_hash) {
       where.project_hash = filter.project_hash;
     }
@@ -371,6 +447,12 @@ export class ProjectTypeormRepository
     if (filter?.has_invite) {
       where.invite = Not('');
     }
+    if (filter?.origin && filter.origin !== 'any' && filter.origin !== 'all') {
+      where.origin = filter.origin;
+    } else if (!filter?.origin) {
+      where.origin = ProjectOrigin.BLOCKCHAIN;
+    }
+    // origin=any|all — без ограничения (список «мои проекты» по master)
 
     where.present = true;
 
@@ -420,10 +502,11 @@ export class ProjectTypeormRepository
    */
   async findAllPaginatedWithComponents(
     filter?: ProjectFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<ProjectDomainEntity>> {
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
+  ): Promise<PaginationResult<ProjectDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -454,6 +537,9 @@ export class ProjectTypeormRepository
     if (filter?.statuses?.length) {
       queryBuilder = queryBuilder.andWhere('p.status IN (:...statuses)', { statuses: filter.statuses });
     }
+    if (filter?.priorities?.length) {
+      queryBuilder = queryBuilder.andWhere('p.priority IN (:...priorities)', { priorities: filter.priorities });
+    }
     if (filter?.project_hash) {
       queryBuilder = queryBuilder.andWhere('p.project_hash = :project_hash', { project_hash: filter.project_hash });
     }
@@ -469,6 +555,12 @@ export class ProjectTypeormRepository
     if (filter?.has_invite) {
       queryBuilder = queryBuilder.andWhere('p.invite != :empty', { empty: '' });
     }
+    if (filter?.origin && filter.origin !== 'any' && filter.origin !== 'all') {
+      queryBuilder = queryBuilder.andWhere('p.origin = :origin', { origin: filter.origin });
+    } else if (!filter?.origin) {
+      queryBuilder = queryBuilder.andWhere('p.origin = :origin', { origin: ProjectOrigin.BLOCKCHAIN });
+    }
+    // origin=any|all — без ограничения (список «мои проекты» по master)
 
     // Логика для parent_hash и is_component:
     if (filter?.parent_hash !== undefined) {
@@ -524,15 +616,24 @@ export class ProjectTypeormRepository
       queryBuilder = queryBuilder.andWhere(existsQuery, params);
     }
 
+    // Ограничение правами доступа к артефактам. Отсев в SQL, иначе постраничные
+    // totalCount/totalPages считаются по недоступным проектам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      queryBuilder = queryBuilder.andWhere('lower(p.project_hash) = ANY(CAST(:scopeHashes AS text[]))', {
+        scopeHashes,
+      });
+    }
+
     // Получаем общее количество записей
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`p.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('p._created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `p.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);
@@ -766,10 +867,8 @@ export class ProjectTypeormRepository
 
       // Для процентных полей берем среднее значение
       const planWithPercents = [project, ...components].filter(c => c.plan);
-      project.plan.return_base_percent =
-        planWithPercents.reduce((sum, c) => sum + (c.plan?.return_base_percent || 0), 0) / planWithPercents.length;
-      project.plan.use_invest_percent =
-        planWithPercents.reduce((sum, c) => sum + (c.plan?.use_invest_percent || 0), 0) / planWithPercents.length;
+      project.plan.return_base_percent = averagePercent(planWithPercents.map(c => c.plan?.return_base_percent));
+      project.plan.use_invest_percent = averagePercent(planWithPercents.map(c => c.plan?.use_invest_percent));
 
       // Агрегация fact данных
       const factAssets = [project.fact, ...components.filter(c => c.fact).map(c => c.fact)];
@@ -800,10 +899,8 @@ export class ProjectTypeormRepository
 
       // Для процентных полей берем среднее значение
       const factWithPercents = [project, ...components].filter(c => c.fact);
-      project.fact.return_base_percent =
-        factWithPercents.reduce((sum, c) => sum + (c.fact?.return_base_percent || 0), 0) / factWithPercents.length;
-      project.fact.use_invest_percent =
-        factWithPercents.reduce((sum, c) => sum + (c.fact?.use_invest_percent || 0), 0) / factWithPercents.length;
+      project.fact.return_base_percent = averagePercent(factWithPercents.map(c => c.fact?.return_base_percent));
+      project.fact.use_invest_percent = averagePercent(factWithPercents.map(c => c.fact?.use_invest_percent));
 
     } catch (error: any) {
       console.error(`Ошибка при агрегации данных проекта ${project.project_hash}:`, error.message);

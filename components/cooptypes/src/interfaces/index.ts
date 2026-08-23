@@ -1,6 +1,7 @@
 export * as Branch from './branch'
 export * as Capital from './capital'
 export * as Draft from './draft'
+export * as Expense from './expense'
 export * as Fund from './fund'
 export * as Gateway from './gateway'
 export * as Ledger from './ledger'

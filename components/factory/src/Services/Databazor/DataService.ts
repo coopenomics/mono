@@ -16,7 +16,12 @@ class DataService<T extends IDocument> {
   }
 
   async getOne(filter: Filter<T>): Promise<T | null> {
-    const document = await this.collection.findOne({ ...filter }, { sort: { block_num: -1 } })
+    // Вторичная сортировка по _id: при нескольких версиях с одинаковым block_num
+    // (несколько записей в одном блоке — напр. утверждение положения и оферты ЦПП
+    // в одном решении совета) сортировки только по block_num недостаточно — у Mongo
+    // нет стабильного tiebreak, и возвращалась более ранняя версия без свежих полей.
+    // ObjectId монотонно растёт при вставке → _id:-1 детерминированно даёт последнюю запись.
+    const document = await this.collection.findOne({ ...filter }, { sort: { block_num: -1, _id: -1 } })
     return document as T | null
   }
 
@@ -31,7 +36,8 @@ class DataService<T extends IDocument> {
 
     const aggregateOptions = [
       { $match: filter },
-      { $sort: { block_num: -1 } },
+      // _id вторичным ключом — стабильный tiebreak при равном block_num (см. getOne)
+      { $sort: { block_num: -1, _id: -1 } },
       {
         $group: {
           _id: groupId,
@@ -67,7 +73,7 @@ class DataService<T extends IDocument> {
   }
 
   async getHistory(filter: Filter<T>): Promise<T[]> {
-    const documents = await this.collection.find(filter).sort({ block_num: -1 }).toArray()
+    const documents = await this.collection.find(filter).sort({ block_num: -1, _id: -1 }).toArray()
     return documents as unknown as T[]
   }
 

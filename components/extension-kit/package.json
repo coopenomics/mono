@@ -1,0 +1,83 @@
+{
+  "name": "@coopenomics/extension-kit",
+  "type": "module",
+  "version": "2026.8.22-3",
+  "description": "Служебный каркас расширения цифрового кооператива: базовый модуль, сущности и репозитории расширения, авторизация, каркас блокчейн-синхронизации, контракт миграций схемы, контракт реестра",
+  "author": "Alex Ant <dacom.dark.sun@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "sync": [
+        "./dist/sync/index.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./sync": {
+      "types": "./dist/sync/index.d.ts",
+      "import": "./dist/sync/index.mjs",
+      "require": "./dist/sync/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@coopenomics/sdk": "workspace:*",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/graphql": "^12.2.1",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/typeorm": "^10.0.2",
+    "@wharfkit/antelope": "^1.1.1",
+    "@wharfkit/session": "^1.4.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "cooptypes": "workspace:*",
+    "graphql": "^16.9.0",
+    "graphql-type-json": "^0.3.2",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.45",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.0.0",
+    "typeorm": "0.3.20",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/graphql": "^12.2.1",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/typeorm": "^10.0.2",
+    "@wharfkit/antelope": "^1.1.1",
+    "@wharfkit/session": "^1.4.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "cooptypes": "workspace:*",
+    "graphql": "^16.9.0",
+    "graphql-type-json": "^0.3.2",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.45",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.0.0",
+    "typeorm": "0.3.20",
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0",
+    "zod": "^3.0.0"
+  }
+}

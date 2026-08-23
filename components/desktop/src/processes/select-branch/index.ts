@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { useSelectBranch } from 'src/features/Branch/SelectBranch'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session'
+import { useAccountStore } from 'src/entities/Account/model'
 import { useBranchStore } from 'src/entities/Branch/model'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
@@ -19,32 +20,65 @@ export function useSelectBranchProcess() {
 
   const system = useSystemStore()
   const session = useSessionStore()
+  const accountStore = useAccountStore()
   const branchStore = useBranchStore()
-  const { selectBranch } = useSelectBranch()
+  const { isVisible, selectBranch } = useSelectBranch()
 
-  const branches = computed(() => branchStore.publicBranches)
+  // приватные участки, недоступные текущему пайщику (не в белом списке), к выбору не показываем
+  const branches = computed(() => branchStore.publicBranches.filter((branch) => branch.is_available))
+  const branchesLoading = ref(false)
 
-  // Вотчер на авторизацию
+  const loadBranches = async () => {
+    if (!session.isAuth || !system.info.coopname) return
+
+    try {
+      branchesLoading.value = true
+      await branchStore.loadPublicBranches({ coopname: system.info.coopname })
+    } catch (e: unknown) {
+      FailAlert(e)
+    } finally {
+      branchesLoading.value = false
+    }
+  }
+
+  // Загрузка при входе
   watch(
     () => session.isAuth,
     (isAuth, wasAuth) => {
       if (isAuth && !wasAuth) {
-        branchStore.loadPublicBranches({ coopname: system.info.coopname })
+        void loadBranches()
       }
     },
     { immediate: true }
   )
 
+  // Перезагрузка при переходе в мажоритарный режим или показе оверлея
+  watch(
+    [() => isVisible.value, () => system.info?.cooperator_account?.is_branched],
+    ([visible, branched]) => {
+      if (visible && branched && session.isAuth) {
+        void loadBranches()
+      }
+    }
+  )
+
   const next = async () => {
-    isLoading.value = true
-    document.value = await digitalDocument.generate<Cooperative.Registry.SelectBranchStatement.Action>({
-      registry_id: Cooperative.Registry.SelectBranchStatement.registry_id,
-      coopname: system.info.coopname,
-      username: session.username,
-      braname: selectedBranch.value,
-    })
-    isLoading.value = false
-    step.value++
+    if (!selectedBranch.value || isLoading.value) return
+
+    try {
+      isLoading.value = true
+      document.value = await digitalDocument.generate<Cooperative.Registry.SelectBranchStatement.Action>({
+        registry_id: Cooperative.Registry.SelectBranchStatement.registry_id,
+        coopname: system.info.coopname,
+        username: session.username,
+        braname: selectedBranch.value,
+      })
+      step.value++
+    } catch (e: unknown) {
+      FailAlert(e)
+    } finally {
+      isLoading.value = false
+    }
   }
 
   const back = () => {
@@ -63,6 +97,11 @@ export function useSelectBranchProcess() {
         username: session.username,
       })
 
+      // перечитываем свой аккаунт: гейт закрывается по факту выбранного участка
+      // в сессии, а не «на честном слове» одного флага в оверлее
+      const refreshed = await accountStore.getAccount(session.username)
+      if (refreshed) session.setCurrentUserAccount(refreshed)
+
       useSelectBranch().isVisible.value = false
       SuccessAlert('Кооперативный участок выбран')
     } catch (e: any) {
@@ -80,6 +119,7 @@ export function useSelectBranchProcess() {
     document,
     isSubmitting,
     isLoading,
+    branchesLoading,
     next,
     back,
     sign,

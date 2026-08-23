@@ -1,7 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { BaseTypeormEntity } from '~/shared/sync/entities/base-typeorm.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_appendixes';
 @Entity(EntityName)
@@ -38,7 +38,7 @@ export class AppendixTypeormEntity extends BaseTypeormEntity {
   created_at!: Date;
 
   @Column({ type: 'json', nullable: true })
-  appendix!: ISignedDocumentDomainInterface;
+  appendix!: ISignedDocument;
 
   @Column({ type: 'text', nullable: true })
   contribution?: string;

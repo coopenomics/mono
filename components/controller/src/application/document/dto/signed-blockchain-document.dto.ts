@@ -2,7 +2,7 @@ import { Field, ObjectType } from '@nestjs/graphql';
 import { IsString, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { Cooperative } from 'cooptypes';
-import { SignatureInfoDTO } from './signed-digital-document.dto';
+import { SignatureInfoDTO } from '@coopenomics/extension-kit';
 
 @ObjectType('SignedBlockchainDocument')
 export class SignedBlockchainDocumentDTO implements Cooperative.Document.IChainDocument2 {

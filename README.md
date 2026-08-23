@@ -2,8 +2,8 @@
 
 <!-- badges -->
 ![License](https://img.shields.io/badge/license-BY--NC--SA%204.0-blue)
-![Node](https://img.shields.io/badge/node-%3E%3D20-green)
-![pnpm](https://img.shields.io/badge/pnpm-9-orange)
+![Node](https://img.shields.io/badge/node-22-green)
+![pnpm](https://img.shields.io/badge/pnpm-10-orange)
 
 Платформа «Цифровой Кооператив» — комплексное программное обеспечение для управления кооперативными организациями на основе блокчейна EOSIO. Система обеспечивает полный цикл управления кооперативом: от регистрации пайщиков и электронного документооборота до проведения собраний и финансового учёта. Построена на принципах прозрачности, децентрализации и простой электронной подписи.
 
@@ -30,10 +30,18 @@
 
 ### Предварительные требования
 
-- Node.js >= 20
-- pnpm 9
+- Node.js 22 — та же версия, что в рантайм-образах (`node:22-slim`) и во всех CI-workflow'ах
+- pnpm 10.33.0 — пин в поле `packageManager` корневого `package.json`, ставится через `corepack enable`
 - Docker и Docker Compose
 - [WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation) (для генерации PDF)
+
+> **Про версию Node.** Она не рекомендация, а требование: нативные модули привязаны
+> к ABI ноды (Node 22 → 127, Node 24 → 137). Готовые бинарники лежат в репозитории
+> (`vendor/prebuilds/<пакет>/<версия>/node-v<ABI>/linux-<arch>/`) и подкладываются
+> postinstall-скриптом `scripts/install-native-prebuilds.mjs` — ничего не скачивается
+> и не компилируется при установке. Сейчас завендорены ABI 127 и 137. На другой
+> версии Node установка остановится с явным сообщением о том, какого prebuild'а
+> не хватает; лечится добавлением файла в `vendor/prebuilds/`, а не пересборкой.
 
 ### Установка
 
@@ -55,6 +63,10 @@ pnpm run setup
 docker compose up -d
 pnpm run reboot
 ```
+
+## Вклад в проект
+
+Правила работы с ветками, Pull Request'ами и проверками качества — в [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Разработка
 

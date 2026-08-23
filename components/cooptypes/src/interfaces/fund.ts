@@ -197,3 +197,8 @@ export interface ISubinitial {
   coopname: IName
   quantity: IAsset
 }
+
+export interface IAccumfee {
+  coopname: IName
+  quantity: IAsset
+}

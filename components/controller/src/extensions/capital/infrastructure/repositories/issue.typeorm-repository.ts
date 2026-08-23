@@ -8,12 +8,10 @@ import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
 import { IssueMapper } from '../mappers/issue.mapper';
 import type { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {
@@ -49,6 +47,22 @@ export class IssueTypeormRepository implements IssueRepository {
       where: { coopname, id: clientId },
     });
     return entity ? IssueMapper.toDomain(entity) : null;
+  }
+
+  async getNextFreeIssueId(coopname: string): Promise<string> {
+    const raw = await this.issueTypeormRepository
+      .createQueryBuilder('issue')
+      .select(
+        `MAX(CAST(SUBSTRING(issue.id FROM 5) AS INTEGER))`,
+        'max_num',
+      )
+      .where('issue.coopname = :coopname', { coopname })
+      .andWhere(`issue.id ~ '^000-[0-9]+$'`)
+      .getRawOne<{ max_num: string | number | null }>();
+
+    const maxNum = raw?.max_num == null ? 0 : Number(raw.max_num);
+    const next = Number.isFinite(maxNum) ? maxNum + 1 : 1;
+    return `000-${next}`;
   }
 
   async findAll(): Promise<IssueDomainEntity[]> {
@@ -227,10 +241,11 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<IssueDomainEntity>> {
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
+  ): Promise<PaginationResult<IssueDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -275,9 +290,9 @@ export class IssueTypeormRepository implements IssueRepository {
       queryBuilder = queryBuilder.andWhere('i.priority = ANY(:priorities)', { priorities: filter.priorities });
     }
 
-    // Фильтрация по массиву имен пользователей создателей
+    // Фильтрация по пересечению text[] creators с именами исполнителей
     if (filter?.creators?.length) {
-      queryBuilder = queryBuilder.andWhere('i.creators IN (:...creators)', {
+      queryBuilder = queryBuilder.andWhere('i.creators && :creators', {
         creators: filter.creators,
       });
     }
@@ -290,15 +305,38 @@ export class IssueTypeormRepository implements IssueRepository {
       );
     }
 
+    // Ограничение правами доступа: задачи разрешённых проектов плюс собственная работа пайщика.
+    // Своё видно всегда — постановщик, ответственный и исполнитель не должны терять задачу из
+    // списка, даже если допуск к проекту ещё не оформлен или уже снят. Отсев именно здесь, а не
+    // после выборки, иначе totalCount/totalPages считаются по недоступным строкам.
+    if (scope) {
+      const scopeHashes = scope.projectHashes.map((hash) => hash.toLowerCase());
+      const scopeUser = scope.username ?? null;
+      queryBuilder = queryBuilder.andWhere(
+        `(
+          lower(i.project_hash) = ANY(CAST(:scopeHashes AS text[]))
+          OR (
+            CAST(:scopeUser AS text) IS NOT NULL
+            AND (
+              i.created_by = CAST(:scopeUser AS text)
+              OR i.submaster = CAST(:scopeUser AS text)
+              OR CAST(:scopeUser AS text) = ANY(i.creators)
+            )
+          )
+        )`,
+        { scopeHashes, scopeUser }
+      );
+    }
+
     // Получаем общее количество записей
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`i.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('i._created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.issueTypeormRepository, validatedOptions.sortBy, '_created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `i.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);

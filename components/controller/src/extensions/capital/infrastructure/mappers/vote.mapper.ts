@@ -2,7 +2,7 @@ import { VoteDomainEntity } from '../../domain/entities/vote.entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import type { IVoteDatabaseData } from '../../domain/interfaces/vote-database.interface';
 import type { IVoteBlockchainData } from '../../domain/interfaces/vote-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<VoteTypeormEntity>, keyof IVoteDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<VoteTypeormEntity>, keyof IVoteBlockchainData>;

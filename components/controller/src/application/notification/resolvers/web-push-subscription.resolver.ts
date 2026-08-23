@@ -7,10 +7,7 @@ import { CreateSubscriptionResponse } from '../dto/create-subscription-response.
 import { SubscriptionStatsDto } from '../dto/subscription-stats.dto';
 import { GetUserSubscriptionsInput } from '../dto/get-user-subscriptions.dto';
 import { DeactivateSubscriptionInput } from '../dto/deactivate-subscription.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 @Resolver(() => WebPushSubscriptionDto)
 export class SubscriptionResolver {
   constructor(private readonly webPushSubscriptionService: SubscriptionService) {}

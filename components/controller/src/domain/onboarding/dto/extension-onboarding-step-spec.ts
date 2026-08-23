@@ -1,13 +1,10 @@
-export type OnboardingStepEventType = 'SOVIET_DECISION' | 'MEET_DECISION';
-
-export type OnboardingStepGenerator = 'free_decision' | 'meet';
-
-export interface IExtensionOnboardingStepSpec {
-  extension_name: string;
-  step_key: string;
-  event_type: OnboardingStepEventType;
-  vars_field: string;
-  generator: OnboardingStepGenerator;
-  default_title?: string;
-  order: number;
-}
+/**
+ * Форма шага подключения живёт в контракте `@coopenomics/innercoop`: её
+ * заполняет расширение, читает ядро. Здесь она доступна под привычными ядру
+ * именами.
+ */
+export type {
+  InnerOnboardingStep as IExtensionOnboardingStepSpec,
+  InnerOnboardingDecisionKind as OnboardingStepEventType,
+  InnerOnboardingGenerator as OnboardingStepGenerator,
+} from '@coopenomics/innercoop';

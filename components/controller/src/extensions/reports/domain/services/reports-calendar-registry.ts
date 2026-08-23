@@ -6,8 +6,9 @@ import { ReportType } from '../enums/report-type.enum';
  * Источники:
  * - ФНС (6-НДФЛ): ФЗ №540-ФЗ от 27.11.2023, сроки п.2 ст.230 НК РФ с 2024 г.
  * - РСВ: ст.431 НК РФ — до 25-го числа месяца следующего за отчётным периодом.
- * - ПСВ: ст.431 НК РФ — до 25-го числа каждого месяца, кроме последнего
- *   месяца каждого квартала (т.к. за эти месяцы РСВ).
+ * - ПСВ: ст.431 НК РФ — до 25-го числа месяца, следующего за отчётным;
+ *   за последний месяц квартала (март/июнь/сент/дек) не сдаём — данные
+ *   закрывает разд. 3 РСВ (письма ФНС БС-4-11/2593@, БС-4-11/3700@).
  * - БУХОТЧ: ст.18 402-ФЗ — не позднее 3 месяцев после окончания года.
  * - ЕФС-1 ОСС: приказ СФР №1462 от 17.11.2025 — ежеквартально до 25-го.
  *
@@ -18,10 +19,13 @@ import { ReportType } from '../enums/report-type.enum';
  * не отражает регламентные переносы).
  */
 
-export type PeriodKind = 'yearly' | 'quarterly' | 'monthly';
+export type PeriodKind = 'yearly' | 'quarterly' | 'monthly' | 'semi-monthly';
 
 export interface CalendarPeriodEntry {
-  /** Код периода для генератора: 1..4 для quarterly, 1..12 для monthly, null для yearly. */
+  /**
+   * Код периода для генератора: 1..4 для quarterly, 1..12 для monthly,
+   * 1..24 для semi-monthly (по два периода на месяц), null для yearly.
+   */
   periodCode: number | null;
   /** Человекочитаемая метка: «I кв.», «Январь», «Год». */
   label: string;
@@ -31,6 +35,13 @@ export interface CalendarPeriodEntry {
   dueDay: number;
   /** 0 = сдавать в том же году, 1 = в следующем. */
   dueYearOffset: 0 | 1;
+  /**
+   * Куда переносить срок, если он выпал на выходной или праздник. По умолчанию
+   * вперёд — обычное правило п. 7 ст. 6.1 НК. Назад переносится единственный
+   * срок: уведомление по НДФЛ за 23–31 декабря подаётся «не позднее
+   * последнего рабочего дня года», и перенос вперёд вынес бы его в январь.
+   */
+  shiftDirection?: 'forward' | 'backward';
 }
 
 export interface CalendarFormEntry {
@@ -61,30 +72,64 @@ const RUSSIAN_MONTHS = [
 ];
 
 /**
- * ПСВ — ежемесячная форма: 12 записей, по одной на каждый месяц года.
+ * ПСВ — ежемесячная форма, но без последних месяцев квартала
+ * (март/июнь/сент/дек): за них данные закрывает разд. 3 РСВ, а ФНС
+ * отклоняет ПСВ при наложении сроков с РСВ. Остаётся 8 периодов.
  * Срок сдачи — до 25-го числа месяца, следующего за отчётным (ст.431 НК РФ).
- * Для декабря срок сдачи уходит на 25 января следующего года (dueYearOffset=1).
- *
- * Замечание: по приказу ФНС № ЕД-7-11/878@ за последние месяцы квартала
- * (м3/м6/м9/м12) ПСВ можно не сдавать, т.к. данные закрываются РСВ —
- * но это опциональное послабление, не отсутствие формы. На календаре
- * показываем все 12 ячеек; если пользователь решит, что март/июнь/сент/дек
- * закроются через РСВ, он отметит эти ячейки «Не надо сдавать».
  */
 function psvEntries(): CalendarPeriodEntry[] {
-  return Array.from({ length: 12 }, (_, i) => {
-    const reportMonth = i + 1;
-    const nextMonth = reportMonth + 1;
-    const dueMonth = nextMonth > 12 ? 1 : nextMonth;
-    const dueYearOffset: 0 | 1 = nextMonth > 12 ? 1 : 0;
-    return {
-      periodCode: reportMonth,
-      label: RUSSIAN_MONTHS[reportMonth - 1] ?? String(reportMonth),
-      dueMonth,
+  // Последний месяц квартала закрывается РСВ — в календарь не включаем.
+  const skipMonths = new Set([3, 6, 9, 12]);
+  return Array.from({ length: 12 }, (_, i) => i + 1)
+    .filter((reportMonth) => !skipMonths.has(reportMonth))
+    .map((reportMonth) => {
+      const nextMonth = reportMonth + 1;
+      const dueMonth = nextMonth > 12 ? 1 : nextMonth;
+      const dueYearOffset: 0 | 1 = nextMonth > 12 ? 1 : 0;
+      return {
+        periodCode: reportMonth,
+        label: RUSSIAN_MONTHS[reportMonth - 1] ?? String(reportMonth),
+        dueMonth,
+        dueDay: 25,
+        dueYearOffset,
+      };
+    });
+}
+
+/**
+ * Уведомление по НДФЛ — 24 периода в году, по два на месяц.
+ *
+ * Сроки: за период с 1 по 22 число — до 25 числа того же месяца; за период с
+ * 23 по последнее число — до 3 числа следующего месяца. Исключение одно:
+ * уведомление за 23–31 декабря подаётся не позднее последнего рабочего дня
+ * года, поэтому срок стоит на 31 декабря и переносится назад, а не вперёд.
+ *
+ * Периоды без выплат подавать не нужно — календарь показывает все, а пустые
+ * бухгалтер отмечает как несдаваемые, как это уже сделано для ПСВ.
+ */
+function uvNdflEntries(): CalendarPeriodEntry[] {
+  const entries: CalendarPeriodEntry[] = [];
+  for (let month = 1; month <= 12; month += 1) {
+    const monthLabel = RUSSIAN_MONTHS[month - 1] ?? String(month);
+    entries.push({
+      periodCode: (month - 1) * 2 + 1,
+      label: `${monthLabel} · 1–22`,
+      dueMonth: month,
       dueDay: 25,
-      dueYearOffset,
-    };
-  });
+      dueYearOffset: 0,
+    });
+
+    const isDecember = month === 12;
+    entries.push({
+      periodCode: (month - 1) * 2 + 2,
+      label: `${monthLabel} · 23–конец`,
+      dueMonth: isDecember ? 12 : month + 1,
+      dueDay: isDecember ? 31 : 3,
+      dueYearOffset: 0,
+      ...(isDecember ? { shiftDirection: 'backward' as const } : {}),
+    });
+  }
+  return entries;
 }
 
 export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
@@ -127,6 +172,12 @@ export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [
     shortName: 'ПСВ',
     periodKind: 'monthly',
     periods: psvEntries(),
+  },
+  {
+    reportType: ReportType.UV_NDFL,
+    shortName: 'Уведомление НДФЛ',
+    periodKind: 'semi-monthly',
+    periods: uvNdflEntries(),
   },
   {
     reportType: ReportType.FSS4,
@@ -184,7 +235,13 @@ function isNonBusinessDay(year: number, month1to12: number, day: number): boolea
  * (самый длинный подряд-выходной в РФ — 1-8 января = 8 дней + возможные
  * субботы/воскресенья после = до 10-12 подряд; 14 с запасом).
  */
-function shiftToBusinessDay(year: number, month1to12: number, day: number): { year: number; month: number; day: number } {
+function shiftToBusinessDay(
+  year: number,
+  month1to12: number,
+  day: number,
+  direction: 'forward' | 'backward' = 'forward',
+): { year: number; month: number; day: number } {
+  const step = direction === 'backward' ? -1 : 1;
   const d = new Date(Date.UTC(year, month1to12 - 1, day));
   for (let i = 0; i < 14; i++) {
     const y = d.getUTCFullYear();
@@ -193,7 +250,7 @@ function shiftToBusinessDay(year: number, month1to12: number, day: number): { ye
     if (!isNonBusinessDay(y, m, dd)) {
       return { year: y, month: m, day: dd };
     }
-    d.setUTCDate(d.getUTCDate() + 1);
+    d.setUTCDate(d.getUTCDate() + step);
   }
   // Защита: если за 14 дней не нашли рабочий — возвращаем исходную дату
   // (лучше показать правильный вид, чем падать).
@@ -207,7 +264,12 @@ function shiftToBusinessDay(year: number, month1to12: number, day: number): { ye
  */
 export function calcDueDate(reportYear: number, entry: CalendarPeriodEntry): string {
   const rawYear = reportYear + entry.dueYearOffset;
-  const { year, month, day } = shiftToBusinessDay(rawYear, entry.dueMonth, entry.dueDay);
+  const { year, month, day } = shiftToBusinessDay(
+    rawYear,
+    entry.dueMonth,
+    entry.dueDay,
+    entry.shiftDirection,
+  );
   const m = String(month).padStart(2, '0');
   const d = String(day).padStart(2, '0');
   return `${year}-${m}-${d}`;

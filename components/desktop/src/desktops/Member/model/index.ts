@@ -1,4 +1,5 @@
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
+import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { markRaw } from 'vue';
 
 export const manifest = {
@@ -24,6 +25,17 @@ export const manifest = {
           path: 'payment-methods',
           name: 'user-payment-methods',
           component: markRaw(UserPaymentMethodsPage),
+          children: [],
+        },
+        {
+          meta: {
+            title: 'Настройки',
+            icon: 'settings',
+            roles: [],
+          },
+          path: 'settings',
+          name: 'user-settings',
+          component: markRaw(UserSettingsPage),
           children: [],
         }
       ],

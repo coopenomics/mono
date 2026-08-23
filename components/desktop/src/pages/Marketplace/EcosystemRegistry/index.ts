@@ -1,0 +1,1 @@
+export { EcosystemRegistryPage } from './ui';

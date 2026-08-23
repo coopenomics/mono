@@ -1,65 +1,65 @@
-/**
- * Тип платежа по назначению
- */
-export enum PaymentTypeEnum {
-  // Входящие платежи (от пользователей к кооперативу)
-  REGISTRATION = 'registration', // Регистрационный взнос
-  DEPOSIT = 'deposit', // Паевой взнос
-  WITHDRAWAL = 'withdrawal', // Возврат паевого взноса
-  // Исходящий возврат вступительного и мин. паевого взносов при отказе совета
-  // в приёме. Отдельный тип, не WITHDRAWAL — чтобы не путать с возвратом паевого.
-  REGISTRATION_REFUND = 'registration_refund',
-}
+import { PaymentType, PaymentDirection, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 
 /**
- * Направление платежа
+ * Типы и направления платежей — перечни живут в контракте
+ * `@coopenomics/innercoop`: расширение заводит платёж своего типа, а кассирский
+ * стол ядра обязан такой тип понимать. Здесь они доступны под привычными ядру
+ * именами, а рядом — то, что нужно только ядру: подписи, оговорка НДС и
+ * группировки по направлению.
  */
-export enum PaymentDirectionEnum {
-  INCOMING = 'incoming', // Входящий платеж
-  OUTGOING = 'outgoing', // Исходящий платеж
-}
+export { PaymentType as PaymentTypeEnum, PaymentDirection as PaymentDirectionEnum };
 
 /**
  * Человекочитаемые названия типов платежей
  */
-export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
-  [PaymentTypeEnum.REGISTRATION]: 'Вступительный и мин. паевой взносы',
-  [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
-  [PaymentTypeEnum.WITHDRAWAL]: 'Возврат паевого взноса',
-  [PaymentTypeEnum.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
+export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
+  [PaymentType.REGISTRATION]: 'Вступительный и мин. паевой взносы',
+  [PaymentType.DEPOSIT]: 'Паевой взнос',
+  [PaymentType.WITHDRAWAL]: 'Возврат паевого взноса',
+  [PaymentType.PAYMENT]: 'Оплата',
+  [PaymentType.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
+  [PaymentType.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
+  [PaymentType.EXPENSE]: 'Оплата расхода по служебной записке',
+  [PaymentType.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
+  [PaymentType.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
+  [PaymentType.AID]: 'Материальная помощь',
+  [PaymentType.TAX]: 'Перечисление удержанного НДФЛ',
 };
 
-/**
- * Налоговая оговорка для назначения платежа. Взносы пайщика (вступительный,
- * минимальный паевой, паевой) и их возврат НДС не облагаются. Оговорка обязана
- * присутствовать целиком в memo каждого платежа — это единый источник назначения:
- * провайдеры QR (qrpay/sberpoll) её больше НЕ дописывают, чтобы не задвоить.
- */
-export const VAT_EXEMPT_NOTE = 'НДС не облагается.';
+// Оговорка живёт в контракте `@coopenomics/innercoop`: назначение платежа
+// формируют и ядро, и расширения, а расширению путь `~/` недоступен.
+export { VAT_EXEMPT_NOTE };
 
 /**
  * Человекочитаемые названия направлений платежей
  */
-export const PAYMENT_DIRECTION_LABELS: Record<PaymentDirectionEnum, string> = {
-  [PaymentDirectionEnum.INCOMING]: 'Входящий',
-  [PaymentDirectionEnum.OUTGOING]: 'Исходящий',
+export const PAYMENT_DIRECTION_LABELS: Record<PaymentDirection, string> = {
+  [PaymentDirection.INCOMING]: 'Входящий',
+  [PaymentDirection.OUTGOING]: 'Исходящий',
 };
 
 /**
  * Определяет направление платежа по его типу
  */
-export function getPaymentDirection(type: PaymentTypeEnum): PaymentDirectionEnum {
-  const incomingTypes = [PaymentTypeEnum.REGISTRATION, PaymentTypeEnum.DEPOSIT];
-
-  return incomingTypes.includes(type) ? PaymentDirectionEnum.INCOMING : PaymentDirectionEnum.OUTGOING;
+export function getPaymentDirection(type: PaymentType): PaymentDirection {
+  return INCOMING_PAYMENT_TYPES.includes(type) ? PaymentDirection.INCOMING : PaymentDirection.OUTGOING;
 }
 
 /**
  * Входящие типы платежей
  */
-export const INCOMING_PAYMENT_TYPES = [PaymentTypeEnum.REGISTRATION, PaymentTypeEnum.DEPOSIT];
+export const INCOMING_PAYMENT_TYPES = [PaymentType.REGISTRATION, PaymentType.DEPOSIT, PaymentType.EXPENSE_RETURN];
 
 /**
  * Исходящие типы платежей
  */
-export const OUTGOING_PAYMENT_TYPES = [PaymentTypeEnum.WITHDRAWAL, PaymentTypeEnum.REGISTRATION_REFUND];
+export const OUTGOING_PAYMENT_TYPES = [
+  PaymentType.WITHDRAWAL,
+  PaymentType.PAYMENT,
+  PaymentType.REGISTRATION_REFUND,
+  PaymentType.MEMBERSHIP_EXIT,
+  PaymentType.EXPENSE,
+  PaymentType.EXPENSE_OVERSPEND,
+  PaymentType.AID,
+  PaymentType.TAX,
+];

@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '../repository/document.repository';
 import { DocumentAggregator } from './document.aggregator';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
@@ -12,13 +12,13 @@ import { DocumentPackageUtils } from './document-package-utils.aggregator';
 export class DocumentPackageAggregator {
   constructor(
     @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: DocumentRepository,
-    @Inject(forwardRef(() => DocumentAggregator)) private readonly documentAggregator: DocumentAggregator,
-    @Inject(forwardRef(() => ACCOUNT_DOMAIN_SERVICE)) private readonly accountDomainService: AccountDomainService,
-    @Inject(forwardRef(() => DocumentPackageV0Aggregator))
+    @Inject(DocumentAggregator) private readonly documentAggregator: DocumentAggregator,
+    @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
+    @Inject(DocumentPackageV0Aggregator)
     private readonly documentPackageV0Aggregator: DocumentPackageV0Aggregator,
-    @Inject(forwardRef(() => DocumentPackageV1Aggregator))
+    @Inject(DocumentPackageV1Aggregator)
     private readonly documentPackageV1Aggregator: DocumentPackageV1Aggregator,
-    @Inject(forwardRef(() => DocumentPackageUtils)) private readonly documentPackageUtils: DocumentPackageUtils
+    @Inject(DocumentPackageUtils) private readonly documentPackageUtils: DocumentPackageUtils
   ) {}
 
   /**

@@ -17,11 +17,14 @@ export interface AccountMeta {
 export const LEDGER2_ACCOUNT_REGISTRY: readonly AccountMeta[] = [
   { code: 4,  name: 'Нематериальные активы',            kind: 'active' },
   { code: 8,  name: 'Вложения во внеоборотные активы',  kind: 'active' },
+  { code: 10, name: 'Материалы',                        kind: 'active' },
   { code: 51, name: 'Расчётный счёт',                   kind: 'active' },
   { code: 58, name: 'Финансовые вложения',              kind: 'active' },
+  { code: 68, name: 'Расчёты по налогам и сборам',      kind: 'passive' },
   { code: 76, name: 'Расчёты с пайщиками',              kind: 'active_passive' },
   { code: 80, name: 'Паевой фонд (складочный капитал)', kind: 'passive' },
   { code: 86, name: 'Целевое финансирование',           kind: 'passive' },
+  { code: 91, name: 'Прочие доходы и расходы',          kind: 'active_passive' },
 ] as const
 
 const accountByCode = new Map<number, AccountMeta>(

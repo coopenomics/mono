@@ -33,7 +33,7 @@ export const meta = {
 export default async ({ page, shot }) => {
   const partner = JSON.parse(fs.readFileSync(COOP_FIXTURE_PATH, 'utf8'));
 
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
   await page.waitForTimeout(500);
@@ -44,8 +44,8 @@ export default async ({ page, shot }) => {
     + 'с фиксированным email + WIF — регистрацию проходить не нужно.',
   );
 
-  await page.locator('label:has-text("электронную почту")').first().locator('input').fill(partner.email);
-  await page.locator('label:has-text("ключ доступа")').first().locator('input').fill(partner.wif);
+  await page.locator('input[type="email"]').first().fill(partner.email);
+  await page.locator('input[type="password"]').first().fill(partner.wif);
   await page.waitForTimeout(300);
   await shot(
     page,

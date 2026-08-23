@@ -23,6 +23,15 @@ export function useWebPushNotifications() {
   // аккаунта вообще есть подписка на другом устройстве».
   const thisDeviceEndpoint = ref<string | null>(null);
 
+  // Есть ли РЕАЛЬНО зарегистрированный/активный Service Worker (а не просто
+  // наличие API в браузере). store.support.isSupported = true как только есть
+  // `serviceWorker in navigator`, но в dev/без-PWA сам SW не зарегистрирован
+  // (register-service-worker.ts вешает его только в проде/ENABLE_PWA_DEV) —
+  // тогда подписка физически невозможна, и кнопку показывать нельзя
+  // (иначе клик молча умирает на «Service Worker не активен»).
+  // Заполняется в refreshDeviceState() (async — getRegistrations).
+  const hasActiveServiceWorker = ref(false);
+
   // Подписан ли ИМЕННО ЭТОТ браузер (его endpoint есть в активных подписках
   // аккаунта). store.isSubscribed = «есть хоть одна подписка у аккаунта» —
   // непригоден для multi-device: на втором устройстве он true из-за первого.
@@ -487,6 +496,7 @@ export function useWebPushNotifications() {
     try {
       updateSupport();
       const registration = await getServiceWorkerRegistration();
+      hasActiveServiceWorker.value = !!registration;
       if (!registration) {
         thisDeviceEndpoint.value = null;
         return;
@@ -496,6 +506,7 @@ export function useWebPushNotifications() {
       thisDeviceEndpoint.value = browserSubscription?.endpoint ?? null;
     } catch (error) {
       console.warn('Не удалось определить состояние устройства:', error);
+      hasActiveServiceWorker.value = false;
       thisDeviceEndpoint.value = null;
     }
   };
@@ -637,6 +648,7 @@ export function useWebPushNotifications() {
     canUnsubscribe,
     subscriptionStatus,
     isThisDeviceSubscribed,
+    hasActiveServiceWorker,
 
     // Методы
     initialize,

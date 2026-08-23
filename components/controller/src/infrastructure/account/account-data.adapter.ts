@@ -1,14 +1,14 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { AccountInteractor } from '~/application/account/interactors/account.interactor';
 import { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
-import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import { PaginationInputDTO } from '@coopenomics/extension-kit';
 import { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { GetAccountsInputDomainInterface } from '~/domain/account/interfaces/get-accounts-input.interface';
 
 @Injectable()
 export class AccountDataAdapter implements AccountDataPort {
-  constructor(@Inject(forwardRef(() => AccountInteractor)) private readonly accountInteractor: AccountInteractor) {}
+  constructor(@Inject(AccountInteractor) private readonly accountInteractor: AccountInteractor) {}
 
   async getAccounts(
     data: GetAccountsInputDomainInterface = {},

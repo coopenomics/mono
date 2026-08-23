@@ -1,31 +1,25 @@
 import type { JSONSchemaType } from 'ajv'
 import { Cooperative } from 'cooptypes'
-import type { IGenerate, IMetaDocument, ITemplate } from '../Interfaces'
-import type { IVars } from '../Models'
+import type { ITemplate } from '../Interfaces'
 import { IMetaJSONSchema } from '../Schema/MetaSchema'
-import { VarsSchema } from '../Schema'
+import { CapitalProgramPrivateDataSchema } from '../Schema/CapitalProgramPrivateDataSchema'
+import { CooperativeSchema, VarsSchema } from '../Schema'
 
 export const registry_id = Cooperative.Registry.BlagorostProgramTemplate.registry_id
 
-// Модель действия для генерации
-export interface Action extends IGenerate {
-  registry_id: number
-}
+export type Action = Cooperative.Registry.BlagorostProgramTemplate.Action
 
-// Модель данных
-export interface Model {
-  meta: IMetaDocument
-  vars: IVars
-}
+export type Model = Cooperative.Registry.BlagorostProgramTemplate.Model
 
-// Схема для сверки
 export const Schema: JSONSchemaType<Model> = {
   type: 'object',
   properties: {
     meta: IMetaJSONSchema,
+    coop: CooperativeSchema,
     vars: VarsSchema,
+    doc_data: CapitalProgramPrivateDataSchema,
   },
-  required: ['meta', 'vars'],
+  required: ['meta', 'coop', 'vars', 'doc_data'],
   additionalProperties: true,
 }
 

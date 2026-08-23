@@ -1,0 +1,3458 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "act1pgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "act2pgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "addauthor",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "author",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "allocate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "appendix",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "appendix_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "appendix",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approvecmmt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "master",
+                    "type": "name"
+                },
+                {
+                    "name": "commit_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "approvedebt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approveexpns",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "approver",
+                    "type": "name"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approvepgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approvepjprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "empty_document",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approvereg",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "contributor_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "contract",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approverslt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "approvewthd3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "approver",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_return_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "apprvappndx",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "appendix_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "approved_document",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "authpgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "authrslt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "calcvotes",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "capauthexpns",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "capauthwthd3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "capdeclexpns",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "capdeclwthd3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "capital_wallet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "last_program_crps",
+                    "type": "float64"
+                },
+                {
+                    "name": "capital_available",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "closeproject",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "cmpltvoting",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "commit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "commit_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "amounts",
+                    "type": "generation_amounts"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coordinator_bonus_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "expense_pool_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "coordinator_invite_validity_days",
+                    "type": "uint32"
+                },
+                {
+                    "name": "voting_period_in_days",
+                    "type": "uint32"
+                },
+                {
+                    "name": "authors_voting_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "creators_voting_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "energy_decay_rate_per_day",
+                    "type": "float64"
+                },
+                {
+                    "name": "level_depth_base",
+                    "type": "uint64"
+                },
+                {
+                    "name": "level_growth_coefficient",
+                    "type": "float64"
+                },
+                {
+                    "name": "energy_gain_coefficient",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "contributor",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "contributor_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                },
+                {
+                    "name": "is_external_contract",
+                    "type": "bool"
+                },
+                {
+                    "name": "contract",
+                    "type": "document2"
+                },
+                {
+                    "name": "appendixes",
+                    "type": "checksum256[]"
+                },
+                {
+                    "name": "rate_per_hour",
+                    "type": "asset"
+                },
+                {
+                    "name": "hours_per_day",
+                    "type": "uint64"
+                },
+                {
+                    "name": "debt_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_investor",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_creator",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_author",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_coordinator",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_contributor",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributed_as_propertor",
+                    "type": "asset"
+                },
+                {
+                    "name": "level",
+                    "type": "uint32"
+                },
+                {
+                    "name": "energy",
+                    "type": "float64"
+                },
+                {
+                    "name": "last_energy_update",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "convertsegm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "wallet_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "capital_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "convert_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "counts_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_unique_participants",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_authors",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_coordinators",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_creators",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_investors",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_propertors",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_contributors",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_commits",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_converted_segments",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "createcmmt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "commit_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "creator_hours",
+                    "type": "uint64"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "createdebt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "repaid_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createexpnse",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "creator",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createinvest",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "invest_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createpgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_description",
+                    "type": "string"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createpinv",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "invest_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createpjprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_description",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "createproj",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "parent_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "invite",
+                    "type": "string"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "data",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "createwthd3",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "return_statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "crps_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_capital_contributors_shares",
+                    "type": "asset"
+                },
+                {
+                    "name": "author_base_cumulative_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "author_bonus_cumulative_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "contributor_cumulative_reward_per_share",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "dclineappndx",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "appendix_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "debt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "repaid_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "debtauthcnfr",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "debtpaycnfrm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "debtpaydcln",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinecmmt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "master",
+                    "type": "name"
+                },
+                {
+                    "name": "commit_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinedebt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "debt_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinepgprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinepjprp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinereg",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "contributor_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declrslt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "delproject",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "diallocate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "editcontrib",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "rate_per_hour",
+                    "type": "asset"
+                },
+                {
+                    "name": "hours_per_day",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "editproj",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "invite",
+                    "type": "string"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "data",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "expandexpnss",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "additional_expenses",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "expense",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "fund_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "expense_statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "approved_statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "spended_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "exppaycnfrm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "expense_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "fact_pool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "hour_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_hours",
+                    "type": "uint64"
+                },
+                {
+                    "name": "return_base_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "use_invest_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "creators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "target_expense_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "accumulated_expense_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "used_expense_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinators_investment_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_received_investments",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_returned_investments",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_used_for_compensation",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_generation_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_contribution",
+                    "type": "asset"
+                },
+                {
+                    "name": "total",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_used_investments",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_with_investments",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "finalizeproj",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "fundprog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "generation_amounts",
+            "base": "",
+            "fields": [
+                {
+                    "name": "hour_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_hours",
+                    "type": "uint64"
+                },
+                {
+                    "name": "creators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_generation_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_contribution",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "getclearance",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "appendix_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "document",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "global_state",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "global_available_invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_membership_funded",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_membership_available",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_membership_distributed",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_membership_cumulative_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "config",
+                    "type": "config"
+                }
+            ]
+        },
+        {
+            "name": "importcontrib",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "contributor_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "contribution_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "invest",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "invest_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "invested_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "coordinator",
+                    "type": "name"
+                },
+                {
+                    "name": "coordinator_amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "lvlnotify",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "prev_level",
+                    "type": "uint32"
+                },
+                {
+                    "name": "new_level",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "openproject",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "plan_pool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "hour_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_hours",
+                    "type": "uint64"
+                },
+                {
+                    "name": "return_base_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "use_invest_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "creators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributors_bonus_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "target_expense_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinators_investment_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "program_invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_received_investments",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_generation_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "total",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_with_investments",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "program_invest",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "invest_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "invested_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "program_property",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_description",
+                    "type": "string"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "program_withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "withdraw_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "project",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "parent_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "is_opened",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_planed",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_authorized",
+                    "type": "bool"
+                },
+                {
+                    "name": "master",
+                    "type": "name"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "invite",
+                    "type": "string"
+                },
+                {
+                    "name": "data",
+                    "type": "string"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "counts",
+                    "type": "counts_data"
+                },
+                {
+                    "name": "plan",
+                    "type": "plan_pool"
+                },
+                {
+                    "name": "fact",
+                    "type": "fact_pool"
+                },
+                {
+                    "name": "crps",
+                    "type": "crps_data"
+                },
+                {
+                    "name": "voting",
+                    "type": "voting_data"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "property",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "property_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_description",
+                    "type": "string"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "purgesegment",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "pushrslt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "contribution_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "debt_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "debt_hashes",
+                    "type": "checksum256[]"
+                }
+            ]
+        },
+        {
+            "name": "refreshcontr",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "refreshprog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "regcontrib",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "contributor_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "rate_per_hour",
+                    "type": "asset"
+                },
+                {
+                    "name": "hours_per_day",
+                    "type": "uint64"
+                },
+                {
+                    "name": "is_external_contract",
+                    "type": "bool"
+                },
+                {
+                    "name": "storage_agreement",
+                    "type": "document2"
+                },
+                {
+                    "name": "contract",
+                    "type": "document2?"
+                },
+                {
+                    "name": "blagorost_agreement",
+                    "type": "document2?"
+                },
+                {
+                    "name": "generator_agreement",
+                    "type": "document2?"
+                }
+            ]
+        },
+        {
+            "name": "regshare",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "user_shares",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "result",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "debt_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "returntopool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "rfrshsegment",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "segment",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "is_author",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_creator",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_coordinator",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_investor",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_propertor",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_contributor",
+                    "type": "bool"
+                },
+                {
+                    "name": "has_vote",
+                    "type": "bool"
+                },
+                {
+                    "name": "investor_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "investor_base",
+                    "type": "asset"
+                },
+                {
+                    "name": "creator_base",
+                    "type": "asset"
+                },
+                {
+                    "name": "creator_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "author_base",
+                    "type": "asset"
+                },
+                {
+                    "name": "author_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinator_investments",
+                    "type": "asset"
+                },
+                {
+                    "name": "coordinator_base",
+                    "type": "asset"
+                },
+                {
+                    "name": "contributor_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "property_base",
+                    "type": "asset"
+                },
+                {
+                    "name": "last_author_base_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "last_author_bonus_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "last_contributor_reward_per_share",
+                    "type": "float64"
+                },
+                {
+                    "name": "capital_contributor_shares",
+                    "type": "asset"
+                },
+                {
+                    "name": "last_known_invest_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "last_known_creators_base_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "last_known_coordinators_investment_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "provisional_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "debt_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "debt_settled",
+                    "type": "asset"
+                },
+                {
+                    "name": "equal_author_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "direct_creator_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "is_votes_calculated",
+                    "type": "bool"
+                },
+                {
+                    "name": "voting_bonus",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_segment_base_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_segment_bonus_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_segment_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "intellectual_cost",
+                    "type": "asset"
+                },
+                {
+                    "name": "available_for_program",
+                    "type": "asset"
+                },
+                {
+                    "name": "available_for_wallet",
+                    "type": "asset"
+                },
+                {
+                    "name": "share_percent",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "setconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "config",
+                    "type": "config"
+                }
+            ]
+        },
+        {
+            "name": "setmaster",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "master",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setplan",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "master",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "plan_creators_hours",
+                    "type": "uint64"
+                },
+                {
+                    "name": "plan_expenses",
+                    "type": "asset"
+                },
+                {
+                    "name": "plan_hour_cost",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "settledebt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signact1",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signact2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "chairman",
+                    "type": "name"
+                },
+                {
+                    "name": "result_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "act",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "startproject",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "startvoting",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "stopproject",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "submitvote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "voter",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "votes",
+                    "type": "vote_input[]"
+                }
+            ]
+        },
+        {
+            "name": "vote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "project_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "voter",
+                    "type": "name"
+                },
+                {
+                    "name": "recipient",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "voted_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "vote_input",
+            "base": "",
+            "fields": [
+                {
+                    "name": "recipient",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "voting_amounts",
+            "base": "",
+            "fields": [
+                {
+                    "name": "authors_equal_spread",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_direct_spread",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_bonuses_on_voting",
+                    "type": "asset"
+                },
+                {
+                    "name": "creators_bonuses_on_voting",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_voting_pool",
+                    "type": "asset"
+                },
+                {
+                    "name": "active_voting_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "equal_voting_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "authors_equal_per_author",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "voting_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_voters",
+                    "type": "uint32"
+                },
+                {
+                    "name": "votes_received",
+                    "type": "uint32"
+                },
+                {
+                    "name": "authors_voting_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "creators_voting_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "amounts",
+                    "type": "voting_amounts"
+                },
+                {
+                    "name": "voting_deadline",
+                    "type": "time_point_sec"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "act1pgprp",
+            "type": "act1pgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "act2pgprp",
+            "type": "act2pgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addauthor",
+            "type": "addauthor",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "allocate",
+            "type": "allocate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvecmmt",
+            "type": "approvecmmt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvedebt",
+            "type": "approvedebt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approveexpns",
+            "type": "approveexpns",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvepgprp",
+            "type": "approvepgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvepjprp",
+            "type": "approvepjprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvereg",
+            "type": "approvereg",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approverslt",
+            "type": "approverslt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "approvewthd3",
+            "type": "approvewthd3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "apprvappndx",
+            "type": "apprvappndx",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "authpgprp",
+            "type": "authpgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "authrslt",
+            "type": "authrslt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "calcvotes",
+            "type": "calcvotes",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "capauthexpns",
+            "type": "capauthexpns",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "capauthwthd3",
+            "type": "capauthwthd3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "capdeclexpns",
+            "type": "capdeclexpns",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "capdeclwthd3",
+            "type": "capdeclwthd3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "closeproject",
+            "type": "closeproject",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cmpltvoting",
+            "type": "cmpltvoting",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "convertsegm",
+            "type": "convertsegm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createcmmt",
+            "type": "createcmmt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createdebt",
+            "type": "createdebt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createexpnse",
+            "type": "createexpnse",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createinvest",
+            "type": "createinvest",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createpgprp",
+            "type": "createpgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createpinv",
+            "type": "createpinv",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createpjprp",
+            "type": "createpjprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createproj",
+            "type": "createproj",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createwthd3",
+            "type": "createwthd3",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "dclineappndx",
+            "type": "dclineappndx",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "debtauthcnfr",
+            "type": "debtauthcnfr",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "debtpaycnfrm",
+            "type": "debtpaycnfrm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "debtpaydcln",
+            "type": "debtpaydcln",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinecmmt",
+            "type": "declinecmmt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinedebt",
+            "type": "declinedebt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinepgprp",
+            "type": "declinepgprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinepjprp",
+            "type": "declinepjprp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinereg",
+            "type": "declinereg",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declrslt",
+            "type": "declrslt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delproject",
+            "type": "delproject",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "diallocate",
+            "type": "diallocate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editcontrib",
+            "type": "editcontrib",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "editproj",
+            "type": "editproj",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "expandexpnss",
+            "type": "expandexpnss",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "exppaycnfrm",
+            "type": "exppaycnfrm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "finalizeproj",
+            "type": "finalizeproj",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "fundprog",
+            "type": "fundprog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "getclearance",
+            "type": "getclearance",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "importcontrib",
+            "type": "importcontrib",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "lvlnotify",
+            "type": "lvlnotify",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "openproject",
+            "type": "openproject",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "purgesegment",
+            "type": "purgesegment",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "pushrslt",
+            "type": "pushrslt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "refreshcontr",
+            "type": "refreshcontr",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "refreshprog",
+            "type": "refreshprog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regcontrib",
+            "type": "regcontrib",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regshare",
+            "type": "regshare",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "returntopool",
+            "type": "returntopool",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rfrshsegment",
+            "type": "rfrshsegment",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setconfig",
+            "type": "setconfig",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setmaster",
+            "type": "setmaster",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setplan",
+            "type": "setplan",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "settledebt",
+            "type": "settledebt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signact1",
+            "type": "signact1",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signact2",
+            "type": "signact2",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "startproject",
+            "type": "startproject",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "startvoting",
+            "type": "startvoting",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stopproject",
+            "type": "stopproject",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "submitvote",
+            "type": "submitvote",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "appendixes",
+            "type": "appendix",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "capwallets",
+            "type": "capital_wallet",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "commits",
+            "type": "commit",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "contributors",
+            "type": "contributor",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "debts",
+            "type": "debt",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "expenses",
+            "type": "expense",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "invests",
+            "type": "invest",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pgproperties",
+            "type": "program_property",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pjproperties",
+            "type": "property",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "prgwithdraws",
+            "type": "program_withdraw",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "progrinvests",
+            "type": "program_invest",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "projects",
+            "type": "project",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "results",
+            "type": "result",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "segments",
+            "type": "segment",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "state",
+            "type": "global_state",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "votes",
+            "type": "vote",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/ledger2_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/ledger2_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/ledger2_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/ledger2_contract-prefix/src/ledger2_contract-stamp/ledger2_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"ledger2_contract"
+		],
+		"name" : "ledger2_contract"
+	}
+}

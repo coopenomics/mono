@@ -1,0 +1,66 @@
+{
+  "name": "@coopenomics/auth",
+  "type": "module",
+  "version": "2026.8.22-3",
+  "private": false,
+  "packageManager": "pnpm@9.9.0",
+  "description": "SDK аутентификации CoopID: OIDC, vault, кошелёк и подпись для браузера, Node и desktop",
+  "author": "Alex Ant <dacom.dark.sun@gmail.com>",
+  "license": "MIT",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "pnpm run typecheck",
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:node": "vitest run test/cross-runtime",
+    "test:browser": "vitest run --config vitest.config.browser.ts",
+    "test:electron": "node test/cross-runtime/run-electron.mjs",
+    "test:cross-runtime": "pnpm run build && pnpm run test:node && pnpm run test:browser && pnpm run test:electron",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.8.0",
+    "@wharfkit/antelope": "^1.1.1",
+    "@wharfkit/session": "^1.4.0",
+    "cooptypes": "workspace:*",
+    "hash-wasm": "4.12.0",
+    "jose": "^6.2.2",
+    "oidc-client-ts": "^3.1.0"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.3.2",
+    "@types/node": "^22.5.4",
+    "@vitest/browser": "2.1.9",
+    "electron": "36.9.5",
+    "eslint": "^9.9.1",
+    "playwright": "1.59.1",
+    "typescript": "^5.5.4",
+    "unbuild": "^2.0.0",
+    "vite": "^5.4.3",
+    "vitest": "^2.0.5"
+  }
+}

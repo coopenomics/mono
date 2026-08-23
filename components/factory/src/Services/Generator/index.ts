@@ -1,8 +1,8 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import fs from 'node:fs'
-import path from 'node:path'
 import os from 'node:os'
-import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
+import path from 'node:path'
+import { type ChildProcessWithoutNullStreams, execSync, spawn } from 'node:child_process'
 import readline from 'node:readline'
 import { PDFDocument } from 'pdf-lib'
 import moment from 'moment-timezone'
@@ -49,15 +49,73 @@ class WeasyWorker {
   private proc: ChildProcessWithoutNullStreams | null = null
   private rl: readline.Interface | null = null
   private pending: { resolve: () => void, reject: (e: Error) => void } | null = null
+  private ready = false
+  private readyWaiters: Array<() => void> = []
+  private stderr = ''
+
+  private static resolvedPythonBin: string | null = null
 
   private static pythonBin(): string {
-    // В образе controller'а WeasyPrint живёт в /venv (см. controller/Dockerfile).
-    return fs.existsSync('/venv/bin/python3') ? '/venv/bin/python3' : 'python3'
+    if (WeasyWorker.resolvedPythonBin)
+      return WeasyWorker.resolvedPythonBin
+
+    const fromEnv = process.env.WEASY_PYTHON
+    if (fromEnv && fs.existsSync(fromEnv)) {
+      WeasyWorker.resolvedPythonBin = fromEnv
+      return fromEnv
+    }
+
+    // Docker controller: WeasyPrint в /venv (см. controller/Dockerfile).
+    for (const candidate of ['/venv/bin/python3', '/opt/weasyprint-venv/bin/python3']) {
+      if (fs.existsSync(candidate)) {
+        WeasyWorker.resolvedPythonBin = candidate
+        return candidate
+      }
+    }
+
+    // Локально `python3` часто не тот интерпретатор, куда установлен weasyprint CLI.
+    // Берём shebang из `weasyprint` в PATH (AGENTS.md: /opt/weasyprint-venv или brew/pip).
+    const fromCli = WeasyWorker.pythonFromWeasyprintShebang()
+    if (fromCli) {
+      WeasyWorker.resolvedPythonBin = fromCli
+      return fromCli
+    }
+
+    WeasyWorker.resolvedPythonBin = 'python3'
+    return 'python3'
+  }
+
+  private static pythonFromWeasyprintShebang(): string | null {
+    try {
+      const weasyPath = execSync('command -v weasyprint', { encoding: 'utf8' }).trim()
+      if (!weasyPath)
+        return null
+
+      const firstLine = fs.readFileSync(weasyPath, { encoding: 'utf8' }).split('\n', 1)[0] ?? ''
+      const match = firstLine.match(/^#!(\S+)/)
+      if (match?.[1] && fs.existsSync(match[1]))
+        return match[1]
+
+      const dir = path.dirname(weasyPath)
+      for (const name of ['python3', 'python']) {
+        const candidate = path.join(dir, name)
+        if (fs.existsSync(candidate))
+          return candidate
+      }
+    }
+    catch {
+      // weasyprint не в PATH — упадём на python3 с понятной ошибкой в stderr воркера
+    }
+
+    return null
   }
 
   private ensure(): void {
     if (this.proc && !this.proc.killed)
       return
+
+    this.ready = false
+    this.stderr = ''
 
     const proc = spawn(WeasyWorker.pythonBin(), ['-u', '-c', PY_WORKER_LOOP], {
       env: { ...process.env, SOURCE_DATE_EPOCH: '0', PYTHONUNBUFFERED: '1' },
@@ -65,9 +123,17 @@ class WeasyWorker {
     this.proc = proc
     this.rl = readline.createInterface({ input: proc.stdout })
 
+    proc.stderr.on('data', (chunk: Buffer | string) => {
+      this.stderr += chunk.toString()
+    })
+
     this.rl.on('line', (line) => {
-      if (line === 'READY')
+      if (line === 'READY') {
+        this.ready = true
+        for (const wake of this.readyWaiters.splice(0))
+          wake()
         return
+      }
       const p = this.pending
       this.pending = null
       if (!p)
@@ -82,16 +148,29 @@ class WeasyWorker {
       this.proc = null
       this.rl?.close()
       this.rl = null
+      this.ready = false
+      for (const wake of this.readyWaiters.splice(0))
+        wake()
+
       const p = this.pending
       this.pending = null
-      p?.reject(e ?? new Error('WeasyPrint worker exited'))
+      const stderr = this.stderr.trim()
+      const reason = stderr || e?.message || 'WeasyPrint worker exited'
+      p?.reject(new Error(reason))
     }
     proc.on('exit', () => die())
     proc.on('error', die)
   }
 
-  render(htmlPath: string, pdfPath: string): Promise<void> {
+  private whenReady(): Promise<void> {
+    if (this.ready)
+      return Promise.resolve()
+    return new Promise(resolve => this.readyWaiters.push(resolve))
+  }
+
+  async render(htmlPath: string, pdfPath: string): Promise<void> {
     this.ensure()
+    await this.whenReady()
     return new Promise((resolve, reject) => {
       this.pending = { resolve, reject }
       this.proc!.stdin.write(`${htmlPath}\t${pdfPath}\n`)
@@ -179,7 +258,9 @@ export class PDFService implements IPDFService {
 
   private static async generatePDFBuffer(htmlContent: string): Promise<Uint8Array> {
     const tempId = uuidv4() // Генерируем уникальный ID для временных файлов
-    const tempDir = path.join(__dirname, 'tmp')
+    // Используем системный tmpdir вместо __dirname/tmp: dist/ при докер-сборке
+    // монтируется read-only, и попытка mkdir внутри bundle падает EROFS.
+    const tempDir = path.join(os.tmpdir(), 'factory-pdf')
 
     // Создаем папку tmp, если её нет (с обработкой race condition)
     try {

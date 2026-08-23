@@ -18,7 +18,7 @@ import { Injectable } from '@nestjs/common';
 import {
   InjectBucket,
   UseBucket,
-  type InterFileStorageBucket,
+  type InnerFileStorageBucket,
 } from '~/infrastructure/file-storage';
 import type { FileUpload } from 'graphql-upload';
 
@@ -33,7 +33,7 @@ const MB = 1024 * 1024;
 })
 @Injectable()
 export class OrderImagesService {
-  constructor(@InjectBucket() private readonly bucket: InterFileStorageBucket) {}
+  constructor(@InjectBucket() private readonly bucket: InnerFileStorageBucket) {}
 
   async attach(orderId: string, ownerId: string, upload: FileUpload): Promise<string> {
     const key = `orders/${orderId}/main.${ext(upload.mimetype)}`;
@@ -73,7 +73,7 @@ export class StolZakazovModule {}
 ```
 
 `forFeature` читает `@UseBucket` метадату каждого класса и провайдит ему конкретный
-`InterFileStorageBucket` (с уже подмешанным префиксом). Корневой `forRoot(...)` уже подключён
+`InnerFileStorageBucket` (с уже подмешанным префиксом). Корневой `forRoot(...)` уже подключён
 в `app.module.ts`.
 
 ### 3. GraphQL — обычная мутация с Upload и поле URL в ответе
@@ -105,21 +105,21 @@ UI ходит обычным `<img src={imageUrl}>`. Никакого новог
 | `put(key, body, opts)` | Загружает объект | Перезапись по тому же ключу, валидация `maxBytes`/`allowedMime`/`metadataSchema` |
 | `getReadUrl(key, opts?)` | Короткоживущий URL чтения | HMAC-signed URL контроллера; TTL по умолчанию из `defaultUrlTtlSeconds` спеки |
 | `delete(key)` | Удалить | Идемпотентно (нет объекта = успех) |
-| `head(key)` | Метаданные без скачивания | Бросает `InterFileStorageObjectNotFoundError` если нет |
+| `head(key)` | Метаданные без скачивания | Бросает `InnerFileStorageObjectNotFoundError` если нет |
 
 `body` принимает `Uint8Array` или `ReadableStream<Uint8Array>` (graphql-upload `createReadStream()`
 также подходит — duck-typed, проверяется наличие `getReader()` или конвертируется адаптером).
 
 ## Ошибки
 
-Всё — наследники `InterFileStorageError`. Доменный код мапит на свои коды:
+Всё — наследники `InnerFileStorageError`. Доменный код мапит на свои коды:
 
-- `InterFileStorageObjectNotFoundError` — нет объекта (`head`)
-- `InterFileStorageObjectTooLargeError` — превышен `maxBytes`
-- `InterFileStorageMimeRejectedError` — `contentType` не в `allowedMime`
-- `InterFileStorageMetadataValidationError` — нет required-метаданного
-- `InterFileStorageBackendUnavailableError` — недоступен MinIO/S3
-- `InterFileStorageBucketNotConfiguredError` — невалидная спека бакета
+- `InnerFileStorageObjectNotFoundError` — нет объекта (`head`)
+- `InnerFileStorageObjectTooLargeError` — превышен `maxBytes`
+- `InnerFileStorageMimeRejectedError` — `contentType` не в `allowedMime`
+- `InnerFileStorageMetadataValidationError` — нет required-метаданного
+- `InnerFileStorageBackendUnavailableError` — недоступен MinIO/S3
+- `InnerFileStorageBucketNotConfiguredError` — невалидная спека бакета
 
 ## Конфигурация (env)
 
@@ -152,7 +152,7 @@ npm run test:integration:file-storage
 - `file-storage.config.ts` — `FileStorageInfrastructureOptions` + токен `FILE_STORAGE_OPTIONS`
 - `bucket-registry.ts` — singleton, накапливает `BucketSpec` от декораторов
 - `use-bucket.decorator.ts` — `@UseBucket`/`@InjectBucket` + `bucketTokenFor`
-- `minio-file-storage.adapter.ts` — реализация `InterFileStoragePort` поверх `@aws-sdk/client-s3`,
+- `minio-file-storage.adapter.ts` — реализация `IFileStoragePort` поверх `@aws-sdk/client-s3`,
   валидация спеки, `OnApplicationBootstrap` с `ensureBucketExists`
 - `signing.ts` — `signReadUrl` / `verifyReadUrl` (HMAC-SHA256, constant-time)
 - `file-storage-http.controller.ts` — `GET /api/storage/:bucket/:key` с проверкой подписи

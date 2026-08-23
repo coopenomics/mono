@@ -1,3 +1,4 @@
+export * from './useLoginStepHeading';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
 import { api } from '../api';
@@ -6,10 +7,21 @@ import { useRegistratorStore } from 'src/entities/Registrator';
 import type { ITokens } from 'src/shared/lib/types/user';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Zeus } from '@coopenomics/sdk';
+import {
+  configureTokenStorage,
+  confirmLoginFactor,
+  login as coopidLogin,
+  migrate,
+  type LoginFactorKind,
+} from '@coopenomics/auth';
+import { env } from 'src/shared/config';
+import { useSystemStore } from 'src/entities/System/model';
+import { createCoopIdStorage } from 'src/entities/Session/lib/coopidStorage';
 
 export function useLoginUser() {
   const globalStore = useGlobalStore();
   const session = useSessionStore();
+  const systemStore = useSystemStore();
 
   async function login(email: string, wif: string): Promise<void> {
     const result = await api.loginUser(email, wif);
@@ -75,7 +87,103 @@ export function useLoginUser() {
     }
   }
 
+  /**
+   * Миграция действующего пайщика «ключ → пароль» (Эпик 11, Story 11.6),
+   * логическая часть. Пайщик владеет только легаси-ключом (WIF) и ещё без пароля.
+   *
+   *  1. SDK `migrate()` (Story 11.4): доказывает владение ключом подписью против
+   *     COOPOS, ставит пароль в authentik и РОТИРУЕТ ключ: в server-vault ложится
+   *     НОВЫЙ ключ, зашифрованный паролём, а старый (который пайщик хранил у себя)
+   *     гаснет on-chain. Приватный ключ на сервер не уходит — только шифр.
+   *  2. Вход только что заданным паролем — тем же путём, которым пайщик будет
+   *     заходить дальше. Раньше здесь стоял вход легаси-контуром по ключу: он
+   *     страховал от неготовности authentik, пока вход по паролю был необязателен.
+   *     Теперь он обязателен, а легаси-контур не умеет обновлять токен — сессия
+   *     после него живёт ровно столько, сколько выписан токен доступа, и укоротить
+   *     этот срок до разумного было бы нельзя. Поэтому переход на пароль сразу
+   *     заканчивается сессией нового контура.
+   *
+   * Идемпотентно (повтор с тем же ключом/паролём безопасен — см. SDK `migrate()`).
+   * Бросает `AuthV2Error` (WeakPassword/InvalidCredentials/CooposDegraded/…) из
+   * `migrate()` ДО легаси-входа — vault и пароль либо ставятся целиком, либо никак.
+   */
+  async function migrateAndLogin(params: {
+    email: string;
+    privateKey: string;
+    newPassword: string;
+  }): Promise<{ username: string }> {
+    const result = await migrate({
+      email: params.email,
+      privateKey: params.privateKey,
+      newPassword: params.newPassword,
+    });
+    await loginWithPassword(params.email, params.newPassword);
+    return result;
+  }
+
+  /**
+   * Вход по паролю CoopID (Story 11.5): фактор-1 — пароль через authentik,
+   * фактор-2 — владение ключом (timestamp-handshake). Токены кладём в персистентное
+   * хранилище (паритет с легаси — переживание reload), затем строим CoopID-сессию
+   * поверх keystore (мост подписи Эпика 7).
+   *
+   * Деградация без инфры: вход по паролю опирается на OIDC-клиент authentik
+   * (Эпик 5) — пока `COOPID_ISSUER` не задан, путь недоступен и пайщик входит по
+   * ключу доступа (легаси не тронут). Полный фасад «authentik → unlock keystore →
+   * handshake» довершается в SDK (#23) — здесь сторона desktop.
+   */
+  async function loginWithPassword(email: string, password: string): Promise<void> {
+    if (!env.COOPID_ISSUER) {
+      throw new Error(
+        'Вход по паролю станет доступен после подключения авторизации кооператива. Пока войдите по ключу доступа.',
+      );
+    }
+    const storage = createCoopIdStorage(systemStore.info.coopname);
+    configureTokenStorage(storage);
+    await coopidLogin({ issuer: env.COOPID_ISSUER, email, password });
+    await establishSessionAfterCoopIdLogin();
+  }
+
+  /**
+   * Общий хвост CoopID-входа: построить сессию поверх keystore и прогреть кошелёк.
+   * Используется и обычным входом по паролю, и завершением 2FA-подтверждения —
+   * токены к этому моменту уже лежат в сконфигурированном хранилище.
+   */
+  async function establishSessionAfterCoopIdLogin(): Promise<void> {
+    const ok = await session.establishCoopIdSession({ persistPin: true });
+    if (!ok) {
+      throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
+    }
+
+    // Карточку пайщика и кошелёк грузим тем же процессом, что и обычный вход.
+    // Отдельно запрашивать карточку не нужно — `run()` сам её берёт и кладёт в
+    // стор; без этого шага приложение считало бы регистрацию незавершённой и
+    // уводило на страницу регистрации (ответ authentik о пайщике ничего не знает).
+    const { run } = useInitWalletProcess();
+    await run();
+  }
+
+  /**
+   * Подтвердить фактор 2FA-входа. `login()` уже доказал пароль и ключ (кошелёк
+   * разблокирован), но сервер удержал токены — коды доводят вход до конца.
+   * Финальный фактор возвращает `{done: true}` с уже построенной сессией.
+   */
+  async function confirmLoginSecondFactor(
+    challengeToken: string,
+    code: string,
+  ): Promise<{ done: boolean; nextFactor?: LoginFactorKind }> {
+    const result = await confirmLoginFactor({ challengeToken, code });
+    if (result.done) {
+      await establishSessionAfterCoopIdLogin();
+      return { done: true };
+    }
+    return { done: false, nextFactor: result.nextFactor };
+  }
+
   return {
     login,
+    migrateAndLogin,
+    loginWithPassword,
+    confirmLoginSecondFactor,
   };
 }

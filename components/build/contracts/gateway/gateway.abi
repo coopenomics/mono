@@ -1,0 +1,300 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "createinpay",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "income_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "callback_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "confirm_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "decline_callback",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "createoutpay",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "callback_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "confirm_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "decline_callback",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "income",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "income_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "callback_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "confirm_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "decline_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "incomplete",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "income_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "indecline",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "income_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "outcome",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "callback_contract",
+                    "type": "name"
+                },
+                {
+                    "name": "confirm_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "decline_callback",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "outcomplete",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "outdecline",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "outcome_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "createinpay",
+            "type": "createinpay",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createoutpay",
+            "type": "createoutpay",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "incomplete",
+            "type": "incomplete",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "indecline",
+            "type": "indecline",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "outcomplete",
+            "type": "outcomplete",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "outdecline",
+            "type": "outdecline",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "incomes",
+            "type": "income",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "outcomes",
+            "type": "outcome",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

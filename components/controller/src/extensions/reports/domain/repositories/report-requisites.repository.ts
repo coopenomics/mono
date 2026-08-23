@@ -10,6 +10,7 @@ export interface ReportRequisitesRecord {
   oktmo: string | null;
   okpo: string | null;
   sfr_reg_number: string | null;
+  pfr_reg_number: string | null;
   chairman_position: string | null;
   signer_snils: string | null;
   signer_rep_doc: string | null;
@@ -28,6 +29,7 @@ export interface UpsertReportRequisitesInput {
   oktmo?: string | null;
   okpo?: string | null;
   sfr_reg_number?: string | null;
+  pfr_reg_number?: string | null;
   chairman_position?: string | null;
   signer_snils?: string | null;
   signer_rep_doc?: string | null;

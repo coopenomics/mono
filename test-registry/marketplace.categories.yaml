@@ -1,0 +1,154 @@
+feature: marketplace.categories
+title: Доступные категории кооператива — ограничение каталога и собственные категории
+
+# Слайс справочника категорий: какие категории кооператив разрешает для
+# публикации предложений. Пустой список ограничений = открыт весь каталог;
+# как только хоть одна категория выключена, действует ограниченный список.
+# Базовые категории платформы нельзя удалить — только выключить.
+#
+# Отдельная особенность прав: маршрут стола требует грант `Whitelist:manage`,
+# а резолверы защищены ролью председателя. Токен нужно держать в матрице
+# доступа — без него страница недостижима ни для кого (так и было до
+# 2026-08-07).
+
+
+# Переименование 2026-08-09 (FC1-4): guard'ы и декораторы авторизации
+# (`GqlJwtAuthGuard`, `RolesGuard`, `AuthRoles`, `CurrentUser`) переехали из
+# `~/application/auth/*` в `@coopenomics/extension-kit`. В резолверах фичи
+# изменилась только строка импорта — состав guard'ов на операциях, правила
+# доступа и набор случаев прежние.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts
+    - components/controller/src/extensions/marketplace/application/access/marketplace-access-matrix.ts
+    - components/controller/src/extensions/marketplace/application/access/marketplace-grants.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/ChairmanCategoryWhitelist/**
+
+cases:
+  - id: mkt.cat.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель открывает «Доступные категории»: показан справочник базовых категорий, каталог открыт целиком.
+    expect: список непустой, состояние «Открыт весь каталог»
+    test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
+    status: passing
+
+  - id: mkt.cat.happy.02
+    level: ui
+    kind: happy
+    scenario: Председатель выключает категорию и включает её обратно
+    expect: >
+      после выключения каталог перестаёт быть открытым, после включения возвращается в исходное состояние
+    test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
+    status: passing
+
+  - id: mkt.cat.side.01
+    level: backend
+    kind: side
+    scenario: Попытка удалить базовую категорию платформы
+    expect: отказ «Базовую категорию удалить нельзя»
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    status: passing
+
+  - id: mkt.cat.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Создание собственной категории с именем, которое уже есть в пределах кооператива (его собственная либо базовая категория платформы)
+    expect: отказ «Категория с таким названием уже существует», дубликат не создаётся
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    status: passing
+    # Эта часть определена: `createCustom` сверяется с `listForCoop` —
+    # базовые категории плюс собственные категории кооператива, сравнение
+    # регистронезависимое и по обрезанной строке.
+
+  - id: mkt.cat.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Создание категории с именем, которое уже занял ДРУГОЙ кооператив
+    expect: >
+      отказ — название занято во всём справочнике, включая категории других кооперативов и базовые категории платформы
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    status: passing
+    # Решение заказчика (2026-08-10): «имя категории уникально, глобально».
+    # Выбран ЗАПРЕТ, а не переиспользование: проверка занятости идёт по всему
+    # справочнику (`existsByDisplayName`), сравнение регистронезависимое по
+    # обрезанной строке. Владение не меняется — каждая кастомная категория
+    # по-прежнему принадлежит своему кооперативу, `deleteCustom` бьёт по трём
+    # ключам и чужую строку не трогает.
+    # Осталось незакрытым: «Мёд» и «Мед» (е/ё) по-прежнему считаются разными
+    # именами — нормализации ё→е нет ни в проверке, ни в индексе.
+
+  - id: mkt.cat.side.08
+    level: backend
+    kind: break
+    scenario: >
+      Два одновременных запроса создают категорию с одним и тем же именем
+    expect: >
+      остаётся одна категория; проигравший запрос получает тот же отказ «уже существует», что и при обычной проверке
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    status: passing
+    # Был дефект (2026-08-08): уникальность держалась только проверкой в
+    # сервисе, а уникального индекса не было — две параллельные попытки
+    # проходили проверку обе. Закрыто 2026-08-10 после ответа по side.07:
+    # уникальный индекс по lower(display_name) (миграция v18), проигравшая
+    # вставка переводится в тот же отказ.
+    # Попутно закрыта вторая гонка того же места: идентификатор считается как
+    # MAX(id)+1, и две одновременные вставки претендовали на один номер —
+    # теперь проигравший пересчитывает номер, а не падает первичным ключом.
+
+  - id: mkt.cat.side.03
+    level: backend
+    kind: side
+    scenario: Управление категориями от пайщика без роли председателя
+    expect: отказ доступа, справочник не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-category-admin-access.test.ts
+    status: passing
+
+  - id: mkt.cat.side.04
+    level: ui
+    kind: side
+    scenario: >
+      Публикация предложения в категории, выключенной кооперативом
+    expect: категория недоступна в форме предложения
+    test: components/docs-harness/scenarios/marketplace/chairman/category-disabled-in-offer-form.mjs
+    status: passing
+
+  - id: mkt.cat.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Маршрут стола требует грант, которого нет ни в одной роли матрицы
+    expect: >
+      расхождение обнаруживается тестом: каждый грант из meta.requires маршрутов Стола заказов выдаётся хотя бы одной ролью
+    test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
+    status: passing
+
+  - id: mkt.cat.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Роль с правом над всеми объектами открывает страницу, требующую права в более узком охвате (участок, свои объекты).
+    expect: >
+      широкое право разворачивается в подмножества охвата и покрывает узкое требование; узкое право роли при этом не расширяется до всех объектов
+    test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
+    status: passing
+
+  - id: mkt.cat.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Оператор участка или заказчик запрашивает остаток удержанного налога либо отправляет налоговый платёж в бюджет
+    expect: >
+      отказ доступа — право на налог выдано только администратору кооператива, причём просмотр и оплата разведены на два отдельных права
+    test: ~
+    status: missing
+    # Право `Tax` защищает резолверы экономики, а не маршрут стола, поэтому
+    # существующая проверка покрытия маршрутов грантами его не видит —
+    # нужен отдельный тест на отказ резолвера чужой роли.
+    # Перечисление в бюджет — банковское поручение, поэтому право «pay»
+    # отделено от «read»: видеть долг вправе шире круг, чем платить.

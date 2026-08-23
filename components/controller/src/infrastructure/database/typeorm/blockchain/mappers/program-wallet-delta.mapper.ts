@@ -4,7 +4,7 @@ import { ProgramWalletDomainEntity } from '~/domain/wallet/entities/program-wall
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { SovietContractInfoService } from '~/infrastructure/blockchain/services/soviet-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '~/shared/abstract-blockchain-delta.mapper';
+import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
 import type { SovietContract } from 'cooptypes';
 
 /**

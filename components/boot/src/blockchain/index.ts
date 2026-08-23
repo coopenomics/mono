@@ -39,7 +39,10 @@ export default class Blockchain {
 
     const rpc = new JsonRpc(res, { fetch })
 
-    const signatureProvider = new JsSignatureProvider(this.privateKeys)
+    // Пустые ключи отфильтровываем: read-only режимам (расчёт плана реестра
+    // документов) ключ не передаётся, а конфиг всё равно отдаёт массив с
+    // одним undefined — JsSignatureProvider на нём падает до первого чтения.
+    const signatureProvider = new JsSignatureProvider(this.privateKeys.filter(Boolean))
 
     this.api = new Api({
       rpc,
@@ -229,42 +232,66 @@ export default class Blockchain {
       // console.log(data)
       // console.log("abi: ", serializedAbiHexString)
 
-      await this.api.transact(
-        {
-          actions: [
+      // Retry на CPU-timeout: тяжёлые WASM'ы (capital, marketplace, soviet)
+      // на старте требуют ~290-300ms CPU при первой компиляции в eos-vm.
+      // Дефолт chain `max_transaction_cpu_usage=290000us` срезает их.
+      // CPU usage варьируется по +-N us; повторные попытки иногда влезают.
+      const MAX_ATTEMPTS = 8
+      let lastErr: unknown
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          await this.api.transact(
             {
-              account: 'eosio',
-              name: 'setcode',
-              authorization: [
+              actions: [
                 {
-                  actor: contract.target,
-                  permission: 'active',
+                  account: 'eosio',
+                  name: 'setcode',
+                  authorization: [
+                    {
+                      actor: contract.target,
+                      permission: 'active',
+                    },
+                  ],
+                  data,
+                },
+                {
+                  account: 'eosio',
+                  name: 'setabi',
+                  authorization: [
+                    {
+                      actor: contract.target,
+                      permission: 'active',
+                    },
+                  ],
+                  data: {
+                    account: contract.target,
+                    abi: serializedAbiHexString,
+                  },
                 },
               ],
-              data,
             },
             {
-              account: 'eosio',
-              name: 'setabi',
-              authorization: [
-                {
-                  actor: contract.target,
-                  permission: 'active',
-                },
-              ],
-              data: {
-                account: contract.target,
-                abi: serializedAbiHexString,
-              },
+              blocksBehind: 3,
+              expireSeconds: 30,
             },
-          ],
-        },
-        {
-          blocksBehind: 3,
-          expireSeconds: 30,
-        },
-      )
-      console.log('contract setted: ', contract.target)
+          )
+          if (attempt > 1) console.log(`contract setted (attempt ${attempt}): `, contract.target)
+          else console.log('contract setted: ', contract.target)
+          lastErr = undefined
+          break
+        }
+        catch (txErr) {
+          const txMsg = txErr instanceof Error ? txErr.message : String(txErr)
+          const isCpuTimeout = /executing for too long|max_transaction_cpu_usage/i.test(txMsg)
+          if (!isCpuTimeout || attempt === MAX_ATTEMPTS) {
+            lastErr = txErr
+            break
+          }
+          console.warn(`[setContract] CPU timeout on '${contract.target}' attempt ${attempt}/${MAX_ATTEMPTS} — retrying in 2s`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+      if (lastErr) throw lastErr
     }
     catch (e) {
       // Отсутствующий wasm/abi — soft warn. Контракт может быть
@@ -826,6 +853,119 @@ export default class Blockchain {
     }
   }
 
+  /**
+   * Передаёт распорядительные права аккаунта другому аккаунту — по имени, а не по
+   * ключу.
+   *
+   * Так кооператив-оператор получает возможность вести аккаунт АНО: подписывать за
+   * него, не владея его ключами. Ключами АНО не владеет никто из установок — иначе
+   * корень цепочки доверия лежал бы на диске у оператора, и всё построение теряло
+   * бы смысл. Полномочие же можно отобрать одной транзакцией, не трогая ключ.
+   *
+   * Ключ аккаунта при этом сохраняется: полномочие добавляется рядом, а не вместо.
+   */
+  async delegateActiveTo(account: string, delegate: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'active',
+                parent: 'owner',
+                auth: {
+                  threshold: 1,
+                  keys: [
+                    {
+                      key:
+                        this.new_accounts.find(
+                          (el: any) => el.username === account,
+                        )?.publicKey || config.default_public_key,
+                      weight: 1,
+                    },
+                  ],
+                  accounts: [
+                    {
+                      permission: { actor: delegate, permission: 'active' },
+                      weight: 1,
+                    },
+                  ],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Распорядительные права переданы: ${account} -> ${delegate}`)
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
+  /**
+   * Публикует право заверения `cert` — отдельное разрешение аккаунта с ровно одним
+   * ключом. Им кооператив подписывает удостоверения пайщиков, а публичная часть
+   * лежит в цепи, чтобы подпись можно было проверить, ни у кого ничего не спрашивая.
+   *
+   * Отдельное разрешение, а не `active`: подписывать удостоверения и распоряжаться
+   * средствами кооператива — разные полномочия, и ключи у них разные.
+   *
+   * Строго один ключ без делегирования — контроллер иначе такое право не примет
+   * (цепь доверия должна вести к конкретному ключу, а не к набору подписантов).
+   */
+  async setCertPermission(account: string, publicKey: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'cert',
+                parent: 'active',
+                auth: {
+                  threshold: 1,
+                  keys: [{ key: publicKey, weight: 1 }],
+                  accounts: [],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Опубликовано право заверения: ${account}@cert -> ${publicKey}`)
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
   async votefor(
     params: SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
   ) {
@@ -1015,6 +1155,98 @@ export default class Blockchain {
     )
 
     console.log('Перевод создан: ', params.registry_id)
+  }
+
+  async editDraft(params: DraftContract.Actions.EditDraft.IEditDraft) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.EditDraft.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Шаблон обновлён: ', params.registry_id)
+  }
+
+  async editTranslation(
+    params: DraftContract.Actions.EditTranslation.IEditTranslation,
+  ) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.EditTranslation.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Перевод обновлён: ', params.translate_id)
+  }
+
+  async upVersion(params: DraftContract.Actions.UpVersion.IUpVersion) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.UpVersion.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Версия шаблона поднята: ', params.registry_id)
   }
 
   async createProgram(

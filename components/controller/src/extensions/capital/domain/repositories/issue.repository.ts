@@ -1,11 +1,9 @@
 import { IssueDomainEntity } from '../entities/issue.entity';
 import type { IssuePriority } from '../enums/issue-priority.enum';
 import type { IssueStatus } from '../enums/issue-status.enum';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { ArtifactAccessScope } from './artifact-access-scope';
 
 export interface IssueRepository {
   create(issue: IssueDomainEntity): Promise<IssueDomainEntity>;
@@ -13,6 +11,8 @@ export interface IssueRepository {
   findByIssueHash(issueHash: string): Promise<IssueDomainEntity | null>;
   /** Короткий id задачи (колонка id, до 12 символов), например 562-15 */
   findByCoopnameAndClientId(coopname: string, clientId: string): Promise<IssueDomainEntity | null>;
+  /** Следующий человекочитаемый id свободной задачи в формате 000-N (уникален в рамках coopname). */
+  getNextFreeIssueId(coopname: string): Promise<string>;
   findAll(): Promise<IssueDomainEntity[]>;
   findByProjectHash(projectHash: string): Promise<IssueDomainEntity[]>;
   findByCreatedBy(createdBy: string): Promise<IssueDomainEntity[]>;
@@ -32,8 +32,9 @@ export interface IssueRepository {
   findByProjectHashWithStories(projectHash: string): Promise<IssueDomainEntity[]>;
   findAllPaginated(
     filter?: IssueFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<IssueDomainEntity>>;
+    options?: PaginationInputDTO,
+    scope?: ArtifactAccessScope
+  ): Promise<PaginationResult<IssueDomainEntity>>;
   update(entity: IssueDomainEntity): Promise<IssueDomainEntity>;
   delete(_id: string): Promise<void>;
 }

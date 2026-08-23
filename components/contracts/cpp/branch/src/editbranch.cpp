@@ -20,8 +20,45 @@
     auto authorizer_account = get_account_or_fail(trustee);
     eosio::check(authorizer_account.type == "individual"_n, "Только физическое лицо может быть назначено председателем кооперативного участка");
 
+    eosio::name previous_trustee = branch->trustee;
+
+    if (previous_trustee != trustee) {
+      // председатель может возглавлять только один кооперативный участок
+      // (на тестнете ограничение снято — см. ENFORCE_SINGLE_BRANCH_TRUSTEE)
+      if (ENFORCE_SINGLE_BRANCH_TRUSTEE) {
+        auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
+        eosio::check(branches_by_trustee.find(trustee.value) == branches_by_trustee.end(),
+                     "Пайщик уже является председателем другого кооперативного участка");
+      }
+    }
+
     branches.modify(branch, coopname, [&](auto &b) {
         b.trustee = trustee;
     });
-    
+
+    if (previous_trustee != trustee) {
+      // Прежний председатель освобождается от привязки и выбирает участок заново заявлением.
+      // Но если он остался председателем другого участка — привязываем к нему: пустая привязка
+      // оставила бы его пайщиком без участка, а подать заявление о выборе ему нельзя
+      // (soviet::selectbranch запрещает смену участка действующему председателю).
+      auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
+      auto still_chairs = branches_by_trustee.find(previous_trustee.value);
+      eosio::name previous_trustee_braname =
+        still_chairs == branches_by_trustee.end() ? ""_n : still_chairs->braname;
+
+      action(
+        permission_level{ _branch, "active"_n},
+        _soviet,
+        "setbranch"_n,
+        std::make_tuple(coopname, previous_trustee, previous_trustee_braname)
+      ).send();
+
+      // новый председатель привязывается к собственному участку
+      action(
+        permission_level{ _branch, "active"_n},
+        _soviet,
+        "setbranch"_n,
+        std::make_tuple(coopname, trustee, braname)
+      ).send();
+    }
 }

@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { IFinalizeProjectDomainInput } from '~/extensions/capital/domain/actions/finalize-project-domain-input.interface';
+import type { IFinalizeProjectDomainInput } from '../../../domain/actions/finalize-project-domain-input.interface';
 
 /**
  * GraphQL DTO для финализации проекта CAPITAL контракта

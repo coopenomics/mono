@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { ProgramWithdrawDomainEntity } from '../../domain/entities/program-withdraw.entity';
 import {
   ProgramWithdrawRepository,
@@ -27,7 +27,7 @@ export class ProgramWithdrawSyncService
     @Inject(PROGRAM_WITHDRAW_REPOSITORY)
     programWithdrawRepository: ProgramWithdrawRepository,
     programWithdrawDeltaMapper: ProgramWithdrawDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     super(programWithdrawRepository, programWithdrawDeltaMapper, logger);
@@ -49,13 +49,5 @@ export class ProgramWithdrawSyncService
     allPatterns.forEach((pattern) => {
       this.eventEmitter.on(pattern, this.processDelta.bind(this));
     });
-  }
-
-  /**
-   * Обработчик форков для возвратов из программы
-   */
-  @OnEvent('fork::*')
-  async handleProgramWithdrawFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
   }
 }

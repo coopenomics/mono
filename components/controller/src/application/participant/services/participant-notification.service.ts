@@ -1,9 +1,10 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис для отправки уведомлений участникам
@@ -12,7 +13,7 @@ import config from '~/config/config';
 export class ParticipantNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -108,7 +109,7 @@ export class ParticipantNotificationService implements OnModuleInit {
       const payload: Workflows.NewInitialPaymentRequest.IPayload = {
         chairmanName,
         participantName,
-        paymentAmount,
+        paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
         paymentCurrency,
         paymentType: 'Вступительный и минимальный паевой взнос',
         coopname,

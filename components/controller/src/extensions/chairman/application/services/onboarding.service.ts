@@ -1,23 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import {
   ChairmanOnboardingAgendaInputDTO,
   ChairmanOnboardingAgendaStepEnum,
   ChairmanOnboardingStateDTO,
 } from '../dto/onboarding.dto';
 import type { IConfig } from '../../chairman-extension.module';
-import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
-import config from '~/config/config';
-import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
-import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import { MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
+import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
+import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
 
 type OnboardingFlagKey =
   | 'onboarding_wallet_agreement_done'
@@ -32,9 +27,9 @@ type OnboardingFlagKey =
 export class ChairmanOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: FreeDecisionPort,
-    @Inject(MEET_DATA_PORT) private readonly meetDataPort: MeetDataPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: DecisionTrackingPort
+    @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
+    @Inject(MEET_PORT) private readonly meetDataPort: IMeetPort,
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
   ) {}
 
   private mapStepToFlag(step: ChairmanOnboardingAgendaStepEnum): OnboardingFlagKey {
@@ -94,30 +89,33 @@ export class ChairmanOnboardingService {
     }
   }
 
-  private async loadPlugin(): Promise<ExtensionDomainEntity<IConfig>> {
-    const plugin = await this.extensionRepository.findByName('chairman');
-    if (!plugin) throw new Error('Конфигурация расширения chairman не найдена');
-    const config = { ...plugin.config };
+  private async loadExtension(): Promise<ExtensionDomainEntity<IConfig>> {
+    const extension = await this.extensionRepository.findByName('chairman');
+    if (!extension) throw new Error('Конфигурация расширения chairman не найдена');
+    const config = { ...extension.config };
 
-    let needUpdate = false;
+    const patch: Partial<IConfig> = {};
     if (!config.onboarding_init_at) {
       config.onboarding_init_at = new Date().toISOString();
-      needUpdate = true;
+      patch.onboarding_init_at = config.onboarding_init_at;
     }
 
     if (!config.onboarding_expire_at) {
       const start = new Date(config.onboarding_init_at);
       const expire = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
       config.onboarding_expire_at = expire.toISOString();
-      needUpdate = true;
+      patch.onboarding_expire_at = config.onboarding_expire_at;
     }
 
-    if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config });
-      return { ...plugin, config };
+    if (Object.keys(patch).length > 0) {
+      // Точечный merge только изменившихся полей — полная перезапись config
+      // целиком конкурирует с параллельными записями флагов/хэшей других шагов
+      // онбординга и теряет их изменения (lost update на общем jsonb-блобе).
+      const updated = await this.extensionRepository.patchConfig('chairman', patch);
+      return { ...extension, config: updated.config };
     }
 
-    return plugin;
+    return extension;
   }
 
   private buildState(config: IConfig): ChairmanOnboardingStateDTO {
@@ -142,21 +140,21 @@ export class ChairmanOnboardingService {
   }
 
   public async getState(): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
-    return this.buildState(plugin.config);
+    const extension = await this.loadExtension();
+    return this.buildState(extension.config);
   }
 
   public async completeAgendaStep(
     data: ChairmanOnboardingAgendaInputDTO,
     username: string
   ): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
     const flagKey = this.mapStepToFlag(data.step);
     const hashKey = this.mapStepToHash(data.step);
     const normalizedTitle = data.title?.trim().substring(0, 200) || undefined;
 
-    if ((plugin.config as any)[flagKey]) {
-      return this.buildState(plugin.config);
+    if ((extension.config as any)[flagKey]) {
+      return this.buildState(extension.config);
     }
     const project_id = uuid();
     const actor = username;
@@ -172,7 +170,7 @@ export class ChairmanOnboardingService {
     const generatedDoc = await this.freeDecisionPort.generateProjectOfFreeDecisionDocument(
       {
         project_id,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: actor,
         registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
         title: normalizedTitle,
@@ -182,7 +180,7 @@ export class ChairmanOnboardingService {
 
     // Публикуем проект решения в блокчейн сразу после генерации
     // TODO: ну это конечно убирать надо.
-    const documentForPublish: ISignedDocumentDomainInterface = {
+    const documentForPublish: ISignedDocument = {
       version: (generatedDoc.meta as any)?.version || '1.0',
       hash: generatedDoc.hash,
       doc_hash: (generatedDoc.meta as any)?.doc_hash || generatedDoc.hash,
@@ -192,18 +190,18 @@ export class ChairmanOnboardingService {
     };
 
     await this.freeDecisionPort.publishProjectOfFreeDecision({
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: actor,
       meta: JSON.stringify({ step: data.step, project_id, title: normalizedTitle }),
       document: documentForPublish,
     });
 
-    // Сохраняем hash в конфиге для отображения на фронтенде
-    const updatedConfig: IConfig = {
-      ...plugin.config,
+    // Сохраняем hash в конфиге для отображения на фронтенде — точечный merge
+    // (не полная перезапись config), чтобы не потерять конкурентно записанные
+    // флаги/хэши других шагов онбординга (lost update на общем jsonb-блобе).
+    const updated = await this.extensionRepository.patchConfig('chairman', {
       [hashKey]: generatedDoc.hash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    } as Partial<IConfig>);
 
     // Регистрируем правило отслеживания в фабрике
     const varsField = this.mapStepToVarsField(data.step);
@@ -219,22 +217,23 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(updated.config);
   }
 
   // Сохраняем hash общего собрания, флаг закроется после newresolved
   public async completeGeneralMeet(proposal_hash: string, _username?: string): Promise<ChairmanOnboardingStateDTO> {
-    const plugin = await this.loadPlugin();
+    const extension = await this.loadExtension();
 
-    if (plugin.config.onboarding_general_meet_done) {
-      return this.buildState(plugin.config);
+    if (extension.config.onboarding_general_meet_done) {
+      return this.buildState(extension.config);
     }
 
     // Если hash не пришёл (не должно быть), не затираем существующее значение
-    const meetHash = proposal_hash || plugin.config.onboarding_general_meet_hash || '';
+    const meetHash = proposal_hash || extension.config.onboarding_general_meet_hash || '';
 
-    const updatedConfig: IConfig = { ...plugin.config, onboarding_general_meet_hash: meetHash };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    const updated = await this.extensionRepository.patchConfig('chairman', {
+      onboarding_general_meet_hash: meetHash,
+    } as Partial<IConfig>);
 
     // Регистрируем правило отслеживания общего собрания
     await this.decisionTrackingPort.registerTrackingRule({
@@ -247,6 +246,6 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(updated.config);
   }
 }

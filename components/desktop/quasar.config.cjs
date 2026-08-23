@@ -49,7 +49,7 @@ module.exports = configure(function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['widget', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
+    boot: ['widget', 'coopid', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: [
@@ -139,6 +139,8 @@ module.exports = configure(function (ctx) {
             'localhost',
             '127.0.0.1',
           ];
+          viteConf.server.fs = viteConf.server.fs || {};
+          viteConf.server.fs.strict = false;
         }
 
         if (!isClient) {
@@ -166,7 +168,7 @@ module.exports = configure(function (ctx) {
           'vite-plugin-checker',
           {
             // vueTsc отключён в dev — пожирал 100% CPU/RAM на больших правках
-            // (Quasar + Vue 3 + Milkdown/BPMN/VueFlow/Mermaid/OpenLayers).
+            // (Quasar + Vue 3 + Milkdown/BPMN/VueFlow/Mermaid).
             // Типы проверяем отдельно: `pnpm typecheck` и в IDE через Volar.
             eslint: {
               lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
@@ -188,7 +190,7 @@ module.exports = configure(function (ctx) {
       // Vue DevTools + Vite: подключение скрипта в dev (расширение браузера)
       vueDevtools: false,
       open: false,
-      port: 2999,
+      port: parseInt(process.env.DESKTOP_PORT || '2999', 10),
       strictPort: true,
       host: '0.0.0.0',
     },
@@ -274,6 +276,12 @@ module.exports = configure(function (ctx) {
           useCredentialsForManifestTag: false,
           useFilenameHashes: true, // Включаем хеширование файлов
           extendGenerateSWOptions(cfg) {
+            // Push-обработчик. В режиме GenerateSW Quasar игнорирует
+            // sourceFiles.serviceWorker (custom-service-worker.ts), поэтому
+            // обработчик push/notificationclick подмешиваем в генерируемый SW
+            // через importScripts из статического public/push-sw.js. Без этого
+            // push доходит до браузера, но SW его не показывает.
+            cfg.importScripts = ['push-sw.js'];
             // Увеличиваем максимальный размер файла для кэширования
             cfg.maximumFileSizeToCacheInBytes = 5 * 1024 * 1024; // 5MB
             // Не включаем ревизию для определенных файлов
@@ -285,6 +293,34 @@ module.exports = configure(function (ctx) {
             // skipWaiting:false → Workbox сам инжектит listener SKIP_WAITING.
             cfg.skipWaiting = false;
             cfg.clientsClaim = false;
+
+            // CRITICAL: Quasar SSR+PWA по умолчанию ставит navigateFallback=offline.html.
+            // Workbox тогда на КАЖДУЮ навигацию (даже онлайн) отдаёт offline.html
+            // из precache активного SW — после деплоя холодный заход поднимает
+            // старый App Shell, пока пользователь не сделает hard reload.
+            // Убираем fallback: документ идёт в сеть (свежий SSR). Хешированные
+            // JS/CSS по-прежнему из precache/HTTP-кэша — на скорость ассетов
+            // почти не влияет. Офлайн-shell деградирует (нет сети = нет HTML).
+            delete cfg.navigateFallback;
+            delete cfg.navigateFallbackDenylist;
+
+            // Навигации: сеть первая, в кэш страниц — только как офлайн-запас
+            // после успешного ответа (не stale offline.html из другого релиза).
+            cfg.runtimeCaching = [
+              {
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'navigations',
+                  networkTimeoutSeconds: 5,
+                  expiration: {
+                    maxEntries: 8,
+                    maxAgeSeconds: 24 * 60 * 60,
+                  },
+                },
+              },
+              ...(cfg.runtimeCaching || []),
+            ];
           },
           extendManifestJson(json) {
             json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';

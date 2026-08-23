@@ -38,6 +38,8 @@ ln -s /home/admin/mono-ai-4/components/controller/.env $WT/components/controller
 
 **Базовая ветка mono-ai-1 — `dev`.** Прямые коммиты в `dev` для мелких фиксов разрешены и не требуют feature-ветки/PR (отменено 2026-05-22 пользователем). Для крупных задач — feature-ветка (`feat/...` или `fix/...`) от dev и PR в dev; merge делает пользователь на GitHub. Push в `main` / `mvp` — по-прежнему только через PR.
 
+**Релиз/деплой — FF-промоушн `dev → testnet → main`** (см. `scripts/RELEASE.md`). Версию бампает `lerna` ОДИН раз на dev (`scripts/cut-release.sh`), тот же коммит едет вверх по fast-forward (`scripts/promote.sh testnet|main`). `testnet`/`main` не несут своих коммитов — только FF-указатели, поэтому merge-конфликтов нет. **В `testnet`/`main` прямых коммитов и повторных бампов версии быть не должно** — это ломает FF. Деплой триггерит push в testnet/main с изменением `lerna.json`; окружение определяет ветка (main → prod). Старые `publish-alpha.sh`/`publish-prod.sh` (merge `-X theirs` + per-branch бамп + back-merge) удалены — они и плодили 20-package.json конфликты.
+
 **Не stash'ить `-u` при unstaged WIP пользователя.** Это создаёт окно для потери при drop/конфликте. Если нужно временно убрать unstaged — `git stash push -- <конкретные-paths>` либо коммит-в-feature, и только свои файлы. Кейс 2026-05-18: после `git stash -u`+`drop` при конфликте потерял WIP пользователя (infra.ts/config.ts/quasar.config.cjs и др.).
 
 ### Story-by-story для проекта «Стол заказов» (mono-ai-4 на marketplace2)
@@ -62,6 +64,30 @@ Workflow:
 
 **Анти-паттерн:** worktree от `feat/1-2-...`, потом от `feat/1-3-...`, и каждый PR в `marketplace2`. Цепочка branches правильная (изоляция), но цепочка PR — нет. Кейс Эпика 1 Стола заказов 2026-05-14: 11 PR `#370-#380` подряд от `marketplace2`, каждый +N stories назад. Пользователь дошёл до review #372 и обнаружил дубли. Закрыл #372-#379, оставил только #380.
 
+## Сборка контрактов на ARM-машине
+
+Скрипты `components/contracts/build-all.sh` и `build.sh` хардкодят образ
+`dicoop/blockchain:latest`, который опубликован **только под `linux/amd64`** —
+на ARM (Raspberry Pi 5, Apple Silicon без qemu-binfmt и пр.) `docker run` падает
+с `exec /bin/bash: exec format error` сразу после старта контейнера.
+
+**Для ARM использовать multi-arch образ `dicoop/blockchain_v5.1.1:dev`** —
+у него тег `dev` указывает на manifest list с нативными `dev-arm64` и
+`dev-amd64` под капотом. Запуск:
+
+```bash
+cd components/contracts
+rm -rf build && mkdir build
+docker run --rm --name cdt \
+  --volume "$(pwd)/:/project" \
+  -w /project/build \
+  dicoop/blockchain_v5.1.1:dev \
+  /bin/bash -c "cmake -DBUILD_TARGET='marketplace' -DTEST_TARGET= -DVERBOSE=ON -DBUILD_TESTS=OFF -DIS_TESTNET=OFF .. && make -j2"
+```
+
+Замена образа в build-скриптах на ARM — отдельный фикс (этот файл документирует
+рабочий обход, пока скрипты не перевели на multi-arch манифест глобально).
+
 ## Локальные тесты
 
 **Не запускать полный jest локально** ни в mono-ai-1, ни в mono-ai-4: живой dev-стек в docker (`nodeos`, `controller dev` nodemon, `parser dev`, `n8n`) вешает CPU/RAM и блокирует chain. Полный suite — задача CI после push'а PR.
@@ -72,9 +98,63 @@ Workflow:
 pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInBand
 ```
 
-`pnpm generate-schema` / `pnpm generate-client` — **не запускать локально**; та же memory/CPU полка вешает контейнер controller'а. Либо CI, либо пользователь сам когда контейнер остановлен.
+`pnpm generate-schema` / `pnpm generate-client` — **МОЖНО и НУЖНО запускать когда требуется** (разрешено пользователем явно). Любое изменение GraphQL-сигнатуры резолвера или типов контрактов обязано сопровождаться полным циклом регенерации (generate-schema → generate-client → sdk build, при правках cooptypes — ещё и cooptypes build), чтобы desktop получил актуальные типы. Не оставлять заглушку «до regen».
 
 Перед коммитом достаточно `tsc --noEmit` (быстрый, не блокирует).
+
+## ТЕСТЫ НА НОВЫЕ ФИЧИ — ОБЯЗАТЕЛЬНЫ
+
+**Любую значимую фичу покрываю тестами до пуша. Сам, без напоминаний.**
+Значимый код: `controller/src/{extensions,domain}`, `desktop/extensions`, `contracts/cpp`.
+
+Алгоритм — скилл `/feature-tests`:
+
+1. **Найти код фичи**, завести `test-registry/<домен>.<фича>.yaml`, вписать в `sources` маски, реально покрывающие её файлы (по ним гейт связывает изменения с фичей).
+2. **Перечислить ветви механически**, а не по наитию: права (не пайщик / не председатель / чужой кооператив), статусы (операция в неподходящем статусе, повтор терминального перехода), повторы и гонки (двойной клик, две подписи, повторный вебхук), границы данных (пусто, ноль, отрицательное, превышение), отказы инфраструктуры (цепь не отвечает, токен истёк, ABI устарел). Каждая ветвь — случай `kind: side` или `break`.
+3. **Спорное поведение не додумывать.** Если из кода не видно, как *должно* быть, и в стандарте не описано — `decision_needed: true` и вынести человеку списком. Тест, подогнанный под текущее поведение, превращает баг в норму.
+4. **Написать тесты по уровням:** contract — сценарий `.standard.yaml`; backend — `controller/tests/unit/<домен>/`; ui — сценарий `components/docs-harness/scenarios/`, через интерфейс, без обращения к API проекта. Отдельно API-проба теми же сценариями: интерфейс мог скрыть кнопку, сервер обязан отказать сам.
+5. **Прогнать `pnpm mutate:changed`.** Выживший мутант означает, что тест ничего не проверяет — доработать тест, не отключать мутатор.
+6. **Обновить `status` и `test`** в реестре. `passing` честен только после шага 5.
+
+Перед пушем — `pnpm check`. Гейты ловят забывчивость, а не халтуру: зелёный `check` не значит, что фича защищена, это показывают только мутации.
+
+### ПОСЛЕ ЛЮБОЙ ПРАВКИ — СМОТРЕТЬ ЛОГИ КОНТРОЛЛЕРА
+
+Контроллер поднят в docker и следит за `src/` через nodemon. **Ни eslint, ни `pnpm check` код не компилируют** — они пропускают битые импорты, несуществующие методы и ошибки инъекций. Единственная быстрая проверка компиляции и старта — логи.
+
+```bash
+docker logs --tail 40 mono-ai-1-coopback-1 2>&1 | grep -E "running on port|error TS|app crashed"
+```
+
+Ждать исхода после правки: `until docker logs --since 20s <ctr> 2>&1 | grep -qE "running on port|error TS"; do sleep 6; done`. Успех — строка `NestJS app with Express routes running on port 2998`.
+
+Отдельно смотреть на `Nest can't resolve dependencies`, `circular dependency`, `Cannot find module` — это ошибки инъекций и границ, а не опечатки.
+
+**Кейс 2026-08-09:** пять коммитов с зелёными гейтами, а контроллер всё это время лежал: `@coopenomics/extension-kit/sync` не резолвился. Найдено только когда пользователь спросил про логи.
+
+### ПОЛНЫЕ ТЕСТЫ ЛОКАЛЬНО НЕ ЗАПУСКАТЬ
+
+**Локально гоню только те тесты, которые сейчас пишу — точечно, по файлу.**
+Полный прогон вешает сервер: пока он идёт (а идёт долго), на машине практически ничего не работает. Целиком тесты гоняет CI на релизе — для этого гейт и сделан.
+
+```
+pnpm exec jest -i tests/unit/<домен>/<мой-файл>.test.ts   # так
+pnpm exec jest -i                                          # только по прямой просьбе
+```
+
+То же про `pnpm test`, `test:unit`, `test:ci`, `test:integration` и `mutate:changed` без аргументов — это тяжёлые прогоны, запускать по явной просьбе. Мутации ограничивать изменёнными файлами.
+
+| команда | назначение |
+|---|---|
+| `pnpm check` | границы + канон + реестр, один вердикт — лёгкий, гонять свободно |
+| `pnpm registry:audit` | что покрыто и какие области кода вне реестра |
+| `pnpm exec jest -i <путь>` | **основной способ локально**: только свои тесты |
+| `pnpm mutate:changed` | мутации по изменённым файлам — тяжело, по просьбе |
+| `pnpm test:unit` | cooptypes, parser, notifications, controller — тяжело, по просьбе |
+| `pnpm test:ci` | unit + component (component нужен MongoDB) — тяжело, по просьбе |
+| `pnpm test:integration` | sdk, boot — **нужен поднятый стек**, по просьбе |
+
+CI: Actions работают на GitHub-зеркале; PR туда не попадают, поэтому триггер — `push`, а не `pull_request`. На каждый коммит в `dev` не гоняется ничего: лимиты раннеров. `check` и `typecheck` — на `push` в `testnet`/`main`, тесты — релизным гейтом (`release` объявлен `needs: tests`, красные тесты останавливают релиз). Прогнать вручную до релиза: `workflow_dispatch` у `check`/`typecheck`, а весь релизный набор тестов — пушем в ветку-полигон `ci/tests`.
 
 ## SDK login canon
 
@@ -85,6 +165,41 @@ pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInB
 4. Возвращает `{tokens: {access: {token}, refresh: {token}}, account: {username}}`.
 
 **Не дёргать `Mutations.Auth.Login` напрямую** — `LoginInput` ждёт `{email, now, signature}`, генерация подписи внутри SDK Client. Refresh: `Mutations.Auth.Refresh.mutation` с `{access_token, refresh_token}`. Канон используется в `blago-cli/src/session/index.ts` (loginInteractive) и в EMP-коннекторе `connectors/cooperative-tsk-login-connector` (Story 11.5).
+
+## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
+
+Любой кусок кода (валидация, маппинг, guard, построение payload, helper-логика), повторённый **второй раз**, обязан быть вынесен в общее: `shared/`-helper / util / базовый класс (controller) или соответствующий FSD-слой `shared/` (desktop). Это **обязательное правило**, не рекомендация — не «то тут то там стряпать одно и то же».
+
+**Триггер:** заметил второе вхождение → сразу выноси, не копируй. Применяется и в controller, и в desktop. (Зафиксировано пользователем в ревью PR #17 «Стол заказов».)
+
+## Пакеты расширений: innercoop и extension-kit
+
+Расширение готовится к выносу из монолита, поэтому **из `src/extensions/` нельзя импортировать пути `~/...`** — за пределами контроллера их нет. Всё общее живёт в двух пакетах.
+
+| Пакет | Что там | Зависимости |
+|---|---|---|
+| `@coopenomics/innercoop` | **контракты**: порты ядра (`core-ports/`), межрасширенческие порты (`cross-plugin-ports/`), DI-токены `Symbol.for('Innercoop.CorePort.<Name>')` | только peer `@nestjs/common` (INV-014) |
+| `@coopenomics/extension-kit` | **каркас**: `BaseExtensionModule`, guard'ы и декораторы авторизации, сущности реестра, пагинация, документные типы GraphQL, политика конфига | nest, graphql, typeorm, cooptypes, class-validator |
+| `@coopenomics/extension-kit/sync` | каркас блокчейн-синхронизации: `BaseTypeormEntity`, `BaseDomainEntity`, `AbstractEntitySyncService`, `BaseBlockchainRepository`, версионирование | то же |
+
+**Пакеты не зависят друг от друга (INV-007).** Ни в одну сторону.
+
+### Правила, нарушение которых ломает сборку или рантайм
+
+- **`implements` контракта из `innercoop` в каркасе не ставится.** Пакеты ортогональны, поэтому совместимость только структурная: набор полей/методов тот же, номинальной связи нет. Так сделаны `ISyncLogger`↔`ILoggerPort`, `SignedDigitalDocumentInputDTO`↔`ISignedDocumentDomainInterface`, `WinstonLoggerService`↔`ILoggerPort`.
+- **Порт заменяется инъекцией, базовый класс — нет.** Если расширение делает `extends`, класс обязан физически лежать в пакете. Проверять замером `extends`, а не чтением каталога портов.
+- **В пакетах нет `emitDecoratorMetadata`** — они собираются unbuild/esbuild. Значит: у полей GraphQL всегда явный thunk `@Field(() => String)`, у колонок TypeORM явный `type`, у недекорированных параметров `@Injectable` явный `@Inject(Token)`. `@Field({ description })` без thunk'а в пакете даёт поле без типа и падение сборки схемы.
+- **Из `typeorm` в пакете берутся только декораторы и типы.** pnpm может дать пакету второй экземпляр модуля: декораторы это переживут (`MetadataArgsStorage` в `global`, как и `TypeMetadataStorage` у graphql), а значения нет — `MoreThan()` из второй копии не пройдёт `instanceof FindOperator`. Условия собирать query builder'ом.
+- **Скаляры и метаданные проверять на единственность экземпляра.** `GraphQLJSON` — объект, две копии дадут два скаляра `JSON` и падение схемы. Перед добавлением зависимости в пакет: `realpath components/<pkg>/node_modules/<m> components/controller/node_modules/<m>` — пути обязаны совпасть.
+- **`@nestjs/common` у пакета и контроллера обязан быть одним экземпляром.** pnpm вшивает в путь хэш peer-зависимостей, поэтому один и тот же `@nestjs/common@10.4.22` раздваивается, если пакет не пинит `reflect-metadata` так же, как контроллер (`^0.1.13`). Симптом: `The intersection 'HttpException & X' was reduced to 'never'` при `instanceof` через границу — типы разные номинально. Рантайм сломался бы молча: `instanceof` вернул бы false. Проверять тем же `realpath`, что и скаляры.
+- **Подпуть пакета требует `typesVersions`.** У контроллера классическая схема резолвинга (`module: commonjs` без `moduleResolution`), она игнорирует `exports`. Без `typesVersions` подпуть виден рантайму и не виден TypeScript.
+- **Секреты через настройки контура не передаются.** `platformSettings()` из каркаса — только несекретное и общее (`coopname`, адреса, зона, символ токена). Ключи интеграций получают явный порт под capability-гейтом.
+- **Сущности TypeORM ищутся глобами по `src/`.** Класс, уехавший в пакет, из глоба выпадает — добавлять в `entities` явным классом.
+- **Утилита переезжает целиком, копия в ядре не остаётся.** Общий helper, которым пользуются и расширения, и ядро, живёт в каркасе в одном экземпляре; ядро импортирует его оттуда наравне с расширениями. Оставить в `~/shared/utils` «версию для ядра» — значит завести две реализации, которые разойдутся. Так перенесены `PaginationUtils`, `RequireFields`, `DomainToBlockchainUtils`.
+
+### Регистрация порта
+
+Контракт и токен — в `innercoop/core-ports/`. Адаптер — в ядре (`infrastructure/innercoop/` или рядом с сервисом-владельцем). Биндинг — только в `src/extensions/innercoop-bridge.module.ts`, он же composition root и единственное место, которому позволено знать обе стороны. По умолчанию `useExisting`; `useClass` со `scope` — если у реализации нестандартная область видимости (так у `LOGGER_PORT`: `setContext` мутирует инстанс, нужен `Scope.TRANSIENT`).
 
 ## Backend (controller) каноны
 
@@ -152,7 +267,7 @@ Marketplace в монорепе живёт в **двух контурах**:
 ### Пагинация — единый паттерн
 
 В controller-resolver'ах пагинация делается единым каноническим паттерном:
-- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `~/application/common/dto/pagination.dto.ts`, поля page/limit/sortBy/sortOrder).
+- Вход: `@Args('options', { nullable: true }) options?: PaginationInputDTO` (импорт из `@coopenomics/extension-kit`, поля page/limit/sortBy/sortOrder).
 - Выход: `createPaginationResult(ItemDTO, 'PaginatedXxx')` + сигнатура `Promise<PaginationResult<T>>` (items / totalCount / totalPages / currentPage).
 - Repository принимает `PaginationInputDTO`, сам считает offset/limit/sort через TypeORM `findAndCount`.
 
@@ -240,6 +355,38 @@ await sendPOST('/v1/graphql', { query: QUERY, variables });
 
 Эталоны: `p.mkt.return.standard.yaml`, `p.cap.rid.standard.yaml`, `reg.coop.standard.yaml`. Антипример — `p.mkt.wroff.standard.yaml` в PR #399 review 2026-05-18 (был забит callback-описаниями и «type=mktwroff»).
 
+## Реестр документов раскатывается релизом, не миграциями
+
+Шаблоны документов больше **не правятся миграциями мигратора**. Локальный реестр
+(`components/factory/src/Templates/registry.ts`) — источник истины; команда
+`pnpm -F @coopenomics/boot run drafts:sync` сверяет его с `draft::drafts` /
+`draft::translations` и доливает недостающее, переписывает разошедшееся,
+поднимает версию по объявлению. Playbook деплоя контрактов
+(`coopenomics/playbooks`, `contracts/setup-contracts.yaml`) запускает её из
+`dicoop/bootcoop:<branch>` сразу после установки контрактов.
+
+**Версия шаблона — требование к подписи, а не номер редакции.** Рабочий стол
+сверяет версию шаблона с версией подписи пайщика (`RequireAgreements`) и при
+расхождении просит подписать заново. Поэтому:
+
+- правка текста/вёрстки/опечатки — просто меняем шаблон, `editdraft` версию не
+  трогает, переподписей нет;
+- смысловое изменение — дополнительно поднимаем число в
+  `components/factory/src/Templates/versions.ts`, синхронизатор вызовет
+  `upversion`.
+
+Синхронизатор ничего не удаляет, версию не понижает и идемпотентен. Проверить
+план без транзакций: `CHAIN_URL=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run`.
+
+**Ключ в раскатке синхронизатору не отдаётся.** Он живёт в кошельке
+`cleos`-контейнера плейбука ровно на время деплоя контрактов и стирается вместе
+с ним, поэтому команда работает в два шага: `--plan <каталог>` считает план по
+цепи (только чтение) и раскладывает его файлами `actions/*.json` + `apply.sh`, а
+подписывает и отправляет `cleos` из того же контейнера. Прямое применение (без
+флагов, ключ из `EOSIO_PRV_KEY`) остаётся для локальной цепи. Добавляя сюда
+что-то новое, ключ наружу не выносить — это осознанное требование, а не деталь
+реализации.
+
 ## Vault & SERVER_SECRET
 
 WIF админ-аккаунта (например `voskhod`) хранится в `vaults` PostgreSQL зашифрованным AES-256-CBC с ключом `sha256(SERVER_SECRET)`. Если `SERVER_SECRET` потом меняли — **старые записи разрушаются**, `decipher.final()` бросает `error:1C800064:Provider routines::bad decrypt`.
@@ -272,6 +419,28 @@ WIF админ-аккаунта (например `voskhod`) хранится в
 **Legacy data caveat:** `capital_time_entries` с `entry_type='hourly'` + `commit_hash != NULL` могут быть как (а) настоящей hourly работой до установки estimate, так и (б) split-наследием БАГ #2. Различить: если у задачи `estimate>0` и `DONE`, и записи hourly от тех же creators что в estimate-долях — это (б), чинить.
 
 **Edge-case дробных остатков:** при `estimate=2.5` и одном creator, после commit'а 2 ч (`Math.floor < 1` для остатка) остаётся 0.5 ч uncommitted estimate, который никогда не закоммитится. Либо ручной DELETE uncommitted остатка, либо изменить estimate на целое (но estimate в `capital_issues` — on-chain, через UI mutation, не DELETE'ом в БД).
+
+## Стол Заказов — канон единицы отпуска (читать до любых правок сумм)
+
+**Упаковка неделима.** Товар, отпускаемый упаковкой, принимают, выдают,
+возвращают и списывают целыми упаковками; брак внутри упаковки отражается
+**ценой**, а не пересчётом штук — решает оператор ПВЗ на месте. Отпуск по мере
+(кг/л/шт) корректируется количеством как обычно.
+
+- Цена (`price_per_unit`, `unit_price`, `fact_unit_price`, `arrival_price`) —
+  **за единицу отпуска**: при упаковочном отпуске это цена ЗА УПАКОВКУ.
+- Количество (`quantity`, `quantity_per_label`, on-chain asset) — в **базовой
+  единице** и обязано быть кратно упаковке (`Marketplace::check_packaging`).
+- Значит `quantity × price` — **неверно**. Сумма только через
+  `calcCostAmount`/`calcCostMinor` (controller `application/shared/cost.util.ts`)
+  и `marketplaceLineCost` (desktop `shared/lib/marketplace/line-cost.ts`).
+- Ввод оператора (приёмка, выдача, докладка, раскладка по боксам) — в единицах
+  отпуска, целыми упаковками; в базовую единицу переводится на границе с API.
+
+Полный текст с историей инцидента 2026-08-12 — в
+`components/controller/src/extensions/marketplace/README.md`, раздел «Единица
+отпуска». Не предлагать «привести всё к базовым единицам»: это узаконивает
+вскрытие упаковки и противоречит контракту.
 
 ## Стол Заказов MVP — текущее состояние
 

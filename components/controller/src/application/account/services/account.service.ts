@@ -2,12 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { AccountDTO } from '../dto/account.dto';
 import { AccountInteractor } from '../interactors/account.interactor';
 import type { GetAccountsInputDTO } from '../dto/get-accounts-input.dto';
-import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
 import { RegisteredAccountDTO } from '../dto/registered-account.dto';
 import type { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import type { UpdateAccountInputDTO } from '../dto/update-account-input.dto';
+import type { PassportInputDTO } from '../dto/passport-input.dto';
 import type { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
 
@@ -17,6 +18,11 @@ export class AccountService {
 
   public async updateAccount(data: UpdateAccountInputDTO): Promise<AccountDTO> {
     const result = await this.accountInteractor.updateAccount(data);
+    return new AccountDTO(result);
+  }
+
+  public async saveOwnPassport(username: string, passport: PassportInputDTO): Promise<AccountDTO> {
+    const result = await this.accountInteractor.saveOwnPassport(username, passport);
     return new AccountDTO(result);
   }
 

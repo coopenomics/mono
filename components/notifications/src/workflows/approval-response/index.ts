@@ -10,6 +10,13 @@ export const approvalResponsePayloadSchema = z.object({
   userName: z.string(),
   approvalStatus: z.enum(['approved', 'declined']),
   approvalStatusText: z.string(),
+  /**
+   * Человекочитаемое название предмета запроса (заголовок документа одобрения).
+   * Показывается пользователю ВМЕСТО `approvalId`: полный sha256 в тексте
+   * уведомления ничего не сообщает и ломает вёрстку узких каналов (in-app/push).
+   */
+  requestTitle: z.string(),
+  /** Технический идентификатор запроса (approval_hash). В тексты не подставляем. */
   approvalId: z.string(),
   coopname: z.string(),
   coopShortName: z.string(),
@@ -36,19 +43,21 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
       'Ваш запрос {{payload.approvalStatusText}} председателем совета',
       `Уважаемый {{payload.userName}}!
 
-Ваш запрос {{payload.approvalId}} {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}.
+Ваш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}.
+
+Предмет запроса: {{payload.requestTitle}}
 
 Подробнее по ссылке: {{payload.approvalUrl}}`
     ),
     createInAppStep(
       'approval-response-notification',
       'Ответ на запрос одобрения',
-      'Ваш запрос {{payload.approvalId}} {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}'
+      '{{payload.requestTitle}}\nВаш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}'
     ),
     createPushStep(
       'approval-response-push',
       'Ответ на запрос одобрения',
-      'Запрос {{payload.approvalId}} {{payload.approvalStatusText}}'
+      'Запрос {{payload.approvalStatusText}}: {{payload.requestTitle}}'
     ),
   ])
   .build();

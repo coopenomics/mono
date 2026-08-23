@@ -28,9 +28,9 @@ export function useRefreshSegment(propsOrRef: IRefreshSegmentProps | ComputedRef
     username: currentProps.value.segment.username || '',
   }));
 
-  // Получаем проект из store
+  // Получаем проект из store (в т.ч. компонент из entities)
   const project = computed(() => {
-    return projectStore.projects.items.find(p => p.project_hash === currentProps.value.segment.project_hash);
+    return projectStore.getProject(currentProps.value.segment.project_hash);
   });
 
   // Логика проверки необходимости обновления сегмента (использует общую функцию)

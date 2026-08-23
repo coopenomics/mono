@@ -7,6 +7,7 @@
 #include "domain/core/gamification/gamification.cpp"
 #include "domain/core/generation/generation.cpp"
 #include "domain/core/program_investment.cpp"
+#include "domain/core/project_debts.cpp"
 #include "domain/core/voting/voting.cpp"
 
 // Конфигурация контракта
@@ -94,6 +95,12 @@
 #include "app/debt_managment/create_debt/debtpaydcln.cpp"
 #include "app/debt_managment/create_debt/declinedebt.cpp"
 #include "app/debt_managment/settle_debt/settledebt.cpp"
+
+// Управление программными расходами через шасси expense.
+// capital — инициатор + получатель callback, шасси обслуживает весь flow.
+#include "app/expense_managment/program_expenses/topupprogexp.cpp"
+#include "app/expense_managment/program_expenses/createpgexp.cpp"
+#include "app/expense_managment/program_expenses/onpgexpdone.cpp"
 
 // Управление расходами
 #include "app/expense_managment/create_expense/approveexpns.cpp"

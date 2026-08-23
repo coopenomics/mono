@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/draft.dir/draft.cpp.obj -o draft.wasm 

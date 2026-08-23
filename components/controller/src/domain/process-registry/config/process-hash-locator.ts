@@ -31,14 +31,54 @@ export type HashLocation = {
  * в общий процесс `p.cap.rid` (акт-2), где уже находятся accept + repay.
  * На контракте это выражается тем же `p.cap.rid`, но бэкенд накладывает свой
  * вид, чтобы `project_hash` был якорем отдельного представления процесса.
+ *
+ * Оверрайд сильнее имени, эмитированного контрактом: это сознательное
+ * расхождение представления с цепью, а не догадка об имени нитки. Иначе после того,
+ * как контракт начал эмитить `p.cap.rid`, отдельный процесс коммитов исчез бы,
+ * а его нитка (якорь — `project_hash`) уехала бы в локатор `p.cap.rid`, который
+ * ищет `result_hash`, и сущность перестала бы находиться.
  */
-const BACKEND_OVERRIDES: Record<string, string> = {
+export const BACKEND_OVERRIDES: Readonly<Record<string, string>> = Object.freeze({
   'o.cap.commit': 'p.cap.commit',
-};
+});
+
+/**
+ * Операции, которые физически идут внутри чужой нитки процесса и потому не
+ * дают ей имени.
+ *
+ * `branch::accrue` и `branch::retfee` вызываются инлайн контрактом-источником с
+ * его собственным `process_hash`: `marketplace::signiss2` зачисляет членский
+ * взнос в общий кошелёк КУ по хэшу заказа, `marketplace::accretrn` возвращает
+ * его по хэшу заявки на возврат. Поэтому `o.brn.common` / `o.brn.retfee` живут
+ * в нитках поставки и гарантийного возврата, хотя в реестре операций объявлены
+ * под собственным `p.brn.fees` (там они относятся к экономике КУ).
+ *
+ * Без этого списка у нитки два претендента на имя, и она называлась по
+ * алфавиту `operation_code`: `o.brn.common` < `o.mkt.lock`, поэтому поставка
+ * подписывалась «Членские взносы кооперативного участка».
+ *
+ * Список нужен только для блоков, записанных до того, как контракт начал
+ * эмитить `process_type` в `ledger2::apply`. Для новых операций имя читается из
+ * цепи — дописывать сюда ничего не нужно.
+ */
+export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
+  'o.brn.common',
+  'o.brn.retfee',
+  // o.mkt.refund возвращает членский взнос и в нитке поставки (неиспользованная
+  // часть по заказу), и в нитке гарантийного возврата (вторая нога, по хэшу
+  // заявки). В реестре операций он объявлен под поставкой, поэтому без этой
+  // строки фильтр «Поставка» вытаскивал нитку возврата отдельной строкой,
+  // названной поставкой, — а при раскрытии та же нитка называлась возвратом.
+  // Имени поставке он не нужен: в нитке заказа всегда есть o.mkt.lock.
+  'o.mkt.refund',
+]);
 
 /**
  * Phase A: operation_code → process_type. Строится из cooptypes +
  * бэкенд-оверрайдов.
+ *
+ * Историческая карта: применяется только к блокам без явного `process_type` в
+ * данных экшена (см. `OPERATIONS_NOT_NAMING_PROCESS`).
  */
 export const OPERATION_CODE_TO_PROCESS_TYPE: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
@@ -119,6 +159,54 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
   'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
+  // marketplace — членская модель «Стола заказов». Три entity-таблицы из
+  // contracts/cpp/lib/domain/table_marketplace_*.hpp хранят сами процессы:
+  //   - `orders.hash`      — поставка имущества (заказ через каталог).
+  //   - `retrequests.hash` — гарантийный возврат имущества.
+  //   - `wroffprops.hash`  — проект решения совета о списании скоропорта.
+  // Имя поля — `hash` (а не `order_hash`/`request_hash`); все три таблицы
+  // используют один и тот же `checksum256 hash` как первичный
+  // process-якорь. Через них Phase B resolution в blockchain_deltas
+  // отдаёт current state процесса вместе с Phase-A экшенами.
+  'p.mkt.supply': [{ code: 'marketplace', table: 'orders',      field: 'hash' }],
+  'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
+  'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
+
+  // requirement b6 «Экономика КУ».
+  // p.brn.fees — распределение членских взносов КУ: ручное распределение
+  // председателем (branch::distribute, round_hash) и перевод персональных
+  // средств доверенным (o.brn.conv, convert_hash). Оба хэша генерятся
+  // backend'ом и в сущностных таблицах не хранятся — данные читаются из
+  // blockchain_actions (как у p.adj.fix), поэтому локаций нет.
+  //
+  // Хэш заказа (`marketplace.orders.hash`) здесь НЕ значится: зачисление взноса
+  // (branch::accrue) идёт внутри нитки поставки и её имени не определяет
+  // (см. OPERATIONS_NOT_NAMING_PROCESS). Пока обе нитки были объявлены на одном
+  // якоре, поставка подписывалась именем этого процесса.
+  'p.brn.fees': [],
+
+  // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
+  'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],
+
+  // p.sov.tax — перечисление удержанного налога в бюджет: process_hash =
+  // taxes.hash. Запись живёт от отправки бухгалтером до подтверждения кассиром
+  // и после финала стирается, поэтому у завершённого платежа анкера в таблице
+  // уже нет — деталь собирается из журнала действий.
+  'p.sov.tax': [{ code: 'soviet', table: 'taxes', field: 'hash' }],
+
+  // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
+  'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
+
+  // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
+  // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —
+  // entity-таблицы нет, данные из blockchain_actions.
+  'p.cap.pgexp': [],
+
+  // p.exp.expns — расход по СЗ (шасси expense): o.exp.blgadv/blgdir (оплата) +
+  // опц. o.exp.over + o.exp.advrpt (отчёт) + опц. o.exp.advret (возврат).
+  // Анкер процесса — proposal_hash в `expense::proposals`.
+  'p.exp.expns': [{ code: 'expense', table: 'proposals', field: 'proposal_hash' }],
+
   // marketplace::requests.hash — поле так и называется `hash`.
   'p.mkt.reqst': [{ code: 'marketplace', table: 'requests', field: 'hash' }],
 
@@ -144,13 +232,26 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROCESS_HASH_LOCATOR));
 
 // ===============================================================
-// Integrity check (runtime): каждый process_type из
-// OPERATION_CODE_TO_PROCESS_TYPE должен быть в PROCESS_HASH_LOCATOR.
-// Срабатывает при старте модуля — fail-fast при рассинхронизации.
+// Integrity check (runtime): локатор обязан знать каждое имя процесса,
+// которое может приехать из цепи. Срабатывает при старте модуля —
+// fail-fast при рассинхронизации.
+//
+// Два независимых источника таких имён, и проверять нужно оба:
+//   1. историческая карта operation_code → process_type (старые блоки);
+//   2. реестр процессов контракта — имя эмитится в ledger2::apply, поэтому
+//      увидеть можно любое имя из PROCESS_REGISTRY, даже если сегодня ни одна
+//      операция под ним не объявлена. Раньше проверялся только (1), и новое
+//      имя, добавленное в processes.hpp, доезжало до 400 в getProcess.
 // ===============================================================
 {
   const missing: string[] = [];
   for (const pt of Object.values(OPERATION_CODE_TO_PROCESS_TYPE)) {
+    if (!KNOWN_PROCESS_TYPES.has(pt)) missing.push(pt);
+  }
+  for (const { type } of Ledger2.LEDGER2_PROCESS_REGISTRY) {
+    if (!KNOWN_PROCESS_TYPES.has(type)) missing.push(type);
+  }
+  for (const pt of Object.values(BACKEND_OVERRIDES)) {
     if (!KNOWN_PROCESS_TYPES.has(pt)) missing.push(pt);
   }
   if (missing.length > 0) {

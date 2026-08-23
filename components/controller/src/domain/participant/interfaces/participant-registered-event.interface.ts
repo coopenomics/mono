@@ -1,20 +1,5 @@
-import { ProgramKey } from '~/domain/registration/enum';
-
 /**
- * Интерфейс события participant::registered
- * Эмитится после успешной регистрации участника
+ * Событие приёма пайщика живёт в контракте `@coopenomics/innercoop`: сообщает
+ * о нём ядро, слушают расширения. Здесь оно доступно под привычным ядру именем.
  */
-export interface ParticipantRegisteredEvent {
-  /** Имя пользователя */
-  username: string;
-  /** Ключ выбранной программы регистрации */
-  program_key?: ProgramKey;
-  /** Имя филиала */
-  braname?: string;
-  /** Тип аккаунта участника */
-  account_type: string;
-  /** Хэш оферты по благороста (только для программы CAPITALIZATION) */
-  blagorost_offer_hash?: string;
-  /** Хэш оферты по генератору (только для программы GENERATION) */
-  generator_offer_hash?: string;
-}
+export type { InnerParticipantRegisteredEvent as ParticipantRegisteredEvent } from '@coopenomics/innercoop';

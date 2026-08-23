@@ -6,11 +6,7 @@ import {
   type UpsertReportRequisitesInput,
   type SignerTypeValue,
 } from '../repositories/report-requisites.repository';
-import {
-  ORGANIZATION_REPOSITORY,
-  type OrganizationRepository,
-} from '~/domain/common/repositories/organization.repository';
-import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
+import { ORGANIZATION_PORT, type IOrganizationPort, type InnerOrganization } from '@coopenomics/innercoop';
 
 export type RequisiteSource = 'database' | 'manual' | 'empty';
 
@@ -39,6 +35,8 @@ export interface MergedRequisites {
   oktmo: RequisiteField;
   okpo: RequisiteField;
   sfrRegNumber: RequisiteField;
+  /** Рег. номер страхователя в ПФР (XXX-XXX-XXXXXX) — отдельный от sfrRegNumber, требуется для ЕФС-1. */
+  pfrRegNumber: RequisiteField;
   chairmanPosition: RequisiteField;
   signerSnils: RequisiteField;
   signerRepDoc: RequisiteField;
@@ -89,16 +87,24 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
     { key: 'okopf', label: 'ОКОПФ', source: 'manual' },
   ],
   [ReportType.NDFL6]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
-  [ReportType.RSV]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.RSV]: [
+    { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
+    { key: 'phone', label: 'Телефон', source: 'database' },
+  ],
   [ReportType.DUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
   [ReportType.FSS4]: [
     { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
     { key: 'sfrRegNumber', label: 'Регистрационный номер в СФР', source: 'manual' },
+    { key: 'pfrRegNumber', label: 'Регистрационный номер в ПФР', source: 'manual' },
     { key: 'chairmanPosition', label: 'Должность руководителя', source: 'manual' },
   ],
-  [ReportType.PSV]: [{ key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' }],
+  [ReportType.PSV]: [
+    { key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' },
+    { key: 'phone', label: 'Телефон', source: 'database' },
+  ],
   [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
   [ReportType.UUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.UV_NDFL]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
 };
 
 @Injectable()
@@ -108,8 +114,8 @@ export class ReportRequisitesService {
   constructor(
     @Inject(REPORT_REQUISITES_REPOSITORY)
     private readonly reqRepo: ReportRequisitesRepository,
-    @Inject(ORGANIZATION_REPOSITORY)
-    private readonly orgRepo: OrganizationRepository,
+    @Inject(ORGANIZATION_PORT)
+    private readonly orgRepo: IOrganizationPort,
   ) {}
 
   async getMerged(coopname: string): Promise<MergedRequisites> {
@@ -139,7 +145,9 @@ export class ReportRequisitesService {
       inn: db(org?.details?.inn),
       kpp: db(org?.details?.kpp),
       ogrn: db(org?.details?.ogrn),
-      orgName: db(org?.full_name || org?.short_name),
+      // Для ФНС в НаимОрг нужно краткое наименование (ПК «…»), полное
+      // отклоняют. См. Корректировки_отчетов/ПСВ|РСВ README.
+      orgName: db(org?.short_name || org?.full_name),
       address,
       phone,
       signerLastName: db(org?.represented_by?.last_name),
@@ -152,6 +160,7 @@ export class ReportRequisitesService {
       oktmo: mn(manual?.oktmo),
       okpo: mn(manual?.okpo),
       sfrRegNumber: mn(manual?.sfr_reg_number),
+      pfrRegNumber: mn(manual?.pfr_reg_number),
       chairmanPosition: mn(manual?.chairman_position),
       signerSnils: mn(manual?.signer_snils),
       signerRepDoc: mn(manual?.signer_rep_doc),
@@ -191,7 +200,7 @@ export class ReportRequisitesService {
     return { ready: missing.length === 0, missingFields: missing };
   }
 
-  private async safeLoadOrganization(coopname: string): Promise<OrganizationDomainInterface | null> {
+  private async safeLoadOrganization(coopname: string): Promise<InnerOrganization | null> {
     try {
       return await this.orgRepo.findByUsername(coopname);
     } catch (e) {
@@ -218,6 +227,7 @@ export class ReportRequisitesService {
       oktmo: input.oktmo ?? undefined,
       okpo: input.okpo ?? undefined,
       sfr_reg_number: input.sfr_reg_number ?? undefined,
+      pfr_reg_number: input.pfr_reg_number ?? undefined,
       chairman_position: input.chairman_position ?? undefined,
       signer_snils: input.signer_snils ?? undefined,
       signer_rep_doc: input.signer_rep_doc ?? undefined,

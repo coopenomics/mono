@@ -26,6 +26,7 @@ export const subscribedContracts: string[] = [
   'draft',
   'meet',
   'soviet',
+  'branch',
   'registrator',
   'eosio.token',
   'capital',
@@ -33,6 +34,7 @@ export const subscribedContracts: string[] = [
   'ledger',
   'ledger2',
   'marketplace',
+  'expense',
 ]
 
 // Автоматически генерируем действия для всех контрактов из списка

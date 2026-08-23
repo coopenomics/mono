@@ -6,6 +6,8 @@ export interface DeltaDomainInterface {
   chain_id: string;
   block_num: number;
   block_id: string;
+  /** Время блока, строка ISO в UTC. Необязательно: старый парсер его не отдавал. */
+  block_time?: string;
   present: boolean;
   code: string;
   scope: string;

@@ -1,10 +1,12 @@
 <template lang="pug">
 .contacts-page
-  header.contacts-page__header
-    span.contacts-page__eyebrow Контактные данные
-    h1.contacts-page__title {{ contacts?.full_name || 'Организация' }}
-
   .contacts-card
+    //- Заголовок организации — внутри карточки (head), чтобы не выглядел
+    //- оторванным от полей. Отделён линией от сетки реквизитов.
+    header.contacts-card__head
+      span.contacts-card__eyebrow Контактные данные
+      h1.contacts-card__title {{ contacts?.full_name || 'Организация' }}
+
     //- Реквизиты и председатель — единая сетка полей.
     .contacts-grid
       .field
@@ -66,31 +68,35 @@ const displayValue = (value?: string | null) => value || '—';
   }
 }
 
-.contacts-page__header {
-  display: grid;
-  gap: var(--p-1, 4px);
-  margin-bottom: var(--p-5, 20px);
-}
-.contacts-page__eyebrow {
-  font-size: var(--p-fs-eyebrow, 11px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--p-ink-3);
-}
-.contacts-page__title {
-  margin: 0;
-  font-size: var(--p-fs-h1, 24px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--p-ink);
-}
-
 /* Единая спокойная поверхность; одна линия делит реквизиты и контакты. */
 .contacts-card {
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);
   padding: var(--p-5, 20px);
+}
+
+/* Шапка карточки: eyebrow + название организации, отделены линией от полей. */
+.contacts-card__head {
+  display: grid;
+  gap: var(--p-1, 4px);
+  margin-bottom: var(--p-5, 20px);
+  padding-bottom: var(--p-5, 20px);
+  border-bottom: 1px solid var(--p-line);
+}
+.contacts-card__eyebrow {
+  font-size: var(--p-fs-eyebrow, 11px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.contacts-card__title {
+  margin: 0;
+  font-size: var(--p-fs-h2, 18px);
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  color: var(--p-ink);
+  overflow-wrap: break-word;
 }
 
 .contacts-grid {
@@ -121,7 +127,7 @@ const displayValue = (value?: string | null) => value || '—';
   font-size: var(--p-fs-body, 14px);
   font-weight: 500;
   color: var(--p-ink-1);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 a.field__value--link {
   color: var(--p-primary);

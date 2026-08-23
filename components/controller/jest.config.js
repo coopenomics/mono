@@ -7,7 +7,14 @@ module.exports = {
   testEnvironmentOptions: {
     NODE_ENV: 'test',
   },
+  // Локально dev-стек controller'а живёт в docker и параллельный пул jest
+  // съедает CPU/RAM — вешает сервер. Любой `pnpm jest [...]` идёт в один воркер.
+  maxWorkers: 1,
   restoreMocks: true,
+  // Заглушки окружения до импорта тестовых модулей: спеки в src/ тянут реальные
+  // сервисы, те — `~/config`, а он при невалидном env делает process.exit(1).
+  // Без этого прогон в CI (где .env нет) умирает целиком. См. tests/setup-env.ts.
+  setupFiles: ['<rootDir>/tests/setup-env.ts'],
   // Интеграционные тесты против внешних сервисов (MinIO и т.п.) — не часть штатного `jest`-прогона.
   // Запускаются явно через `npm run test:integration:file-storage`.
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.spec\\.ts$'],
@@ -17,5 +24,15 @@ module.exports = {
     // tsconfig.baseUrl="./src" + paths={"~/*":["*"]} — дублируем здесь,
     // иначе ts-jest не резолвит `~/...` импорты в тестируемом коде.
     '^~/(.*)$': '<rootDir>/src/$1',
+    // @octokit/rest — pure ESM, jest работает в CJS и падает на нём с
+    // «Cannot use import statement outside a module» ещё на импорте модуля
+    // (тесты реестра расширений тянут capital → github.service/git.service).
+    // К GitHub в юнит-тестах никто не ходит. См. tests/mocks/octokit-rest.ts.
+    '^@octokit/rest$': '<rootDir>/tests/mocks/octokit-rest.ts',
+    // p-queue — тоже pure ESM, приходит транзитивно из @coopenomics/parser2
+    // (сериализует обработку блоков). Рантайм на Node 22 её грузит, загрузчик
+    // jest — нет, и без подмены не стартует всякий сьют, дотягивающийся до
+    // потребителя цепи. См. tests/mocks/p-queue.ts — там честная очередь.
+    '^p-queue$': '<rootDir>/tests/mocks/p-queue.ts',
   },
 };

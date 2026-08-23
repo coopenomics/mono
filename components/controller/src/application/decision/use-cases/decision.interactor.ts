@@ -1,10 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
-import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { SovietContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { AuthorizeDecisionInputDTO } from '../dto/authorize-decision-input.dto';
 import { DeclineDecisionInputDTO } from '../dto/decline-decision-input.dto';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class DecisionInteractor {

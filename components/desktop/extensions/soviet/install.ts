@@ -1,12 +1,18 @@
 import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
+// Страница «Персонал» (назначение ролей, Story 6.11) временно снята со стола
+// совета: управление наборами возможностей не доведено до конца, а
+// полурабочий экран раздачи прав опаснее его отсутствия. Возвращается
+// вместе с доделанной фичей — снять комментарии здесь и у маршрута ниже.
+// import { PersonnelPage } from 'src/pages/Cooperative/Personnel';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
+import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -46,6 +52,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman', 'member'],
             },
           },
+          // Временно скрыто — см. комментарий у импорта PersonnelPage.
+          // {
+          //   path: 'personnel',
+          //   name: 'personnel',
+          //   component: markRaw(PersonnelPage),
+          //   meta: {
+          //     title: 'Персонал',
+          //     icon: 'fa-solid fa-user-shield',
+          //     roles: ['chairman'],
+          //   },
+          // },
           {
             path: 'documents',
             name: 'documents',
@@ -55,17 +72,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
             },
-          },
-          {
-            // Отдельная страница документа (deep-link из поиска и реестра).
-            path: 'documents/:hash',
-            name: 'document-details',
-            component: markRaw(DocumentDetailsPage),
-            meta: {
-              title: 'Документ',
-              roles: ['chairman', 'member'],
-              hidden: true,
-            },
+            children: [
+              {
+                // Отдельная страница документа (deep-link из поиска и реестра).
+                path: ':hash',
+                name: 'document-details',
+                component: markRaw(DocumentDetailsPage),
+                meta: {
+                  title: 'Документ',
+                  roles: ['chairman', 'member'],
+                  hidden: true,
+                },
+              },
+            ],
           },
           {
             path: 'payments/:username?',
@@ -74,6 +93,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Реестр платежей',
               icon: 'fa-solid fa-file-invoice',
+              roles: ['chairman', 'member'],
+            },
+          },
+          {
+            // Реестр расходов кооператива: единая таблица всех расходов по всем
+            // пулам-кошелькам (без фильтра по кошельку — колонка «Кошелёк (пул)»
+            // показывает источник списания). Совет наблюдает; клик по строке
+            // открывает деталь расхода (generic `expenses-detail`). Фильтр по
+            // конкретному пулу — на странице расходов программы (capital).
+            path: 'expenses',
+            name: 'soviet-expenses-registry',
+            component: markRaw(ExpensesRegistryPage),
+            meta: {
+              title: 'Реестр расходов',
+              icon: 'receipt_long',
               roles: ['chairman', 'member'],
             },
           },

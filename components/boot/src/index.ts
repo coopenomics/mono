@@ -13,6 +13,7 @@ import { checkHealth } from './docker/health'
 import { clearDB, clearDirectory, deleteFile } from './docker/purge'
 import { deployCommand } from './docker/deploy'
 import { addTestUser } from './scripts/add-test-user'
+import { waitForRpc } from './utils/waitForRpc'
 
 config()
 
@@ -176,6 +177,7 @@ program
     }
 
     try {
+      await runInfraContainers()
       await runContainer()
 
       await sleep(5000)
@@ -334,23 +336,7 @@ program
     const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 120000)
 
     console.log(`Waiting for RPC at ${url} (timeout ${timeoutMs}ms)...`)
-    const deadline = Date.now() + timeoutMs
-    let ready = false
-    while (Date.now() < deadline) {
-      try {
-        const r = await fetch(`${url}/v1/chain/get_info`, {
-          signal: AbortSignal.timeout(2000),
-        } as RequestInit)
-        if (r.ok) {
-          ready = true
-          break
-        }
-      }
-      catch {
-        // RPC ещё не готов — пробуем снова
-      }
-      await sleep(1000)
-    }
+    const ready = await waitForRpc(url, timeoutMs)
     if (!ready) {
       console.error(`RPC ${url} not ready within ${timeoutMs}ms`)
       process.exit(1)
@@ -376,6 +362,88 @@ program
     }
     catch (e) {
       console.error('boot:remote failed:', e)
+      process.exit(1)
+    }
+  })
+
+/**
+ * Синхронизация реестра шаблонов документов с сетью.
+ *
+ * Локальный реестр документов (`@coopenomics/factory`) — источник истины:
+ * команда доливает недостающие шаблоны, переписывает разошедшееся содержание
+ * и поднимает версию там, где реестр её объявил выше сетевой. Ничего не
+ * удаляет и не понижает.
+ *
+ * Два режима, потому что подписывают транзакции по-разному:
+ *
+ * - `--plan <каталог>` — только чтение цепи. Раскладывает план в каталог
+ *   (данные каждого действия JSON-файлом + `apply.sh`), а подписывает и
+ *   отправляет потом `cleos` из контейнера с кошельком. Так работает
+ *   раскатка сети: ключ системного аккаунта живёт в кошельке плейбука и
+ *   стирается вместе с ним, наружу не выходит;
+ * - без флагов — считает план и применяет его сам ключом из `EOSIO_PRV_KEY`.
+ *   Для локальной цепи, где ключ и так в конфиге.
+ *
+ *   CHAIN_URL=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run
+ *
+ * Окружение:
+ *   CHAIN_URL           — endpoint ноды
+ *   EOSIO_PRV_KEY       — ключ системного аккаунта, только для прямого режима
+ *   RPC_WAIT_TIMEOUT_MS — сколько ждать готовности RPC, default 60000
+ */
+program
+  .command('drafts:sync')
+  .description('Привести реестр документов в сети к локальному реестру шаблонов')
+  .option('--dry-run', 'Показать план изменений, не отправляя транзакций')
+  .option('--plan <dir>', 'Разложить план в каталог для применения через cleos')
+  .action(async (options: { dryRun?: boolean, plan?: string }) => {
+    const configs = (await import('./configs')).default
+    const { computeDraftsPlan, printDraftsPlan, applyDraftsPlan, writeDraftsPlan } = await import('./init/drafts')
+    const { default: Blockchain } = await import('./blockchain')
+
+    const dryRun = options.dryRun === true
+    const planDir = options.plan
+    // Ключ нужен только когда команда сама подписывает транзакции.
+    const applies = !dryRun && !planDir
+
+    if (applies && !process.env.EOSIO_PRV_KEY) {
+      console.error('Не задан EOSIO_PRV_KEY — реестр документов правит системный аккаунт')
+      console.error('Для раскатки сети используйте --plan <каталог>: подпишет cleos кошельком плейбука')
+      process.exit(1)
+    }
+
+    const url = `${configs.network.protocol}://${configs.network.host}${configs.network.port}`
+    const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 60000)
+
+    console.log(`Реестр документов: ${url}`)
+
+    if (!await waitForRpc(url, timeoutMs)) {
+      console.error(`RPC ${url} не ответил за ${timeoutMs}ms`)
+      process.exit(1)
+    }
+
+    try {
+      const blockchain = new Blockchain(configs.network, configs.private_keys)
+      await blockchain.update_pass_instance()
+
+      const plan = await computeDraftsPlan(blockchain)
+      printDraftsPlan(plan)
+
+      if (plan.problems.length > 0) {
+        console.error(`Реестр не сходится с сетью: ${plan.problems.length} проблем`)
+        process.exit(1)
+      }
+
+      if (planDir)
+        await writeDraftsPlan(plan, planDir)
+      else if (applies)
+        await applyDraftsPlan(blockchain, plan)
+
+      console.log('Готово')
+      process.exit(0)
+    }
+    catch (e) {
+      console.error('Синхронизация реестра документов не удалась:', e)
       process.exit(1)
     }
   })

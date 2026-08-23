@@ -5,7 +5,7 @@ import type {
   PaymentDomainInterface,
   PaymentDetailsDomainInterface,
 } from '~/domain/gateway/interfaces/payment-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Унифицированная сущность платежа для TypeORM
@@ -87,5 +87,18 @@ export class PaymentEntity implements PaymentDomainInterface {
   blockchain_data?: any;
 
   @Column('json', { nullable: true })
-  statement?: ISignedDocumentDomainInterface;
+  statement?: ISignedDocument;
+
+  /**
+   * Связь с extension, инициировавшим платёж. Заполняется для системных
+   * outgoing_payment'ов (например, marketplace выплачивает поставщику без
+   * пользовательского `statement`). Для обычных пайщик-инициированных
+   * платежей оба поля остаются NULL — кассирский стол отображает их в
+   * общей ленте без extension-маркера. Story 598-17 / AR35.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  related_extension?: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  related_entity_id?: string | null;
 }

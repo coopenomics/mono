@@ -55,3 +55,8 @@ export * as Approves from './approves'
  * Пространство системных действий
  */
 export * as System from './system'
+
+/**
+ * Пространство действий по перечислению удержанного налога в бюджет.
+ */
+export * as Tax from './tax'

@@ -1,12 +1,15 @@
 import { ProjectStatus } from '../enums/project-status.enum';
+import { ProjectPriority } from '../enums/project-priority.enum';
+import { ProjectOrigin } from '../enums/project-origin.enum';
 import type {
   IProjectDomainInterfaceDatabaseData,
   IProjectMatrixComponentAnnouncementEvent,
 } from '../interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/project-blockchain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity, auditUnknownStatus, auditLogger } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
+
 /**
  * Доменная сущность проекта
  *
@@ -35,6 +38,12 @@ export class ProjectDomainEntity
   public matrix_component_announcement_events?: IProjectMatrixComponentAnnouncementEvent[];
   /** URL репозитория разработки (только БД). */
   public development_repository_url: string | null;
+  /** Приоритет проекта/компонента (только БД). */
+  public priority: ProjectPriority;
+  /** blockchain — кооперативный; local — персональный */
+  public origin: ProjectOrigin;
+  /** Владелец персонального проекта */
+  public local_owner: string | null;
 
   // Поля из блокчейна (projects.hpp)
   public project_hash: IProjectDomainInterfaceBlockchainData['project_hash'];
@@ -81,6 +90,14 @@ export class ProjectDomainEntity
       databaseData.development_repository_url !== undefined && databaseData.development_repository_url !== null
         ? databaseData.development_repository_url.trim() || null
         : null;
+    this.priority = Object.values(ProjectPriority).includes(databaseData.priority as ProjectPriority)
+      ? (databaseData.priority as ProjectPriority)
+      : ProjectPriority.MEDIUM;
+    this.origin =
+      (databaseData.origin as ProjectOrigin) === ProjectOrigin.LOCAL
+        ? ProjectOrigin.LOCAL
+        : ProjectOrigin.BLOCKCHAIN;
+    this.local_owner = databaseData.local_owner ?? null;
 
     // Инициализируем поля для генерации ID задач, если они не заданы
     this.initializeIssueIdFields();
@@ -89,7 +106,9 @@ export class ProjectDomainEntity
     if (blockchainData) {
       if (this.project_hash != blockchainData.project_hash.toLowerCase()) throw new Error('Project hash mismatch');
 
-      this.id = Number(blockchainData.id);
+      if (blockchainData.id != null && Number(blockchainData.id) > 0) {
+        this.id = Number(blockchainData.id);
+      }
       this.coopname = blockchainData.coopname;
       this.project_hash = blockchainData.project_hash.toLowerCase();
       this.parent_hash = blockchainData.parent_hash.toLowerCase();
@@ -207,10 +226,18 @@ export class ProjectDomainEntity
         return ProjectStatus.RESULT;
       case 'finalized':
         return ProjectStatus.FINALIZED;
-      case 'cancelled':
-        return ProjectStatus.CANCELLED;
       default:
-        // По умолчанию считаем статус неопределенным
+        // Story 6.5: silent fallback на UNDEFINED заменён audit-trail'ом.
+        // Если контракт ввёл новый статус — drift всплывёт в логе как error.
+        // Журнал берём у каркаса: сущность создаётся `new`, инъекции у неё нет,
+        // а путь к логгеру ядра за пределами монолита не существует.
+        auditUnknownStatus('ProjectDomainEntity', blockchainStatus, auditLogger(), [
+          'pending',
+          'active',
+          'voting',
+          'result',
+          'finalized',
+        ]);
         return ProjectStatus.UNDEFINED;
     }
   }

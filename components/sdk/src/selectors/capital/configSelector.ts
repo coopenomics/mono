@@ -6,6 +6,8 @@ const rawConfigSelector = {
   ...baseCapitalSelector,
   coopname: true,
   global_available_invest_pool: true,
+  program_expense_pool: true,
+  program_expense_reserved: true,
   program_membership_available: true,
   program_membership_cumulative_reward_per_share: true,
   program_membership_distributed: true,

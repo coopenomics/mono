@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { LogExtensionDomainEntity } from '~/domain/extension/entities/log-extension-domain.entity';
-import type { LogExtensionDomainInterface } from '~/domain/extension/interfaces/log-extension-domain.interface';
+import { LogExtensionDomainEntity } from '@coopenomics/extension-kit';
+import type { LogExtensionDomainInterface } from '@coopenomics/extension-kit';
 
 @Entity('extensions_logs')
 export class LogExtensionEntity<TLog = any> implements LogExtensionDomainInterface<TLog> {

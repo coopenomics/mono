@@ -7,14 +7,56 @@ import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const HARNESS_ROOT = path.resolve(__dirname, '..');
 export const REPO_ROOT = path.resolve(HARNESS_ROOT, '..');
 
+// Режим роутера решается в рантайме (src/app/providers/router.ts:
+// env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory),
+// а не на сборке. Стенды разъезжаются: где-то hash, где-то history — и
+// зашитый в сценарий «/#/» уводит историю-роутер на несуществующий путь.
+// Поэтому сценарии строят URL через APP_PREFIX, а не руками.
+function routerPrefix(baseUrl) {
+  if (process.env.ROUTER_MODE) return process.env.ROUTER_MODE === 'hash' ? `${baseUrl}/#` : baseUrl;
+  try {
+    const envFile = path.resolve(__dirname, '../../desktop/.env');
+    const raw = fsSync.readFileSync(envFile, 'utf8');
+    const m = raw.match(/^\s*VUE_ROUTER_MODE\s*=\s*(\S+)\s*$/m);
+    // По умолчанию hash — так же, как в public/config.default.js.
+    if (m && m[1].replace(/["']/g, '') === 'history') return baseUrl;
+  } catch {
+    /* нет .env — остаёмся на hash */
+  }
+  return `${baseUrl}/#`;
+}
+
+// Порт фронта у каждого чекаута свой (DESKTOP_HOST_PORT в корневом .env):
+// 2999 у mono-ai-1, 3039 у mono-ai-5 и так далее. Зашитый дефолт уводил
+// сценарии на СОСЕДНИЙ стенд — там открывается чужое приложение с чужой
+// цепью, и падение выглядит как поломка интерфейса. Раннер сюиты порты уже
+// читает из .env (`envPorts`), сценарии должны читать оттуда же.
+function desktopBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  try {
+    const raw = fsSync.readFileSync(path.resolve(__dirname, '../../../.env'), 'utf8');
+    const port = (raw.match(/^\s*DESKTOP_HOST_PORT\s*=\s*(\S+)/m) ?? [])[1];
+    if (port) return `http://127.0.0.1:${port.replace(/["']/g, '')}`;
+  } catch {
+    /* нет .env — остаёмся на дефолте */
+  }
+  return 'http://127.0.0.1:2999';
+}
+
+const BASE_URL = desktopBaseUrl();
+
 export const env = {
-  BASE_URL: process.env.BASE_URL || 'http://127.0.0.1:2999',
+  BASE_URL,
+  // Префикс для маршрутов приложения: с ним `${env.APP_PREFIX}/${COOPNAME}/...`
+  // корректен и в hash-, и в history-режиме.
+  APP_PREFIX: routerPrefix(BASE_URL),
   COOPNAME: process.env.COOPNAME || 'voskhod',
   CHAIRMAN_EMAIL: process.env.CHAIRMAN_EMAIL || 'ivanov@example.com',
   CHAIRMAN_WIF: process.env.CHAIRMAN_WIF || '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',
@@ -28,6 +70,20 @@ export const env = {
 export const SHOT_VIEWPORT = { width: 1120, height: 800 };
 export const SHOT_SCALE = 1.25;
 
+// Исключения, которые НЕ являются дефектом проверяемого продукта: их бросают
+// сторонние виджеты, которых на локальном стенде просто нет. Список держим
+// узким и с обоснованием — каждая запись здесь ослабляет смоук-вердикт.
+const IGNORED_PAGE_ERRORS = [
+  // Виджет поддержки Chatwoot грузится с внешнего хоста; на локальном стенде
+  // его нет, и SDK бросает «Chatwoot not loaded» на каждой странице.
+  // К Столу заказов отношения не имеет.
+  /Chatwoot not loaded/i,
+  // Карта ПВЗ грузится во фрейме стороннего картографического сервиса, и он
+  // пытается читать localStorage хоста. Браузер это запрещает — исключение
+  // прилетает из чужого кода и к Столу заказов отношения не имеет.
+  /Failed to read the 'localStorage' property from 'Window'/i,
+];
+
 export async function openBrowser({ storageState } = {}) {
   const browser = await chromium.launch();
   const context = await browser.newContext({
@@ -39,6 +95,12 @@ export async function openBrowser({ storageState } = {}) {
   const page = await context.newPage();
 
   const consoleLog = [];
+  // Структурированные признаки поломки — на них runner выносит вердикт, не
+  // дожидаясь ассерта. Сценарий без единого expect всё равно работает как
+  // смоук-тест: JS-исключение на странице или 5xx от сервера роняют прогон.
+  // 4xx сюда НЕ попадают: 401/403 — штатная часть логина и боковых сценариев,
+  // где отказ и есть ожидаемое поведение.
+  const failures = [];
   const debugConsole = process.env.DEBUG_CONSOLE === '1';
   page.on('console', m => {
     const line = `[${m.type()}] ${m.text()}`;
@@ -47,6 +109,9 @@ export async function openBrowser({ storageState } = {}) {
   });
   page.on('pageerror', e => {
     consoleLog.push(`[pageerror] ${e.message}`);
+    if (!IGNORED_PAGE_ERRORS.some((re) => re.test(e.message))) {
+      failures.push({ kind: 'pageerror', detail: e.message.split('\n')[0].slice(0, 300) });
+    }
     if (debugConsole) console.log('  [browser pageerror]', e.message.slice(0, 300));
   });
   page.on('requestfailed', r => {
@@ -55,31 +120,87 @@ export async function openBrowser({ storageState } = {}) {
       consoleLog.push(`[reqfail] ${u} — ${r.failure()?.errorText}`);
     }
   });
+  page.on('response', async r => {
+    const u = r.url();
+    if (u.includes('/v1/') || u.includes('/config') || u.includes('/get_info') || u.includes('get_account')) {
+      consoleLog.push(`[resp ${r.status()}] ${r.request().method()} ${u}`);
+      // 400 — сформированный клиентом невалидный запрос, это всегда дефект;
+      // 5xx — сервер упал. И то и другое роняет сценарий.
+      const s = r.status();
+      if (s === 400 || s >= 500) {
+        failures.push({ kind: 'http', detail: `${s} ${r.request().method()} ${u.slice(0, 200)}` });
+      }
+    }
+  });
 
-  return { browser, context, page, consoleLog };
+  return { browser, context, page, consoleLog, failures };
 }
 
 // Логин председателя через форму. Кэширует storageState.
-export async function loginAsChairman(page, context) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(env.CHAIRMAN_WIF);
+// Учитывает что vue-router в текущем десктопе работает в hash-режиме
+// (URL вида http://host/#/voskhod/...), а не history.
+export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
+  // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
+  // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
+  // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
+  await cleanViteOverlays(page);
+  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
+  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
+  await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
-  await page.waitForURL(/\/(chairman|participant|soviet)/, { timeout: 30000 });
+  // Ждём пока URL уйдёт от signin (либо в chairman/user/soviet/participant).
+  // Используем waitForFunction вместо waitForURL — он более forgiving по hash.
+  await page.waitForFunction(
+    () => !/auth\/signin/.test(window.location.href),
+    { timeout: 30000 },
+  ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  if (signAgreements) await passFirstLoginAgreements(page);
 }
 
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
-export async function loginAs(page, fixture) {
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(fixture.email);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(fixture.wif);
+export async function loginAs(page, fixture, { signAgreements = true } = {}) {
+  // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
+  // роута signin в Vite не укладывается в 60с на первом заходе.
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
+  await cleanViteOverlays(page);
+  await page.locator('input[type="email"]').first().fill(fixture.email);
+  await page.locator('input[type="password"]').first().fill(fixture.wif);
+  await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
-  await page.waitForURL(/\/(chairman|participant|soviet|user)/, { timeout: 30000 });
+  await page.waitForFunction(
+    () => !/auth\/signin/.test(window.location.href),
+    { timeout: 30000 },
+  ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+
+// Соглашения первого входа — свойство стенда, а не сценария.
+//
+// На свежей цепи (после reboot:extra) любой первый вход открывает каскад
+// модалок подписания: пользовательское соглашение, ЭП, политика обработки
+// персональных данных, положение о ЦПП «Кошелёк». Пока они висят, оверлей
+// перехватывает клики — и сценарий падает на «не могу кликнуть по меню»,
+// хотя меню на месте. Раньше каждый сценарий разбирался с этим сам (или не
+// разбирался вовсе), поэтому чинить приходилось по одному.
+//
+// Подписываем, а не прячем: спрятанный диалог оставляет кооператив без
+// подписи, и следующее же действие упирается в неё уже на сервере.
+export async function passFirstLoginAgreements(page) {
+  // Документ может ещё генерироваться — кнопка появится позже текста.
+  await page.waitForFunction(
+    () => !document.body.innerText.includes('Формируем документ'),
+    { timeout: 30000 },
+  ).catch(() => {});
+  const { signed } = await signOnboardingAgreements(page, { probeMs: 4000 });
+  if (signed) await page.waitForTimeout(1500);
+  return signed;
 }
 
 // Скрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
@@ -99,6 +220,104 @@ export async function loginAs(page, fixture) {
 // документ» в заголовке) — и если да, ставит display:none + чистит body-флаги
 // Quasar (q-body--prevent-scroll и пр.). Наблюдатель остаётся жить до конца
 // page-сессии и работает после каждого Vue-перерендера.
+// Выбор кооперативного участка — платформенный оверлей, а не экран Стола заказов.
+//
+// После того как кооператив перешёл на двухэтапную систему управления, любой
+// пайщик при первом входе получает диалог «Выберите кооперативный участок».
+// Пока он висит, экран расширения под ним недоступен. Сценариям Стола заказов
+// этот шаг не принадлежит, но пройти его они обязаны — иначе падают на
+// «не вижу каталог», хотя дело в незакрытом диалоге платформы.
+//
+// Возвращает имя выбранного участка либо null, если диалога не было.
+export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
+  // Без :visible — портал-обёртка Quasar может не иметь собственного бокса,
+  // и строгая проверка видимости отбрасывает диалог, который на экране есть.
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Выберите кооперативный участок' }).first();
+  const shown = await dialog.waitFor({ state: 'attached', timeout }).then(() => true).catch(() => false);
+  if (!shown) return null;
+  // Портал может остаться в DOM после закрытия: тогда он есть, но не кликается,
+  // и попытка «выбрать участок» вешает сценарий на таймаут поля.
+  const interactive = await dialog.locator('.q-field').first().isVisible().catch(() => false);
+  if (!interactive) return null;
+
+  // Список участков приходит запросом, поэтому меню сразу после клика может
+  // быть пустым. Ждём именно появления опции, а не «какого-то» меню: пустой
+  // выпадающий список — это симптом, который однажды уже стоил половины
+  // прогона (у участков не было реквизитов, и они выпадали из выдачи).
+  const option = page.locator('.q-menu [role="option"], .q-menu .q-item, [role="listbox"] [role="option"]').first();
+  let picked = null;
+  for (let attempt = 1; attempt <= 3 && !picked; attempt++) {
+    await dialog.locator('.q-field').first().click();
+    const appeared = await option.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+    if (!appeared) {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(2000);
+      continue;
+    }
+    picked = (await option.innerText()).trim().split('\n')[0];
+    await option.click();
+    await page.waitForTimeout(600);
+  }
+  if (!picked) {
+    // Председателю кооператива участок не нужен, а список для него может быть
+    // пуст. Диалог всё равно перехватывает клики, поэтому закрываем его, а не
+    // роняем сценарий: отсутствие выбора здесь не дефект проверяемого экрана.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+    const stillOpen = await dialog.locator('.q-field').first().isVisible().catch(() => false);
+    if (stillOpen) {
+      await dialog.locator('button').filter({ hasText: 'close' }).first().click({ force: true }).catch(() => {});
+      await page.waitForTimeout(800);
+    }
+    return null;
+  }
+
+  await dialog.locator('button:has-text("Продолжить")').first().click();
+  await page.waitForTimeout(2500);
+
+  // Выбор участка завершается подписанием «Заявления пайщика»: без подписи
+  // диалог остаётся на экране и перехватывает клики по странице под ним —
+  // именно на этом сценарии молча упирались в «не могу нажать».
+  const statement = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Заявление пайщика' }).first();
+  const needsSign = await statement.waitFor({ state: 'attached', timeout: 8000 }).then(() => true).catch(() => false);
+  if (needsSign) {
+    await statement.locator('button:has-text("подписать"), button:has-text("Подписать")').first().click({ force: true });
+    await statement.waitFor({ state: 'detached', timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+  }
+
+  await dialog.waitFor({ state: 'detached', timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  return picked;
+}
+
+// Клик по пункту левого меню (AppDrawer канона).
+//
+// Разметка меню менялась: раньше это были `a` / `.q-item` Quasar'а, сейчас —
+// `div.rail__item` со `span.rail__item-label` внутри. Сценарии, которые ходили
+// по старым селекторам, молча пропускали пункт и снимали одну и ту же
+// страницу под разными именами — тест, который ничего не проверяет.
+// Поэтому: перебираем известные варианты разметки, а если пункта нет —
+// падаем, а не «continue».
+export async function clickMenu(page, text, { timeout = 15000 } = {}) {
+  const candidates = [
+    `.rail__item:has(.rail__item-label:text-is("${text}"))`,
+    `.rail__item:has-text("${text}")`,
+    `a:has-text("${text}")`,
+    `.q-item:has-text("${text}")`,
+  ];
+  for (const sel of candidates) {
+    const link = page.locator(sel).first();
+    if (await link.isVisible().catch(() => false)) {
+      await link.click();
+      await page.waitForTimeout(1200);
+      return sel;
+    }
+  }
+  throw new Error(`пункт меню «${text}» не найден ни одним из селекторов: ${candidates.join(' | ')}`);
+}
+
 export async function dismissOnboardingDialogs(page) {
   await page.evaluate(() => {
     if (window.__onboardingDialogsBlocker) return;
@@ -107,7 +326,11 @@ export async function dismissOnboardingDialogs(page) {
       const title = el.querySelector('.q-toolbar__title, .modal-base__title, h1, h2, h3, h4')?.textContent || '';
       if (/Прочитайте и подпишите/i.test(title)) return true;
       const body = el.textContent || '';
-      return /Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body);
+      // «Подписать» есть только когда документ уже сформирован; на стадии
+      // «Формируем документ…» (PDF ещё рендерится, на стенде подпись зависает)
+      // кнопки нет — ловим диалог и по этой фразе, иначе кадр захватит спиннер.
+      if (/Прочитайте и подпишите документ/i.test(body) && /Подписать/i.test(body)) return true;
+      return /Формируем документ/i.test(body) && /Прочитайте и подпишите/i.test(body);
     };
 
     // Quasar q-dialog рендерит контент через Teleport в q-portal--dialog--N.
@@ -240,9 +463,33 @@ export async function signOnboardingAgreements(page, opts = {}) {
   return { signed, attempts };
 }
 
+// Снимает overlay'и vite-plugin-checker (vue-tsc/eslint), vite HMR error
+// overlay и custom-element <vite-error-overlay>, чтобы они не попадали на
+// скриншоты при срабатывании HMR во время сценария. Безопасна: если оверлеев
+// нет — ничего не делает.
+export async function cleanViteOverlays(page, opts = {}) {
+  await page.evaluate((preserveNotifications) => {
+    document.querySelectorAll('vite-error-overlay').forEach((el) => el.remove());
+    document.querySelectorAll('vite-plugin-checker-error-overlay').forEach((el) => el.remove());
+    // q-notification toast'ы — это user-feedback, обычно мешают «чистому»
+    // кадру; снимаем. Но для success/fail-кадров, где тост — суть кадра,
+    // сценарий передаёт preserveNotifications.
+    if (!preserveNotifications) {
+      document.querySelectorAll('.q-notification').forEach((el) => el.remove());
+      document.querySelectorAll('.q-notifications__list > *').forEach((el) => el.remove());
+    }
+  }, opts.preserveNotifications ?? false);
+}
+
 // Создаёт shot-функцию + manifest для сценария.
-export function makeShotContext({ scenarioName, outDir }) {
+// mode — что сценарий производит помимо вердикта (см. GOAL.md):
+//   'docs'  — кадры + проза + install в components/docs (страница инструкции);
+//   'shots' — кадры без прозы: визуальный след, смотрится глазами;
+//   'test'  — только вердикт; PNG не пишется, opts.expect по-прежнему работает.
+// Проверки идут одинаково во всех режимах — режим управляет лишь артефактами.
+export function makeShotContext({ scenarioName, outDir, mode = 'docs' }) {
   const shots = [];
+  const noPng = mode === 'test';
   async function shot(page, name, description, opts = {}) {
     const filePath = path.join(outDir, `${name}.png`);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -250,7 +497,33 @@ export function makeShotContext({ scenarioName, outDir }) {
     // Опциональный expect перед снимком: падает шумно, а не тихо.
     if (opts.expect) await opts.expect(page);
 
+    if (noPng) {
+      const entry = { name, description, url: page.url(), skipped: 'mode=test', at: new Date().toISOString() };
+      shots.push(entry);
+      console.log(`  ✓ ${name} (проверка без кадра)`);
+      return entry;
+    }
+
     await page.waitForTimeout(opts.delay ?? 300);
+    await cleanViteOverlays(page, { preserveNotifications: opts.preserveNotifications });
+
+    // Экраны, которые никогда не бывают правильным содержимым кадра. Раньше
+    // сценарий спокойно снимал «404» под именем «список ПВЗ» и считался
+    // пройденным — документация получала картинку ошибки, а тест молчал.
+    // Сценарию, который проверяет сам отказ, достаточно передать
+    // { allowError: true } — тогда кадр разрешён осознанно.
+    if (!opts.allowError) {
+      const blocker = await page.evaluate(() => {
+        const t = document.body.innerText || '';
+        if (t.includes('404 страница не найдена')) return '404 — маршрута нет';
+        if (t.includes('Недостаточно прав доступа')) return 'отказ в правах доступа';
+        return null;
+      });
+      if (blocker) {
+        throw new Error(`кадр «${name}»: на экране ${blocker} (${page.url()})`);
+      }
+    }
+
     await page.screenshot({ path: filePath, fullPage: opts.fullPage ?? false });
     const entry = {
       name,
@@ -291,6 +564,7 @@ export function makeShotContext({ scenarioName, outDir }) {
 
     const filePath = path.join(outDir, `${name}.png`);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await cleanViteOverlays(page);
     try {
       if (opts.padding) {
         const box = await locator.boundingBox();

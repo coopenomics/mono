@@ -3,15 +3,11 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   EXTENSION_REPOSITORY,
   ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
+} from '@coopenomics/extension-kit';
 import type { IConfig } from '../../chairman-extension.module';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DecisionTrackedEvent } from '~/domain/decision-tracking/events/decision-tracked.event';
-import {
-  ONBOARDING_COMPLETED_EVENT,
-  type OnboardingCompletedPayload,
-} from '~/domain/onboarding/events/onboarding-completed.event';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort, DecisionTrackedEvent } from '@coopenomics/innercoop';
+import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
 
 /**
  * Сервис обработки событий онбординга председателя
@@ -21,7 +17,7 @@ import {
 export class ChairmanOnboardingEventsService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    private readonly logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2
   ) {
     this.logger.setContext(ChairmanOnboardingEventsService.name);
@@ -68,13 +64,11 @@ export class ChairmanOnboardingEventsService {
 
       this.logger.debug(`Получено событие отслеживания решения для онбординга chairman: ${result.vars_field}`);
 
-      const plugin = await this.load();
-      if (!plugin) {
+      const extension = await this.load();
+      if (!extension) {
         this.logger.warn('Конфигурация расширения chairman не найдена');
         return;
       }
-
-      const cfg = { ...plugin.config };
 
       // Определяем ключ флага для обновления на основе metadata
       const flagKey = this.mapStepToFlag(step);
@@ -84,16 +78,15 @@ export class ChairmanOnboardingEventsService {
         return;
       }
 
-      const wasAlreadyDone = !!(cfg as any)[flagKey];
+      const wasAlreadyDone = !!(extension.config as any)[flagKey];
 
-      // Обновляем флаг выполнения шага
-      const patch: Partial<IConfig> = {
+      // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
+      // config целиком: несколько DecisionTrackedEvent (согласия/подписи), обработанные
+      // конкурентно, иначе теряют флаг друг друга (lost update на общем jsonb-блобе) —
+      // тот же класс бага, что чинили в capital-онбординге.
+      const updated = await this.extensionRepository.patchConfig('chairman', {
         [flagKey]: true,
-      };
-
-      const updatedConfig = { ...cfg, ...patch };
-      const updated: ExtensionDomainEntity<IConfig> = { ...plugin, config: updatedConfig };
-      await this.extensionRepository.update(updated);
+      } as Partial<IConfig>);
 
       this.logger.info(`Онбординг обновлён: ${flagKey} = true (решение ${result.decision_id})`);
 
@@ -101,13 +94,13 @@ export class ChairmanOnboardingEventsService {
       // завершённым, эмиттим ONBOARDING_COMPLETED_EVENT.
       // У chairman нет L2-оферт в реестре сейчас, но событие важно как
       // сигнал «L1 кооператива закрыт» — раздел 7.1 C28-10.
-      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+      if (!wasAlreadyDone && this.isL1Complete(updated.config as IConfig)) {
         this.logger.info(
           '[ONBOARDING_COMPLETED] chairman L1 завершён последним шагом, эмиттим событие'
         );
         this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, {
           extension_name: 'chairman',
-        } satisfies OnboardingCompletedPayload);
+        } satisfies InnerOnboardingCompletedPayload);
       }
     } catch (error: any) {
       this.logger.error(`Ошибка при обработке события отслеживания решения: ${error.message}`, error.stack);

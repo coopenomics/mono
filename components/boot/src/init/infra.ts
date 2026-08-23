@@ -4,9 +4,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import axios from 'axios'
 import ecc from 'eosjs-ecc'
-import { Generator, Registry } from '@coopenomics/factory'
+import { Generator } from '@coopenomics/factory'
 import type { Cooperative } from 'cooptypes'
-import { DraftContract } from 'cooptypes'
 import mongoose, { Types } from 'mongoose'
 import type { Account, Contract } from '../types'
 import config from '../configs'
@@ -16,6 +15,7 @@ import { generateRandomSHA256 } from '../utils/randomHash'
 import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
 import { signProgramAgreement } from './sign-program-agreement'
+import { syncDrafts } from './drafts'
 import { fakeDocument } from '../tests/shared/fakeDocument'
 import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
@@ -116,6 +116,15 @@ export async function startInfra() {
     }
   }
 
+  // передаём распорядительные права там, где аккаунт ведёт кто-то другой
+  for (const account of config.accounts.filter(el => !!el.delegate_active_to))
+    await blockchain.delegateActiveTo(account.name, account.delegate_active_to as string)
+
+  // публикуем права заверения — ими подписываются удостоверения пайщиков
+  for (const account of config.accounts.filter(el => !!el.cert_public_key)) {
+    await blockchain.setCertPermission(account.name, account.cert_public_key as string)
+  }
+
   await sleep(1000)
 
   // инициализируем системный контракт
@@ -144,21 +153,9 @@ export async function startInfra() {
 
   await sleep(2000)
 
-  for (const id in Registry) {
-    const template = Registry[(id as unknown) as keyof typeof Registry]
-
-    await blockchain.createDraft({
-      scope: DraftContract.contractName.production,
-      username: 'eosio',
-      registry_id: id,
-      lang: 'ru',
-      title: template.Template.title,
-      description: template.Template.description,
-      context: template.Template.context,
-      model: JSON.stringify(template.Template.model),
-      translation_data: JSON.stringify(template.Template.translations.ru),
-    })
-  }
+  // Реестр документов раскатывается тем же синхронизатором, что и на
+  // работающей сети: на пустой цепи он просто создаёт все шаблоны.
+  await syncDrafts(blockchain)
 
   console.log(`Арендуем ресурсы провайдеру`)
   await blockchain.powerup({

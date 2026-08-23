@@ -14,17 +14,12 @@ import { FinalizeProjectInputDTO } from '../dto/project_management/finalize-proj
 import { GetProjectInputDTO } from '../dto/project_management/get-project-input.dto';
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-
 // Пагинированные результаты
 const paginatedProjectsResult = createPaginationResult(ProjectOutputDTO, 'PaginatedCapitalProjects');
 
@@ -45,10 +40,26 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman', 'member'])
   async createCapitalProject(
     @Args('data', { type: () => CreateProjectInputDTO }) data: CreateProjectInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.projectManagementService.createProject(data, currentUser);
     return result;
+  }
+
+  /**
+   * Персональный проект/компонент — только в базе, без публикации в блокчейн
+   */
+  @Mutation(() => ProjectOutputDTO, {
+    name: 'capitalCreateLocalProject',
+    description: 'Создание персонального проекта или компонента без публикации в блокчейн',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async createCapitalLocalProject(
+    @Args('data', { type: () => CreateProjectInputDTO }) data: CreateProjectInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
+  ): Promise<ProjectOutputDTO> {
+    return await this.projectManagementService.createLocalProject(data, currentUser);
   }
 
   /**
@@ -62,7 +73,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async editCapitalProject(
     @Args('data', { type: () => EditProjectInputDTO }) data: EditProjectInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.projectManagementService.editProject(data, currentUser);
     return result;
@@ -78,7 +89,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async setCapitalMaster(
     @Args('data', { type: () => SetMasterInputDTO }) data: SetMasterInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     const result = await this.projectManagementService.setMaster(data, currentUser);
     return result;
@@ -95,7 +106,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async addCapitalAuthor(
     @Args('data', { type: () => AddAuthorInputDTO }) data: AddAuthorInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.addAuthor(data, currentUser);
     return result;
@@ -111,10 +122,25 @@ export class ProjectManagementResolver {
   @UseGuards(GqlJwtAuthGuard)
   async setCapitalPlan(
     @Args('data', { type: () => SetPlanInputDTO }) data: SetPlanInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.setPlan(data, currentUser);
     return result;
+  }
+
+  /**
+   * Установка приоритета проекта/компонента (только БД, без блокчейна).
+   */
+  @Mutation(() => ProjectOutputDTO, {
+    name: 'capitalSetProjectPriority',
+    description: 'Установка приоритета проекта или компонента (хранится только в базе данных)',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async setCapitalProjectPriority(
+    @Args('data', { type: () => SetCapitalProjectPriorityInputDTO }) data: SetCapitalProjectPriorityInputDTO,
+    @CurrentUser() currentUser?: IMonoAccount
+  ): Promise<ProjectOutputDTO> {
+    return await this.projectManagementService.setProjectPriority(data, currentUser);
   }
 
   /**
@@ -127,7 +153,7 @@ export class ProjectManagementResolver {
   @UseGuards(GqlJwtAuthGuard)
   async setCapitalProjectDevelopmentRepositoryUrl(
     @Args('data', { type: () => SetCapitalProjectDevelopmentRepositoryUrlInputDTO }) data: SetCapitalProjectDevelopmentRepositoryUrlInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     return await this.projectManagementService.setDevelopmentRepositoryUrl(data, currentUser);
   }
@@ -143,7 +169,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async startCapitalProject(
     @Args('data', { type: () => StartProjectInputDTO }) data: StartProjectInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.startProject(data, currentUser);
     return result;
@@ -160,7 +186,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async openCapitalProject(
     @Args('data', { type: () => OpenProjectInputDTO }) data: OpenProjectInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.openProject(data, currentUser);
     return result;
@@ -177,7 +203,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async closeCapitalProject(
     @Args('data', { type: () => CloseProjectInputDTO }) data: CloseProjectInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.closeProject(data, currentUser);
     return result;
@@ -194,7 +220,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async stopCapitalProject(
     @Args('data', { type: () => StopProjectInputDTO }) data: StopProjectInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.stopProject(data, currentUser);
     return result;
@@ -212,7 +238,7 @@ export class ProjectManagementResolver {
   @AuthRoles(['chairman'])
   async finalizeCapitalProject(
     @Args('data', { type: () => FinalizeProjectInputDTO }) data: FinalizeProjectInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.finalizeProject(data, currentUser);
     return result;
@@ -247,7 +273,7 @@ export class ProjectManagementResolver {
   async getProjects(
     @Args('filter', { nullable: true }) filter?: ProjectFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<PaginationResult<ProjectOutputDTO>> {
     return await this.projectManagementService.getProjectsWithComponents(filter, options, currentUser);
   }
@@ -263,7 +289,7 @@ export class ProjectManagementResolver {
   @UseGuards(GqlJwtAuthGuard)
   async getProject(
     @Args('data') data: GetProjectInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO | null> {
     return await this.projectManagementService.getProjectByHashWithComponents(data.hash, currentUser);
   }
@@ -279,7 +305,7 @@ export class ProjectManagementResolver {
   @UseGuards(GqlJwtAuthGuard)
   async getProjectWithRelations(
     @Args('data') data: GetProjectWithRelationsInputDTO,
-    @CurrentUser() currentUser?: MonoAccountDomainInterface
+    @CurrentUser() currentUser?: IMonoAccount
   ): Promise<ProjectOutputDTO | null> {
     return await this.projectManagementService.getProjectWithRelations(data.projectHash, currentUser);
   }

@@ -12,3 +12,7 @@ node_modules/
 
 # Exclude generated files
 *.generated.*
+
+# Локальный рантайм-конфиг SPA-dev: генерируется docs-harness из .env,
+# не коммитится (см. .gitignore) — линтить нечего.
+public/config.js

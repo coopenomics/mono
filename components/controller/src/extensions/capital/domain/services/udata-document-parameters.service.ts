@@ -1,9 +1,9 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { UDATA_REPOSITORY, UdataRepository } from '~/domain/common/repositories/udata.repository';
 import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import 'moment/locale/ru';
 import { randomBytes } from 'crypto';
+import { USER_DATA_PORT, type IUserDataPort } from '@coopenomics/innercoop';
 
 export const UDATA_DOCUMENT_PARAMETERS_SERVICE = Symbol('UdataDocumentParametersService');
 
@@ -16,7 +16,7 @@ export const UDATA_DOCUMENT_PARAMETERS_SERVICE = Symbol('UdataDocumentParameters
 export class UdataDocumentParametersService {
   private readonly logger = new Logger(UdataDocumentParametersService.name);
 
-  constructor(@Inject(UDATA_REPOSITORY) private readonly udataRepository: UdataRepository) {}
+  constructor(@Inject(USER_DATA_PORT) private readonly udataRepository: IUserDataPort) {}
 
   /**
    * Генерирует уникальный номер документа на основе хеша

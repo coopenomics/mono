@@ -5,8 +5,7 @@ import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
 import { AppendixMapper } from '../mappers/appendix.mapper';
 import type { AppendixRepository } from '../../domain/repositories/appendix.repository';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
@@ -72,13 +71,15 @@ export class AppendixTypeormRepository
   }
 
   /**
-   * Найти созданное приложение по имени пользователя и хэшу проекта
+   * Найти приложение со статусом created (запрос на рассмотрении)
+   * по имени пользователя и хэшу проекта
    */
   async findCreatedByUsernameAndProjectHash(username: string, projectHash: string): Promise<AppendixDomainEntity | null> {
     const entity = await this.repository.findOne({
       where: {
-        username,
+        username: username.toLowerCase(),
         project_hash: projectHash.toLowerCase(),
+        status: AppendixStatus.CREATED,
       },
     });
 

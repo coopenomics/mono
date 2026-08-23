@@ -14,46 +14,87 @@
     min-width='960px'
   )
 
-  .table-wrap(v-else-if='store.items.length')
-    .table-scroll
-      table.table.table--actions
-        thead
-          tr
-            th.col-date Дата
-            th Получатель
-            th Тип
-            th Канал
-            th Статус
-            th.col-num Попыток
-            th.col-action Действия
-        tbody
-          tr(v-for='row in store.items', :key='row.id')
-            td.col-date {{ formatDateToHumanDateTime(row.createdAt) }}
-            td.cell-recipient
-              template(v-if='row.recipientUsername')
-                span.cell-recipient__name(v-if='recipientName(row.recipientUsername)') {{ recipientName(row.recipientUsername) }}
-                AccountBadge(:account-name='row.recipientUsername', size='sm')
-              span.cell-recipient__sub(v-else) {{ row.recipientSubscriberId }}
-            td {{ workflowLabel(row.workflowId) }}
-            td {{ channelLabels[row.channel] ?? row.channel }}
-            td(:class='{ "cell-status--has-error": row.lastError }')
-              BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
-              q-tooltip(
-                v-if='row.lastError',
-                anchor='top middle',
-                self='bottom middle',
-                max-width='320px'
-              ) {{ row.lastError }}
-            td.col-num {{ row.attempts }}
-            td.col-action(@click.stop)
-              BaseButton(
-                variant='ghost',
-                size='sm',
-                :loading='resendingId === row.id',
-                @click='onResend(row.id)'
-              )
-                q-icon.q-mr-xs(name='refresh', size='16px')
-                | Переотправить
+  template(v-else-if='store.items.length')
+    //- Десктоп: канон-таблица (на узком экране скроллится по горизонтали).
+    //- На телефоне скрыта — вместо неё компактные карточки ниже.
+    .table-wrap.nj-desktop
+      .table-scroll
+        table.table.table--actions
+          thead
+            tr
+              th.col-date Дата
+              th Получатель
+              th Тип
+              th Канал
+              th Статус
+              th.col-num Попыток
+              th.col-action Действия
+          tbody
+            tr(v-for='row in store.items', :key='row.id')
+              td.col-date {{ formatDateToHumanDateTime(row.createdAt) }}
+              td.cell-recipient
+                IdentityCell(
+                  v-if='row.recipientUsername',
+                  :account-name='row.recipientUsername',
+                  :full-name='recipientName(row.recipientUsername)'
+                )
+                span.cell-recipient__sub(v-else) {{ row.recipientSubscriberId }}
+              td {{ workflowLabel(row.workflowId) }}
+              td {{ channelLabels[row.channel] ?? row.channel }}
+              td(:class='{ "cell-status--has-error": row.lastError }')
+                BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
+                q-tooltip(
+                  v-if='row.lastError',
+                  anchor='top middle',
+                  self='bottom middle',
+                  max-width='320px'
+                ) {{ row.lastError }}
+              td.col-num {{ row.attempts }}
+              td.col-action(@click.stop)
+                BaseButton(
+                  variant='ghost',
+                  size='sm',
+                  :loading='resendingId === row.id',
+                  @click='onResend(row.id)'
+                )
+                  q-icon.q-mr-xs(name='refresh', size='16px')
+                  | Переотправить
+
+    //- Мобайл: карточки. Поля — по два в ряд (col-xs-6), компактно, без
+    //- посимвольного переноса и горизонтального скролла.
+    .nj-cards.nj-mobile
+      .nj-card(v-for='row in store.items', :key='row.id')
+        .nj-card__head
+          .nj-card__recipient
+            IdentityCell(
+              v-if='row.recipientUsername',
+              :account-name='row.recipientUsername',
+              :full-name='recipientName(row.recipientUsername)'
+            )
+            span.nj-card__sub(v-else) {{ row.recipientSubscriberId }}
+          BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
+        .nj-card__grid
+          .nj-card__cell
+            .nj-card__label Дата
+            .nj-card__value {{ formatDateToHumanDateTime(row.createdAt) }}
+          .nj-card__cell
+            .nj-card__label Тип
+            .nj-card__value {{ workflowLabel(row.workflowId) }}
+          .nj-card__cell
+            .nj-card__label Канал
+            .nj-card__value {{ channelLabels[row.channel] ?? row.channel }}
+          .nj-card__cell
+            .nj-card__label Попыток
+            .nj-card__value {{ row.attempts }}
+        .nj-card__error(v-if='row.lastError') {{ row.lastError }}
+        BaseButton.nj-card__action(
+          variant='ghost',
+          size='sm',
+          :loading='resendingId === row.id',
+          @click='onResend(row.id)'
+        )
+          q-icon.q-mr-xs(name='refresh', size='16px')
+          | Переотправить
 
     .table-foot
       span {{ rangeLabel }}
@@ -85,7 +126,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
-import { AccountBadge } from 'src/shared/ui/domain/AccountBadge';
+import { IdentityCell } from 'src/shared/ui/domain/IdentityCell';
 import { FilterBar } from 'src/shared/ui/domain/FilterBar';
 import type { FilterDefinition, FilterValues } from 'src/shared/ui/domain/FilterBar';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
@@ -250,9 +291,13 @@ onMounted(() => {
   overflow-x: auto;
 }
 
+/* 7 колонок с кнопкой «Переотправить» не влезают в телефон осмысленно —
+   таблица скроллится по горизонтали (.table-scroll). Глобальный канон форсит
+   .table{min-width:0!important}+table-layout:auto, схлопывая колонки в буквы-
+   в-столбик; перебиваем !important+специфичностью scope, чтобы вернуть скролл. */
 .table {
-  table-layout: fixed;
-  min-width: 960px;
+  table-layout: fixed !important;
+  min-width: 960px !important;
 }
 
 .col-date {
@@ -269,16 +314,11 @@ onMounted(() => {
 }
 
 .cell-recipient {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-}
-.cell-recipient__name {
-  color: var(--p-ink);
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.3;
 }
 .cell-recipient__sub {
   font-family: var(--p-mono);
@@ -287,5 +327,86 @@ onMounted(() => {
 }
 .cell-status--has-error {
   cursor: help;
+}
+
+/* ── Десктоп таблица vs мобайл карточки ────────────────────────────────
+   .nj-cards задаёт display:flex; чтобы скрытие на десктопе не перебивалось
+   по порядку источника (как было в реестре платежей), вешаем display на
+   двойной селектор .nj-cards.nj-mobile (выше специфичность). */
+.nj-cards.nj-mobile {
+  display: none;
+}
+@media (max-width: 599px) {
+  .nj-desktop {
+    display: none;
+  }
+  .nj-cards.nj-mobile {
+    display: flex;
+  }
+}
+
+.nj-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
+}
+.nj-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+}
+.nj-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+}
+.nj-card__recipient {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.nj-card__sub {
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
+  color: var(--p-ink-2);
+  overflow-wrap: break-word;
+}
+/* Поля по два в ряд (эквивалент col-xs-6), компактно. */
+.nj-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--p-2, 8px) var(--p-4, 16px);
+}
+.nj-card__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nj-card__label {
+  font-size: var(--p-fs-eyebrow, 11px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.nj-card__value {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink);
+  overflow-wrap: break-word;
+}
+.nj-card__error {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-neg);
+  overflow-wrap: break-word;
+}
+.nj-card__action {
+  align-self: flex-start;
 }
 </style>

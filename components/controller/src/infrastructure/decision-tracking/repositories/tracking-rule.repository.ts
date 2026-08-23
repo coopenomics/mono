@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { TrackingRuleDomainInterface } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
+import type { TrackingRule } from '@coopenomics/innercoop';
 
 /**
  * Абстрактный репозиторий для правил отслеживания решений
@@ -7,10 +7,10 @@ import type { TrackingRuleDomainInterface } from '~/domain/decision-tracking/int
  */
 @Injectable()
 export abstract class TrackingRuleRepository {
-  abstract save(rule: TrackingRuleDomainInterface): Promise<TrackingRuleDomainInterface>;
-  abstract findById(id: string): Promise<TrackingRuleDomainInterface | null>;
-  abstract findByHash(hash: string): Promise<TrackingRuleDomainInterface | null>;
-  abstract findAllActive(): Promise<TrackingRuleDomainInterface[]>;
-  abstract update(rule: TrackingRuleDomainInterface): Promise<TrackingRuleDomainInterface>;
+  abstract save(rule: TrackingRule): Promise<TrackingRule>;
+  abstract findById(id: string): Promise<TrackingRule | null>;
+  abstract findByHash(hash: string): Promise<TrackingRule | null>;
+  abstract findAllActive(): Promise<TrackingRule[]>;
+  abstract update(rule: TrackingRule): Promise<TrackingRule>;
   abstract delete(id: string): Promise<void>;
 }

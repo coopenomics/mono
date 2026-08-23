@@ -17,10 +17,14 @@ import { PaymentMethodInfrastructureModule } from '~/infrastructure/payment-meth
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { SettingsInfrastructureModule } from '~/infrastructure/settings/settings-infrastructure.module';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
+import { RedisModule } from '~/infrastructure/redis/redis.module';
+import { NodeSyncHealthService } from './services/node-sync-health.service';
+import { NodeSyncResolver } from './resolvers/node-sync.resolver';
 
 @Module({
   imports: [
     SystemDomainModule,
+    RedisModule,
     ProviderModule,
     TokenApplicationModule,
     UserDomainModule,
@@ -33,6 +37,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
   providers: [
     SystemService,
     SystemResolver,
+    NodeSyncHealthService,
+    NodeSyncResolver,
     SystemInteractor,
     LoadContactsInteractor,
     WifInteractor,

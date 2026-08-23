@@ -5,7 +5,7 @@ import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '../interfac
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 import config from '~/config/config';
 import { AccountDomainEntity } from '../entities/account-domain.entity';
-import type { MonoAccountDomainInterface } from '../interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import type { RegisterAccountDomainInterface } from '../interfaces/register-account-input.interface';
 import { ENTREPRENEUR_REPOSITORY, EntrepreneurRepository } from '~/domain/common/repositories/entrepreneur.repository';
@@ -16,7 +16,6 @@ import type { OrganizationDomainInterface } from '~/domain/common/interfaces/org
 import type { EntrepreneurDomainInterface } from '~/domain/common/interfaces/entrepreneur-domain.interface';
 import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { randomUUID } from 'crypto';
@@ -24,7 +23,10 @@ import type { Cooperative } from 'cooptypes';
 import { userStatus } from '~/types';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
+import { AccountKind } from '~/application/account/enum/account-kind.enum';
+import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountDomainService {
@@ -32,6 +34,7 @@ export class AccountDomainService {
 
   constructor(
     @Inject(ACCOUNT_BLOCKCHAIN_PORT) private readonly accountBlockchainPort: AccountBlockchainPort,
+    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
     @Inject(ENTREPRENEUR_REPOSITORY) private readonly entrepreneurRepository: EntrepreneurRepository,
@@ -140,7 +143,7 @@ export class AccountDomainService {
     }
   }
 
-  async addProviderAccount(data: RegisterAccountDomainInterface): Promise<MonoAccountDomainInterface> {
+  async addProviderAccount(data: RegisterAccountDomainInterface): Promise<IMonoAccount> {
     // Создаем пользователя
     const user = await this.createUser({ ...data, role: 'user' });
     if (!user) {
@@ -172,7 +175,7 @@ export class AccountDomainService {
       is_email_verified: updatedUser.is_email_verified,
       subscriber_id: updatedUser.subscriber_id,
       subscriber_hash: updatedUser.subscriber_hash,
-    } as MonoAccountDomainInterface;
+    } as IMonoAccount;
   }
 
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
@@ -206,6 +209,7 @@ export class AccountDomainService {
         provider_account: null,
         participant_account,
         private_account,
+        account_kind: AccountKind.cooperative,
       });
     }
 
@@ -229,7 +233,7 @@ export class AccountDomainService {
           is_email_verified: user.is_email_verified,
           subscriber_id: user.subscriber_id,
           subscriber_hash: user.subscriber_hash,
-        } as MonoAccountDomainInterface)
+        } as IMonoAccount)
       : null;
 
     let individual_data, organization_data, entrepreneur_data;
@@ -251,6 +255,29 @@ export class AccountDomainService {
       };
     }
 
+    let account_kind: AccountKind = provider_account ? AccountKind.participant : AccountKind.unknown;
+
+    // Кооперативный участок (КУ): это реальный аккаунт-подразделение кооператива
+    // без учётной записи пайщика (нет provider_account), его орг-данные хранятся
+    // в том же organizationRepository по braname (как у самого кооператива выше).
+    // Признак КУ — наличие записи в реестре участков. Резолвим имя через
+    // private_account.organization_data, чтобы getDisplayName/сертификаты/фронт
+    // получали человеческое имя участка тем же каналом, что и у организаций —
+    // без отдельной ветки у каждого потребителя.
+    if (!provider_account) {
+      const branch = await this.branchBlockchainPort.getBranch(config.coopname, username);
+      if (branch) {
+        const branch_organization_data = await this.organizationRepository.findByUsername(username);
+        private_account = {
+          type: AccountType.organization,
+          individual_data: undefined,
+          organization_data: branch_organization_data,
+          entrepreneur_data: undefined,
+        };
+        account_kind = AccountKind.branch;
+      }
+    }
+
     const finalAccount = new AccountDomainEntity({
       username,
       user_account,
@@ -258,6 +285,7 @@ export class AccountDomainService {
       provider_account: provider_account,
       participant_account,
       private_account,
+      account_kind,
     });
 
     return finalAccount;

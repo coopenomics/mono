@@ -29,6 +29,8 @@ const rawLinkedGitCommitsSelector = {
   committed_at: true,
   consumed: true,
   commit_message: true,
+  branch: true,
+  in_default_branch: true,
 }
 
 const rawIssueContributorFactSelector = {

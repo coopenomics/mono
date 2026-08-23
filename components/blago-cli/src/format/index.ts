@@ -153,6 +153,83 @@ export function projectToFrontmatterAndBody(project: {
   return { data, body: project.description ?? '' }
 }
 
+/** Целевые / фактические часы исполнителя во frontmatter задачи (fact_hours). */
+export interface IssueFactHoursEntry {
+  readonly username: string
+  readonly hours: number
+}
+
+function roundFactHours(hours: number): number {
+  return Math.round(hours * 100) / 100
+}
+
+/**
+ * Читает fact_hours из frontmatter.
+ * undefined — ключа нет (push факта не трогает); массив — целевые часы по username.
+ */
+export function parseFactHoursFromFrontmatter(data: Record<string, unknown>): IssueFactHoursEntry[] | undefined {
+  if (!('fact_hours' in data) || data.fact_hours === undefined || data.fact_hours === null) {
+    return undefined
+  }
+  const raw = data.fact_hours
+  if (!Array.isArray(raw)) {
+    throw new Error('поле «fact_hours» должно быть массивом объектов { username, hours }')
+  }
+  const seen = new Set<string>()
+  const out: IssueFactHoursEntry[] = []
+  for (const item of raw) {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error('элемент «fact_hours» должен быть объектом { username, hours }')
+    }
+    const row = item as Record<string, unknown>
+    const username = row.username !== undefined && row.username !== null ? String(row.username).trim() : ''
+    if (username === '') {
+      throw new Error('в «fact_hours» укажите непустой username')
+    }
+    const hours = Number(row.hours)
+    if (!Number.isFinite(hours) || hours < 0) {
+      throw new Error(`в «fact_hours» для «${username}» hours должно быть числом ≥ 0`)
+    }
+    const key = username.toLowerCase()
+    if (seen.has(key)) {
+      throw new Error(`в «fact_hours» username «${username}» указан повторно`)
+    }
+    seen.add(key)
+    out.push({ username, hours: roundFactHours(hours) })
+  }
+  return out.sort((a, b) => a.username.localeCompare(b.username, 'en'))
+}
+
+/** Серверный fact_by_contributor → список для YAML (только известные username). */
+export function resolveFactHoursFromContributors(
+  factByContributor: ReadonlyArray<{ contributor_hash: string, hours: number }> | null | undefined,
+  usernameByHash: ReadonlyMap<string, string>,
+): IssueFactHoursEntry[] {
+  const byUser = new Map<string, { username: string, hours: number }>()
+  for (const row of factByContributor ?? []) {
+    const hash = String(row.contributor_hash).trim().toLowerCase()
+    const username = usernameByHash.get(hash)
+    if (!username) {
+      continue
+    }
+    const key = username.toLowerCase()
+    const prev = byUser.get(key)
+    const hours = Number(row.hours)
+    if (!Number.isFinite(hours)) {
+      continue
+    }
+    if (prev) {
+      prev.hours = roundFactHours(prev.hours + hours)
+    }
+    else {
+      byUser.set(key, { username, hours: roundFactHours(hours) })
+    }
+  }
+  return [...byUser.values()]
+    .filter(e => e.hours > 0)
+    .sort((a, b) => a.username.localeCompare(b.username, 'en'))
+}
+
 export function issueToFrontmatterAndBody(
   issue: {
     id?: string | null
@@ -166,6 +243,8 @@ export function issueToFrontmatterAndBody(
     estimate?: number | null
     submaster?: string | null
     creators?: string[] | null
+    /** Если задано — пишется в YAML; иначе поле fact_hours не выводится. */
+    fact_hours?: ReadonlyArray<IssueFactHoursEntry> | null
     metadata?: unknown
     _created_at?: Date | string | null
     _updated_at?: Date | string | null
@@ -190,6 +269,12 @@ export function issueToFrontmatterAndBody(
   data.priority = issue.priority ?? 'medium'
   data.estimate = issue.estimate ?? 0
   data.creators = issue.creators ?? []
+  if (issue.fact_hours !== undefined && issue.fact_hours !== null) {
+    data.fact_hours = issue.fact_hours.map(e => ({
+      username: e.username,
+      hours: roundFactHours(e.hours),
+    }))
+  }
   data.labels = issueLabelsFromMetadata(issue.metadata)
   if (issue.cycle_id) {
     data.cycle_id = issue.cycle_id

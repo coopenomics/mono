@@ -1,14 +1,10 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
-import { MEET_REPOSITORY, MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import config from '~/config/config';
-import { DateUtils } from '~/shared/utils/date-utils';
-import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort, ExtendedMeetStatus, MEET_PORT, type IMeetPort,
+  isEligibleForParticipantMassNotification,
+} from '@coopenomics/innercoop';
+import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import type { TrackedMeet } from './types';
-import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
-import { isEligibleForParticipantMassNotification } from '~/domain/account/utils/participant-mass-notification.util';
 
 type MeetRecipient = { username: string; email: string; subscriberId: string };
 
@@ -19,12 +15,12 @@ type MeetRecipient = { username: string; email: string; subscriberId: string };
 export class MeetWorkflowNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
-    @Inject(ACCOUNT_DATA_PORT)
-    private readonly accountPort: AccountDataPort,
-    @Inject(MEET_REPOSITORY)
-    private readonly meetPreRepository: MeetPreProcessingRepository,
-    private readonly logger: WinstonLoggerService
+    private readonly notificationPort: INotificationPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort,
+    @Inject(MEET_PORT)
+    private readonly meetPort: IMeetPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MeetWorkflowNotificationService.name);
   }
@@ -42,22 +38,23 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       return this.coopShortName;
     }
 
-    const account = await this.accountPort.getAccount(config.coopname);
+    const account = await this.accountPort.getAccount(platformSettings().coopname);
 
-    const shortName = account.private_account?.organization_data?.short_name;
+    const shortName: string | undefined = account.private_account?.organization_data?.short_name;
 
-    this.coopShortName = shortName ?? '';
-    return this.coopShortName;
+    const resolved = shortName ?? '';
+    this.coopShortName = resolved;
+    return resolved;
   }
 
   // Формирование URL для уведомлений
   private getNotificationUrl(meet: TrackedMeet): string {
-    return `${config.frontend_url}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
+    return `${platformSettings().frontendUrl}/${meet.coopname}/user/meets/${meet.hash.toUpperCase()}`;
   }
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return config.timezone === 'Europe/Moscow' ? 'МСК' : config.timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
   }
 
   /**
@@ -65,7 +62,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
    * В reminder-end, restart, ended поле details в схемах каталога нет — не передаём, иначе ошибка валидации.
    */
   private async meetDetailsPayloadPart(hash: string): Promise<{ details?: string }> {
-    const pre = await this.meetPreRepository.findByHash(hash);
+    const pre = await this.meetPort.getMeetDraft(hash);
     const trimmed = pre?.details?.trim();
     return trimmed ? { details: trimmed } : {};
   }

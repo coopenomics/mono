@@ -1,8 +1,8 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { CreateProgramPropertyDomainInput } from '~/extensions/capital/domain/actions/create-program-property-domain-input.interface';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import type { CreateProgramPropertyDomainInput } from '../../../domain/actions/create-program-property-domain-input.interface';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL DTO для создания программного имущественного взноса CAPITAL контракта

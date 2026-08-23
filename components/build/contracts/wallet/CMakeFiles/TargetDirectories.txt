@@ -1,0 +1,3 @@
+/project/build/contracts/wallet/CMakeFiles/wallet.dir
+/project/build/contracts/wallet/CMakeFiles/edit_cache.dir
+/project/build/contracts/wallet/CMakeFiles/rebuild_cache.dir

@@ -1,12 +1,13 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import config from '~/config/config';
 import type { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { Workflows } from '@coopenomics/notifications';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
 
 /**
  * Сервис для отправки уведомлений о статусе платежей
@@ -15,7 +16,7 @@ import { Workflows } from '@coopenomics/notifications';
 export class PaymentNotificationService implements OnModuleInit {
   constructor(
     @Inject(NOTIFICATION_PORT)
-    private readonly notificationPort: NotificationPort,
+    private readonly notificationPort: INotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -55,9 +56,10 @@ export class PaymentNotificationService implements OnModuleInit {
       // Получаем отображаемое имя пользователя
       const userName = await this.accountPort.getDisplayName(payment.username);
 
-      // Выбираем workflow по статусу И направлению платежа: исходящий PAID — это
-      // возврат взноса пайщику, у него своё уведомление «Возврат выполнен», а не
-      // «Платёж принят» (иначе пайщик при возврате получает письмо как на приём).
+      // Выбираем workflow по статусу И направлению — но БЕЗ привязки к типу платежа
+      // (мы не всегда знаем, это возврат взноса, аванс под отчёт или доплата).
+      // Исходящий PAID → пайщик получил деньги → «Платёж выполнен»; входящий PAID →
+      // кооператив принял платёж пайщика → «Платёж принят». Оба текста универсальны.
       const isOutgoing = payment.direction === PaymentDirectionEnum.OUTGOING;
       const workflowId =
         payment.status === PaymentStatusEnum.PAID
@@ -69,7 +71,7 @@ export class PaymentNotificationService implements OnModuleInit {
       // Формируем данные для workflow (без приватных данных)
       const payload: Workflows.PaymentPaid.IPayload | Workflows.PaymentCancelled.IPayload = {
         userName,
-        paymentAmount: payment.quantity.toFixed(2),
+        paymentAmount: AmountFormatterUtils.formatAmountSafe(String(payment.quantity)),
         paymentCurrency: payment.symbol,
         paymentDate: payment.created_at.toLocaleString('ru-RU'),
         paymentUrl: `${config.frontend_url}`, //TODO: точную ссылку потом

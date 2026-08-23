@@ -1,0 +1,230 @@
+feature: capital.metrics-measures
+title: Меры кооператива и дневная волновая модель метрик
+
+# Мера — что измеряем (название + единица). Общего справочника мер нет:
+# кооператив вписывает меру текстом при планировании компонента, и она попадает
+# в его собственную коллекцию. Повтор той же пары «название + единица» не плодит
+# дубль, а переиспользует заведённую меру.
+#
+# Таймфрейм ряда, волны и резонанса один — день. Раньше шаг волны хранился на
+# мере (wave_period) и переключался в интерфейсе; и то и другое убрано.
+# Окно ряда — 30 дневных баров, окно свежести активности — неделя баров:
+# на дневках перерыв в пару дней это обычный ритм работы, а не затухание.
+#
+# Мердж dev 2026-08-16 (FC1-18): в файлах фичи изменились только строки
+# импорта — тип учётной записи пайщика и пагинация переехали в
+# `@coopenomics/innercoop` и `@coopenomics/extension-kit`. Правила расчёта ряда,
+# волны и резонанса, состав мер и набор случаев прежние.
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/services/component-metric.service.ts
+    - components/controller/src/extensions/capital/application/dto/metrics/**
+    - components/controller/src/extensions/capital/domain/entities/measure.entity.ts
+    - components/controller/src/extensions/capital/domain/utils/build-metric-series.ts
+    - components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.ts
+    - components/controller/src/extensions/capital/domain/utils/wave-markup.ts
+  ui:
+    - components/desktop/extensions/capital/features/Project/SetPlan/**
+    - components/desktop/extensions/capital/features/Metric/**
+    - components/desktop/extensions/capital/pages/MeasuresPage/**
+
+cases:
+  # ── Меры кооператива ──────────────────────────────────────────────────────
+
+  - id: cap.mm.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Цель на компоненте заводится с мерой, вписанной текстом: название и
+      единица измерения.
+    expect: >
+      мера появляется в коллекции кооператива с автором-создателем, цель
+      привязана к ней
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.01
+    level: backend
+    kind: side
+    scenario: та же пара «название + единица» вписана во вторую цель
+    expect: дубля в коллекции нет, обе цели смотрят на одну меру
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.02
+    level: backend
+    kind: side
+    scenario: мера вписана с лишними пробелами по краям
+    expect: название и единица сохраняются обрезанными, дубля не возникает
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.03
+    level: backend
+    kind: side
+    scenario: цель заводится с мерой, которую раньше выключили (архив)
+    expect: мера включается обратно, новая не заводится
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.13
+    level: backend
+    kind: side
+    scenario: >
+      В строке цели выбран тип меры «уровень» — для метрик, которые
+      откатываются (вес, настроение), а не копятся.
+    expect: мера заводится с режимом ряда «уровень»
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.14
+    level: backend
+    kind: side
+    scenario: тип явно переключён у меры, которая уже заведена
+    expect: режим ряда меры меняется, новая мера не заводится
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Цель заводят по уже существующей мере, тип в запросе не указан
+      (клиент не прислал поле).
+    expect: >
+      режим меры сохраняется. Прежний defaultValue в схеме подставлял бы
+      «скорость» и молча ломал ряд метрик-уровней во всех целях с этой мерой
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.04
+    level: backend
+    kind: side
+    scenario: в существующей цели меняют название меры
+    expect: >
+      заводится новая мера, старая остаётся нетронутой — иначе переименование
+      в одной цели поехало бы по всем целям с той же мерой
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.break.01
+    level: backend
+    kind: break
+    scenario: меру переименовывают в пару, которая у кооператива уже есть
+    expect: отказ — иначе две меры слились бы в одну, а в списке появился дубль
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.break.02
+    level: backend
+    kind: break
+    scenario: цель заводят без названия меры или без единицы измерения
+    expect: отказ с понятным текстом, мера не создаётся
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.break.03
+    level: backend
+    kind: break
+    scenario: цель привязывают по хешу к мере другого кооператива
+    expect: отказ — меры не общие
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  - id: cap.mm.side.05
+    level: backend
+    kind: side
+    scenario: запрошен список мер кооператива
+    expect: >
+      возвращаются только заведённые этим кооперативом; общий справочник не
+      подсеивается
+    test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    status: passing
+
+  # ── Дневной ряд и волна ───────────────────────────────────────────────────
+
+  - id: cap.mm.happy.02
+    level: backend
+    kind: happy
+    scenario: ряд метрики строится за окно по умолчанию
+    expect: 30 дневных баров, последний — текущие (незавершённые) сутки
+    test: components/controller/src/extensions/capital/domain/utils/build-metric-series.spec.ts
+    status: passing
+
+  - id: cap.mm.side.06
+    level: backend
+    kind: side
+    scenario: правая граница окна попала ровно на начало суток
+    expect: >
+      пустой «будущий» бар не добавляется — иначе волна получила бы ложную
+      коррекцию на пустом дне
+    test: components/controller/src/extensions/capital/domain/utils/build-metric-series.spec.ts
+    status: passing
+
+  - id: cap.mm.side.07
+    level: backend
+    kind: side
+    scenario: после рывка метрика стоит четыре дня
+    expect: >
+      коридор прогноза остаётся живым: окно свежести — неделя, короткий
+      перерыв застоем не считается
+    test: components/controller/src/extensions/capital/domain/utils/wave-markup.spec.ts
+    status: passing
+
+  - id: cap.mm.side.08
+    level: backend
+    kind: side
+    scenario: после рывка метрика стоит неделю
+    expect: коридор схлопывается в плоскую линию на последнем факте
+    test: components/controller/src/extensions/capital/domain/utils/wave-markup.spec.ts
+    status: passing
+
+  - id: cap.mm.side.09
+    level: backend
+    kind: side
+    scenario: история резонанса за окно по умолчанию
+    expect: >
+      кадры идут по дням, последний упирается в текущий момент, а не в конец
+      незавершённых суток
+    test: components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.spec.ts
+    status: passing
+
+  - id: cap.mm.side.10
+    level: backend
+    kind: side
+    scenario: вклад в метрику датирован позже запрошенного кадра истории
+    expect: в факт и фазоры кадра он не входит
+    test: components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.spec.ts
+    status: passing
+
+  # ── Интерфейс ─────────────────────────────────────────────────────────────
+
+  - id: cap.mm.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      В диалоге «План» на компоненте вписывают меру текстом (название,
+      единица, тип, цель) и сохраняют.
+    expect: >
+      цель сохраняется, мера появляется в подсказке «Из своих» при следующем
+      открытии диалога
+    test: ~
+    status: missing
+
+  - id: cap.mm.side.11
+    level: ui
+    kind: side
+    scenario: строка цели заполнена частично (есть название, нет единицы)
+    expect: сохранение отклоняется с подсказкой дозаполнить или удалить строку
+    test: ~
+    status: missing
+
+  - id: cap.mm.side.12
+    level: ui
+    kind: side
+    scenario: открыты графики метрики и панель резонанса
+    expect: >
+      переключателя таймфрейма нет, подписи осей идут по дням, масштаб
+      подписан «Дни»
+    test: ~
+    status: missing

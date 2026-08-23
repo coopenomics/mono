@@ -30,5 +30,8 @@ void draft::createtrans(eosio::name scope, eosio::name username, uint64_t regist
 
   translations.emplace(payer, [&](auto &d){
     d.id = translation_id;
-  }); 
+    d.draft_id = registry_id;
+    d.lang = lang;
+    d.data = data;
+  });
 };

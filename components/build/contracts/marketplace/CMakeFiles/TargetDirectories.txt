@@ -1,0 +1,3 @@
+/project/build/contracts/marketplace/CMakeFiles/marketplace.dir
+/project/build/contracts/marketplace/CMakeFiles/edit_cache.dir
+/project/build/contracts/marketplace/CMakeFiles/rebuild_cache.dir

@@ -4,6 +4,17 @@
 export * as VerificateAccount from './verificateAccount'
 
 /**
+ * Действие верификации личности пайщика на кооперативном участке
+ * (председателем участка или его доверенным лицом, по паспорту).
+ */
+export * as VerifyAccount from './verifyAccount'
+
+/**
+ * Действие отзыва верификации личности пайщика председателем кооператива.
+ */
+export * as UnverifyAccount from './unverifyAccount'
+
+/**
  * Действие отклонения регистрации кандидата советом (отказ в приёме).
  */
 export * as DeclineRegistration from './declineRegistration'
@@ -27,6 +38,11 @@ export * as CreateAccount from './createAccount'
  * Действие регистрации карточки пользователя в кооперативе
  */
 export * as RegisterUser from './registerUser'
+
+/**
+ * Действие подачи заявления на выход пайщика из кооператива (возврат паевого взноса)
+ */
+export * as ExitCoop from './exitCoop'
 
 /**
  * Действие регистрации карточки организации в кооперативе
@@ -55,6 +71,17 @@ export * as AddUser from './addUser'
  * @private
  */
 export * as SetCoopStatus from './setCoopStatus'
+
+/**
+ * Действие указания оператора, который обслуживает кооператив: разворачивает и
+ * держит его установку платформы, а значит и продлевает ему заверение.
+ */
+export * as SetOperator from './setOperator'
+
+/**
+ * Действие снятия оператора: кооператив снова держит установку сам.
+ */
+export * as DelOperator from './delOperator'
 
 /**
  * Удаление кооператива из реестра подключений

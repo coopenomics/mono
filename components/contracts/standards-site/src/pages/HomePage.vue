@@ -6,19 +6,15 @@ import { CONTRACT_HUMAN, STATUS_HUMAN } from '@/data/labels';
 import type { Standard, StandardIndexEntry } from '@/types/standard';
 
 interface GroupedStandard extends StandardIndexEntry {
-  summary: string;
-}
-
-function summarize(std: Standard): { summary: string } {
-  return { summary: std.summary.trim() };
+  purpose: string;
 }
 
 const groups = computed<{ contract: string; items: GroupedStandard[] }[]>(() => {
   return standardsIndex.contracts.map((contract) => ({
     contract,
     items: standardsIndex.byContract[contract].map((entry) => {
-      const std = standardsIndex.byProcessType[entry.process_type];
-      return { ...entry, ...summarize(std) };
+      const std: Standard = standardsIndex.byProcessType[entry.process_type];
+      return { ...entry, purpose: std.purpose.trim() };
     }),
   }));
 });
@@ -71,7 +67,7 @@ function statusHuman(s: string): string {
         <div class="home-card__head">
           <span class="home-card__title">{{ item.title }}</span>
         </div>
-        <p class="home-card__summary">{{ item.summary }}</p>
+        <p class="home-card__purpose">{{ item.purpose }}</p>
         <div class="home-card__foot">
           <span class="home-card__badge home-card__badge--status">{{ statusHuman(item.status) }}</span>
         </div>
@@ -178,7 +174,7 @@ function statusHuman(s: string): string {
   font-size: 11px;
   color: var(--text-muted);
 }
-.home-card__summary {
+.home-card__purpose {
   margin: 0;
   font-size: 13px;
   color: var(--text-muted);

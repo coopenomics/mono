@@ -2,7 +2,7 @@ import { CommitDomainEntity, type CommitData } from '../../domain/entities/commi
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<CommitTypeormEntity>, keyof ICommitDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<CommitTypeormEntity>, keyof ICommitBlockchainData>;

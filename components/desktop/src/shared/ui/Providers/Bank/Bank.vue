@@ -75,7 +75,7 @@ const generateQRCode = () => {
   if (qrElement.value && props.paymentOrder.payment_details?.data) {
     QRCode.toCanvas(
       qrElement.value,
-      props.paymentOrder.payment_details.data,
+      props.paymentOrder.payment_details.data as string,
       { width: 400 },
       function (error) {
         if (error) console.error(error);

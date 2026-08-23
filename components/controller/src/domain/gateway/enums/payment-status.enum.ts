@@ -1,58 +1,40 @@
+import { PaymentStatus } from '@coopenomics/innercoop';
+
 /**
- * Единый enum для статусов платежей
- * Покрывает все состояния входящих и исходящих платежей
+ * Статусы платежей — перечень живёт в контракте `@coopenomics/innercoop`:
+ * расширения заводят платежи и сравнивают состояния, значит список общий.
+ * Здесь он доступен под привычным ядру именем, а рядом лежит то, что нужно
+ * только ядру: подписи для интерфейса и группировки статусов.
  */
-export enum PaymentStatusEnum {
-  // Для исходящих платежей: совет ещё не утвердил выплату.
-  // Кассиру такие платежи скрываются — он работает только с PENDING.
-  AWAITING_AUTHORIZATION = 'awaiting_authorization',
-
-  // Начальные состояния
-  PENDING = 'pending',
-
-  // Процесс обработки
-  PROCESSING = 'processing',
-  PAID = 'paid',
-
-  // Завершенные состояния
-  COMPLETED = 'completed',
-
-  // Ошибочные состояния
-  FAILED = 'failed',
-  EXPIRED = 'expired',
-
-  // Отмененные состояния
-  CANCELLED = 'cancelled',
-  REFUNDED = 'refunded',
-}
+export { PaymentStatus as PaymentStatusEnum };
 
 /**
  * Человекочитаемые названия статусов
  */
-export const PAYMENT_STATUS_LABELS: Record<PaymentStatusEnum, string> = {
-  [PaymentStatusEnum.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
-  [PaymentStatusEnum.PENDING]: 'Ожидает оплаты',
-  [PaymentStatusEnum.PROCESSING]: 'Обрабатывается',
-  [PaymentStatusEnum.PAID]: 'Оплачен',
-  [PaymentStatusEnum.COMPLETED]: 'Обработан',
-  [PaymentStatusEnum.FAILED]: 'Не удался',
-  [PaymentStatusEnum.EXPIRED]: 'Истек',
-  [PaymentStatusEnum.CANCELLED]: 'Отменен',
-  [PaymentStatusEnum.REFUNDED]: 'Отклонен',
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  [PaymentStatus.AWAITING_AUTHORIZATION]: 'Ожидает решения совета',
+  [PaymentStatus.PENDING]: 'Ожидает оплаты',
+  [PaymentStatus.PROCESSING]: 'Обрабатывается',
+  [PaymentStatus.PAID]: 'Оплачен',
+  [PaymentStatus.COMPLETED]: 'Обработан',
+  [PaymentStatus.FAILED]: 'Не удался',
+  [PaymentStatus.EXPIRED]: 'Истек',
+  [PaymentStatus.CANCELLED]: 'Отменен',
+  [PaymentStatus.REFUNDED]: 'Отклонен',
 };
 
 /**
  * Статусы, при которых платеж можно редактировать
  */
-export const EDITABLE_PAYMENT_STATUSES = [PaymentStatusEnum.PENDING, PaymentStatusEnum.PROCESSING];
+export const EDITABLE_PAYMENT_STATUSES = [PaymentStatus.PENDING, PaymentStatus.PROCESSING];
 
 /**
  * Финальные статусы платежей
  */
 export const FINAL_PAYMENT_STATUSES = [
-  PaymentStatusEnum.COMPLETED,
-  PaymentStatusEnum.FAILED,
-  PaymentStatusEnum.EXPIRED,
-  PaymentStatusEnum.CANCELLED,
-  PaymentStatusEnum.REFUNDED,
+  PaymentStatus.COMPLETED,
+  PaymentStatus.FAILED,
+  PaymentStatus.EXPIRED,
+  PaymentStatus.CANCELLED,
+  PaymentStatus.REFUNDED,
 ];

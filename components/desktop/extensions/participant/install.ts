@@ -1,7 +1,9 @@
 import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { WalletPage } from 'src/pages/User/WalletPage';
+import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
 import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
+import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { ContactsPage } from 'src/pages/Contacts';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
@@ -44,6 +46,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             children: [],
           },
           {
+            // Подтверждение авторизуется токеном из ссылки (мутация публичная),
+            // поэтому страница доступна БЕЗ входа — иначе навигационный гард
+            // редиректит на login-redirect. requiresAuth:false = исключение из auth-гейта.
+            meta: {
+              title: 'Подтверждение выхода',
+              icon: 'logout',
+              roles: [],
+              requiresAuth: false,
+              hidden: true,
+            },
+            path: 'membership-exit/confirm',
+            name: 'membership-exit-confirm',
+            component: markRaw(MembershipExitConfirmPage),
+            children: [],
+          },
+          {
             meta: {
               title: 'Удостоверение',
               icon: 'fa-solid fa-user',
@@ -58,7 +76,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           {
             meta: {
               title: 'Подключение',
-              icon: 'fas fa-link',
+              icon: 'link',
               roles: ['user'],
               conditions: 'isCoop === true && coopname === "voskhod"',
               requiresAuth: true,
@@ -85,7 +103,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           {
             meta: {
               title: 'Реквизиты',
-              icon: 'fas fa-link',
+              icon: 'account_balance',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
             },
@@ -103,18 +121,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'documents',
             name: 'user-documents',
             component: markRaw(UserDocumentsPage),
-          },
-          {
-            // Отдельная страница документа (deep-link из поиска и реестра).
-            meta: {
-              title: 'Документ',
-              roles: ['user', 'member', 'chairman'],
-              requiresAuth: true,
-              hidden: true,
-            },
-            path: 'documents/:hash',
-            name: 'user-document-details',
-            component: markRaw(DocumentDetailsPage),
+            children: [
+              {
+                // Отдельная страница документа (deep-link из поиска и реестра).
+                meta: {
+                  title: 'Документ',
+                  roles: ['user', 'member', 'chairman'],
+                  requiresAuth: true,
+                  hidden: true,
+                },
+                path: ':hash',
+                name: 'user-document-details',
+                component: markRaw(DocumentDetailsPage),
+              },
+            ],
           },
           {
             meta: {
@@ -160,6 +180,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'fa-solid fa-info',
               roles: [],
             },
+          },
+          {
+            // Предпоследний пункт (перед «Поддержкой»): пароль, 2FA, активные
+            // сессии, PIN-код. Здесь же, в опасной зоне внизу страницы, живёт
+            // выход из кооператива — отдельного пункта меню у него больше нет.
+            meta: {
+              title: 'Настройки',
+              // Material-иконка: канон запрещает FontAwesome в новых правках,
+              // соседние fa-* — легаси и меняются попутно при их правке.
+              icon: 'settings',
+              roles: [],
+              agreements: agreementsBase,
+            },
+            path: 'settings',
+            name: 'user-settings',
+            component: markRaw(UserSettingsPage),
+            children: [],
           },
           {
             meta: {

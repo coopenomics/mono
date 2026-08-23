@@ -1,10 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TranscriptionManagementService } from '../../domain/services/transcription-management.service';
 import { MatrixApiService } from '../services/matrix-api.service';
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
@@ -18,11 +15,13 @@ import {
   TranscriptionSegmentResponseDTO,
   UpdateCallTranscriptionMemoInputDTO,
 } from '../dto/transcription.dto';
+import { ChatcoopCommunicationAccessService } from '../services/chatcoop-communication-access.service';
 
 /**
  * GraphQL resolver для транскрипций звонков
  *
- * Доступ: любой авторизованный пайщик кооператива (chairman, member, user) — одинаковый доступ к списку и деталям.
+ * Доступ: записи звонков читают совет и ведущий проекта, к которому привязана комната.
+ * Проверка идёт по комнате записи, а не по роли в запросе.
  */
 @Resolver()
 export class TranscriptionResolver {
@@ -30,7 +29,8 @@ export class TranscriptionResolver {
 
   constructor(
     private readonly transcriptionService: TranscriptionManagementService,
-    private readonly matrixApiService: MatrixApiService
+    private readonly matrixApiService: MatrixApiService,
+    private readonly access: ChatcoopCommunicationAccessService
   ) {}
 
   /**
@@ -111,7 +111,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscriptions(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionsInputDTO, nullable: true })
     data?: GetTranscriptionsInputDTO
   ): Promise<CallTranscriptionResponseDTO[]> {
@@ -122,10 +122,21 @@ export class TranscriptionResolver {
       `Запрос транскрипций: user=${currentUser.username}, role=${currentUser.role}, limit=${limit}, offset=${offset}`
     );
 
-    const rows = data?.matrixRoomId
-      ? await this.transcriptionService.getTranscriptionsByRoom(data.matrixRoomId)
-      : await this.transcriptionService.getAllTranscriptions({ limit, offset });
-    return Promise.all(rows.map((t) => this.toCallTranscriptionResponse(t)));
+    if (data?.matrixRoomId) {
+      await this.access.assertCanReadRoom(currentUser, data.matrixRoomId);
+      const rows = await this.transcriptionService.getTranscriptionsByRoom(data.matrixRoomId);
+      return Promise.all(rows.map((t) => this.toCallTranscriptionResponse(t)));
+    }
+
+    // Без указания комнаты отдаём только записи тех комнат, которые пользователю доступны.
+    const readableRoomIds = new Set(await this.access.listReadableRoomIds(currentUser));
+    if (readableRoomIds.size === 0) {
+      return [];
+    }
+    const rows = await this.transcriptionService.getAllTranscriptions({ limit, offset });
+    // Сверяем комнату Matrix: roomId у записи — имя комнаты LiveKit, реестру комнат оно неизвестно.
+    const visible = rows.filter((t) => readableRoomIds.has(t.matrixRoomId));
+    return Promise.all(visible.map((t) => this.toCallTranscriptionResponse(t)));
   }
 
   /**
@@ -139,7 +150,7 @@ export class TranscriptionResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getTranscription(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionInputDTO }) data: GetTranscriptionInputDTO
   ): Promise<CallTranscriptionWithSegmentsDTO | null> {
     this.logger.log(`Запрос транскрипции ${data.id}: user=${currentUser.username}, role=${currentUser.role}`);
@@ -148,6 +159,7 @@ export class TranscriptionResolver {
     if (!result) {
       return null;
     }
+    await this.access.assertCanReadRoom(currentUser, result.transcription.matrixRoomId);
 
     return {
       transcription: await this.toCallTranscriptionResponse(result.transcription),
@@ -163,14 +175,19 @@ export class TranscriptionResolver {
     description: 'Обновить заметку (memo) к транскрипции звонка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  // Заметку правит тот же круг, что и читает запись: доступ к самой комнате проверяется ниже.
+  @AuthRoles(['chairman', 'member', 'user'])
   async updateTranscriptionMemo(
-    @CurrentUser() currentUser: MonoAccountDomainInterface,
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => UpdateCallTranscriptionMemoInputDTO }) data: UpdateCallTranscriptionMemoInputDTO
   ): Promise<CallTranscriptionResponseDTO> {
     this.logger.log(
       `Обновление memo транскрипции ${data.id}: user=${currentUser.username}, role=${currentUser.role}`
     );
+    const existing = await this.transcriptionService.getTranscriptionWithSegments(data.id);
+    if (existing) {
+      await this.access.assertCanReadRoom(currentUser, existing.transcription.matrixRoomId);
+    }
     const updated = await this.transcriptionService.updateTranscriptionMemo(data.id, data.memo);
     return this.toCallTranscriptionResponse(updated);
   }

@@ -1,0 +1,571 @@
+feature: capital.result-submission
+title: Приём результата интеллектуальной деятельности (заявление → акт-1 → акт-2 → конвертация)
+
+# Слайс result_submission процесса p.cap.rid. Коммиты (createcmmt/approvecmmt)
+# и одобрение/авторизация (approverslt/authrslt) — соседние слайсы того же
+# процесса, здесь не заводятся: у них своя точка входа и свои акторы.
+
+# Переименование 2026-08-09 (FC1-4): guard'ы и декораторы авторизации
+# (`GqlJwtAuthGuard`, `RolesGuard`, `AuthRoles`, `CurrentUser`) переехали из
+# `~/application/auth/*` в `@coopenomics/extension-kit`. В резолверах фичи
+# изменилась только строка импорта — состав guard'ов на операциях, правила
+# доступа и набор случаев прежние.
+
+# Вызовы ledger2::apply в этих операциях передают имя нитки процесса
+# (см. test-registry/ledger2.process-naming.yaml) — поведение самой фичи
+# не меняется.
+sources:
+  contract:
+    - components/contracts/cpp/capital/p.cap.rid.standard.yaml
+    - components/contracts/cpp/capital/app/result_submission/**
+  backend:
+    - components/controller/src/extensions/capital/application/services/result-submission.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/result-submission.interactor.ts
+    - components/controller/src/extensions/capital/application/resolvers/result-submission.resolver.ts
+    - components/controller/src/extensions/capital/application/dto/result_submission/**
+    - components/controller/src/extensions/capital/domain/enums/result-status.enum.ts
+  ui:
+    - components/desktop/extensions/capital/features/Result/**
+    - components/desktop/extensions/capital/features/Project/ConvertSegment/**
+    - components/desktop/extensions/capital/widgets/ResultSubmissionActionsWidget/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+  # Источник — p.cap.rid.standard.yaml (секции 3 и 4) и eosio::check в
+  # app/result_submission/push_result/*.cpp. Стандарт здесь канон.
+
+  - id: cap.rid.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Результат в статусе AUTHORIZED, сегмент AUTHORIZED. Участник подписывает
+      акт-1, председатель — акт-2, участник конвертирует сегмент.
+    expect: >
+      Статусы результата authorized → act1 → act2, сегмент authorized → act1 →
+      contributed; применены o.cap.accept и (o.cap.cnvshr + o.cap.cnvbl);
+      сегмент и результат удалены.
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.01
+    level: contract
+    kind: side
+    scenario: signact1 при статусе результата, отличном от AUTHORIZED
+    expect: отказ «Неверный статус. Результат должен быть авторизован советом»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.02
+    level: contract
+    kind: side
+    scenario: signact1 по чужому result_hash (result.username ≠ username)
+    expect: отказ «Только участник может подписать акт для своего результата»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.04
+    level: contract
+    kind: side
+    scenario: signact1 с актом, подписанным не участником
+    expect: verify_document_or_fail отклоняет документ
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.05
+    level: contract
+    kind: side
+    scenario: signact2 вызывает не председатель совета
+    expect: отказ «Только председатель может принять имущество»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.06
+    level: contract
+    kind: side
+    scenario: signact2 при статусе результата, отличном от ACT1
+    expect: отказ «Неверный статус. Первый акт должен быть подписан»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.08
+    level: contract
+    kind: side
+    scenario: signact2 с актом, где нет подписи участника (только председателя)
+    expect: verify_document_or_fail требует обе подписи — {result.username, chairman}
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.09
+    level: contract
+    kind: side
+    scenario: signact2 при segment.available_for_program == 0
+    expect: ACCEPT_RID не применяется, статусы всё равно переходят в act2/contributed
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.10
+    level: contract
+    kind: side
+    scenario: signact2 при result.debt_amount == 0
+    expect: o.cap.repay не применяется; при debt_amount > 0 — применяется
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.11
+    level: contract
+    kind: side
+    scenario: signact2 по участнику, не являющемуся активным контрибьютором
+    expect: get_active_contributor_or_fail отклоняет
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.12
+    level: contract
+    kind: side
+    scenario: convertsegm при статусе результата, отличном от ACT2
+    expect: отказ «Неверный статус результата. Ожидается 'act2' (после signact2)»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.14
+    level: contract
+    kind: side
+    scenario: convertsegm с result_hash, принадлежащим другому пайщику
+    expect: отказ «result_hash не принадлежит указанному пользователю»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.16
+    level: contract
+    kind: side
+    scenario: convertsegm по сегменту, не обновлённому после изменения долей (без rfrshsegment)
+    expect: check_segment_is_updated отклоняет — «Выполните rfrshsegment перед конвертацией»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.17
+    level: contract
+    kind: side
+    scenario: convertsegm, где wallet_amount + capital_amount + debt_amount ≠ intellectual_cost
+    expect: отказ — списывается ровно заблокированная в программе сумма, ни больше ни меньше
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.18
+    level: contract
+    kind: side
+    scenario: convertsegm с wallet_amount больше, чем provisional_amount − debt_amount
+    expect: отказ «Сумма конвертации в кошелек превышает доступную и обеспеченную суммы»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.19
+    level: contract
+    kind: side
+    scenario: convertsegm, где capital_amount ≠ available_for_program − wallet_amount
+    expect: отказ «В программу должно быть сконвертировано всё доступное»
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.20
+    level: contract
+    kind: side
+    scenario: повторный convertsegm по тому же result_hash (двойная отправка)
+    expect: отказ «Объект результата не найден по result_hash» — результат удалён первым вызовом
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.21
+    level: contract
+    kind: side
+    scenario: convertsegm с заявлением о конвертации, подписанным не участником
+    expect: verify_document_or_fail отклоняет — иначе прошла бы любая сконструированная document2
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.22
+    level: contract
+    kind: side
+    scenario: convertsegm при нулевом wallet_amount (всё остаётся в «Благорост»)
+    expect: >
+      допустимо по стандарту (секция 4, шаг 8: «любая из сумм может быть нулевой»);
+      o.cap.cnvshr не применяется, применяется только o.cap.cnvbl
+    test: components/boot/src/tests/capital-result-submission.test.ts
+    status: passing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+  # UI прячет кнопку по статусу и владельцу сегмента, но сервер обязан
+  # отказывать самостоятельно — все случаи ниже проверяются мимо интерфейса.
+
+  - id: cap.rid.happy.02
+    level: backend
+    kind: happy
+    scenario: pushResult при совпадении пользователя, найденных результате, документе и сегменте
+    expect: >
+      в домен уходят суммы из сегмента (intellectual_cost, debt_amount) и
+      result_hash из БД, а не из клиентского ввода
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.23
+    level: backend
+    kind: side
+    scenario: pushResult с чужим data.username
+    expect: отказ «Вы можете вносить результаты только для себя»
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.24
+    level: backend
+    kind: side
+    scenario: pushResult, когда результат по проекту и пользователю ещё не создан
+    expect: отказ с указанием сначала сгенерировать заявление
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.25
+    level: backend
+    kind: side
+    scenario: pushResult с doc_hash, которого нет в репозитории документов
+    expect: отказ — подписан документ, который сервер не генерировал
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.26
+    level: backend
+    kind: side
+    scenario: pushResult, где сверка подписанного и сгенерированного документов не прошла
+    expect: >
+      отказ с перечислением расхождений по полям и указанием на возможную
+      подмену документа
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.27
+    level: backend
+    kind: side
+    scenario: pushResult при отсутствующем сегменте пользователя по проекту
+    expect: отказ с именем пользователя и хэшем проекта
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.28
+    level: backend
+    kind: side
+    scenario: pushResult по проекту, не заведённому в блокчейне
+    expect: assertBlockchainProject отклоняет до обращения к цепи
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.29
+    level: backend
+    kind: side
+    scenario: pushResult, где у сегмента не заданы intellectual_cost или debt_amount
+    expect: >
+      отказ «сегмент не синхронизирован с блокчейном» до обращения к цепи.
+      Прежде подставлялось '0' — не валидный ассет, запрос падал на разборе ABI
+      вместо внятного отказа
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  # Случай cap.rid.side.30 (молчаливый пропуск события result.updated) снят:
+  # событие и перечитывание результата ради него удалены из pushResult.
+  # Слушателя у события не было ни одного — legacy-синхронизация результатов
+  # с GitHub убрана раньше, остался только мёртвый emit.
+
+  - id: cap.rid.side.31
+    level: backend
+    kind: side
+    scenario: signActAsContributor с попыткой подставить чужой username в запросе
+    expect: >
+      username в доменный вход берётся из сессии, а не из DTO (в DTO поля нет);
+      цепь отвергнет чужой result_hash по result.username == username
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.32
+    level: backend
+    kind: side
+    scenario: signActAsContributor по result_hash, которого нет в БД
+    expect: отказ «Результат с хэшем … не найден или не содержит project_hash»
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.33
+    level: backend
+    kind: side
+    scenario: signActAsContributor с актом, подписанным не тем пользователем
+    expect: assertDocumentSignatures вызывается со списком [username из сессии] и отклоняет
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.34
+    level: backend
+    kind: side
+    scenario: signActAsChairman — подпись председателя берётся из сессии
+    expect: >
+      chairman в доменный вход подставляется из currentUser, в DTO поля нет;
+      цепь сверит его с реальным председателем совета
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.35
+    level: backend
+    kind: side
+    scenario: signActAsChairman с актом без подписи участника
+    expect: assertDocumentSignatures вызывается с [result.username, chairman] и отклоняет
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.36
+    level: backend
+    kind: side
+    scenario: signActAsChairman по результату без username
+    expect: отказ «Результат с хэшем … не найден или не содержит username»
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.37
+    level: backend
+    kind: side
+    scenario: signActAsChairman по результату с пустым project_hash
+    expect: >
+      отказ до обращения к цепи; прежде project_hash подставлялся пустой
+      строкой и синхронизация сегмента молча уходила в никуда
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.38
+    level: backend
+    kind: side
+    scenario: >
+      generateResultContributionAct: пайщик передаёт свой data.username, но чужой
+      result_hash
+    expect: >
+      отказ: владельца акта определяет result.username, а не поле запроса.
+      Прежде сверялось data.username, не влияющее на содержимое документа,
+      и чужие суммы с долей попадали в сгенерированный акт
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.39
+    level: backend
+    kind: side
+    scenario: generateResultContributionAct при расхождении заявления и решения совета
+    expect: >
+      отказ по каждому из полей component_name, project_name, total_amount,
+      percent_of_result, result_hash
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.40
+    level: backend
+    kind: side
+    scenario: generateResultContributionAct — вычисление result_act_hash
+    expect: sha256(result_hash + decision_id), детерминирован при тех же входных
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.41
+    level: backend
+    kind: side
+    scenario: >
+      generateResultContributionDecision, когда сегмент изменился после подачи
+      заявления (доля или сумма)
+    expect: >
+      отказ со сверкой statement.meta и текущих данных — решение совета не
+      выпускается на устаревшие цифры
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.42
+    level: backend
+    kind: side
+    scenario: generateResultContributionStatement при project.fact.total ≤ 0
+    expect: отказ «Сумма проекта не может быть меньше или равна 0» — иначе доля неисчислима
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.43
+    level: backend
+    kind: side
+    scenario: generateResultContributionStatement без segment.share_percent
+    expect: отказ — доля участника не выводится
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  # Ветви ниже вскрыты мутационным прогоном: guard'ы «не найдено» в генерации
+  # документов отрабатывали, но ни один тест их не проверял — порча условия
+  # оставалась незамеченной.
+
+  - id: cap.rid.side.48
+    level: backend
+    kind: side
+    scenario: generateResultContributionStatement по несуществующему проекту или проекту без родителя
+    expect: отказ с хэшем проекта; название проекта берётся у родителя и обязательно
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.49
+    level: backend
+    kind: side
+    scenario: generateResultContributionStatement, когда сегмент пайщика по проекту отсутствует
+    expect: >
+      отказ; сегмент ищется по проекту из запроса и пайщику из сессии, а не по
+      присланному имени
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.50
+    level: backend
+    kind: side
+    scenario: generateResultContributionDecision по несуществующему result_hash
+    expect: >
+      отказ с хэшем результата; сегмент для сверки ищется по данным результата,
+      а не по данным запроса
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.51
+    level: backend
+    kind: side
+    scenario: >
+      generateResultContributionAct, когда отсутствует сам результат, заявление
+      или мета-данные заявления либо решения
+    expect: отказ на каждом из трёх звеньев до обращения к генератору документов
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.52
+    level: backend
+    kind: side
+    scenario: >
+      В методах генерации отсутствуют отдельные обязательные поля: project.title,
+      project.fact.total, segment.intellectual_cost, result.project_hash,
+      result.username, мета-данные решения
+    expect: >
+      отказ по каждому полю до обращения к генератору документов; сейчас guard'ы
+      написаны, но порча любого из условий не роняет ни один тест
+      (выявлено мутационным прогоном, покрытая часть сервиса 91.3%)
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
+
+  - id: cap.rid.side.53
+    level: backend
+    kind: side
+    scenario: convertSegment с project_hash в верхнем регистре
+    expect: >
+      отметка сегмента завершённым находит строку: хэш нормализуется так же,
+      как при поиске проекта строкой выше. Прежде цепь конвертацию принимала
+      (checksum256 регистр не различает), а markAsCompleted искал по исходному
+      регистру и не находил — пайщик получал ошибку на успешной операции
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.side.54
+    level: contract
+    kind: side
+    scenario: >
+      Участник конвертирует сегмент, по которому у него была непогашенная ссуда;
+      сегмент при конвертации удаляется вместе с суммой долга.
+    expect: >
+      сумма непогашенных ссуд проекта пересчитывается по оставшимся сегментам.
+      Иначе она осталась бы завышенной и без нужды сузила бы границу возврата
+      средств из проекта (см. capital.fund-allocation, cap.dealloc.side.03)
+    test: ~
+    status: missing
+
+  - id: cap.rid.break.01
+    level: backend
+    kind: break
+    scenario: pushResult — цепь приняла, но синхронизация сегмента вернула пусто
+    expect: исключение с хэшем проекта и именем пользователя, а не молчаливый null
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  - id: cap.rid.break.02
+    level: backend
+    kind: break
+    scenario: >
+      convertSegment — цепь применила конвертацию, но пометить сегмент
+      завершённым в БД не удалось
+    expect: >
+      исключение пайщику, но состояние сходится само: markAsCompleted — лишь
+      оптимистичное сокращение, чтобы ответить сразу, не дожидаясь дельты.
+      Дельта об удалении сегмента приходит от парсера, и updateFromBlockchain
+      при present=false ставит ровно то же самое — status=FINALIZED,
+      is_completed=true (segment.entity.ts:268). Потери состояния нет.
+      Неудачен только текст ошибки: пайщик считает, что конвертация не прошла
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cap.rid.happy.03
+    level: ui
+    kind: happy
+    scenario: сегмент в статусе AUTHORIZED, пайщик открывает свой сегмент
+    expect: видна кнопка «Подписать Акт»; после подписания сегмент переходит в ACT1
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.44
+    level: ui
+    kind: side
+    scenario: сегмент в статусе AUTHORIZED, смотрит не владелец сегмента
+    expect: кнопка «Подписать Акт» не отображается
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.45
+    level: ui
+    kind: side
+    scenario: сегмент в статусе ACT1, смотрит председатель
+    expect: >
+      видна кнопка «Подписать Акт (Председатель)»; у не-председателя при том же
+      статусе кнопок нет
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.46
+    level: ui
+    kind: side
+    scenario: сегмент в статусе CONTRIBUTED и уже помечен завершённым
+    expect: кнопка конвертации не отображается
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.47
+    level: ui
+    kind: side
+    scenario: председатель подписывает акт, а участник ещё не поставил первую подпись
+    expect: сообщение «Акт от участника не найден» без обращения к цепи
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.90
+    level: ui
+    kind: side
+    scenario: >
+      Кнопки действий по доле показываются и на странице результатов
+      компонента, и строкой в списке «Результаты».
+    expect: >
+      набор кнопок один и тот же, а в строке списка текст состояния скрыт (его
+      несёт бейдж) и пересчёт доли показан кнопкой-иконкой. Расходящиеся
+      наборы кнопок означали бы, что пайщик видит разные шаги процесса
+      в двух местах
+    test: ~
+    status: missing
+
+  - id: cap.rid.side.91
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик выполняет действие по доле: пересчёт, внесение результата,
+      подпись акта, разнесение голосов или получение доли.
+    expect: >
+      об успехе сообщается наружу, и список, из которого нажали, перечитывает
+      строку. Прежде кнопки только обновляли общее хранилище — экран со своим
+      списком долей оставался с прежней стоимостью и прежним статусом
+    test: ~
+    status: missing

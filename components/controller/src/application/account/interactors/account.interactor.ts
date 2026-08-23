@@ -2,7 +2,6 @@ import { AccountDomainEntity } from '~/domain/account/entities/account-domain.en
 import config from '~/config/config';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { Inject, Injectable, Logger, HttpStatus } from '@nestjs/common';
-import { HttpApiError } from '~/utils/httpApiError';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
@@ -22,6 +21,7 @@ import { randomUUID } from 'crypto';
 import type { Cooperative } from 'cooptypes';
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { INDIVIDUAL_REPOSITORY, IndividualRepository } from '~/domain/common/repositories/individual.repository';
+import type { PassportDataDomainInterface } from '~/domain/common/interfaces/passport-data-domain.interface';
 import { ENTREPRENEUR_REPOSITORY, EntrepreneurRepository } from '~/domain/common/repositories/entrepreneur.repository';
 import {
   SEARCH_PRIVATE_ACCOUNTS_REPOSITORY,
@@ -44,6 +44,7 @@ import type {
   SearchPrivateAccountsInputDomainInterface,
   PrivateAccountSearchResultDomainInterface,
 } from '~/domain/common/interfaces/search-private-accounts-domain.interface';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountInteractor {
@@ -180,6 +181,35 @@ export class AccountInteractor {
 
     const result = new AccountDomainEntity(account);
     return result;
+  }
+
+  /**
+   * Self-service: пайщик сохраняет СВОИ паспортные данные в реестр.
+   *
+   * Принимается только если паспорт ещё не был установлен ранее — существующие
+   * данные не перезатираются (их изменение — отдельный процесс, не здесь).
+   * Нужно для ролей, которым паспорт обязателен (председатель участка, доверенное
+   * лицо) в кооперативах, где паспорт при регистрации не собирается.
+   */
+  async saveOwnPassport(username: string, passport: PassportDataDomainInterface): Promise<AccountDomainEntity> {
+    const existing = await this.individualRepository.findByUsername(username);
+    if (!existing) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Паспортные данные можно сохранить только для физического лица');
+    }
+    if (existing.passport) {
+      throw new HttpApiError(
+        httpStatus.BAD_REQUEST,
+        'Паспортные данные уже установлены ранее — их изменение производится отдельным процессом'
+      );
+    }
+
+    await this.individualRepository.create({ ...existing, passport, username });
+
+    const account = await this.getAccount(username);
+
+    this.eventsService.emit('account::updated', { username, account });
+
+    return new AccountDomainEntity(account);
   }
 
   /**

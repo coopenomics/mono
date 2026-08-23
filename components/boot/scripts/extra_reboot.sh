@@ -1,63 +1,46 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Чистый перезапуск стенда с расширенным наполнением: `pnpm run reboot:extra`.
+#
+# То же, что reboot, но boot:extra (совет и пайщики; partner1 при EXTRA_RENT=1)
+# и досев ПВЗ Подмосковья для сценариев Стола заказов. Стенд поднимается целиком,
+# включая authentik, рабочий стол и единый вход — общие шаги в lib/stack.sh.
 
-# Загружаем per-instance конфиг из корня репо (для CHAIN_URL/MONGODB_URL/API_URL,
-# которые читают TS-код boot и шелл-скрипты networks.sh/preactivate.sh).
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-if [ -f "$ROOT_DIR/.env" ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/.env"
-  set +a
-fi
+set -uo pipefail
 
-# Останавливаем и удаляем контейнеры вместе с volumes
-echo "Останавливаем и удаляем контейнеры с volumes..."
-docker compose down -v mongo postgres monoredis cooparser coopback || true
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/stack.sh
+source "$SCRIPT_DIR/lib/stack.sh"
 
-# Останавливаем blockchain контейнер перед удалением данных
-echo "Останавливаем blockchain контейнер..."
-docker compose stop node || true
+stack_load_env
 
-# Удаляем blockchain data.
-# Контейнерный wipe (alpine под root) стирает данные независимо от их владельца —
-# без sudo на любой ноде (на Pi нет passwordless sudo; на проде nodeos пишет
-# данные под root). Единый способ с reboot.sh / clean_reboot.sh.
-echo "Удаляем blockchain data..."
-# sudo chmod -R 755 ../blockchain-data/ 2>/dev/null || true
-docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null || true'
+echo "══ Чистый перезапуск стенда ${STACK_PROJECT} (расширенное наполнение) ══"
 
-# Пересоздаем и запускаем базы данных + Redis (monoredis).
-# monoredis ОБЯЗАТЕЛЕН: без него coopback падает на старте с
-# `getaddrinfo EAI_AGAIN monoredis` → MaxRetriesPerRequestError → nodemon crash,
-# и провайдер не может взять org-данные partner1 (PROVIDER_URL=coopback:2998).
-echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres monoredis
+stack_wipe_all
+stack_up_infra
+stack_up_authentik
 
-# Ждем готовности MongoDB (standalone, ping вместо ожидания PRIMARY).
-echo "Ждем готовности MongoDB..."
-until docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand({ping:1}).ok" > /dev/null 2>&1; do
-  echo "MongoDB еще не готов, ждем..."
-  sleep 2
-done
-echo "MongoDB готов!"
-
-# Ждем готовности PostgreSQL
-echo "Ждем готовности PostgreSQL..."
-until docker compose exec -T postgres pg_isready -U postgres -d voskhod > /dev/null 2>&1; do
-  echo "PostgreSQL еще не готов, ждем..."
-  sleep 2
-done
-echo "PostgreSQL готов!"
-
-# Запускаем boot процесс (расширенный: совет + пайщики; partner1 — при EXTRA_RENT=1)
-echo "Запускаем boot процесс..."
+echo "▸ Запускаем boot:extra: цепь, контракты, совет и пайщики..."
 pnpm run boot:extra
 
-# Запускаем parser
-echo "Запускаем parser..."
-docker compose up -d cooparser
+stack_up_app
 
-echo "Запускаем контроллер..."
-docker compose up -d --force-recreate coopback || true
+# Таблицы marketplace создаёт контроллер при старте (TypeORM synchronize).
+# Без досева таблица ПВЗ пуста, селект в интерфейсе приходит пустым, и
+# harness-сценарии Стола заказов падают на ровном месте. Сидер идемпотентен.
+#
+# 300 попыток по 2 с = 10 минут. Прежних двух минут не хватало: контроллер
+# поднимается через ts-node, и на загруженной машине компиляция вместе с
+# миграциями TypeORM занимает дольше. Пропуск сидинга тихо ломает весь прогон.
+echo "▸ Ждём создания marketplace_ku_details контроллером..."
+if stack_wait_for "таблица ПВЗ" 300 2 \
+  bash -c 'docker compose exec -T postgres psql -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}" -tAc "SELECT to_regclass('"'"'public.marketplace_ku_details'"'"')" 2>/dev/null | grep -q marketplace_ku_details'
+then
+  echo "▸ Засеваем 3 ПВЗ Подмосковья (krg/odn/myt)..."
+  pnpm run seed:marketplace-ku || echo "  ⚠ сид ПВЗ не выполнен (для остального стенда не критично)"
+else
+  echo "  ⚠ таблица ПВЗ не появилась — сид пропущен"
+fi
 
-echo "Перезапуск завершен!"
+stack_summary
+
+echo "Перезапуск завершён."

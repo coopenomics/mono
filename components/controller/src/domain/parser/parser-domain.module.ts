@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ParserInteractor } from './interactors/parser.interactor';
 import { BlockchainEventHandlerService } from './services/blockchain-event-handler.service';
+import { BlockchainActionHistoryService } from './services/blockchain-action-history.service';
 
 /**
  * Доменный модуль парсера блокчейна
@@ -9,7 +10,7 @@ import { BlockchainEventHandlerService } from './services/blockchain-event-handl
 @Global()
 @Module({
   imports: [],
-  providers: [ParserInteractor, BlockchainEventHandlerService],
-  exports: [ParserInteractor, BlockchainEventHandlerService],
+  providers: [ParserInteractor, BlockchainEventHandlerService, BlockchainActionHistoryService],
+  exports: [ParserInteractor, BlockchainEventHandlerService, BlockchainActionHistoryService],
 })
 export class ParserDomainModule {}

@@ -35,7 +35,14 @@ RUN npm install -g pnpm@10.33.0
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile --filter "@coopenomics/boot..."
+# --ignore-scripts + точечный rebuild: --filter ограничивает только то, какие
+# проекты получают node_modules, но НЕ то, для каких пакетов общего lockfile
+# store выполняет lifecycle-скрипты при --frozen-lockfile. Без --ignore-scripts
+# сюда тянутся electron/puppeteer (из @coopenomics/desktop/notifications,
+# boot их не использует) — тяжёлые сетевые загрузки, изредка валящие билд по
+# TLS-таймауту. rebuild --filter уже честно скопирован на подграф boot.
+RUN pnpm install --frozen-lockfile --filter "@coopenomics/boot..." --ignore-scripts \
+ && pnpm rebuild --filter "@coopenomics/boot..."
 
 # Билд графа: cooptypes/factory собирают свои dist/, boot собирает
 # свой bundle с inlined workspace-deps.

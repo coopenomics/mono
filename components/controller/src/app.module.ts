@@ -1,8 +1,12 @@
 // app.module.ts
+// Первым — предусловие: расширения читают настройки контура уже при построении
+// своих схем конфига, то есть раньше, чем выполнится любой код приложения.
+import './config/platform-bootstrap';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -10,6 +14,7 @@ import { GraphqlModule } from './infrastructure/graphql/graphql.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
+import { ForkRegistryModule } from './shared/sync/fork';
 import { GeneratorInfrastructureModule } from './infrastructure/generator/generator.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { EventsInfrastructureModule } from './infrastructure/events/events.module';
@@ -29,11 +34,10 @@ import { FreeDecisionDomainModule } from './domain/free-decision/free-decision.m
 import { AgreementDomainModule } from './domain/agreement/agreement-domain.module';
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
+import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
-import { CooplaceDomainModule } from './domain/cooplace/cooplace.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
-import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
 import { VaultDomainModule } from './domain/vault/vault-domain.module';
 import { LedgerDomainModule } from './domain/ledger/ledger-domain.module';
 import { ProcessRegistryDomainModule } from './domain/process-registry/process-registry-domain.module';
@@ -60,8 +64,8 @@ import { DecisionAuthorizeModule } from './application/decision/decision.module'
 import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
-import { CooplaceModule } from './application/cooplace/cooplace.module';
 import { DesktopModule } from './application/desktop/desktop.module';
+import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
@@ -76,16 +80,20 @@ import { UserModule } from './application/user/user.module';
 import { TokenApplicationModule } from './application/token/token-application.module';
 import { SettingsApplicationModule } from './application/settings/settings.module';
 import { RegistrationModule } from './application/registration/registration.module';
+import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
+import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
+import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Чтобы .env был доступен глобально
     }),
+    ScheduleModule.forRoot(), // @Cron / @Interval / @Timeout (Story 4.4 retention)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -93,10 +101,16 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
       },
     ]),
     ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
+    // Prometheus pull-метрики (Story 9.11, NFR28): GET /metrics в Prometheus
+    // exposition format + процессные метрики Node на глобальном реестре prom-client
+    // (туда же пишут доменные счётчики AuthMetricsService). Доступ снаружи режет
+    // edge (Caddy, Story 9.2) — как и нативный /metrics authentik.
+    PrometheusModule.register({ defaultMetrics: { enabled: true } }),
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
     GraphqlModule,
+    ForkRegistryModule,
     BlockchainModule,
     GeneratorInfrastructureModule,
     RedisModule,
@@ -113,6 +127,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     }),
     // Domain modules
     AuthDomainModule,
+    AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
     AgendaDomainModule,
@@ -127,9 +142,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DocumentDomainModule,
     FreeDecisionDomainModule,
     ParticipantDomainModule,
-    CooplaceDomainModule,
     MeetDomainModule,
-    GatewayDomainModule,
     VaultDomainModule,
     LedgerDomainModule,
     ProcessRegistryDomainModule,
@@ -144,6 +157,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DecisionAuthorizeModule,
     AppStoreModule,
     AuthModule,
+    ExtensionGrantsModule,
     DesktopModule,
     BranchModule,
     LoggerModule,
@@ -154,7 +168,6 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     DocumentModule,
     DecisionModule,
     ParticipantModule,
-    CooplaceModule,
     MeetModule,
     GatewayModule,
     WalletModule,
@@ -169,9 +182,13 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     TokenApplicationModule,
     SettingsApplicationModule,
     RegistrationModule,
+    MembershipExitModule,
     OnboardingApplicationModule,
     SearchModule,
     SignedDocumentsModule,
+    // Marketplace extensions
+    MarketplaceExtensionModule,
+    MarketplaceCardsModule,
   ],
   providers: [
     {

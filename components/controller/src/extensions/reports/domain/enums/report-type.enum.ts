@@ -7,12 +7,20 @@ export enum ReportType {
   FSS4 = 'fss4',             // 4-ФСС (ЕФС-1) — ежеквартально
   UV_VZNOSY = 'uv_vznosy',   // Уведомление о страховых взносах — ежемесячно
   UUSN = 'uusn',             // Уведомление УСН — ежеквартально
+  UV_NDFL = 'uv_ndfl',       // Уведомление по НДФЛ — дважды в месяц
 }
 
 export enum ReportPeriodType {
   MONTHLY = 'monthly',
   QUARTERLY = 'quarterly',
   YEARLY = 'yearly',
+  /**
+   * Дважды в месяц — периодичность одного только НДФЛ. Налог, удержанный с 1
+   * по 22 число, перечисляется до 28 числа того же месяца, а удержанный с 23
+   * по последнее число — до 5 числа следующего; на каждый срок своё
+   * уведомление. Отсюда же шесть сроков в разделе 1 формы 6-НДФЛ.
+   */
+  SEMI_MONTHLY = 'semi_monthly',
 }
 
 export enum ReportStatus {
@@ -51,7 +59,8 @@ export const REPORT_CONFIG: Record<ReportType, {
     name: 'Персонифицированные сведения (ПСВ)',
     period: ReportPeriodType.MONTHLY,
     xsdFile: 'NO_PERSSVFL_1_297_00_05_01_02.xsd',
-    deadlineDescription: 'До 25 числа следующего месяца',
+    deadlineDescription:
+      'До 25 числа следующего месяца; за март/июнь/сент/дек не сдаём (закрывается РСВ)',
   },
   [ReportType.DUSN]: {
     name: 'Декларация по УСН',
@@ -79,4 +88,32 @@ export const REPORT_CONFIG: Record<ReportType, {
     xsdFile: 'UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd',
     deadlineDescription: 'До 25 числа следующего за кварталом месяца',
   },
+  [ReportType.UV_NDFL]: {
+    name: 'Уведомление об исчисленном НДФЛ',
+    period: ReportPeriodType.SEMI_MONTHLY,
+    xsdFile: 'UT_UVISCHSUMNAL_1_263_00_05_03_01.xsd',
+    deadlineDescription:
+      'За период с 1 по 22 число — до 25 числа того же месяца; ' +
+      'за период с 23 по последнее число — до 3 числа следующего месяца',
+  },
 };
+
+/**
+ * Периоды уведомления по НДФЛ нумеруются сквозняком по году: на каждый месяц
+ * приходится два периода, и у каждого свой черновик и свой поданный документ.
+ * Номер месяца хранить недостаточно — два уведомления за один месяц иначе
+ * перетирали бы друг друга.
+ */
+export const UV_NDFL_PERIODS_PER_YEAR = 24;
+
+/** Разложить сквозной номер периода 1..24 в месяц и половину месяца. */
+export function splitUvNdflPeriod(period: number): { month: number; secondHalf: boolean } {
+  const month = Math.floor((period - 1) / 2) + 1;
+  const secondHalf = period % 2 === 0;
+  return { month, secondHalf };
+}
+
+/** Собрать сквозной номер периода из месяца и половины месяца. */
+export function uvNdflPeriodOf(month: number, secondHalf: boolean): number {
+  return (month - 1) * 2 + (secondHalf ? 2 : 1);
+}

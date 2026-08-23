@@ -1,24 +1,21 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import type { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
 import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
 import type { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO,
+  platformSettings,
+} from '@coopenomics/extension-kit';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import { ResultContributionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-statement-document.dto';
-import { ResultContributionDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-decision-document.dto';
-import { ResultContributionActGenerateDocumentInputDTO } from '~/application/document/documents-dto/result-contribution-act-document.dto';
-import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
+import { ResultContributionStatementGenerateDocumentInputDTO } from '../documents-dto/result-contribution-statement-document.dto';
+import { ResultContributionDecisionGenerateDocumentInputDTO } from '../documents-dto/result-contribution-decision-document.dto';
+import { ResultContributionActGenerateDocumentInputDTO } from '../documents-dto/result-contribution-act-document.dto';
 import { Cooperative } from 'cooptypes';
 import { Classes } from '@coopenomics/sdk';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
@@ -38,7 +35,6 @@ import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import {
   CommitDomainEntity,
-  type ICommitContributionFeedbackData,
   type ICommitGitData,
 } from '../../domain/entities/commit.entity';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
@@ -46,13 +42,11 @@ import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/iss
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import { createHash } from 'crypto';
-import { config } from '~/config';
 import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL
  * Обрабатывает запросы от ResultSubmissionResolver
@@ -61,7 +55,7 @@ import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repos
 export class ResultSubmissionService {
   constructor(
     private readonly resultSubmissionInteractor: ResultSubmissionInteractor,
-    private readonly documentInteractor: DocumentInteractor,
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly segmentMapper: SegmentMapper,
     private readonly resultMapper: ResultMapper,
     @Inject(PROJECT_REPOSITORY)
@@ -78,10 +72,7 @@ export class ResultSubmissionService {
     private readonly storyRepository: StoryRepository,
     @Inject(ISSUE_REPOSITORY)
     private readonly issueRepository: IssueRepository,
-    @Inject(DOCUMENT_REPOSITORY)
-    private readonly documentRepository: DocumentRepository,
-    private readonly logger: WinstonLoggerService,
-    private readonly eventEmitter: EventEmitter2
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ResultSubmissionService.name);
   }
@@ -89,7 +80,7 @@ export class ResultSubmissionService {
   /**
    * Внесение результата в CAPITAL контракте
    */
-  async pushResult(data: PushResultInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async pushResult(data: PushResultInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     // Проверяем, что пользователь может вносить результаты только для себя
     if (data.username !== currentUser.username) {
       throw new Error('Вы можете вносить результаты только для себя');
@@ -102,7 +93,7 @@ export class ResultSubmissionService {
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
-    const generatedDocument = await this.documentRepository.findByHash(data.statement.doc_hash);
+    const generatedDocument = await this.documentPort.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
       throw new Error(
         `Сгенерированный документ с хешем ${data.statement.doc_hash} не найден. Необходимо сначала сгенерировать заявление.`
@@ -126,6 +117,8 @@ export class ResultSubmissionService {
 
     this.logger.info(`Глубокая сверка документов успешна для результата ${result.result_hash}`);
 
+    this.assertStatementMatchesResultHash(generatedDocument, result.result_hash);
+
     // Находим сегмент пользователя по проекту
     const segment = await this.segmentRepository.findOne({
       project_hash: data.project_hash,
@@ -136,35 +129,59 @@ export class ResultSubmissionService {
       throw new Error(`Сегмент для пользователя ${data.username} и проекта ${data.project_hash} не найден`);
     }
 
+    // Суммы живут в блокчейн-части сегмента. Если её нет, сегмент не
+    // синхронизирован с цепью, и подставлять '0' нельзя: это не валидный ассет
+    // (нет дробной части и символа) — запрос упал бы на разборе ABI, а не с
+    // внятным отказом. Отсекаем здесь.
+    if (!segment.intellectual_cost || !segment.debt_amount) {
+      throw new Error(
+        `Сегмент пользователя ${data.username} по проекту ${data.project_hash} не синхронизирован с блокчейном: не заданы сумма взноса или сумма долга. Обновите сегмент и повторите.`
+      );
+    }
+
     // Формируем данные для domain layer
     // Используем присланный подписанный документ (он прошел глубокую проверку)
     const domainInput = {
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: data.username,
       project_hash: data.project_hash,
       result_hash: result.result_hash,
-      contribution_amount: segment.intellectual_cost || '0', // берем из сегмента
-      debt_amount: segment.debt_amount || '0', // берем из сегмента
+      contribution_amount: segment.intellectual_cost, // берем из сегмента
+      debt_amount: segment.debt_amount, // берем из сегмента
       statement: data.statement,
       debt_hashes: [], // пока пустой массив
     };
 
     const segmentEntity = await this.resultSubmissionInteractor.pushResult(domainInput);
 
-    // Получаем обновлённый результат для синхронизации с GitHub
-    const updatedResult = await this.resultRepository.findByResultHash(result.result_hash);
-    if (updatedResult) {
-      // Генерируем событие для синхронизации с GitHub
-      this.eventEmitter.emit('result.updated', updatedResult);
-    }
-
+    // Здесь эмиттилось событие `result.updated` «для синхронизации с GitHub».
+    // Слушателя у него не было ни одного: legacy markdown-синхронизация
+    // проектов и результатов с GitHub удалена (см. GitHubSyncSchedulerService).
+    // Событие снято вместе с перечитыванием результата, которое делалось
+    // только ради него.
     return await this.segmentMapper.toDTO(segmentEntity);
+  }
+
+  /**
+   * Заявление сгенерировано от конкретного result_hash (лежит в meta документа).
+   * Если документ результата пересобрался после генерации заявления (пришли новые
+   * коммиты и сегмент обновили), в цепь ушёл бы хэш, которого нет в подписанном
+   * заявлении, — связка документов разорвалась бы. Отказываем с просьбой перегенерировать.
+   */
+  private assertStatementMatchesResultHash(generatedDocument: { meta?: Record<string, any> }, resultHash: string): void {
+    const statementResultHash =
+      typeof generatedDocument.meta?.result_hash === 'string' ? generatedDocument.meta.result_hash.toLowerCase() : null;
+    if (statementResultHash && statementResultHash !== resultHash.toLowerCase()) {
+      throw new Error(
+        'Результат изменился после генерации заявления (появились новые коммиты). Сгенерируйте и подпишите заявление заново.'
+      );
+    }
   }
 
   /**
    * Конвертация сегмента в CAPITAL контракте
    */
-  async convertSegment(data: ConvertSegmentInputDTO, currentUser: MonoAccountDomainInterface): Promise<SegmentOutputDTO> {
+  async convertSegment(data: ConvertSegmentInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     const segmentEntity = await this.resultSubmissionInteractor.convertSegment(data, currentUser);
     return await this.segmentMapper.toDTO(segmentEntity);
   }
@@ -176,7 +193,7 @@ export class ResultSubmissionService {
    */
   async getResults(filter?: ResultFilterInputDTO, options?: PaginationInputDTO): Promise<PaginationResult<ResultOutputDTO>> {
     // Конвертируем параметры пагинации в доменные
-    const domainOptions: PaginationInputDomainInterface | undefined = options;
+    const domainOptions: PaginationInputDTO | undefined = options;
 
     // Получаем результат с пагинацией из домена
     const result = await this.resultSubmissionInteractor.getResults(filter, domainOptions);
@@ -298,10 +315,31 @@ export class ResultSubmissionService {
    * Публичный метод для генерации текста результата
    * Вызывается при обновлении сегмента
    */
+  /** Статусы, при которых документ результата можно пересобрать: результат ещё не отправлен в цепь, отклонён либо цикл приёмки завершён. */
+  private static readonly RESULT_REGENERATION_ALLOWED_STATUSES: readonly ResultStatus[] = [
+    ResultStatus.PENDING,
+    ResultStatus.DECLINED,
+    ResultStatus.ACT2,
+  ];
+
   async generateResultData(
     projectHash: string,
     username: string
   ): Promise<ResultDomainEntity> {
+    // Хэш результата фиксируется подписанным заявлением и уходит в блокчейн:
+    // пока результат идёт по приёмке, пересборка документа изменила бы
+    // result_hash и разорвала связку с уже подписанными документами.
+    const existingResult = await this.resultRepository.findByProjectHashAndUsername(projectHash, username);
+    if (
+      existingResult &&
+      !ResultSubmissionService.RESULT_REGENERATION_ALLOWED_STATUSES.includes(existingResult.status)
+    ) {
+      this.logger.warn(
+        `Результат ${existingResult.result_hash} (${projectHash}/${username}) идёт по приёмке (статус ${existingResult.status}) — документ не пересобирается, хэш сохранён`
+      );
+      return existingResult;
+    }
+
     // Находим проект
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
@@ -338,8 +376,8 @@ export class ResultSubmissionService {
     // Вычисляем хеш результата
     const result_hash = createHash('sha256').update(resultContributionDocument).digest('hex');
 
-    // Проверяем, существует ли уже Result для этого пользователя и проекта
-    let resultEntity = await this.resultRepository.findByProjectHashAndUsername(projectHash, username);
+    // Result уже перечитан гардом выше — работаем с ним
+    let resultEntity = existingResult;
 
     if (resultEntity) {
       // Обновляем существующий Result
@@ -352,7 +390,7 @@ export class ResultSubmissionService {
         _id: '', // будет сгенерировано
         result_hash,
         project_hash: projectHash,
-        coopname: config.coopname,
+        coopname: platformSettings().coopname,
         username: username,
         status: ResultStatus.PENDING,
         block_num: undefined,
@@ -463,14 +501,22 @@ export class ResultSubmissionService {
                 diffHtmlBlocks.push(`<div class="commit-content">\n${this.renderGitDiffHtml(gitData)}\n</div>`);
                 break;
               }
-              case 'contribution_feedback': {
-                const fb = content.data as ICommitContributionFeedbackData;
-                const reviewPart = fb.review_text.trim()
-                  ? `<p><strong>Отзыв:</strong> ${this.escapeHtml(fb.review_text).replace(/\n/g, '<br/>')}</p>`
-                  : '';
-                diffHtmlBlocks.push(
-                  `<div class="commit-content contribution-feedback"><p><strong>Оценка работы:</strong> ${this.escapeHtml(String(fb.satisfaction_stars))} / 5</p>${reviewPart}</div>`
-                );
+              // Оценка и отзыв — только на коммите для приёмки мастером, не в юридический РИД
+              case 'contribution_feedback':
+                break;
+              case 'committed_issues': {
+                const issues = (content.data as { issues?: Array<{ title?: string; issue_hash?: string }> })?.issues;
+                if (issues?.length) {
+                  const items = issues
+                    .map((issue) => {
+                      const title = this.escapeHtml(issue.title?.trim() || issue.issue_hash || 'Задача');
+                      return `<li>${title}</li>`;
+                    })
+                    .join('');
+                  diffHtmlBlocks.push(
+                    `<div class="commit-content committed-issues"><p><strong>Задачи:</strong></p><ul>${items}</ul></div>`
+                  );
+                }
                 break;
               }
               default: {
@@ -523,7 +569,7 @@ export class ResultSubmissionService {
   async generateResultContributionStatement(
     data: ResultContributionStatementGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь может генерировать документы только для себя
     if (data.username !== currentUser.username) {
@@ -564,7 +610,7 @@ export class ResultSubmissionService {
     }
 
     // Извлекаем данные
-    const coopname = config.coopname;
+    const coopname = platformSettings().coopname;
     const username = currentUser.username;
 
     if (!project.title) {
@@ -616,7 +662,7 @@ export class ResultSubmissionService {
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -633,7 +679,7 @@ export class ResultSubmissionService {
   async generateResultContributionDecision(
     data: ResultContributionDecisionGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    _currentUser: MonoAccountDomainInterface
+    _currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
 
     // Находим результат по result_hash
@@ -730,13 +776,13 @@ export class ResultSubmissionService {
       result_hash: data.result_hash,
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       registry_id: Cooperative.Registry.ResultContributionDecision.registry_id,
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -750,17 +796,25 @@ export class ResultSubmissionService {
   async generateResultContributionAct(
     data: ResultContributionActGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<GeneratedDocumentDTO> {
-    // Проверяем, что пользователь может генерировать документы только для себя
-    // Председатель может генерировать документы для любого пользователя
-    if (data.username !== currentUser.username && currentUser.role !== 'chairman') {
-      throw new Error('Вы можете генерировать документы только для себя');
-    }
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
       throw new Error(`Результат с хешем ${data.result_hash} не найден`);
+    }
+    if (!result.username) {
+      throw new Error('Имя пользователя не найдено в результате');
+    }
+
+    // Владельца определяет результат, а не запрос. Акт формируется по
+    // result.username — сверять присланное data.username было бессмысленно:
+    // оно не влияет на содержимое документа, и своё имя вместе с чужим
+    // result_hash открывало бы чужие суммы и долю. Поле data.username из DTO
+    // не убрано: по нему RolesGuard пропускает пайщика к своим ресурсам.
+    // Председатель ставит на акте вторую подпись и вправе сгенерировать любой.
+    if (result.username !== currentUser.username && currentUser.role !== 'chairman') {
+      throw new Error('Вы можете генерировать документы только для себя');
     }
 
     // Находим заявление по result_hash (должно быть в блокчейн данных)
@@ -814,22 +868,20 @@ export class ResultSubmissionService {
       .digest('hex');
 
     // Все проверки пройдены, генерируем документ
-    if (!result.username) {
-      throw new Error('Имя пользователя не найдено в результате');
-    }
+    // (result.username проверен в начале — по нему определяется владелец акта)
     const documentData: ResultContributionActGenerateDocumentInputDTO = {
       result_act_hash,
       percent_of_result: statementMeta.percent_of_result,
       total_amount: statementMeta.total_amount,
       decision_id,
-      coopname: config.coopname,
+      coopname: platformSettings().coopname,
       username: result.username,
       result_hash: data.result_hash,
       registry_id: Cooperative.Registry.ResultContributionAct.registry_id,
       lang: options?.lang as any,
     };
 
-    const document = await this.documentInteractor.generateDocument({
+    const document = await this.documentPort.generate({
       data: documentData,
       options,
     });
@@ -843,7 +895,7 @@ export class ResultSubmissionService {
    */
   async signActAsContributor(
     data: SignActAsContributorInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,
@@ -860,7 +912,7 @@ export class ResultSubmissionService {
    */
   async signActAsChairman(
     data: SignActAsChairmanInputDTO,
-    currentUser: MonoAccountDomainInterface
+    currentUser: IMonoAccount
   ): Promise<SegmentOutputDTO> {
     const domainInput = {
       ...data,

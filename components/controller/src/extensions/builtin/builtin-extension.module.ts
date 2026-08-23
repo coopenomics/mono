@@ -1,35 +1,30 @@
 import { Inject, Module } from '@nestjs/common';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '~/domain/extension/repositories/extension-domain.repository';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
-import { BaseExtModule } from '../base.extension.module';
-
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
 
 export const Schema = z.object({});
 
-// Интерфейс для параметров конфигурации плагина
+// Интерфейс для параметров конфигурации расширения
 export type IConfig = z.infer<typeof Schema>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ILog {}
 
-export class BuiltinPlugin extends BaseExtModule {
+export class BuiltinExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    private readonly logger: WinstonLoggerService
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     super();
-    this.logger.setContext(BuiltinPlugin.name);
+    this.logger.setContext(BuiltinExtension.name);
   }
 
   name = 'builtin';
-  plugin!: ExtensionDomainEntity<IConfig>;
+  extension!: ExtensionDomainEntity<IConfig>;
 
   async initialize(): Promise<void> {
     //nothing
@@ -40,13 +35,13 @@ export class BuiltinPlugin extends BaseExtModule {
 }
 
 @Module({
-  providers: [BuiltinPlugin], // Регистрируем SberpollPlugin как провайдер
-  exports: [BuiltinPlugin], // Экспортируем его для доступа в других модулях
+  providers: [BuiltinExtension], // Регистрируем SberpollExtension как провайдер
+  exports: [BuiltinExtension], // Экспортируем его для доступа в других модулях
 })
-export class BuiltinPluginModule {
-  constructor(private readonly builtinPlugin: BuiltinPlugin) {}
+export class BuiltinExtensionModule {
+  constructor(private readonly builtinExtension: BuiltinExtension) {}
 
   async initialize() {
-    await this.builtinPlugin.initialize();
+    await this.builtinExtension.initialize();
   }
 }

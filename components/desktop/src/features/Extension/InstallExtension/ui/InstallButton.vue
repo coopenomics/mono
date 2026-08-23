@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInstallExtension } from '../model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSystemStore } from 'src/entities/System/model';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   extractGraphQLErrorMessages,
@@ -54,7 +55,17 @@ const install = async () => {
     await loadExtensionRoutes(props.extensionName, router);
     console.log('🔧 [InstallExtension] Extension routes loaded');
 
-    router.push({ name: 'one-extension' });
+    // Редирект на первую ДОСТУПНУЮ пользователю страницу расширения (канон
+    // grants): для расширений с онбордингом это страница подключения ЦПП, иначе —
+    // первый видимый стол/страница. Так администратор не попадает на ещё
+    // закрытый дефолтный роут (permissionDenied).
+    const target = desktop.firstAccessibleRoute(props.extensionName);
+    if (target) {
+      const coopname = useSystemStore().info?.coopname;
+      router.push(coopname ? { name: target.name, params: { coopname } } : { name: target.name });
+    } else {
+      router.push({ name: 'one-extension' });
+    }
     SuccessAlert('Расширение установлено');
   } catch (e: unknown) {
     FailAlert(`Ошибка установки расширения: ${extractGraphQLErrorMessages(e)}`);

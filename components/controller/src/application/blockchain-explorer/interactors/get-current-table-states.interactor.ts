@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import type { DeltaRepositoryPort } from '~/domain/parser/ports/delta-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import type { TableStateDomainInterface } from '~/domain/parser/interfaces/table-state-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 /**
  * Интерактор приложения для получения текущих состояний таблиц из дельт
  */

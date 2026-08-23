@@ -6,15 +6,10 @@ import { ExtensionLifecycleDomainService } from '~/domain/extension/services/ext
 import { ExtensionDomainListingService } from './services/extension-listing-domain.service';
 import { ExtensionSchemaMigrationService } from './services/extension-schema-migration.service';
 import { ExtensionInteractor } from '~/application/appstore/interactors/extension.interactor';
-import { powerupSchemaV2Migration } from '~/extensions/powerup/migrations/powerup-schema-v2.migration';
-import { chatcoopManagedMatrixRoomsV2Migration } from '~/extensions/chatcoop/migrations/chatcoop-managed-matrix-rooms-v2.migration';
-import { chatcoopManagedMatrixRoomsV3Migration } from '~/extensions/chatcoop/migrations/chatcoop-managed-matrix-rooms-v3.migration';
-import { chatcoopStatePgV4Migration } from '~/extensions/chatcoop/migrations/chatcoop-state-pg-v4.migration';
-import { chatcoopMessageHistoryIngestCursorV5Migration } from '~/extensions/chatcoop/migrations/chatcoop-message-history-ingest-cursor-v5.migration';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 import { ExtensionsModule } from '~/extensions/extensions.module';
-import { nestApp } from '~/index';
+import { AppRegistry } from '~/extensions/extensions.registry';
 
 @Module({
   imports: [
@@ -48,17 +43,17 @@ export class ExtensionDomainModule {
   async onModuleInit() {
     this.logger.info('[EXTENSION_INIT] Начинаем инициализацию системы расширений');
 
-    // Регистрируем миграции схем расширений
-    this.migrationService.registerMigration(powerupSchemaV2Migration);
-    this.migrationService.registerMigration(chatcoopManagedMatrixRoomsV2Migration);
-    this.migrationService.registerMigration(chatcoopManagedMatrixRoomsV3Migration);
-    this.migrationService.registerMigration(chatcoopStatePgV4Migration);
-    this.migrationService.registerMigration(chatcoopMessageHistoryIngestCursorV5Migration);
+    // Миграции схемы конфига объявляет само расширение — записью в реестре.
+    // Ядру незачем знать, что у какого-то расширения была v2, а потом v18:
+    // порядок применения задаёт список самого расширения.
+    for (const extension of Object.values(AppRegistry)) {
+      for (const migration of extension.migrations ?? []) {
+        this.migrationService.registerMigration(migration);
+      }
+    }
 
     // Устанавливаем расширения по умолчанию
     await this.extensionInteractor.installDefaultApps();
-
-    this.extensionLifecycleDomainService.setAppContext(nestApp);
 
     // Запускаем инициализацию включенных расширений
     await this.extensionLifecycleDomainService.runApps();

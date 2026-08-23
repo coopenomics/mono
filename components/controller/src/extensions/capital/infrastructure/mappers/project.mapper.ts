@@ -2,8 +2,17 @@ import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
-import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ProjectStatus } from '../../domain/enums/project-status.enum';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import { ProjectPriority } from '../../domain/enums/project-priority.enum';
+import {
+  normalizeProjectCounts,
+  normalizeProjectCrps,
+  normalizeProjectFact,
+  normalizeProjectPlan,
+  normalizeProjectVoting,
+} from '../../domain/utils/empty-project-blockchain-pools';
+import type { RequireFields } from '@coopenomics/extension-kit';
 
 type toEntityDatabasePart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProjectTypeormEntity>, keyof IProjectDomainInterfaceBlockchainData>;
@@ -32,6 +41,9 @@ export class ProjectMapper {
       matrix_room_id: entity.matrix_room_id ?? null,
       matrix_component_announcement_events: entity.matrix_component_announcement_events ?? [],
       development_repository_url: entity.development_repository_url ?? null,
+      priority: entity.priority ?? ProjectPriority.MEDIUM,
+      origin: entity.origin ?? ProjectOrigin.BLOCKCHAIN,
+      local_owner: entity.local_owner ?? null,
       _created_at: entity._created_at,
       _updated_at: entity._updated_at,
     };
@@ -39,10 +51,12 @@ export class ProjectMapper {
 
     let blockchainData: toDomainBlockchainPart | undefined;
 
-    if (entity[ProjectDomainEntity.getPrimaryKey()]) {
+    // Колонки title/master лежат в PG и для LOCAL (без blockchain id)
+    if (entity.id != null || entity.origin === ProjectOrigin.LOCAL || (entity.title && entity.master)) {
+      const blockchainId = entity.id != null && entity.id > 0 ? entity.id : 0;
       // Используем данные из TypeORM сущности
       blockchainData = {
-        id: entity.id,
+        id: blockchainId,
         coopname: entity.coopname,
         project_hash: entity.project_hash,
         parent_hash: entity.parent_hash || '',
@@ -57,15 +71,17 @@ export class ProjectMapper {
         data: entity.data,
         meta: entity.meta || '',
         authorization: entity.authorization,
-        counts: entity.counts,
-        plan: entity.plan,
-        fact: entity.fact,
-        crps: entity.crps,
-        voting: entity.voting,
-        created_at: entity.created_at.toISOString(),
+        counts: normalizeProjectCounts(entity.counts),
+        plan: normalizeProjectPlan(entity.plan),
+        fact: normalizeProjectFact(entity.fact),
+        crps: normalizeProjectCrps(entity.crps),
+        voting: normalizeProjectVoting(entity.voting),
+        created_at: entity.created_at
+          ? entity.created_at.toISOString()
+          : new Date().toISOString(),
         _created_at: entity._created_at,
         _updated_at: entity._updated_at,
-      };
+      } as toDomainBlockchainPart;
     }
 
     return new ProjectDomainEntity(databaseData, blockchainData);
@@ -88,15 +104,18 @@ export class ProjectMapper {
       matrix_room_id: domain.matrix_room_id ?? null,
       matrix_component_announcement_events: domain.matrix_component_announcement_events ?? null,
       development_repository_url: domain.development_repository_url ?? null,
+      priority: domain.priority ?? ProjectPriority.MEDIUM,
+      origin: domain.origin ?? ProjectOrigin.BLOCKCHAIN,
+      local_owner: domain.local_owner ?? null,
       _created_at: domain._created_at as Date,
       _updated_at: domain._updated_at as Date,
     };
 
     let blockchainPart: toEntityBlockchainPart | undefined;
 
-    if (domain[ProjectDomainEntity.getPrimaryKey()]) {
+    if (domain.id != null || domain.origin === ProjectOrigin.LOCAL || (domain.title && domain.master)) {
       blockchainPart = {
-        id: domain.id as number,
+        id: domain.id != null && domain.id > 0 ? domain.id : null,
         coopname: domain.coopname as string,
         project_hash: domain.project_hash as string,
         parent_hash: domain.parent_hash as string,
@@ -119,7 +138,7 @@ export class ProjectMapper {
         created_at: new Date(domain.created_at ?? new Date()),
         _created_at: domain._created_at as Date,
         _updated_at: domain._updated_at as Date,
-      };
+      } as toEntityBlockchainPart;
     }
 
     return { ...dbPart, ...blockchainPart };

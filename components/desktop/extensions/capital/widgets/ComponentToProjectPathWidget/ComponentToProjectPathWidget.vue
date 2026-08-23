@@ -22,6 +22,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 const router = useRouter();
 const route = useRoute();
@@ -71,7 +72,7 @@ const goToParentProject = () => {
 
   // Переходим на страницу описания проекта
   router.push({
-    name: 'project-description',
+    name: capitalRouteName('project-description', route),
     params: { project_hash: props.project.parent_hash },
     query: {
       _backRoute: backRouteKey
@@ -98,35 +99,36 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .component-to-project-path {
-  background: rgba(var(--q-primary-rgb), 0.04);
-  border: 1px solid rgba(var(--q-primary-rgb), 0.1);
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
-// Шапка страницы сущности: над заголовком, без верхнего «воздуха» (без q-mt-md)
+// Шапка страницы сущности: над заголовком, без верхнего «воздуха»
 .component-to-project-path.capital-entity-header-path {
   margin-top: 0;
-  margin-bottom: 0;
+  margin-bottom: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .breadcrumb-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--p-1);
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #666;
+  color: var(--p-ink-2);
   font-weight: 500;
+  transition: color var(--p-dur-fast) var(--p-ease-standard);
 
   &:hover {
-    color: var(--q-primary);
-    text-decoration: underline;
+    color: var(--p-primary);
 
     .breadcrumb-link {
       opacity: 1;
-      transform: scale(1.1);
     }
   }
 
@@ -145,8 +147,8 @@ onMounted(async () => {
 .breadcrumb-info {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: #999;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
   font-weight: normal;
 
   .q-icon {
@@ -156,39 +158,7 @@ onMounted(async () => {
 
 .breadcrumb-link {
   opacity: 0.4;
-  transition: all 0.2s ease;
+  transition: opacity var(--p-dur-fast) var(--p-ease-standard);
   flex-shrink: 0;
-}
-
-@media (max-width: 600px) {
-  .component-to-project-path {
-    padding: 6px 8px;
-    font-size: 12px;
-    gap: 4px;
-  }
-
-  .component-to-project-path.capital-entity-header-path {
-    padding: 4px 6px;
-    min-height: 28px;
-  }
-
-  .breadcrumb-item {
-    gap: 2px;
-
-    .q-icon {
-      font-size: 12px;
-    }
-
-    .breadcrumb-link {
-      font-size: 8px;
-    }
-  }
-
-  .breadcrumb-loading,
-  .breadcrumb-info {
-    .q-icon {
-      font-size: 12px;
-    }
-  }
 }
 </style>

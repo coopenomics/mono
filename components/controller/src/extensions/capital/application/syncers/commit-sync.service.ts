@@ -1,16 +1,13 @@
-import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { AbstractEntitySyncService } from '../../../../shared/services/abstract-entity-sync.service';
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LOGGER_PORT, type ILoggerPort, type InnerTransactResult } from '@coopenomics/innercoop';
+import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitRepository, COMMIT_REPOSITORY } from '../../domain/repositories/commit.repository';
 import { CommitDeltaMapper } from '../../infrastructure/blockchain/mappers/commit-delta.mapper';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { GenerationInteractor } from '../use-cases/generation.interactor';
-import { CapitalContract } from 'cooptypes';
-import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import type { TransactResult } from '@wharfkit/session';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации коммитов с блокчейном
@@ -29,10 +26,8 @@ export class CommitSyncService
     @Inject(COMMIT_REPOSITORY)
     commitRepository: CommitRepository,
     commitDeltaMapper: CommitDeltaMapper,
-    logger: WinstonLoggerService,
+    @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
-    @Inject(forwardRef(() => GenerationInteractor))
-    private readonly generationInteractor: GenerationInteractor,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort
   ) {
@@ -62,7 +57,7 @@ export class CommitSyncService
   /**
    * Синхронизация коммита между блокчейном и базой данных
    */
-  async syncCommit(coopname: string, commitHash: string, transactResult: TransactResult): Promise<CommitDomainEntity | null> {
+  async syncCommit(coopname: string, commitHash: string, transactResult: InnerTransactResult): Promise<CommitDomainEntity | null> {
     // Извлекаем данные коммита из блокчейна
     const blockchainCommit = await this.capitalBlockchainPort.getCommitByHash(coopname, commitHash);
 
@@ -74,43 +69,15 @@ export class CommitSyncService
     // Синхронизируем коммит (createIfNotExists сам разберется - создать новый или обновить существующий)
     const commitEntity = await this.repository.createIfNotExists(
       blockchainCommit,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 
     return commitEntity;
   }
 
-  /**
-   * Обработчик одобрения коммита
-   */
-  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitApprove.actionName}`)
-  async handleApproveCommit(actionData: ActionDomainInterface): Promise<void> {
-    try {
-      await this.generationInteractor.handleApproveCommit(actionData);
-    } catch (error: any) {
-      this.logger.error(`Ошибка при обработке одобрения коммита: ${error?.message}`, error?.stack);
-    }
-  }
-
-  /**
-   * Обработчик отклонения коммита
-   */
-  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.CommitDecline.actionName}`)
-  async handleDeclineCommit(actionData: ActionDomainInterface): Promise<void> {
-    try {
-      await this.generationInteractor.handleDeclineCommit(actionData);
-    } catch (error: any) {
-      this.logger.error(`Ошибка при обработке отклонения коммита: ${error?.message}`, error?.stack);
-    }
-  }
-
-  /**
-   * Обработка форков для коммитов
-   * Теперь подписывается на все форки независимо от контракта
-   */
-  @OnEvent('fork::*')
-  async handleCommitFork(forkData: { block_num: number }): Promise<void> {
-    await this.handleFork(forkData.block_num);
-  }
+  // Одобрение и отклонение коммита слушает сам `GenerationInteractor`: там
+  // лежит обработка, а здесь стояли два переходника, ради которых синхронизатор
+  // инжектил сценарий — и получался цикл (FC1-21). Подписка на событие цепи
+  // ничего не требует от синхронизатора, обработчику нужен только `actionData`.
 }

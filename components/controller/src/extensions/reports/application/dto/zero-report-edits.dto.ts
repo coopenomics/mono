@@ -21,6 +21,7 @@ import {
   OKTMO_PATTERN,
   OKVED_PATTERN,
   SFR_REG_NUMBER_PATTERN,
+  PFR_REG_NUMBER_PATTERN,
   SNILS_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
@@ -67,11 +68,18 @@ export class ZeroReportHeaderEditsInputDTO {
   @Max(2100)
   reportYear!: number;
 
+  /**
+   * Номер периода внутри года. Что именно им нумеруется, зависит от формы:
+   * квартал 1..4, месяц 1..12, а у уведомления по НДФЛ — расчётный период
+   * 1..24 (по два на месяц). Верхняя граница здесь общая и самая широкая;
+   * допустимый для конкретной формы диапазон проверяет её генератор — он же
+   * знает и смысл номера.
+   */
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(12)
+  @Max(24)
   period!: number | null;
 
   @Field(() => Int)
@@ -145,6 +153,12 @@ export class ZeroReportOrganizationEditsInputDTO {
   @IsString()
   @Length(1, 255)
   address!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Контактный телефон (СвНП @Тлф)' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 20)
+  phone!: string | null;
 }
 
 @ObjectType('ZeroReportOrganizationEdits')
@@ -159,6 +173,7 @@ export class ZeroReportOrganizationEditsDTO {
   @Field(() => String, { nullable: true }) okpo!: string | null;
   @Field(() => String, { nullable: true }) ogrn!: string | null;
   @Field(() => String, { nullable: true }) address!: string | null;
+  @Field(() => String, { nullable: true }) phone!: string | null;
 }
 
 // =============================================================
@@ -200,8 +215,13 @@ export class ZeroReportSignerEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — XXX-XXX-XXXXXX' })
+  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — 10 цифр' })
   sfrRegNumber!: string | null;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @Matches(PFR_REG_NUMBER_PATTERN, { message: 'Рег.номер ПФР — XXX-XXX-XXXXXX' })
+  pfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
@@ -219,6 +239,7 @@ export class ZeroReportSignerEditsDTO {
   @Field(() => String, { nullable: true }) repDoc!: string | null;
   @Field(() => String, { nullable: true }) snils!: string | null;
   @Field(() => String, { nullable: true }) sfrRegNumber!: string | null;
+  @Field(() => String, { nullable: true }) pfrRegNumber!: string | null;
   @Field(() => String, { nullable: true }) chairmanPosition!: string | null;
 }
 

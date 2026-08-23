@@ -1,0 +1,14 @@
+# Target labels
+ capital_contract
+# Source files and their labels
+/project/build/CMakeFiles/capital_contract
+/project/build/CMakeFiles/capital_contract.rule
+/project/build/CMakeFiles/capital_contract-complete.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-build.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-configure.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-download.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-install.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-mkdir.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-patch.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-test.rule
+/project/build/capital_contract-prefix/src/capital_contract-stamp/capital_contract-update.rule

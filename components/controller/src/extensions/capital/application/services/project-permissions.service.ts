@@ -9,6 +9,8 @@ import {
   ProjectUserRole,
   ProjectAction,
 } from '../../domain/services/access-policy.service';
+import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 // Реэкспортируем типы для обратной совместимости
 export { UserRole, IssueAction, ProjectUserRole, ProjectAction };
@@ -39,13 +41,15 @@ export class ProjectPermissionsService {
    * @param username - имя пользователя
    * @param project - проект
    * @param userRole - системная роль пользователя (chairman / member / ...)
+   * @param cache - кэш справочных чтений на время одного расчёта (для списков)
    * @returns множество project-ролей пользователя; пустого множества не бывает —
    *          минимум {@link ProjectUserRole.GUEST}.
    */
   async getProjectUserRole(
     username: string | undefined,
     project: any,
-    userRole?: string
+    userRole?: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
   ): Promise<Set<ProjectUserRole>> {
     const roles = new Set<ProjectUserRole>();
 
@@ -62,21 +66,28 @@ export class ProjectPermissionsService {
     }
 
     // Project-specific роли — собираем все, что верны.
-    const isMaster = await this.isProjectMaster(username, project.coopname, project.project_hash);
+    const isMaster = await this.isProjectMaster(username, project.project_hash, cache);
     if (isMaster) {
       roles.add(ProjectUserRole.MASTER);
     }
 
-    const segment = await this.segmentRepository.findOne({
-      username,
-      project_hash: project.project_hash,
-      coopname: project.coopname,
-    });
+    const segment = await cache.once(
+      PermissionsLookupCache.segmentKey(username, project.coopname, project.project_hash),
+      () =>
+        this.segmentRepository.findOne({
+          username,
+          project_hash: project.project_hash,
+          coopname: project.coopname,
+        })
+    );
     if (segment?.is_author) {
       roles.add(ProjectUserRole.AUTHOR);
     }
 
-    const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, project.coopname);
+    const contributor = await cache.once(
+      PermissionsLookupCache.contributorKey(username, project.coopname),
+      () => this.contributorRepository.findByUsernameAndCoopname(username, project.coopname)
+    );
     if (contributor && contributor.appendixes?.includes(project.project_hash)) {
       roles.add(ProjectUserRole.CONTRIBUTOR);
     }
@@ -89,14 +100,48 @@ export class ProjectPermissionsService {
   }
 
   /**
+   * Проверяет право устанавливать приоритет проекта/компонента.
+   *
+   * Приоритет расставляется «уровнем выше», поэтому матрица project-ролей его
+   * не выражает: у верхнеуровневого проекта приоритет ставит только председатель,
+   * у компонента — председатель или мастер родительского проекта (мастер самого
+   * компонента приоритет себе не ставит — как исполнитель задачи не ставит
+   * приоритет своей задаче).
+   */
+  async canSetProjectPriority(
+    username: string | undefined,
+    project: { parent_hash?: string | null },
+    userRole?: string,
+    cache: PermissionsLookupCache = new PermissionsLookupCache()
+  ): Promise<boolean> {
+    if (!username) return false;
+    if (userRole === 'chairman') return true;
+
+    const parentHash = (project.parent_hash || '').toLowerCase();
+    if (!parentHash || parentHash === EMPTY_HASH.toLowerCase()) {
+      return false;
+    }
+    const parent = await cache.once(PermissionsLookupCache.projectKey(parentHash), () =>
+      this.projectRepository.findByHash(parentHash)
+    );
+    return parent?.master === username;
+  }
+
+  /**
    * Проверяет, является ли пользователь мастером проекта
    * @param username - имя пользователя
-   * @param coopname - имя кооператива
    * @param projectHash - хеш проекта
+   * @param cache - кэш справочных чтений на время одного расчёта
    * @returns true если пользователь является мастером
    */
-  private async isProjectMaster(username: string, coopname: string, projectHash: string): Promise<boolean> {
-    const project = await this.projectRepository.findByHash(projectHash);
+  private async isProjectMaster(
+    username: string,
+    projectHash: string,
+    cache: PermissionsLookupCache
+  ): Promise<boolean> {
+    const project = await cache.once(PermissionsLookupCache.projectKey(projectHash), () =>
+      this.projectRepository.findByHash(projectHash)
+    );
     return project?.master === username;
   }
 

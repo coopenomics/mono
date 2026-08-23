@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { GetActionsInteractor } from '../interactors/get-actions.interactor';
 import type { ActionFilterDomainInterface } from '~/domain/parser/interfaces/parser-config-domain.interface';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { ActionFiltersInputDTO } from '../dto/action-filters-input.dto';
 import { BlockchainActionDTO } from '~/application/common/dto/blockchain-action.dto';
 

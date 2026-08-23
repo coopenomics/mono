@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { HttpJwtAuthGuard } from '~/application/auth/guards/http-jwt-auth.guard';
+import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
 import {
   AppsCatalogHttpService,
   type InstalledFrontendMeta,

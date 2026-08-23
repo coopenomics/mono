@@ -107,7 +107,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // --- Кадр 1. Карточка компонента — sidebar с назначенным мастером ---
-  await page.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/description`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/description`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector(`text=${COMPONENT_TITLE}`, { timeout: 30000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1000);
@@ -130,7 +130,7 @@ export default async ({ page, context, shot, env }) => {
   // ProjectPlanningWidget при mount запросит проект заново и получит is_planed=true.
   const planningPage = await context.newPage();
   try {
-    await planningPage.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
+    await planningPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
     await planningPage.waitForSelector('text=Стоимость часа', { timeout: 30000 }).catch(() => {});
     await planningPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // Polling: ждём пока is_planed=true дойдёт до UI (если parser ещё догоняет)
@@ -154,7 +154,7 @@ export default async ({ page, context, shot, env }) => {
   // --- Кадр 3. Вкладка «План» проекта — сводный план ---
   const projectPlanPage = await context.newPage();
   try {
-    await projectPlanPage.goto(`${env.BASE_URL}/${env.COOPNAME}/capital/projects/${PROJECT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
+    await projectPlanPage.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/projects/${PROJECT_HASH}/planning`, { waitUntil: 'domcontentloaded' });
     await projectPlanPage.waitForSelector('text=Сводный план', { timeout: 30000 }).catch(() => {});
     await projectPlanPage.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await projectPlanPage.waitForTimeout(2000);

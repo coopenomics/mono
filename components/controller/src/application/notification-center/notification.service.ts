@@ -5,13 +5,8 @@ import { Workflows } from '@coopenomics/notifications';
 import type { EntityManager, Repository } from 'typeorm';
 import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
 import { NotificationOutboxStatus } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
-import {
-  NotificationChannel,
-  type NotifyInput,
-  type NotifyRecipient,
-  type NotifyResult,
-} from '~/domain/notification/interfaces/notify-input.domain.interface';
-import type { NotificationPort } from '~/domain/notification/interfaces/notify.port';
+import type { InnerNotifyInput, InnerNotifyRecipient, InnerNotifyResult } from '@coopenomics/innercoop';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /** Каналы, активные в MVP. step.type каталога может нести и delay/digest/sms — игнорируем. */
 const ACTIVE_CHANNELS: readonly NotificationChannel[] = [
@@ -21,7 +16,12 @@ const ACTIVE_CHANNELS: readonly NotificationChannel[] = [
 ];
 
 /**
- * Роутер Центра уведомлений — реализация {@link NotificationPort}.
+ * Роутер Центра уведомлений: половина порта `INotificationPort`, отвечающая за
+ * постановку уведомления с уже готовым получателем.
+ *
+ * Сам порт реализует `NotificationInnercoopAdapter` — он добавляет отправку по
+ * учётному имени, для которой нужен доступ к учётным записям. Здесь `implements`
+ * намеренно нет: класс покрывает только `notify`.
  *
  * Принимает `notify()`, по типу уведомления резолвит набор каналов из каталога
  * `@coopenomics/notifications` (`steps[].type`), и для каждой пары получатель×канал
@@ -29,7 +29,7 @@ const ACTIVE_CHANNELS: readonly NotificationChannel[] = [
  * отправку подхватывает worker (эпик 3).
  */
 @Injectable()
-export class NotificationService implements NotificationPort {
+export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor(
@@ -42,7 +42,7 @@ export class NotificationService implements NotificationPort {
    * outbox пишется в той же транзакции (откат вызывающего ⇒ нет уведомления).
    * Иначе пишется отдельным атомарным батчем (at-least-once).
    */
-  async notify(input: NotifyInput, manager?: EntityManager): Promise<NotifyResult> {
+  async notify(input: InnerNotifyInput, manager?: EntityManager): Promise<InnerNotifyResult> {
     const channels = this.resolveChannels(input.workflowId);
     if (channels.length === 0) {
       this.logger.warn(`Тип уведомления '${input.workflowId}' не имеет активных каналов — пропуск`);
@@ -95,8 +95,8 @@ export class NotificationService implements NotificationPort {
   }
 
   private buildRow(
-    input: NotifyInput,
-    recipient: NotifyRecipient,
+    input: InnerNotifyInput,
+    recipient: InnerNotifyRecipient,
     channel: NotificationChannel
   ): Partial<NotificationOutboxTypeormEntity> {
     return {
@@ -123,7 +123,7 @@ export class NotificationService implements NotificationPort {
    * ловит unique-индекс). payload сериализуется детерминированно (сортировка ключей),
    * чтобы перестановка полей не меняла ключ.
    */
-  private computeIdempotencyKey(input: NotifyInput, recipient: NotifyRecipient, channel: NotificationChannel): string {
+  private computeIdempotencyKey(input: InnerNotifyInput, recipient: InnerNotifyRecipient, channel: NotificationChannel): string {
     const material = [
       input.coopname,
       input.workflowId,

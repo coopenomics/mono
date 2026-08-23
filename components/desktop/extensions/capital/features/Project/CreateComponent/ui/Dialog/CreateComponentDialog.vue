@@ -6,39 +6,55 @@ CreateDialog(
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
-  @dialog-closed="clear"
+  @dialog-closed="resetErrors"
 )
   template(#form-fields)
-    q-input(
-      standout="bg-teal text-white"
-      v-model='formData.title',
-      label='Название компонента',
-      :rules='[(val) => notEmpty(val)]',
-      autocomplete='off'
-    )
+    .create-component-form
+      //- Родитель известен, когда компонент создают внутри проекта. Из раздела
+      //- «Компоненты» проекта нет — выбираем его здесь, из тех, где есть право
+      BaseSelect(
+        v-if='!props.project'
+        v-model='selectedProjectHash'
+        :options='projectOptions'
+        label='Проект'
+        placeholder='Выберите проект'
+        searchable
+        required
+        :error='projectError'
+      )
 
-    Editor(
-      v-model='formData.description',
-      label='Описание компонента',
-      placeholder='Опишите компонент подробно...',
-      autocomplete='off',
-      :minHeight='200',
-      :padded='false'
-    )
+      BaseInput(
+        v-model='formData.title'
+        label='Название компонента'
+        autocomplete='off'
+        required
+        :error='titleError'
+      )
+
+      BaseInput(
+        v-model='formData.description'
+        label='Описание компонента'
+        placeholder='Опишите компонент подробно...'
+        type='textarea'
+        autogrow
+        :rows='3'
+      )
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { Editor } from 'src/shared/ui';
+import { BaseInput, BaseSelect } from 'src/shared/ui/base';
 import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entities/Project/model';
-import { useCreateComponent } from '../../model';
+import { useFormDraft } from 'app/extensions/capital/shared/lib';
+import { useCreateComponent, useEditableProjects } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
 const props = defineProps<{
-  project: IProject;
+  /** Родительский проект. Не задан — выбирается в диалоге */
+  project?: IProject;
 }>();
 
 const emit = defineEmits<{
@@ -56,8 +72,27 @@ const formData = ref({
   description: '',
 });
 
-const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
+// Выбор проекта нужен только когда родитель не передан снаружи
+const {
+  options: projectOptions,
+  getProject,
+  loadEditableProjects,
+} = useEditableProjects();
+const selectedProjectHash = ref<string | null>(null);
+const projectError = ref('');
+const titleError = ref('');
+
+// Черновик переживает случайное закрытие диалога (клик мимо, Esc);
+// стирается только после успешного создания
+const { clearDraft } = useFormDraft('component', {
+  form: formData,
+  project: selectedProjectHash,
+});
+
+// Закрытие без создания не трогает введённое — только сбрасывает ошибки
+const resetErrors = () => {
+  projectError.value = '';
+  titleError.value = '';
 };
 
 const clear = () => {
@@ -65,9 +100,38 @@ const clear = () => {
     title: '',
     description: '',
   };
+  selectedProjectHash.value = null;
+  projectError.value = '';
+  titleError.value = '';
+};
+
+onMounted(() => {
+  if (!props.project) void loadEditableProjects();
+});
+
+watch(selectedProjectHash, (value) => {
+  if (value) projectError.value = '';
+});
+
+watch(() => formData.value.title, (value) => {
+  if (value) titleError.value = '';
+});
+
+/** Родитель: переданный проект либо выбранный в диалоге. */
+const resolveParentProject = (): IProject | undefined => {
+  if (props.project) return props.project;
+  if (!selectedProjectHash.value) return undefined;
+  return getProject(selectedProjectHash.value);
 };
 
 const handleSubmit = async () => {
+  const parentProject = resolveParentProject();
+  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  if (!parentProject) {
+    projectError.value = 'Выберите проект';
+  }
+  if (!parentProject || titleError.value) return;
+
   isSubmitting.value = true;
   try {
     const projectHash = await generateUniqueHash();
@@ -75,7 +139,7 @@ const handleSubmit = async () => {
     const inputData: ICreateProjectInput = {
       coopname: system.info.coopname,
       project_hash: projectHash,
-      parent_hash: props.project.project_hash,
+      parent_hash: parentProject.project_hash,
       title: formData.value.title,
       description: formData.value.description,
       meta: JSON.stringify({}),
@@ -83,10 +147,14 @@ const handleSubmit = async () => {
       invite: '',
     };
 
-    await createComponent(inputData);
+    await createComponent(inputData, {
+      local: parentProject.origin === 'local',
+    });
     SuccessAlert('Компонент успешно создан');
 
-    // Закрываем диалог после успешного создания
+    // Закрываем диалог после успешного создания; черновик больше не нужен
+    clear();
+    clearDraft();
     dialogRef.value?.clear();
     emit('success');
   } catch (error) {
@@ -103,3 +171,13 @@ defineExpose({
   clear: () => dialogRef.value?.clear(),
 });
 </script>
+
+<style lang="scss" scoped>
+// Поля идут подряд: канон-обёртки сами резервируют строку под подсказку,
+// дополнительный зазор делает форму разреженной
+.create-component-form {
+  display: flex;
+  flex-direction: column;
+}
+
+</style>

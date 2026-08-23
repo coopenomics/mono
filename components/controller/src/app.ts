@@ -19,10 +19,14 @@ if (config.env !== 'test') {
 app.use(helmet({ hsts: false }));
 
 // parse json request body
-app.use(express.json({ limit: '2mb' }));
+// Лимит покрывает base64-загрузку изображений в GraphQL-мутациях (карточки
+// Стола заказов до 8×10 МБ, фото гарантийного возврата до 10×10 МБ): base64
+// раздувает бинарь в ~1.37×, поэтому ~160 МБ. nginx (playbooks) держит ту же
+// планку client_max_body_size 160M.
+app.use(express.json({ limit: '160mb' }));
 
 // parse urlencoded request body
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '160mb' }));
 
 // sanitize request data; для части GraphQL-мутаций см. GRAPHQL_ROOT_FIELDS_SKIP_XSS
 // const xssMiddleware = xss();

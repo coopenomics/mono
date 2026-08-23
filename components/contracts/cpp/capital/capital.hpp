@@ -48,6 +48,7 @@ constexpr uint128_t CRPS_PRECISION_FACTOR = 100000000000000ULL; ///< Масшт�
 #include <eosio/asset.hpp>
 #include "../lib/index.hpp"
 #include "domain/index.hpp"
+#include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси
 
 
 using namespace eosio;
@@ -241,7 +242,7 @@ public:
     void allocate(eosio::name coopname, checksum256 project_hash, eosio::asset amount);
     
     [[eosio::action]]
-    void diallocate(eosio::name coopname, checksum256 project_hash);
+    void diallocate(eosio::name coopname, checksum256 project_hash, eosio::asset amount);
     
     
     // Расходы
@@ -321,5 +322,39 @@ public:
     
     [[eosio::action]]
     void settledebt(name coopname, name username, eosio::asset amount, document2 statement);
+
+    // Программные расходы через шасси expense.
+    // capital — инициатор + получатель callback, шасси держит весь flow расхода.
+
+    [[eosio::action]]
+    void topupprogexp(name coopname, eosio::asset amount);
+
+    /**
+     * @brief Инициировать программный расход через шасси expense.
+     * Резервирует amount в program_expense_pool, создаёт запись progexpense,
+     * шлёт inline action expense::createexp с callback={capital, onpgexpdone}.
+     * Шасси обслуживает весь flow (auth/pay/report/close|decline) и шлёт callback.
+     *
+     * items[] — позиции СЗ (см. ExpenseDomain::item); механика оплаты per-item
+     * (item.mechanics: ADVANCE — аванс, DIRECT — прямая оплата).
+     */
+    [[eosio::action]]
+    void createpgexp(name coopname, checksum256 expense_hash, name creator,
+                     std::vector<ExpenseDomain::item> items,
+                     std::string description, document2 statement);
+
+    /**
+     * @brief Callback от шасси expense на финализацию program-расхода.
+     * Шасси шлёт его inline (authority — _expense@active, require_auth(_expense))
+     * после терминального перехода flow (CLOSED либо DECLINED).
+     *
+     *   status == CLOSED   → consume(total_actual) + release(остаток резерва);
+     *                         при total_actual > reserved (перерасход) превышение
+     *                         списывается напрямую из program_expense_pool.
+     *   status == DECLINED → release(reserved); decline возможен только до оплат.
+     */
+    [[eosio::action]]
+    void onpgexpdone(name coopname, checksum256 expense_hash, uint8_t status,
+                     eosio::asset total_actual, std::vector<char> data);
 
 };

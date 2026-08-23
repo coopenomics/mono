@@ -80,6 +80,7 @@ import { FailAlert } from 'src/shared/api';
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
 import { useSystemStore } from 'src/entities/System/model';
 import { notEmpty } from 'src/shared/lib/utils';
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
@@ -187,7 +188,7 @@ const loadData = async () => {
         organizationData.type = organizationData.type.toUpperCase();
       }
 
-      installStore.organization_data = organizationData;
+      installStore.organization_data = stripLegacyBankKpp(organizationData);
     }
   } catch (error: any) {
     const errorMessage = extractGraphQLErrorMessages(error);

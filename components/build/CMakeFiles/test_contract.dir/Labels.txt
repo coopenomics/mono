@@ -1,0 +1,14 @@
+# Target labels
+ test_contract
+# Source files and their labels
+/project/build/CMakeFiles/test_contract
+/project/build/CMakeFiles/test_contract.rule
+/project/build/CMakeFiles/test_contract-complete.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-build.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-configure.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-download.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-install.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-mkdir.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-patch.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-test.rule
+/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-update.rule

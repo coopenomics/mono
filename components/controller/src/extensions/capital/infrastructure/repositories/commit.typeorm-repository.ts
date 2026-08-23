@@ -5,17 +5,13 @@ import { CommitRepository } from '../../domain/repositories/commit.repository';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { CommitMapper } from '../mappers/commit.mapper';
-import type { IBlockchainSyncRepository } from '~/shared/interfaces/blockchain-sync.interface';
+import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { BaseBlockchainRepository } from '~/shared/sync/repositories/base-blockchain.repository';
-import { EntityVersioningService } from '~/shared/sync/services/entity-versioning.service';
+import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
-import type {
-  PaginationInputDomainInterface,
-  PaginationResultDomainInterface,
-} from '~/domain/common/interfaces/pagination.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
-import { PaginationUtils } from '~/shared/utils/pagination.utils';
+import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class CommitTypeormRepository
@@ -86,6 +82,14 @@ export class CommitTypeormRepository
     if (filter.created_date) {
       queryBuilder = queryBuilder.andWhere('DATE(c.created_at) = :created_date', { created_date: filter.created_date });
     }
+    if (filter.review_for_master) {
+      queryBuilder = queryBuilder
+        .innerJoin('capital_projects', 'p_rev', 'p_rev.project_hash = c.project_hash')
+        .leftJoin('capital_projects', 'p_parent', 'p_parent.project_hash = p_rev.parent_hash')
+        .andWhere('(p_rev.master = :reviewMaster OR p_parent.master = :reviewMaster)', {
+          reviewMaster: filter.review_for_master,
+        });
+    }
 
     return queryBuilder;
   }
@@ -148,10 +152,10 @@ export class CommitTypeormRepository
 
   async findAllPaginated(
     filter?: CommitFilterInputDTO,
-    options?: PaginationInputDomainInterface
-  ): Promise<PaginationResultDomainInterface<CommitDomainEntity>> {
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<CommitDomainEntity>> {
     // Валидируем параметры пагинации
-    const validatedOptions: PaginationInputDomainInterface = options
+    const validatedOptions: PaginationInputDTO = options
       ? PaginationUtils.validatePaginationOptions(options)
       : {
           page: 1,
@@ -180,11 +184,11 @@ export class CommitTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    if (validatedOptions.sortBy) {
-      queryBuilder = queryBuilder.orderBy(`c.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder = queryBuilder.orderBy('c.created_at', 'DESC');
-    }
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    queryBuilder = queryBuilder.orderBy(
+      `c.${sortColumn}`,
+      validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
+    );
 
     // Применяем пагинацию
     queryBuilder = queryBuilder.skip(offset).take(limit);

@@ -17,7 +17,7 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
     const udataService = new Udata(this.storage)
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
-    const { template, vars, coop, userData, blagorostAgreementUdata, blagorostAgreementCreatedAtUdata } = await this.resolveParallel({
+    const { template, vars, coop, userData, blagorostAgreementUdata, blagorostAgreementCreatedAtUdata, docData } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
         ? Promise.resolve(BlagorostOffer.Template as ITemplate<BlagorostOffer.Model>)
         : this.getTemplate<BlagorostOffer.Model>(DraftContract.contractName.production, 1000, data.block_num),
@@ -36,12 +36,14 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
         key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT,
         block_num: data.block_num,
       }),
+      docData: () => this.loadDocData<BlagorostOffer.Model['doc_data']>(data),
     })
 
     // meta зависит от template.title — считаем после батча
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
 
     const common_user = this.getCommonUser(userData)
+    const doc_data = Cooperative.Registry.requireCapitalProgramPrivateData(docData, BlagorostOffer.registry_id)
 
     // Проверяем наличие данных протоколов, утвердивших предыдущие документы
     if (!vars.blagorost_program?.protocol_number || !vars.blagorost_program?.protocol_day_month_year) {
@@ -68,6 +70,7 @@ export class Factory extends DocFactory<BlagorostOffer.Action> {
       common_user,
       blagorost_agreement_number: String(blagorostAgreementUdata.value),
       blagorost_agreement_created_at: String(blagorostAgreementCreatedAtUdata.value),
+      doc_data,
     }
 
     await this.validate(combinedData, template.model)

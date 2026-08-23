@@ -1,4 +1,4 @@
-import { FundContract, LedgerContract, SovietContract, WalletContract } from 'cooptypes'
+import { FundContract, Ledger2, LedgerContract, SovietContract, WalletContract } from 'cooptypes'
 import { expect } from 'vitest'
 import type Blockchain from '../../blockchain'
 import { circulationAccountId } from '../capital/consts'
@@ -13,18 +13,49 @@ export enum LedgerAccountType {
   ACTIVE_PASSIVE = 2,
 }
 
+/**
+ * Кошелёк пайщика по программе.
+ *
+ * Читается из `ledger2::userwallets` (L3), а НЕ из `soviet::progwallets`:
+ * последняя осталась в ABI, но пустует — балансы пайщиков уехали в ledger2.
+ * Пока хелпер ходил в неё, он всегда возвращал undefined, и capital.test.ts
+ * падал каскадом начиная с проверки пополнения кошелька.
+ *
+ * Соответствие «программа → кошельки» берётся из реестра cooptypes
+ * (`LEDGER2_USER_SHARED_PROGRAM_MAPPING`), а не хардкодится: у одной программы
+ * может быть несколько кошельков (ЦК = паевой + членский), и тогда балансы
+ * складываются — ровно так же, как их видел единственный progwallets-ряд.
+ * Форма возврата сохранена (`program_id` / `available` / `blocked`), чтобы
+ * вызывающий код не переписывался.
+ */
 export async function getUserProgramWallet(blockchain: any, coopname: string, username: string, program_id: number) {
-  const wallets = await blockchain.getTableRows(
-    SovietContract.contractName.production,
-    coopname,
-    'progwallets',
-    100,
-    username,
-    username,
-    2,
-  )
+  const walletNames = Ledger2.LEDGER2_USER_SHARED_PROGRAM_MAPPING
+    .filter((m: any) => m.required_program_id === program_id)
+    .map((m: any) => m.wallet_name as string)
 
-  return wallets.find((el: any) => el.program_id === program_id)
+  if (walletNames.length === 0) return undefined
+
+  const rows = await blockchain.getTableRows(_ledger2Contract, coopname, 'userwallets', 1000) as Array<{
+    wallet_name: string
+    username: string
+    available: string
+    blocked: string
+  }>
+
+  const mine = rows.filter(r => r.username === username && walletNames.includes(r.wallet_name))
+  // Кошелька может не быть вовсе (пайщик не входил в программу) — как и раньше,
+  // отдаём undefined: вызывающий код это различает.
+  if (mine.length === 0) return undefined
+
+  const sum = (field: 'available' | 'blocked') =>
+    mine.reduce((acc, r) => acc + Number.parseFloat(String(r[field]).split(' ')[0]), 0)
+
+  return {
+    program_id,
+    username,
+    available: `${sum('available').toFixed(4)} RUB`,
+    blocked: `${sum('blocked').toFixed(4)} RUB`,
+  }
 }
 
 export async function getUserProgramWalletAmount(blockchain: any, coopname: string, username: string, program_id: number) {
@@ -32,6 +63,18 @@ export async function getUserProgramWalletAmount(blockchain: any, coopname: stri
   return wallet ? `${(parseFloat(wallet.available) + parseFloat(wallet.blocked)).toFixed(4)} RUB` : '0.0000 RUB'
 }
 
+/**
+ * Кооперативный агрегат программы: строка программы плюс её балансы.
+ *
+ * Балансы берутся из `ledger2::wallets` (scope=coopname, id = имя кошелька), а
+ * НЕ из полей `available`/`blocked` строки `soviet::programs`: те остались от
+ * прежней модели и стоят нулями. Пока хелпер читал их, каждый ассерт на
+ * прирост кошелька программы сравнивал ноль с ожидаемой суммой.
+ *
+ * Соответствие «программа → кошельки» — из реестра cooptypes, как и в
+ * getUserProgramWallet; у программы может быть несколько кошельков (ЦК =
+ * паевой + членский), тогда балансы складываются.
+ */
 export async function getCoopProgramWallet(blockchain: any, coopname: string, program_id: number) {
   const program = await blockchain.getTableRows(
     SovietContract.contractName.production,
@@ -42,7 +85,30 @@ export async function getCoopProgramWallet(blockchain: any, coopname: string, pr
     program_id.toString(),
   )
 
-  return program[0]
+  const row = program[0]
+  if (!row) return row
+
+  const walletNames = Ledger2.LEDGER2_USER_SHARED_PROGRAM_MAPPING
+    .filter((m: any) => m.required_program_id === program_id)
+    .map((m: any) => m.wallet_name as string)
+
+  if (walletNames.length === 0) return row
+
+  const wallets = await blockchain.getTableRows(_ledger2Contract, coopname, 'wallets', 100) as Array<{
+    id: string
+    available: string
+    blocked: string
+  }>
+
+  const mine = wallets.filter(w => walletNames.includes(w.id))
+  const sum = (field: 'available' | 'blocked') =>
+    mine.reduce((acc, w) => acc + Number.parseFloat(String(w[field]).split(' ')[0]), 0)
+
+  return {
+    ...row,
+    available: `${sum('available').toFixed(4)} RUB`,
+    blocked: `${sum('blocked').toFixed(4)} RUB`,
+  }
 }
 
 /**

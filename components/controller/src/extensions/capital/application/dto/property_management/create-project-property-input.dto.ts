@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { CreateProjectPropertyDomainInput } from '~/extensions/capital/domain/actions/create-project-property-domain-input.interface';
+import type { CreateProjectPropertyDomainInput } from '../../../domain/actions/create-project-property-domain-input.interface';
 
 /**
  * GraphQL DTO для создания проектного имущественного взноса CAPITAL контракта

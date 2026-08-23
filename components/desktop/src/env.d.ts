@@ -29,5 +29,13 @@ declare module 'vue-router' {
     icon: string;
     requiresAuth?: boolean;
     hidden?: boolean;
+    // Канон авторизации столов: требуемое право (capability «Resource:action»)
+    // и признак страницы-шлюза стола. Смысл и правила — IWorkspaceRouteMeta
+    // в shared/lib/types/workspace.ts (там же, где их объявляют расширения).
+    requires?: string;
+    gate?: boolean;
+    // Страница открыта в режиме только для чтения (например, карточка
+    // предложения, открытая модератором со стола администратора).
+    readonly?: boolean;
   }
 }

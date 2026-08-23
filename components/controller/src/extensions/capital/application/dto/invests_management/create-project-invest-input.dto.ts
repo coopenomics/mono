@@ -1,8 +1,8 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { CreateProjectInvestDomainInput } from '~/extensions/capital/domain/actions/create-project-invest-domain-input.interface';
+import type { CreateProjectInvestDomainInput } from '../../../domain/actions/create-project-invest-domain-input.interface';
 import { Type } from 'class-transformer';
-import { GenerationMoneyInvestStatementSignedDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
+import { GenerationMoneyInvestStatementSignedDocumentInputDTO } from '../../documents-dto/generation-money-invest-statement-document.dto';
 
 /**
  * GraphQL DTO для инвестирования в проект CAPITAL контракта

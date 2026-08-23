@@ -3,18 +3,10 @@ import { ExpensesManagementService } from '../services/expenses-management.servi
 import { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
 import { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
 import { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-
 // Пагинированные результаты
 const paginatedExpensesResult = createPaginationResult(ExpenseOutputDTO, 'PaginatedCapitalExpenses');
 

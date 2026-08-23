@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppsCatalogHttpService } from './infrastructure/apps-catalog-http.service';
 import { AppsCatalogInstallScriptController } from './application/controllers/install-script.controller';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
@@ -12,6 +13,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
  * `ExtensionsModule` в общий imports/exports список.
  */
 @Module({
+  imports: [ConfigModule],
   controllers: [AppsCatalogInstallScriptController],
   providers: [AppsCatalogHttpService, AppsCatalogProxyResolver],
   exports: [AppsCatalogHttpService],

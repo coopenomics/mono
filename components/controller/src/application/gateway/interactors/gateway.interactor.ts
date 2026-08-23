@@ -13,19 +13,28 @@ import { PaymentDirectionEnum, PaymentTypeEnum, VAT_EXEMPT_NOTE } from '~/domain
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
-import type { CreateWithdrawPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-withdraw-payment-input-domain.interface';
+import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 import config from '~/config/config';
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
-import { QuantityUtils } from '~/shared/utils/quantity.utils';
+// Интерактор сам реализует порт, объявленный доменом кошелька: раньше между
+// ними стоял адаптер, пробрасывавший десять методов один в один, и ради него
+// инфраструктура импортировала приложение — отсюда цикл модулей шлюза.
+import type { GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
+// Заявление на вывод описано в домене кошелька — там же, где порт, через
+// который его подают. В домене шлюза лежал второй такой интерфейс, поле в поле
+// совпадавший с этим.
+import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
 import { SystemDomainPort, SYSTEM_DOMAIN_PORT } from '~/domain/system/interfaces/system-domain.port';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/common/repositories/payment-method.repository';
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
+import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
+import { QuantityUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена gateway для управления платежами (просмотр, изменение статуса и создание)
@@ -37,7 +46,7 @@ import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/a
  * - Доступен отдельный метод expireOutdatedPayments() для периодической очистки
  */
 @Injectable()
-export class GatewayInteractor {
+export class GatewayInteractor implements GatewayInteractorPort {
   private readonly logger = new Logger(GatewayInteractor.name);
 
   constructor(
@@ -54,7 +63,9 @@ export class GatewayInteractor {
     @Inject(ACCOUNT_DOMAIN_SERVICE)
     private readonly accountDomainService: AccountDomainService,
     @Inject(PAYMENT_METHOD_REPOSITORY)
-    private readonly paymentMethodRepository: PaymentMethodRepository
+    private readonly paymentMethodRepository: PaymentMethodRepository,
+    @Inject(EXPENSE_CHASSIS_PORT)
+    private readonly expenseChassis: IExpenseChassisPort
   ) {}
 
   /**
@@ -185,6 +196,25 @@ export class GatewayInteractor {
           await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
         }
         this.logger.log(`Пользователь ${payment.username} внес паевой взнос на сумму ${blockchainFormattedQuantity}`);
+      } else if (payment.type === PaymentTypeEnum.EXPENSE_RETURN) {
+        // Возврат неиспользованного аванса под отчёт (недорасход): пайщик отчитался
+        // о факте меньше выданного аванса и вернул разницу на расчётный счёт.
+        // Подтверждение приёма средств кассиром проводит on-chain
+        // expense::returnexp (TRANSFER подотчёт → пул на сумму возврата), затем
+        // expense::reportexp закрывает позицию на фактически потраченную часть.
+        // Это НЕ паевой взнос — completeIncome здесь не вызывается (другая ledger2-
+        // семантика). proposal_hash и item_hash — в blockchain_data.
+        const bc = payment.blockchain_data as { proposal_hash?: string; item_hash?: string } | undefined;
+        if (!bc?.proposal_hash || !bc?.item_hash) {
+          throw new Error(`У платежа возврата ${payment.hash} нет proposal_hash/item_hash в blockchain_data`);
+        }
+        const returnAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
+        await this.expenseChassis.returnItem(payment.coopname, bc.proposal_hash, bc.item_hash, returnAmount);
+        await this.expenseChassis.reportItem(payment.coopname, bc.proposal_hash, bc.item_hash);
+        if (payment.id) {
+          await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
+        }
+        this.logger.log(`Возврат недорасхода ${payment.hash} (СЗ ${bc.proposal_hash}) проведён on-chain (returnexp + reportexp)`);
       }
     } catch (e: any) {
       if (payment.id) {
@@ -242,6 +272,62 @@ export class GatewayInteractor {
           }
           this.logger.error(`Ошибка подтверждения возврата регистрации ${payment.hash}: ${message}`, e);
         }
+      }
+      return;
+    }
+
+    // Оплата позиции СЗ-расхода: подтверждение кассой проводит on-chain
+    // expense::payexp (ledger2-проводка по механике позиции — аванс/оплата по
+    // счёту). Реквизиты и назначение платежа в чейн не уходят — они живут
+    // только в этом платеже и снимке шасси. proposal_hash — в blockchain_data
+    // (hash платежа = item_hash, его одного payexp недостаточно).
+    if (payment.type === PaymentTypeEnum.EXPENSE) {
+      const proposalHash = (payment.blockchain_data as { proposal_hash?: string } | undefined)?.proposal_hash;
+      try {
+        if (!proposalHash) {
+          throw new Error(`У платежа расхода ${payment.hash} отсутствует proposal_hash в blockchain_data`);
+        }
+        const actualAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
+        await this.expenseChassis.payItem(payment.coopname, proposalHash, payment.hash, actualAmount);
+        if (payment.id) {
+          await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
+        }
+        this.logger.log(`Оплата позиции расхода ${payment.hash} (СЗ ${proposalHash}) проведена on-chain (payexp)`);
+      } catch (e: any) {
+        const message = e?.message ?? String(e);
+        if (payment.id) {
+          await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.FAILED, message });
+        }
+        this.logger.error(`Ошибка оплаты позиции расхода ${payment.hash}: ${message}`, e);
+      }
+      return;
+    }
+
+    // Доплата при перерасходе аванса под отчёт: пайщик отчитался о факте больше
+    // выданного аванса, кооператив доплачивает разницу. Подтверждение выплаты
+    // кассиром проводит on-chain expense::overspendexp (TRANSFER пул → подотчёт на
+    // сумму доплаты), затем expense::reportexp закрывает позицию на полный факт.
+    // proposal_hash и item_hash — в blockchain_data (hash платежа уникальный, не
+    // равен item_hash, чтобы не пересекаться с платежом выдачи аванса).
+    if (payment.type === PaymentTypeEnum.EXPENSE_OVERSPEND) {
+      const bc = payment.blockchain_data as { proposal_hash?: string; item_hash?: string } | undefined;
+      try {
+        if (!bc?.proposal_hash || !bc?.item_hash) {
+          throw new Error(`У платежа доплаты ${payment.hash} нет proposal_hash/item_hash в blockchain_data`);
+        }
+        const overspendAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
+        await this.expenseChassis.overspendItem(payment.coopname, bc.proposal_hash, bc.item_hash, overspendAmount);
+        await this.expenseChassis.reportItem(payment.coopname, bc.proposal_hash, bc.item_hash);
+        if (payment.id) {
+          await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
+        }
+        this.logger.log(`Доплата перерасхода ${payment.hash} (СЗ ${bc.proposal_hash}) проведена on-chain (overspendexp + reportexp)`);
+      } catch (e: any) {
+        const message = e?.message ?? String(e);
+        if (payment.id) {
+          await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.FAILED, message });
+        }
+        this.logger.error(`Ошибка доплаты перерасхода ${payment.hash}: ${message}`, e);
       }
       return;
     }
@@ -518,7 +604,7 @@ export class GatewayInteractor {
    * отклонении транзакции блокчейном (например, недостаточно L3-средств) в
    * разделе «Платежи» оставался бы фантомный исходящий платёж со статусом FAILED.
    */
-  async prepareWithdraw(data: CreateWithdrawPaymentInputDomainInterface): Promise<PaymentDomainInterface> {
+  async prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface> {
     // Обновляем истекшие платежи перед созданием нового
     await this.paymentRepository.expireOutdatedPayments();
 
@@ -609,13 +695,90 @@ export class GatewayInteractor {
   }
 
   /**
+   * Story 598-17 / AR35: создать системный исходящий платёж без
+   * пользовательского `statement` и без `method_id`. Источник
+   * авторизации — extension, идентифицируется через `related_extension`.
+   *
+   * Идемпотентность: при повторном вызове с тем же `payment_hash`
+   * возвращается существующая запись.
+   */
+  async createSystemOutgoingPayment(
+    data: CreateSystemOutgoingPaymentInputDomainInterface
+  ): Promise<PaymentDomainEntity> {
+    await this.paymentRepository.expireOutdatedPayments();
+    QuantityUtils.validateSymbol(data.symbol);
+
+    const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
+    if (existingPayment) {
+      this.logger.log(
+        `createSystemOutgoingPayment: hash ${data.payment_hash} уже существует, возвращаем существующий ID=${existingPayment.id}`
+      );
+      return new PaymentDomainEntity(existingPayment);
+    }
+
+    const settings = await this.systemDomainPort.getSettings();
+    const provider = settings.provider_name;
+    const now = new Date();
+
+    const paymentDetails: PaymentDetailsDomainInterface = data.payment_details ?? {
+      data: { related_extension: data.related_extension, related_entity_id: data.related_entity_id },
+      amount_plus_fee: data.quantity.toString(),
+      amount_without_fee: data.quantity.toString(),
+      fee_amount: '0',
+      fee_percent: 0,
+      fact_fee_percent: 0,
+      tolerance_percent: 0,
+    };
+
+    const paymentData: PaymentDomainInterface = {
+      id: '',
+      coopname: data.coopname,
+      username: data.username,
+      quantity: data.quantity,
+      symbol: data.symbol,
+      // Системная выплата расширения — по умолчанию «оплата» (обычная покупка,
+      // например по акту приёма-передачи); extension может передать другой
+      // тип (например AID — материальная помощь), НЕ возврат паевого взноса:
+      // разная правовая природа и разное отображение в реестре кассира.
+      type: data.type ?? PaymentTypeEnum.PAYMENT,
+      direction: PaymentDirectionEnum.OUTGOING,
+      provider,
+      // Выплаты, требующие решения совета, создаются в AWAITING_AUTHORIZATION —
+      // кассиру они скрыты до принятия решения (тот же приём, что у возврата
+      // паевого взноса, см. WithdrawAuthorizationListener).
+      status: data.status ?? PaymentStatusEnum.PENDING,
+      memo: data.memo,
+      secret: generateUniqueHash(),
+      payment_method_id: data.payment_method_id,
+      payment_details: paymentDetails,
+      expired_at: this.createPaymentExpirationDate(-1),
+      created_at: now,
+      updated_at: now,
+      hash: data.payment_hash,
+      related_extension: data.related_extension,
+      related_entity_id: data.related_entity_id,
+    };
+
+    const created = await this.paymentRepository.create(paymentData);
+    if (!created.id) {
+      throw new Error('createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID');
+    }
+
+    this.logger.log(
+      `Создан системный исходящий платёж: id=${created.id} extension=${data.related_extension} entity=${data.related_entity_id} amount=${data.quantity} ${data.symbol}`
+    );
+
+    return new PaymentDomainEntity(created);
+  }
+
+  /**
    * Создать исходящий платеж (withdraw): подготовка + немедленный персист.
    *
    * Не использует on-chain проверку — подходит только там, где запись о платеже
    * в БД должна существовать безусловно. Для возврата паевого взноса используется
    * связка prepareWithdraw → on-chain транзакция → persistWithdraw.
    */
-  async createWithdraw(data: CreateWithdrawPaymentInputDomainInterface): Promise<PaymentDomainEntity> {
+  async createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainEntity> {
     const paymentData = await this.prepareWithdraw(data);
     return await this.persistWithdraw(paymentData);
   }

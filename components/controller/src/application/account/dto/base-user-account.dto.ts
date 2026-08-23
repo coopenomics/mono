@@ -38,7 +38,7 @@ export class UserAccountDTO implements RegistratorContract.Tables.Accounts.IAcco
   @IsString()
   public readonly registered_at!: string;
 
-  @Field(() => [VerificationDTO], { description: 'Дата регистрации' })
+  @Field(() => [VerificationDTO], { description: 'Верификации аккаунта (уровни подтверждения личности)' })
   @IsString()
   public readonly verifications!: VerificationDTO[];
 

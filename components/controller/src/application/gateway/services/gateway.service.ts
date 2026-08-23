@@ -6,7 +6,7 @@ import {
 } from '~/domain/user/ports/user-certificate-domain.port';
 import { PaymentNotificationService } from './payment-notification.service';
 import type { GatewayPaymentDTO } from '../dto/gateway-payment.dto';
-import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
+import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { SetPaymentStatusInputDTO } from '../dto/set-payment-status-input.dto';
 import type { PaymentFiltersDomainInterface } from '~/domain/gateway/interfaces/payment-filters-domain.interface';
 

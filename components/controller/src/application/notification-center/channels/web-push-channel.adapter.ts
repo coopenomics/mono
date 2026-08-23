@@ -6,13 +6,13 @@ import {
   NOTIFICATION_SUBSCRIPTION_PORT,
   type NotificationPort as WebPushSubscriptionPort,
 } from '~/domain/notification/interfaces/web-push-subscription.port';
-import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 import type {
   ChannelDeliveryResult,
   ChannelMessage,
   WebPushChannelPort,
 } from '~/domain/notification/interfaces/channel.ports';
 import { renderTemplate, resolveTemplate } from '../template.util';
+import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 /**
  * Канал «Веб-пуш» — реализация {@link WebPushChannelPort}.
@@ -54,6 +54,9 @@ export class WebPushChannelAdapter implements WebPushChannelPort {
     const template = resolveTemplate(message.workflowId, NotificationChannel.PUSH);
     const title = renderTemplate(template?.subject, message) || 'Уведомление';
     const body = renderTemplate(template?.body, message);
+
+    // info-уровень: видно сколько эндпоинтов адресуем (диагностика «push не пришёл»).
+    this.logger.log(`web-push → '${username}': ${subscriptions.length} активн. подписк(а), workflow=${message.workflowId}`);
 
     let anyDelivered = false;
     for (const subscription of subscriptions) {

@@ -1,5 +1,4 @@
-import { BadGatewayException, HttpStatus, Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
-import { HttpApiError } from '~/utils/httpApiError';
+import { BadGatewayException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { BlockchainService } from '../blockchain.service';
 import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -7,7 +6,6 @@ import type { AccountBlockchainPort } from '~/domain/account/interfaces/account-
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Name } from '@wharfkit/antelope';
 import config from '~/config/config';
-import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
 import { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
 import { Classes } from '@coopenomics/sdk';
 import {
@@ -15,8 +13,10 @@ import {
   AgreementConfigurationService,
 } from '~/domain/registration/services/agreement-configuration.service';
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
+import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
+import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {
@@ -25,7 +25,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(forwardRef(() => AGREEMENT_CONFIGURATION_SERVICE))
+    @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigService: AgreementConfigurationService,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly sovietBlockchainPort: SovietBlockchainPort
@@ -43,8 +43,8 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
     // Проверяем наличие всех требуемых документов на основе конфигурации
     for (const agreementConfig of blockchainAgreements) {
-      const documentKey = agreementConfig.id as keyof typeof candidate.documents;
-      if (!candidate.documents?.[documentKey]) {
+      const document = getCandidateAgreementDocument(candidate, agreementConfig.id);
+      if (!document) {
         throw new HttpApiError(HttpStatus.BAD_REQUEST, `Не найден документ: ${agreementConfig.title}`);
       }
     }
@@ -133,8 +133,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     for (const ca of coagreements) coagreementByType.set(ca.type, ca);
 
     for (const agreementConfig of blockchainAgreements) {
-      const documentKey = agreementConfig.id as keyof typeof candidate.documents;
-      const document = candidate.documents?.[documentKey] as ISignedDocumentDomainInterface | undefined;
+      const document = getCandidateAgreementDocument(candidate, agreementConfig.id);
       if (!document) continue;
 
       const coagreement = coagreementByType.get(agreementConfig.agreement_type);
@@ -157,7 +156,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   /**
    * soviet::sndagreement — для непрограммных соглашений (program_id == 0).
    */
-  private createSendAgreementAction(username: string, agreementType: string, document: ISignedDocumentDomainInterface): any {
+  private createSendAgreementAction(username: string, agreementType: string, document: ISignedDocument): any {
     const agreementData: SovietContract.Actions.Agreements.SendAgreement.ISendAgreement = {
       coopname: config.coopname,
       administrator: config.coopname,
@@ -188,7 +187,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     username: string,
     programId: number,
     draftId: number,
-    document: ISignedDocumentDomainInterface
+    document: ISignedDocument
   ): any {
     const data: WalletContract.Actions.SignAgreement.ISignAgreement = {
       coopname: config.coopname,
@@ -211,6 +210,61 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     };
   }
 
+  async exitCoop(data: import('~/domain/account/interfaces/account-blockchain.port').ExitCoopDomainInterface): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.coopname, wif);
+
+    const exitData: RegistratorContract.Actions.ExitCoop.IExitCoop = {
+      coopname: data.coopname,
+      username: data.username,
+      exit_hash: data.exit_hash,
+      statement: Classes.Document.finalize(data.statement),
+    };
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.ExitCoop.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data: exitData,
+    });
+  }
+
+  // Верификация личности пайщика на кооперативном участке: подписывает верификатор
+  // (председатель участка или доверенное лицо) собственным ключом из vault.
+  async verifyAccount(data: RegistratorContract.Actions.VerifyAccount.IVerifyAccount): Promise<void> {
+    // Подписывает кооператив: личный ключ пайщика хранится у него самого и на
+    // сервер не попадает. Полномочия верификатора проверены вызывающим сервисом,
+    // а для участка их дополнительно проверяет контракт по таблице участка.
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.coopname, wif);
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.VerifyAccount.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  // Отзыв верификации личности: решение председателя, подпись — кооператива.
+  async unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.coopname, wif);
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.UnverifyAccount.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
@@ -228,6 +282,34 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
   getBlockchainAccount(username: string): Promise<BlockchainAccountInterface | null> {
     return this.blockchainService.getAccount(username);
+  }
+
+  getExit(
+    coopname: string,
+    username: string
+  ): Promise<RegistratorContract.Tables.Exits.IExit | null> {
+    return this.blockchainService.getSingleRow(
+      RegistratorContract.contractName.production,
+      coopname,
+      RegistratorContract.Tables.Exits.tableName,
+      Name.from(username)
+    );
+  }
+
+  async getExitByHash(
+    coopname: string,
+    exit_hash: string
+  ): Promise<RegistratorContract.Tables.Exits.IExit | null> {
+    // Таблица exits в scope=coopname мала (одна запись на выходящего пайщика,
+    // удаляется при завершении), поэтому проще выбрать все строки и найти по
+    // exit_hash, чем ходить во вторичный индекс byhash.
+    const rows = await this.blockchainService.getAllRows<RegistratorContract.Tables.Exits.IExit>(
+      RegistratorContract.contractName.production,
+      coopname,
+      RegistratorContract.Tables.Exits.tableName
+    );
+    const target = exit_hash.toLowerCase();
+    return rows.find((r) => String(r.exit_hash).toLowerCase() === target) ?? null;
   }
 
   getParticipantAccount(

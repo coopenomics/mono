@@ -1,5 +1,6 @@
 // meet.hpp
 #pragma once
+#include <algorithm>
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 #include "../lib/index.hpp"
@@ -50,7 +51,15 @@ public:
 
      */
     static constexpr uint32_t MIN_OPEN_AGM_DELAY_SEC = 60 * 60 * 24 * 15; // 15 дней
-    
+
+    /**
+     * @brief Нижняя граница требования по кворуму при перезапуске собрания.
+     * @ingroup public_consts
+     * @ingroup public_meet_consts
+
+     */
+    static constexpr double MIN_QUORUM_PERCENT = 25.0; // ниже этой планки требование не опускается
+
     /**
      * @brief Флаг тестового режима.
      * @ingroup public_consts

@@ -1,6 +1,7 @@
 // Минимальные проверки полей перед push.
 
 import type { EntityFrontmatterType, ParsedBlagoFile } from '../format/index.js'
+import { parseFactHoursFromFrontmatter } from '../format/index.js'
 
 export class BlagoValidationError extends Error {
   constructor(message: string) {
@@ -50,6 +51,15 @@ export function validateParsedForPush(parsed: ParsedBlagoFile): {
     }
     optStringArray(data, 'creators', 'issue')
     optStringArray(data, 'labels', 'issue')
+    if ('fact_hours' in data && data.fact_hours !== undefined && data.fact_hours !== null) {
+      try {
+        parseFactHoursFromFrontmatter(data)
+      }
+      catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        throw new BlagoValidationError(`issue: ${msg}`)
+      }
+    }
     if (data.created_by !== undefined && data.created_by !== null && typeof data.created_by !== 'string') {
       throw new BlagoValidationError('issue: поле created_by должно быть строкой')
     }

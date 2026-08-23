@@ -1,7 +1,7 @@
 import { Cooperative } from 'cooptypes';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AddParticipantDomainInterface } from '~/domain/participant/interfaces/add-participant-domain.interface';
 import type { RegisterAccountDomainInterface } from '~/domain/account/interfaces/register-account-input.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
@@ -12,13 +12,12 @@ import { TokenApplicationService } from '~/application/token/services/token-appl
 import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { userStatus } from '~/types/user.types';
-import { HttpApiError } from '~/utils/httpApiError';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import http from 'http-status';
 import { PublicKey, Signature } from '@wharfkit/antelope';
-import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { ISignedDocument } from '@coopenomics/innercoop';
 import { GatewayInteractorPort, GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
@@ -34,8 +33,14 @@ import {
   AGREEMENT_CONFIGURATION_SERVICE,
 } from '~/domain/registration/services/agreement-configuration.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import { DocumentType, AgreementId } from '~/domain/registration/enum';
+import { DocumentType } from '~/domain/registration/enum';
+import {
+  isGenericProgramAgreementId,
+  mapLegacyExtensionOfferToDocumentType,
+  mapPlatformAgreementIdToDocumentType,
+} from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
+import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ParticipantInteractor {
@@ -48,7 +53,7 @@ export class ParticipantInteractor {
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly gatewayInteractorPort: GatewayInteractorPort,
     private readonly notificationSenderService: NotificationSenderService,
-    @Inject(forwardRef(() => DOCUMENT_VALIDATION_SERVICE))
+    @Inject(DOCUMENT_VALIDATION_SERVICE)
     private readonly documentValidationService: DocumentValidationService,
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
     private readonly agreementConfigurationService: AgreementConfigurationService,
@@ -73,11 +78,27 @@ export class ParticipantInteractor {
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
+  async generateMembershipExitApplication(
+    data: Cooperative.Registry.ParticipantExitApplication.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    data.registry_id = Cooperative.Registry.ParticipantExitApplication.registry_id;
+    return await this.documentDomainService.generateDocument({ data, options });
+  }
+
+  async generateMembershipExitDecision(
+    data: Cooperative.Registry.DecisionOfParticipantExit.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    data.registry_id = Cooperative.Registry.DecisionOfParticipantExit.registry_id;
+    return await this.documentDomainService.generateDocument({ data, options });
+  }
+
   /**
    * Проверяет подпись документа
    * @private
    */
-  private verifyDocumentSignature(public_key: string, document: ISignedDocumentDomainInterface): void {
+  private verifyDocumentSignature(public_key: string, document: ISignedDocument): void {
     const { signatures } = document;
     const doc_public_key = signatures[0].public_key;
     const signature = signatures[0].signature;
@@ -179,7 +200,9 @@ export class ParticipantInteractor {
     const missingLinkedDocs: string[] = [];
 
     for (const agreement of linkedAgreements) {
-      const doc = data[agreement.id];
+      const doc = data[agreement.id as keyof RegisterParticipantDomainInterface] as
+        | ISignedDocument
+        | undefined;
       if (doc) {
         expectedLinks.push(doc.doc_hash);
       } else {
@@ -206,18 +229,12 @@ export class ParticipantInteractor {
 
     // Сохраняем все требуемые соглашения динамически на основе конфигурации
     for (const agreementId of requiredAgreements) {
-      const doc = data[agreementId];
-      if (doc) {
-        // Преобразуем agreementId в соответствующий DocumentType
-        const documentType = this.mapAgreementIdToDocumentType(agreementId);
-        if (documentType) {
-          await this.candidateRepository.saveDocument(
-            data.username,
-            documentType,
-            doc
-          );
-        }
-      }
+      const doc = data[agreementId as keyof RegisterParticipantDomainInterface] as
+        | ISignedDocument
+        | undefined;
+      if (!doc) continue;
+
+      await this.saveRegistrationAgreement(data.username, agreementId, doc);
     }
 
     // Гард A (замок профиля): фиксируем каноничный отпечаток удостоверяющих
@@ -276,33 +293,29 @@ export class ParticipantInteractor {
   }
 
   /**
-   * Преобразует agreementId в соответствующий DocumentType.
-   *
-   * Платформенные оферты (signature/wallet/user/privacy) сопоставляются
-   * по AgreementId enum явно. Оферты расширений (например 'blagorost_offer',
-   * 'generator_offer' от capital) сопоставляются identity-фолбэком —
-   * строковое значение agreementId должно совпасть с одним из значений
-   * DocumentType. Это позволяет ядру не знать о капитал-специфике.
+   * Сохраняет подписанное соглашение: платформенные и legacy capital — в фиксированные
+   * колонки; оферты новых расширений — в generic program_agreements по agreement_id.
    */
-  private mapAgreementIdToDocumentType(agreementId: string): DocumentType | null {
-    switch (agreementId) {
-      case AgreementId.SIGNATURE_AGREEMENT:
-        return DocumentType.SIGNATURE_AGREEMENT;
-      case AgreementId.WALLET_AGREEMENT:
-        return DocumentType.WALLET_AGREEMENT;
-      case AgreementId.USER_AGREEMENT:
-        return DocumentType.USER_AGREEMENT;
-      case AgreementId.PRIVACY_AGREEMENT:
-        return DocumentType.PRIVACY_AGREEMENT;
+  private async saveRegistrationAgreement(
+    username: string,
+    agreementId: string,
+    document: ISignedDocument
+  ): Promise<void> {
+    if (isGenericProgramAgreementId(agreementId)) {
+      await this.candidateRepository.saveProgramAgreement(username, agreementId, document);
+      return;
     }
 
-    const documentTypeValues = Object.values(DocumentType) as string[];
-    if (documentTypeValues.includes(agreementId)) {
-      return agreementId as DocumentType;
+    const documentType =
+      mapPlatformAgreementIdToDocumentType(agreementId) ??
+      mapLegacyExtensionOfferToDocumentType(agreementId);
+
+    if (!documentType) {
+      this.logger.warn(`Неизвестный agreementId при сохранении: ${agreementId}`);
+      return;
     }
 
-    this.logger.warn(`Неизвестный agreementId: ${agreementId}`);
-    return null;
+    await this.candidateRepository.saveDocument(username, documentType, document);
   }
 
   async addParticipant(data: AddParticipantDomainInterface): Promise<AccountDomainEntity> {

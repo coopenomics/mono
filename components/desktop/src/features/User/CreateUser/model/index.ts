@@ -133,17 +133,18 @@ export function useCreateUser() {
     const userDoc = registrationStore.getDocumentById('user_agreement');
     const capitalizationDoc = registrationStore.getDocumentById('blagorost_offer');
     const generatorDoc = registrationStore.getDocumentById('generator_offer');
+    const marketplaceDoc = registrationStore.getDocumentById('marketplace_offer');
 
     // Преобразуем program_key в правильный enum формат
     let programKey: Zeus.ProgramKey | undefined;
     if (registratorStore.state.selectedProgramKey) {
       const key = registratorStore.state.selectedProgramKey;
-      if (key === 'CAPITALIZATION' || key === 'GENERATION') {
+      if (key === 'CAPITALIZATION' || key === 'GENERATION' || key === 'MARKETPLACE') {
         programKey = key as Zeus.ProgramKey;
       }
     }
 
-    const data: ISendStatement & { blagorost_offer?: IDocument; generator_offer?: IDocument; program_key?: Zeus.ProgramKey } = {
+    const data: ISendStatement & { blagorost_offer?: IDocument; generator_offer?: IDocument; marketplace_offer?: IDocument; program_key?: Zeus.ProgramKey } = {
       username: store.account.username,
       braname: store.selectedBranch,
       statement: store.statement,
@@ -164,6 +165,11 @@ export function useCreateUser() {
     // Добавляем generator_offer если есть
     if (generatorDoc?.signed_document) {
       data.generator_offer = generatorDoc.signed_document;
+    }
+
+    // Добавляем marketplace_offer (ЦПП «Стол заказов») если есть
+    if (marketplaceDoc?.signed_document) {
+      data.marketplace_offer = marketplaceDoc.signed_document;
     }
 
     await api.sendStatement(data);

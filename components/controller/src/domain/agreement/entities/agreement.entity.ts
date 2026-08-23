@@ -1,9 +1,9 @@
 import { AgreementStatus } from '../enums/agreement-status.enum';
 import type { IAgreementDatabaseData } from '../interfaces/agreement-database.interface';
 import type { IAgreementBlockchainData } from '../interfaces/agreement-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
-import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
-import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
+import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
+import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
  * Доменная сущность соглашения
@@ -31,7 +31,7 @@ export class AgreementDomainEntity
   public program_id?: IAgreementBlockchainData['program_id'];
   public draft_id?: IAgreementBlockchainData['draft_id'];
   public version?: IAgreementBlockchainData['version'];
-  public document?: ISignedDocumentDomainInterface;
+  public document?: ISignedDocument;
   public blockchain_status?: IAgreementBlockchainData['status']; // Статус из блокчейна
   public updated_at?: IAgreementBlockchainData['updated_at'];
 

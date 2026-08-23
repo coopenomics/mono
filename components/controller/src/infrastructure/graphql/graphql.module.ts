@@ -8,8 +8,14 @@
 // На MVP клиенты не должны заметить переключения: subgraph endpoint на том же
 // `/v1/graphql`, federation v2 добавляет лишь служебные `_service { sdl }` и
 // `_entities` query. Старые desktop-сессии продолжают работать.
-import { Global, Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
+import { Global, Injectable, Module, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
+import {
+  GqlSubscriptionService,
+  GraphQLModule,
+  GraphQLSchemaHost,
+  type GraphQLWsSubscriptionsConfig,
+} from '@nestjs/graphql';
 import config from '~/config/config';
 import { ApolloFederationDriver, ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { docDirectiveTransformer } from './directives/doc.directive';
@@ -19,10 +25,130 @@ import {
   GraphQLError,
   GraphQLFormattedError,
   GraphQLList,
+  GraphQLNonNull,
   GraphQLString,
 } from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
+import * as jwt from 'jsonwebtoken';
+import { tokenTypes } from '~/types/token.types';
+
+const GRAPHQL_PATH = '/v1/graphql';
+
+/**
+ * Bearer-токен из connectionParams ws-соединения. Принимаем и сам токен, и
+ * форму `Bearer <token>` — клиенты Zeus шлют по-разному.
+ */
+function extractBearerToken(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw) return null;
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : raw;
+}
+
+/**
+ * Объявление директивы `@auth`, которую ставит декоратор `AuthRoles`.
+ *
+ * Объявление обязательно: без него graphql-tools отбрасывает аргументы, о
+ * которых не знает, — директива продолжает работать, но «молча» теряет часть
+ * условий доступа. Именно так потерялся `self`, пока директива держалась на
+ * одном лишь `roles`.
+ */
+const authDirective = new GraphQLDirective({
+  name: 'auth',
+  description: 'Роли кооператива и пути принадлежности, открывающие поле его владельцу',
+  locations: [DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
+  args: {
+    roles: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) },
+    self: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) },
+  },
+});
+
+/**
+ * Realtime-подписки поверх graphql-ws на том же пути `/v1/graphql`.
+ *
+ * Почему не через `subscriptions:` драйвера: `ApolloFederationDriver`
+ * отвергает эту опцию («No support for subscriptions yet when using Apollo
+ * Federation»), а core-схема с E10 — subgraph федерации. Поэтому тот же
+ * `GqlSubscriptionService`, который `ApolloDriver` поднимал бы сам, поднимается
+ * здесь вручную на готовой (после transformSchema) схеме — см.
+ * {@link GraphqlWsSubscriptionsBootstrap}. Опции и onConnect те же, что были
+ * у драйвера: аутентификация соединения однократно, access-JWT из
+ * connectionParams, `sub` в `extra`, невалидный токен → отказ.
+ */
+const graphqlWsSubscriptions: GraphQLWsSubscriptionsConfig = {
+  path: GRAPHQL_PATH,
+  onConnect: (context: any) => {
+    const params = context?.connectionParams ?? {};
+    const token = extractBearerToken(params.authorization ?? params.Authorization);
+    if (!token) {
+      logger.warn('[mp-ws] onConnect ОТКЛОНЁН: нет токена в connectionParams');
+      return false;
+    }
+    try {
+      const payload: any = jwt.verify(token, config.jwt.secret);
+      if (payload?.type !== tokenTypes.ACCESS) {
+        logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: тип токена "${payload?.type}" != ACCESS`);
+        return false;
+      }
+      context.extra = context.extra ?? {};
+      context.extra.user = { sub: payload.sub };
+      logger.info(`[mp-ws] onConnect ✅ принят: sub=${payload.sub}`);
+      return true;
+    } catch (e) {
+      logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: verify failed (${(e as Error).message})`);
+      return false;
+    }
+  },
+};
+
+/**
+ * Единый context для HTTP и WS. Для ws (graphql-ws Context содержит `extra`)
+ * прокидываем аутентифицированного юзера в req.user, чтобы существующие
+ * @CurrentUser/декораторы работали без изменений. Для HTTP — { req, res } как есть.
+ */
+const graphqlContext = (ctx: any) => {
+  if (ctx && typeof ctx === 'object' && 'extra' in ctx) {
+    return { req: { user: ctx.extra?.user ?? null, headers: {} } };
+  }
+  return ctx;
+};
+
+/**
+ * Поднимает graphql-ws сервер после сборки федеративной схемы и гасит его при
+ * остановке приложения. Повторяет то, что `ApolloDriver.start()` делает при
+ * `subscriptions:` — federation-драйвер этого не умеет.
+ */
+@Injectable()
+class GraphqlWsSubscriptionsBootstrap implements OnApplicationBootstrap, OnModuleDestroy {
+  private service: GqlSubscriptionService | null = null;
+
+  constructor(
+    private readonly httpAdapterHost: HttpAdapterHost,
+    private readonly schemaHost: GraphQLSchemaHost
+  ) {}
+
+  onApplicationBootstrap(): void {
+    const httpServer = this.httpAdapterHost.httpAdapter?.getHttpServer();
+    if (!httpServer) {
+      logger.warn('[mp-ws] http-сервер недоступен — graphql-ws подписки не подняты');
+      return;
+    }
+    this.service = new GqlSubscriptionService(
+      {
+        schema: this.schemaHost.schema,
+        path: GRAPHQL_PATH,
+        context: graphqlContext,
+        'graphql-ws': graphqlWsSubscriptions,
+      },
+      httpServer
+    );
+    logger.info(`[mp-ws] graphql-ws подписки подняты на ${GRAPHQL_PATH} поверх federation-схемы`);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.service?.stop();
+  }
+}
 
 @Global()
 @Module({
@@ -34,23 +160,17 @@ import logger from '~/config/logger';
         path: 'schema.gql',
         federation: 2,
       },
-      sortSchema: true,
       // buildSubgraphSchema (federation v2) валидирует SDL строго: директива
-      // @auth из AuthRoles-декоратора должна быть ОБЪЯВЛЕНА в схеме, иначе
-      // композиция падает «Unknown directive "@auth"» ещё до transformSchema.
-      buildSchemaOptions: {
-        directives: [
-          new GraphQLDirective({
-            name: 'auth',
-            args: { roles: { type: new GraphQLList(GraphQLString) } },
-            locations: [DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
-          }),
-        ],
-      },
+      // @auth из AuthRoles-декоратора должна быть ОБЪЯВЛЕНА в схеме (полное
+      // объявление с `self` — см. authDirective выше), иначе композиция падает
+      // «Unknown directive "@auth"» ещё до transformSchema.
+      buildSchemaOptions: { directives: [authDirective] },
+      sortSchema: true,
       debug: config.env !== 'production',
       // context: ({ req }) => req,
-      playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
-      path: '/v1/graphql', // здесь можно задать другой путь, когда потребуется,
+      playground: { endpoint: GRAPHQL_PATH, settings: { 'request.credentials': 'same-origin' } },
+      path: GRAPHQL_PATH,
+      context: graphqlContext,
       transformSchema: (schema) => {
         schema = docDirectiveTransformer(schema, 'auth');
         schema = fieldAuthDirectiveTransformer(schema, 'auth');
@@ -114,7 +234,7 @@ import logger from '~/config/logger';
       },
     }),
   ],
-  providers: [],
+  providers: [GraphqlWsSubscriptionsBootstrap],
   exports: [GraphQLModule],
 })
 export class GraphqlModule {}

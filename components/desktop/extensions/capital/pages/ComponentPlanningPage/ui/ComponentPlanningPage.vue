@@ -1,75 +1,117 @@
 <template lang="pug">
-div
-  // Компонент планирования (всегда показывается)
-  ProjectPlanningWidget(:project='project' :permissions='permissions')
+.planning-page
+  //- Финансовый план — только кооперативные (блокчейн); LOCAL — только метрики
+  .planning-page__section(v-if='project && !isLocalProject')
+    .planning-page__head
+      .planning-page__title План · {{ project.title }}
+      .planning-page__sub.t-sm.t-muted План и факт по компоненту
+    ProjectPlanningWidget(
+      :project='project',
+      :permissions='permissions'
+    )
+
+  .planning-page__skel(v-else-if='!project')
+    .skel(v-for='i in 6', :key='i')
+
+  .planning-page__section(v-if='project')
+    ComponentMetricsPanel(:project-hash='project.project_hash')
+
+  .planning-page__section(v-if='project')
+    MetricSuperpositionPanel(:project-hash='project.project_hash')
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import type { IProject, IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
+import type {
+  IProject,
+  IProjectPermissions,
+} from 'app/extensions/capital/entities/Project/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
 import { FailAlert } from 'src/shared/api';
+import { ComponentMetricsPanel } from 'app/extensions/capital/features/Metric/ManageComponentMetrics';
+import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
 
 const route = useRoute();
 const projectStore = useProjectStore();
 
-// Состояние проекта
 const project = ref<IProject | null | undefined>(null);
 
-// Получаем hash проекта из параметров маршрута
 const projectHash = computed(() => route.params.project_hash as string);
 
-// Computed для разрешений
+const isLocalProject = computed(() => project.value?.origin === 'local');
+
 const permissions = computed((): IProjectPermissions | null => {
   return project.value?.permissions || null;
 });
 
-// Загрузка проекта из store. Всегда делаем запрос на сервер: если уже видим
-// проект в локальном store, он мог быть загружен раньше (до setMaster/setPlan
-// и т.д.) и содержать stale-значения. После loadProject store обновится через
-// splice — реактивный watcher ниже подхватит свежий объект.
 const loadProject = async () => {
   try {
-    await projectStore.loadProject({
+    const loaded = await projectStore.loadProject({
       hash: projectHash.value,
     });
-    const foundProject = projectStore.projects.items.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
+    project.value =
+      (loaded as IProject | undefined) ??
+      projectStore.getProject(projectHash.value) ??
+      null;
   } catch (error) {
     console.error('Ошибка при загрузке компонента:', error);
     FailAlert('Не удалось загрузить компонент');
   }
 };
 
-// Watcher для синхронизации локального состояния с store.
-// {deep: true} обязателен: store обновляет items через splice (мутация in-place),
-// без deep watcher не срабатывает при изменении полей внутри объекта проекта
-// (например is_planed после setPlan), и компонент остаётся со старым значением.
-watch(() => projectStore.projects.items, (newItems) => {
-  if (newItems && projectHash.value) {
-    const foundProject = newItems.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
-  }
-}, { deep: true });
+watch(
+  () => projectStore.entities[projectHash.value],
+  (entity) => {
+    if (entity) project.value = entity;
+  },
+);
 
-// Watcher для изменения projectHash
 watch(projectHash, async (newHash, oldHash) => {
   if (newHash && newHash !== oldHash) {
     await loadProject();
   }
 });
 
-// Инициализация
 onMounted(async () => {
   await loadProject();
 });
 </script>
 
 <style lang="scss" scoped>
+.planning-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-6);
+  min-width: 0;
+  /* Как q-pa-md / описание компонента — контент не на всю ширину без полей */
+  padding: var(--p-4);
+}
+
+.planning-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  min-width: 0;
+}
+
+.planning-page__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+
+.planning-page__title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+  line-height: var(--p-lh-body);
+}
+
+.planning-page__skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
 </style>
