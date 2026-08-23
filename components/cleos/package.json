@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/cleos",
-  "version": "2026.8.22-2",
+  "version": "2026.8.22-3",
   "private": true,
   "description": "Обёртка над кошельком cleos для EOSIO блокчейна",
   "scripts": {
