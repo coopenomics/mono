@@ -63,6 +63,22 @@ describe('ContentRevisionService.prepareWrite', () => {
     ]);
   });
 
+  it('base_rev=0 от клиента, видевшего сущность до первого снимка, — не конфликт, обычная запись rev=2', async () => {
+    const { service, row, revisions } = makeFakeDb({ title: 'Новая', description: '', content_rev: 0 });
+    const out = await service.prepareWrite({
+      entity_type: ISSUE,
+      entity_hash: 'h1',
+      author: 'alice',
+      origin: ContentRevisionOrigin.WEB,
+      base_rev: 0,
+      incoming: { description: 'первый текст' },
+    });
+    expect(out.content_rev).toBe(2);
+    expect(out.merged).toBe(false);
+    expect(row.description).toBe('первый текст');
+    expect(revisions).toHaveLength(2);
+  });
+
   it('cap.rev.side.04: присланный текст равен текущему — редакция не создаётся', async () => {
     const { service, row, revisions } = makeFakeDb({ title: 'T', description: 'same', content_rev: 3 });
     const out = await service.prepareWrite({
