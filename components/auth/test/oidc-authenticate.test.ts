@@ -15,8 +15,17 @@ vi.mock('../src/oidc/flow-executor', () => ({
   DEFAULT_AUTHENTICATION_FLOW: 'default-authentication-flow',
 }))
 
+/** Настройки, с которыми создали UserManager — по ним проверяем цену входа. */
+let capturedSettings: Record<string, unknown> = {}
+/** Сколько раз тихий запрос падал, прежде чем вернуть пайщика. */
+let failSilentTimes = 0
+
 vi.mock('oidc-client-ts', () => ({
   UserManager: class {
+    constructor(settings: Record<string, unknown>) {
+      capturedSettings = settings
+    }
+
     metadataService = { getMetadata: vi.fn(async () => ({})) }
     async removeUser() {
       calls.push('removeUser')
@@ -30,6 +39,10 @@ vi.mock('oidc-client-ts', () => ({
 
     async signinSilent() {
       calls.push('signinSilent')
+      if (failSilentTimes > 0) {
+        failSilentTimes -= 1
+        throw new Error('iframe window timed out')
+      }
       return signinSilent()
     }
   },
@@ -40,6 +53,8 @@ const ISSUER = 'https://coop.example/application/o/coopid/'
 describe('authenticateWithAuthentik — тихий запрос после ввода пароля', () => {
   beforeEach(() => {
     calls.length = 0
+    capturedSettings = {}
+    failSilentTimes = 0
     vi.clearAllMocks()
   })
 
@@ -62,5 +77,34 @@ describe('authenticateWithAuthentik — тихий запрос после вв�
 
     const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
     expect(user.profile.preferred_username).toBe('ant')
+  })
+
+  it('теряется тихий запрос — вход доходит повтором, а не падает', async () => {
+    const { authenticateWithAuthentik, configureOidc } = await import('../src/oidc/client')
+    configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
+    // Ровно то, что видели на стенде 23.08.2026: запрос скрытого кадра браузер
+    // оборвал (nginx записал 499), страница возврата не запрашивалась вовсе.
+    failSilentTimes = 1
+
+    const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
+
+    expect(user.profile.preferred_username).toBe('ant')
+    expect(calls.filter(c => c === 'signinSilent')).toHaveLength(2)
+  })
+
+  it('ожидание потерянного кадра не дороже повтора', async () => {
+    const { authenticateWithAuthentik, configureOidc, SILENT_REQUEST_TIMEOUT_SECONDS } = await import('../src/oidc/client')
+    configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
+    // Свой адрес кооператива: менеджеры кэшируются по нему, и на уже знакомом
+    // адресе настройки не пересоздаются — проверять было бы нечего.
+    const ownIssuer = 'https://own-coop.example/application/o/coopid/'
+
+    await authenticateWithAuthentik({ issuer: ownIssuer, email: 'user@e.com', password: 'S3cret!' })
+
+    // Это ожидание оплачивается целиком каждый раз, когда кадр не доносит ответ,
+    // и целиком видно пайщику как «кнопка думает». Держать его длинным незачем:
+    // паузу закрывает повтор. Порог сторожит регресс — было двадцать секунд.
+    expect(capturedSettings.silentRequestTimeoutInSeconds).toBe(SILENT_REQUEST_TIMEOUT_SECONDS)
+    expect(SILENT_REQUEST_TIMEOUT_SECONDS).toBeLessThanOrEqual(10)
   })
 })
