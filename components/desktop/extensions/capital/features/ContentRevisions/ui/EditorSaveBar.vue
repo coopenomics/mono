@@ -3,8 +3,10 @@
 .row.items-center.editor-save-bar
   .col
     .text-caption(:class="statusClass") {{ statusText }}
-  .col-auto.row.items-center.q-gutter-xs
+  .col-auto.row.items-center.no-wrap.q-gutter-xs
     BaseButton(variant="ghost" size="sm" @click="revisionsOpen = true") Редакции
+    //- Дополнительные действия страницы (избранное и т. п.) — всегда видны, не зависят от правок
+    slot(name="actions")
     BaseButton(
       v-if="canEdit"
       variant="primary"

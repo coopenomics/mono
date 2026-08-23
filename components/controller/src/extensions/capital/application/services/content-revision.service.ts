@@ -88,7 +88,11 @@ export class ContentRevisionService {
 
       let result = ours;
       let merged = false;
-      const baseRev = input.base_rev ?? undefined;
+      // base_rev = 0: клиент видел сущность до первого снимка; этот текст и стал rev 1 при посеве.
+      let baseRev = input.base_rev ?? undefined;
+      if (baseRev === 0) {
+        baseRev = 1;
+      }
       if (baseRev !== undefined && baseRev !== null && baseRev !== currentRev) {
         if (baseRev > currentRev) {
           throw new Error(

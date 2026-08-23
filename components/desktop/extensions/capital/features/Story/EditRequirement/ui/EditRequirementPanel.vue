@@ -5,8 +5,8 @@ q-card.column.no-wrap.edit-req-panel(
   flat
 )
   //- Шапка — тот же паттерн, что ProjectTitleEditor/IssueTitleEditor: outline-textarea
-  //- с иконкой типа в prepend; при изменениях слева undo, справа save; в покое
-  //- справа звёздочка избранного (и close в диалоге)
+  //- с иконкой типа в prepend; при изменениях слева undo; close в диалоге справа.
+  //- Сохранение/редакции/избранное — в EditorSaveBar ниже, как у проекта и компонента
   //- Обёртка и отступы — как у заголовка задачи на IssuePage: .q-px-md.q-pb-sm
   .edit-req-panel__head.q-px-md.q-pb-sm
     q-input.full-width.capital-title-editor-input(
@@ -34,45 +34,36 @@ q-card.column.no-wrap.edit-req-panel(
           q-tooltip Отменить изменения
         q-icon(v-else :name='formatIcon' size='24px' color='primary')
       template(#append)
-        .capital-title-editor-append.column.items-end.justify-center
-          q-btn(
-            v-if='canEdit && hasChanges'
-            round
-            dense
-            color='primary'
-            icon='save'
-            size='sm'
-            :loading='isSaving'
-            :disable='!titleOk'
-            @click='handleSave'
-          )
-            q-tooltip Сохранить изменения
-          .row.items-center.no-wrap(v-else)
-            RevisionsButton(
-              v-if='requirement'
-              entity-type='STORY'
-              :entity-hash='requirement.story_hash'
-              :current-title='localTitle'
-              :current-description='localDescription'
-              :current-rev='currentRev'
-              :can-edit='canEdit'
-              @restored='handleRestored'
-            )
-            FavoriteStarButton(
-              v-if='requirement'
-              :target-type='FavoriteTargetType.ARTIFACT'
-              :target-hash='requirement.story_hash'
-            )
-            BaseButton(
-              v-if='variant === "dialog"'
-              variant='ghost'
-              size='sm'
-              icon-only
-              aria-label='Закрыть'
-              @click='handleClose'
-            )
-              template(#icon-left)
-                q-icon(name='close' size='18px')
+        BaseButton(
+          v-if='variant === "dialog"'
+          variant='ghost'
+          size='sm'
+          icon-only
+          aria-label='Закрыть'
+          @click='handleClose'
+        )
+          template(#icon-left)
+            q-icon(name='close' size='18px')
+    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте
+    EditorSaveBar(
+      v-if='requirement'
+      entity-type='STORY'
+      :entity-hash='requirement.story_hash'
+      :current-title='localTitle'
+      :current-description='localDescription'
+      :current-rev='currentRev'
+      :can-edit='canEdit'
+      :has-changes='hasChanges && titleOk'
+      :saving='isSaving'
+      :note='saveNote'
+      @save='handleSave'
+      @restored='handleRestored'
+    )
+      template(#actions)
+        FavoriteStarButton(
+          :target-type='FavoriteTargetType.ARTIFACT'
+          :target-hash='requirement.story_hash'
+        )
 
   q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
     template(v-if='requirement && isBpmnFormat')
@@ -130,7 +121,7 @@ import { DrawioStoryEmbedEditor } from 'app/extensions/capital/features/Story/Dr
 import { useUpdateStory } from '../../UpdateStory/model';
 import {
   ConflictDialog,
-  RevisionsButton,
+  EditorSaveBar,
   extractContentConflict,
   type IContentConflict,
   type IContentRevisionSummary,
@@ -179,6 +170,7 @@ const baseRevOverride = ref<number | null>(null);
 const currentRev = computed(() => baseRevOverride.value ?? props.requirement?.content_rev ?? 0);
 const conflict = ref<IContentConflict | null>(null);
 const conflictOpen = ref(false);
+const saveNote = ref<string | null>(null);
 
 const editorMinHeight = computed(() => (props.variant === 'dialog' ? 480 : 520));
 
@@ -274,6 +266,7 @@ const handleSave = async () => {
     originalDescription.value = localDescription.value;
     baseRevOverride.value = null;
 
+    saveNote.value = merged ? 'Сохранено и слито с параллельными правками' : 'Сохранено';
     SuccessAlert(merged ? 'Артефакт сохранён и слит с параллельными правками' : 'Артефакт успешно обновлён');
     emit('updated', updatedRequirement);
   } catch (error) {
@@ -355,10 +348,6 @@ defineExpose({
   align-self: stretch;
 }
 
-.capital-title-editor-append {
-  min-height: 100%;
-  max-width: min(100%, 14rem);
-}
 
 .edit-req-panel__body {
   flex: 1 1 auto;
