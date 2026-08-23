@@ -2,12 +2,12 @@
 BaseDialog(
   :model-value="modelValue"
   title="Редакции"
-  size="lg"
+  size="xxl"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  .row.q-col-gutter-md.revisions
+  .row.q-col-gutter-lg.revisions
+    //- Слева — список редакций: одна строка на редакцию, без переносов даты
     .col-12.col-md-4
-      .text-caption.text-grey-7.q-mb-xs Список редакций (новые сверху)
       .revisions__list
         CardListSkeleton(v-if="loading && !items.length")
         EmptyState(v-else-if="!items.length" title="Редакций пока нет")
@@ -21,30 +21,32 @@ BaseDialog(
             @click="select(r.rev)"
           )
             q-item-section
-              q-item-label
-                span.t-mono-sm.q-mr-sm №{{ r.rev }}
-                span {{ formatDateToHumanDateTime(r.created_at) }}
-              q-item-label(caption)
+              q-item-label.row.items-center.no-wrap
+                span.t-mono-sm.revisions__rev №{{ r.rev }}
+                span.revisions__date {{ formatDateToHumanDateTime(r.created_at) }}
+                q-space
+                BaseChip(v-if="r.rev === currentRev" size="sm" variant="info") текущая
+              q-item-label(caption).revisions__meta
                 | {{ r.author }} · {{ originLabel(r) }}
                 template(v-if="r.merged")  · слито
                 template(v-if="r.description_delta !== 0")  · {{ r.description_delta > 0 ? '+' : '' }}{{ r.description_delta }} симв.
-            q-item-section(side v-if="r.rev === currentRev")
-              BaseChip(size="sm" variant="info") текущая
+    //- Справа — выбранная редакция: заголовок, переключатель вида, содержимое
     .col-12.col-md-8
       template(v-if="selected")
-        .row.items-center.q-mb-sm
+        .row.items-end.no-wrap.q-mb-md
           .col
-            .text-subtitle2 Редакция №{{ selected.rev }}
-            .text-caption.text-grey-7 {{ selected.title }}
-          .col-auto.row.q-gutter-xs
-            BaseButton(size="sm" :variant="view === 'diff' ? 'secondary' : 'ghost'" @click="view = 'diff'") Отличия от текущей
-            BaseButton(size="sm" :variant="view === 'text' ? 'secondary' : 'ghost'" @click="view = 'text'") Текст
+            .text-h6 Редакция №{{ selected.rev }}
+            .text-caption.text-grey-7 {{ selected.title }} · {{ selected.author }} · {{ formatDateToHumanDateTime(selected.created_at) }}
+          .col-auto
+            q-tabs(v-model="view" dense no-caps inline-label indicator-color="primary" active-color="primary")
+              q-tab(name="diff" label="Отличия от текущей")
+              q-tab(name="text" label="Текст")
         .revisions__body
           template(v-if="view === 'diff'")
             DiffViewer(v-if="diffText" :diff="diffText")
-            .text-caption.text-grey-7.q-pa-sm(v-else) Совпадает с текущим текстом
+            .revisions__empty(v-else) Совпадает с текущим текстом
           pre.revisions__pre(v-else) {{ selected.description || '(пусто)' }}
-      .text-caption.text-grey-7(v-else-if="!loadingOne") Выберите редакцию слева
+      .revisions__empty(v-else-if="!loadingOne") Выберите редакцию слева
       CardListSkeleton(v-else)
   template(#footer)
     BaseButton(variant="ghost" @click="emit('update:modelValue', false)") Закрыть
@@ -160,28 +162,50 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.revisions__list {
-  max-height: 60vh;
+.revisions__list,
+.revisions__body {
+  height: min(64vh, 640px);
   overflow: auto;
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
+}
+.revisions__rev {
+  color: var(--p-ink-3);
+  margin-right: var(--p-2);
+}
+.revisions__date {
+  white-space: nowrap;
+}
+.revisions__meta {
+  margin-top: var(--p-1);
 }
 .revisions__item--active {
   background: var(--p-primary-soft);
   color: var(--p-ink);
 }
-.revisions__body {
-  max-height: 60vh;
-  overflow: auto;
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
+.revisions__empty {
+  padding: var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 .revisions__pre {
   margin: 0;
-  padding: var(--p-3);
+  padding: var(--p-4);
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--p-mono);
   font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body);
+}
+/* На мобильнике колонки идут друг под другом — список короче, чтобы текст был виден без длинной прокрутки */
+@media (max-width: 1023px) {
+  .revisions__list {
+    height: auto;
+    max-height: 32vh;
+  }
+  .revisions__body {
+    height: auto;
+    max-height: 50vh;
+  }
 }
 </style>

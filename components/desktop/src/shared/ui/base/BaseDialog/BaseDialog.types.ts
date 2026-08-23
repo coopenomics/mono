@@ -1,4 +1,5 @@
-export type BaseDialogSize = 'sm' | 'md' | 'lg' | 'xl';
+/** xxl — рабочие окна с двумя колонками (история редакций, сравнение текстов) */
+export type BaseDialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
 export interface BaseDialogProps {
   modelValue: boolean;
