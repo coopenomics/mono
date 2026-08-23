@@ -117,6 +117,9 @@ export const AllTypesProps: Record<string,any> = {
 	ApproveVerificationInput:{
 
 	},
+	AppsPublisherAssignmentInputDTO:{
+
+	},
 	ArchiveComponentMetricInput:{
 
 	},
@@ -515,9 +518,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateProjectPropertyInput:{
 
 	},
-	CreatePublisherTokenInputDTO:{
-
-	},
 	CreatePublisherTokenStatus: "enum" as const,
 	CreateRequestInput:{
 		attributes:"RequestAttributeInput",
@@ -905,6 +905,9 @@ export const AllTypesProps: Record<string,any> = {
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
 	IssueMetricBindingItemInput:{
+
+	},
+	IssueMyPublisherTokenInputDTO:{
 
 	},
 	IssuePriority: "enum" as const,
@@ -1408,6 +1411,9 @@ export const AllTypesProps: Record<string,any> = {
 		activateTwoFactor:{
 			data:"TwoFactorCodeInput"
 		},
+		addAppsPublisher:{
+			data:"AppsPublisherAssignmentInputDTO"
+		},
 		addBranchWhitelist:{
 			data:"AddBranchWhitelistInput"
 		},
@@ -1823,9 +1829,6 @@ export const AllTypesProps: Record<string,any> = {
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
 		},
-		createPublisherToken:{
-			data:"CreatePublisherTokenInputDTO"
-		},
 		createWebPushSubscription:{
 			data:"CreateSubscriptionInput"
 		},
@@ -1978,6 +1981,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		installSystem:{
 			data:"Install"
+		},
+		issueMyPublisherToken:{
+			data:"IssueMyPublisherTokenInputDTO"
 		},
 		kuApproveTrusted:{
 			data:"ApproveKuTrustedInput"
@@ -2343,6 +2349,9 @@ export const AllTypesProps: Record<string,any> = {
 		rejectVerification:{
 			data:"RejectVerificationInput"
 		},
+		removeAppsPublisher:{
+			data:"AppsPublisherAssignmentInputDTO"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
@@ -2367,11 +2376,11 @@ export const AllTypesProps: Record<string,any> = {
 		revokeCapabilitySet:{
 			data:"RevokeCapabilitySetInput"
 		},
+		revokeMyPublisherToken:{
+			data:"RevokePublisherTokenInputDTO"
+		},
 		revokeParticipantKey:{
 			data:"RevokeParticipantKeyInput"
-		},
-		revokePublisherToken:{
-			data:"RevokePublisherTokenInputDTO"
 		},
 		revokeSession:{
 			data:"RevokeSessionInput"
@@ -3810,6 +3819,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		label:"String",
 		lastUsedAt:"String",
+		packageId:"String",
 		revokedAt:"String",
 		tokenPrefix:"String",
 		username:"String"
@@ -3822,6 +3832,12 @@ export const ReturnTypes: Record<string,any> = {
 		publisher:"String",
 		rubPerMonth:"Float",
 		title:"String"
+	},
+	AppsPublisher:{
+		addedBy:"String",
+		createdAt:"String",
+		packageId:"String",
+		username:"String"
 	},
 	AuthSequence:{
 		account:"String",
@@ -6769,6 +6785,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Mutation:{
 		activateTwoFactor:"Boolean",
+		addAppsPublisher:"AppsPublisher",
 		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
@@ -6901,7 +6918,6 @@ export const ReturnTypes: Record<string,any> = {
 		createMembershipExit:"MembershipExitResult",
 		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
-		createPublisherToken:"CreatePublisherTokenResultDTO",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
@@ -6947,6 +6963,7 @@ export const ReturnTypes: Record<string,any> = {
 		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
+		issueMyPublisherToken:"CreatePublisherTokenResultDTO",
 		kuApproveTrusted:"Transaction",
 		kuCancelDecision:"Transaction",
 		kuCloseDecision:"Transaction",
@@ -7067,6 +7084,7 @@ export const ReturnTypes: Record<string,any> = {
 		registerParticipant:"Account",
 		rejectModeration:"RejectModerationResultDTO",
 		rejectVerification:"VerificationReview",
+		removeAppsPublisher:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
 		requestForceRecoveryConsent:"Boolean",
@@ -7077,8 +7095,8 @@ export const ReturnTypes: Record<string,any> = {
 		returnExpenseItem:"Transaction",
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
+		revokeMyPublisherToken:"Boolean",
 		revokeParticipantKey:"RevokeKeyResult",
-		revokePublisherToken:"Boolean",
 		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
@@ -7704,8 +7722,8 @@ export const ReturnTypes: Record<string,any> = {
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
 		appsCatalogPendingModerations:"ModerationRequestDTO",
-		appsCatalogPublisherTokens:"AppsCatalogPublisherToken",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
+		appsPublishers:"AppsPublisher",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",
@@ -7944,6 +7962,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		membershipExit:"MembershipExit",
 		membershipExitReturnPreview:"MembershipExitReturnPreview",
+		myPublisherPackages:"AppsPublisher",
+		myPublisherTokens:"AppsCatalogPublisherToken",
 		participantIdentityForVerification:"ParticipantIdentityForVerification",
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",

@@ -1,11 +1,11 @@
 import { publisherTokenSelector } from '../../selectors/extensions/publisherTokenSelector'
 import { type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
-export const name = 'appsCatalogPublisherTokens'
+export const name = 'myPublisherTokens'
 
 /**
- * Publisher-токены издателей-пайщиков кооператива (487-27).
- * Стол разработчика, только chairman.
+ *  Мои ключи каталога, без секретов (487-27).
+
  */
 export const query = Selector('Query')({
   [name]: publisherTokenSelector,

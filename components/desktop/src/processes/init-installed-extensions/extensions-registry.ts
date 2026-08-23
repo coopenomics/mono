@@ -14,6 +14,7 @@ import reportsInstall from '../../../extensions/reports/install';
 // кооператива-оператора каталога. Видимость регулируется meta.roles
 // в install.ts и (V2) grants от controller'а через DesktopWorkspace.
 import developerInstall from '../../../extensions/developer/install';
+import publisherInstall from '../../../extensions/publisher/install';
 import marketInstall from '../../../extensions/market/install';
 
 /**
@@ -31,6 +32,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   trustee: kuInstall,
   reports: reportsInstall,
   developer: developerInstall,
+  publisher: publisherInstall,
   market: marketInstall,
 };
 

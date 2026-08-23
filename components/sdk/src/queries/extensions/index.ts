@@ -9,4 +9,6 @@ export * as GetExtensionLogs from './getExtensionLogs'
 
 /** Получить список расширений */
 export * as GetExtensions from './getExtensions'
-export * as AppsCatalogPublisherTokens from './appsCatalogPublisherTokens'
+export * as AppsPublishers from './appsPublishers'
+export * as MyPublisherPackages from './myPublisherPackages'
+export * as MyPublisherTokens from './myPublisherTokens'

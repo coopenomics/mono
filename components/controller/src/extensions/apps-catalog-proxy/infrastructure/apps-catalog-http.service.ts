@@ -76,6 +76,7 @@ export type CreateReleaseOutcome =
 export interface PublisherTokenWire {
   id: string;
   username: string;
+  package_id: string;
   label: string;
   token_prefix: string;
   created_by: string;
@@ -87,6 +88,8 @@ export interface PublisherTokenWire {
 
 export interface CreatePublisherTokenInput {
   username: string;
+  /** Пакет, на который выдаётся ключ (ключ = один пакет). */
+  packageId: string;
   label: string;
   createdBy: string;
   expiresInDays?: number;
@@ -585,12 +588,30 @@ export class AppsCatalogHttpService {
    * 487-27: список publisher-токенов кооператива (ca-auth
    * `GET /v1/publisher-tokens`, tenant-JWT). Degraded → пустой список.
    */
-  async listPublisherTokens(): Promise<PublisherTokenWire[]> {
+  async listPublisherTokens(
+    filter: { username?: string; packageId?: string } = {},
+  ): Promise<PublisherTokenWire[]> {
     if (!this.authClient) return [];
     const res = await this.authClient.get<{ items: PublisherTokenWire[] }>(
       '/v1/publisher-tokens',
+      {
+        params: {
+          ...(filter.username ? { username: filter.username } : {}),
+          ...(filter.packageId ? { package_id: filter.packageId } : {}),
+        },
+      },
     );
     return res.data.items;
+  }
+
+  /** 487-27: отозвать все ключи пайщика на пакет (снятие издателя). */
+  async revokePublisherAccess(username: string, packageId: string): Promise<number> {
+    if (!this.authClient) return 0;
+    const res = await this.authClient.post<{ ok: boolean; revoked: number }>(
+      '/v1/publisher-tokens/revoke-all',
+      { username, package_id: packageId },
+    );
+    return res.data.revoked;
   }
 
   /**
@@ -608,6 +629,7 @@ export class AppsCatalogHttpService {
         '/v1/publisher-tokens',
         {
           username: input.username,
+          package_id: input.packageId,
           label: input.label,
           created_by: input.createdBy,
           ...(input.expiresInDays ? { expires_in_days: input.expiresInDays } : {}),

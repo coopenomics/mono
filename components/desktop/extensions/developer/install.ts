@@ -1,8 +1,8 @@
 // Стол разработчика — Epic 9, story 9.3.
 //
-// Виден только chairman'у кооператива-оператора каталога (`voskhod` на dev,
-// определяется по флагу `is_operator_coop` в Vuex/Pinia store, который
-// устанавливается через DesktopWorkspace.grants от controller'а).
+// Виден по grant'у `Developer:manage`, который контроллер выдаёт председателю
+// (DeveloperDesktopGrantsProvider, расширение `developer`). Стол издателя —
+// отдельное расширение `publisher` («Мои приложения»).
 //
 // Страницы: мои пакеты, публикация пакета/релиза, модерация заявок
 // (операторский approve восхода), подписчики, pricing. Все реальные
@@ -30,7 +30,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: 'Стол разработчика',
           icon: 'code',
-          roles: ['chairman'],
+          requires: 'Developer:manage',
         },
         path: '/:coopname/developer',
         name: 'developer',
@@ -42,7 +42,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Мои пакеты',
               icon: 'inventory_2',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
           {
@@ -52,7 +52,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Опубликовать релиз',
               icon: 'upload',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
           {
@@ -62,7 +62,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Модерация',
               icon: 'fact_check',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
           {
@@ -72,7 +72,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Издатели',
               icon: 'key',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
           {
@@ -82,7 +82,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Подписчики',
               icon: 'group',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
           {
@@ -92,7 +92,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Pricing',
               icon: 'currency_ruble',
-              roles: ['chairman'],
+              requires: 'Developer:manage',
             },
           },
         ],

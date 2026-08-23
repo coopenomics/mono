@@ -21,6 +21,9 @@ import { capitalEntities } from './capital/capital.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
 import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { expensesEntities } from './expenses/expenses.entities';
+import { appsCatalogProxyEntities } from './apps-catalog-proxy/apps-catalog-proxy.entities';
+import { AppsCatalogProxyModule } from './apps-catalog-proxy/apps-catalog-proxy.module';
+import { DeveloperExtension, Schema as DeveloperSchema, defaultConfig as developerDefaultConfig } from './apps-catalog-proxy/developer-extension';
 import { kuEntities } from './ku/ku.entities';
 import { marketplaceEntities } from './marketplace/marketplace.entities';
 import { reportsEntities } from './reports/reports.entities';
@@ -126,6 +129,38 @@ export const AppRegistry: INamedExtension = {
     tags: ['стол', 'управление'],
     readme: getReadmeContent('./capital'),
     instructions: getInstructionsContent('./capital'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  developer: {
+    is_builtin: true,
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'developer',
+        title: 'Стол разработчика',
+        icon: 'fa-solid fa-code',
+      },
+      {
+        name: 'publisher',
+        title: 'Мои приложения',
+        icon: 'fa-solid fa-key',
+      },
+    ],
+    title: 'Стол разработчика',
+    description:
+      'Публикация приложений в каталог: пакеты, релизы, модерация, назначение издателей (председатель) и ключи издателя на свои приложения (пайщик-разработчик).',
+    image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
+    class: AppsCatalogProxyModule,
+    extensionClass: DeveloperExtension,
+    entities: appsCatalogProxyEntities,
+    defaults: { enabled: true, config: developerDefaultConfig },
+    schema: DeveloperSchema,
+    tags: ['стол', 'разработка'],
+    readme: getReadmeContent('./apps-catalog-proxy'),
+    instructions: getInstructionsContent('./apps-catalog-proxy'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
@@ -427,5 +462,8 @@ export const AppRegistry: INamedExtension = {
  * поэтому оно перечислено отдельно.
  */
 registerExtensionEntities([
-  ...new Set([...Object.values(AppRegistry).flatMap((extension) => extension.entities ?? []), ...expensesEntities]),
+  ...new Set([
+    ...Object.values(AppRegistry).flatMap((extension) => extension.entities ?? []),
+    ...expensesEntities,
+  ]),
 ]);

@@ -2,7 +2,7 @@
  * @fileoverview DTO publisher-токенов издателей-пайщиков (487-27).
  * Источник — ca-auth `/v1/publisher-tokens` (tenant-JWT кооператива).
  */
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 @ObjectType('AppsCatalogPublisherToken')
 export class PublisherTokenDTO {
@@ -11,6 +11,9 @@ export class PublisherTokenDTO {
 
   @Field({ description: 'Аккаунт пайщика-издателя' })
   username!: string;
+
+  @Field({ description: 'Пакет, на который действует ключ' })
+  packageId!: string;
 
   @Field({ description: 'Метка («CI demo-app»)' })
   label!: string;
@@ -32,21 +35,6 @@ export class PublisherTokenDTO {
 
   @Field({ nullable: true, description: 'ISO-дата последнего использования' })
   lastUsedAt?: string;
-}
-
-@InputType()
-export class CreatePublisherTokenInputDTO {
-  @Field({ description: 'Аккаунт пайщика-издателя (eosio::name)' })
-  username!: string;
-
-  @Field({ description: 'Метка токена, например «CI demo-app»' })
-  label!: string;
-
-  @Field(() => Int, {
-    nullable: true,
-    description: 'Срок действия в днях (1..3650); не задан — бессрочно',
-  })
-  expiresInDays?: number;
 }
 
 export enum CreatePublisherTokenStatus {

@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppsPublishersService } from './application/services/apps-publishers.service';
+import { DeveloperDesktopGrantsProvider, DeveloperExtension } from './developer-extension';
+import { AppsPublisherTypeormEntity } from './infrastructure/entities/apps-publisher.typeorm-entity';
 import { AppsCatalogHttpService } from './infrastructure/apps-catalog-http.service';
 import { AppsCatalogInstallScriptController } from './application/controllers/install-script.controller';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
@@ -13,9 +17,15 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
  * `ExtensionsModule` в общий imports/exports список.
  */
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([AppsPublisherTypeormEntity])],
   controllers: [AppsCatalogInstallScriptController],
-  providers: [AppsCatalogHttpService, AppsCatalogProxyResolver],
-  exports: [AppsCatalogHttpService],
+  providers: [
+    AppsCatalogHttpService,
+    AppsCatalogProxyResolver,
+    AppsPublishersService,
+    DeveloperExtension,
+    DeveloperDesktopGrantsProvider,
+  ],
+  exports: [AppsCatalogHttpService, DeveloperExtension],
 })
 export class AppsCatalogProxyModule {}

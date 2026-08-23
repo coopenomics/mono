@@ -1,20 +1,25 @@
-// 487-27: состояние страницы издателей стола разработчика.
+// 487-27: состояние стола «Мои приложения».
 import { ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { api, type ICreatePublisherTokenInput, type IPublisherToken } from '../api';
+import { api, type IIssueInput, type IMyPackage, type IMyToken } from '../api';
 
-export type { ICreatePublisherTokenInput, IPublisherToken };
+export type { IIssueInput, IMyPackage, IMyToken };
 
-export function usePublisherTokens() {
-  const items = ref<IPublisherToken[]>([]);
+export function useMyPublisherTokens() {
+  const packages = ref<IMyPackage[]>([]);
+  const tokens = ref<IMyToken[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const isSubmitting = ref(false);
+  const actionError = ref<string | null>(null);
+  /** Plaintext только что выпущенного ключа — показывается один раз. */
+  const issuedToken = ref<string | null>(null);
 
   async function load(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      items.value = await api.listPublisherTokens();
+      [packages.value, tokens.value] = await Promise.all([api.myPackages(), api.myTokens()]);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
@@ -22,19 +27,14 @@ export function usePublisherTokens() {
     }
   }
 
-  const isSubmitting = ref(false);
-  const actionError = ref<string | null>(null);
-  /** Plaintext только что выданного токена — показывается один раз. */
-  const issuedToken = ref<string | null>(null);
-
-  async function create(input: ICreatePublisherTokenInput): Promise<boolean> {
+  async function issue(input: IIssueInput): Promise<boolean> {
     isSubmitting.value = true;
     actionError.value = null;
     issuedToken.value = null;
     try {
-      const result = await api.createPublisherToken(input);
+      const result = await api.issueToken(input);
       if (result.status !== Zeus.CreatePublisherTokenStatus.CREATED || !result.token) {
-        actionError.value = result.error || 'Не удалось выдать токен';
+        actionError.value = result.error || 'Не удалось выпустить ключ';
         return false;
       }
       issuedToken.value = result.token;
@@ -52,8 +52,8 @@ export function usePublisherTokens() {
     isSubmitting.value = true;
     actionError.value = null;
     try {
-      const ok = await api.revokePublisherToken(id);
-      if (!ok) actionError.value = 'Токен не найден или уже отозван';
+      const ok = await api.revokeToken(id);
+      if (!ok) actionError.value = 'Ключ не найден или уже отозван';
       await load();
       return ok;
     } catch (e) {
@@ -64,5 +64,5 @@ export function usePublisherTokens() {
     }
   }
 
-  return { items, loading, error, isSubmitting, actionError, issuedToken, load, create, revoke };
+  return { packages, tokens, loading, error, isSubmitting, actionError, issuedToken, load, issue, revoke };
 }

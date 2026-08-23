@@ -5,6 +5,7 @@ import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
 const rawPublisherTokenSelector = {
   id: true,
   username: true,
+  packageId: true,
   label: true,
   tokenPrefix: true,
   createdBy: true,

@@ -22,7 +22,13 @@ import {
 import { PublishPackageInputDTO } from '../dto/publish-package-input.dto';
 import { PublishPackageResultDTO, PublishPackageStatus } from '../dto/publish-package-result.dto';
 import {
-  CreatePublisherTokenInputDTO,
+  AppsPublisherAssignmentInputDTO,
+  AppsPublisherDTO,
+  IssueMyPublisherTokenInputDTO,
+} from '../dto/apps-publisher.dto';
+import { AppsPublishersService } from '../services/apps-publishers.service';
+import type { AppsPublisherTypeormEntity } from '../../infrastructure/entities/apps-publisher.typeorm-entity';
+import {
   CreatePublisherTokenResultDTO,
   CreatePublisherTokenStatus,
   PublisherTokenDTO,
@@ -86,11 +92,22 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
  * (по умолчанию роль `user`). Self-filter и self-sub bypass делает
  * desktop по сравнению `publisher` и текущего coopname.
  */
+/** Назначение издателя → GraphQL (487-27). */
+function toPublisherDTO(r: AppsPublisherTypeormEntity): AppsPublisherDTO {
+  return {
+    username: r.username,
+    packageId: r.package_id,
+    addedBy: r.added_by,
+    createdAt: r.created_at.toISOString(),
+  };
+}
+
 /** ca-auth snake_case → GraphQL camelCase (487-27). */
 function toPublisherTokenDTO(w: PublisherTokenWire): PublisherTokenDTO {
   return {
     id: w.id,
     username: w.username,
+    packageId: w.package_id,
     label: w.label,
     tokenPrefix: w.token_prefix,
     createdBy: w.created_by,
@@ -105,7 +122,10 @@ function toPublisherTokenDTO(w: PublisherTokenWire): PublisherTokenDTO {
 export class AppsCatalogProxyResolver {
   private readonly logger = new Logger(AppsCatalogProxyResolver.name);
 
-  constructor(private readonly client: AppsCatalogHttpService) {}
+  constructor(
+    private readonly client: AppsCatalogHttpService,
+    private readonly publishers: AppsPublishersService,
+  ) {}
 
   @Query(() => [AppsCatalogRemotePackageDTO], {
     name: 'appsCatalogRemotePackages',
@@ -245,50 +265,105 @@ export class AppsCatalogProxyResolver {
     };
   }
 
-  /**
-   * 487-27 — стол разработчика: список publisher-токенов кооператива.
-   * Tenant-JWT кооператива (COOPERATIVE_WIF) → ca-auth `/v1/publisher-tokens`.
-   */
-  @Query(() => [PublisherTokenDTO], {
-    name: 'appsCatalogPublisherTokens',
-    description:
-      'Publisher-токены издателей-пайщиков этого кооператива (без секретов). ' +
-      'Только chairman (стол разработчика).',
+  // ===== 487-27: издатели (председатель) =====
+
+  @Query(() => [AppsPublisherDTO], {
+    name: 'appsPublishers',
+    description: 'Назначения издателей «аккаунт → пакет». Только chairman.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
-  async appsCatalogPublisherTokens(): Promise<PublisherTokenDTO[]> {
-    const items = await this.client.listPublisherTokens();
+  async appsPublishers(): Promise<AppsPublisherDTO[]> {
+    const rows = await this.publishers.list();
+    return rows.map(toPublisherDTO);
+  }
+
+  @Mutation(() => AppsPublisherDTO, {
+    name: 'addAppsPublisher',
+    description:
+      'Назначить пайщика издателем пакета. Дальше он сам выпускает ключ ' +
+      'каталога на этот пакет со своего стола. Только chairman.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async addAppsPublisher(
+    @Args('data', { type: () => AppsPublisherAssignmentInputDTO })
+    data: AppsPublisherAssignmentInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<AppsPublisherDTO> {
+    const row = await this.publishers.add({
+      username: data.username,
+      packageId: data.packageId,
+      addedBy: currentUser.username,
+    });
+    return toPublisherDTO(row);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'removeAppsPublisher',
+    description: 'Снять издателя с пакета; все его ключи на пакет отзываются. Только chairman.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async removeAppsPublisher(
+    @Args('data', { type: () => AppsPublisherAssignmentInputDTO })
+    data: AppsPublisherAssignmentInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<boolean> {
+    return this.publishers.remove({
+      username: data.username,
+      packageId: data.packageId,
+      removedBy: currentUser.username,
+    });
+  }
+
+  // ===== 487-27: самообслуживание издателя =====
+
+  @Query(() => [AppsPublisherDTO], {
+    name: 'myPublisherPackages',
+    description: 'Пакеты, издателем которых назначен текущий аккаунт.',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async myPublisherPackages(
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<AppsPublisherDTO[]> {
+    const rows = await this.publishers.listFor(currentUser.username);
+    return rows.map(toPublisherDTO);
+  }
+
+  @Query(() => [PublisherTokenDTO], {
+    name: 'myPublisherTokens',
+    description: 'Мои ключи каталога (без секретов).',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async myPublisherTokens(
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<PublisherTokenDTO[]> {
+    const items = await this.publishers.myTokens(currentUser.username);
     return items.map(toPublisherTokenDTO);
   }
 
-  /**
-   * 487-27 — выдать publisher-токен пайщику. Plaintext возвращается один
-   * раз; UI обязан показать его сразу и предупредить, что повторно не
-   * покажет.
-   */
   @Mutation(() => CreatePublisherTokenResultDTO, {
-    name: 'createPublisherToken',
+    name: 'issueMyPublisherToken',
     description:
-      'Выдаёт пайщику publisher-токен для CI (npm publish + POST /v1/releases ' +
-      'в scope кооператива). Plaintext возвращается один раз. Только chairman.',
+      'Выпустить ключ каталога на свой пакет. Кладётся в .npmrc репозитория ' +
+      'приложения; plaintext возвращается один раз.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
-  async createPublisherToken(
-    @Args('data', { type: () => CreatePublisherTokenInputDTO })
-    data: CreatePublisherTokenInputDTO,
+  @UseGuards(GqlJwtAuthGuard)
+  async issueMyPublisherToken(
+    @Args('data', { type: () => IssueMyPublisherTokenInputDTO })
+    data: IssueMyPublisherTokenInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<CreatePublisherTokenResultDTO> {
-    const outcome = await this.client.createPublisherToken({
-      username: data.username,
+    const outcome = await this.publishers.issueToken({
+      username: currentUser.username,
+      packageId: data.packageId,
       label: data.label,
-      createdBy: currentUser.username,
       expiresInDays: data.expiresInDays ?? undefined,
     });
     if (outcome.status === 'created') {
       this.logger.log(
-        `createPublisherToken: ${data.username} «${data.label}» by ${currentUser.username} (id ${outcome.record.id})`,
+        `issueMyPublisherToken: ${currentUser.username} → ${data.packageId} (id ${outcome.record.id})`,
       );
       return {
         status: CreatePublisherTokenStatus.CREATED,
@@ -299,22 +374,18 @@ export class AppsCatalogProxyResolver {
     return { status: CreatePublisherTokenStatus.FAILED, error: outcome.error };
   }
 
-  /** 487-27 — отозвать publisher-токен. `true` — отозван, `false` — не найден. */
   @Mutation(() => Boolean, {
-    name: 'revokePublisherToken',
-    description: 'Отзывает publisher-токен кооператива. Только chairman.',
+    name: 'revokeMyPublisherToken',
+    description: 'Отозвать свой ключ каталога.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
-  async revokePublisherToken(
+  @UseGuards(GqlJwtAuthGuard)
+  async revokeMyPublisherToken(
     @Args('data', { type: () => RevokePublisherTokenInputDTO })
     data: RevokePublisherTokenInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<boolean> {
-    const ok = await this.client.revokePublisherToken(data.id);
-    this.logger.log(
-      `revokePublisherToken ${data.id} by ${currentUser.username}: ${ok ? 'revoked' : 'not found'}`,
-    );
+    const ok = await this.publishers.revokeToken(currentUser.username, data.id);
+    this.logger.log(`revokeMyPublisherToken ${data.id} by ${currentUser.username}: ${ok}`);
     return ok;
   }
 
