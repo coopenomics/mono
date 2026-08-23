@@ -10,6 +10,11 @@ title: Личное избранное — проекты, компоненты,
 # председатель; добавление идёт только на существующую цель; повторное
 # добавление идемпотентно (уникальный индекс + upsert); выдача join'ом берёт
 # живое наименование цели и отфильтровывает записи удалённых сущностей.
+#
+# Удаление сущности снимает её с избранного у всех пайщиков — иначе запись
+# висит: проекция проекта и компонента при удалении не пропадает, а остаётся
+# с `present = false`, и без этого условия удалённая цель продолжала
+# показываться звёздочкой и вести на страницу, которая грузится бесконечно.
 
 sources:
   backend:
@@ -21,6 +26,9 @@ sources:
     - components/controller/src/extensions/capital/domain/enums/favorite-target-type.enum.ts
   ui:
     - components/desktop/extensions/capital/entities/Favorite/**
+    - components/desktop/extensions/capital/features/Project/DeleteProject/model/**
+    - components/desktop/extensions/capital/features/Issue/DeleteIssue/model/**
+    - components/desktop/extensions/capital/features/Story/DeleteStory/model/**
     - components/desktop/extensions/capital/features/Favorite/**
     - components/desktop/extensions/capital/pages/ArtifactsListPage/**
     - components/desktop/src/shared/hooks/useMenuSubItems.ts
@@ -87,3 +95,50 @@ cases:
     scenario: страница «Артефакты» показывает только доступные пайщику артефакты (границы допуска считает бэкенд), звёздочка помечает артефакт и он появляется в меню под «Артефакты»
     expect: чужие артефакты в списке не видны; избранный артефакт — суб-пунктом в левой панели
     status: missing
+
+  - id: cap.fav.side.05
+    level: backend
+    kind: side
+    scenario: цель удалена, но её строка осталась в проекции с present = false
+    expect: за целями идёт запрос только за живыми (present = true), запись в выдачу не попадает
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.06
+    level: backend
+    kind: side
+    scenario: снятие цели с избранного у всех пайщиков по хэшу в верхнем регистре
+    expect: удаление идёт по хэшу, приведённому к нижнему регистру (канон хранения)
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
+  - id: cap.fav.side.07
+    level: backend
+    kind: side
+    scenario: удаляется проект или компонент — персональный (мягко) и из цепи
+    expect: обе ветки снимают цель с избранного у всех пайщиков
+    test: components/controller/tests/unit/capital/favorites-cascade-on-delete.test.ts
+    status: written
+
+  - id: cap.fav.side.08
+    level: backend
+    kind: side
+    scenario: удаляется задача или артефакт
+    expect: цель снимается с избранного у всех пайщиков
+    test: components/controller/tests/unit/capital/favorites-cascade-on-delete.test.ts
+    status: written
+
+  - id: cap.fav.ui.03
+    level: ui
+    kind: side
+    scenario: пайщик удаляет проект, компонент, задачу или артефакт, отмеченные звёздочкой
+    expect: суб-пункт исчезает из левого меню сразу, без перезагрузки; после перезагрузки не возвращается
+    status: missing
+
+  - id: cap.fav.ui.04
+    level: ui
+    kind: break
+    scenario: открыть прямую ссылку на удалённый проект, компонент или задачу
+    expect: страница показывает «недоступен» вместо бесконечного скелетона загрузки
+    status: missing
+

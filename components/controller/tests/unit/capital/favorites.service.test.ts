@@ -25,6 +25,7 @@ function makeRepository(overrides: Partial<FavoriteRepository> = {}): FavoriteRe
     remove: jest.fn().mockResolvedValue(undefined),
     findByUserWithTargets: jest.fn().mockResolvedValue([]),
     targetExists: jest.fn().mockResolvedValue(true),
+    removeAllByTargetHash: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -109,6 +110,55 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ target_hash: 'live00', title: 'Живой проект' });
+  });
+
+  // cap.fav.side.05
+  it('за целями ходит только за живыми: удалённая сущность остаётся строкой в проекции с present=false', async () => {
+    const favoritesRepo = {
+      find: jest.fn().mockResolvedValue([
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.COMPONENT,
+          target_hash: 'dead00',
+          created_at: CREATED_AT,
+        },
+      ]),
+    };
+    // Проекция удалённого компонента никуда не делась — её отсекает условие present
+    const projectRepo = { find: jest.fn().mockResolvedValue([]) };
+    const issueRepo = { find: jest.fn().mockResolvedValue([]) };
+    const storyRepo = { find: jest.fn().mockResolvedValue([]) };
+
+    const repository = new FavoriteTypeormRepository(
+      favoritesRepo as never,
+      projectRepo as never,
+      issueRepo as never,
+      storyRepo as never
+    );
+
+    const result = await repository.findByUserWithTargets('voskhod', 'ant');
+
+    expect(result).toEqual([]);
+    expect(projectRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ present: true }) })
+    );
+  });
+
+  // cap.fav.side.06
+  it('снятие цели с избранного у всех пайщиков идёт по хэшу в нижнем регистре', async () => {
+    const favoritesRepo = { delete: jest.fn().mockResolvedValue(undefined) };
+
+    const repository = new FavoriteTypeormRepository(
+      favoritesRepo as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never
+    );
+
+    await repository.removeAllByTargetHash('ABC123');
+
+    expect(favoritesRepo.delete).toHaveBeenCalledWith({ target_hash: 'abc123' });
   });
 });
 

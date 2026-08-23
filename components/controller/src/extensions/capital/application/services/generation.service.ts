@@ -18,6 +18,7 @@ import type { CommitFilterInputDTO } from '../dto/generation/commit-filter.input
 import type { CycleFilterInputDTO } from '../dto/generation/cycle-filter.input';
 import type { GetIssueByIdInputDTO } from '../dto/generation/get-issue-by-id.input';
 import type { GetCommitByIdInputDTO } from '../dto/generation/get-commit-by-id.input';
+import { FAVORITE_REPOSITORY, type FavoriteRepository } from '../../domain/repositories/favorite.repository';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
@@ -113,7 +114,9 @@ export class GenerationService {
     private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
     @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
-    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined,
+    @Inject(FAVORITE_REPOSITORY)
+    private readonly favoriteRepository: FavoriteRepository
   ) {}
 
   private rowsToLinkedCommitSummaries(rows: IssueLinkedGitCommitRow[]): IssueLinkedGitCommitSummaryDTO[] {
@@ -881,6 +884,8 @@ export class GenerationService {
     await this.assertCanDeleteStoryRequirement(storyEntity, currentUser);
     const matrixRefs = storyEntity.matrix_requirement_announcement_events ?? [];
     await this.storyRepository.delete(storyEntity._id);
+    // Снимаем удалённый артефакт с избранного у всех пайщиков
+    await this.favoriteRepository.removeAllByTargetHash(storyEntity.story_hash);
     void this.removeStoryMatrixAnnouncements(matrixRefs);
     return true;
   }
@@ -1425,6 +1430,8 @@ export class GenerationService {
     // их не трогаем.
     await this.timeTrackingInteractor.cleanupIssueTimeEntries(issueHash);
     await this.issueRepository.delete(issueEntity._id);
+    // Снимаем удалённую задачу с избранного у всех пайщиков
+    await this.favoriteRepository.removeAllByTargetHash(issueEntity.issue_hash);
     return true;
   }
 

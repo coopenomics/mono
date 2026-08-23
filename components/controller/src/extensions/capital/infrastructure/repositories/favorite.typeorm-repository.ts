@@ -105,7 +105,12 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
     return targets;
   }
 
-  private findTargets<T extends { title: string }>(
+  /**
+   * Живые цели: `present = false` означает, что сущность удалена (из цепи —
+   * дельтой, локальная — мягким удалением), строка в проекции при этом
+   * остаётся. Без этого фильтра удалённая цель продолжала висеть в избранном.
+   */
+  private findTargets<T extends { title: string; present: boolean }>(
     repo: Repository<T>,
     hashColumn: keyof T & string,
     extraColumns: Array<keyof T & string>,
@@ -114,7 +119,7 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
     if (hashes.length === 0) return Promise.resolve([]);
     return repo.find({
       select: [hashColumn, ...extraColumns] as never,
-      where: { [hashColumn]: In(hashes) } as never,
+      where: { [hashColumn]: In(hashes), present: true } as never,
     });
   }
 
@@ -129,5 +134,9 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
       case FavoriteTargetType.ARTIFACT:
         return (await this.storyRepo.countBy({ story_hash: hash })) > 0;
     }
+  }
+
+  async removeAllByTargetHash(target_hash: string): Promise<void> {
+    await this.repo.delete({ target_hash: target_hash.toLowerCase() });
   }
 }

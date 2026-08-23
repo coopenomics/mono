@@ -54,8 +54,17 @@
             @authors-added="handleAuthorsAdded"
           )
 
+  // Проект удалён или недоступен — скелетон крутиться не должен
+  .project-page-missing(v-if="notFound")
+    EmptyState(
+      title="Проект недоступен"
+      body="Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке."
+    )
+      template(#icon)
+        q-icon(name="folder_off" size="32px")
+
   // Скелетон первичной загрузки проекта
-  .project-page-skeleton(v-if="!project")
+  .project-page-skeleton(v-else-if="!project")
     .project-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .project-page-skeleton__main
@@ -132,6 +141,7 @@ import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import { useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
 import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
@@ -178,7 +188,7 @@ const addAuthorRef = ref<CapitalActionOpen>(null);
 const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
-const { project, projectHash, loadProject } = useProjectLoader();
+const { project, projectHash, notFound, loadProject } = useProjectLoader();
 
 const isLocalProject = computed(() => project.value?.origin === 'local');
 
@@ -374,6 +384,16 @@ onMounted(async () => {
 }
 
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
+.project-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
+}
+
 .project-page-skeleton {
   display: flex;
   gap: var(--p-4);

@@ -68,8 +68,17 @@
             @authors-added="handleAuthorsAdded"
           )
 
+  // Компонент удалён или недоступен — скелетон крутиться не должен
+  .component-page-missing(v-if="notFound")
+    EmptyState(
+      title="Компонент недоступен"
+      body="Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке."
+    )
+      template(#icon)
+        q-icon(name="code_off" size="32px")
+
   // Скелетон первичной загрузки компонента
-  .component-page-skeleton(v-if="!project")
+  .component-page-skeleton(v-else-if="!project")
     .component-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .component-page-skeleton__main
@@ -158,6 +167,7 @@ import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import { useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
 import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
@@ -207,7 +217,7 @@ const addAuthorRef = ref<CapitalActionOpen>(null);
 const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
-const { project, projectHash, loadProject } = useProjectLoader();
+const { project, projectHash, notFound, loadProject } = useProjectLoader();
 
 const isLocalProject = computed(() => project.value?.origin === 'local');
 
@@ -448,6 +458,17 @@ onMounted(async () => {
   font-size: var(--p-fs-body);
   font-weight: 500;
   color: var(--p-ink);
+}
+
+// Заглушка удалённого/недоступного компонента — на месте каркаса загрузки
+.component-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
 }
 
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»

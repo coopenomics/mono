@@ -17,7 +17,15 @@
           q-icon(name="add", size="18px")
         | Артефакт
 
-  .issue-page-skeleton(v-if="!issue")
+  .issue-page-missing(v-if="issueNotFound")
+    EmptyState(
+      title="Задача недоступна"
+      body="Она удалена или закрыта для вас. Ссылку из избранного можно снять звёздочкой в списке."
+    )
+      template(#icon)
+        q-icon(name="assignment_late" size="32px")
+
+  .issue-page-skeleton(v-else-if="!issue")
     .issue-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .issue-page-skeleton__main
@@ -131,7 +139,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
 import { useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
-import { BaseButton } from 'src/shared/ui/base'
+import { BaseButton, EmptyState } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
 import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
 import { ConflictDialog, extractContentConflict, type IContentConflict } from 'app/extensions/capital/features/ContentRevisions'
@@ -391,6 +399,11 @@ useBackButton({
   },
 })
 
+// Попытка загрузки завершилась, а задачи нет — она удалена или недоступна.
+// Без этого признака страница не отличает «ещё грузится» от «уже никогда
+// не загрузится» и крутит скелетон бесконечно.
+const issueNotFound = ref(false)
+
 const loadIssue = async () => {
   try {
     const issueData = await IssueApi.loadIssue({ issue_hash: issueHash.value })
@@ -398,9 +411,11 @@ const loadIssue = async () => {
     if (issue.value?.description) {
       issue.value.description = ensureMarkdownFormat(issue.value.description)
     }
+    issueNotFound.value = !issue.value
   } catch (error) {
     console.error('Ошибка при загрузке задачи:', error)
     FailAlert('Не удалось загрузить задачу')
+    issueNotFound.value = true
   }
 }
 
@@ -504,6 +519,7 @@ provide(ISSUE_PAGE_KEY, {
 
 watch(routeIssueKey, async (_key, prev) => {
   if (prev === undefined) return
+  issueNotFound.value = false
   await loadIssue()
   await loadParentInfo()
 })
@@ -568,6 +584,16 @@ onMounted(async () => {
   min-height: 0;
   min-width: 0;
   width: 100%;
+}
+
+.issue-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
 }
 
 .issue-page-skeleton {
