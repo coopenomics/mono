@@ -9,6 +9,12 @@ title: История редакций и серверное слияние — 
 # слитый текст; настоящий конфликт — ошибка CONTENT_CONFLICT с обеими версиями,
 # ничего не записано. Откат — обычная запись с origin=RESTORE (остаётся в истории).
 # Первичный снимок rev=1 сеется миграцией и лениво сервисом.
+#
+# Ту же историю редакций ведёт blago-cli при синхронизации файлов
+# (`components/blago-cli/src/sync/{push,merge3,sync-entity-file}.ts`) — в
+# sources их нет намеренно: уровни реестра это уровни тестов
+# (contract/backend/ui), а сам каталог blago-cli не входит в значимые корни
+# гейта, так что связать код с фичей через него всё равно не выйдет.
 
 sources:
   backend:
@@ -23,10 +29,6 @@ sources:
     - components/desktop/extensions/capital/features/ContentRevisions/**
     - components/desktop/extensions/capital/pages/ProjectDescriptionPage/**
     - components/desktop/extensions/capital/pages/ComponentDescriptionPage/**
-  cli:
-    - components/blago-cli/src/sync/push.ts
-    - components/blago-cli/src/sync/merge3.ts
-    - components/blago-cli/src/sync/sync-entity-file.ts
 
 cases:
   - id: cap.rev.happy.01
@@ -90,7 +92,6 @@ cases:
     kind: side
     scenario: просмотр истории артефакта без допуска к проекту
     expect: отказ «Недостаточно прав для просмотра истории редакций»
-    test: components/controller/tests/unit/capital/content-revision-api.service.test.ts
     status: missing
 
   - id: cap.rev.happy.02
@@ -98,7 +99,6 @@ cases:
     kind: happy
     scenario: проект/компонент — правка описания, кнопка «Сохранить», окно «Редакции» показывает новую запись
     expect: без кнопки на сервер ничего не уходит; в списке редакций появляется запись с автором
-    test: components/docs-harness/scenarios/capital/content-revisions.ts
     status: missing
 
   - id: cap.rev.side.07
@@ -106,5 +106,4 @@ cases:
     kind: side
     scenario: откат к прежней редакции из окна «Редакции»
     expect: содержимое редактора заменено, в истории новая запись RESTORE со ссылкой на исходную
-    test: components/docs-harness/scenarios/capital/content-revisions.ts
     status: missing
