@@ -17,13 +17,32 @@ vi.mock('../src/oidc/flow-executor', () => ({
 
 /** Настройки, с которыми создали UserManager — по ним проверяем цену входа. */
 let capturedSettings: Record<string, unknown> = {}
-/** Сколько раз тихий запрос падал, прежде чем вернуть пайщика. */
-let failSilentTimes = 0
+/** Ронять ли основной путь (обычный запрос за кодом) — тогда пойдёт запасной кадр. */
+let failFetch = false
+
+const AUTHORIZE_URL = 'https://coop.example/application/o/authorize/?prompt=none'
+const RETURN_URL = 'https://coop.example/auth/callback.html?code=abc&state=xyz'
 
 vi.mock('oidc-client-ts', () => ({
   UserManager: class {
     constructor(settings: Record<string, unknown>) {
       capturedSettings = settings
+    }
+
+    settings = { silent_redirect_uri: 'https://coop.example/auth/callback.html' }
+    // Внутренности библиотеки, которыми пользуется путь без кадра.
+    _client = {
+      createSigninRequest: async () => {
+        calls.push('createSigninRequest')
+        return { url: AUTHORIZE_URL }
+      },
+    }
+
+    async _signinEnd(url: string) {
+      calls.push('signinEnd')
+      if (url !== RETURN_URL)
+        throw new Error(`неожиданный адрес возврата: ${url}`)
+      return signinSilent()
     }
 
     metadataService = { getMetadata: vi.fn(async () => ({})) }
@@ -39,10 +58,6 @@ vi.mock('oidc-client-ts', () => ({
 
     async signinSilent() {
       calls.push('signinSilent')
-      if (failSilentTimes > 0) {
-        failSilentTimes -= 1
-        throw new Error('iframe window timed out')
-      }
       return signinSilent()
     }
   },
@@ -50,11 +65,20 @@ vi.mock('oidc-client-ts', () => ({
 
 const ISSUER = 'https://coop.example/application/o/coopid/'
 
+// Основной путь ходит обычным запросом: authentik отвечает редиректом на
+// страницу возврата, и адрес, на котором запрос закончился, несёт код.
+vi.stubGlobal('fetch', vi.fn(async () => {
+  calls.push('fetch')
+  if (failFetch)
+    throw new TypeError('Failed to fetch')
+  return { url: RETURN_URL, status: 200 } as unknown as Response
+}))
+
 describe('authenticateWithAuthentik — тихий запрос после ввода пароля', () => {
   beforeEach(() => {
     calls.length = 0
     capturedSettings = {}
-    failSilentTimes = 0
+    failFetch = false
     vi.clearAllMocks()
   })
 
@@ -67,7 +91,7 @@ describe('authenticateWithAuthentik — тихий запрос после вв�
     // Порядок принципиален: сверка «тот же ли человек» опирается на запись в
     // хранилище, поэтому убрать её надо до запроса, а не после.
     expect(calls.indexOf('removeUser')).toBeGreaterThan(calls.indexOf('flow'))
-    expect(calls.indexOf('removeUser')).toBeLessThan(calls.indexOf('signinSilent'))
+    expect(calls.indexOf('removeUser')).toBeLessThan(calls.indexOf('createSigninRequest'))
     expect(calls).toContain('clearStaleState')
   })
 
@@ -79,20 +103,34 @@ describe('authenticateWithAuthentik — тихий запрос после вв�
     expect(user.profile.preferred_username).toBe('ant')
   })
 
-  it('теряется тихий запрос — вход доходит повтором, а не падает', async () => {
+  it('код берётся обычным запросом, кадр не открывается вовсе', async () => {
     const { authenticateWithAuthentik, configureOidc } = await import('../src/oidc/client')
     configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
-    // Ровно то, что видели на стенде 23.08.2026: запрос скрытого кадра браузер
-    // оборвал (nginx записал 499), страница возврата не запрашивалась вовсе.
-    failSilentTimes = 1
+
+    const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
+
+    // Кадр — навигация, и на ней браузер проверяет обновление service worker'а;
+    // пока тот ставится, переход до сети не доходит. Обычный запрос навигацией
+    // не является, поэтому основной путь идёт через него.
+    expect(user.profile.preferred_username).toBe('ant')
+    expect(calls).toContain('fetch')
+    expect(calls).not.toContain('signinSilent')
+  })
+
+  it('основной путь не удался — вход доходит запасным кадром', async () => {
+    const { authenticateWithAuthentik, configureOidc } = await import('../src/oidc/client')
+    configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
+    // Сетевой отказ основного пути: запасным остаётся кадр, и его ожидание —
+    // единственное, что пайщик заметит, поэтому оно и ограничено порогом ниже.
+    failFetch = true
 
     const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
 
     expect(user.profile.preferred_username).toBe('ant')
-    expect(calls.filter(c => c === 'signinSilent')).toHaveLength(2)
+    expect(calls).toContain('signinSilent')
   })
 
-  it('ожидание потерянного кадра не дороже повтора', async () => {
+  it('ожидание запасного кадра ограничено — иначе вход упирается в него целиком', async () => {
     const { authenticateWithAuthentik, configureOidc, SILENT_REQUEST_TIMEOUT_SECONDS } = await import('../src/oidc/client')
     configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
     // Свой адрес кооператива: менеджеры кэшируются по нему, и на уже знакомом

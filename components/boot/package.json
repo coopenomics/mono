@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/boot",
   "type": "module",
-  "version": "2026.8.22-2",
+  "version": "2026.8.23-1",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "description": "CLI-утилита инициализации блокчейна и кооператива",

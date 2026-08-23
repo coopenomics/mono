@@ -193,6 +193,11 @@ services:
       AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
       # Подставляется blueprint'ом coopid-password-policy в headers-mapping вебхука.
       COOPID_WEBHOOK_TOKEN: ${COOPID_WEBHOOK_TOKEN:-}
+      # Адрес возврата рабочего стола: его читает blueprint провайдера OIDC
+      # (`!Env [COOPID_REDIRECT_URI, …]`). Без проброса blueprint брал дефолтный
+      # порт 8108, и на стенде с другим NGINX_HOST_PORT вход по паролю падал
+      # с redirect_uri mismatch, хотя переменная в .env стояла.
+      COOPID_REDIRECT_URI: ${COOPID_REDIRECT_URI:-http://localhost:8108/auth/callback.html}
     volumes: &authentik-volumes
       - ./infra/coopid/authentik/blueprints:/blueprints/custom:ro
     secrets: &authentik-secrets

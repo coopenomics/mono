@@ -22,6 +22,34 @@ import { normalizeAbiFloats } from './abi-float.normalizer';
  */
 const BY_OPERATOR_INDEX = 'tertiary';
 
+/**
+ * «Такого аккаунта в цепи нет» — в отличие от «до цепи не достучались».
+ *
+ * Узел на запрос ABI несуществующего аккаунта отвечает не пустотой, а ошибкой
+ * `account_query_exception` (HTTP 400). Для читающего это не сбой: контракта
+ * просто нет в этой сети — обычное дело для свежего контура и тестовой сети.
+ * Разбор по коду ошибки, а не по тексту; строка оставлена запасным вариантом,
+ * потому что ошибка приходит из чужой библиотеки и оборачивается ею по-разному.
+ */
+/** Строка таблицы заверений — как её отдаёт узел, до приведения к записи. */
+interface EndorsementRow {
+  issuer: unknown;
+  subject: unknown;
+  chain_id: unknown;
+  cert_key: unknown;
+  expires_at: unknown;
+  credential: unknown;
+}
+
+function isMissingAccount(e: unknown): boolean {
+  const err = e as { error?: { name?: string; code?: number }; message?: string };
+  if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
+  const message = String(err?.message ?? '');
+  return message.includes('account_query_exception')
+    || message.includes('Account Query Exception')
+    || message.includes('ABI контракта');
+}
+
 export type IndexPosition =
   | 'primary'
   | 'secondary'
@@ -279,9 +307,33 @@ export class BlockchainService implements BlockchainPort {
     });
   }
 
+  /**
+   * Заверение субъекта, выданное якорем доверия. `null` — заверения нет.
+   *
+   * Отсутствие самого якоря — это тоже «заверения нет», а не сбой. В сети, где
+   * аккаунт `ano` ещё не заведён (свежий контур, тестовая сеть), узел отвечает на
+   * запрос его ABI ошибкой `account_query_exception`, и без разбора она уезжала
+   * наверх как недоступность цепи. Дальше `CertificateService` отказывался
+   * выпускать удостоверение вообще — хотя там прямо написано обратное: «пустая
+   * цепочка — не ошибка, отказать было бы хуже: пайщик не виноват, что кооператив
+   * выпал из цепочки». Задуманное состояние (удостоверение выпущено, в карточке
+   * честная пометка «не утверждено АНО») было недостижимо, а пайщик видел
+   * «удостоверение ещё не выпущено» и ничего не мог с этим сделать.
+   *
+   * Настоящую недоступность цепи по-прежнему пробрасываем: она означает, что
+   * заверение, возможно, есть, просто мы его не прочитали, — и выдавать в этом
+   * случае удостоверение с пустой цепочкой нельзя.
+   */
   public async getEndorsement(subject: string): Promise<EndorsementRecord | null> {
     const contract = AnoContract.contractName.production;
-    const row = await this.getSingleRow(contract, contract, AnoContract.Tables.Endorsements.tableName, Name.from(subject));
+    let row: EndorsementRow | null;
+    try {
+      row = await this.getSingleRow<EndorsementRow>(contract, contract, AnoContract.Tables.Endorsements.tableName, Name.from(subject));
+    }
+    catch (e) {
+      if (isMissingAccount(e)) return null;
+      throw e;
+    }
     if (!row) return null;
     return {
       issuer: String(row.issuer),

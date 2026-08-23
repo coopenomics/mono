@@ -29,16 +29,18 @@ const USER = {
   subscriber_hash: null,
 };
 
-function setup() {
+function setup(opts: { migrated?: boolean } = {}) {
   const userRepository = { findById: jest.fn().mockResolvedValue(USER) };
   const userDomainService = { getUserByLegacyMongoId: jest.fn().mockResolvedValue(USER) };
   const tokenRepository = { findById: jest.fn() };
+  const vault = { retrieve: jest.fn().mockResolvedValue(opts.migrated ? { ciphertext: 'x' } : null) };
   const strategy = new JwtAuthStrategy(
     userRepository as never,
     userDomainService as never,
     tokenRepository as never,
+    vault as never,
   );
-  return { strategy, tokenRepository };
+  return { strategy, tokenRepository, vault };
 }
 
 const ACCESS = { sub: SUB, type: tokenTypes.ACCESS };
@@ -55,7 +57,7 @@ describe('JwtAuthStrategy — привязка токена к сессии', ()
     expect(res.session_id).toBe('sess-1');
   });
 
-  it('сессия завершена (строки нет) → отказ, пользователя даже не ищем', async () => {
+  it('сессия завершена (строки нет) → отказ', async () => {
     const { strategy, tokenRepository } = setup();
     tokenRepository.findById.mockResolvedValue(null);
 
@@ -73,14 +75,41 @@ describe('JwtAuthStrategy — привязка токена к сессии', ()
     );
   });
 
-  it('токен старого выпуска без sid работает как прежде — иначе выкатка разлогинит всех', async () => {
-    const { strategy, tokenRepository } = setup();
+  it('токен старого выпуска без sid у пайщика НА КЛЮЧЕ работает как прежде — иначе выкатка разлогинит всех', async () => {
+    const { strategy, tokenRepository, vault } = setup({ migrated: false });
 
     const res = await strategy.validate({ ...ACCESS });
 
     expect(tokenRepository.findById).not.toHaveBeenCalled();
+    expect(vault.retrieve).toHaveBeenCalledWith({ subject_type: 'participant', subject_id: 'ant' });
     expect(res.username).toBe('ant');
     expect(res.session_id).toBeNull();
+  });
+
+  it('токен без sid у пайщика, ПЕРЕШЕДШЕГО на пароль → отказ: старые сессии обязаны умереть вместе с ключом', async () => {
+    const { strategy } = setup({ migrated: true });
+
+    await expect(strategy.validate({ ...ACCESS })).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('токен С sid у перешедшего пайщика проверяется по сессии, а не по vault — это уже новая сессия', async () => {
+    const { strategy, tokenRepository, vault } = setup({ migrated: true });
+    tokenRepository.findById.mockResolvedValue({ id: 'sess-new', blacklisted: false });
+
+    const res = await strategy.validate({ ...ACCESS, sid: 'sess-new' });
+
+    expect(vault.retrieve).not.toHaveBeenCalled();
+    expect(res.session_id).toBe('sess-new');
+  });
+
+  it('ответ «перешёл» кэшируется: повторные запросы того же пайщика в vault не ходят', async () => {
+    const { strategy, vault } = setup({ migrated: false });
+
+    await strategy.validate({ ...ACCESS });
+    await strategy.validate({ ...ACCESS });
+    await strategy.validate({ ...ACCESS });
+
+    expect(vault.retrieve).toHaveBeenCalledTimes(1);
   });
 
   it('не-access токен отвергается до всех проверок', async () => {
