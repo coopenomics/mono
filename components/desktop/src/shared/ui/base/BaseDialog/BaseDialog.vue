@@ -63,6 +63,7 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
   md: '440px',
   lg: '640px',
   xl: '800px',
+  xxl: '1200px',
 };
 </script>
 
