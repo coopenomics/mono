@@ -394,6 +394,8 @@ import { ProjectMapperService } from './application/services/project-mapper.serv
 import { CommitMapperService } from './application/services/commit-mapper.service';
 import { GitService } from './application/services/git.service';
 import { GenerationService } from './application/services/generation.service';
+import { ContentRevisionService } from './application/services/content-revision.service';
+import { ContentRevisionApiService } from './application/services/content-revision-api.service';
 import { ComponentMetricService } from './application/services/component-metric.service';
 import { ComponentMatrixAnnouncementService } from './application/services/component-matrix-announcement.service';
 import { IssuePermissionsService } from './application/services/issue-permissions.service';
@@ -457,6 +459,7 @@ import { ContractManagementResolver } from './application/resolvers/contract-man
 import { ParticipationManagementResolver } from './application/resolvers/participation-management.resolver';
 import { ProjectManagementResolver } from './application/resolvers/project-management.resolver';
 import { GenerationResolver } from './application/resolvers/generation.resolver';
+import { ContentRevisionResolver } from './application/resolvers/content-revision.resolver';
 import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
@@ -803,6 +806,8 @@ IssueIdGenerationService,
     CommitMapperService,
     GitService,
     GenerationService,
+    ContentRevisionService,
+    ContentRevisionApiService,
     ComponentMetricService,
     ComponentMatrixAnnouncementService,
     IssuePermissionsService,
@@ -869,6 +874,7 @@ IssueIdGenerationService,
     ParticipationManagementResolver,
     ProjectManagementResolver,
     GenerationResolver,
+    ContentRevisionResolver,
     ComponentMetricResolver,
     InvestsManagementResolver,
     DebtManagementResolver,

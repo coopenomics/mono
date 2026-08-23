@@ -40,6 +40,7 @@ export class ProjectDomainEntity
   public development_repository_url: string | null;
   /** Приоритет проекта/компонента (только БД). */
   public priority: ProjectPriority;
+  public content_rev: number;
   /** blockchain — кооперативный; local — персональный */
   public origin: ProjectOrigin;
   /** Владелец персонального проекта */
@@ -93,6 +94,7 @@ export class ProjectDomainEntity
     this.priority = Object.values(ProjectPriority).includes(databaseData.priority as ProjectPriority)
       ? (databaseData.priority as ProjectPriority)
       : ProjectPriority.MEDIUM;
+    this.content_rev = databaseData.content_rev ?? 0;
     this.origin =
       (databaseData.origin as ProjectOrigin) === ProjectOrigin.LOCAL
         ? ProjectOrigin.LOCAL

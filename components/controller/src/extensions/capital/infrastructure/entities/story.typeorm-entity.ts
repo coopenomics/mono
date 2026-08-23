@@ -53,6 +53,10 @@ export class StoryTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'integer', default: 0 })
   sort_order!: number;
 
+  /** Редакция содержимого (см. capital_content_revisions); 0 — снимков ещё нет. */
+  @Column({ type: 'integer', default: 0 })
+  content_rev!: number;
+
   @Column({ type: 'jsonb', nullable: true })
   matrix_requirement_announcement_events?: { matrix_room_id: string; event_id: string }[] | null;
 

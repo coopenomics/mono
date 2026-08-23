@@ -1,9 +1,21 @@
 <template lang="pug">
 div.q-px-md
-  AutoSaveIndicator(
-    :is-auto-saving="isAutoSaving"
-    :auto-save-error="autoSaveError"
-  )
+  .row.items-center
+    .col
+      AutoSaveIndicator(
+        :is-auto-saving="isAutoSaving"
+        :auto-save-error="autoSaveError"
+      )
+    .col-auto(v-if="issue")
+      RevisionsButton(
+        entity-type="ISSUE"
+        :entity-hash="issue.issue_hash"
+        :current-title="issue.title || ''"
+        :current-description="issue.description || ''"
+        :current-rev="issue.content_rev ?? 0"
+        :can-edit="!!issue.permissions?.can_edit_issue"
+        @restored="reloadIssue"
+      )
 
   Editor(
     v-if="issue"
@@ -27,6 +39,7 @@ div.q-px-md
 import { inject } from 'vue'
 import { Editor, AutoSaveIndicator } from 'src/shared/ui'
 import { TimeEntriesWidget } from 'app/extensions/capital/widgets'
+import { RevisionsButton } from 'app/extensions/capital/features/ContentRevisions'
 import { ISSUE_PAGE_KEY } from '../../IssuePage/model/context'
 
 const ctx = inject(ISSUE_PAGE_KEY)
@@ -38,6 +51,7 @@ const issue = ctx.issue
 const isAutoSaving = ctx.isAutoSaving
 const autoSaveError = ctx.autoSaveError
 const handleDescriptionChange = () => ctx.handleDescriptionChange()
+const reloadIssue = () => ctx.reloadIssue()
 </script>
 
 <style lang="scss" scoped>

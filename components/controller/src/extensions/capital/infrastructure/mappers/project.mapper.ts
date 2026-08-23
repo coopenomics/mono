@@ -42,6 +42,7 @@ export class ProjectMapper {
       matrix_component_announcement_events: entity.matrix_component_announcement_events ?? [],
       development_repository_url: entity.development_repository_url ?? null,
       priority: entity.priority ?? ProjectPriority.MEDIUM,
+      content_rev: entity.content_rev ?? 0,
       origin: entity.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: entity.local_owner ?? null,
       _created_at: entity._created_at,
@@ -105,6 +106,8 @@ export class ProjectMapper {
       matrix_component_announcement_events: domain.matrix_component_announcement_events ?? null,
       development_repository_url: domain.development_repository_url ?? null,
       priority: domain.priority ?? ProjectPriority.MEDIUM,
+      // 0 не пишем (undefined TypeORM пропускает): номер редакции двигает только ContentRevisionService
+      content_rev: (domain.content_rev || undefined) as number,
       origin: domain.origin ?? ProjectOrigin.BLOCKCHAIN,
       local_owner: domain.local_owner ?? null,
       _created_at: domain._created_at as Date,

@@ -38,6 +38,7 @@ import { ResultTypeormEntity } from './infrastructure/entities/result.typeorm-en
 import { SegmentTypeormEntity } from './infrastructure/entities/segment.typeorm-entity';
 import { StateTypeormEntity } from './infrastructure/entities/state.typeorm-entity';
 import { StoryTypeormEntity } from './infrastructure/entities/story.typeorm-entity';
+import { ContentRevisionTypeormEntity } from './infrastructure/entities/content-revision.typeorm-entity';
 import { TimeEntryEntity } from './infrastructure/entities/time-entry.entity';
 import { TimerSessionEntity } from './infrastructure/entities/timer-session.entity';
 import { VoteTypeormEntity } from './infrastructure/entities/vote.typeorm-entity';
@@ -74,6 +75,7 @@ export const capitalEntities = [
   SegmentTypeormEntity,
   StateTypeormEntity,
   StoryTypeormEntity,
+  ContentRevisionTypeormEntity,
   TimeEntryEntity,
   TimerSessionEntity,
   VoteTypeormEntity,

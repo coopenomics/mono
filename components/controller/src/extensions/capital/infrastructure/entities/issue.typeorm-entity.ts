@@ -53,6 +53,10 @@ export class IssueTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'integer', default: 0 })
   sort_order!: number;
 
+  /** Редакция содержимого (см. capital_content_revisions); 0 — снимков ещё нет. */
+  @Column({ type: 'integer', default: 0 })
+  content_rev!: number;
+
   @Column({ type: 'varchar', length: 255 })
   created_by!: string;
 

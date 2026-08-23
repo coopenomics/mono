@@ -1938,6 +1938,8 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -3338,6 +3340,76 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalConfigObject']?: Omit<ValueTypes["CapitalConfigObject"], "...on CapitalConfigObject">
 }>;
+	/** Тип сущности с историей редакций: PROJECT (проект/компонент), ISSUE (задача), STORY (артефакт/требование) */
+["CapitalContentEntityType"]:CapitalContentEntityType;
+	/** Редакция содержимого проекта/задачи/артефакта с телом */
+["CapitalContentRevision"]: AliasType<{
+	/** Автор редакции (username) */
+	author?:boolean | `@${string}`,
+	/** Редакция, с которой автор начал правку */
+	base_rev?:boolean | `@${string}`,
+	/** Формат тела (для артефактов) */
+	content_format?:boolean | `@${string}`,
+	/** SHA-256 содержимого (title + description) */
+	content_hash?:boolean | `@${string}`,
+	/** Момент записи редакции */
+	created_at?:boolean | `@${string}`,
+	/** Тело (description) на момент редакции */
+	description?:boolean | `@${string}`,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta?:boolean | `@${string}`,
+	/** Размер тела в символах */
+	description_length?:boolean | `@${string}`,
+	/** Хэш сущности */
+	entity_hash?:boolean | `@${string}`,
+	/** Тип сущности */
+	entity_type?:boolean | `@${string}`,
+	/** Текст получен слиянием с параллельной правкой */
+	merged?:boolean | `@${string}`,
+	/** Источник редакции */
+	origin?:boolean | `@${string}`,
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?:boolean | `@${string}`,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev?:boolean | `@${string}`,
+	/** Заголовок на момент редакции */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalContentRevision']?: Omit<ValueTypes["CapitalContentRevision"], "...on CapitalContentRevision">
+}>;
+	/** Источник редакции: WEB, CLI, RESTORE (откат), CHAIN (синхронизация из блокчейна), BACKFILL (первичный снимок) */
+["CapitalContentRevisionOrigin"]:CapitalContentRevisionOrigin;
+	/** Редакция содержимого проекта/задачи/артефакта (без тела) */
+["CapitalContentRevisionSummary"]: AliasType<{
+	/** Автор редакции (username) */
+	author?:boolean | `@${string}`,
+	/** Редакция, с которой автор начал правку */
+	base_rev?:boolean | `@${string}`,
+	/** SHA-256 содержимого (title + description) */
+	content_hash?:boolean | `@${string}`,
+	/** Момент записи редакции */
+	created_at?:boolean | `@${string}`,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta?:boolean | `@${string}`,
+	/** Размер тела в символах */
+	description_length?:boolean | `@${string}`,
+	/** Хэш сущности */
+	entity_hash?:boolean | `@${string}`,
+	/** Тип сущности */
+	entity_type?:boolean | `@${string}`,
+	/** Текст получен слиянием с параллельной правкой */
+	merged?:boolean | `@${string}`,
+	/** Источник редакции */
+	origin?:boolean | `@${string}`,
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?:boolean | `@${string}`,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev?:boolean | `@${string}`,
+	/** Заголовок на момент редакции */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalContentRevisionSummary']?: Omit<ValueTypes["CapitalContentRevisionSummary"], "...on CapitalContentRevisionSummary">
+}>;
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: AliasType<{
 	/** Дата создания записи */
@@ -3672,6 +3744,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalFibLevel']?: Omit<ValueTypes["CapitalFibLevel"], "...on CapitalFibLevel">
 }>;
+	["CapitalGetContentRevisionInput"]: {
+	/** Хэш сущности */
+	entity_hash: string | Variable<any, string>,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ValueTypes["CapitalContentEntityType"] | Variable<any, string>,
+	/** Номер редакции */
+	rev: number | Variable<any, string>
+};
+	["CapitalGetContentRevisionsInput"]: {
+	/** Хэш сущности */
+	entity_hash: string | Variable<any, string>,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ValueTypes["CapitalContentEntityType"] | Variable<any, string>
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -3743,6 +3829,8 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Имя пользователя, создавшего задачу */
 	created_by?:boolean | `@${string}`,
 	/** Массив имен пользователей создателей (contributors) */
@@ -4302,6 +4390,8 @@ export type ValueTypes = {
 	blockchain_status?:boolean | `@${string}`,
 	/** Массив проектов-компонентов */
 	components?:ValueTypes["CapitalProjectComponent"],
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -4373,6 +4463,8 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -4691,6 +4783,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalProjectVotingData']?: Omit<ValueTypes["CapitalProjectVotingData"], "...on CapitalProjectVotingData">
 }>;
+	["CapitalRestoreContentRevisionInput"]: {
+	/** Текущая редакция, которую видел пользователь (base_rev): откат сливается с параллельными правками как обычная запись */
+	base_rev: number | Variable<any, string>,
+	/** Хэш сущности */
+	entity_hash: string | Variable<any, string>,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ValueTypes["CapitalContentEntityType"] | Variable<any, string>,
+	/** Номер редакции */
+	rev: number | Variable<any, string>
+};
 	/** Результат в системе CAPITAL */
 ["CapitalResult"]: AliasType<{
 	/** Дата создания записи */
@@ -4950,6 +5052,8 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Формат содержимого (markdown-текст или BPMN 2.0 XML в description) */
 	content_format?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Имя пользователя, создавшего историю */
@@ -6572,6 +6676,8 @@ export type ValueTypes = {
 	username: string | Variable<any, string>
 };
 	["EditProjectInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Новые данные/шаблон проекта */
@@ -6582,6 +6688,8 @@ export type ValueTypes = {
 	invite: string | Variable<any, string>,
 	/** Новые мета-данные проекта */
 	meta: string | Variable<any, string>,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ValueTypes["CapitalContentRevisionOrigin"] | undefined | null | Variable<any, string>,
 	/** Хэш проекта для редактирования */
 	project_hash: string | Variable<any, string>,
 	/** Новое название проекта */
@@ -11940,6 +12048,7 @@ capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<an
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRemoveFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
+capitalRestoreContentRevision?: [{	data: ValueTypes["CapitalRestoreContentRevisionInput"] | Variable<any, string>},ValueTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
@@ -13716,6 +13825,8 @@ capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variabl
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ValueTypes["ExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalExpensesPaginationResult"]],
 capitalFavorites?: [{	filter: ValueTypes["CapitalFavoritesFilter"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
+capitalGetContentRevision?: [{	data: ValueTypes["CapitalGetContentRevisionInput"] | Variable<any, string>},ValueTypes["CapitalContentRevision"]],
+capitalGetContentRevisions?: [{	data: ValueTypes["CapitalGetContentRevisionsInput"] | Variable<any, string>},ValueTypes["CapitalContentRevisionSummary"]],
 capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -15466,6 +15577,8 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	["UpdateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null | Variable<any, string>,
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null | Variable<any, string>,
 	/** Массив имен пользователей создателей (contributors) */
 	creators?: Array<string> | undefined | null | Variable<any, string>,
 	/** ID цикла */
@@ -15478,6 +15591,8 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	issue_hash: string | Variable<any, string>,
 	/** Метки задачи */
 	labels?: Array<string> | undefined | null | Variable<any, string>,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ValueTypes["CapitalContentRevisionOrigin"] | undefined | null | Variable<any, string>,
 	/** Приоритет задачи */
 	priority?: ValueTypes["IssuePriority"] | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
@@ -15572,12 +15687,16 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	provider_name?: string | undefined | null | Variable<any, string>
 };
 	["UpdateStoryInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null | Variable<any, string>,
 	/** Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID) */
 	content_format?: ValueTypes["CapitalStoryContentFormat"] | undefined | null | Variable<any, string>,
 	/** Описание истории */
 	description?: string | undefined | null | Variable<any, string>,
 	/** Хеш задачи (если история привязана к задаче) */
 	issue_hash?: string | undefined | null | Variable<any, string>,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ValueTypes["CapitalContentRevisionOrigin"] | undefined | null | Variable<any, string>,
 	/** Хеш проекта (если история привязана к проекту) */
 	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
@@ -16895,6 +17014,8 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -18269,6 +18390,74 @@ export type ResolverInputTypes = {
 	voting_period_in_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Тип сущности с историей редакций: PROJECT (проект/компонент), ISSUE (задача), STORY (артефакт/требование) */
+["CapitalContentEntityType"]:CapitalContentEntityType;
+	/** Редакция содержимого проекта/задачи/артефакта с телом */
+["CapitalContentRevision"]: AliasType<{
+	/** Автор редакции (username) */
+	author?:boolean | `@${string}`,
+	/** Редакция, с которой автор начал правку */
+	base_rev?:boolean | `@${string}`,
+	/** Формат тела (для артефактов) */
+	content_format?:boolean | `@${string}`,
+	/** SHA-256 содержимого (title + description) */
+	content_hash?:boolean | `@${string}`,
+	/** Момент записи редакции */
+	created_at?:boolean | `@${string}`,
+	/** Тело (description) на момент редакции */
+	description?:boolean | `@${string}`,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta?:boolean | `@${string}`,
+	/** Размер тела в символах */
+	description_length?:boolean | `@${string}`,
+	/** Хэш сущности */
+	entity_hash?:boolean | `@${string}`,
+	/** Тип сущности */
+	entity_type?:boolean | `@${string}`,
+	/** Текст получен слиянием с параллельной правкой */
+	merged?:boolean | `@${string}`,
+	/** Источник редакции */
+	origin?:boolean | `@${string}`,
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?:boolean | `@${string}`,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev?:boolean | `@${string}`,
+	/** Заголовок на момент редакции */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Источник редакции: WEB, CLI, RESTORE (откат), CHAIN (синхронизация из блокчейна), BACKFILL (первичный снимок) */
+["CapitalContentRevisionOrigin"]:CapitalContentRevisionOrigin;
+	/** Редакция содержимого проекта/задачи/артефакта (без тела) */
+["CapitalContentRevisionSummary"]: AliasType<{
+	/** Автор редакции (username) */
+	author?:boolean | `@${string}`,
+	/** Редакция, с которой автор начал правку */
+	base_rev?:boolean | `@${string}`,
+	/** SHA-256 содержимого (title + description) */
+	content_hash?:boolean | `@${string}`,
+	/** Момент записи редакции */
+	created_at?:boolean | `@${string}`,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta?:boolean | `@${string}`,
+	/** Размер тела в символах */
+	description_length?:boolean | `@${string}`,
+	/** Хэш сущности */
+	entity_hash?:boolean | `@${string}`,
+	/** Тип сущности */
+	entity_type?:boolean | `@${string}`,
+	/** Текст получен слиянием с параллельной правкой */
+	merged?:boolean | `@${string}`,
+	/** Источник редакции */
+	origin?:boolean | `@${string}`,
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?:boolean | `@${string}`,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev?:boolean | `@${string}`,
+	/** Заголовок на момент редакции */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: AliasType<{
 	/** Дата создания записи */
@@ -18596,6 +18785,20 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalGetContentRevisionInput"]: {
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ResolverInputTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
+	["CapitalGetContentRevisionsInput"]: {
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ResolverInputTypes["CapitalContentEntityType"]
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -18666,6 +18869,8 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Имя пользователя, создавшего задачу */
 	created_by?:boolean | `@${string}`,
 	/** Массив имен пользователей создателей (contributors) */
@@ -19204,6 +19409,8 @@ export type ResolverInputTypes = {
 	blockchain_status?:boolean | `@${string}`,
 	/** Массив проектов-компонентов */
 	components?:ResolverInputTypes["CapitalProjectComponent"],
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -19274,6 +19481,8 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Счетчики участников проекта */
@@ -19583,6 +19792,16 @@ export type ResolverInputTypes = {
 	voting_deadline?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalRestoreContentRevisionInput"]: {
+	/** Текущая редакция, которую видел пользователь (base_rev): откат сливается с параллельными правками как обычная запись */
+	base_rev: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ResolverInputTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
 	/** Результат в системе CAPITAL */
 ["CapitalResult"]: AliasType<{
 	/** Дата создания записи */
@@ -19839,6 +20058,8 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Формат содержимого (markdown-текст или BPMN 2.0 XML в description) */
 	content_format?:boolean | `@${string}`,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Имя пользователя, создавшего историю */
@@ -21422,6 +21643,8 @@ export type ResolverInputTypes = {
 	username: string
 };
 	["EditProjectInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Новые данные/шаблон проекта */
@@ -21432,6 +21655,8 @@ export type ResolverInputTypes = {
 	invite: string,
 	/** Новые мета-данные проекта */
 	meta: string,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ResolverInputTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хэш проекта для редактирования */
 	project_hash: string,
 	/** Новое название проекта */
@@ -26634,6 +26859,7 @@ capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},Reso
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
 capitalRemoveFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
+capitalRestoreContentRevision?: [{	data: ResolverInputTypes["CapitalRestoreContentRevisionInput"]},ResolverInputTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
@@ -28339,6 +28565,8 @@ capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ResolverInputTypes["ExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalExpensesPaginationResult"]],
 capitalFavorites?: [{	filter: ResolverInputTypes["CapitalFavoritesFilter"]},ResolverInputTypes["CapitalFavorite"]],
+capitalGetContentRevision?: [{	data: ResolverInputTypes["CapitalGetContentRevisionInput"]},ResolverInputTypes["CapitalContentRevision"]],
+capitalGetContentRevisions?: [{	data: ResolverInputTypes["CapitalGetContentRevisionsInput"]},ResolverInputTypes["CapitalContentRevisionSummary"]],
 capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string},ResolverInputTypes["ProcessInstance"]],
@@ -30046,6 +30274,8 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	["UpdateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Массив имен пользователей создателей (contributors) */
 	creators?: Array<string> | undefined | null,
 	/** ID цикла */
@@ -30058,6 +30288,8 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	issue_hash: string,
 	/** Метки задачи */
 	labels?: Array<string> | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ResolverInputTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Приоритет задачи */
 	priority?: ResolverInputTypes["IssuePriority"] | undefined | null,
 	/** Порядок сортировки */
@@ -30152,12 +30384,16 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	provider_name?: string | undefined | null
 };
 	["UpdateStoryInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID) */
 	content_format?: ResolverInputTypes["CapitalStoryContentFormat"] | undefined | null,
 	/** Описание истории */
 	description?: string | undefined | null,
 	/** Хеш задачи (если история привязана к задаче) */
 	issue_hash?: string | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ResolverInputTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хеш проекта (если история привязана к проекту) */
 	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
@@ -31438,6 +31674,8 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status: string,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -32784,6 +33022,70 @@ export type ModelTypes = {
 	/** Период голосования в днях */
 	voting_period_in_days: number
 };
+	["CapitalContentEntityType"]:CapitalContentEntityType;
+	/** Редакция содержимого проекта/задачи/артефакта с телом */
+["CapitalContentRevision"]: {
+		/** Автор редакции (username) */
+	author: string,
+	/** Редакция, с которой автор начал правку */
+	base_rev?: number | undefined | null,
+	/** Формат тела (для артефактов) */
+	content_format?: string | undefined | null,
+	/** SHA-256 содержимого (title + description) */
+	content_hash: string,
+	/** Момент записи редакции */
+	created_at: ModelTypes["DateTime"],
+	/** Тело (description) на момент редакции */
+	description: string,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta: number,
+	/** Размер тела в символах */
+	description_length: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности */
+	entity_type: ModelTypes["CapitalContentEntityType"],
+	/** Текст получен слиянием с параллельной правкой */
+	merged: boolean,
+	/** Источник редакции */
+	origin: ModelTypes["CapitalContentRevisionOrigin"],
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?: number | undefined | null,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev: number,
+	/** Заголовок на момент редакции */
+	title: string
+};
+	["CapitalContentRevisionOrigin"]:CapitalContentRevisionOrigin;
+	/** Редакция содержимого проекта/задачи/артефакта (без тела) */
+["CapitalContentRevisionSummary"]: {
+		/** Автор редакции (username) */
+	author: string,
+	/** Редакция, с которой автор начал правку */
+	base_rev?: number | undefined | null,
+	/** SHA-256 содержимого (title + description) */
+	content_hash: string,
+	/** Момент записи редакции */
+	created_at: ModelTypes["DateTime"],
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta: number,
+	/** Размер тела в символах */
+	description_length: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности */
+	entity_type: ModelTypes["CapitalContentEntityType"],
+	/** Текст получен слиянием с параллельной правкой */
+	merged: boolean,
+	/** Источник редакции */
+	origin: ModelTypes["CapitalContentRevisionOrigin"],
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?: number | undefined | null,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev: number,
+	/** Заголовок на момент редакции */
+	title: string
+};
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: {
 		/** Дата создания записи */
@@ -33103,6 +33405,20 @@ export type ModelTypes = {
 	/** Значение уровня на ряде */
 	value: number
 };
+	["CapitalGetContentRevisionInput"]: {
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ModelTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
+	["CapitalGetContentRevisionsInput"]: {
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ModelTypes["CapitalContentEntityType"]
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -33172,6 +33488,8 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Имя пользователя, создавшего задачу */
 	created_by: string,
 	/** Массив имен пользователей создателей (contributors) */
@@ -33689,6 +34007,8 @@ export type ModelTypes = {
 	blockchain_status: string,
 	/** Массив проектов-компонентов */
 	components: Array<ModelTypes["CapitalProjectComponent"]>,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -33758,6 +34078,8 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status: string,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -34058,6 +34380,16 @@ export type ModelTypes = {
 	/** Дата окончания голосования */
 	voting_deadline: string
 };
+	["CapitalRestoreContentRevisionInput"]: {
+	/** Текущая редакция, которую видел пользователь (base_rev): откат сливается с параллельными правками как обычная запись */
+	base_rev: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: ModelTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
 	/** Результат в системе CAPITAL */
 ["CapitalResult"]: {
 		/** Дата создания записи */
@@ -34311,6 +34643,8 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Формат содержимого (markdown-текст или BPMN 2.0 XML в description) */
 	content_format: ModelTypes["CapitalStoryContentFormat"],
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Имя пользователя, создавшего историю */
@@ -35846,6 +36180,8 @@ export type ModelTypes = {
 	username: string
 };
 	["EditProjectInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Новые данные/шаблон проекта */
@@ -35856,6 +36192,8 @@ export type ModelTypes = {
 	invite: string,
 	/** Новые мета-данные проекта */
 	meta: string,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ModelTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хэш проекта для редактирования */
 	project_hash: string,
 	/** Новое название проекта */
@@ -41077,6 +41415,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalRemoveFavorite: Array<ModelTypes["CapitalFavorite"]>,
+	/** Откат к редакции: её содержимое записывается как новая редакция (origin=RESTORE)
+
+Требуемые роли: chairman, member, user.  */
+	capitalRestoreContentRevision: ModelTypes["CapitalContentRevisionSummary"],
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -43241,6 +43583,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalFavorites: Array<ModelTypes["CapitalFavorite"]>,
+	/** Одна редакция содержимого с телом
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetContentRevision?: ModelTypes["CapitalContentRevision"] | undefined | null,
+	/** Список редакций содержимого сущности (новые сверху), без тел
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetContentRevisions: Array<ModelTypes["CapitalContentRevisionSummary"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -45242,6 +45592,8 @@ export type ModelTypes = {
 	["UpdateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Массив имен пользователей создателей (contributors) */
 	creators?: Array<string> | undefined | null,
 	/** ID цикла */
@@ -45254,6 +45606,8 @@ export type ModelTypes = {
 	issue_hash: string,
 	/** Метки задачи */
 	labels?: Array<string> | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ModelTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Приоритет задачи */
 	priority?: ModelTypes["IssuePriority"] | undefined | null,
 	/** Порядок сортировки */
@@ -45348,12 +45702,16 @@ export type ModelTypes = {
 	provider_name?: string | undefined | null
 };
 	["UpdateStoryInput"]: {
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID) */
 	content_format?: ModelTypes["CapitalStoryContentFormat"] | undefined | null,
 	/** Описание истории */
 	description?: string | undefined | null,
 	/** Хеш задачи (если история привязана к задаче) */
 	issue_hash?: string | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: ModelTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хеш проекта (если история привязана к проекту) */
 	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
@@ -46657,6 +47015,8 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status: string,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -48056,6 +48416,76 @@ export type GraphQLTypes = {
 	voting_period_in_days: number,
 	['...on CapitalConfigObject']: Omit<GraphQLTypes["CapitalConfigObject"], "...on CapitalConfigObject">
 };
+	/** Тип сущности с историей редакций: PROJECT (проект/компонент), ISSUE (задача), STORY (артефакт/требование) */
+["CapitalContentEntityType"]: CapitalContentEntityType;
+	/** Редакция содержимого проекта/задачи/артефакта с телом */
+["CapitalContentRevision"]: {
+	__typename: "CapitalContentRevision",
+	/** Автор редакции (username) */
+	author: string,
+	/** Редакция, с которой автор начал правку */
+	base_rev?: number | undefined | null,
+	/** Формат тела (для артефактов) */
+	content_format?: string | undefined | null,
+	/** SHA-256 содержимого (title + description) */
+	content_hash: string,
+	/** Момент записи редакции */
+	created_at: GraphQLTypes["DateTime"],
+	/** Тело (description) на момент редакции */
+	description: string,
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta: number,
+	/** Размер тела в символах */
+	description_length: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности */
+	entity_type: GraphQLTypes["CapitalContentEntityType"],
+	/** Текст получен слиянием с параллельной правкой */
+	merged: boolean,
+	/** Источник редакции */
+	origin: GraphQLTypes["CapitalContentRevisionOrigin"],
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?: number | undefined | null,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev: number,
+	/** Заголовок на момент редакции */
+	title: string,
+	['...on CapitalContentRevision']: Omit<GraphQLTypes["CapitalContentRevision"], "...on CapitalContentRevision">
+};
+	/** Источник редакции: WEB, CLI, RESTORE (откат), CHAIN (синхронизация из блокчейна), BACKFILL (первичный снимок) */
+["CapitalContentRevisionOrigin"]: CapitalContentRevisionOrigin;
+	/** Редакция содержимого проекта/задачи/артефакта (без тела) */
+["CapitalContentRevisionSummary"]: {
+	__typename: "CapitalContentRevisionSummary",
+	/** Автор редакции (username) */
+	author: string,
+	/** Редакция, с которой автор начал правку */
+	base_rev?: number | undefined | null,
+	/** SHA-256 содержимого (title + description) */
+	content_hash: string,
+	/** Момент записи редакции */
+	created_at: GraphQLTypes["DateTime"],
+	/** Изменение размера тела относительно предыдущей редакции */
+	description_delta: number,
+	/** Размер тела в символах */
+	description_length: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности */
+	entity_type: GraphQLTypes["CapitalContentEntityType"],
+	/** Текст получен слиянием с параллельной правкой */
+	merged: boolean,
+	/** Источник редакции */
+	origin: GraphQLTypes["CapitalContentRevisionOrigin"],
+	/** Для RESTORE — номер редакции, к которой откатились */
+	restored_from_rev?: number | undefined | null,
+	/** Номер редакции (монотонный в пределах сущности) */
+	rev: number,
+	/** Заголовок на момент редакции */
+	title: string,
+	['...on CapitalContentRevisionSummary']: Omit<GraphQLTypes["CapitalContentRevisionSummary"], "...on CapitalContentRevisionSummary">
+};
 	/** Участник кооператива в системе CAPITAL */
 ["CapitalContributor"]: {
 	__typename: "CapitalContributor",
@@ -48390,6 +48820,20 @@ export type GraphQLTypes = {
 	value: number,
 	['...on CapitalFibLevel']: Omit<GraphQLTypes["CapitalFibLevel"], "...on CapitalFibLevel">
 };
+	["CapitalGetContentRevisionInput"]: {
+		/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: GraphQLTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
+	["CapitalGetContentRevisionsInput"]: {
+		/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: GraphQLTypes["CapitalContentEntityType"]
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 		/** Имя кооператива */
@@ -48462,6 +48906,8 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Номер блока крайней синхронизации с блокчейном */
 	block_num?: number | undefined | null,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Имя пользователя, создавшего задачу */
 	created_by: string,
 	/** Массив имен пользователей создателей (contributors) */
@@ -49021,6 +49467,8 @@ export type GraphQLTypes = {
 	blockchain_status: string,
 	/** Массив проектов-компонентов */
 	components: Array<GraphQLTypes["CapitalProjectComponent"]>,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -49092,6 +49540,8 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status: string,
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Название кооператива */
 	coopname: string,
 	/** Счетчики участников проекта */
@@ -49409,6 +49859,16 @@ export type GraphQLTypes = {
 	voting_deadline: string,
 	['...on CapitalProjectVotingData']: Omit<GraphQLTypes["CapitalProjectVotingData"], "...on CapitalProjectVotingData">
 };
+	["CapitalRestoreContentRevisionInput"]: {
+		/** Текущая редакция, которую видел пользователь (base_rev): откат сливается с параллельными правками как обычная запись */
+	base_rev: number,
+	/** Хэш сущности */
+	entity_hash: string,
+	/** Тип сущности: PROJECT, ISSUE, STORY */
+	entity_type: GraphQLTypes["CapitalContentEntityType"],
+	/** Номер редакции */
+	rev: number
+};
 	/** Результат в системе CAPITAL */
 ["CapitalResult"]: {
 	__typename: "CapitalResult",
@@ -49669,6 +50129,8 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Формат содержимого (markdown-текст или BPMN 2.0 XML в description) */
 	content_format: GraphQLTypes["CapitalStoryContentFormat"],
+	/** Редакция содержимого (title/description); передаётся как base_rev при сохранении */
+	content_rev: number,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Имя пользователя, создавшего историю */
@@ -51290,7 +51752,9 @@ export type GraphQLTypes = {
 	username: string
 };
 	["EditProjectInput"]: {
-		/** Имя аккаунта кооператива */
+		/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
+	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Новые данные/шаблон проекта */
 	data: string,
@@ -51300,6 +51764,8 @@ export type GraphQLTypes = {
 	invite: string,
 	/** Новые мета-данные проекта */
 	meta: string,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: GraphQLTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хэш проекта для редактирования */
 	project_hash: string,
 	/** Новое название проекта */
@@ -56903,6 +57369,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalRemoveFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
+	/** Откат к редакции: её содержимое записывается как новая редакция (origin=RESTORE)
+
+Требуемые роли: chairman, member, user.  */
+	capitalRestoreContentRevision: GraphQLTypes["CapitalContentRevisionSummary"],
 	/** Продолжить таймер после паузы на той же задаче
 
 Требуемые роли: chairman, member, user.  */
@@ -59240,6 +59710,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalFavorites: Array<GraphQLTypes["CapitalFavorite"]>,
+	/** Одна редакция содержимого с телом
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetContentRevision?: GraphQLTypes["CapitalContentRevision"] | undefined | null,
+	/** Список редакций содержимого сущности (новые сверху), без тел
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetContentRevisions: Array<GraphQLTypes["CapitalContentRevisionSummary"]>,
 	/** Открытая сессия таймера участника (если есть)
 
 Требуемые роли: chairman, member, user.  */
@@ -61339,6 +61817,8 @@ export type GraphQLTypes = {
 	["UpdateIssueInput"]: {
 		/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
+	/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
 	/** Массив имен пользователей создателей (contributors) */
 	creators?: Array<string> | undefined | null,
 	/** ID цикла */
@@ -61351,6 +61831,8 @@ export type GraphQLTypes = {
 	issue_hash: string,
 	/** Метки задачи */
 	labels?: Array<string> | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: GraphQLTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Приоритет задачи */
 	priority?: GraphQLTypes["IssuePriority"] | undefined | null,
 	/** Порядок сортировки */
@@ -61445,12 +61927,16 @@ export type GraphQLTypes = {
 	provider_name?: string | undefined | null
 };
 	["UpdateStoryInput"]: {
-		/** Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID) */
+		/** Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии */
+	base_rev?: number | undefined | null,
+	/** Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID) */
 	content_format?: GraphQLTypes["CapitalStoryContentFormat"] | undefined | null,
 	/** Описание истории */
 	description?: string | undefined | null,
 	/** Хеш задачи (если история привязана к задаче) */
 	issue_hash?: string | undefined | null,
+	/** Источник правки для истории редакций (WEB по умолчанию, CLI для blago) */
+	origin?: GraphQLTypes["CapitalContentRevisionOrigin"] | undefined | null,
 	/** Хеш проекта (если история привязана к проекту) */
 	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
@@ -62003,6 +62489,20 @@ export enum CandidateStatus {
 	FAILED = "FAILED",
 	PENDING = "PENDING",
 	REGISTERED = "REGISTERED"
+}
+/** Тип сущности с историей редакций: PROJECT (проект/компонент), ISSUE (задача), STORY (артефакт/требование) */
+export enum CapitalContentEntityType {
+	ISSUE = "ISSUE",
+	PROJECT = "PROJECT",
+	STORY = "STORY"
+}
+/** Источник редакции: WEB, CLI, RESTORE (откат), CHAIN (синхронизация из блокчейна), BACKFILL (первичный снимок) */
+export enum CapitalContentRevisionOrigin {
+	BACKFILL = "BACKFILL",
+	CHAIN = "CHAIN",
+	CLI = "CLI",
+	RESTORE = "RESTORE",
+	WEB = "WEB"
 }
 /** Тип сущности в избранном: проект, компонент, задача или артефакт */
 export enum CapitalFavoriteTargetType {
@@ -62900,6 +63400,8 @@ type ZEUS_VARIABLES = {
 	["CapitalAddWorklogInput"]: ValueTypes["CapitalAddWorklogInput"];
 	["CapitalAllocateFundsInput"]: ValueTypes["CapitalAllocateFundsInput"];
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
+	["CapitalContentEntityType"]: ValueTypes["CapitalContentEntityType"];
+	["CapitalContentRevisionOrigin"]: ValueTypes["CapitalContentRevisionOrigin"];
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
@@ -62909,6 +63411,8 @@ type ZEUS_VARIABLES = {
 	["CapitalFavoriteInput"]: ValueTypes["CapitalFavoriteInput"];
 	["CapitalFavoriteTargetType"]: ValueTypes["CapitalFavoriteTargetType"];
 	["CapitalFavoritesFilter"]: ValueTypes["CapitalFavoritesFilter"];
+	["CapitalGetContentRevisionInput"]: ValueTypes["CapitalGetContentRevisionInput"];
+	["CapitalGetContentRevisionsInput"]: ValueTypes["CapitalGetContentRevisionsInput"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
@@ -62917,6 +63421,7 @@ type ZEUS_VARIABLES = {
 	["CapitalOnboardingStepInput"]: ValueTypes["CapitalOnboardingStepInput"];
 	["CapitalPauseTimerInput"]: ValueTypes["CapitalPauseTimerInput"];
 	["CapitalProjectFilter"]: ValueTypes["CapitalProjectFilter"];
+	["CapitalRestoreContentRevisionInput"]: ValueTypes["CapitalRestoreContentRevisionInput"];
 	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
 	["CapitalSegmentFilter"]: ValueTypes["CapitalSegmentFilter"];
 	["CapitalStartTimerInput"]: ValueTypes["CapitalStartTimerInput"];
