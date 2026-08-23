@@ -16,7 +16,6 @@ vi.mock('../src/oidc/flow-executor', () => ({
 }))
 
 /** Настройки, с которыми создали UserManager — по ним проверяем цену входа. */
-let capturedSettings: Record<string, unknown> = {}
 /** Ронять ли основной путь (обычный запрос за кодом) — тогда пойдёт запасной кадр. */
 let failFetch = false
 
@@ -25,10 +24,6 @@ const RETURN_URL = 'https://coop.example/auth/callback.html?code=abc&state=xyz'
 
 vi.mock('oidc-client-ts', () => ({
   UserManager: class {
-    constructor(settings: Record<string, unknown>) {
-      capturedSettings = settings
-    }
-
     settings = { silent_redirect_uri: 'https://coop.example/auth/callback.html' }
     // Внутренности библиотеки, которыми пользуется путь без кадра.
     _client = {
@@ -77,7 +72,6 @@ vi.stubGlobal('fetch', vi.fn(async () => {
 describe('authenticateWithAuthentik — тихий запрос после ввода пароля', () => {
   beforeEach(() => {
     calls.length = 0
-    capturedSettings = {}
     failFetch = false
     vi.clearAllMocks()
   })
@@ -109,40 +103,26 @@ describe('authenticateWithAuthentik — тихий запрос после вв�
 
     const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
 
-    // Кадр — навигация, и на ней браузер проверяет обновление service worker'а;
-    // пока тот ставится, переход до сети не доходит. Обычный запрос навигацией
-    // не является, поэтому основной путь идёт через него.
+    // Кадр не показывает отказы провайдера: authentik отдаёт X-Frame-Options:
+    // DENY, поэтому его страница ошибки в кадре не рисуется и любой отказ
+    // выглядит таймаутом. У нас единый origin — код можно просто запросить.
     expect(user.profile.preferred_username).toBe('ant')
     expect(calls).toContain('fetch')
     expect(calls).not.toContain('signinSilent')
   })
 
-  it('основной путь не удался — вход доходит запасным кадром', async () => {
+  it('запрос не удался — отказ виден как отказ, к кадру не откатываемся', async () => {
     const { authenticateWithAuthentik, configureOidc } = await import('../src/oidc/client')
     configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
-    // Сетевой отказ основного пути: запасным остаётся кадр, и его ожидание —
-    // единственное, что пайщик заметит, поэтому оно и ограничено порогом ниже.
     failFetch = true
 
-    const user = await authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' })
-
-    expect(user.profile.preferred_username).toBe('ant')
-    expect(calls).toContain('signinSilent')
-  })
-
-  it('ожидание запасного кадра ограничено — иначе вход упирается в него целиком', async () => {
-    const { authenticateWithAuthentik, configureOidc, SILENT_REQUEST_TIMEOUT_SECONDS } = await import('../src/oidc/client')
-    configureOidc({ clientId: 'coopid-desktop', redirectUri: 'https://coop.example/auth/callback.html' })
-    // Свой адрес кооператива: менеджеры кэшируются по нему, и на уже знакомом
-    // адресе настройки не пересоздаются — проверять было бы нечего.
-    const ownIssuer = 'https://own-coop.example/application/o/coopid/'
-
-    await authenticateWithAuthentik({ issuer: ownIssuer, email: 'user@e.com', password: 'S3cret!' })
-
-    // Это ожидание оплачивается целиком каждый раз, когда кадр не доносит ответ,
-    // и целиком видно пайщику как «кнопка думает». Держать его длинным незачем:
-    // паузу закрывает повтор. Порог сторожит регресс — было двадцать секунд.
-    expect(capturedSettings.silentRequestTimeoutInSeconds).toBe(SILENT_REQUEST_TIMEOUT_SECONDS)
-    expect(SILENT_REQUEST_TIMEOUT_SECONDS).toBeLessThanOrEqual(10)
+    // Запасного пути нет намеренно: origin, эндпоинт, куки и сессия те же самые,
+    // и кадр получил бы ровно тот же отказ — только спрятал бы его за таймаутом.
+    // Ровно так на проде 23.08.2026 обычный `redirect_uri_no_match` полдня
+    // выглядел как «IFrame timed out».
+    await expect(
+      authenticateWithAuthentik({ issuer: ISSUER, email: 'user@e.com', password: 'S3cret!' }),
+    ).rejects.toThrow()
+    expect(calls).not.toContain('signinSilent')
   })
 })
