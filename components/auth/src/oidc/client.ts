@@ -153,32 +153,73 @@ export async function authenticateWithAuthentik(params: { issuer: string, email:
   await um.removeUser().catch(() => undefined)
   await um.clearStaleState().catch(() => undefined)
 
-  // Одна повторная попытка. Скрытый кадр — единственное место входа, которое
-  // зависит не только от нас и от authentik, но и от того, чем занят браузер:
-  // его переход перехватывает service worker, и если тот в этот момент
-  // переустанавливается (а он это делает как раз на переходах, особенно вскоре
-  // после релиза), запрос страницы возврата не уходит никуда. Со стороны это
-  // выглядит как «вход просто не сработал», хотя пароль верный и authentik уже
-  // выдал код — ровно тот случай, что ловили на тестнете 22.08.2026.
+  // Код авторизации забираем ОБЫЧНЫМ запросом, а не скрытым кадром.
   //
-  // Повтор занимает доли секунды и к этому моменту рабочий уже сменился, так что
-  // вторая попытка проходит. Побочных эффектов нет: prompt=none только выдаёт
-  // новый код поверх той же сессии, неиспользованный протухает сам.
+  // Кадр — навигация, и у навигации есть побочный эффект, который нам не
+  // принадлежит: браузер на ней проверяет обновление service worker'а. Вскоре
+  // после релиза проверка находит новый рабочий, тот начинает прекэш всех
+  // ассетов стола (сотни файлов) — и переход кадра на страницу возврата до сети
+  // не доходит вовсе: на проде 23.08.2026 и на тестнете днём раньше в журнале
+  // всех трёх nginx есть `authorize → 302` и нет ни одного `callback.html`, зато
+  // ровно между ними лежит свежий `service-worker.js`. Библиотека ждёт и валит
+  // вход «IFrame timed out». Повтор того же кадра не помогал: он снова
+  // навигация, снова с той же проверкой.
+  //
+  // `fetch` навигацией не является: проверку рабочего не запускает и под его
+  // кэш-стратегии не попадает. authentik отвечает 302 на страницу возврата,
+  // `redirect: 'follow'` доводит до неё, и конечный адрес с кодом лежит в
+  // `response.url` — ровно то, что кадр должен был отдать через postMessage.
+  // Дальше обмен кода на токены делает та же библиотека, только без кадра.
+  //
+  // Кадр оставлен запасным путём на случай, когда запрос не удался по сетевой
+  // причине, — терять рабочий сценарий ради нового смысла нет.
   let user: User | null = null
-  let lastError: unknown
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  try {
+    user = await signinViaFetch(um)
+  }
+  catch (fetchError) {
     try {
       user = await um.signinSilent()
-      break
     }
-    catch (e) {
-      lastError = e
+    catch (iframeError) {
+      const first = fetchError instanceof Error ? fetchError.message : String(fetchError)
+      const second = iframeError instanceof Error ? iframeError.message : String(iframeError)
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, `Не удалось завершить вход через authentik: ${first}; запасной путь: ${second}`)
     }
-  }
-  if (!user && lastError) {
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, `Не удалось завершить вход через authentik: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
   }
   if (!user)
     throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'authentik не вернул сессию после ввода пароля')
   return user
+}
+
+/**
+ * Тихий вход без кадра: authorize с prompt=none обычным запросом с куками, код
+ * — из конечного адреса после редиректов, обмен на токены — библиотекой.
+ *
+ * Внутренние методы библиотеки (`_client`, `_signinEnd`) объявлены protected;
+ * публичного способа «обработать ответ authorize, полученный не кадром» у неё
+ * нет, хотя вся логика (state в хранилище, PKCE, валидация, сборка User)
+ * именно там. Берём их явно и по имени — если в новой версии они переименуются,
+ * это упадёт на сборке типов, а не молча в рантайме.
+ */
+async function signinViaFetch(um: UserManager): Promise<User> {
+  const internals = um as unknown as {
+    _client: { createSigninRequest: (args: Record<string, unknown>) => Promise<{ url: string }> }
+    _signinEnd: (url: string) => Promise<User>
+  }
+  const { url } = await internals._client.createSigninRequest({
+    request_type: 'si:s',
+    redirect_uri: um.settings.silent_redirect_uri,
+    prompt: 'none',
+  })
+
+  // Та же сессия authentik, что установил flow-executor, — поэтому `include`.
+  const response = await fetch(url, { credentials: 'include', redirect: 'follow' })
+  // authentik отвечает 302 на страницу возврата — она статическая и отдаёт 200;
+  // адрес, на котором запрос закончился, и несёт code+state (или error).
+  const finalUrl = response.url
+  if (!finalUrl || !/[?#].*(?:code|error)=/.test(finalUrl))
+    throw new Error(`authentik не вернул код авторизации (ответ ${response.status} на ${finalUrl || url})`)
+
+  return internals._signinEnd(finalUrl)
 }
