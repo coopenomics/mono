@@ -14,3 +14,5 @@ export * as SubscribePackage from './subscribePackage'
 export * as ApproveModeration from './approveModeration'
 /** Reject заявки на модерацию с причиной (Story 9.9) */
 export * as RejectModeration from './rejectModeration'
+export * as CreatePublisherToken from './createPublisherToken'
+export * as RevokePublisherToken from './revokePublisherToken'

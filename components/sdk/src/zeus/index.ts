@@ -1819,6 +1819,28 @@ export type ValueTypes = {
 	/** Идентификатор записи журнала */
 	review_id: string | Variable<any, string>
 };
+	["AppsCatalogPublisherToken"]: AliasType<{
+	/** ISO-дата выдачи */
+	createdAt?:boolean | `@${string}`,
+	/** Кто выдал */
+	createdBy?:boolean | `@${string}`,
+	/** ISO-дата истечения; null — бессрочно */
+	expiresAt?:boolean | `@${string}`,
+	/** UUID токена (им же отзывают) */
+	id?:boolean | `@${string}`,
+	/** Метка («CI demo-app») */
+	label?:boolean | `@${string}`,
+	/** ISO-дата последнего использования */
+	lastUsedAt?:boolean | `@${string}`,
+	/** ISO-дата отзыва; null — действует */
+	revokedAt?:boolean | `@${string}`,
+	/** Первые символы токена для узнавания */
+	tokenPrefix?:boolean | `@${string}`,
+	/** Аккаунт пайщика-издателя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsCatalogPublisherToken']?: Omit<ValueTypes["AppsCatalogPublisherToken"], "...on AppsCatalogPublisherToken">
+}>;
 	["AppsCatalogRemotePackageDTO"]: AliasType<{
 	/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets?:boolean | `@${string}`,
@@ -6044,6 +6066,26 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	["CreatePublisherTokenInputDTO"]: {
+	/** Срок действия в днях (1..3650); не задан — бессрочно */
+	expiresInDays?: number | undefined | null | Variable<any, string>,
+	/** Метка токена, например «CI demo-app» */
+	label: string | Variable<any, string>,
+	/** Аккаунт пайщика-издателя (eosio::name) */
+	username: string | Variable<any, string>
+};
+	["CreatePublisherTokenResultDTO"]: AliasType<{
+	/** Человекочитаемая ошибка */
+	error?:boolean | `@${string}`,
+	record?:ValueTypes["AppsCatalogPublisherToken"],
+	status?:boolean | `@${string}`,
+	/** Plaintext токена — показывается ОДИН раз, в БД не хранится */
+	token?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CreatePublisherTokenResultDTO']?: Omit<ValueTypes["CreatePublisherTokenResultDTO"], "...on CreatePublisherTokenResultDTO">
+}>;
+	/** Статус мутации createPublisherToken */
+["CreatePublisherTokenStatus"]:CreatePublisherTokenStatus;
 	["CreateRequestInput"]: {
 	/** Артикул товара (до 50 символов) */
 	articleNumber: string | Variable<any, string>,
@@ -11994,6 +12036,7 @@ createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variab
 createMembershipExit?: [{	data: ValueTypes["CreateMembershipExitInput"] | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
+createPublisherToken?: [{	data: ValueTypes["CreatePublisherTokenInputDTO"] | Variable<any, string>},ValueTypes["CreatePublisherTokenResultDTO"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -12177,6 +12220,7 @@ returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any
 	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ValueTypes["RevokeCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ValueTypes["RevokeParticipantKeyInput"] | Variable<any, string>},ValueTypes["RevokeKeyResult"]],
+revokePublisherToken?: [{	data: ValueTypes["RevokePublisherTokenInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 revokeSession?: [{	data: ValueTypes["RevokeSessionInput"] | Variable<any, string>},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string>},ValueTypes["Account"]],
@@ -13720,11 +13764,13 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	username: string | Variable<any, string>
 };
 	["PublishReleaseInputDTO"]: {
-	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
-	manifest: ValueTypes["JSON"] | Variable<any, string>,
-	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	/** Кратко, что изменилось — попадёт в заявку на модерацию */
+	brief?: string | undefined | null | Variable<any, string>,
+	/** Устарело (487-27): манифест читается из npm-packument опубликованной версии; поле игнорируется и оставлено для совместимости клиентов. */
+	manifest?: ValueTypes["JSON"] | undefined | null | Variable<any, string>,
+	/** Идентификатор пакета @scope/name; версия уже должна быть залита npm publish в реестр каталога */
 	packageId: string | Variable<any, string>,
-	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	/** Устарело (487-27): игнорируется. */
 	tarballSha256?: string | undefined | null | Variable<any, string>,
 	/** Версия релиза в формате semver, например 1.0.0 */
 	version: string | Variable<any, string>
@@ -13732,11 +13778,13 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["PublishReleaseResultDTO"]: AliasType<{
 	/** Человекочитаемое сообщение об ошибке */
 	error?:boolean | `@${string}`,
+	/** Идентификатор заявки на модерацию (487-27) */
+	moderationId?:boolean | `@${string}`,
 	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PublishReleaseResultDTO']?: Omit<ValueTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
@@ -13755,6 +13803,10 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 agreementTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ValueTypes["AgreementFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<any, string>,	status?: ValueTypes["ModerationStatusEnum"] | undefined | null | Variable<any, string>},ValueTypes["ModerationRequestDTO"]],
+	/** Publisher-токены издателей-пайщиков этого кооператива (без секретов). Только chairman (стол разработчика).
+
+Требуемые роли: chairman.  */
+	appsCatalogPublisherTokens?:ValueTypes["AppsCatalogPublisherToken"],
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCandidatesPaginationResult"]],
@@ -14774,6 +14826,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	reason: string | Variable<any, string>,
 	/** Пайщик, чей ключ отзывается */
 	target_id: string | Variable<any, string>
+};
+	["RevokePublisherTokenInputDTO"]: {
+	/** UUID токена */
+	id: string | Variable<any, string>
 };
 	["RevokeSessionInput"]: {
 	/** Идентификатор завершаемой сессии */
@@ -16892,6 +16948,27 @@ export type ResolverInputTypes = {
 	/** Идентификатор записи журнала */
 	review_id: string
 };
+	["AppsCatalogPublisherToken"]: AliasType<{
+	/** ISO-дата выдачи */
+	createdAt?:boolean | `@${string}`,
+	/** Кто выдал */
+	createdBy?:boolean | `@${string}`,
+	/** ISO-дата истечения; null — бессрочно */
+	expiresAt?:boolean | `@${string}`,
+	/** UUID токена (им же отзывают) */
+	id?:boolean | `@${string}`,
+	/** Метка («CI demo-app») */
+	label?:boolean | `@${string}`,
+	/** ISO-дата последнего использования */
+	lastUsedAt?:boolean | `@${string}`,
+	/** ISO-дата отзыва; null — действует */
+	revokedAt?:boolean | `@${string}`,
+	/** Первые символы токена для узнавания */
+	tokenPrefix?:boolean | `@${string}`,
+	/** Аккаунт пайщика-издателя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["AppsCatalogRemotePackageDTO"]: AliasType<{
 	/** Совместимые subnet (chain_id блокчейна ЦК) */
 	compatibleSubnets?:boolean | `@${string}`,
@@ -21021,6 +21098,25 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreatePublisherTokenInputDTO"]: {
+	/** Срок действия в днях (1..3650); не задан — бессрочно */
+	expiresInDays?: number | undefined | null,
+	/** Метка токена, например «CI demo-app» */
+	label: string,
+	/** Аккаунт пайщика-издателя (eosio::name) */
+	username: string
+};
+	["CreatePublisherTokenResultDTO"]: AliasType<{
+	/** Человекочитаемая ошибка */
+	error?:boolean | `@${string}`,
+	record?:ResolverInputTypes["AppsCatalogPublisherToken"],
+	status?:boolean | `@${string}`,
+	/** Plaintext токена — показывается ОДИН раз, в БД не хранится */
+	token?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус мутации createPublisherToken */
+["CreatePublisherTokenStatus"]:CreatePublisherTokenStatus;
 	["CreateRequestInput"]: {
 	/** Артикул товара (до 50 символов) */
 	articleNumber: string,
@@ -26799,6 +26895,7 @@ createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]}
 createMembershipExit?: [{	data: ResolverInputTypes["CreateMembershipExitInput"]},ResolverInputTypes["MembershipExitResult"]],
 createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
+createPublisherToken?: [{	data: ResolverInputTypes["CreatePublisherTokenInputDTO"]},ResolverInputTypes["CreatePublisherTokenResultDTO"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubscriptionInput"]},boolean | `@${string}`],
@@ -26982,6 +27079,7 @@ returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},Resol
 	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ResolverInputTypes["RevokeCapabilitySetInput"]},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ResolverInputTypes["RevokeParticipantKeyInput"]},ResolverInputTypes["RevokeKeyResult"]],
+revokePublisherToken?: [{	data: ResolverInputTypes["RevokePublisherTokenInputDTO"]},boolean | `@${string}`],
 revokeSession?: [{	data: ResolverInputTypes["RevokeSessionInput"]},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramDocDataInput"]},ResolverInputTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInputTypes["Account"]],
@@ -28453,11 +28551,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	username: string
 };
 	["PublishReleaseInputDTO"]: {
-	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
-	manifest: ResolverInputTypes["JSON"],
-	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	/** Кратко, что изменилось — попадёт в заявку на модерацию */
+	brief?: string | undefined | null,
+	/** Устарело (487-27): манифест читается из npm-packument опубликованной версии; поле игнорируется и оставлено для совместимости клиентов. */
+	manifest?: ResolverInputTypes["JSON"] | undefined | null,
+	/** Идентификатор пакета @scope/name; версия уже должна быть залита npm publish в реестр каталога */
 	packageId: string,
-	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	/** Устарело (487-27): игнорируется. */
 	tarballSha256?: string | undefined | null,
 	/** Версия релиза в формате semver, например 1.0.0 */
 	version: string
@@ -28465,11 +28565,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["PublishReleaseResultDTO"]: AliasType<{
 	/** Человекочитаемое сообщение об ошибке */
 	error?:boolean | `@${string}`,
+	/** Идентификатор заявки на модерацию (487-27) */
+	moderationId?:boolean | `@${string}`,
 	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
 	requestId?:boolean | `@${string}`,
 	/** Discriminator */
 	status?:boolean | `@${string}`,
-	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
 	transactionId?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -28487,6 +28589,10 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 agreementTemplates?: [{	coopname: string},ResolverInputTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ResolverInputTypes["AgreementFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: ResolverInputTypes["ModerationStatusEnum"] | undefined | null},ResolverInputTypes["ModerationRequestDTO"]],
+	/** Publisher-токены издателей-пайщиков этого кооператива (без секретов). Только chairman (стол разработчика).
+
+Требуемые роли: chairman.  */
+	appsCatalogPublisherTokens?:ResolverInputTypes["AppsCatalogPublisherToken"],
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCandidatesPaginationResult"]],
@@ -29482,6 +29588,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	reason: string,
 	/** Пайщик, чей ключ отзывается */
 	target_id: string
+};
+	["RevokePublisherTokenInputDTO"]: {
+	/** UUID токена */
+	id: string
 };
 	["RevokeSessionInput"]: {
 	/** Идентификатор завершаемой сессии */
@@ -31546,6 +31656,26 @@ export type ModelTypes = {
 ["ApproveVerificationInput"]: {
 	/** Идентификатор записи журнала */
 	review_id: string
+};
+	["AppsCatalogPublisherToken"]: {
+		/** ISO-дата выдачи */
+	createdAt: string,
+	/** Кто выдал */
+	createdBy: string,
+	/** ISO-дата истечения; null — бессрочно */
+	expiresAt?: string | undefined | null,
+	/** UUID токена (им же отзывают) */
+	id: string,
+	/** Метка («CI demo-app») */
+	label: string,
+	/** ISO-дата последнего использования */
+	lastUsedAt?: string | undefined | null,
+	/** ISO-дата отзыва; null — действует */
+	revokedAt?: string | undefined | null,
+	/** Первые символы токена для узнавания */
+	tokenPrefix: string,
+	/** Аккаунт пайщика-издателя */
+	username: string
 };
 	["AppsCatalogRemotePackageDTO"]: {
 		/** Совместимые subnet (chain_id блокчейна ЦК) */
@@ -35573,6 +35703,23 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreatePublisherTokenInputDTO"]: {
+	/** Срок действия в днях (1..3650); не задан — бессрочно */
+	expiresInDays?: number | undefined | null,
+	/** Метка токена, например «CI demo-app» */
+	label: string,
+	/** Аккаунт пайщика-издателя (eosio::name) */
+	username: string
+};
+	["CreatePublisherTokenResultDTO"]: {
+		/** Человекочитаемая ошибка */
+	error?: string | undefined | null,
+	record?: ModelTypes["AppsCatalogPublisherToken"] | undefined | null,
+	status: ModelTypes["CreatePublisherTokenStatus"],
+	/** Plaintext токена — показывается ОДИН раз, в БД не хранится */
+	token?: string | undefined | null
+};
+	["CreatePublisherTokenStatus"]:CreatePublisherTokenStatus;
 	["CreateRequestInput"]: {
 	/** Артикул товара (до 50 символов) */
 	articleNumber: string,
@@ -41475,6 +41622,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
+	/** Выдаёт пайщику publisher-токен для CI (npm publish + POST /v1/releases в scope кооператива). Plaintext возвращается один раз. Только chairman.
+
+Требуемые роли: chairman.  */
+	createPublisherToken: ModelTypes["CreatePublisherTokenResultDTO"],
 	/** Создать веб-пуш подписку для пользователя
 
 Требуемые роли: chairman, member.  */
@@ -41999,6 +42150,10 @@ export type ModelTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: ModelTypes["RevokeKeyResult"],
+	/** Отзывает publisher-токен кооператива. Только chairman.
+
+Требуемые роли: chairman.  */
+	revokePublisherToken: boolean,
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП
@@ -43440,11 +43595,13 @@ export type ModelTypes = {
 	username: string
 };
 	["PublishReleaseInputDTO"]: {
-	/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
-	manifest: ModelTypes["JSON"],
-	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+	/** Кратко, что изменилось — попадёт в заявку на модерацию */
+	brief?: string | undefined | null,
+	/** Устарело (487-27): манифест читается из npm-packument опубликованной версии; поле игнорируется и оставлено для совместимости клиентов. */
+	manifest?: ModelTypes["JSON"] | undefined | null,
+	/** Идентификатор пакета @scope/name; версия уже должна быть залита npm publish в реестр каталога */
 	packageId: string,
-	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	/** Устарело (487-27): игнорируется. */
 	tarballSha256?: string | undefined | null,
 	/** Версия релиза в формате semver, например 1.0.0 */
 	version: string
@@ -43452,11 +43609,13 @@ export type ModelTypes = {
 	["PublishReleaseResultDTO"]: {
 		/** Человекочитаемое сообщение об ошибке */
 	error?: string | undefined | null,
+	/** Идентификатор заявки на модерацию (487-27) */
+	moderationId?: string | undefined | null,
 	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: ModelTypes["PublishReleaseStatus"],
-	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
 	transactionId?: string | undefined | null
 };
 	["PublishReleaseStatus"]:PublishReleaseStatus;
@@ -43477,6 +43636,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	appsCatalogPendingModerations: Array<ModelTypes["ModerationRequestDTO"]>,
+	/** Publisher-токены издателей-пайщиков этого кооператива (без секретов). Только chairman (стол разработчика).
+
+Требуемые роли: chairman.  */
+	appsCatalogPublisherTokens: Array<ModelTypes["AppsCatalogPublisherToken"]>,
 	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
@@ -44813,6 +44976,10 @@ export type ModelTypes = {
 	reason: string,
 	/** Пайщик, чей ключ отзывается */
 	target_id: string
+};
+	["RevokePublisherTokenInputDTO"]: {
+	/** UUID токена */
+	id: string
 };
 	["RevokeSessionInput"]: {
 	/** Идентификатор завершаемой сессии */
@@ -46861,6 +47028,28 @@ export type GraphQLTypes = {
 ["ApproveVerificationInput"]: {
 		/** Идентификатор записи журнала */
 	review_id: string
+};
+	["AppsCatalogPublisherToken"]: {
+	__typename: "AppsCatalogPublisherToken",
+	/** ISO-дата выдачи */
+	createdAt: string,
+	/** Кто выдал */
+	createdBy: string,
+	/** ISO-дата истечения; null — бессрочно */
+	expiresAt?: string | undefined | null,
+	/** UUID токена (им же отзывают) */
+	id: string,
+	/** Метка («CI demo-app») */
+	label: string,
+	/** ISO-дата последнего использования */
+	lastUsedAt?: string | undefined | null,
+	/** ISO-дата отзыва; null — действует */
+	revokedAt?: string | undefined | null,
+	/** Первые символы токена для узнавания */
+	tokenPrefix: string,
+	/** Аккаунт пайщика-издателя */
+	username: string,
+	['...on AppsCatalogPublisherToken']: Omit<GraphQLTypes["AppsCatalogPublisherToken"], "...on AppsCatalogPublisherToken">
 };
 	["AppsCatalogRemotePackageDTO"]: {
 	__typename: "AppsCatalogRemotePackageDTO",
@@ -51087,6 +51276,26 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreatePublisherTokenInputDTO"]: {
+		/** Срок действия в днях (1..3650); не задан — бессрочно */
+	expiresInDays?: number | undefined | null,
+	/** Метка токена, например «CI demo-app» */
+	label: string,
+	/** Аккаунт пайщика-издателя (eosio::name) */
+	username: string
+};
+	["CreatePublisherTokenResultDTO"]: {
+	__typename: "CreatePublisherTokenResultDTO",
+	/** Человекочитаемая ошибка */
+	error?: string | undefined | null,
+	record?: GraphQLTypes["AppsCatalogPublisherToken"] | undefined | null,
+	status: GraphQLTypes["CreatePublisherTokenStatus"],
+	/** Plaintext токена — показывается ОДИН раз, в БД не хранится */
+	token?: string | undefined | null,
+	['...on CreatePublisherTokenResultDTO']: Omit<GraphQLTypes["CreatePublisherTokenResultDTO"], "...on CreatePublisherTokenResultDTO">
+};
+	/** Статус мутации createPublisherToken */
+["CreatePublisherTokenStatus"]: CreatePublisherTokenStatus;
 	["CreateRequestInput"]: {
 		/** Артикул товара (до 50 символов) */
 	articleNumber: string,
@@ -57409,6 +57618,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
+	/** Выдаёт пайщику publisher-токен для CI (npm publish + POST /v1/releases в scope кооператива). Plaintext возвращается один раз. Только chairman.
+
+Требуемые роли: chairman.  */
+	createPublisherToken: GraphQLTypes["CreatePublisherTokenResultDTO"],
 	/** Создать веб-пуш подписку для пользователя
 
 Требуемые роли: chairman, member.  */
@@ -57933,6 +58146,10 @@ export type GraphQLTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: GraphQLTypes["RevokeKeyResult"],
+	/** Отзывает publisher-токен кооператива. Только chairman.
+
+Требуемые роли: chairman.  */
+	revokePublisherToken: boolean,
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП
@@ -59549,11 +59766,13 @@ export type GraphQLTypes = {
 	username: string
 };
 	["PublishReleaseInputDTO"]: {
-		/** Package manifest (валидируется Zod-схемой на ca-admin). Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), requires/provides, GraphQL-схему и pricing-параметры. */
-	manifest: GraphQLTypes["JSON"],
-	/** Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage) */
+		/** Кратко, что изменилось — попадёт в заявку на модерацию */
+	brief?: string | undefined | null,
+	/** Устарело (487-27): манифест читается из npm-packument опубликованной версии; поле игнорируется и оставлено для совместимости клиентов. */
+	manifest?: GraphQLTypes["JSON"] | undefined | null,
+	/** Идентификатор пакета @scope/name; версия уже должна быть залита npm publish в реестр каталога */
 	packageId: string,
-	/** sha256 npm tarball'а (HEX). Если не передан — ca-admin использует sentinel zero-hash. */
+	/** Устарело (487-27): игнорируется. */
 	tarballSha256?: string | undefined | null,
 	/** Версия релиза в формате semver, например 1.0.0 */
 	version: string
@@ -59562,11 +59781,13 @@ export type GraphQLTypes = {
 	__typename: "PublishReleaseResultDTO",
 	/** Человекочитаемое сообщение об ошибке */
 	error?: string | undefined | null,
+	/** Идентификатор заявки на модерацию (487-27) */
+	moderationId?: string | undefined | null,
 	/** Идентификатор запроса (UUIDv4), который ca-admin использовал для идемпотентности */
 	requestId: string,
 	/** Discriminator */
 	status: GraphQLTypes["PublishReleaseStatus"],
-	/** Идентификатор blockchain-транзакции (если ca-admin её вернул) */
+	/** Устарело: on-chain tx теперь ставит ca-admin при одобрении */
 	transactionId?: string | undefined | null,
 	['...on PublishReleaseResultDTO']: Omit<GraphQLTypes["PublishReleaseResultDTO"], "...on PublishReleaseResultDTO">
 };
@@ -59590,6 +59811,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	appsCatalogPendingModerations: Array<GraphQLTypes["ModerationRequestDTO"]>,
+	/** Publisher-токены издателей-пайщиков этого кооператива (без секретов). Только chairman (стол разработчика).
+
+Требуемые роли: chairman.  */
+	appsCatalogPublisherTokens: Array<GraphQLTypes["AppsCatalogPublisherToken"]>,
 	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
@@ -60984,6 +61209,10 @@ export type GraphQLTypes = {
 	reason: string,
 	/** Пайщик, чей ключ отзывается */
 	target_id: string
+};
+	["RevokePublisherTokenInputDTO"]: {
+		/** UUID токена */
+	id: string
 };
 	["RevokeSessionInput"]: {
 		/** Идентификатор завершаемой сессии */
@@ -62513,6 +62742,11 @@ export enum ContributorStatus {
 export enum Country {
 	Russia = "Russia"
 }
+/** Статус мутации createPublisherToken */
+export enum CreatePublisherTokenStatus {
+	CREATED = "CREATED",
+	FAILED = "FAILED"
+}
 /** Состояние критического действия */
 export enum CriticalActionStatus {
 	Cancelled = "Cancelled",
@@ -63132,8 +63366,11 @@ export enum PublishPackageStatus {
 /** Статус мутации publishRelease */
 export enum PublishReleaseStatus {
 	APPLIED = "APPLIED",
+	CONFLICT = "CONFLICT",
 	FAILED = "FAILED",
-	INVALID_MANIFEST = "INVALID_MANIFEST"
+	INVALID_MANIFEST = "INVALID_MANIFEST",
+	NOT_PUBLISHED = "NOT_PUBLISHED",
+	QUEUED = "QUEUED"
 }
 /** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
 export enum RecoveryStrategy {
@@ -63488,6 +63725,8 @@ type ZEUS_VARIABLES = {
 	["CreateProjectInput"]: ValueTypes["CreateProjectInput"];
 	["CreateProjectInvestInput"]: ValueTypes["CreateProjectInvestInput"];
 	["CreateProjectPropertyInput"]: ValueTypes["CreateProjectPropertyInput"];
+	["CreatePublisherTokenInputDTO"]: ValueTypes["CreatePublisherTokenInputDTO"];
+	["CreatePublisherTokenStatus"]: ValueTypes["CreatePublisherTokenStatus"];
 	["CreateRequestInput"]: ValueTypes["CreateRequestInput"];
 	["CreateSecretaryRoomInput"]: ValueTypes["CreateSecretaryRoomInput"];
 	["CreateSovietIndividualDataInput"]: ValueTypes["CreateSovietIndividualDataInput"];
@@ -63915,6 +64154,7 @@ type ZEUS_VARIABLES = {
 	["ReturnExpenseItemInput"]: ValueTypes["ReturnExpenseItemInput"];
 	["RevokeCapabilitySetInput"]: ValueTypes["RevokeCapabilitySetInput"];
 	["RevokeParticipantKeyInput"]: ValueTypes["RevokeParticipantKeyInput"];
+	["RevokePublisherTokenInputDTO"]: ValueTypes["RevokePublisherTokenInputDTO"];
 	["RevokeSessionInput"]: ValueTypes["RevokeSessionInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];

@@ -1,18 +1,10 @@
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'publishRelease'
+export const name = 'revokePublisherToken'
 
+/** Отозвать publisher-токен (487-27). */
 export const mutation = Selector('Mutation')({
-  [name]: [
-    { data: $('data', 'PublishReleaseInputDTO!') },
-    {
-      status: true,
-      requestId: true,
-      transactionId: true,
-      moderationId: true,
-      error: true,
-    },
-  ],
+  [name]: [{ data: $('data', 'RevokePublisherTokenInputDTO!') }, true],
 })
 
 export interface IInput {
@@ -21,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['PublishReleaseInputDTO']
+  data: ModelTypes['RevokePublisherTokenInputDTO']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

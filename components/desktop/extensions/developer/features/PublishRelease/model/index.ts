@@ -16,7 +16,12 @@ export function usePublishRelease() {
     try {
       const result = await api.publishRelease(input);
       lastResult.value = result;
-      if (result.status === Zeus.PublishReleaseStatus.FAILED || result.status === Zeus.PublishReleaseStatus.INVALID_MANIFEST) {
+      if (
+        result.status === Zeus.PublishReleaseStatus.FAILED ||
+        result.status === Zeus.PublishReleaseStatus.INVALID_MANIFEST ||
+        result.status === Zeus.PublishReleaseStatus.NOT_PUBLISHED ||
+        result.status === Zeus.PublishReleaseStatus.CONFLICT
+      ) {
         lastError.value = result.error || 'Не удалось опубликовать релиз';
       }
       return result;

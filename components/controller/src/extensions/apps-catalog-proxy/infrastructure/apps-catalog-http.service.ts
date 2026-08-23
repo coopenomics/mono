@@ -53,15 +53,48 @@ export type RegisterPackageOutcome =
 export interface CreateReleaseInput {
   packageId: string;
   version: string;
-  manifest: Record<string, unknown>;
-  tarballSha256?: string;
+  /** Кратко, что изменилось — уходит в заявку на модерацию. */
+  brief?: string;
   requestId?: string;
 }
 
+/**
+ * 487-27: релиз подаётся tenant-путём ca-auth `POST /v1/releases`.
+ * `applied` — пакет доверенный, релиз активирован сразу; `queued` —
+ * первый релиз пакета, ждёт модератора; `notPublished` — версии нет в
+ * реестре (сначала `npm publish`); `conflict` — версия уже подана.
+ */
 export type CreateReleaseOutcome =
-  | { status: 'applied'; requestId: string; transactionId?: string }
+  | { status: 'applied'; requestId: string; moderationId: string }
+  | { status: 'queued'; requestId: string; moderationId: string }
+  | { status: 'notPublished'; requestId: string; error: string }
+  | { status: 'conflict'; requestId: string; error: string }
   | { status: 'invalidManifest'; requestId: string; error: string }
   | { status: 'failed'; requestId: string; error: string };
+
+/** Publisher-токен издателя-пайщика (487-27), как отдаёт ca-auth. */
+export interface PublisherTokenWire {
+  id: string;
+  username: string;
+  label: string;
+  token_prefix: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
+}
+
+export interface CreatePublisherTokenInput {
+  username: string;
+  label: string;
+  createdBy: string;
+  expiresInDays?: number;
+}
+
+export type CreatePublisherTokenOutcome =
+  | { status: 'created'; token: string; record: PublisherTokenWire }
+  | { status: 'failed'; error: string };
 
 export type ModerationStatus =
   | 'SUBMITTED'
@@ -497,30 +530,28 @@ export class AppsCatalogHttpService {
    */
   async createRelease(input: CreateReleaseInput): Promise<CreateReleaseOutcome> {
     const requestId = input.requestId ?? uuidv4();
-    if (!this.client) {
-      const error = 'APPS_CATALOG_URL/APPS_CATALOG_API_KEY не заданы';
+    if (!this.authClient) {
+      const error = 'APPS_CATALOG_AUTH_URL/COOPERATIVE_WIF не заданы';
       this.logger.warn(
         `createRelease refused (degraded mode): ${input.packageId}@${input.version}`,
       );
       return { status: 'failed', requestId, error };
     }
     try {
-      const res = await this.client.post<{
+      const res = await this.authClient.post<{
         ok: boolean;
-        transaction_id?: string;
-      }>('/v1/admin/releases', {
+        outcome: 'queued' | 'activated';
+        moderation_id: string;
+      }>('/v1/releases', {
         request_id: requestId,
         package_id: input.packageId,
         version: input.version,
-        manifest: input.manifest,
-        ...(input.tarballSha256
-          ? { tarball_sha256: input.tarballSha256 }
-          : {}),
+        ...(input.brief ? { brief: input.brief } : {}),
       });
       return {
-        status: 'applied',
+        status: res.data.outcome === 'activated' ? 'applied' : 'queued',
         requestId,
-        transactionId: res.data?.transaction_id,
+        moderationId: res.data.moderation_id,
       };
     } catch (err) {
       const status = (err as AxiosError).response?.status;
@@ -531,6 +562,12 @@ export class AppsCatalogHttpService {
           : err instanceof Error
             ? err.message
             : String(err);
+      if (status === 404) {
+        return { status: 'notPublished', requestId, error: detail };
+      }
+      if (status === 409) {
+        return { status: 'conflict', requestId, error: detail };
+      }
       if (status === 422) {
         this.logger.warn(
           `createRelease invalidManifest для ${input.packageId}@${input.version}: ${detail}`,
@@ -541,6 +578,65 @@ export class AppsCatalogHttpService {
         `createRelease failed для ${input.packageId}@${input.version}: ${detail}`,
       );
       return { status: 'failed', requestId, error: detail };
+    }
+  }
+
+  /**
+   * 487-27: список publisher-токенов кооператива (ca-auth
+   * `GET /v1/publisher-tokens`, tenant-JWT). Degraded → пустой список.
+   */
+  async listPublisherTokens(): Promise<PublisherTokenWire[]> {
+    if (!this.authClient) return [];
+    const res = await this.authClient.get<{ items: PublisherTokenWire[] }>(
+      '/v1/publisher-tokens',
+    );
+    return res.data.items;
+  }
+
+  /**
+   * 487-27: выдать publisher-токен пайщику. Plaintext возвращается
+   * один раз — UI обязан показать его сразу.
+   */
+  async createPublisherToken(
+    input: CreatePublisherTokenInput,
+  ): Promise<CreatePublisherTokenOutcome> {
+    if (!this.authClient) {
+      return { status: 'failed', error: 'APPS_CATALOG_AUTH_URL/COOPERATIVE_WIF не заданы' };
+    }
+    try {
+      const res = await this.authClient.post<PublisherTokenWire & { token: string }>(
+        '/v1/publisher-tokens',
+        {
+          username: input.username,
+          label: input.label,
+          created_by: input.createdBy,
+          ...(input.expiresInDays ? { expires_in_days: input.expiresInDays } : {}),
+        },
+      );
+      const { token, ...record } = res.data;
+      return { status: 'created', token, record };
+    } catch (err) {
+      const responseData = (err as AxiosError).response?.data;
+      const detail =
+        typeof responseData === 'object' && responseData
+          ? JSON.stringify(responseData)
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      this.logger.error(`createPublisherToken failed для ${input.username}: ${detail}`);
+      return { status: 'failed', error: detail };
+    }
+  }
+
+  /** 487-27: отозвать publisher-токен. `false` — не найден / уже отозван. */
+  async revokePublisherToken(id: string): Promise<boolean> {
+    if (!this.authClient) return false;
+    try {
+      await this.authClient.delete(`/v1/publisher-tokens/${encodeURIComponent(id)}`);
+      return true;
+    } catch (err) {
+      if ((err as AxiosError).response?.status === 404) return false;
+      throw err;
     }
   }
 

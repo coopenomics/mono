@@ -16,6 +16,7 @@ import { DeveloperPublishReleasePage } from './pages/DeveloperPublishReleasePage
 import { DeveloperModerationPage } from './pages/DeveloperModerationPage';
 import { DeveloperSubscribersPage } from './pages/DeveloperSubscribersPage';
 import { DeveloperPricingPage } from './pages/DeveloperPricingPage';
+import { DeveloperPublishersPage } from './pages/DeveloperPublishersPage';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
@@ -61,6 +62,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Модерация',
               icon: 'fact_check',
+              roles: ['chairman'],
+            },
+          },
+          {
+            path: 'publishers',
+            name: 'developer-publishers',
+            component: markRaw(DeveloperPublishersPage),
+            meta: {
+              title: 'Издатели',
+              icon: 'key',
               roles: ['chairman'],
             },
           },

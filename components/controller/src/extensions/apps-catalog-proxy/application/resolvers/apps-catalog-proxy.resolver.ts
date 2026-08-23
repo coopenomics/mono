@@ -1,8 +1,10 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   AppsCatalogHttpService,
+  type PublisherTokenWire,
   type ModerationStatus,
   type ReleaseScopeInput,
 } from '../../infrastructure/apps-catalog-http.service';
@@ -19,6 +21,13 @@ import {
 } from '../dto/moderation-request.dto';
 import { PublishPackageInputDTO } from '../dto/publish-package-input.dto';
 import { PublishPackageResultDTO, PublishPackageStatus } from '../dto/publish-package-result.dto';
+import {
+  CreatePublisherTokenInputDTO,
+  CreatePublisherTokenResultDTO,
+  CreatePublisherTokenStatus,
+  PublisherTokenDTO,
+  RevokePublisherTokenInputDTO,
+} from '../dto/publisher-token.dto';
 import { PublishReleaseInputDTO } from '../dto/publish-release-input.dto';
 import { PublishReleaseResultDTO, PublishReleaseStatus } from '../dto/publish-release-result.dto';
 import {
@@ -77,6 +86,21 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
  * (по умолчанию роль `user`). Self-filter и self-sub bypass делает
  * desktop по сравнению `publisher` и текущего coopname.
  */
+/** ca-auth snake_case → GraphQL camelCase (487-27). */
+function toPublisherTokenDTO(w: PublisherTokenWire): PublisherTokenDTO {
+  return {
+    id: w.id,
+    username: w.username,
+    label: w.label,
+    tokenPrefix: w.token_prefix,
+    createdBy: w.created_by,
+    createdAt: w.created_at,
+    expiresAt: w.expires_at ?? undefined,
+    revokedAt: w.revoked_at ?? undefined,
+    lastUsedAt: w.last_used_at ?? undefined,
+  };
+}
+
 @Resolver()
 export class AppsCatalogProxyResolver {
   private readonly logger = new Logger(AppsCatalogProxyResolver.name);
@@ -193,31 +217,105 @@ export class AppsCatalogProxyResolver {
     const outcome = await this.client.createRelease({
       packageId: data.packageId,
       version: data.version,
-      manifest: data.manifest,
-      tarballSha256: data.tarballSha256,
+      brief: data.brief,
     });
-    if (outcome.status === 'applied') {
+    if (outcome.status === 'applied' || outcome.status === 'queued') {
       this.logger.log(
-        `publishRelease applied: ${data.packageId}@${data.version} (request ${outcome.requestId}, tx ${outcome.transactionId ?? '-'})`,
+        `publishRelease ${outcome.status}: ${data.packageId}@${data.version} (request ${outcome.requestId}, moderation ${outcome.moderationId})`,
       );
       return {
-        status: PublishReleaseStatus.APPLIED,
+        status:
+          outcome.status === 'applied'
+            ? PublishReleaseStatus.APPLIED
+            : PublishReleaseStatus.QUEUED,
         requestId: outcome.requestId,
-        transactionId: outcome.transactionId,
+        moderationId: outcome.moderationId,
       };
     }
-    if (outcome.status === 'invalidManifest') {
-      return {
-        status: PublishReleaseStatus.INVALID_MANIFEST,
-        requestId: outcome.requestId,
-        error: outcome.error,
-      };
-    }
+    const statusMap: Record<typeof outcome.status, PublishReleaseStatus> = {
+      notPublished: PublishReleaseStatus.NOT_PUBLISHED,
+      conflict: PublishReleaseStatus.CONFLICT,
+      invalidManifest: PublishReleaseStatus.INVALID_MANIFEST,
+      failed: PublishReleaseStatus.FAILED,
+    };
     return {
-      status: PublishReleaseStatus.FAILED,
+      status: statusMap[outcome.status],
       requestId: outcome.requestId,
       error: outcome.error,
     };
+  }
+
+  /**
+   * 487-27 — стол разработчика: список publisher-токенов кооператива.
+   * Tenant-JWT кооператива (COOPERATIVE_WIF) → ca-auth `/v1/publisher-tokens`.
+   */
+  @Query(() => [PublisherTokenDTO], {
+    name: 'appsCatalogPublisherTokens',
+    description:
+      'Publisher-токены издателей-пайщиков этого кооператива (без секретов). ' +
+      'Только chairman (стол разработчика).',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async appsCatalogPublisherTokens(): Promise<PublisherTokenDTO[]> {
+    const items = await this.client.listPublisherTokens();
+    return items.map(toPublisherTokenDTO);
+  }
+
+  /**
+   * 487-27 — выдать publisher-токен пайщику. Plaintext возвращается один
+   * раз; UI обязан показать его сразу и предупредить, что повторно не
+   * покажет.
+   */
+  @Mutation(() => CreatePublisherTokenResultDTO, {
+    name: 'createPublisherToken',
+    description:
+      'Выдаёт пайщику publisher-токен для CI (npm publish + POST /v1/releases ' +
+      'в scope кооператива). Plaintext возвращается один раз. Только chairman.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async createPublisherToken(
+    @Args('data', { type: () => CreatePublisherTokenInputDTO })
+    data: CreatePublisherTokenInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<CreatePublisherTokenResultDTO> {
+    const outcome = await this.client.createPublisherToken({
+      username: data.username,
+      label: data.label,
+      createdBy: currentUser.username,
+      expiresInDays: data.expiresInDays ?? undefined,
+    });
+    if (outcome.status === 'created') {
+      this.logger.log(
+        `createPublisherToken: ${data.username} «${data.label}» by ${currentUser.username} (id ${outcome.record.id})`,
+      );
+      return {
+        status: CreatePublisherTokenStatus.CREATED,
+        token: outcome.token,
+        record: toPublisherTokenDTO(outcome.record),
+      };
+    }
+    return { status: CreatePublisherTokenStatus.FAILED, error: outcome.error };
+  }
+
+  /** 487-27 — отозвать publisher-токен. `true` — отозван, `false` — не найден. */
+  @Mutation(() => Boolean, {
+    name: 'revokePublisherToken',
+    description: 'Отзывает publisher-токен кооператива. Только chairman.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async revokePublisherToken(
+    @Args('data', { type: () => RevokePublisherTokenInputDTO })
+    data: RevokePublisherTokenInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<boolean> {
+    const ok = await this.client.revokePublisherToken(data.id);
+    this.logger.log(
+      `revokePublisherToken ${data.id} by ${currentUser.username}: ${ok ? 'revoked' : 'not found'}`,
+    );
+    return ok;
   }
 
   /**

@@ -11,7 +11,14 @@ import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
  *    APPS_CATALOG_API_KEY).
  */
 export enum PublishReleaseStatus {
+  /** Пакет доверенный — релиз активирован сразу. */
   APPLIED = 'applied',
+  /** Первый релиз пакета — ждёт модератора (487-27). */
+  QUEUED = 'queued',
+  /** Версии нет в реестре — сначала `npm publish`. */
+  NOT_PUBLISHED = 'notPublished',
+  /** Версия уже подана/выпущена. */
+  CONFLICT = 'conflict',
   INVALID_MANIFEST = 'invalidManifest',
   FAILED = 'failed',
 }
@@ -34,10 +41,15 @@ export class PublishReleaseResultDTO {
 
   @Field({
     nullable: true,
-    description:
-      'Идентификатор blockchain-транзакции (если ca-admin её вернул)',
+    description: 'Устарело: on-chain tx теперь ставит ca-admin при одобрении',
   })
   transactionId?: string;
+
+  @Field({
+    nullable: true,
+    description: 'Идентификатор заявки на модерацию (487-27)',
+  })
+  moderationId?: string;
 
   @Field({
     nullable: true,

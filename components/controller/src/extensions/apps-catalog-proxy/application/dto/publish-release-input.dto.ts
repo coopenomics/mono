@@ -20,7 +20,7 @@ import { GraphQLJSON } from 'graphql-type-json';
 export class PublishReleaseInputDTO {
   @Field({
     description:
-      'Идентификатор пакета в формате @scope/name (должен быть уже зарегистрирован через publishPackage)',
+      'Идентификатор пакета @scope/name; версия уже должна быть залита npm publish в реестр каталога',
   })
   packageId!: string;
 
@@ -28,17 +28,22 @@ export class PublishReleaseInputDTO {
   version!: string;
 
   @Field(() => GraphQLJSON, {
+    nullable: true,
     description:
-      'Package manifest (валидируется Zod-схемой на ca-admin). ' +
-      'Содержит coopenomics.backend.image (docker) + coopenomics.frontend.tarball (npm), ' +
-      'requires/provides, GraphQL-схему и pricing-параметры.',
+      'Устарело (487-27): манифест читается из npm-packument опубликованной ' +
+      'версии; поле игнорируется и оставлено для совместимости клиентов.',
   })
-  manifest!: Record<string, unknown>;
+  manifest?: Record<string, unknown>;
 
   @Field({
     nullable: true,
-    description:
-      'sha256 npm tarball\'а (HEX). Если не передан — ca-admin использует sentinel zero-hash.',
+    description: 'Устарело (487-27): игнорируется.',
   })
   tarballSha256?: string;
+
+  @Field({
+    nullable: true,
+    description: 'Кратко, что изменилось — попадёт в заявку на модерацию',
+  })
+  brief?: string;
 }

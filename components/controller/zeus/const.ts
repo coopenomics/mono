@@ -515,6 +515,10 @@ export const AllTypesProps: Record<string,any> = {
 	CreateProjectPropertyInput:{
 
 	},
+	CreatePublisherTokenInputDTO:{
+
+	},
+	CreatePublisherTokenStatus: "enum" as const,
 	CreateRequestInput:{
 		attributes:"RequestAttributeInput",
 		images:"RequestImageInput",
@@ -1819,6 +1823,9 @@ export const AllTypesProps: Record<string,any> = {
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
 		},
+		createPublisherToken:{
+			data:"CreatePublisherTokenInputDTO"
+		},
 		createWebPushSubscription:{
 			data:"CreateSubscriptionInput"
 		},
@@ -2362,6 +2369,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		revokeParticipantKey:{
 			data:"RevokeParticipantKeyInput"
+		},
+		revokePublisherToken:{
+			data:"RevokePublisherTokenInputDTO"
 		},
 		revokeSession:{
 			data:"RevokeSessionInput"
@@ -3364,6 +3374,9 @@ export const AllTypesProps: Record<string,any> = {
 	RevokeParticipantKeyInput:{
 
 	},
+	RevokePublisherTokenInputDTO:{
+
+	},
 	RevokeSessionInput:{
 
 	},
@@ -3789,6 +3802,17 @@ export const ReturnTypes: Record<string,any> = {
 		requestId:"String",
 		status:"ApproveModerationStatus",
 		version:"String"
+	},
+	AppsCatalogPublisherToken:{
+		createdAt:"String",
+		createdBy:"String",
+		expiresAt:"String",
+		id:"String",
+		label:"String",
+		lastUsedAt:"String",
+		revokedAt:"String",
+		tokenPrefix:"String",
+		username:"String"
 	},
 	AppsCatalogRemotePackageDTO:{
 		compatibleSubnets:"String",
@@ -5077,6 +5101,12 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Int",
 		is_active:"Boolean",
 		program_type:"String"
+	},
+	CreatePublisherTokenResultDTO:{
+		error:"String",
+		record:"AppsCatalogPublisherToken",
+		status:"CreatePublisherTokenStatus",
+		token:"String"
 	},
 	CreateSubscriptionResponse:{
 		message:"String",
@@ -6871,6 +6901,7 @@ export const ReturnTypes: Record<string,any> = {
 		createMembershipExit:"MembershipExitResult",
 		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
+		createPublisherToken:"CreatePublisherTokenResultDTO",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
@@ -7047,6 +7078,7 @@ export const ReturnTypes: Record<string,any> = {
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
 		revokeParticipantKey:"RevokeKeyResult",
+		revokePublisherToken:"Boolean",
 		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
@@ -7663,6 +7695,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	PublishReleaseResultDTO:{
 		error:"String",
+		moderationId:"String",
 		requestId:"String",
 		status:"PublishReleaseStatus",
 		transactionId:"String"
@@ -7671,6 +7704,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
 		appsCatalogPendingModerations:"ModerationRequestDTO",
+		appsCatalogPublisherTokens:"AppsCatalogPublisherToken",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
 		buildInitialReportEdits:"BuildInitialReportEdits",
 		candidates:"PaginatedCandidatesPaginationResult",

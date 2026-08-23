@@ -6,9 +6,12 @@
         Сейчас вы не председатель кооператива-разработчика.
       </BaseBanner>
       <BaseBanner v-else variant="info" class="q-mb-md">
-        Сначала зарегистрируйте пакет — это разовая операция, закрепляющая
-        имя за вашим кооперативом. Затем публикуйте релизы: каждая версия
-        с манифестом уходит на модерацию оператора каталога.
+        Регистрация пакета (шаг 1) нужна только для ручного пути — CI
+        издателя регистрирует пакет сам при первом релизе. Релиз (шаг 2)
+        подаётся на версию, уже залитую в реестр каталога
+        (<span class="t-mono">npm publish</span>): первый релиз пакета
+        уходит на модерацию, следующие принимаются автоматически.
+        Токены для CI — на странице «Издатели».
       </BaseBanner>
 
       <h3 class="publish-section__title">Шаг 1. Регистрация пакета</h3>
@@ -92,7 +95,7 @@
             v-model="releasePackageId"
             label="Идентификатор пакета"
             placeholder="@voskhod/demoapp"
-            hint="Пакет должен быть зарегистрирован в шаге 1."
+            hint="Версия уже должна быть залита npm publish в реестр каталога."
             :error="releaseErrors.packageId"
             required
             mono
@@ -108,32 +111,11 @@
             mono
           />
 
-          <div>
-            <div class="t-fs-14 t-fw-500 q-mb-xs">Манифест пакета (JSON)</div>
-            <div class="t-fs-13 text-grey q-mb-sm">
-              Содержит секцию coopenomics: ссылку на docker-образ backend-части
-              (coopenomics.backend.image) и параметры подключения.
-              Валидируется каталогом при приёме релиза.
-            </div>
-            <q-input
-              v-model="releaseManifestRaw"
-              type="textarea"
-              outlined
-              dense
-              autogrow
-              :error="!!releaseErrors.manifest"
-              :error-message="releaseErrors.manifest"
-              :placeholder="manifestPlaceholder"
-              input-class="t-mono t-fs-13"
-            />
-          </div>
-
           <BaseInput
-            v-model="releaseTarballSha256"
-            label="sha256 npm-tarball'а"
-            hint="Необязательно: HEX-хэш артефакта в Nexus."
-            :error="releaseErrors.tarballSha256"
-            mono
+            v-model="releaseBrief"
+            label="Что изменилось"
+            hint="Кратко для модератора. Необязательно."
+            :error="releaseErrors.brief"
           />
 
           <template #footer="{ loading }">
@@ -154,11 +136,32 @@
         variant="pos"
         class="q-mt-md"
       >
-        Релиз опубликован и отправлен на модерацию.
-        Request: <span class="t-mono">{{ releaseResult.requestId }}</span>
-        <template v-if="releaseResult.transactionId">
-          , tx: <span class="t-mono">{{ releaseResult.transactionId }}</span>
-        </template>.
+        Релиз активирован: пакет уже проходил модерацию, подписчики получат
+        версию автоматически. Request: <span class="t-mono">{{ releaseResult.requestId }}</span>.
+      </BaseBanner>
+      <BaseBanner
+        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.QUEUED"
+        variant="info"
+        class="q-mt-md"
+      >
+        Первый релиз пакета — отправлен на модерацию (заявка
+        <span class="t-mono">{{ releaseResult.moderationId }}</span>).
+        После одобрения следующие версии будут приниматься автоматически.
+      </BaseBanner>
+      <BaseBanner
+        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.NOT_PUBLISHED"
+        variant="warn"
+        class="q-mt-md"
+      >
+        Версии нет в реестре каталога. Сначала выполните
+        <span class="t-mono">npm publish</span> (или CI издателя), затем подайте релиз.
+      </BaseBanner>
+      <BaseBanner
+        v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.CONFLICT"
+        variant="warn"
+        class="q-mt-md"
+      >
+        Эта версия уже подана или выпущена.
       </BaseBanner>
       <BaseBanner
         v-else-if="releaseResult && releaseResult.status === PublishReleaseStatus.INVALID_MANIFEST"
@@ -216,7 +219,6 @@ const PACKAGE_ID_RE = /^@[a-z0-9-]+\/[a-z0-9-]+$/;
 const ANTELOPE_NAME_RE = /^[a-z1-5.]{1,12}$/;
 const CHAIN_ID_RE = /^[a-f0-9]{64}$/i;
 const SEMVER_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/;
-const SHA256_RE = /^[a-f0-9]{64}$/i;
 
 function validate(): IPublishPackageInput | null {
   errors.packageId = '';
@@ -265,27 +267,13 @@ async function onSubmit(): Promise<void> {
 
 const releasePackageId = ref<string>('');
 const releaseVersion = ref<string>('');
-const releaseManifestRaw = ref<string>('');
-const releaseTarballSha256 = ref<string>('');
+const releaseBrief = ref<string>('');
 
-const manifestPlaceholder = [
-  '{',
-  '  "name": "@voskhod/demoapp",',
-  '  "coopenomics": {',
-  '    "backend": {',
-  '      "image": "registry.coopenomics.world/voskhod/demoapp:1.0.0",',
-  '      "subgraphPort": 3001,',
-  '      "healthcheck": "/_health"',
-  '    }',
-  '  }',
-  '}',
-].join('\n');
 
-const releaseErrors = reactive<Record<'packageId' | 'version' | 'manifest' | 'tarballSha256', string>>({
+const releaseErrors = reactive<Record<'packageId' | 'version' | 'brief', string>>({
   packageId: '',
   version: '',
-  manifest: '',
-  tarballSha256: '',
+  brief: '',
 });
 
 const {
@@ -298,8 +286,7 @@ const {
 function validateRelease(): IPublishReleaseInput | null {
   releaseErrors.packageId = '';
   releaseErrors.version = '';
-  releaseErrors.manifest = '';
-  releaseErrors.tarballSha256 = '';
+  releaseErrors.brief = '';
 
   if (!PACKAGE_ID_RE.test(releasePackageId.value.trim())) {
     releaseErrors.packageId = 'Ожидается @scope/name из [a-z0-9-].';
@@ -307,36 +294,19 @@ function validateRelease(): IPublishReleaseInput | null {
   if (!SEMVER_RE.test(releaseVersion.value.trim())) {
     releaseErrors.version = 'Semver: например 1.0.0.';
   }
-
-  let manifest: unknown = null;
-  try {
-    manifest = JSON.parse(releaseManifestRaw.value || '');
-  } catch {
-    releaseErrors.manifest = 'Невалидный JSON.';
-  }
-  if (manifest !== null && (typeof manifest !== 'object' || Array.isArray(manifest))) {
-    releaseErrors.manifest = 'Манифест — JSON-объект.';
+  if (releaseBrief.value.length > 2000) {
+    releaseErrors.brief = 'До 2000 символов.';
   }
 
-  const sha = releaseTarballSha256.value.trim();
-  if (sha && !SHA256_RE.test(sha)) {
-    releaseErrors.tarballSha256 = 'Ожидается 64 hex-символа.';
-  }
-
-  if (
-    releaseErrors.packageId ||
-    releaseErrors.version ||
-    releaseErrors.manifest ||
-    releaseErrors.tarballSha256
-  ) {
+  if (releaseErrors.packageId || releaseErrors.version || releaseErrors.brief) {
     return null;
   }
 
+  const brief = releaseBrief.value.trim();
   return {
     packageId: releasePackageId.value.trim(),
     version: releaseVersion.value.trim(),
-    manifest,
-    ...(sha ? { tarballSha256: sha } : {}),
+    ...(brief ? { brief } : {}),
   };
 }
 
