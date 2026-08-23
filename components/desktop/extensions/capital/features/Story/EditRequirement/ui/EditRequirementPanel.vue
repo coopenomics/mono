@@ -48,6 +48,16 @@ q-card.column.no-wrap.edit-req-panel(
           )
             q-tooltip Сохранить изменения
           .row.items-center.no-wrap(v-else)
+            RevisionsButton(
+              v-if='requirement'
+              entity-type='STORY'
+              :entity-hash='requirement.story_hash'
+              :current-title='localTitle'
+              :current-description='localDescription'
+              :current-rev='currentRev'
+              :can-edit='canEdit'
+              @restored='handleRestored'
+            )
             FavoriteStarButton(
               v-if='requirement'
               :target-type='FavoriteTargetType.ARTIFACT'
@@ -101,6 +111,7 @@ q-card.column.no-wrap.edit-req-panel(
         :padded='false'
         :show-focus-ring="variant === 'dialog'"
       )
+  ConflictDialog(v-model='conflictOpen' :conflict='conflict' @resolve='applyConflictResolution')
 
 </template>
 
@@ -117,8 +128,16 @@ import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStory
 import { MermaidStoryEditor } from 'app/extensions/capital/features/Story/MermaidStoryEditor';
 import { DrawioStoryEmbedEditor } from 'app/extensions/capital/features/Story/DrawioStoryEmbedEditor';
 import { useUpdateStory } from '../../UpdateStory/model';
+import {
+  ConflictDialog,
+  RevisionsButton,
+  extractContentConflict,
+  type IContentConflict,
+  type IContentRevisionSummary,
+} from 'app/extensions/capital/features/ContentRevisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
+import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
 
 export type EditRequirementPanelVariant = 'dialog' | 'page';
 
@@ -154,6 +173,12 @@ const originalTitle = ref('');
 const originalDescription = ref('');
 const isSaving = ref(false);
 const { updateStory } = useUpdateStory();
+
+/** Редакция, относительно которой идёт сохранение: content_rev артефакта, после конфликта — current_rev сервера */
+const baseRevOverride = ref<number | null>(null);
+const currentRev = computed(() => baseRevOverride.value ?? props.requirement?.content_rev ?? 0);
+const conflict = ref<IContentConflict | null>(null);
+const conflictOpen = ref(false);
 
 const editorMinHeight = computed(() => (props.variant === 'dialog' ? 480 : 520));
 
@@ -234,20 +259,56 @@ const handleSave = async () => {
       story_hash: props.requirement.story_hash,
       title: localTitle.value,
       description: localDescription.value,
+      base_rev: currentRev.value,
     };
 
     const updatedRequirement = await updateStory(updateData);
 
+    // Сервер мог слить текст с параллельной правкой — показываем итог, а не то, что отправили
+    const merged =
+      (updatedRequirement.description || '') !== localDescription.value ||
+      (updatedRequirement.title || '') !== localTitle.value;
+    localTitle.value = updatedRequirement.title || '';
+    localDescription.value = updatedRequirement.description || '';
     originalTitle.value = localTitle.value;
     originalDescription.value = localDescription.value;
+    baseRevOverride.value = null;
 
-    SuccessAlert('Артефакт успешно обновлён');
+    SuccessAlert(merged ? 'Артефакт сохранён и слит с параллельными правками' : 'Артефакт успешно обновлён');
     emit('updated', updatedRequirement);
   } catch (error) {
+    const c = extractContentConflict(error);
+    if (c) {
+      conflict.value = c;
+      conflictOpen.value = true;
+      return;
+    }
     console.error('Ошибка при обновлении артефакта:', error);
     FailAlert('Не удалось обновить артефакт');
   } finally {
     isSaving.value = false;
+  }
+};
+
+/** Выбор в диалоге конфликта: текст в редактор, дальнейшее сохранение — относительно серверной редакции */
+const applyConflictResolution = (value: { title: string; description: string; base_rev: number }) => {
+  localTitle.value = value.title;
+  localDescription.value = value.description;
+  baseRevOverride.value = value.base_rev;
+};
+
+/** После отката к редакции перечитываем артефакт с сервера и сообщаем родителю как об обновлении */
+const handleRestored = async (_summary: IContentRevisionSummary) => {
+  if (!props.requirement) return;
+  baseRevOverride.value = null;
+  try {
+    const row = await StoryApi.loadStory({ story_hash: props.requirement.story_hash });
+    if (row) {
+      syncFromRequirement(row);
+      emit('updated', row);
+    }
+  } catch (error) {
+    FailAlert(error);
   }
 };
 

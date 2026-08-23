@@ -19,6 +19,9 @@ import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { ProjectSyncService } from '../syncers/project-sync.service';
+import { ContentRevisionService } from '../services/content-revision.service';
+import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
+import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
@@ -45,6 +48,7 @@ export class ProjectManagementInteractor {
     private readonly projectRepository: ProjectRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly projectSyncService: ProjectSyncService,
+    private readonly contentRevisionService: ContentRevisionService,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService
   ) {
@@ -153,12 +157,28 @@ export class ProjectManagementInteractor {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: EditProjectDomainInput): Promise<InnerTransactResult> {
+  async editProject(data: EditProjectDomainInput, author = 'system'): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    if (!project) {
+      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+    }
+    // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService).
+    // Слитый текст уже записан в БД; для блокчейн-проекта он же уходит в цепь, при провале — откат.
+    const write = await this.contentRevisionService.prepareWrite({
+      entity_type: ContentEntityType.PROJECT,
+      entity_hash: project.project_hash,
+      author,
+      origin: (data.origin as ContentRevisionOrigin) ?? ContentRevisionOrigin.WEB,
+      base_rev: data.base_rev,
+      restored_from_rev: data.restored_from_rev,
+      incoming: { title: data.title, description: data.description },
+    });
+    const merged: EditProjectDomainInput = { ...data, title: write.title, description: write.description };
+
     if (isLocalProject(project)) {
       await this.projectRepository.updateLocalContent(data.project_hash, {
-        title: data.title,
-        description: data.description,
+        title: merged.title,
+        description: merged.description,
         invite: data.invite,
         meta: data.meta,
         data: data.data,
@@ -167,7 +187,19 @@ export class ProjectManagementInteractor {
     }
 
     assertBlockchainProject(project, 'редактирование');
-    const transactResult = await this.capitalBlockchainPort.editProject(data);
+    let transactResult: InnerTransactResult;
+    try {
+      transactResult = await this.capitalBlockchainPort.editProject(merged);
+    } catch (error) {
+      if (write.changed) {
+        await this.contentRevisionService.rollbackWrite(
+          ContentEntityType.PROJECT,
+          project.project_hash,
+          write.content_rev
+        );
+      }
+      throw error;
+    }
 
     try {
       await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);

@@ -244,6 +244,8 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
+	CapitalContentEntityType: "enum" as const,
+	CapitalContentRevisionOrigin: "enum" as const,
 	CapitalContributorFilter:{
 		status:"ContributorStatus"
 	},
@@ -270,6 +272,12 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalFavoriteTargetType: "enum" as const,
 	CapitalFavoritesFilter:{
 
+	},
+	CapitalGetContentRevisionInput:{
+		entity_type:"CapitalContentEntityType"
+	},
+	CapitalGetContentRevisionsInput:{
+		entity_type:"CapitalContentEntityType"
 	},
 	CapitalGetOpenTimerInput:{
 
@@ -298,6 +306,9 @@ export const AllTypesProps: Record<string,any> = {
 		has_issues_with_statuses:"IssueStatus",
 		priorities:"ProjectPriority",
 		statuses:"ProjectStatus"
+	},
+	CapitalRestoreContentRevisionInput:{
+		entity_type:"CapitalContentEntityType"
 	},
 	CapitalResumeTimerInput:{
 
@@ -597,7 +608,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EditProjectInput:{
-
+		origin:"CapitalContentRevisionOrigin"
 	},
 	EntrepreneurDetailsInput:{
 
@@ -1667,6 +1678,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRemoveFavorite:{
 			data:"CapitalFavoriteInput"
 		},
+		capitalRestoreContentRevision:{
+			data:"CapitalRestoreContentRevisionInput"
+		},
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
 		},
@@ -2622,6 +2636,12 @@ export const AllTypesProps: Record<string,any> = {
 		capitalFavorites:{
 			filter:"CapitalFavoritesFilter"
 		},
+		capitalGetContentRevision:{
+			data:"CapitalGetContentRevisionInput"
+		},
+		capitalGetContentRevisions:{
+			data:"CapitalGetContentRevisionsInput"
+		},
 		capitalGetOpenTimer:{
 			data:"CapitalGetOpenTimerInput"
 		},
@@ -3511,6 +3531,7 @@ export const AllTypesProps: Record<string,any> = {
 		passport:"PassportInput"
 	},
 	UpdateIssueInput:{
+		origin:"CapitalContentRevisionOrigin",
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
@@ -3535,6 +3556,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UpdateStoryInput:{
 		content_format:"CapitalStoryContentFormat",
+		origin:"CapitalContentRevisionOrigin",
 		status:"StoryStatus"
 	},
 	UploadExpenseFileInput:{
@@ -3787,6 +3809,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		blockchain_status:"String",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -4107,6 +4130,38 @@ export const ReturnTypes: Record<string,any> = {
 		level_growth_coefficient:"Float",
 		voting_period_in_days:"Float"
 	},
+	CapitalContentRevision:{
+		author:"String",
+		base_rev:"Int",
+		content_format:"String",
+		content_hash:"String",
+		created_at:"DateTime",
+		description:"String",
+		description_delta:"Int",
+		description_length:"Int",
+		entity_hash:"String",
+		entity_type:"CapitalContentEntityType",
+		merged:"Boolean",
+		origin:"CapitalContentRevisionOrigin",
+		restored_from_rev:"Int",
+		rev:"Int",
+		title:"String"
+	},
+	CapitalContentRevisionSummary:{
+		author:"String",
+		base_rev:"Int",
+		content_hash:"String",
+		created_at:"DateTime",
+		description_delta:"Int",
+		description_length:"Int",
+		entity_hash:"String",
+		entity_type:"CapitalContentEntityType",
+		merged:"Boolean",
+		origin:"CapitalContentRevisionOrigin",
+		restored_from_rev:"Int",
+		rev:"Int",
+		title:"String"
+	},
 	CapitalContributor:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -4246,6 +4301,7 @@ export const ReturnTypes: Record<string,any> = {
 		_id:"String",
 		_updated_at:"DateTime",
 		block_num:"Float",
+		content_rev:"Int",
 		created_by:"String",
 		creators:"String",
 		cycle_id:"String",
@@ -4513,6 +4569,7 @@ export const ReturnTypes: Record<string,any> = {
 		block_num:"Float",
 		blockchain_status:"String",
 		components:"CapitalProjectComponent",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -4548,6 +4605,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		blockchain_status:"String",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -4787,6 +4845,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		content_format:"CapitalStoryContentFormat",
+		content_rev:"Int",
 		coopname:"String",
 		created_by:"String",
 		description:"String",
@@ -6744,6 +6803,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
 		capitalRemoveFavorite:"CapitalFavorite",
+		capitalRestoreContentRevision:"CapitalContentRevisionSummary",
 		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
@@ -7592,6 +7652,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
 		capitalFavorites:"CapitalFavorite",
+		capitalGetContentRevision:"CapitalContentRevision",
+		capitalGetContentRevisions:"CapitalContentRevisionSummary",
 		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",

@@ -30,6 +30,7 @@ export class IssueMapper {
       status: entity.status,
       estimate: normalizeEstimateFromDb(entity.estimate as number | string),
       sort_order: entity.sort_order,
+      content_rev: entity.content_rev ?? 0,
       created_by: entity.created_by,
       creators: entity.creators,
       submaster: entity.submaster,
@@ -60,6 +61,8 @@ export class IssueMapper {
     if (domain.status !== undefined) entity.status = domain.status;
     if (domain.estimate !== undefined) entity.estimate = domain.estimate;
     if (domain.sort_order !== undefined) entity.sort_order = domain.sort_order;
+    // 0 не пишем: номер редакции двигает только ContentRevisionService
+    if (domain.content_rev) entity.content_rev = domain.content_rev;
     if (domain.created_by !== undefined) entity.created_by = domain.created_by;
     if (domain.creators !== undefined) entity.creators = domain.creators;
     if (domain.submaster !== undefined) entity.submaster = domain.submaster;

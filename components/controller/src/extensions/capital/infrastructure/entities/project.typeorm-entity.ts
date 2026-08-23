@@ -99,6 +99,10 @@ export class ProjectTypeormEntity extends BaseTypeormEntity {
   })
   priority!: ProjectPriority;
 
+  /** Редакция содержимого (см. capital_content_revisions); 0 — снимков ещё нет. */
+  @Column({ type: 'integer', default: 0 })
+  content_rev!: number;
+
   @Column({ type: 'varchar', length: 3 })
   prefix!: string;
 

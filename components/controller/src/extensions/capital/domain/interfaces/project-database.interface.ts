@@ -23,6 +23,8 @@ export type IProjectDomainInterfaceDatabaseData = IBaseDatabaseData & {
   development_repository_url?: string | null;
   /** Приоритет проекта/компонента (только БД, в блокчейн не пишется). */
   priority?: string;
+  /** Номер редакции содержимого (title/description); растёт только от содержательной правки. */
+  content_rev?: number;
   /** blockchain | local */
   origin?: string;
   /** Владелец LOCAL-проекта */

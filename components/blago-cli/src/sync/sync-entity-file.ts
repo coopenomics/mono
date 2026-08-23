@@ -9,6 +9,7 @@ import { sha256Hex } from '../lib/hash.js'
 
 import { warn } from '../ui/output.js'
 import { findByHash, normalizeRelativePath, upsertEntry } from './index-store.js'
+import { loadBaseSnapshot, merge3, saveBaseSnapshot } from './merge3.js'
 
 /**
  * Канонический вид для сравнения «есть ли реальный конфликт», без волатильных
@@ -96,9 +97,11 @@ export async function syncEntityFile(params: {
   relativePath: string
   content: string
   remoteUpdatedAt: string
+  /** Редакция содержимого на сервере (content_rev); нет у сущностей без истории редакций */
+  remoteRev?: number
   label: string
 }): Promise<boolean> {
-  const { root, index, entityType, entityHash, relativePath, content, remoteUpdatedAt, label } = params
+  const { root, index, entityType, entityHash, relativePath, content, remoteUpdatedAt, remoteRev, label } = params
   const rel = normalizeRelativePath(relativePath)
   const absNew = path.join(root, rel)
   const prev = findByHash(index, entityType, entityHash)
@@ -114,6 +117,13 @@ export async function syncEntityFile(params: {
   ) {
     const onDisk = await readFileIfExists(absNew)
     if (onDisk !== null && sha256Hex(onDisk) === prev.content_etag_local) {
+      // Индекс до появления редакций/снимков: дописываем их молча, файл не трогаем.
+      if (prev.remote_rev !== remoteRev) {
+        upsertEntry(index, { ...prev, remote_rev: remoteRev })
+      }
+      if ((await loadBaseSnapshot(root, entityType, entityHash)) === null) {
+        await saveBaseSnapshot(root, entityType, entityHash, content)
+      }
       return false
     }
   }
@@ -127,8 +137,10 @@ export async function syncEntityFile(params: {
       entity_hash: entityHash,
       relative_path: rel,
       remote_updated_at: remoteUpdatedAt,
+      remote_rev: remoteRev,
       content_etag_local: etag,
     })
+    await saveBaseSnapshot(root, entityType, entityHash, content)
     return true
   }
 
@@ -153,8 +165,10 @@ export async function syncEntityFile(params: {
         entity_hash: entityHash,
         relative_path: rel,
         remote_updated_at: remoteUpdatedAt,
+        remote_rev: remoteRev,
         content_etag_local: sha256Hex((await readFileIfExists(absNew)) ?? ''),
       })
+      await saveBaseSnapshot(root, entityType, entityHash, content)
       warn(
         `Переименование на сервере: ${label} перенесён на «${rel}» с сохранением локальных правок; проверьте frontmatter (title / updated_at).`,
       )
@@ -173,15 +187,22 @@ export async function syncEntityFile(params: {
       entity_hash: entityHash,
       relative_path: rel,
       remote_updated_at: remoteUpdatedAt,
+      remote_rev: remoteRev,
       content_etag_local: etagAfterRename,
     })
+    await saveBaseSnapshot(root, entityType, entityHash, content)
     return true
   }
 
   const current = await readFileIfExists(absNew)
   const dirty
     = current !== null && current !== undefined && sha256Hex(current) !== prev.content_etag_local
-  if (dirty && remoteUpdatedAt !== prev.remote_updated_at) {
+  const base = await loadBaseSnapshot(root, entityType, entityHash)
+  // Сервер изменился содержательно: по снимку базы (без волатильных меток), иначе — по редакции/метке времени
+  const remoteChanged = base !== null
+    ? canonicalForCompare(base) !== canonicalForCompare(content)
+    : (remoteRev !== undefined && prev.remote_rev !== undefined ? remoteRev !== prev.remote_rev : remoteUpdatedAt !== prev.remote_updated_at)
+  if (dirty && remoteChanged) {
     // Реальный конфликт — только если содержимое расходится вне волатильных меток времени.
     // Если локальный и серверный тексты совпадают по канону (отличие лишь в updated_at/created_at),
     // это не конфликт: принимаем серверную версию и лечим etag, без маркеров слияния.
@@ -193,25 +214,54 @@ export async function syncEntityFile(params: {
         entity_hash: entityHash,
         relative_path: rel,
         remote_updated_at: remoteUpdatedAt,
+        remote_rev: remoteRev,
         content_etag_local: sha256Hex(await fs.readFile(absNew, 'utf8')),
       })
+      await saveBaseSnapshot(root, entityType, entityHash, content)
       return true
     }
-    const merged = wrapMergeConflictMarkers(current ?? '', content)
+    // Трёхстороннее слияние по снимку базы: чужие правки вливаются в локальные, конфликт — только на пересечении.
+    // Без снимка (старый индекс) — маркеры на весь файл, как раньше.
+    const merged = base !== null
+      ? merge3(current ?? '', base, content)
+      : { text: wrapMergeConflictMarkers(current ?? '', content), conflict: true }
     await ensureDirForFile(absNew)
-    await fs.writeFile(absNew, merged, 'utf8')
-    const etagConflict = sha256Hex(merged)
+    await fs.writeFile(absNew, merged.text, 'utf8')
+    // etag = серверный текст: файл остаётся «грязным» (в нём локальные правки), база = сервер
     upsertEntry(index, {
       entity_type: entityType,
       entity_hash: entityHash,
       relative_path: rel,
       remote_updated_at: remoteUpdatedAt,
-      content_etag_local: etagConflict,
+      remote_rev: remoteRev,
+      content_etag_local: sha256Hex(content),
     })
-    warn(
-      `Конфликт версий для ${label}: в файл записаны маркеры слияния («<<<<<<< blago/local» … «>>>>>>> blago/remote»). Оставьте одну версию текста, удалите маркеры, затем «blago add» и «blago push».`,
-    )
+    await saveBaseSnapshot(root, entityType, entityHash, content)
+    if (merged.conflict) {
+      warn(
+        `Конфликт версий для ${label}: чужие правки пересеклись с вашими, в файл записаны маркеры слияния («<<<<<<< blago/local» … «>>>>>>> blago/remote»). Оставьте одну версию текста, удалите маркеры, затем «blago add» и «blago push».`,
+      )
+    }
+    else {
+      warn(`${label}: чужие правки с сервера слиты с вашими локальными (без конфликтов); проверьте и отправьте «blago push».`)
+    }
     return true
+  }
+
+  if (dirty && !remoteChanged) {
+    // Сервер не менялся содержательно, локальные правки не трогаем; индекс/базу выравниваем.
+    upsertEntry(index, {
+      entity_type: entityType,
+      entity_hash: entityHash,
+      relative_path: rel,
+      remote_updated_at: remoteUpdatedAt,
+      remote_rev: remoteRev,
+      content_etag_local: prev.content_etag_local,
+    })
+    if (base === null) {
+      await saveBaseSnapshot(root, entityType, entityHash, content)
+    }
+    return false
   }
 
   await ensureDirForFile(absNew)
@@ -222,7 +272,9 @@ export async function syncEntityFile(params: {
     entity_hash: entityHash,
     relative_path: rel,
     remote_updated_at: remoteUpdatedAt,
+    remote_rev: remoteRev,
     content_etag_local: etagOnDisk,
   })
+  await saveBaseSnapshot(root, entityType, entityHash, content)
   return true
 }

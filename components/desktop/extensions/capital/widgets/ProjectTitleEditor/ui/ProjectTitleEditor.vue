@@ -64,7 +64,7 @@ import { ref, computed, watch } from 'vue';
 import type { IProject, IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
-import { useEditProject } from 'app/extensions/capital/features/Project/EditProject';
+import { buildEditProjectInput, useEditProject } from 'app/extensions/capital/features/Project/EditProject';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
@@ -126,17 +126,8 @@ const saveChanges = async () => {
   try {
     isSaving.value = true;
 
-    const updateData = {
-      project_hash: props.project.project_hash || '',
-      title: props.project.title || '',
-      description: props.project.description || '',
-      invite: props.project.invite || '',
-      coopname: (props.project as any).coopname || '',
-      meta: '',
-      data: '',
-    };
-
-    await saveImmediately(updateData);
+    // Полный вход из проекта: пустые meta/data стирали бы видео и шаблон в цепи
+    await saveImmediately(buildEditProjectInput(props.project));
 
     // Обновляем оригинальное состояние после успешного сохранения
     if (props.project) {

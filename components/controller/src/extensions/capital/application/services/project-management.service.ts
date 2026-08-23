@@ -79,7 +79,7 @@ export class ProjectManagementService {
       }
     }
 
-    return await this.projectManagementInteractor.editProject(data);
+    return await this.projectManagementInteractor.editProject(data, currentUser.username);
   }
 
   /**
