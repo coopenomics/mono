@@ -64,14 +64,13 @@ BaseCard(
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { ChangePasswordDialog } from 'src/features/Security/ChangePassword';
 import { useNewPasswordForm, useSetPassword } from '../model';
 
 const session = useSessionStore();
-const { setPassword } = useSetPassword();
+const { setPasswordFromScreen } = useSetPassword();
 
 const open = ref(false);
 const changeOpen = ref(false);
@@ -88,11 +87,7 @@ async function onSave(): Promise<void> {
   if (!isValid.value) return;
   saving.value = true;
   try {
-    await setPassword(password.value);
-    SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
-    open.value = false;
-  } catch (e) {
-    FailAlert(e);
+    if (await setPasswordFromScreen(password.value)) open.value = false;
   } finally {
     saving.value = false;
   }
