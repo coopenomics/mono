@@ -58,6 +58,11 @@ import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-remi
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
+import { workflow as capitalRoleRequestedWorkflow } from './capital-role-requested';
+import { workflow as capitalRoleApprovedWorkflow } from './capital-role-approved';
+import { workflow as capitalRoleDeclinedWorkflow } from './capital-role-declined';
+import { workflow as capitalRoleInvitedWorkflow } from './capital-role-invited';
+import { workflow as capitalRoleInviteAnsweredWorkflow } from './capital-role-invite-answered';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -175,6 +180,11 @@ export const allWorkflows: WorkflowDefinition[] = [
   branchTrustedRequestedWorkflow,
   branchTrustedResolvedWorkflow,
   expenseAdvanceReportReminderWorkflow,
+  capitalRoleRequestedWorkflow,
+  capitalRoleApprovedWorkflow,
+  capitalRoleDeclinedWorkflow,
+  capitalRoleInvitedWorkflow,
+  capitalRoleInviteAnsweredWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
@@ -186,3 +196,8 @@ export * as BranchVotingStarted from './branch-voting-started';
 export * as BranchMeetingReminder from './branch-meeting-reminder';
 export * as BranchTrustedRequested from './branch-trusted-requested';
 export * as BranchTrustedResolved from './branch-trusted-resolved';
+export * as CapitalRoleRequested from './capital-role-requested';
+export * as CapitalRoleApproved from './capital-role-approved';
+export * as CapitalRoleDeclined from './capital-role-declined';
+export * as CapitalRoleInvited from './capital-role-invited';
+export * as CapitalRoleInviteAnswered from './capital-role-invite-answered';

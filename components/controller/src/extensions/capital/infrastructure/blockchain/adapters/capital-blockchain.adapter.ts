@@ -916,4 +916,116 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
     return segment;
   }
+  /**
+   * Отправка операции от имени кооператива: достаёт ключ кооператива и подписывает.
+   * Общий путь для операций допуска к роли — сама операция отличается только именем и данными.
+   */
+  private async transactAsCooperative(
+    coopname: string,
+    actionName: string,
+    data: Record<string, unknown>
+  ): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: actionName,
+      authorization: [{ actor: coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  /**
+   * Заявка пайщика на допуск к роли на компоненте
+   */
+  async requestProjectRole(
+    data: CapitalContract.Actions.RequestRole.IRequestRole
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.RequestRole.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Одобрение мастером заявки на допуск либо изменения ставки часа
+   */
+  async approveProjectRole(
+    data: CapitalContract.Actions.ApproveRole.IApproveRole
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.ApproveRole.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Отказ мастера по заявке на допуск либо изменение ставки часа
+   */
+  async declineProjectRole(
+    data: CapitalContract.Actions.DeclineRole.IDeclineRole
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.DeclineRole.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Приглашение пайщика на роль на компоненте
+   */
+  async inviteProjectRole(
+    data: CapitalContract.Actions.InviteRole.IInviteRole
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.InviteRole.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Принятие приглашения на роль
+   */
+  async acceptProjectRoleInvite(
+    data: CapitalContract.Actions.AcceptInvite.IAcceptInvite
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.AcceptInvite.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Отказ от приглашения на роль
+   */
+  async declineProjectRoleInvite(
+    data: CapitalContract.Actions.DeclineInvite.IDeclineInvite
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.DeclineInvite.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Заявка пайщика на изменение утверждённой ставки часа
+   */
+  async requestRateUpdate(
+    data: CapitalContract.Actions.RequestRateUpdate.IRequestRateUpdate
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.RequestRateUpdate.actionName,
+      { ...data }
+    );
+  }
 }

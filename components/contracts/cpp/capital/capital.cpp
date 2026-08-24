@@ -28,6 +28,14 @@
 #include "app/participation_management/get_clearance/dclineappndx.cpp"
 #include "app/participation_management/get_clearance/getclearance.cpp"
 
+#include "app/participation_management/roles/requestrole.cpp"
+#include "app/participation_management/roles/approverole.cpp"
+#include "app/participation_management/roles/declinerole.cpp"
+#include "app/participation_management/roles/inviterole.cpp"
+#include "app/participation_management/roles/acceptinvite.cpp"
+#include "app/participation_management/roles/declinvite.cpp"
+#include "app/participation_management/roles/requestrateu.cpp"
+
 // Управление проектами
 #include "app/project_managment/add_author/addauthor.cpp"
 #include "app/project_managment/complete_voting/cmpltvoting.cpp"

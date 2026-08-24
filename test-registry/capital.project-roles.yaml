@@ -1,0 +1,369 @@
+feature: capital.project-roles
+title: Допуск к роли на компоненте и утверждение ставки часа
+
+# Пайщик просит допуск к работе на компоненте, мастер компонента решает —
+# допустить и с какой ставкой часа. Обратный ход: мастер сам зовёт пайщика,
+# пайщик соглашается или отказывается. Отдельным ходом пайщик просит изменить
+# уже утверждённую ставку.
+#
+# Зачем это нужно. До сих пор час пайщика оценивался одной личной ставкой из
+# договора УХД — одинаково на всех проектах, и правка ставки в профиле сразу
+# меняла цену работы везде. Утверждённая мастером ставка живёт на доле пайщика
+# в этом компоненте: правка личной ставки её не трогает.
+#
+# Допуск оформляется без юридического документа: заявка, приглашение и решение
+# по ним фиксируются подписью операции.
+#
+# Кто вправе действовать. Операции подписываются от имени кооператива, поэтому
+# действующее лицо приходит в данных операции: цепь сверяет его с реестром
+# проекта, бэкенд — с вошедшим пайщиком. Без обеих проверок пайщик подал бы
+# заявку за другого и сам же утвердил себе ставку часа.
+#
+# Заявка на роль мастера — исключение: мастера в компоненте может ещё не быть,
+# такое решение принимает председатель.
+#
+# Стоимость работы считается из утверждённой ставки — соседний слайс
+# (capital.time-tracking ведёт учёт часов, здесь заводится только ставка).
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/participation_management/roles/**
+    - components/contracts/cpp/capital/domain/entities/role_requests.hpp
+    - components/contracts/cpp/capital/app/generation/create_commit/createcmmt.cpp
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/roles-management.resolver.ts
+    - components/controller/src/extensions/capital/application/services/roles-management.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/roles-management.interactor.ts
+    - components/controller/src/extensions/capital/application/dto/roles_management/**
+    - components/controller/src/extensions/capital/domain/enums/role-request.enum.ts
+  ui: []
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.roles.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик просит допуск к роли исполнителя на компоненте, мастер одобряет
+      с той же ставкой, что и запрошена.
+    expect: >
+      заявка переходит в одобренную, на доле пайщика в этом компоненте
+      появляется утверждённая ставка часа и норма часов в день
+    test: ~
+    status: missing
+
+  - id: cap.roles.happy.02
+    level: contract
+    kind: happy
+    scenario: мастер одобряет заявку со ставкой ниже запрошенной
+    expect: >
+      на доле фиксируется ставка мастера, а не запрошенная пайщиком —
+      решение о цене часа принимает тот, кто принимает работу
+    test: ~
+    status: missing
+
+  - id: cap.roles.happy.03
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик вносит работу на компоненте, где мастер утвердил ему ставку
+      выше личной ставки из договора УХД.
+    expect: >
+      стоимость работы считается по утверждённой ставке компонента
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.01
+    level: contract
+    kind: side
+    scenario: >
+      У пайщика нет утверждённой ставки на компоненте, но есть личная
+      ставка в договоре УХД.
+    expect: >
+      работа считается по личной ставке — прежнее поведение сохраняется
+      для всех, кому ставку на компоненте не утверждали
+    test: ~
+    status: missing
+
+  - id: cap.roles.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Пайщик правит личную ставку в профиле после того, как мастер утвердил
+      ему ставку на компоненте.
+    expect: >
+      стоимость работы на этом компоненте не меняется. Иначе правка личной
+      ставки переоценивала бы работу в обход решения мастера
+    test: ~
+    status: missing
+
+  - id: cap.roles.break.02
+    level: contract
+    kind: break
+    scenario: заявку одобряет пайщик, который не является мастером компонента
+    expect: >
+      отказ «Решение по заявке принимает мастер компонента». Без этой сверки
+      любой участник утвердил бы себе ставку часа
+    test: ~
+    status: missing
+
+  - id: cap.roles.break.03
+    level: contract
+    kind: break
+    scenario: >
+      Заявка адресована не мастеру компонента, а произвольному пайщику
+      (например, самому заявителю).
+    expect: >
+      отказ «Заявка адресуется мастеру компонента» — иначе заявку можно
+      адресовать себе и самому же её одобрить
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.02
+    level: contract
+    kind: side
+    scenario: заявка на роль мастера, когда мастера в компоненте ещё нет
+    expect: >
+      сверка с реестром проекта не применяется, решение принимает
+      председатель — иначе первую роль мастера некому было бы выдать
+    test: ~
+    status: missing
+
+  - id: cap.roles.break.04
+    level: contract
+    kind: break
+    scenario: приглашение принимает не тот пайщик, которому оно адресовано
+    expect: >
+      отказ «Принять приглашение может только тот, кому оно адресовано»
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.03
+    level: contract
+    kind: side
+    scenario: попытка принять как приглашение собственную заявку пайщика
+    expect: отказ «Принять можно только приглашение»
+    test: ~
+    status: missing
+
+  - id: cap.roles.break.05
+    level: contract
+    kind: break
+    scenario: повторное решение по заявке, по которой решение уже принято
+    expect: >
+      отказ «Заявка уже обработана» — иначе одобренную ставку можно было бы
+      переписать вторым вызовом, минуя новую заявку
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.04
+    level: contract
+    kind: side
+    scenario: заявка с тем же идентификатором, что уже есть в реестре
+    expect: отказ «Заявка с указанным хэшем уже существует»
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.05
+    level: contract
+    kind: side
+    scenario: заявка с нулевой или отрицательной ставкой часа
+    expect: отказ — ставка часа должна быть положительной
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.06
+    level: contract
+    kind: side
+    scenario: заявка с нормой больше восьми часов в день
+    expect: отказ — норма часов в день от одного до восьми
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.07
+    level: contract
+    kind: side
+    scenario: заявка на роль, которой нет среди ролей компонента
+    expect: >
+      отказ «Допустимые роли заявки: creator, author, master» — участие
+      и вложения в проект оформляются иначе и через заявку на роль не идут
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.08
+    level: contract
+    kind: side
+    scenario: >
+      Мастер одобряет допуск пайщику, у которого нет доли в этом компоненте
+      (приложение к договору УХД на проект не подписано).
+    expect: >
+      отказ «Сегмент участника на этом проекте не найден» — ставку не на чем
+      зафиксировать, пока пайщик не допущен к проекту
+    test: ~
+    status: missing
+
+  - id: cap.roles.happy.04
+    level: contract
+    kind: happy
+    scenario: одобрена заявка на роль соавтора
+    expect: >
+      пайщик добавляется соавтором проекта тем же ходом — иначе одобренная
+      роль оставалась бы записью в заявке и ни на что не влияла
+    test: ~
+    status: missing
+
+  - id: cap.roles.happy.05
+    level: contract
+    kind: happy
+    scenario: пайщик просит изменить утверждённую ставку, мастер одобряет
+    expect: >
+      на доле фиксируется новая ставка; роль пайщика при этом не меняется
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.09
+    level: contract
+    kind: side
+    scenario: отказ мастера по заявке
+    expect: >
+      заявка остаётся в реестре с причиной отказа, ставка на доле
+      не меняется — отказ виден в истории, а не исчезает
+    test: ~
+    status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.roles.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик подаёт заявку на допуск от своего имени
+    expect: операция уходит в цепь
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.break.06
+    level: backend
+    kind: break
+    scenario: пайщик подаёт заявку от имени другого пайщика
+    expect: >
+      отказ, операция в цепь не уходит. Действующее лицо приходит в данных
+      операции, поэтому без сверки с вошедшим пайщиком его можно подменить
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.break.07
+    level: backend
+    kind: break
+    scenario: заявитель пытается сам одобрить себе допуск и ставку часа
+    expect: >
+      отказ, операция в цепь не уходит — решение принимает мастер компонента
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.break.08
+    level: backend
+    kind: break
+    scenario: заявитель пытается сам вынести отказ по своей заявке
+    expect: отказ, операция в цепь не уходит
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.happy.07
+    level: backend
+    kind: happy
+    scenario: мастер компонента приглашает пайщика на роль
+    expect: операция уходит в цепь
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.side.10
+    level: backend
+    kind: side
+    scenario: мастер приглашает на роль самого себя
+    expect: >
+      отказ. Исключение — приглашение на роль мастера: мастера в компоненте
+      может ещё не быть, и такое приглашение допустимо
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.break.09
+    level: backend
+    kind: break
+    scenario: приглашение принимает или отклоняет посторонний пайщик
+    expect: отказ, операция в цепь не уходит
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.break.10
+    level: backend
+    kind: break
+    scenario: мастер пытается подать заявку на новую ставку за пайщика
+    expect: >
+      отказ — ставку себе просит сам пайщик, мастер только принимает решение
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.side.11
+    level: backend
+    kind: side
+    scenario: заявка подана без пояснения
+    expect: >
+      в цепь уходит пустая строка, а не пропущенное поле — иначе операция
+      не собирается
+    test: components/controller/tests/unit/capital/project-roles-actor.test.ts
+    status: passing
+
+  - id: cap.roles.side.12
+    level: backend
+    kind: side
+    scenario: заявка со ставкой часа в неверном виде или с чужой валютой
+    expect: отказ с указанием, каким должен быть формат суммы
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.13
+    level: backend
+    kind: side
+    scenario: >
+      Уведомления по цепочке допуска: заявка мастеру, решение заявителю,
+      приглашение пайщику, ответ на приглашение мастеру.
+    expect: >
+      каждое событие доходит до того, кто должен на него ответить; отказ
+      приходит с причиной
+    test: ~
+    status: missing
+
+  # ── Уровень интерфейса ────────────────────────────────────────────────────
+
+  - id: cap.roles.happy.08
+    level: ui
+    kind: happy
+    scenario: >
+      Мастер открывает компонент, видит заявку с текстом обращения и одобряет
+      её, поправив ставку часа.
+    expect: >
+      заявка уходит из очереди, пайщик появляется среди участников
+      с утверждённой ставкой
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.14
+    level: ui
+    kind: side
+    scenario: у пайщика уже есть утверждённая ставка на этом компоненте
+    expect: >
+      вместо заявки на допуск предлагается заявка на изменение ставки,
+      и рядом показана действующая
+    test: ~
+    status: missing
+
+  - id: cap.roles.side.15
+    level: ui
+    kind: side
+    scenario: пайщик открывает компонент, где приглашение ему уже отправлено
+    expect: >
+      показано приглашение с предлагаемой ставкой и два ответа —
+      принять или отказаться с причиной
+    test: ~
+    status: missing

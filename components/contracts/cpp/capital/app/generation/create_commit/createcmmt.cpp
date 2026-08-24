@@ -48,14 +48,26 @@ void capital::createcmmt(eosio::name coopname, eosio::name username, checksum256
   eosio::check(creator_hours > 0, "Только положительная сумма часов создателя");
   eosio::check(creator_hours <= 1000000, "Превышено максимальное количество часов (1 млн)");
 
+  // Ставка часа на этом проекте: если мастер компонента утвердил её через approverole —
+  // действует утверждённая, иначе личная ставка пайщика из contributors. Так мастер
+  // дифференцирует ставку по проекту, не меняя договор УХД, а правка личной ставки
+  // в профиле не переоценивает работу на проектах с утверждённой ставкой.
+  auto segment_opt = Capital::Segments::get_segment(coopname, project_hash, username);
+  eosio::asset effective_rate = contributor -> rate_per_hour;
+  if (segment_opt.has_value()
+      && segment_opt -> approved_rate_per_hour.has_value()
+      && segment_opt -> approved_rate_per_hour -> amount > 0) {
+    effective_rate = *segment_opt -> approved_rate_per_hour;
+  }
+
   // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать
-  eosio::check(contributor -> rate_per_hour.amount > 0, "Не задана стоимость часа участника");
-  
+  eosio::check(effective_rate.amount > 0, "Не задана стоимость часа участника");
+
   // считаем сумму фактических затрат создателя на основе ставки в час и потраченного времени
-  eosio::asset creator_base = contributor -> rate_per_hour * creator_hours;
-  
+  eosio::asset creator_base = effective_rate * creator_hours;
+
   // Вычисляем фактическое изменение сумм генерации
-  auto delta_amounts = Capital::Core::Generation::calculate_fact_generation_amounts(contributor -> rate_per_hour, creator_hours);
+  auto delta_amounts = Capital::Core::Generation::calculate_fact_generation_amounts(effective_rate, creator_hours);
   
   // Создаем коммит без отправки на аппрув председателю
   // Одобрение осуществляется мастером проекта через approvecmmt

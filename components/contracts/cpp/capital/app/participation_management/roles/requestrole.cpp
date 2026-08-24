@@ -31,6 +31,7 @@ void capital::requestrole(name coopname, checksum256 request_hash, checksum256 p
   require_auth(coopname);
 
   Capital::RoleRequests::validate_role_or_fail(role);
+  Capital::RoleRequests::check_master_or_fail(coopname, project_hash, master, role);
   Wallet::validate_asset(rate_per_hour);
   eosio::check(rate_per_hour.amount > 0, "Ставка часа должна быть положительной");
   eosio::check(hours_per_day > 0 && hours_per_day <= 8, "Норма часов в день — от 1 до 8");
@@ -43,7 +44,7 @@ void capital::requestrole(name coopname, checksum256 request_hash, checksum256 p
     description
   );
 
-  // event ridge: заявитель и мастер компонента видят новую заявку.
+  // Заявитель и мастер компонента получают уведомление о новой заявке.
   require_recipient(username);
   require_recipient(master);
 }

@@ -15,6 +15,7 @@ export * as Projects from './projects'
 export * as ProjectProperties from './projectProperties'
 export * as ProgramWallets from './programWallets'
 export * as Results from './results'
+export * as RoleRequests from './roleRequests'
 export * as Segments from './segments'
 export * as Votes from './votes'
 

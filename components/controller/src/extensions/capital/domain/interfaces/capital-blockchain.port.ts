@@ -272,6 +272,40 @@ export interface CapitalBlockchainPort {
    * Обновление энергии участника в CAPITAL контракте (геймификация)
    */
   refreshContributor(data: CapitalContract.Actions.RefreshContributor.IRefreshContributor): Promise<InnerTransactResult>;
+  /**
+   * Заявка пайщика на допуск к роли на компоненте
+   */
+  requestProjectRole(data: CapitalContract.Actions.RequestRole.IRequestRole): Promise<InnerTransactResult>;
+
+  /**
+   * Одобрение мастером заявки на допуск либо изменения ставки часа
+   */
+  approveProjectRole(data: CapitalContract.Actions.ApproveRole.IApproveRole): Promise<InnerTransactResult>;
+
+  /**
+   * Отказ мастера по заявке на допуск либо изменение ставки часа
+   */
+  declineProjectRole(data: CapitalContract.Actions.DeclineRole.IDeclineRole): Promise<InnerTransactResult>;
+
+  /**
+   * Приглашение пайщика на роль на компоненте
+   */
+  inviteProjectRole(data: CapitalContract.Actions.InviteRole.IInviteRole): Promise<InnerTransactResult>;
+
+  /**
+   * Принятие приглашения на роль
+   */
+  acceptProjectRoleInvite(data: CapitalContract.Actions.AcceptInvite.IAcceptInvite): Promise<InnerTransactResult>;
+
+  /**
+   * Отказ от приглашения на роль
+   */
+  declineProjectRoleInvite(data: CapitalContract.Actions.DeclineInvite.IDeclineInvite): Promise<InnerTransactResult>;
+
+  /**
+   * Заявка пайщика на изменение утверждённой ставки часа
+   */
+  requestRateUpdate(data: CapitalContract.Actions.RequestRateUpdate.IRequestRateUpdate): Promise<InnerTransactResult>;
 
 }
 

@@ -1107,7 +1107,15 @@ export type ScalarCoders = {
 type ZEUS_UNIONS = GraphQLTypes["MarketplaceEvent"] | GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
 
 export type ValueTypes = {
-    ["AccessGrant"]: AliasType<{
+    ["AcceptProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор приглашения */
+	request_hash: string | Variable<any, string>,
+	/** Приглашённый пайщик */
+	username: string | Variable<any, string>
+};
+	["AccessGrant"]: AliasType<{
 	/** Действие (например, read / confirm / manage) */
 	action?:boolean | `@${string}`,
 	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
@@ -1789,6 +1797,18 @@ export type ValueTypes = {
 	countersigned_authority: ValueTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"] | Variable<any, string>,
 	/** Хэш заявки */
 	hash: string | Variable<any, string>
+};
+	["ApproveProjectRoleInput"]: {
+	/** Утверждённая норма часов в день, от 1 до 8 */
+	approved_hours: number | Variable<any, string>,
+	/** Утверждённая ставка часа, например «1200.0000 RUB» */
+	approved_rate: string | Variable<any, string>,
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Мастер компонента, который принимает решение */
+	master: string | Variable<any, string>,
+	/** Идентификатор заявки */
+	request_hash: string | Variable<any, string>
 };
 	/** Утверждение сверки личности советом */
 ["ApproveVerificationInput"]: {
@@ -6407,6 +6427,26 @@ export type ValueTypes = {
 	/** Причина отклонения */
 	reason: string | Variable<any, string>
 };
+	["DeclineProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Мастер компонента, который принимает решение */
+	master: string | Variable<any, string>,
+	/** Причина отказа */
+	reason: string | Variable<any, string>,
+	/** Идентификатор заявки */
+	request_hash: string | Variable<any, string>
+};
+	["DeclineProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Причина отказа */
+	reason: string | Variable<any, string>,
+	/** Идентификатор приглашения */
+	request_hash: string | Variable<any, string>,
+	/** Приглашённый пайщик */
+	username: string | Variable<any, string>
+};
 	["DeleteAccountInput"]: {
 	/** Имя аккаунта пользователя */
 	username_for_delete: string | Variable<any, string>
@@ -8087,6 +8127,26 @@ export type ValueTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["InviteProjectRoleInput"]: {
+	/** Приглашаемый пайщик */
+	candidate: string | Variable<any, string>,
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Текст приглашения */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Предлагаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number | Variable<any, string>,
+	/** Мастер компонента, который приглашает */
+	master: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента */
+	project_hash: string | Variable<any, string>,
+	/** Предлагаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string | Variable<any, string>,
+	/** Идентификатор приглашения */
+	request_hash: string | Variable<any, string>,
+	/** Предлагаемая роль */
+	role: ValueTypes["ProjectRole"] | Variable<any, string>
+};
 	["IssueMetricBindingItemInput"]: {
 	/** Плановый вклад (может быть отрицательным) */
 	delta: number | Variable<any, string>,
@@ -11907,11 +11967,13 @@ assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
+capitalAcceptProjectRoleInvite?: [{	data: ValueTypes["AcceptProjectRoleInviteInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalApproveProjectRole?: [{	data: ValueTypes["ApproveProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ValueTypes["CloseProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -11937,6 +11999,8 @@ capitalCreateProjectProperty?: [{	data: ValueTypes["CreateProjectPropertyInput"]
 capitalCreateStory?: [{	data: ValueTypes["CreateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
 capitalDeallocateFunds?: [{	data: ValueTypes["CapitalDeallocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalDeclineCommit?: [{	data: ValueTypes["CommitDeclineInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalDeclineProjectRole?: [{	data: ValueTypes["DeclineProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalDeclineProjectRoleInvite?: [{	data: ValueTypes["DeclineProjectRoleInviteInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalDeleteIssue?: [{	data: ValueTypes["DeleteCapitalIssueByHashInput"] | Variable<any, string>},boolean | `@${string}`],
 capitalDeleteProcessTemplate?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 capitalDeleteProject?: [{	data: ValueTypes["DeleteProjectInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -11969,6 +12033,7 @@ capitalGenerateResultContributionAct?: [{	data: ValueTypes["ResultContributionAc
 capitalGenerateResultContributionDecision?: [{	data: ValueTypes["ResultContributionDecisionGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ValueTypes["ResultContributionStatementGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ValueTypes["ImportContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalInviteProjectRole?: [{	data: ValueTypes["InviteProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalLogMetricContribution?: [{	data: ValueTypes["LogMetricContributionInput"] | Variable<any, string>},ValueTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ValueTypes["MakeClearanceInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ValueTypes["MoveCapitalIssueToComponentInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
@@ -11979,6 +12044,8 @@ capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<an
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRemoveFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
+capitalRequestProjectRole?: [{	data: ValueTypes["RequestProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalRequestRateUpdate?: [{	data: ValueTypes["RequestRateUpdateInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRestoreContentRevision?: [{	data: ValueTypes["CapitalRestoreContentRevisionInput"] | Variable<any, string>},ValueTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -13670,6 +13737,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 };
 	/** Приоритет проекта или компонента в системе CAPITAL */
 ["ProjectPriority"]:ProjectPriority;
+	/** Роль пайщика на компоненте */
+["ProjectRole"]:ProjectRole;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: AliasType<{
@@ -14505,6 +14574,44 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Хэш заявки */
 	hash: string | Variable<any, string>,
 	/** Пайщик-заявитель */
+	username: string | Variable<any, string>
+};
+	["RequestProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Текст заявки */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number | Variable<any, string>,
+	/** Мастер компонента, который принимает решение */
+	master: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента */
+	project_hash: string | Variable<any, string>,
+	/** Желаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string | Variable<any, string>,
+	/** Идентификатор заявки */
+	request_hash: string | Variable<any, string>,
+	/** Роль, к которой запрашивается допуск */
+	role: ValueTypes["ProjectRole"] | Variable<any, string>,
+	/** Пайщик, который просит допуск */
+	username: string | Variable<any, string>
+};
+	["RequestRateUpdateInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Обоснование */
+	description?: string | undefined | null | Variable<any, string>,
+	/** Мастер компонента, который принимает решение */
+	master: string | Variable<any, string>,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	new_hours: number | Variable<any, string>,
+	/** Желаемая ставка часа, например «1400.0000 RUB» */
+	new_rate: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента */
+	project_hash: string | Variable<any, string>,
+	/** Идентификатор заявки */
+	request_hash: string | Variable<any, string>,
+	/** Пайщик, который просит изменить ставку */
 	username: string | Variable<any, string>
 };
 	/** Статус заявки */
@@ -16134,7 +16241,15 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
   }
 
 export type ResolverInputTypes = {
-    ["AccessGrant"]: AliasType<{
+    ["AcceptProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
+	["AccessGrant"]: AliasType<{
 	/** Действие (например, read / confirm / manage) */
 	action?:boolean | `@${string}`,
 	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
@@ -16801,6 +16916,18 @@ export type ResolverInputTypes = {
 	countersigned_authority: ResolverInputTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	["ApproveProjectRoleInput"]: {
+	/** Утверждённая норма часов в день, от 1 до 8 */
+	approved_hours: number,
+	/** Утверждённая ставка часа, например «1200.0000 RUB» */
+	approved_rate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор заявки */
+	request_hash: string
 };
 	/** Утверждение сверки личности советом */
 ["ApproveVerificationInput"]: {
@@ -21314,6 +21441,26 @@ export type ResolverInputTypes = {
 	/** Причина отклонения */
 	reason: string
 };
+	["DeclineProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор заявки */
+	request_hash: string
+};
+	["DeclineProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
 	["DeleteAccountInput"]: {
 	/** Имя аккаунта пользователя */
 	username_for_delete: string
@@ -22958,6 +23105,26 @@ export type ResolverInputTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["InviteProjectRoleInput"]: {
+	/** Приглашаемый пайщик */
+	candidate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Текст приглашения */
+	description?: string | undefined | null,
+	/** Предлагаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который приглашает */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Предлагаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Предлагаемая роль */
+	role: ResolverInputTypes["ProjectRole"]
+};
 	["IssueMetricBindingItemInput"]: {
 	/** Плановый вклад (может быть отрицательным) */
 	delta: number,
@@ -26651,11 +26818,13 @@ assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},b
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
+capitalAcceptProjectRoleInvite?: [{	data: ResolverInputTypes["AcceptProjectRoleInviteInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalApproveProjectRole?: [{	data: ResolverInputTypes["ApproveProjectRoleInput"]},ResolverInputTypes["Transaction"]],
 capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ResolverInputTypes["CloseProjectInput"]},ResolverInputTypes["CapitalProject"]],
@@ -26681,6 +26850,8 @@ capitalCreateProjectProperty?: [{	data: ResolverInputTypes["CreateProjectPropert
 capitalCreateStory?: [{	data: ResolverInputTypes["CreateStoryInput"]},ResolverInputTypes["CapitalStory"]],
 capitalDeallocateFunds?: [{	data: ResolverInputTypes["CapitalDeallocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalDeclineCommit?: [{	data: ResolverInputTypes["CommitDeclineInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalDeclineProjectRole?: [{	data: ResolverInputTypes["DeclineProjectRoleInput"]},ResolverInputTypes["Transaction"]],
+capitalDeclineProjectRoleInvite?: [{	data: ResolverInputTypes["DeclineProjectRoleInviteInput"]},ResolverInputTypes["Transaction"]],
 capitalDeleteIssue?: [{	data: ResolverInputTypes["DeleteCapitalIssueByHashInput"]},boolean | `@${string}`],
 capitalDeleteProcessTemplate?: [{	id: string},boolean | `@${string}`],
 capitalDeleteProject?: [{	data: ResolverInputTypes["DeleteProjectInput"]},ResolverInputTypes["Transaction"]],
@@ -26713,6 +26884,7 @@ capitalGenerateResultContributionAct?: [{	data: ResolverInputTypes["ResultContri
 capitalGenerateResultContributionDecision?: [{	data: ResolverInputTypes["ResultContributionDecisionGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ResolverInputTypes["ResultContributionStatementGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ResolverInputTypes["ImportContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalInviteProjectRole?: [{	data: ResolverInputTypes["InviteProjectRoleInput"]},ResolverInputTypes["Transaction"]],
 capitalLogMetricContribution?: [{	data: ResolverInputTypes["LogMetricContributionInput"]},ResolverInputTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ResolverInputTypes["MakeClearanceInput"]},ResolverInputTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ResolverInputTypes["MoveCapitalIssueToComponentInput"]},ResolverInputTypes["CapitalIssue"]],
@@ -26723,6 +26895,8 @@ capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},Reso
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
 capitalRemoveFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
+capitalRequestProjectRole?: [{	data: ResolverInputTypes["RequestProjectRoleInput"]},ResolverInputTypes["Transaction"]],
+capitalRequestRateUpdate?: [{	data: ResolverInputTypes["RequestRateUpdateInput"]},ResolverInputTypes["Transaction"]],
 capitalRestoreContentRevision?: [{	data: ResolverInputTypes["CapitalRestoreContentRevisionInput"]},ResolverInputTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
@@ -28345,6 +28519,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 };
 	/** Приоритет проекта или компонента в системе CAPITAL */
 ["ProjectPriority"]:ProjectPriority;
+	/** Роль пайщика на компоненте */
+["ProjectRole"]:ProjectRole;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: AliasType<{
@@ -29159,6 +29335,44 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Хэш заявки */
 	hash: string,
 	/** Пайщик-заявитель */
+	username: string
+};
+	["RequestProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Текст заявки */
+	description?: string | undefined | null,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Желаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Роль, к которой запрашивается допуск */
+	role: ResolverInputTypes["ProjectRole"],
+	/** Пайщик, который просит допуск */
+	username: string
+};
+	["RequestRateUpdateInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Обоснование */
+	description?: string | undefined | null,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	new_hours: number,
+	/** Желаемая ставка часа, например «1400.0000 RUB» */
+	new_rate: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Пайщик, который просит изменить ставку */
 	username: string
 };
 	/** Статус заявки */
@@ -30753,7 +30967,15 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
   }
 
 export type ModelTypes = {
-    ["AccessGrant"]: {
+    ["AcceptProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
+	["AccessGrant"]: {
 		/** Действие (например, read / confirm / manage) */
 	action: string,
 	/** Ресурс — стол/страница/сущность, к которой открыт доступ */
@@ -31401,6 +31623,18 @@ export type ModelTypes = {
 	countersigned_authority: ModelTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	["ApproveProjectRoleInput"]: {
+	/** Утверждённая норма часов в день, от 1 до 8 */
+	approved_hours: number,
+	/** Утверждённая ставка часа, например «1200.0000 RUB» */
+	approved_rate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор заявки */
+	request_hash: string
 };
 	/** Утверждение сверки личности советом */
 ["ApproveVerificationInput"]: {
@@ -35796,6 +36030,26 @@ export type ModelTypes = {
 	/** Причина отклонения */
 	reason: string
 };
+	["DeclineProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор заявки */
+	request_hash: string
+};
+	["DeclineProjectRoleInviteInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
 	["DeleteAccountInput"]: {
 	/** Имя аккаунта пользователя */
 	username_for_delete: string
@@ -37391,6 +37645,26 @@ export type ModelTypes = {
 };
 	["InstanceStatus"]:InstanceStatus;
 	["InvestStatus"]:InvestStatus;
+	["InviteProjectRoleInput"]: {
+	/** Приглашаемый пайщик */
+	candidate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Текст приглашения */
+	description?: string | undefined | null,
+	/** Предлагаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который приглашает */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Предлагаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Предлагаемая роль */
+	role: ModelTypes["ProjectRole"]
+};
 	["IssueMetricBindingItemInput"]: {
 	/** Плановый вклад (может быть отрицательным) */
 	delta: number,
@@ -40922,6 +41196,10 @@ export type ModelTypes = {
 	authorizeForceRecovery: ModelTypes["ForceRecoveryAuthorization"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
+	/** Принять приглашение на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalAcceptProjectRoleInvite: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -40942,6 +41220,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: ModelTypes["CapitalCommit"],
+	/** Одобрить заявку на допуск к роли или новую ставку часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalApproveProjectRole: ModelTypes["Transaction"],
 	/** Архивация метрики компонента
 
 Требуемые роли: chairman, member, user.  */
@@ -41042,6 +41324,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalDeclineCommit: ModelTypes["CapitalCommit"],
+	/** Отказать по заявке на допуск к роли или новую ставку часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalDeclineProjectRole: ModelTypes["Transaction"],
+	/** Отказаться от приглашения на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalDeclineProjectRoleInvite: ModelTypes["Transaction"],
 	/** Удаление задачи по хэшу
 
 Требуемые роли: chairman.  */
@@ -41170,6 +41460,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: ModelTypes["Transaction"],
+	/** Пригласить пайщика на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalInviteProjectRole: ModelTypes["Transaction"],
 	/** Ручной вклад в метрику
 
 Требуемые роли: chairman, member, user.  */
@@ -41210,6 +41504,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalRemoveFavorite: Array<ModelTypes["CapitalFavorite"]>,
+	/** Подать заявку на допуск к роли на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalRequestProjectRole: ModelTypes["Transaction"],
+	/** Подать заявку на изменение утверждённой ставки часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalRequestRateUpdate: ModelTypes["Transaction"],
 	/** Откат к редакции: её содержимое записывается как новая редакция (origin=RESTORE)
 
 Требуемые роли: chairman, member, user.  */
@@ -43269,6 +43571,7 @@ export type ModelTypes = {
 	version?: string | undefined | null
 };
 	["ProjectPriority"]:ProjectPriority;
+	["ProjectRole"]:ProjectRole;
 	["ProjectStatus"]:ProjectStatus;
 	["ProviderSubscription"]: {
 		/** Дата создания */
@@ -44440,6 +44743,44 @@ export type ModelTypes = {
 	/** Хэш заявки */
 	hash: string,
 	/** Пайщик-заявитель */
+	username: string
+};
+	["RequestProjectRoleInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Текст заявки */
+	description?: string | undefined | null,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Желаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Роль, к которой запрашивается допуск */
+	role: ModelTypes["ProjectRole"],
+	/** Пайщик, который просит допуск */
+	username: string
+};
+	["RequestRateUpdateInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Обоснование */
+	description?: string | undefined | null,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	new_hours: number,
+	/** Желаемая ставка часа, например «1400.0000 RUB» */
+	new_rate: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Пайщик, который просит изменить ставку */
 	username: string
 };
 	["RequestStatus"]:RequestStatus;
@@ -45976,6 +46317,14 @@ export type GraphQLTypes = {
     // ------------------------------------------------------;
 	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
 	// ------------------------------------------------------;
+	["AcceptProjectRoleInviteInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
 	["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
@@ -46658,6 +47007,18 @@ export type GraphQLTypes = {
 	countersigned_authority: GraphQLTypes["BranchTrustedPowerOfAttorneySignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
+};
+	["ApproveProjectRoleInput"]: {
+		/** Утверждённая норма часов в день, от 1 до 8 */
+	approved_hours: number,
+	/** Утверждённая ставка часа, например «1200.0000 RUB» */
+	approved_rate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор заявки */
+	request_hash: string
 };
 	/** Утверждение сверки личности советом */
 ["ApproveVerificationInput"]: {
@@ -51276,6 +51637,26 @@ export type GraphQLTypes = {
 	/** Причина отклонения */
 	reason: string
 };
+	["DeclineProjectRoleInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор заявки */
+	request_hash: string
+};
+	["DeclineProjectRoleInviteInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Причина отказа */
+	reason: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Приглашённый пайщик */
+	username: string
+};
 	["DeleteAccountInput"]: {
 		/** Имя аккаунта пользователя */
 	username_for_delete: string
@@ -52956,6 +53337,26 @@ export type GraphQLTypes = {
 ["InstanceStatus"]: InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]: InvestStatus;
+	["InviteProjectRoleInput"]: {
+		/** Приглашаемый пайщик */
+	candidate: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Текст приглашения */
+	description?: string | undefined | null,
+	/** Предлагаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который приглашает */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Предлагаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор приглашения */
+	request_hash: string,
+	/** Предлагаемая роль */
+	role: GraphQLTypes["ProjectRole"]
+};
 	["IssueMetricBindingItemInput"]: {
 		/** Плановый вклад (может быть отрицательным) */
 	delta: number,
@@ -56799,6 +57200,10 @@ export type GraphQLTypes = {
 	authorizeForceRecovery: GraphQLTypes["ForceRecoveryAuthorization"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
+	/** Принять приглашение на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalAcceptProjectRoleInvite: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -56819,6 +57224,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: GraphQLTypes["CapitalCommit"],
+	/** Одобрить заявку на допуск к роли или новую ставку часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalApproveProjectRole: GraphQLTypes["Transaction"],
 	/** Архивация метрики компонента
 
 Требуемые роли: chairman, member, user.  */
@@ -56919,6 +57328,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalDeclineCommit: GraphQLTypes["CapitalCommit"],
+	/** Отказать по заявке на допуск к роли или новую ставку часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalDeclineProjectRole: GraphQLTypes["Transaction"],
+	/** Отказаться от приглашения на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalDeclineProjectRoleInvite: GraphQLTypes["Transaction"],
 	/** Удаление задачи по хэшу
 
 Требуемые роли: chairman.  */
@@ -57047,6 +57464,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: GraphQLTypes["Transaction"],
+	/** Пригласить пайщика на роль на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalInviteProjectRole: GraphQLTypes["Transaction"],
 	/** Ручной вклад в метрику
 
 Требуемые роли: chairman, member, user.  */
@@ -57087,6 +57508,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalRemoveFavorite: Array<GraphQLTypes["CapitalFavorite"]>,
+	/** Подать заявку на допуск к роли на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalRequestProjectRole: GraphQLTypes["Transaction"],
+	/** Подать заявку на изменение утверждённой ставки часа
+
+Требуемые роли: chairman, member, user.  */
+	capitalRequestRateUpdate: GraphQLTypes["Transaction"],
 	/** Откат к редакции: её содержимое записывается как новая редакция (origin=RESTORE)
 
 Требуемые роли: chairman, member, user.  */
@@ -59313,6 +59742,8 @@ export type GraphQLTypes = {
 };
 	/** Приоритет проекта или компонента в системе CAPITAL */
 ["ProjectPriority"]: ProjectPriority;
+	/** Роль пайщика на компоненте */
+["ProjectRole"]: ProjectRole;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]: ProjectStatus;
 	["ProviderSubscription"]: {
@@ -60531,6 +60962,44 @@ export type GraphQLTypes = {
 	/** Хэш заявки */
 	hash: string,
 	/** Пайщик-заявитель */
+	username: string
+};
+	["RequestProjectRoleInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Текст заявки */
+	description?: string | undefined | null,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	hours_per_day: number,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Желаемая ставка часа, например «1200.0000 RUB» */
+	rate_per_hour: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Роль, к которой запрашивается допуск */
+	role: GraphQLTypes["ProjectRole"],
+	/** Пайщик, который просит допуск */
+	username: string
+};
+	["RequestRateUpdateInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Обоснование */
+	description?: string | undefined | null,
+	/** Мастер компонента, который принимает решение */
+	master: string,
+	/** Желаемая норма часов в день, от 1 до 8 */
+	new_hours: number,
+	/** Желаемая ставка часа, например «1400.0000 RUB» */
+	new_rate: string,
+	/** Идентификатор проекта или компонента */
+	project_hash: string,
+	/** Идентификатор заявки */
+	request_hash: string,
+	/** Пайщик, который просит изменить ставку */
 	username: string
 };
 	/** Статус заявки */
@@ -62866,6 +63335,12 @@ export enum ProjectPriority {
 	MEDIUM = "MEDIUM",
 	URGENT = "URGENT"
 }
+/** Роль пайщика на компоненте */
+export enum ProjectRole {
+	AUTHOR = "AUTHOR",
+	CREATOR = "CREATOR",
+	MASTER = "MASTER"
+}
 /** Статусы проекта в системе CAPITAL */
 export enum ProjectStatus {
 	ACTIVE = "ACTIVE",
@@ -63034,6 +63509,7 @@ export enum ZeroReportSignerType {
 }
 
 type ZEUS_VARIABLES = {
+	["AcceptProjectRoleInviteInput"]: ValueTypes["AcceptProjectRoleInviteInput"];
 	["AccountKind"]: ValueTypes["AccountKind"];
 	["AccountType"]: ValueTypes["AccountType"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
@@ -63068,6 +63544,7 @@ type ZEUS_VARIABLES = {
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
 	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
+	["ApproveProjectRoleInput"]: ValueTypes["ApproveProjectRoleInput"];
 	["ApproveVerificationInput"]: ValueTypes["ApproveVerificationInput"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
 	["AssignCapabilitySetInput"]: ValueTypes["AssignCapabilitySetInput"];
@@ -63217,6 +63694,8 @@ type ZEUS_VARIABLES = {
 	["DeclineApproveInput"]: ValueTypes["DeclineApproveInput"];
 	["DeclineDecisionInput"]: ValueTypes["DeclineDecisionInput"];
 	["DeclineKuTrustedInput"]: ValueTypes["DeclineKuTrustedInput"];
+	["DeclineProjectRoleInput"]: ValueTypes["DeclineProjectRoleInput"];
+	["DeclineProjectRoleInviteInput"]: ValueTypes["DeclineProjectRoleInviteInput"];
 	["DeleteAccountInput"]: ValueTypes["DeleteAccountInput"];
 	["DeleteBranchInput"]: ValueTypes["DeleteBranchInput"];
 	["DeleteBranchWhitelistInput"]: ValueTypes["DeleteBranchWhitelistInput"];
@@ -63332,6 +63811,7 @@ type ZEUS_VARIABLES = {
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
+	["InviteProjectRoleInput"]: ValueTypes["InviteProjectRoleInput"];
 	["IssueMetricBindingItemInput"]: ValueTypes["IssueMetricBindingItemInput"];
 	["IssuePriority"]: ValueTypes["IssuePriority"];
 	["IssueStatus"]: ValueTypes["IssueStatus"];
@@ -63570,6 +64050,7 @@ type ZEUS_VARIABLES = {
 	["ProjectFreeDecisionSignedMetaDocumentInput"]: ValueTypes["ProjectFreeDecisionSignedMetaDocumentInput"];
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
+	["ProjectRole"]: ValueTypes["ProjectRole"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
@@ -63598,6 +64079,8 @@ type ZEUS_VARIABLES = {
 	["RequestImageType"]: ValueTypes["RequestImageType"];
 	["RequestImageTypeInput"]: ValueTypes["RequestImageTypeInput"];
 	["RequestKuTrustedInput"]: ValueTypes["RequestKuTrustedInput"];
+	["RequestProjectRoleInput"]: ValueTypes["RequestProjectRoleInput"];
+	["RequestRateUpdateInput"]: ValueTypes["RequestRateUpdateInput"];
 	["RequestStatus"]: ValueTypes["RequestStatus"];
 	["RequestType"]: ValueTypes["RequestType"];
 	["RequestTypeInput"]: ValueTypes["RequestTypeInput"];

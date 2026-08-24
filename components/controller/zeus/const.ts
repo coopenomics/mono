@@ -1,6 +1,9 @@
 /* eslint-disable */
 
 export const AllTypesProps: Record<string,any> = {
+	AcceptProjectRoleInviteInput:{
+
+	},
 	AccountKind: "enum" as const,
 	AccountType: "enum" as const,
 	ActionFiltersInput:{
@@ -109,6 +112,9 @@ export const AllTypesProps: Record<string,any> = {
 	ApproveKuTrustedInput:{
 		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
+	ApproveProjectRoleInput:{
+
 	},
 	ApproveVerificationInput:{
 
@@ -569,6 +575,12 @@ export const AllTypesProps: Record<string,any> = {
 	DeclineKuTrustedInput:{
 
 	},
+	DeclineProjectRoleInput:{
+
+	},
+	DeclineProjectRoleInviteInput:{
+
+	},
 	DeleteAccountInput:{
 
 	},
@@ -907,6 +919,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
+	InviteProjectRoleInput:{
+		role:"ProjectRole"
+	},
 	IssueMetricBindingItemInput:{
 
 	},
@@ -1440,6 +1455,9 @@ export const AllTypesProps: Record<string,any> = {
 		cancelMembershipExit:{
 
 		},
+		capitalAcceptProjectRoleInvite:{
+			data:"AcceptProjectRoleInviteInput"
+		},
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
@@ -1454,6 +1472,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
+		},
+		capitalApproveProjectRole:{
+			data:"ApproveProjectRoleInput"
 		},
 		capitalArchiveComponentMetric:{
 			data:"ArchiveComponentMetricInput"
@@ -1529,6 +1550,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalDeclineCommit:{
 			data:"CommitDeclineInput"
+		},
+		capitalDeclineProjectRole:{
+			data:"DeclineProjectRoleInput"
+		},
+		capitalDeclineProjectRoleInvite:{
+			data:"DeclineProjectRoleInviteInput"
 		},
 		capitalDeleteIssue:{
 			data:"DeleteCapitalIssueByHashInput"
@@ -1648,6 +1675,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalImportContributor:{
 			data:"ImportContributorInput"
 		},
+		capitalInviteProjectRole:{
+			data:"InviteProjectRoleInput"
+		},
 		capitalLogMetricContribution:{
 			data:"LogMetricContributionInput"
 		},
@@ -1677,6 +1707,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalRemoveFavorite:{
 			data:"CapitalFavoriteInput"
+		},
+		capitalRequestProjectRole:{
+			data:"RequestProjectRoleInput"
+		},
+		capitalRequestRateUpdate:{
+			data:"RequestRateUpdateInput"
 		},
 		capitalRestoreContentRevision:{
 			data:"CapitalRestoreContentRevisionInput"
@@ -2569,6 +2605,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ProjectPriority: "enum" as const,
+	ProjectRole: "enum" as const,
 	ProjectStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
@@ -3293,6 +3330,12 @@ export const AllTypesProps: Record<string,any> = {
 	RequestKuTrustedInput:{
 		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
+	RequestProjectRoleInput:{
+		role:"ProjectRole"
+	},
+	RequestRateUpdateInput:{
+
 	},
 	RequestStatus: "enum" as const,
 	RequestType: "enum" as const,
@@ -6731,11 +6774,13 @@ export const ReturnTypes: Record<string,any> = {
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
 		cancelMembershipExit:"Boolean",
+		capitalAcceptProjectRoleInvite:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
 		capitalAddWorklog:"CapitalTimeEntry",
 		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
+		capitalApproveProjectRole:"Transaction",
 		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
 		capitalCloseProject:"CapitalProject",
@@ -6761,6 +6806,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateStory:"CapitalStory",
 		capitalDeallocateFunds:"Transaction",
 		capitalDeclineCommit:"CapitalCommit",
+		capitalDeclineProjectRole:"Transaction",
+		capitalDeclineProjectRoleInvite:"Transaction",
 		capitalDeleteIssue:"Boolean",
 		capitalDeleteProcessTemplate:"Boolean",
 		capitalDeleteProject:"Transaction",
@@ -6793,6 +6840,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
+		capitalInviteProjectRole:"Transaction",
 		capitalLogMetricContribution:"CapitalMetricContribution",
 		capitalMakeClearance:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
@@ -6803,6 +6851,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
 		capitalRemoveFavorite:"CapitalFavorite",
+		capitalRequestProjectRole:"Transaction",
+		capitalRequestRateUpdate:"Transaction",
 		capitalRestoreContentRevision:"CapitalContentRevisionSummary",
 		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",

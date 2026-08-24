@@ -2,6 +2,7 @@
 
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 
 using namespace eosio;
 
@@ -112,7 +113,13 @@ namespace Capital::Segments {
     eosio::asset available_for_program = asset(0, _root_govern_symbol); ///< Доступная сумма для конвертации в программу (intellectual_cost - debt_amount)
     eosio::asset available_for_wallet = asset(0, _root_govern_symbol); ///< Доступная сумма для конвертации в кошелек (provisional_amount - debt_amount)
     double share_percent = 0.0;                                            ///< Доля участника в результате (intellectual_cost / fact.total * 100)
-    
+
+    // Допуск L2 — ставка часа, утверждённая мастером компонента через approverole.
+    // createcmmt берёт её вместо личной ставки пайщика из contributors, если она задана.
+    // binary_extension: таблица segments уже в продакшене, схема расширяется только хвостом.
+    eosio::binary_extension<eosio::asset> approved_rate_per_hour;          ///< Утверждённая мастером ставка часа на этом сегменте
+    eosio::binary_extension<uint64_t> approved_hours_per_day;              ///< Утверждённая мастером норма часов в день на этом сегменте
+
     uint64_t primary_key() const { return id; }                           ///< Первичный ключ (1)
     
     checksum256 by_project_hash() const { return project_hash; }          ///< Индекс по хэшу проекта (2)
@@ -154,6 +161,35 @@ namespace Capital::Segments {
     auto segment_itr = segments.find(segment_id);
     eosio::check(segment_itr != segments.end(), msg);
     return segment(*segment_itr);
+  }
+
+  /**
+   * @brief Фиксирует утверждённую мастером ставку часа и норму часов в день на сегменте.
+   *
+   * Вызывается из approverole / acceptinvite. Дальше createcmmt берёт эту ставку
+   * для расчёта generation_amounts вместо личной ставки пайщика из contributors —
+   * так мастер компонента дифференцирует ставку по проекту, не меняя договор УХД.
+   *
+   * Сегмент должен уже существовать: он создаётся при подписании приложения
+   * договора УХД на этот проект через apprvappndx (допуск L1).
+   */
+  inline void set_approved_rate(
+    eosio::name coopname,
+    const checksum256 &project_hash,
+    eosio::name username,
+    const eosio::asset &rate_per_hour,
+    uint64_t hours_per_day
+  ) {
+    segments_index segments(_capital, coopname.value);
+    auto idx  = segments.get_index<"byprojuser"_n>();
+    auto rkey = combine_checksum_ids(project_hash, username);
+    auto it = idx.find(rkey);
+    eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+
+    idx.modify(it, coopname, [&](auto &s) {
+      s.approved_rate_per_hour.emplace(rate_per_hour);
+      s.approved_hours_per_day.emplace(hours_per_day);
+    });
   }
 
 

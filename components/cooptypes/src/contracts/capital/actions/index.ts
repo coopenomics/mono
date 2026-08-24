@@ -104,3 +104,12 @@ export * as RefreshContributor from './refreshContributor'
 
 // Финализация проекта
 export * as FinalizeProject from './finalizeProject'
+
+// Допуски L2 — заявки и приглашения на роль, утверждение ставки часа на компоненте
+export * as RequestRole from './requestRole'
+export * as ApproveRole from './approveRole'
+export * as DeclineRole from './declineRole'
+export * as InviteRole from './inviteRole'
+export * as AcceptInvite from './acceptInvite'
+export * as DeclineInvite from './declineInvite'
+export * as RequestRateUpdate from './requestRateUpdate'

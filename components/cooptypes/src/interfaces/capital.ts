@@ -13,6 +13,12 @@ export type IUint32 = number
 export type IUint64 = number | string
 export type IFloat64 = number
 
+export interface IAcceptinvite {
+  coopname: IName
+  request_hash: IChecksum256
+  username: IName
+}
+
 export interface IAct1pgprp {
   coopname: IName
   username: IName
@@ -89,6 +95,14 @@ export interface IApprovereg {
   username: IName
   contributor_hash: IChecksum256
   contract: IDocument2
+}
+
+export interface IApproverole {
+  coopname: IName
+  request_hash: IChecksum256
+  master: IName
+  approved_rate: IAsset
+  approved_hours: IUint64
 }
 
 export interface IApproverslt {
@@ -416,6 +430,20 @@ export interface IDeclinereg {
   reason: string
 }
 
+export interface IDeclinerole {
+  coopname: IName
+  request_hash: IChecksum256
+  master: IName
+  reason: string
+}
+
+export interface IDeclinvite {
+  coopname: IName
+  request_hash: IChecksum256
+  username: IName
+  reason: string
+}
+
 export interface IDeclpinv {
   coopname: IName
   username: IName
@@ -586,6 +614,18 @@ export interface IInvest {
   coordinator_amount: IAsset
 }
 
+export interface IInviterole {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  candidate: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  description: string
+}
+
 export interface ILvlnotify {
   coopname: IName
   username: IName
@@ -740,6 +780,29 @@ export interface IRegshare {
   user_shares: IAsset
 }
 
+export interface IRequestrateu {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  new_rate: IAsset
+  new_hours: IUint64
+  description: string
+}
+
+export interface IRequestrole {
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  description: string
+}
+
 export interface IResult {
   id: IUint64
   project_hash: IChecksum256
@@ -765,6 +828,26 @@ export interface IRfrshsegment {
   coopname: IName
   project_hash: IChecksum256
   username: IName
+}
+
+export interface IRoleRequest {
+  id: IUint64
+  coopname: IName
+  request_hash: IChecksum256
+  project_hash: IChecksum256
+  username: IName
+  master: IName
+  role: IName
+  rate_per_hour: IAsset
+  hours_per_day: IUint64
+  approved_rate: IAsset
+  approved_hours: IUint64
+  direction: IName
+  request_type: IName
+  status: IName
+  description: string
+  decline_reason: string
+  created_at: ITimePointSec
 }
 
 export interface ISegment {
@@ -811,6 +894,8 @@ export interface ISegment {
   available_for_program: IAsset
   available_for_wallet: IAsset
   share_percent: IFloat64
+  approved_rate_per_hour?: IAsset
+  approved_hours_per_day?: IUint64
 }
 
 export interface ISetconfig {

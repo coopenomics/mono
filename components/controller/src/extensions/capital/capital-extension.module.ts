@@ -404,6 +404,7 @@ import { IssueAccessPolicyService } from './domain/services/access-policy.servic
 import { PermissionsService } from './application/services/permissions.service';
 import { InvestsManagementService } from './application/services/invests-management.service';
 import { DebtManagementService } from './application/services/debt-management.service';
+import { RolesManagementService } from './application/services/roles-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
 import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
@@ -463,6 +464,7 @@ import { ContentRevisionResolver } from './application/resolvers/content-revisio
 import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
+import { RolesManagementResolver } from './application/resolvers/roles-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
 import { TimeTrackerResolver } from './application/resolvers/time-tracker.resolver';
 import { VotingResolver } from './application/resolvers/voting.resolver';
@@ -486,6 +488,7 @@ import { GenerationInteractor } from './application/use-cases/generation.interac
 import { TimeTrackingInteractor } from './application/use-cases/time-tracking.interactor';
 import { InvestsManagementInteractor } from './application/use-cases/invests-management.interactor';
 import { DebtManagementInteractor } from './application/use-cases/debt-management.interactor';
+import { RolesManagementInteractor } from './application/use-cases/roles-management.interactor';
 import { PropertyManagementInteractor } from './application/use-cases/property-management.interactor';
 import { VotingInteractor } from './application/use-cases/voting.interactor';
 import { ResultSubmissionInteractor } from './application/use-cases/result-submission.interactor';
@@ -816,6 +819,7 @@ IssueIdGenerationService,
     PermissionsService,
     InvestsManagementService,
     DebtManagementService,
+    RolesManagementService,
     PropertyManagementService,
     VotingService,
     ResultSubmissionService,
@@ -878,6 +882,7 @@ IssueIdGenerationService,
     ComponentMetricResolver,
     InvestsManagementResolver,
     DebtManagementResolver,
+    RolesManagementResolver,
     PropertyManagementResolver,
     VotingResolver,
     ResultSubmissionResolver,
@@ -1038,6 +1043,7 @@ IssueIdGenerationService,
     TimeTrackingInteractor,
     InvestsManagementInteractor,
     DebtManagementInteractor,
+    RolesManagementInteractor,
     PropertyManagementInteractor,
     VotingInteractor,
     ResultSubmissionInteractor,

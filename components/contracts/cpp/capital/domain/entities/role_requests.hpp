@@ -149,6 +149,53 @@ inline void validate_role_or_fail(eosio::name role) {
 }
 
 /**
+ * @brief Проверяет, что решение по заявке принимает мастер компонента.
+ *
+ * Действующее лицо приходит параметром действия и сверяется с реестром проекта —
+ * так же, как это сделано в approvecmmt. Без сверки любой пайщик утвердил бы себе
+ * ставку часа, от которой считается стоимость его коммитов.
+ *
+ * Заявка на роль мастера — исключение: мастера в проекте может ещё не быть,
+ * такое решение принимает председатель, и право на него проверяется
+ * на стороне кооператива при подписании операции.
+ */
+inline void check_decider_or_fail(
+  eosio::name coopname,
+  const role_request &req,
+  eosio::name decider
+) {
+  if (req.request_type == RequestType::ROLE && req.role == Role::MASTER)
+    return;
+
+  auto project = Capital::Projects::get_project_or_fail(coopname, req.project_hash);
+  eosio::check(project.master == decider,
+               "Решение по заявке принимает мастер компонента");
+  eosio::check(req.master == decider,
+               "Решение принимает мастер, указанный в заявке");
+}
+
+/**
+ * @brief Проверяет, что указанный в заявке мастер действительно мастер компонента.
+ *
+ * Вызывается при подаче заявки и при приглашении, чтобы заявку нельзя было
+ * адресовать себе и самому же её одобрить. Для роли мастера проверка не
+ * применяется — мастера в проекте на этот момент может не быть.
+ */
+inline void check_master_or_fail(
+  eosio::name coopname,
+  const checksum256 &project_hash,
+  eosio::name master,
+  eosio::name role
+) {
+  if (role == Role::MASTER)
+    return;
+
+  auto project = Capital::Projects::get_project_or_fail(coopname, project_hash);
+  eosio::check(project.master == master,
+               "Заявка адресуется мастеру компонента");
+}
+
+/**
  * @brief Применяет заявленную роль к проекту через inline action:
  *        Role::AUTHOR → addauthor, Role::MASTER → setmaster, Role::CREATOR → no-op
  *        (creator фиксируется фактически при первом createcmmt).

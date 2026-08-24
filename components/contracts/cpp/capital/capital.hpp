@@ -357,4 +357,37 @@ public:
     void onpgexpdone(name coopname, checksum256 expense_hash, uint8_t status,
                      eosio::asset total_actual, std::vector<char> data);
 
+    // L2-допуски и approved-ставки сегмента — бездокументарная схема,
+    // решения фиксируются только подписью транзакции (require_auth coopname).
+    [[eosio::action]]
+    void requestrole(name coopname, checksum256 request_hash, checksum256 project_hash,
+                     name username, name master, name role,
+                     eosio::asset rate_per_hour, uint64_t hours_per_day,
+                     std::string description);
+
+    [[eosio::action]]
+    void approverole(name coopname, checksum256 request_hash, name master,
+                     eosio::asset approved_rate, uint64_t approved_hours);
+
+    [[eosio::action]]
+    void declinerole(name coopname, checksum256 request_hash, name master, std::string reason);
+
+    [[eosio::action]]
+    void inviterole(name coopname, checksum256 request_hash, checksum256 project_hash,
+                    name candidate, name master, name role,
+                    eosio::asset rate_per_hour, uint64_t hours_per_day,
+                    std::string description);
+
+    [[eosio::action]]
+    void acceptinvite(name coopname, checksum256 request_hash, name username);
+
+    [[eosio::action]]
+    void declinvite(name coopname, checksum256 request_hash, name username, std::string reason);
+
+    [[eosio::action]]
+    void requestrateu(name coopname, checksum256 request_hash, checksum256 project_hash,
+                      name username, name master,
+                      eosio::asset new_rate, uint64_t new_hours,
+                      std::string description);
+
 };
