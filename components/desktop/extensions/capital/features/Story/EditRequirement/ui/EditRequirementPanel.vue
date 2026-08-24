@@ -47,7 +47,7 @@ q-card.column.no-wrap.edit-req-panel(
     //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте
     EditorSaveBar(
       v-if='requirement'
-      entity-type='STORY'
+      :entity-type='Zeus.CapitalContentEntityType.STORY'
       :entity-hash='requirement.story_hash'
       :current-title='localTitle'
       :current-description='localDescription'

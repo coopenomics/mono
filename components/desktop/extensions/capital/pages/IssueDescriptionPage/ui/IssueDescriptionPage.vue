@@ -8,7 +8,7 @@ div.q-px-md
       )
     .col-auto(v-if="issue")
       RevisionsButton(
-        entity-type="ISSUE"
+        :entity-type="Zeus.CapitalContentEntityType.ISSUE"
         :entity-hash="issue.issue_hash"
         :current-title="issue.title || ''"
         :current-description="issue.description || ''"
@@ -37,6 +37,7 @@ div.q-px-md
 
 <script lang="ts" setup>
 import { inject } from 'vue'
+import { Zeus } from '@coopenomics/sdk'
 import { Editor, AutoSaveIndicator } from 'src/shared/ui'
 import { TimeEntriesWidget } from 'app/extensions/capital/widgets'
 import { RevisionsButton } from 'app/extensions/capital/features/ContentRevisions'

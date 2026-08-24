@@ -2,7 +2,7 @@
 div.q-px-md(ref="pageRootRef")
   EditorSaveBar(
     v-if="project"
-    entity-type="PROJECT"
+    :entity-type="Zeus.CapitalContentEntityType.PROJECT"
     :entity-hash="project.project_hash"
     :current-title="project.title || ''"
     :current-description="description"
