@@ -120,6 +120,11 @@ namespace Capital::Segments {
     eosio::binary_extension<eosio::asset> approved_rate_per_hour;          ///< Утверждённая мастером ставка часа на этом сегменте
     eosio::binary_extension<uint64_t> approved_hours_per_day;              ///< Утверждённая мастером норма часов в день на этом сегменте
 
+    // Сколько займов пайщика на этом проекте ещё не закрыто. Считается здесь,
+    // чтобы при сдаче результата не перебирать все займы проекта — на большом
+    // проекте такой перебор не укладывается в лимит транзакции.
+    eosio::binary_extension<uint32_t> active_debts_count;                  ///< Число невозвращённых займов пайщика на этом проекте
+
     uint64_t primary_key() const { return id; }                           ///< Первичный ключ (1)
     
     checksum256 by_project_hash() const { return project_hash; }          ///< Индекс по хэшу проекта (2)
@@ -460,6 +465,46 @@ inline void decrease_debt_amount(eosio::name coopname, uint64_t segment_id, eosi
   segments.modify(segment, coopname, [&](auto &s) {
     s.debt_amount -= amount;
   });
+}
+
+/**
+ * @brief Отмечает, что у пайщика на этом проекте стало одним невозвращённым займом больше.
+ */
+inline void increase_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  segments_index segments(_capital, coopname.value);
+  auto idx = segments.get_index<"byprojuser"_n>();
+  auto rkey = combine_checksum_ids(project_hash, username);
+  auto it = idx.find(rkey);
+  eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+  idx.modify(it, coopname, [&](auto &s) {
+    uint32_t current = s.active_debts_count.has_value() ? *s.active_debts_count : 0;
+    s.active_debts_count.emplace(current + 1);
+  });
+}
+
+/**
+ * @brief Отмечает, что заём пайщика на этом проекте закрыт — возвратом или списанием.
+ */
+inline void decrease_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  segments_index segments(_capital, coopname.value);
+  auto idx = segments.get_index<"byprojuser"_n>();
+  auto rkey = combine_checksum_ids(project_hash, username);
+  auto it = idx.find(rkey);
+  eosio::check(it != idx.end(), "Сегмент участника на этом проекте не найден");
+  idx.modify(it, coopname, [&](auto &s) {
+    uint32_t current = s.active_debts_count.has_value() ? *s.active_debts_count : 0;
+    eosio::check(current > 0, "Незакрытых займов на этом проекте не числится");
+    s.active_debts_count.emplace(current - 1);
+  });
+}
+
+/**
+ * @brief Сколько займов пайщика на этом проекте ещё не закрыто.
+ */
+inline uint32_t get_active_debts_count(eosio::name coopname, const checksum256 &project_hash, eosio::name username) {
+  auto segment = get_segment(coopname, project_hash, username);
+  if (!segment.has_value()) return 0;
+  return segment->active_debts_count.has_value() ? *segment->active_debts_count : 0;
 }
 
 /**

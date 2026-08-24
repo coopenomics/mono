@@ -38,6 +38,15 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'timestamp', nullable: true })
   repaid_at!: Date;
 
+  // Срок возврата займа: заполняется при выдаче. У займов, выданных до появления
+  // срока, остаётся пустым — такие в просрочку не переводятся.
+  @Column({ type: 'timestamp', nullable: true })
+  due_at!: Date | null;
+
+  // Причина отказа по реквизитам от последней отправки платежа.
+  @Column({ type: 'text', nullable: true })
+  last_pay_error!: string | null;
+
   @Column({ type: 'bigint' })
   amount!: string;
 
@@ -60,7 +69,7 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({
     type: 'enum',
     enum: DebtStatus,
-    default: DebtStatus.PENDING,
+    default: DebtStatus.CREATED,
   })
   status!: DebtStatus;
 }

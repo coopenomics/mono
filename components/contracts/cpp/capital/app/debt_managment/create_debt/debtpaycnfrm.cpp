@@ -18,12 +18,9 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   auto contributor = Capital::Contributors::get_contributor(coopname, exist_debt.username);
   eosio::check(contributor.has_value(), "Контрибьютор не найден");
 
-  // Проверяем что долг в статусе 'authorized' (готов к выплате)
-  eosio::check(exist_debt.status == Capital::Debts::Status::AUTHORIZED,
-               "Долг должен быть в статусе 'authorized' для подтверждения оплаты");
-
-  // Обновляем статус долга на PAID
-  Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::PAID, _gateway);
+  // Отмечаем заём выданным и назначаем срок возврата — год со дня выдачи.
+  // Проверка состояния и сброс причины прошлого отказа — внутри confirm_paid.
+  Capital::Debts::confirm_paid(coopname, exist_debt.id, _gateway);
 
   // Выдача пайщику беспроцентного займа: Dr 58 / Cr 51, ISSUE LOAN_ISSUED (4051).
   // Семантика момента — деньги ушли пайщику, у кооператива появилось финансовое
@@ -34,5 +31,18 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
 
   // Увеличиваем долг contributor (теперь долг активен и должен быть погашен через внесение результата)
   Capital::Contributors::increase_debt_amount(coopname, contributor->id, exist_debt.amount);
-  
-};  
+
+  // Отмечаем незакрытый заём на доле пайщика: при сдаче результата это избавляет
+  // от перебора всех займов проекта.
+  Capital::Segments::increase_active_debts_count(coopname, exist_debt.project_hash, exist_debt.username);
+
+  // Сводный учёт займов ведёт отдельный контракт: он знает пайщика, сумму и срок,
+  // а привязка займа к проекту остаётся здесь.
+  auto fresh_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
+  Loan::create_debt(_capital, coopname, exist_debt.username,
+                    debt_hash, Capital::Debts::read_due_at(fresh_debt), exist_debt.amount);
+
+  // Пайщик и кооператив получают уведомление о выдаче займа.
+  require_recipient(exist_debt.username);
+  require_recipient(coopname);
+};

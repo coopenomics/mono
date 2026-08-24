@@ -68,6 +68,36 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // у кооперативa уменьшилось фин. вложение 58, деньги вернулись на расчётный.
   if (result -> debt_amount.amount > 0){
     Ledger2::apply(_capital, coopname, operations::capital::REPAY, processes::capital::RID, result -> debt_amount, result -> username, result_hash, memo);
+
+    // Займы пайщика на этом компоненте закрываются результатом. Сколько их
+    // осталось незакрытыми, известно из доли пайщика — иначе пришлось бы
+    // перебирать все займы компонента, а этот перебор на большом компоненте
+    // не укладывается в лимит транзакции.
+    const uint32_t active_debts = Capital::Segments::get_active_debts_count(
+      coopname, result -> project_hash, result -> username);
+    eosio::check(active_debts <= Capital::Debts::MAX_ACTIVE_DEBTS_PER_PROJECT,
+                 "Незакрытых займов на компоненте больше, чем можно закрыть одной сдачей результата");
+
+    Capital::Debts::debts_index debts(_capital, coopname.value);
+    auto by_project = debts.get_index<"byprojhash"_n>();
+    std::vector<std::pair<uint64_t, std::pair<checksum256, eosio::asset>>> to_settle;
+    to_settle.reserve(active_debts);
+
+    for (auto it = by_project.find(result -> project_hash);
+         it != by_project.end() && it -> project_hash == result -> project_hash
+         && to_settle.size() < active_debts; ++it) {
+      if (it -> username == result -> username
+          && (it -> status == Capital::Debts::Status::PAID
+              || it -> status == Capital::Debts::Status::OVERDUE)) {
+        to_settle.emplace_back(it -> id, std::make_pair(it -> debt_hash, it -> amount));
+      }
+    }
+
+    for (const auto &entry : to_settle) {
+      Loan::settle_debt(_capital, coopname, result -> username, entry.second.first, entry.second.second);
+      Capital::Debts::mark_settled(coopname, entry.first, memo, _capital);
+      Capital::Segments::decrease_active_debts_count(coopname, result -> project_hash, result -> username);
+    }
   }
   
   // Обновляем накопительные показатели контрибьютора на основе его ролей в сегменте

@@ -32,6 +32,8 @@ export class DebtDomainEntity
   public project_hash?: IDebtBlockchainData['project_hash'];
   public blockchain_status?: IDebtBlockchainData['status']; // Статус из блокчейна
   public repaid_at?: IDebtBlockchainData['repaid_at'];
+  public due_at?: IDebtBlockchainData['due_at'];
+  public last_pay_error?: IDebtBlockchainData['last_pay_error'];
   public amount?: IDebtBlockchainData['amount'];
   public statement?: ISignedDocument;
   public approved_statement?: ISignedDocument;
@@ -46,7 +48,7 @@ export class DebtDomainEntity
    */
   constructor(databaseData: IDebtDatabaseData, blockchainData?: IDebtBlockchainData) {
     // Вызываем конструктор базового класса с данными
-    super(databaseData, DebtStatus.PENDING);
+    super(databaseData, DebtStatus.CREATED);
 
     // Специфичные поля для debt
     this.status = this.mapStatusToDomain(databaseData.status);
@@ -63,6 +65,8 @@ export class DebtDomainEntity
       this.project_hash = blockchainData.project_hash.toLowerCase();
       this.blockchain_status = blockchainData.status;
       this.repaid_at = blockchainData.repaid_at;
+      this.due_at = blockchainData.due_at;
+      this.last_pay_error = blockchainData.last_pay_error;
       this.amount = blockchainData.amount;
       this.statement = blockchainData.statement;
       this.approved_statement = blockchainData.approved_statement;
@@ -134,19 +138,24 @@ export class DebtDomainEntity
    */
   private mapStatusToDomain(blockchainStatus?: string): DebtStatus {
     switch (blockchainStatus) {
-      case 'pending':
-        return DebtStatus.PENDING;
+      case 'created':
+        return DebtStatus.CREATED;
       case 'approved':
         return DebtStatus.APPROVED;
-      case 'active':
-        return DebtStatus.ACTIVE;
+      case 'authorized':
+        return DebtStatus.AUTHORIZED;
+      case 'paypending':
+        return DebtStatus.PAY_PENDING;
+      case 'paid':
+        return DebtStatus.PAID;
+      case 'overdue':
+        return DebtStatus.OVERDUE;
       case 'settled':
         return DebtStatus.SETTLED;
-      case 'cancelled':
-        return DebtStatus.CANCELLED;
+      case 'writeoff':
+        return DebtStatus.WRITEOFF;
       default:
-        // По умолчанию считаем статус неопределенным
-
+        // Состояние, которого нет в контракте, — зеркало не додумывает его само
         return DebtStatus.UNDEFINED;
     }
   }

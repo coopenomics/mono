@@ -47,6 +47,10 @@ export * as CommitDecline from './commitDecline'
 
 // Долги
 export * as CreateDebt from './createDebt'
+export * as SettleDebt from './settleDebt'
+export * as CloseDebt from './closeDebt'
+export * as DebtPayRetry from './debtPayRetry'
+export * as MarkDebtOverdue from './markDebtOverdue'
 
 // Расходы программы через шасси expense (Эпик 5 шасси)
 // capital — инициатор+callback, весь flow обслуживает контракт expense.

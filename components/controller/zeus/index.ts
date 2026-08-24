@@ -5340,6 +5340,12 @@ export type ValueTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string | Variable<any, string>
 };
+	["CloseDebtInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор займа */
+	debt_hash: string | Variable<any, string>
+};
 	/** Закрытие голосования и утверждение протокола собрания участка */
 ["CloseKuDecisionInput"]: {
 	/** Имя аккаунта кооператива */
@@ -6380,7 +6386,7 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
-	/** Статус долга в системе CAPITAL */
+	/** Состояние займа пайщика */
 ["DebtStatus"]:DebtStatus;
 	/** Комплексный объект решения совета, включающий в себя информацию о голосовавших членах совета, расширенное действие, которое привело к появлению решения, и агрегат документа самого решения. */
 ["DecisionDetailAggregate"]: AliasType<{
@@ -8629,6 +8635,10 @@ export type ValueTypes = {
 };
 	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
 ["ManagedRoomKind"]:ManagedRoomKind;
+	["MarkOverdueDebtsInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>
+};
 	["MarkReportPeriodInput"]: {
 	mark?: ValueTypes["ReportSubmissionMark"] | undefined | null | Variable<any, string>,
 	period?: number | undefined | null | Variable<any, string>,
@@ -11976,6 +11986,7 @@ capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any,
 capitalApproveProjectRole?: [{	data: ValueTypes["ApproveProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
+capitalCloseDebt?: [{	data: ValueTypes["CloseDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCloseProject?: [{	data: ValueTypes["CloseProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ValueTypes["CompleteProcessStepInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalCompleteRegistration?: [{	data: ValueTypes["CompleteCapitalRegistrationInputDTO"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -12036,6 +12047,7 @@ capitalImportContributor?: [{	data: ValueTypes["ImportContributorInput"] | Varia
 capitalInviteProjectRole?: [{	data: ValueTypes["InviteProjectRoleInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalLogMetricContribution?: [{	data: ValueTypes["LogMetricContributionInput"] | Variable<any, string>},ValueTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ValueTypes["MakeClearanceInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalMarkOverdueDebts?: [{	data: ValueTypes["MarkOverdueDebtsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ValueTypes["MoveCapitalIssueToComponentInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ValueTypes["OpenProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalPauseTimer?: [{	data: ValueTypes["CapitalPauseTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
@@ -12048,12 +12060,14 @@ capitalRequestProjectRole?: [{	data: ValueTypes["RequestProjectRoleInput"] | Var
 capitalRequestRateUpdate?: [{	data: ValueTypes["RequestRateUpdateInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRestoreContentRevision?: [{	data: ValueTypes["CapitalRestoreContentRevisionInput"] | Variable<any, string>},ValueTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+capitalRetryDebtPayment?: [{	data: ValueTypes["RetryDebtPaymentInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ValueTypes["SetMasterInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetPlan?: [{	data: ValueTypes["SetPlanInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSetProjectPriority?: [{	data: ValueTypes["SetCapitalProjectPriorityInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalSettleDebt?: [{	data: ValueTypes["SettleDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSignActAsChairman?: [{	data: ValueTypes["SignActAsChairmanInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ValueTypes["SignActAsContributorInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ValueTypes["StartProcessInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -14702,6 +14716,12 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]:ResultStatus;
+	["RetryDebtPaymentInput"]: {
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор займа */
+	debt_hash: string | Variable<any, string>
+};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
@@ -15152,6 +15172,16 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 		__typename?: boolean | `@${string}`,
 	['...on Settings']?: Omit<ValueTypes["Settings"], "...on Settings">
 }>;
+	["SettleDebtInput"]: {
+	/** Сумма возврата, например «30000.0000 RUB» */
+	amount: string | Variable<any, string>,
+	/** Название кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор займа */
+	debt_hash: string | Variable<any, string>,
+	/** Подписанное заявление пайщика о возврате займа */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
@@ -20367,6 +20397,12 @@ export type ResolverInputTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
+	["CloseDebtInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	/** Закрытие голосования и утверждение протокола собрания участка */
 ["CloseKuDecisionInput"]: {
 	/** Имя аккаунта кооператива */
@@ -21395,7 +21431,7 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
-	/** Статус долга в системе CAPITAL */
+	/** Состояние займа пайщика */
 ["DebtStatus"]:DebtStatus;
 	/** Комплексный объект решения совета, включающий в себя информацию о голосовавших членах совета, расширенное действие, которое привело к появлению решения, и агрегат документа самого решения. */
 ["DecisionDetailAggregate"]: AliasType<{
@@ -23591,6 +23627,10 @@ export type ResolverInputTypes = {
 };
 	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
 ["ManagedRoomKind"]:ManagedRoomKind;
+	["MarkOverdueDebtsInput"]: {
+	/** Название кооператива */
+	coopname: string
+};
 	["MarkReportPeriodInput"]: {
 	mark?: ResolverInputTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -26827,6 +26867,7 @@ capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},Resolv
 capitalApproveProjectRole?: [{	data: ResolverInputTypes["ApproveProjectRoleInput"]},ResolverInputTypes["Transaction"]],
 capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
+capitalCloseDebt?: [{	data: ResolverInputTypes["CloseDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalCloseProject?: [{	data: ResolverInputTypes["CloseProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ResolverInputTypes["CompleteProcessStepInput"]},ResolverInputTypes["ProcessInstance"]],
 capitalCompleteRegistration?: [{	data: ResolverInputTypes["CompleteCapitalRegistrationInputDTO"]},ResolverInputTypes["Transaction"]],
@@ -26887,6 +26928,7 @@ capitalImportContributor?: [{	data: ResolverInputTypes["ImportContributorInput"]
 capitalInviteProjectRole?: [{	data: ResolverInputTypes["InviteProjectRoleInput"]},ResolverInputTypes["Transaction"]],
 capitalLogMetricContribution?: [{	data: ResolverInputTypes["LogMetricContributionInput"]},ResolverInputTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ResolverInputTypes["MakeClearanceInput"]},ResolverInputTypes["Transaction"]],
+capitalMarkOverdueDebts?: [{	data: ResolverInputTypes["MarkOverdueDebtsInput"]},ResolverInputTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ResolverInputTypes["MoveCapitalIssueToComponentInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ResolverInputTypes["OpenProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalPauseTimer?: [{	data: ResolverInputTypes["CapitalPauseTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
@@ -26899,12 +26941,14 @@ capitalRequestProjectRole?: [{	data: ResolverInputTypes["RequestProjectRoleInput
 capitalRequestRateUpdate?: [{	data: ResolverInputTypes["RequestRateUpdateInput"]},ResolverInputTypes["Transaction"]],
 capitalRestoreContentRevision?: [{	data: ResolverInputTypes["CapitalRestoreContentRevisionInput"]},ResolverInputTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+capitalRetryDebtPayment?: [{	data: ResolverInputTypes["RetryDebtPaymentInput"]},ResolverInputTypes["Transaction"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ResolverInputTypes["SetMasterInput"]},ResolverInputTypes["Transaction"]],
 capitalSetPlan?: [{	data: ResolverInputTypes["SetPlanInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ResolverInputTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSetProjectPriority?: [{	data: ResolverInputTypes["SetCapitalProjectPriorityInput"]},ResolverInputTypes["CapitalProject"]],
+capitalSettleDebt?: [{	data: ResolverInputTypes["SettleDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalSignActAsChairman?: [{	data: ResolverInputTypes["SignActAsChairmanInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalSignActAsContributor?: [{	data: ResolverInputTypes["SignActAsContributorInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ResolverInputTypes["StartProcessInput"]},ResolverInputTypes["ProcessInstance"]],
@@ -29460,6 +29504,12 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]:ResultStatus;
+	["RetryDebtPaymentInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -29905,6 +29955,16 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["SettleDebtInput"]: {
+	/** Сумма возврата, например «30000.0000 RUB» */
+	amount: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string,
+	/** Подписанное заявление пайщика о возврате займа */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
 	act: ResolverInputTypes["SignedDigitalDocumentInput"],
@@ -34976,6 +35036,12 @@ export type ModelTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
+	["CloseDebtInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	/** Закрытие голосования и утверждение протокола собрания участка */
 ["CloseKuDecisionInput"]: {
 	/** Имя аккаунта кооператива */
@@ -38108,6 +38174,10 @@ export type ModelTypes = {
 	username: string
 };
 	["ManagedRoomKind"]:ManagedRoomKind;
+	["MarkOverdueDebtsInput"]: {
+	/** Название кооператива */
+	coopname: string
+};
 	["MarkReportPeriodInput"]: {
 	mark?: ModelTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -41232,6 +41302,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: ModelTypes["CapitalSegment"],
+	/** Закрыть невозвращённый заём: работа-обеспечение переходит кооперативу
+
+Требуемые роли: chairman.  */
+	capitalCloseDebt: ModelTypes["Transaction"],
 	/** Закрытие проекта от инвестиций в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -41472,6 +41546,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalMakeClearance: ModelTypes["Transaction"],
+	/** Перевести в просрочку займы, срок возврата которых прошёл
+
+Требуемые роли: chairman.  */
+	capitalMarkOverdueDebts: ModelTypes["Transaction"],
 	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
 
 Требуемые роли: chairman, member, user.  */
@@ -41520,6 +41598,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
+	/** Отправить платёж по займу повторно после отказа по реквизитам
+
+Требуемые роли: chairman.  */
+	capitalRetryDebtPayment: ModelTypes["Transaction"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
@@ -41538,6 +41620,10 @@ export type ModelTypes = {
 	capitalSetProjectDevelopmentRepositoryUrl: ModelTypes["CapitalProject"],
 	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
 	capitalSetProjectPriority: ModelTypes["CapitalProject"],
+	/** Вернуть заём деньгами
+
+Требуемые роли: chairman.  */
+	capitalSettleDebt: ModelTypes["Transaction"],
 	/** Подписание акта о вкладе результатов председателем
 
 Требуемые роли: chairman.  */
@@ -44861,6 +44947,12 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ResultStatus"]:ResultStatus;
+	["RetryDebtPaymentInput"]: {
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -45298,6 +45390,16 @@ export type ModelTypes = {
 	provider_name: string,
 	/** Дата последнего обновления */
 	updated_at: ModelTypes["DateTime"]
+};
+	["SettleDebtInput"]: {
+	/** Сумма возврата, например «30000.0000 RUB» */
+	amount: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string,
+	/** Подписанное заявление пайщика о возврате займа */
+	statement: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["SignActAsChairmanInput"]: {
 	/** Акт о вкладе результатов */
@@ -50550,6 +50652,12 @@ export type GraphQLTypes = {
 	["CheckMatrixUsernameInput"]: {
 		username: string
 };
+	["CloseDebtInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	/** Закрытие голосования и утверждение протокола собрания участка */
 ["CloseKuDecisionInput"]: {
 		/** Имя аккаунта кооператива */
@@ -51590,7 +51698,7 @@ export type GraphQLTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
-	/** Статус долга в системе CAPITAL */
+	/** Состояние займа пайщика */
 ["DebtStatus"]: DebtStatus;
 	/** Комплексный объект решения совета, включающий в себя информацию о голосовавших членах совета, расширенное действие, которое привело к появлению решения, и агрегат документа самого решения. */
 ["DecisionDetailAggregate"]: {
@@ -53839,6 +53947,10 @@ export type GraphQLTypes = {
 };
 	/** Тип комнаты: пайщики, совет, проект Capital, комната секретаря */
 ["ManagedRoomKind"]: ManagedRoomKind;
+	["MarkOverdueDebtsInput"]: {
+		/** Название кооператива */
+	coopname: string
+};
 	["MarkReportPeriodInput"]: {
 		mark?: GraphQLTypes["ReportSubmissionMark"] | undefined | null,
 	period?: number | undefined | null,
@@ -57236,6 +57348,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: GraphQLTypes["CapitalSegment"],
+	/** Закрыть невозвращённый заём: работа-обеспечение переходит кооперативу
+
+Требуемые роли: chairman.  */
+	capitalCloseDebt: GraphQLTypes["Transaction"],
 	/** Закрытие проекта от инвестиций в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -57476,6 +57592,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalMakeClearance: GraphQLTypes["Transaction"],
+	/** Перевести в просрочку займы, срок возврата которых прошёл
+
+Требуемые роли: chairman.  */
+	capitalMarkOverdueDebts: GraphQLTypes["Transaction"],
 	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
 
 Требуемые роли: chairman, member, user.  */
@@ -57524,6 +57644,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
+	/** Отправить платёж по займу повторно после отказа по реквизитам
+
+Требуемые роли: chairman.  */
+	capitalRetryDebtPayment: GraphQLTypes["Transaction"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
@@ -57542,6 +57666,10 @@ export type GraphQLTypes = {
 	capitalSetProjectDevelopmentRepositoryUrl: GraphQLTypes["CapitalProject"],
 	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
 	capitalSetProjectPriority: GraphQLTypes["CapitalProject"],
+	/** Вернуть заём деньгами
+
+Требуемые роли: chairman.  */
+	capitalSettleDebt: GraphQLTypes["Transaction"],
 	/** Подписание акта о вкладе результатов председателем
 
 Требуемые роли: chairman.  */
@@ -61090,6 +61218,12 @@ export type GraphQLTypes = {
 };
 	/** Статус результата в системе CAPITAL */
 ["ResultStatus"]: ResultStatus;
+	["RetryDebtPaymentInput"]: {
+		/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string
+};
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -61539,6 +61673,16 @@ export type GraphQLTypes = {
 	/** Дата последнего обновления */
 	updated_at: GraphQLTypes["DateTime"],
 	['...on Settings']: Omit<GraphQLTypes["Settings"], "...on Settings">
+};
+	["SettleDebtInput"]: {
+		/** Сумма возврата, например «30000.0000 RUB» */
+	amount: string,
+	/** Название кооператива */
+	coopname: string,
+	/** Идентификатор займа */
+	debt_hash: string,
+	/** Подписанное заявление пайщика о возврате займа */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["SignActAsChairmanInput"]: {
 		/** Акт о вкладе результатов */
@@ -62762,14 +62906,17 @@ export enum CycleStatus {
 	COMPLETED = "COMPLETED",
 	FUTURE = "FUTURE"
 }
-/** Статус долга в системе CAPITAL */
+/** Состояние займа пайщика */
 export enum DebtStatus {
-	ACTIVE = "ACTIVE",
 	APPROVED = "APPROVED",
-	CANCELLED = "CANCELLED",
-	PENDING = "PENDING",
+	AUTHORIZED = "AUTHORIZED",
+	CREATED = "CREATED",
+	OVERDUE = "OVERDUE",
+	PAID = "PAID",
+	PAY_PENDING = "PAY_PENDING",
 	SETTLED = "SETTLED",
-	UNDEFINED = "UNDEFINED"
+	UNDEFINED = "UNDEFINED",
+	WRITEOFF = "WRITEOFF"
 }
 export enum DeliveryType {
 	EXTERNAL = "EXTERNAL",
@@ -63624,6 +63771,7 @@ type ZEUS_VARIABLES = {
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
 	["CheckMatrixUsernameInput"]: ValueTypes["CheckMatrixUsernameInput"];
+	["CloseDebtInput"]: ValueTypes["CloseDebtInput"];
 	["CloseKuDecisionInput"]: ValueTypes["CloseKuDecisionInput"];
 	["CloseProjectInput"]: ValueTypes["CloseProjectInput"];
 	["CommitApproveInput"]: ValueTypes["CommitApproveInput"];
@@ -63839,6 +63987,7 @@ type ZEUS_VARIABLES = {
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
+	["MarkOverdueDebtsInput"]: ValueTypes["MarkOverdueDebtsInput"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptOrdersBatchInput"]: ValueTypes["MarketplaceAcceptOrdersBatchInput"];
@@ -64092,6 +64241,7 @@ type ZEUS_VARIABLES = {
 	["ResultContributionStatementGenerateInput"]: ValueTypes["ResultContributionStatementGenerateInput"];
 	["ResultFilter"]: ValueTypes["ResultFilter"];
 	["ResultStatus"]: ValueTypes["ResultStatus"];
+	["RetryDebtPaymentInput"]: ValueTypes["RetryDebtPaymentInput"];
 	["ReturnByMoneyDecisionGenerateDocumentInput"]: ValueTypes["ReturnByMoneyDecisionGenerateDocumentInput"];
 	["ReturnByMoneyGenerateDocumentInput"]: ValueTypes["ReturnByMoneyGenerateDocumentInput"];
 	["ReturnByMoneySignedDocumentInput"]: ValueTypes["ReturnByMoneySignedDocumentInput"];
@@ -64128,6 +64278,7 @@ type ZEUS_VARIABLES = {
 	["SetRecoveryStrategyInput"]: ValueTypes["SetRecoveryStrategyInput"];
 	["SetVarsInput"]: ValueTypes["SetVarsInput"];
 	["SetWifInput"]: ValueTypes["SetWifInput"];
+	["SettleDebtInput"]: ValueTypes["SettleDebtInput"];
 	["SignActAsChairmanInput"]: ValueTypes["SignActAsChairmanInput"];
 	["SignActAsContributorInput"]: ValueTypes["SignActAsContributorInput"];
 	["SignByPresiderOnAnnualGeneralMeetInput"]: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"];

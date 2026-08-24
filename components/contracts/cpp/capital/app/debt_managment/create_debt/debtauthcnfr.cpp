@@ -1,9 +1,9 @@
 /**
- * @brief Авторизует долг в проекте советом
- * Авторизует долг в проекте советом и создает исходящий платеж:
- * - Получает долг
- * - Обновляет статус долга на authorized
- * - Создает объект исходящего платежа в gateway с коллбэком
+ * @brief Совет разрешил выдачу займа — платёж уходит на исполнение.
+ *
+ * Решение совета сохраняется в записи займа, займ переходит в ожидание платежа.
+ * Дальше приходит подтверждение выдачи либо отказ по реквизитам — во втором
+ * случае решение совета остаётся в силе и платёж можно отправить повторно.
  * @param coopname Наименование кооператива
  * @param debt_hash Хеш долга для авторизации
  * @param decision Документ решения совета
@@ -20,10 +20,10 @@ void capital::debtauthcnfr(eosio::name coopname, checksum256 debt_hash, document
     // Получаем долг
     auto exist_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
     
-    // Обновляем статус долга
-    Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::AUTHORIZED, 
-                                       _capital, decision);
-      
+    // Фиксируем решение совета и ставим займ в ожидание платежа.
+    Capital::Debts::start_pay(coopname, exist_debt.id, decision, _capital);
+
+    
     // создаём объект исходящего платежа в gateway с коллбэком после обработки
     ::Gateway::create_outcome(
       _capital,

@@ -182,6 +182,11 @@ export interface ICapitalWallet {
   capital_available: IAsset
 }
 
+export interface IClosedebt {
+  coopname: IName
+  debt_hash: IChecksum256
+}
+
 export interface ICloseproject {
   coopname: IName
   project_hash: IChecksum256
@@ -376,6 +381,8 @@ export interface IDebt {
   approved_statement: IDocument2
   authorization: IDocument2
   memo: string
+  last_pay_error?: string
+  due_at?: ITimePointSec
 }
 
 export interface IDebtauthcnfr {
@@ -393,6 +400,11 @@ export interface IDebtpaydcln {
   coopname: IName
   debt_hash: IChecksum256
   reason: string
+}
+
+export interface IDebtpayretry {
+  coopname: IName
+  debt_hash: IChecksum256
 }
 
 export interface IDeclinecmmt {
@@ -631,6 +643,10 @@ export interface ILvlnotify {
   username: IName
   prev_level: IUint32
   new_level: IUint32
+}
+
+export interface IMarkdebtoverd {
+  coopname: IName
 }
 
 export interface IOpenproject {
@@ -896,6 +912,7 @@ export interface ISegment {
   share_percent: IFloat64
   approved_rate_per_hour?: IAsset
   approved_hours_per_day?: IUint64
+  active_debts_count?: IUint32
 }
 
 export interface ISetconfig {
@@ -920,7 +937,7 @@ export interface ISetplan {
 
 export interface ISettledebt {
   coopname: IName
-  username: IName
+  debt_hash: IChecksum256
   amount: IAsset
   statement: IDocument2
 }

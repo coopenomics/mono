@@ -112,6 +112,10 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.repay', process_type: 'p.cap.rid', contract: 'capital', name: 'REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.cap.loan', wallet_to: 'w.wal.share', debit: 80, credit: 58, human_name: 'Возврат беспроцентного займа пайщика по акту-2' },
 
+  { code: 'o.cap.crtnma', process_type: 'p.cap.debt', contract: 'capital', name: 'CREATE_NMA', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.nma', debit: 4, credit: 8, human_name: 'Работа-обеспечение перешла кооперативу как нематериальный актив' },
+
+  { code: 'o.cap.dbtwrf', process_type: 'p.cap.debt', contract: 'capital', name: 'DEBT_WRITEOFF', wallet_op: 'BURN', wallet_from: 'w.cap.loan', wallet_to: null, debit: 80, credit: 58, human_name: 'Списание невозвращённого займа после перехода работы кооперативу' },
+
   { code: 'o.cap.wthcap', process_type: 'p.cap.wthcap', contract: 'capital', name: 'WITHDRAW_FROM_CAPITAL', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
 
   { code: 'o.cap.cnvshr', process_type: 'p.cap.rid', contract: 'capital', name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Конвертация сегмента: РИД → главный кошелёк' },

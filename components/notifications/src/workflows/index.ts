@@ -63,6 +63,9 @@ import { workflow as capitalRoleApprovedWorkflow } from './capital-role-approved
 import { workflow as capitalRoleDeclinedWorkflow } from './capital-role-declined';
 import { workflow as capitalRoleInvitedWorkflow } from './capital-role-invited';
 import { workflow as capitalRoleInviteAnsweredWorkflow } from './capital-role-invite-answered';
+import { workflow as capitalDebtDueSoonWorkflow } from './capital-debt-due-soon';
+import { workflow as capitalDebtOverdueWorkflow } from './capital-debt-overdue';
+import { workflow as capitalDebtPaymentDeclinedWorkflow } from './capital-debt-payment-declined';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -185,6 +188,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   capitalRoleDeclinedWorkflow,
   capitalRoleInvitedWorkflow,
   capitalRoleInviteAnsweredWorkflow,
+  capitalDebtDueSoonWorkflow,
+  capitalDebtOverdueWorkflow,
+  capitalDebtPaymentDeclinedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
@@ -201,3 +207,6 @@ export * as CapitalRoleApproved from './capital-role-approved';
 export * as CapitalRoleDeclined from './capital-role-declined';
 export * as CapitalRoleInvited from './capital-role-invited';
 export * as CapitalRoleInviteAnswered from './capital-role-invite-answered';
+export * as CapitalDebtDueSoon from './capital-debt-due-soon';
+export * as CapitalDebtOverdue from './capital-debt-overdue';
+export * as CapitalDebtPaymentDeclined from './capital-debt-payment-declined';

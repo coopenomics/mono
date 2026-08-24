@@ -1,0 +1,375 @@
+feature: capital.debt-lifecycle
+title: "Заём пайщику: выдача, возврат, просрочка и невозврат"
+
+# Пайщик берёт у кооператива беспроцентный заём под работу, которую ведёт
+# на компоненте. Заём закрывается двумя путями: пайщик возвращает деньги
+# либо сдаёт результат — тогда заём засчитывается результатом.
+#
+# Что добавляет этот слайс к прежнему поведению:
+#   • отказ банка по реквизитам больше не обрывает выдачу — решение совета
+#     остаётся в силе, платёж отправляется повторно тем же решением;
+#   • у займа появился срок возврата (год со дня выдачи) и просрочка;
+#   • появился возврат деньгами — раньше действие было заглушкой;
+#   • появилось закрытие невозврата: если срок прошёл, а заём не вернули ни
+#     деньгами, ни результатом, работа-обеспечение переходит кооперативу как
+#     нематериальный актив, а заём списывается.
+#
+# Просрочка ничего не отнимает у пайщика: закрыть заём можно так же, как
+# и до неё. Она нужна кооперативу, чтобы видеть такие займы отдельно.
+#
+# Сдача результата и зачёт займа результатом — соседний слайс
+# (capital.result-submission), здесь заводятся только последствия для займа.
+#
+# Учёт: выдача — Дт 58 / Кт 51, возврат — Дт 80 / Кт 58, переход работы
+# кооперативу — Дт 04 / Кт 08, списание займа — Дт 80 / Кт 58 без начисления
+# паевого взноса пайщику. Стандарт процесса: p.cap.debt.standard.yaml.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/debt_managment/**
+    - components/contracts/cpp/capital/domain/entities/debts.hpp
+    - components/contracts/cpp/capital/app/result_submission/push_result/signact2.cpp
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/debt-management.resolver.ts
+    - components/controller/src/extensions/capital/application/services/debt-management.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/debt-management.interactor.ts
+    - components/controller/src/extensions/capital/application/dto/debt_management/**
+    - components/controller/src/extensions/capital/infrastructure/services/debt-term-scheduler.service.ts
+    - components/controller/src/extensions/capital/domain/enums/debt-status.enum.ts
+  ui: []
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.debt.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Совет разрешил выдачу займа, кассир подтвердил зачисление денег пайщику.
+    expect: >
+      заём выдан, назначен срок возврата — год со дня выдачи; в учёте появилось
+      финансовое вложение против списания с расчётного счёта
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.01
+    level: contract
+    kind: side
+    scenario: платёж по займу не прошёл по реквизитам
+    expect: >
+      заявка не удаляется и не откатывается к одобрению председателя: она
+      возвращается в состояние «совет разрешил выдачу», причина отказа
+      сохраняется. Прежде отказ банка обрывал выдачу, и заём приходилось
+      проводить через совет заново
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.02
+    level: contract
+    kind: happy
+    scenario: после отказа по реквизитам платёж отправляется повторно
+    expect: >
+      заём снова ждёт подтверждения платежа, причина прошлого отказа очищается,
+      новое решение совета не требуется
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.01
+    level: contract
+    kind: break
+    scenario: повторная отправка платежа по займу, по которому отказа не было
+    expect: >
+      отказ — иначе тем же решением совета можно было бы отправить второй
+      платёж по уже выданному займу
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.02
+    level: contract
+    kind: break
+    scenario: подтверждение выдачи по займу, платёж по которому не отправляли
+    expect: отказ — подтвердить можно только отправленный платёж
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.03
+    level: contract
+    kind: happy
+    scenario: срок возврата займа прошёл, кооператив отмечает просрочку
+    expect: заём числится просроченным; сумма и обязательства не меняются
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.02
+    level: contract
+    kind: side
+    scenario: >
+      Отметка просрочки на кооперативе, где займов с истёкшим сроком больше,
+      чем обрабатывается за один вызов.
+    expect: >
+      за вызов переводится не больше двадцати пяти займов, остальные ждут
+      следующего вызова — иначе операция не уложится в лимит транзакции
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.03
+    level: contract
+    kind: side
+    scenario: >
+      Среди займов есть выданные до появления срока возврата — срок у них
+      не заполнен.
+    expect: >
+      такие займы в просрочку не переводятся: без срока нельзя утверждать,
+      что он прошёл
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.04
+    level: contract
+    kind: happy
+    scenario: пайщик возвращает заём деньгами
+    expect: >
+      заём считается возвращённым, финансовое вложение кооператива закрывается,
+      общий долг пайщика уменьшается на сумму займа
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.03
+    level: contract
+    kind: break
+    scenario: возврат суммой меньше займа
+    expect: >
+      отказ — частичный возврат не предусмотрен. Иначе заём закрывался бы
+      неполной суммой, а остаток исчезал из учёта
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.04
+    level: contract
+    kind: side
+    scenario: возврат в валюте, отличной от валюты займа
+    expect: отказ — символ суммы возврата должен совпадать с символом займа
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.04
+    level: contract
+    kind: break
+    scenario: возврат займа, который ещё не выдан или уже возвращён
+    expect: отказ — вернуть можно только выданный или просроченный заём
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.05
+    level: contract
+    kind: happy
+    scenario: возврат просроченного займа деньгами
+    expect: >
+      закрывается так же, как непросроченный — просрочка не меняет порядок
+      возврата
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.06
+    level: contract
+    kind: happy
+    scenario: >
+      Срок возврата прошёл, заём не закрыт; кооператив закрывает невозврат —
+      работа-обеспечение переходит кооперативу.
+    expect: >
+      работа с кошелька программы становится нематериальным активом
+      кооператива (Дт 04 / Кт 08), заём списывается (Дт 80 / Кт 58), паевой
+      взнос пайщику при этом не начисляется
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.05
+    level: contract
+    kind: break
+    scenario: закрытие невозврата по займу, срок которого ещё не прошёл
+    expect: >
+      отказ — пока срок не вышел, у пайщика есть время вернуть деньги или
+      сдать результат, и обращать взыскание на работу рано
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.05
+    level: contract
+    kind: side
+    scenario: закрытие невозврата уменьшает встречные показатели
+    expect: >
+      долг снимается с доли пайщика и с его общего долга, а сумма перестаёт
+      числиться использованной на компенсацию в проекте
+    test: ~
+    status: missing
+
+  - id: cap.debt.happy.07
+    level: contract
+    kind: happy
+    scenario: пайщик сдаёт результат по компоненту, где у него есть заём
+    expect: >
+      заём засчитывается результатом и закрывается; счётчик незакрытых займов
+      на доле пайщика уменьшается
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.06
+    level: contract
+    kind: break
+    scenario: >
+      У пайщика на компоненте незакрытых займов больше, чем закрывается одной
+      сдачей результата.
+    expect: >
+      отказ с понятной причиной. Перебор всех займов компонента не укладывается
+      в лимит транзакции, поэтому лишние займы закрываются деньгами заранее
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.06
+    level: contract
+    kind: side
+    scenario: >
+      Счётчик незакрытых займов на доле пайщика ведётся при выдаче, возврате
+      и списании.
+    expect: >
+      значение сходится с числом займов пайщика на компоненте, которые ещё
+      не закрыты
+    test: ~
+    status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.debt.happy.08
+    level: backend
+    kind: happy
+    scenario: сверка сроков находит займы с истёкшим сроком
+    expect: цепь получает команду перевести их в просрочку
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Просроченных займов больше, чем цепь переводит за один вызов.
+    expect: >
+      цепь вызывается столько раз, сколько нужно на все займы. Цепь не
+      сообщает, сколько осталось, поэтому число вызовов считается по зеркалу
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.side.08
+    level: backend
+    kind: side
+    scenario: займов с истёкшим сроком нет
+    expect: цепь не вызывается вовсе
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.side.09
+    level: backend
+    kind: side
+    scenario: у займа не заполнен срок возврата
+    expect: он не попадает ни в просрочку, ни в напоминания
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.happy.09
+    level: backend
+    kind: happy
+    scenario: до срока возврата остаётся меньше двух недель
+    expect: >
+      пайщик получает напоминание с суммой, датой и числом оставшихся дней
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.side.10
+    level: backend
+    kind: side
+    scenario: до срока возврата ещё далеко
+    expect: напоминание не отправляется
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.happy.10
+    level: backend
+    kind: happy
+    scenario: заём уже числится просроченным
+    expect: пайщик получает уведомление о просрочке
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.break.07
+    level: backend
+    kind: break
+    scenario: цепь не ответила во время сверки сроков
+    expect: >
+      проход завершается без падения и следующий проход выполняется как
+      обычно. Иначе одна недоступность цепи останавливала бы сверку насовсем
+    test: components/controller/tests/unit/capital/debt-term-scheduler.test.ts
+    status: passing
+
+  - id: cap.debt.side.11
+    level: backend
+    kind: side
+    scenario: >
+      Состояние займа в зеркале сверяется с состоянием в цепи.
+    expect: >
+      названия состояний совпадают с контрактом. Прежде зеркало ожидало
+      состояний, которых контракт не пишет, и любой заём получал состояние
+      «не определено»
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Срок возврата и причина отказа по реквизитам доходят из цепи до зеркала.
+    expect: >
+      у займов, выданных до появления этих полей, они остаются пустыми и
+      зеркало читается без ошибок
+    test: ~
+    status: missing
+
+  - id: cap.debt.break.08
+    level: backend
+    kind: break
+    scenario: возврат займа запрашивает пайщик, а не председатель
+    expect: >
+      отказ по правам доступа: возврат проводит кооператив, приложив
+      подписанное пайщиком заявление
+    test: ~
+    status: missing
+
+  # ── Уровень интерфейса ────────────────────────────────────────────────────
+
+  - id: cap.debt.happy.11
+    level: ui
+    kind: happy
+    scenario: пайщик открывает свой заём
+    expect: >
+      видны сумма, срок возврата и состояние; для просроченного займа срок
+      выделен
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.13
+    level: ui
+    kind: side
+    scenario: платёж по займу не прошёл по реквизитам
+    expect: >
+      причина отказа показана пайщику и председателю, рядом — действие
+      «отправить повторно»
+    test: ~
+    status: missing
+
+  - id: cap.debt.side.14
+    level: ui
+    kind: side
+    scenario: у пайщика есть просроченный заём
+    expect: >
+      председателю доступно закрытие невозврата с пояснением, что работа
+      перейдёт кооперативу
+    test: ~
+    status: missing

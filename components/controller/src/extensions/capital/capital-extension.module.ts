@@ -420,6 +420,7 @@ import { SegmentMapper } from './infrastructure/mappers/segment.mapper';
 import { ResultMapper } from './infrastructure/mappers/result.mapper';
 import { TimeTrackingSchedulerService } from './infrastructure/services/time-tracking-scheduler.service';
 import { GamificationSchedulerService } from './infrastructure/services/gamification-scheduler.service';
+import { DebtTermSchedulerService } from './infrastructure/services/debt-term-scheduler.service';
 import { LogService } from './application/services/log.service';
 
 // CAPITAL Application Dependencies
@@ -1033,6 +1034,7 @@ IssueIdGenerationService,
     FavoritesService,
     TimeTrackingSchedulerService,
     GamificationSchedulerService,
+    DebtTermSchedulerService,
 
     // Use Cases
     ContractManagementInteractor,

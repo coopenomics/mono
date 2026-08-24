@@ -7,6 +7,14 @@ namespace Capital::Memo {
     return "Выдача займа для  " + username.to_string();
   }
 
+  inline std::string get_settle_debt_memo(eosio::name username, checksum256 debt_hash) {
+    return "Возврат займа пайщиком " + username.to_string() + " по обязательству " + checksum256_to_hex(debt_hash);
+  }
+
+  inline std::string get_debt_writeoff_memo(eosio::name username, checksum256 debt_hash) {
+    return "Списание займа пайщика " + username.to_string() + " по обязательству " + checksum256_to_hex(debt_hash) + ": работа-обеспечение перешла кооперативу";
+  }
+
   inline std::string get_invest_memo(uint64_t contributor_id) {
     return "Зачёт части целевого паевого взноса по программе 'Цифровой Кошелёк' в качестве паевого взноса по договору УХД с ID: " + std::to_string(contributor_id);
   }

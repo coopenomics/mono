@@ -9,7 +9,12 @@ type toEntityDatabasePart = RequireFields<Partial<DebtTypeormEntity>, keyof IDeb
 type toEntityBlockchainPart = RequireFields<Partial<DebtTypeormEntity>, keyof IDebtBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<DebtDomainEntity>, keyof IDebtDatabaseData>;
-type toDomainBlockchainPart = RequireFields<Partial<DebtDomainEntity>, keyof IDebtBlockchainData>;
+// Срок возврата и причина отказа по реквизитам появились у займа позже самой
+// таблицы, поэтому в цепи они хранятся хвостом и у старых записей отсутствуют.
+type toDomainBlockchainPart = RequireFields<
+  Partial<DebtDomainEntity>,
+  Exclude<keyof IDebtBlockchainData, 'due_at' | 'last_pay_error'>
+>;
 
 /**
  * Маппер для преобразования между доменной сущностью долга и TypeORM сущностью
@@ -42,6 +47,8 @@ export class DebtMapper {
         project_hash: entity.project_hash,
         status: entity.status,
         repaid_at: entity.repaid_at.toISOString(),
+        due_at: entity.due_at ? entity.due_at.toISOString() : undefined,
+        last_pay_error: entity.last_pay_error ?? undefined,
         amount: entity.amount,
         statement: entity.statement,
         approved_statement: entity.approved_statement,
@@ -79,6 +86,8 @@ export class DebtMapper {
         project_hash: domain.project_hash as string,
         status: domain.blockchain_status as any,
         repaid_at: domain.repaid_at ? new Date(domain.repaid_at) : new Date(),
+        due_at: domain.due_at ? new Date(domain.due_at) : null,
+        last_pay_error: domain.last_pay_error ?? null,
         amount: domain.amount as string,
         statement: domain.statement as ISignedDocument,
         approved_statement: domain.approved_statement as ISignedDocument,

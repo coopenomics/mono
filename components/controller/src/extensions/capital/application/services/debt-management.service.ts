@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DebtManagementInteractor } from '../use-cases/debt-management.interactor';
 import type { CreateDebtInputDTO } from '../dto/debt_management/create-debt-input.dto';
+import type {
+  CloseDebtInputDTO,
+  MarkOverdueDebtsInputDTO,
+  RetryDebtPaymentInputDTO,
+  SettleDebtInputDTO,
+} from '../dto/debt_management/settle-debt-input.dto';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
@@ -25,6 +31,34 @@ export class DebtManagementService {
    */
   async createDebt(data: CreateDebtInputDTO): Promise<InnerTransactResult> {
     return await this.debtManagementInteractor.createDebt(data);
+  }
+
+  /**
+   * Возврат займа пайщиком деньгами
+   */
+  async settleDebt(data: SettleDebtInputDTO): Promise<InnerTransactResult> {
+    return await this.debtManagementInteractor.settleDebt(data);
+  }
+
+  /**
+   * Повторная отправка платежа по займу после отказа по реквизитам
+   */
+  async retryDebtPayment(data: RetryDebtPaymentInputDTO): Promise<InnerTransactResult> {
+    return await this.debtManagementInteractor.retryDebtPayment(data);
+  }
+
+  /**
+   * Закрытие невозвращённого займа переходом работы-обеспечения кооперативу
+   */
+  async closeDebt(data: CloseDebtInputDTO): Promise<InnerTransactResult> {
+    return await this.debtManagementInteractor.closeDebt(data);
+  }
+
+  /**
+   * Перевод в просрочку займов, срок возврата которых прошёл
+   */
+  async markOverdueDebts(data: MarkOverdueDebtsInputDTO): Promise<InnerTransactResult> {
+    return await this.debtManagementInteractor.markOverdueDebts(data);
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============

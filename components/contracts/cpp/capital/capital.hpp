@@ -321,7 +321,25 @@ public:
     void declinedebt(name coopname, eosio::name username, checksum256 debt_hash, std::string reason);
     
     [[eosio::action]]
-    void settledebt(name coopname, name username, eosio::asset amount, document2 statement);
+    void settledebt(name coopname, checksum256 debt_hash, eosio::asset amount, document2 statement);
+
+    /**
+     * @brief Переводит в просрочку займы, срок возврата которых прошёл.
+     */
+    [[eosio::action]]
+    void markdebtoverd(name coopname);
+
+    /**
+     * @brief Повторно отправляет платёж по займу после отказа по реквизитам.
+     */
+    [[eosio::action]]
+    void debtpayretry(eosio::name coopname, checksum256 debt_hash);
+
+    /**
+     * @brief Закрывает невозвращённый заём: работа-обеспечение переходит кооперативу.
+     */
+    [[eosio::action]]
+    void closedebt(name coopname, checksum256 debt_hash);
 
     // Программные расходы через шасси expense.
     // capital — инициатор + получатель callback, шасси держит весь flow расхода.

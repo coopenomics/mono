@@ -939,6 +939,54 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   }
 
   /**
+   * Возврат займа пайщиком деньгами
+   */
+  async settleDebt(data: CapitalContract.Actions.SettleDebt.ISettleDebt): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.SettleDebt.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Повторная отправка платежа по займу после отказа по реквизитам
+   */
+  async retryDebtPayment(
+    data: CapitalContract.Actions.DebtPayRetry.IDebtPayRetry
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.DebtPayRetry.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Закрытие невозвращённого займа переходом работы-обеспечения кооперативу
+   */
+  async closeDebt(data: CapitalContract.Actions.CloseDebt.ICloseDebt): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.CloseDebt.actionName,
+      { ...data }
+    );
+  }
+
+  /**
+   * Перевод в просрочку займов, срок возврата которых прошёл
+   */
+  async markOverdueDebts(
+    data: CapitalContract.Actions.MarkDebtOverdue.IMarkDebtOverdue
+  ): Promise<InnerTransactResult> {
+    return this.transactAsCooperative(
+      data.coopname,
+      CapitalContract.Actions.MarkDebtOverdue.actionName,
+      { ...data }
+    );
+  }
+
+  /**
    * Заявка пайщика на допуск к роли на компоненте
    */
   async requestProjectRole(

@@ -354,6 +354,9 @@ export const AllTypesProps: Record<string,any> = {
 	CheckMatrixUsernameInput:{
 
 	},
+	CloseDebtInput:{
+
+	},
 	CloseKuDecisionInput:{
 		protocol:"BranchMeetingDecisionSignedDocumentInput"
 	},
@@ -986,6 +989,9 @@ export const AllTypesProps: Record<string,any> = {
 		document:"SignedDigitalDocumentInput"
 	},
 	ManagedRoomKind: "enum" as const,
+	MarkOverdueDebtsInput:{
+
+	},
 	MarkReportPeriodInput:{
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
@@ -1482,6 +1488,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
 		},
+		capitalCloseDebt:{
+			data:"CloseDebtInput"
+		},
 		capitalCloseProject:{
 			data:"CloseProjectInput"
 		},
@@ -1684,6 +1693,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalMakeClearance:{
 			data:"MakeClearanceInput"
 		},
+		capitalMarkOverdueDebts:{
+			data:"MarkOverdueDebtsInput"
+		},
 		capitalMoveIssueToComponent:{
 			data:"MoveCapitalIssueToComponentInput"
 		},
@@ -1720,6 +1732,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
 		},
+		capitalRetryDebtPayment:{
+			data:"RetryDebtPaymentInput"
+		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
 		},
@@ -1737,6 +1752,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalSetProjectPriority:{
 			data:"SetCapitalProjectPriorityInput"
+		},
+		capitalSettleDebt:{
+			data:"SettleDebtInput"
 		},
 		capitalSignActAsChairman:{
 			data:"SignActAsChairmanInput"
@@ -3362,6 +3380,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ResultStatus: "enum" as const,
+	RetryDebtPaymentInput:{
+
+	},
 	ReturnByMoneyDecisionGenerateDocumentInput:{
 
 	},
@@ -3472,6 +3493,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetWifInput:{
 
+	},
+	SettleDebtInput:{
+		statement:"SignedDigitalDocumentInput"
 	},
 	SignActAsChairmanInput:{
 		act:"SignedDigitalDocumentInput"
@@ -6783,6 +6807,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalApproveProjectRole:"Transaction",
 		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
+		capitalCloseDebt:"Transaction",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
 		capitalCompleteRegistration:"Transaction",
@@ -6843,6 +6868,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInviteProjectRole:"Transaction",
 		capitalLogMetricContribution:"CapitalMetricContribution",
 		capitalMakeClearance:"Transaction",
+		capitalMarkOverdueDebts:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
 		capitalOpenProject:"CapitalProject",
 		capitalPauseTimer:"CapitalTimerSession",
@@ -6855,12 +6881,14 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRequestRateUpdate:"Transaction",
 		capitalRestoreContentRevision:"CapitalContentRevisionSummary",
 		capitalResumeTimer:"CapitalTimerSession",
+		capitalRetryDebtPayment:"Transaction",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
 		capitalSetProjectPriority:"CapitalProject",
+		capitalSettleDebt:"Transaction",
 		capitalSignActAsChairman:"CapitalSegment",
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",

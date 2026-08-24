@@ -273,6 +273,26 @@ export interface CapitalBlockchainPort {
    */
   refreshContributor(data: CapitalContract.Actions.RefreshContributor.IRefreshContributor): Promise<InnerTransactResult>;
   /**
+   * Возврат займа пайщиком деньгами
+   */
+  settleDebt(data: CapitalContract.Actions.SettleDebt.ISettleDebt): Promise<InnerTransactResult>;
+
+  /**
+   * Повторная отправка платежа по займу после отказа по реквизитам
+   */
+  retryDebtPayment(data: CapitalContract.Actions.DebtPayRetry.IDebtPayRetry): Promise<InnerTransactResult>;
+
+  /**
+   * Закрытие невозвращённого займа переходом работы-обеспечения кооперативу
+   */
+  closeDebt(data: CapitalContract.Actions.CloseDebt.ICloseDebt): Promise<InnerTransactResult>;
+
+  /**
+   * Перевод в просрочку займов, срок возврата которых прошёл
+   */
+  markOverdueDebts(data: CapitalContract.Actions.MarkDebtOverdue.IMarkDebtOverdue): Promise<InnerTransactResult>;
+
+  /**
    * Заявка пайщика на допуск к роли на компоненте
    */
   requestProjectRole(data: CapitalContract.Actions.RequestRole.IRequestRole): Promise<InnerTransactResult>;

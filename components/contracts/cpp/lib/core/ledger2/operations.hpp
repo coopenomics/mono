@@ -84,6 +84,8 @@ namespace operations {
     inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
     inline constexpr eosio::name LEND                = "o.cap.lend"_n;     ///< Выдача беспроцентного займа пайщику (Dr 58 / Cr 51, ISSUE LOAN_ISSUED).
     inline constexpr eosio::name REPAY               = "o.cap.repay"_n;    ///< Возврат займа пайщика по акту-2 (Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY).
+    inline constexpr eosio::name CREATE_NMA          = "o.cap.crtnma"_n;   ///< Работа-обеспечение переходит кооперативу как нематериальный актив при невозврате займа (Dr 04 / Cr 08, TRANSFER GENERATOR_FUND → NMA).
+    inline constexpr eosio::name DEBT_WRITEOFF       = "o.cap.dbtwrf"_n;   ///< Списание невозвращённого займа после перехода работы-обеспечения кооперативу (Dr 80 / Cr 58, BURN LOAN_ISSUED).
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
     inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
@@ -360,6 +362,24 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::LOAN_ISSUED, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
+
+  // 11a. Работа-обеспечение переходит кооперативу как нематериальный актив:
+  // Дт 04 / Кт 08, TRANSFER GENERATOR_FUND → NMA.
+  // Срабатывает при закрытии невозврата, когда компонент отменён и сдавать
+  // результат уже некуда. Пара по счёту 04 та же, что при приёме результата,
+  // но взнос пайщику не зачисляется — актив достаётся кооперативу.
+  { operations::capital::CREATE_NMA, processes::capital::DEBT, WalletOp::TRANSFER,
+    ledger2_wallets::GENERATOR_FUND, ledger2_wallets::NMA,
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Работа-обеспечение перешла кооперативу как нематериальный актив" },
+
+  // 11b. Списание невозвращённого займа: Дт 80 / Кт 58, BURN LOAN_ISSUED.
+  // Парная к предыдущей операция: обязательство пайщика закрыто имуществом,
+  // поэтому паевой взнос ему, в отличие от обычного возврата, не начисляется.
+  { operations::capital::DEBT_WRITEOFF, processes::capital::DEBT, WalletOp::BURN,
+    ledger2_wallets::LOAN_ISSUED, eosio::name{},
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
+    "Списание невозвращённого займа после перехода работы кооперативу" },
 
   // 12a. p.mkt.supply: Резервирование под Order (TRANSFER w.wal.share → w.mkt.order,
   //      Dr 80 / Cr 86). Единственный обязательный шаг ledger2 при createorder.

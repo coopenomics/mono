@@ -67,6 +67,7 @@ struct ledger2_wallets {
   static constexpr eosio::name BLAGOROST_FUND       = "w.cap.blago"_n;   ///< Благорост — единый агрегированный кошелёк программы (USER_SHARED; ADR-009)
   static constexpr eosio::name GENERATOR_FUND       = "w.cap.gen"_n;     ///< Генератор — единый агрегированный кошелёк программы (COOPERATIVE — кооперативный пул, без L3-разреза по пайщику; L3-разрез из ADR-009 отменён из-за несовместимости с CRPS-перераспределением, см. wallets.hpp:107)
   static constexpr eosio::name PREIMP_FUND          = "w.cap.preimp"_n;  ///< Первичный учёт РИД-взносов до перехода на электронный учёт (USER_SHARED; o.cap.preimp / o.cap.drppre)
+  static constexpr eosio::name NMA                  = "w.cap.nma"_n;     ///< Нематериальные активы кооператива, перешедшие к нему из работы-обеспечения при невозврате займа (COOPERATIVE; Дт 04 / Кт 08)
   static constexpr eosio::name PROGRAM_EXPENSE_POOL = "w.cap.pgexp"_n;   ///< Пул программных расходов ЦПП «Благорост» (COOPERATIVE) — кооперативный кошелёк, из которого шасси expense оплачивает СЗ; пополняется topupprogexp (o.cap.pgtop), паевые L3-кошельки пайщиков (w.cap.blago) при расходах не трогаются
 
   // marketplace — резерв под Order + членский «Стола заказов» + выплаты
@@ -115,7 +116,7 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 27> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (11) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
@@ -129,7 +130,7 @@ inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::ADVANCE_HOLD,          "Подотчётные средства пайщика",                             WalletKind::USER_SHARED },
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
 
-  // COOPERATIVE (14) — единый кооперативный баланс, без L3
+  // COOPERATIVE (15) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
@@ -143,6 +144,7 @@ inline constexpr std::array<Ledger2WalletMeta, 26> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::SOV_EXPENSES,      "Хозяйственные расходы из числа целевого финансирования",   WalletKind::COOPERATIVE },
   { ledger2_wallets::MIN_SHARE_USED,    "Использованные минимальные паевые взносы",                 WalletKind::COOPERATIVE },
   { ledger2_wallets::LOAN_ISSUED,       "Выданные пайщикам беспроцентные займы",                    WalletKind::COOPERATIVE },
+  { ledger2_wallets::NMA,               "Нематериальные активы кооператива",                        WalletKind::COOPERATIVE },
   { ledger2_wallets::SUPPLIER_PAYMENTS, "Выплаты поставщикам",                                      WalletKind::COOPERATIVE },
   { ledger2_wallets::MARKETPLACE_FEE_POOL, "Резерв членских взносов «Стола заказов» под заказы",    WalletKind::COOPERATIVE },
   { ledger2_wallets::BRANCH_DISTRIBUTION_POOL, "Транзитный пул ручного распределения кооперативного участка", WalletKind::COOPERATIVE },
