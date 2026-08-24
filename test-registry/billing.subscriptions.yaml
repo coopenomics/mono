@@ -200,3 +200,21 @@ cases:
       ConvertToBillingDialog: сумма > 0 обязательна, шаг «сформировать» →
       «подписать»; AxonWallet показывает баланс без кнопки пополнения
     status: missing
+
+  # Epic 28 (форм-фактор §7, 2026-08-24): витрина подключения живёт на живом
+  # каталоге провайдера, а не на хардкоде «Тестовый, 1500 RUB» в степпере.
+  - id: bill.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Desktop запрашивает getProviderConnectionCatalog (шаг тарифа степпера
+      подключения): coopback проксирует GET /v1/subscription-types провайдера
+      (Bearer PROVIDER_BEARER_TOKEN, read-only) и отдаёт услуги + конфигурации
+      сервера с отпускной ценой и триалом.
+    expect: >
+      запрос уходит с Bearer и coopname; кривой ответ провайдера → пустые
+      списки без падения; провайдер/токен не настроены или транспортная ошибка
+      → BadRequest с человекочитаемым текстом (стектрейс наружу не летит);
+      закупка и наценка в схеме отсутствуют by design
+    test: components/controller/src/application/provider/services/provider-catalog.spec.ts
+    status: passing

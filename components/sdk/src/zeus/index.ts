@@ -5637,6 +5637,33 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CoopAgreement']?: Omit<ValueTypes["CoopAgreement"], "...on CoopAgreement">
 }>;
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+["CooperativeChainStatus"]:CooperativeChainStatus;
+	/** Устав кооператива, приложенный к заявке на подключение. */
+["CooperativeCharter"]: AliasType<{
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256?:boolean | `@${string}`,
+	/** Контур союза, в котором хранится устав. */
+	coopname?:boolean | `@${string}`,
+	/** Внутренний ID записи. */
+	id?:boolean | `@${string}`,
+	/** MIME-тип содержимого. */
+	mime_type?:boolean | `@${string}`,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?:boolean | `@${string}`,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда загружено. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто загрузил (username). */
+	uploaded_by_username?:boolean | `@${string}`,
+	/** Аккаунт кооператива, чей это устав. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CooperativeCharter']?: Omit<ValueTypes["CooperativeCharter"], "...on CooperativeCharter">
+}>;
 	["CooperativeOperatorAccount"]: AliasType<{
 	/** Количество активных участников */
 	active_participants_count?:boolean | `@${string}`,
@@ -5708,15 +5735,19 @@ export type ValueTypes = {
 	["CooperativeRegistryItem"]: AliasType<{
 	/** Анонсированный домен/сайт кооператива */
 	announce?:boolean | `@${string}`,
+	/** Последний приложенный устав кооператива (без read_url — ссылку берут отдельным запросом) */
+	charter?:ValueTypes["CooperativeCharter"],
 	/** Имя аккаунта кооператива (coopname) */
 	coopname?:boolean | `@${string}`,
 	/** Дата регистрации заявки кооператива (on-chain) */
 	created_at?:boolean | `@${string}`,
+	/** Рассказ кооператива о своей деятельности (on-chain coops.description) */
+	description?:boolean | `@${string}`,
 	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
 	has_provider_data?:boolean | `@${string}`,
 	/** Наименование организации кооператива */
 	name?:boolean | `@${string}`,
-	/** Статус кооператива в блокчейне: pending | active | blocked */
+	/** Статус кооператива в блокчейне */
 	status?:boolean | `@${string}`,
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions?:ValueTypes["ProviderSubscription"],
@@ -12305,6 +12336,7 @@ updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>}
 updateReportRequisites?: [{	input: ValueTypes["UpdateReportRequisitesInput"] | Variable<any, string>},ValueTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
 updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes["SystemInfo"]],
+uploadCooperativeCharter?: [{	data: ValueTypes["UploadCooperativeCharterInput"] | Variable<any, string>},ValueTypes["CooperativeCharter"]],
 uploadExpenseFile?: [{	data: ValueTypes["UploadExpenseFileInput"] | Variable<any, string>},ValueTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ValueTypes["UploadPaymentProofInput"] | Variable<any, string>},ValueTypes["PaymentFile"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
@@ -13732,6 +13764,61 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
+["ProviderCatalogServerOption"]: AliasType<{
+	/** Описание */
+	description?:boolean | `@${string}`,
+	/** ID типа инстанса в каталоге провайдера */
+	instance_type_id?:boolean | `@${string}`,
+	/** Название конфигурации */
+	name?:boolean | `@${string}`,
+	/** Отпускная цена, ₽/мес (она же цена после триала) */
+	price?:boolean | `@${string}`,
+	/** Конфигурация сервера: cpu, ram_gb, disk, label */
+	specs?:boolean | `@${string}`,
+	/** Тип подписки-«ворота», через который поставляется конфигурация */
+	subscription_type_id?:boolean | `@${string}`,
+	/** Пробный период, дней (0 ₽ на этот срок) */
+	trial_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderCatalogServerOption']?: Omit<ValueTypes["ProviderCatalogServerOption"], "...on ProviderCatalogServerOption">
+}>;
+	/** Тип подписки (услуга) из каталога провайдера */
+["ProviderCatalogSubscriptionType"]: AliasType<{
+	/** Машинный код услуги (slug) */
+	code?:boolean | `@${string}`,
+	/** Лист зависимостей: id типов-пререквизитов */
+	depends_on?:boolean | `@${string}`,
+	/** Описание услуги */
+	description?:boolean | `@${string}`,
+	/** ID типа подписки у провайдера */
+	id?:boolean | `@${string}`,
+	/** Обязательная услуга (заводится каждому кооперативу) */
+	is_mandatory?:boolean | `@${string}`,
+	/** Разовая позиция без автопродления */
+	is_one_time?:boolean | `@${string}`,
+	/** Модель тарификации: time | package */
+	kind?:boolean | `@${string}`,
+	/** Название услуги */
+	name?:boolean | `@${string}`,
+	/** Период, дней */
+	period_days?:boolean | `@${string}`,
+	/** Цена, ₽ за период */
+	price?:boolean | `@${string}`,
+	/** Пробный период, дней (0 — без триала) */
+	trial_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProviderCatalogSubscriptionType']?: Omit<ValueTypes["ProviderCatalogSubscriptionType"], "...on ProviderCatalogSubscriptionType">
+}>;
+	/** Каталог витрины подключения: услуги и конфигурации сервера */
+["ProviderConnectionCatalog"]: AliasType<{
+	/** Конфигурации сервера на выбор */
+	server_options?:ValueTypes["ProviderCatalogServerOption"],
+	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
+	types?:ValueTypes["ProviderCatalogSubscriptionType"],
+		__typename?: boolean | `@${string}`,
+	['...on ProviderConnectionCatalog']?: Omit<ValueTypes["ProviderConnectionCatalog"], "...on ProviderConnectionCatalog">
+}>;
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -13782,6 +13869,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ProviderSubscription']?: Omit<ValueTypes["ProviderSubscription"], "...on ProviderSubscription">
 }>;
+	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
+["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
 	["PublicChairman"]: AliasType<{
 	first_name?:boolean | `@${string}`,
 	last_name?:boolean | `@${string}`,
@@ -13926,6 +14015,7 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
+getCooperativeCharter?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["CooperativeCharter"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -13972,6 +14062,7 @@ getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"
 getProductCards?: [{	category_id?: string | undefined | null | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>,	search?: string | undefined | null | Variable<any, string>,	status?: ValueTypes["ProductCardStatus"] | undefined | null | Variable<any, string>,	type?: ValueTypes["ProductCardType"] | undefined | null | Variable<any, string>},ValueTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
+getProviderConnectionCatalog?: [{	coopname?: string | undefined | null | Variable<any, string>},ValueTypes["ProviderConnectionCatalog"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
 	/** Получить подписки пользователя у провайдера
 
@@ -15707,6 +15798,22 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	story_hash: string | Variable<any, string>,
 	/** Название истории */
 	title?: string | undefined | null | Variable<any, string>
+};
+	["UploadCooperativeCharterInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string | Variable<any, string>,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string | Variable<any, string>,
+	/** Контур союза, куда подаётся заявка (coopname оператора). */
+	coopname: string | Variable<any, string>,
+	/** MIME-тип содержимого (PDF или скан-изображение). */
+	mime_type: string | Variable<any, string>,
+	/** Оригинальное имя файла — для отображения совету. */
+	original_filename?: string | undefined | null | Variable<any, string>,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number | Variable<any, string>,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string | Variable<any, string>
 };
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
@@ -20622,6 +20729,32 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+["CooperativeChainStatus"]:CooperativeChainStatus;
+	/** Устав кооператива, приложенный к заявке на подключение. */
+["CooperativeCharter"]: AliasType<{
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256?:boolean | `@${string}`,
+	/** Контур союза, в котором хранится устав. */
+	coopname?:boolean | `@${string}`,
+	/** Внутренний ID записи. */
+	id?:boolean | `@${string}`,
+	/** MIME-тип содержимого. */
+	mime_type?:boolean | `@${string}`,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?:boolean | `@${string}`,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда загружено. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто загрузил (username). */
+	uploaded_by_username?:boolean | `@${string}`,
+	/** Аккаунт кооператива, чей это устав. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CooperativeOperatorAccount"]: AliasType<{
 	/** Количество активных участников */
 	active_participants_count?:boolean | `@${string}`,
@@ -20691,15 +20824,19 @@ export type ResolverInputTypes = {
 	["CooperativeRegistryItem"]: AliasType<{
 	/** Анонсированный домен/сайт кооператива */
 	announce?:boolean | `@${string}`,
+	/** Последний приложенный устав кооператива (без read_url — ссылку берут отдельным запросом) */
+	charter?:ResolverInputTypes["CooperativeCharter"],
 	/** Имя аккаунта кооператива (coopname) */
 	coopname?:boolean | `@${string}`,
 	/** Дата регистрации заявки кооператива (on-chain) */
 	created_at?:boolean | `@${string}`,
+	/** Рассказ кооператива о своей деятельности (on-chain coops.description) */
+	description?:boolean | `@${string}`,
 	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
 	has_provider_data?:boolean | `@${string}`,
 	/** Наименование организации кооператива */
 	name?:boolean | `@${string}`,
-	/** Статус кооператива в блокчейне: pending | active | blocked */
+	/** Статус кооператива в блокчейне */
 	status?:boolean | `@${string}`,
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions?:ResolverInputTypes["ProviderSubscription"],
@@ -27116,6 +27253,7 @@ updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTy
 updateReportRequisites?: [{	input: ResolverInputTypes["UpdateReportRequisitesInput"]},ResolverInputTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
 updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["SystemInfo"]],
+uploadCooperativeCharter?: [{	data: ResolverInputTypes["UploadCooperativeCharterInput"]},ResolverInputTypes["CooperativeCharter"]],
 uploadExpenseFile?: [{	data: ResolverInputTypes["UploadExpenseFileInput"]},ResolverInputTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ResolverInputTypes["UploadPaymentProofInput"]},ResolverInputTypes["PaymentFile"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
@@ -28474,6 +28612,58 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
+["ProviderCatalogServerOption"]: AliasType<{
+	/** Описание */
+	description?:boolean | `@${string}`,
+	/** ID типа инстанса в каталоге провайдера */
+	instance_type_id?:boolean | `@${string}`,
+	/** Название конфигурации */
+	name?:boolean | `@${string}`,
+	/** Отпускная цена, ₽/мес (она же цена после триала) */
+	price?:boolean | `@${string}`,
+	/** Конфигурация сервера: cpu, ram_gb, disk, label */
+	specs?:boolean | `@${string}`,
+	/** Тип подписки-«ворота», через который поставляется конфигурация */
+	subscription_type_id?:boolean | `@${string}`,
+	/** Пробный период, дней (0 ₽ на этот срок) */
+	trial_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Тип подписки (услуга) из каталога провайдера */
+["ProviderCatalogSubscriptionType"]: AliasType<{
+	/** Машинный код услуги (slug) */
+	code?:boolean | `@${string}`,
+	/** Лист зависимостей: id типов-пререквизитов */
+	depends_on?:boolean | `@${string}`,
+	/** Описание услуги */
+	description?:boolean | `@${string}`,
+	/** ID типа подписки у провайдера */
+	id?:boolean | `@${string}`,
+	/** Обязательная услуга (заводится каждому кооперативу) */
+	is_mandatory?:boolean | `@${string}`,
+	/** Разовая позиция без автопродления */
+	is_one_time?:boolean | `@${string}`,
+	/** Модель тарификации: time | package */
+	kind?:boolean | `@${string}`,
+	/** Название услуги */
+	name?:boolean | `@${string}`,
+	/** Период, дней */
+	period_days?:boolean | `@${string}`,
+	/** Цена, ₽ за период */
+	price?:boolean | `@${string}`,
+	/** Пробный период, дней (0 — без триала) */
+	trial_days?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Каталог витрины подключения: услуги и конфигурации сервера */
+["ProviderConnectionCatalog"]: AliasType<{
+	/** Конфигурации сервера на выбор */
+	server_options?:ResolverInputTypes["ProviderCatalogServerOption"],
+	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
+	types?:ResolverInputTypes["ProviderCatalogSubscriptionType"],
+		__typename?: boolean | `@${string}`
+}>;
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -28523,6 +28713,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
+["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
 	["PublicChairman"]: AliasType<{
 	first_name?:boolean | `@${string}`,
 	last_name?:boolean | `@${string}`,
@@ -28666,6 +28858,7 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
+getCooperativeCharter?: [{	coopname: string,	username: string},ResolverInputTypes["CooperativeCharter"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -28712,6 +28905,7 @@ getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
 getProductCards?: [{	category_id?: string | undefined | null,	limit?: number | undefined | null,	page?: number | undefined | null,	search?: string | undefined | null,	status?: ResolverInputTypes["ProductCardStatus"] | undefined | null,	type?: ResolverInputTypes["ProductCardType"] | undefined | null},ResolverInputTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
+getProviderConnectionCatalog?: [{	coopname?: string | undefined | null},ResolverInputTypes["ProviderConnectionCatalog"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
 	/** Получить подписки пользователя у провайдера
 
@@ -30405,6 +30599,22 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadCooperativeCharterInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Контур союза, куда подаётся заявка (coopname оператора). */
+	coopname: string,
+	/** MIME-тип содержимого (PDF или скан-изображение). */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения совету. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string
+};
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -31835,7 +32045,7 @@ export type ModelTypes = {
 	["BillingSummaryItem"]: {
 		amount: number,
 	isFree: boolean,
-	status: string,
+	status: ModelTypes["ProviderSubscriptionStatus"],
 	subscriptionId: number,
 	subscriptionTypeId: number,
 	subscriptionTypeName: string
@@ -35183,6 +35393,30 @@ export type ModelTypes = {
 	/** Тип соглашения (wallet, privacy, signature, user, blagorost, generator, marketplace) */
 	type: string
 };
+	["CooperativeChainStatus"]:CooperativeChainStatus;
+	/** Устав кооператива, приложенный к заявке на подключение. */
+["CooperativeCharter"]: {
+		/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256: string,
+	/** Контур союза, в котором хранится устав. */
+	coopname: string,
+	/** Внутренний ID записи. */
+	id: number,
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?: string | undefined | null,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда загружено. */
+	uploaded_at: ModelTypes["DateTime"],
+	/** Кто загрузил (username). */
+	uploaded_by_username: string,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string
+};
 	["CooperativeOperatorAccount"]: {
 		/** Количество активных участников */
 	active_participants_count: number,
@@ -35250,16 +35484,20 @@ export type ModelTypes = {
 	["CooperativeRegistryItem"]: {
 		/** Анонсированный домен/сайт кооператива */
 	announce?: string | undefined | null,
+	/** Последний приложенный устав кооператива (без read_url — ссылку берут отдельным запросом) */
+	charter?: ModelTypes["CooperativeCharter"] | undefined | null,
 	/** Имя аккаунта кооператива (coopname) */
 	coopname: string,
 	/** Дата регистрации заявки кооператива (on-chain) */
 	created_at?: string | undefined | null,
+	/** Рассказ кооператива о своей деятельности (on-chain coops.description) */
+	description?: string | undefined | null,
 	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
 	has_provider_data: boolean,
 	/** Наименование организации кооператива */
 	name?: string | undefined | null,
-	/** Статус кооператива в блокчейне: pending | active | blocked */
-	status: string,
+	/** Статус кооператива в блокчейне */
+	status: ModelTypes["CooperativeChainStatus"],
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions: Array<ModelTypes["ProviderSubscription"]>
 };
@@ -42189,6 +42427,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	updateSystem: ModelTypes["SystemInfo"],
+	/** Приложить устав кооператива к заявке на подключение (бакет registrator:charters).
+
+Требуемые роли: member, chairman, user.  */
+	uploadCooperativeCharter: ModelTypes["CooperativeCharter"],
 	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
 
 Требуемые роли: chairman, member, user.  */
@@ -43463,6 +43705,55 @@ export type ModelTypes = {
 };
 	["ProjectPriority"]:ProjectPriority;
 	["ProjectStatus"]:ProjectStatus;
+	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
+["ProviderCatalogServerOption"]: {
+		/** Описание */
+	description: string,
+	/** ID типа инстанса в каталоге провайдера */
+	instance_type_id: number,
+	/** Название конфигурации */
+	name: string,
+	/** Отпускная цена, ₽/мес (она же цена после триала) */
+	price: number,
+	/** Конфигурация сервера: cpu, ram_gb, disk, label */
+	specs?: ModelTypes["JSON"] | undefined | null,
+	/** Тип подписки-«ворота», через который поставляется конфигурация */
+	subscription_type_id: number,
+	/** Пробный период, дней (0 ₽ на этот срок) */
+	trial_days: number
+};
+	/** Тип подписки (услуга) из каталога провайдера */
+["ProviderCatalogSubscriptionType"]: {
+		/** Машинный код услуги (slug) */
+	code?: string | undefined | null,
+	/** Лист зависимостей: id типов-пререквизитов */
+	depends_on: Array<number>,
+	/** Описание услуги */
+	description: string,
+	/** ID типа подписки у провайдера */
+	id: number,
+	/** Обязательная услуга (заводится каждому кооперативу) */
+	is_mandatory: boolean,
+	/** Разовая позиция без автопродления */
+	is_one_time: boolean,
+	/** Модель тарификации: time | package */
+	kind: string,
+	/** Название услуги */
+	name: string,
+	/** Период, дней */
+	period_days: number,
+	/** Цена, ₽ за период */
+	price: number,
+	/** Пробный период, дней (0 — без триала) */
+	trial_days: number
+};
+	/** Каталог витрины подключения: услуги и конфигурации сервера */
+["ProviderConnectionCatalog"]: {
+		/** Конфигурации сервера на выбор */
+	server_options: Array<ModelTypes["ProviderCatalogServerOption"]>,
+	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
+	types: Array<ModelTypes["ProviderCatalogSubscriptionType"]>
+};
 	["ProviderSubscription"]: {
 		/** Дата создания */
 	created_at: string,
@@ -43511,6 +43802,7 @@ export type ModelTypes = {
 	/** Дата обновления */
 	updated_at: string
 };
+	["ProviderSubscriptionStatus"]:ProviderSubscriptionStatus;
 	["PublicChairman"]: {
 		first_name: string,
 	last_name: string,
@@ -43825,6 +44117,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
+	/** Последний устав кооператива со свежей ссылкой на скачивание.
+
+Требуемые роли: member, chairman, user.  */
+	getCooperativeCharter?: ModelTypes["CooperativeCharter"] | undefined | null,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -43939,6 +44235,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	getProgramWallets: ModelTypes["ProgramWalletsPaginationResult"],
+	/** Каталог витрины подключения (Epic 28): услуги и конфигурации сервера с живыми ценами провайдера
+
+Требуемые роли: member, chairman, user.  */
+	getProviderConnectionCatalog: ModelTypes["ProviderConnectionCatalog"],
 	/** Получить подписку провайдера по ID
 
 Требуемые роли: member, chairman.  */
@@ -45723,6 +46023,22 @@ export type ModelTypes = {
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadCooperativeCharterInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Контур союза, куда подаётся заявка (coopname оператора). */
+	coopname: string,
+	/** MIME-тип содержимого (PDF или скан-изображение). */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения совету. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string
+};
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -47182,7 +47498,7 @@ export type GraphQLTypes = {
 	__typename: "BillingSummaryItem",
 	amount: number,
 	isFree: boolean,
-	status: string,
+	status: GraphQLTypes["ProviderSubscriptionStatus"],
 	subscriptionId: number,
 	subscriptionTypeId: number,
 	subscriptionTypeName: string,
@@ -50713,6 +51029,33 @@ export type GraphQLTypes = {
 	type: string,
 	['...on CoopAgreement']: Omit<GraphQLTypes["CoopAgreement"], "...on CoopAgreement">
 };
+	/** Статус кооператива в блокчейне: pending | active | blocked */
+["CooperativeChainStatus"]: CooperativeChainStatus;
+	/** Устав кооператива, приложенный к заявке на подключение. */
+["CooperativeCharter"]: {
+	__typename: "CooperativeCharter",
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256: string,
+	/** Контур союза, в котором хранится устав. */
+	coopname: string,
+	/** Внутренний ID записи. */
+	id: number,
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?: string | undefined | null,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда загружено. */
+	uploaded_at: GraphQLTypes["DateTime"],
+	/** Кто загрузил (username). */
+	uploaded_by_username: string,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string,
+	['...on CooperativeCharter']: Omit<GraphQLTypes["CooperativeCharter"], "...on CooperativeCharter">
+};
 	["CooperativeOperatorAccount"]: {
 	__typename: "CooperativeOperatorAccount",
 	/** Количество активных участников */
@@ -50785,16 +51128,20 @@ export type GraphQLTypes = {
 	__typename: "CooperativeRegistryItem",
 	/** Анонсированный домен/сайт кооператива */
 	announce?: string | undefined | null,
+	/** Последний приложенный устав кооператива (без read_url — ссылку берут отдельным запросом) */
+	charter?: GraphQLTypes["CooperativeCharter"] | undefined | null,
 	/** Имя аккаунта кооператива (coopname) */
 	coopname: string,
 	/** Дата регистрации заявки кооператива (on-chain) */
 	created_at?: string | undefined | null,
+	/** Рассказ кооператива о своей деятельности (on-chain coops.description) */
+	description?: string | undefined | null,
 	/** Есть ли у кооператива данные провайдера (хотя бы одна подписка) */
 	has_provider_data: boolean,
 	/** Наименование организации кооператива */
 	name?: string | undefined | null,
-	/** Статус кооператива в блокчейне: pending | active | blocked */
-	status: string,
+	/** Статус кооператива в блокчейне */
+	status: GraphQLTypes["CooperativeChainStatus"],
 	/** Подписки кооператива у провайдера (с инстансом и биллингом) */
 	subscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
 	['...on CooperativeRegistryItem']: Omit<GraphQLTypes["CooperativeRegistryItem"], "...on CooperativeRegistryItem">
@@ -58143,6 +58490,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	updateSystem: GraphQLTypes["SystemInfo"],
+	/** Приложить устав кооператива к заявке на подключение (бакет registrator:charters).
+
+Требуемые роли: member, chairman, user.  */
+	uploadCooperativeCharter: GraphQLTypes["CooperativeCharter"],
 	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
 
 Требуемые роли: chairman, member, user.  */
@@ -59585,6 +59936,61 @@ export type GraphQLTypes = {
 ["ProjectPriority"]: ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]: ProjectStatus;
+	/** Конфигурация сервера на выбор (блок «Сервер» витрины подключения) */
+["ProviderCatalogServerOption"]: {
+	__typename: "ProviderCatalogServerOption",
+	/** Описание */
+	description: string,
+	/** ID типа инстанса в каталоге провайдера */
+	instance_type_id: number,
+	/** Название конфигурации */
+	name: string,
+	/** Отпускная цена, ₽/мес (она же цена после триала) */
+	price: number,
+	/** Конфигурация сервера: cpu, ram_gb, disk, label */
+	specs?: GraphQLTypes["JSON"] | undefined | null,
+	/** Тип подписки-«ворота», через который поставляется конфигурация */
+	subscription_type_id: number,
+	/** Пробный период, дней (0 ₽ на этот срок) */
+	trial_days: number,
+	['...on ProviderCatalogServerOption']: Omit<GraphQLTypes["ProviderCatalogServerOption"], "...on ProviderCatalogServerOption">
+};
+	/** Тип подписки (услуга) из каталога провайдера */
+["ProviderCatalogSubscriptionType"]: {
+	__typename: "ProviderCatalogSubscriptionType",
+	/** Машинный код услуги (slug) */
+	code?: string | undefined | null,
+	/** Лист зависимостей: id типов-пререквизитов */
+	depends_on: Array<number>,
+	/** Описание услуги */
+	description: string,
+	/** ID типа подписки у провайдера */
+	id: number,
+	/** Обязательная услуга (заводится каждому кооперативу) */
+	is_mandatory: boolean,
+	/** Разовая позиция без автопродления */
+	is_one_time: boolean,
+	/** Модель тарификации: time | package */
+	kind: string,
+	/** Название услуги */
+	name: string,
+	/** Период, дней */
+	period_days: number,
+	/** Цена, ₽ за период */
+	price: number,
+	/** Пробный период, дней (0 — без триала) */
+	trial_days: number,
+	['...on ProviderCatalogSubscriptionType']: Omit<GraphQLTypes["ProviderCatalogSubscriptionType"], "...on ProviderCatalogSubscriptionType">
+};
+	/** Каталог витрины подключения: услуги и конфигурации сервера */
+["ProviderConnectionCatalog"]: {
+	__typename: "ProviderConnectionCatalog",
+	/** Конфигурации сервера на выбор */
+	server_options: Array<GraphQLTypes["ProviderCatalogServerOption"]>,
+	/** Доступные кооперативу услуги (лист зависимостей учтён провайдером) */
+	types: Array<GraphQLTypes["ProviderCatalogSubscriptionType"]>,
+	['...on ProviderConnectionCatalog']: Omit<GraphQLTypes["ProviderConnectionCatalog"], "...on ProviderConnectionCatalog">
+};
 	["ProviderSubscription"]: {
 	__typename: "ProviderSubscription",
 	/** Дата создания */
@@ -59635,6 +60041,8 @@ export type GraphQLTypes = {
 	updated_at: string,
 	['...on ProviderSubscription']: Omit<GraphQLTypes["ProviderSubscription"], "...on ProviderSubscription">
 };
+	/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
+["ProviderSubscriptionStatus"]: ProviderSubscriptionStatus;
 	["PublicChairman"]: {
 	__typename: "PublicChairman",
 	first_name: string,
@@ -59952,6 +60360,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
+	/** Последний устав кооператива со свежей ссылкой на скачивание.
+
+Требуемые роли: member, chairman, user.  */
+	getCooperativeCharter?: GraphQLTypes["CooperativeCharter"] | undefined | null,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -60066,6 +60478,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	getProgramWallets: GraphQLTypes["ProgramWalletsPaginationResult"],
+	/** Каталог витрины подключения (Epic 28): услуги и конфигурации сервера с живыми ценами провайдера
+
+Требуемые роли: member, chairman, user.  */
+	getProviderConnectionCatalog: GraphQLTypes["ProviderConnectionCatalog"],
 	/** Получить подписку провайдера по ID
 
 Требуемые роли: member, chairman.  */
@@ -61948,6 +62364,22 @@ export type GraphQLTypes = {
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadCooperativeCharterInput"]: {
+		/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Контур союза, куда подаётся заявка (coopname оператора). */
+	coopname: string,
+	/** MIME-тип содержимого (PDF или скан-изображение). */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения совету. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number,
+	/** Аккаунт кооператива, чей это устав. */
+	username: string
+};
 	["UploadExpenseFileInput"]: {
 		/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -62552,6 +62984,12 @@ export enum ContributorStatus {
 	INACTIVE = "INACTIVE",
 	PENDING = "PENDING",
 	UNDEFINED = "UNDEFINED"
+}
+/** Статус кооператива в блокчейне: pending | active | blocked */
+export enum CooperativeChainStatus {
+	ACTIVE = "ACTIVE",
+	BLOCKED = "BLOCKED",
+	PENDING = "PENDING"
 }
 /** Страна регистрации пользователя */
 export enum Country {
@@ -63159,6 +63597,13 @@ export enum ProjectStatus {
 	UNDEFINED = "UNDEFINED",
 	VOTING = "VOTING"
 }
+/** Статус подписки у провайдера: ACTIVE | TRIAL | EXPIRED (past_due/suspended) | CANCELLED */
+export enum ProviderSubscriptionStatus {
+	ACTIVE = "ACTIVE",
+	CANCELLED = "CANCELLED",
+	EXPIRED = "EXPIRED",
+	TRIAL = "TRIAL"
+}
 /** Разрешённый канал восстановления доступа пайщика (активен ровно один) */
 export enum RecoveryStrategy {
 	Council = "Council",
@@ -63452,6 +63897,7 @@ type ZEUS_VARIABLES = {
 	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
+	["CooperativeChainStatus"]: ValueTypes["CooperativeChainStatus"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchExpenseInput"]: ValueTypes["CreateBranchExpenseInput"];
@@ -63856,6 +64302,7 @@ type ZEUS_VARIABLES = {
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
+	["ProviderSubscriptionStatus"]: ValueTypes["ProviderSubscriptionStatus"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
 	["RecoveryStrategy"]: ValueTypes["RecoveryStrategy"];
@@ -63968,6 +64415,7 @@ type ZEUS_VARIABLES = {
 	["UpdateReportRequisitesInput"]: ValueTypes["UpdateReportRequisitesInput"];
 	["UpdateSettingsInput"]: ValueTypes["UpdateSettingsInput"];
 	["UpdateStoryInput"]: ValueTypes["UpdateStoryInput"];
+	["UploadCooperativeCharterInput"]: ValueTypes["UploadCooperativeCharterInput"];
 	["UploadExpenseFileInput"]: ValueTypes["UploadExpenseFileInput"];
 	["UploadPaymentProofInput"]: ValueTypes["UploadPaymentProofInput"];
 	["UserStatus"]: ValueTypes["UserStatus"];

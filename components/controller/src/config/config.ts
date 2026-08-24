@@ -98,6 +98,10 @@ const envVarsSchema = z.object({
     .default('http://localhost:4090')
     .describe('адрес сервиса GRAPHQL'),
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
+  PROVIDER_BEARER_TOKEN: z
+    .string()
+    .default('')
+    .describe('Bearer-токен read-only витрины провайдера (GET /v1/subscription-types)'),
 
   // Billing Single-Hub v5: BillingModule подключается только на Восходе-хабе.
   // На спицах флаг false → модуль вообще не регистрируется, endpoints/cron
@@ -560,6 +564,7 @@ export default {
       : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
+  provider_bearer_token: envVars.data.PROVIDER_BEARER_TOKEN,
   billing: {
     hub_mode: envVars.data.BILLING_HUB_MODE,
     cron_expression: envVars.data.BILLING_CRON_EXPRESSION,

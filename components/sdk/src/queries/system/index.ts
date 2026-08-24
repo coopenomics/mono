@@ -18,3 +18,9 @@ export * as GetRegistrationConfig from './getRegistrationConfig'
 
 /** Получить сводную публичную информацию о системе */
 export * as GetSystemInfo from './getSystemInfo'
+
+/** Последний устав кооператива со свежей ссылкой на скачивание */
+export * as GetCooperativeCharter from './getCooperativeCharter'
+
+/** Каталог витрины подключения: услуги и конфигурации сервера провайдера */
+export * as GetProviderConnectionCatalog from './getProviderConnectionCatalog'

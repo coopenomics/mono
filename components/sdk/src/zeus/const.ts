@@ -409,6 +409,7 @@ export const AllTypesProps: Record<string,any> = {
 	ConvertSegmentInput:{
 		convert_statement:"SignedDigitalDocumentInput"
 	},
+	CooperativeChainStatus: "enum" as const,
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -2444,6 +2445,9 @@ export const AllTypesProps: Record<string,any> = {
 		updateSystem:{
 			data:"Update"
 		},
+		uploadCooperativeCharter:{
+			data:"UploadCooperativeCharterInput"
+		},
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
 		},
@@ -2576,6 +2580,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
+	ProviderSubscriptionStatus: "enum" as const,
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -2840,6 +2845,9 @@ export const AllTypesProps: Record<string,any> = {
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
 		},
+		getCooperativeCharter:{
+
+		},
 		getCriticalActionAuditTrail:{
 
 		},
@@ -2924,6 +2932,9 @@ export const AllTypesProps: Record<string,any> = {
 		getProgramWallets:{
 			filter:"ProgramWalletFilterInput",
 			options:"PaginationInput"
+		},
+		getProviderConnectionCatalog:{
+
 		},
 		getProviderSubscriptionById:{
 
@@ -3568,6 +3579,9 @@ export const AllTypesProps: Record<string,any> = {
 		origin:"CapitalContentRevisionOrigin",
 		status:"StoryStatus"
 	},
+	UploadCooperativeCharterInput:{
+
+	},
 	UploadExpenseFileInput:{
 		kind:"ExpenseFileKind"
 	},
@@ -3864,7 +3878,7 @@ export const ReturnTypes: Record<string,any> = {
 	BillingSummaryItem:{
 		amount:"Float",
 		isFree:"Boolean",
-		status:"String",
+		status:"ProviderSubscriptionStatus",
 		subscriptionId:"Int",
 		subscriptionTypeId:"Int",
 		subscriptionTypeName:"String"
@@ -5069,6 +5083,18 @@ export const ReturnTypes: Record<string,any> = {
 		program_id:"Int",
 		type:"String"
 	},
+	CooperativeCharter:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		mime_type:"String",
+		original_filename:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String",
+		username:"String"
+	},
 	CooperativeOperatorAccount:{
 		active_participants_count:"Float",
 		announce:"String",
@@ -5105,11 +5131,13 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	CooperativeRegistryItem:{
 		announce:"String",
+		charter:"CooperativeCharter",
 		coopname:"String",
 		created_at:"String",
+		description:"String",
 		has_provider_data:"Boolean",
 		name:"String",
-		status:"String",
+		status:"CooperativeChainStatus",
 		subscriptions:"ProviderSubscription"
 	},
 	CreateSubscriptionResponse:{
@@ -7091,6 +7119,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateReportRequisites:"ReportRequisitesView",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
+		uploadCooperativeCharter:"CooperativeCharter",
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
@@ -7647,6 +7676,32 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ProviderCatalogServerOption:{
+		description:"String",
+		instance_type_id:"Int",
+		name:"String",
+		price:"Float",
+		specs:"JSON",
+		subscription_type_id:"Int",
+		trial_days:"Int"
+	},
+	ProviderCatalogSubscriptionType:{
+		code:"String",
+		depends_on:"Int",
+		description:"String",
+		id:"Int",
+		is_mandatory:"Boolean",
+		is_one_time:"Boolean",
+		kind:"String",
+		name:"String",
+		period_days:"Int",
+		price:"Float",
+		trial_days:"Int"
+	},
+	ProviderConnectionCatalog:{
+		server_options:"ProviderCatalogServerOption",
+		types:"ProviderCatalogSubscriptionType"
+	},
 	ProviderSubscription:{
 		created_at:"String",
 		domain_valid:"Boolean",
@@ -7767,6 +7822,7 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCooperativeCharter:"CooperativeCharter",
 		getCooperativesRegistry:"CooperativeRegistryItem",
 		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
@@ -7801,6 +7857,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProductCards:"ProductCard",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
+		getProviderConnectionCatalog:"ProviderConnectionCatalog",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
 		getRecoveryStrategy:"RecoveryStrategy",
