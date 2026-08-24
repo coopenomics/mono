@@ -24,6 +24,9 @@ import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
 import { PaymentFileEntity } from './entities/payment-file.entity';
+import { CooperativeCharterEntity } from './entities/cooperative-charter.entity';
+import { COOPERATIVE_CHARTER_REPOSITORY } from '~/domain/cooperative-charter/repositories/cooperative-charter.repository';
+import { TypeormCooperativeCharterRepository } from './repositories/typeorm-cooperative-charter.repository';
 import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
 import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
 import { WebPushSubscriptionEntity } from './entities/web-push-subscription.entity';
@@ -160,6 +163,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       CandidateEntity,
       PaymentEntity,
       PaymentFileEntity,
+      CooperativeCharterEntity,
       WebPushSubscriptionEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
@@ -223,6 +227,10 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     {
       provide: PAYMENT_FILE_REPOSITORY,
       useClass: TypeormPaymentFileRepository,
+    },
+    {
+      provide: COOPERATIVE_CHARTER_REPOSITORY,
+      useClass: TypeormCooperativeCharterRepository,
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
@@ -334,6 +342,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
     PAYMENT_FILE_REPOSITORY,
+    COOPERATIVE_CHARTER_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,
     AGREEMENT_REPOSITORY,

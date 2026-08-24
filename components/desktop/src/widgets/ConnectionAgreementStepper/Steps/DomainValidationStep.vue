@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import {
-  BaseButton,
-  BaseCard,
-  BaseChip,
-  BaseForm,
-} from 'src/shared/ui/base'
+import { computed, onMounted, ref } from 'vue'
+import { BaseButton, BaseChip } from 'src/shared/ui/base'
 import { DataRow } from 'src/shared/ui/domain'
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
+import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
+import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 const { loadCurrentInstance } = connectionAgreement
@@ -17,6 +13,7 @@ const { SERVER_IP } = useProviderSubscriptions()
 const coop = computed(() => connectionAgreement.coop)
 const instance = computed(() => connectionAgreement.currentInstance)
 const isDelegated = computed(() => !!instance.value?.is_delegated)
+const isChecking = ref(false)
 
 onMounted(async () => {
   if (!coop.value) {
@@ -28,63 +25,81 @@ onMounted(async () => {
   }
 })
 
-const handleBack = () => connectionAgreement.setCurrentStep(4)
+const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.agreement)
 
 const handleContinue = () => {
   if (!isDelegated.value) return
-  if (connectionAgreement.currentStep < 7) {
-    connectionAgreement.setCurrentStep(connectionAgreement.currentStep + 1)
-  }
+  connectionAgreement.setCurrentStep(CONNECTION_STEP.approval)
 }
 
 const handleReload = async () => {
+  isChecking.value = true
   try {
     await loadCurrentInstance()
   } catch (error) {
     console.error('Ошибка обновления инстанса:', error)
+  } finally {
+    isChecking.value = false
   }
 }
 </script>
 
 <template lang="pug">
-BaseForm.dns-step(@submit="handleContinue")
-  BaseCard(
-    title="Делегирование домена"
-    subtitle="Откройте панель управления вашим доменом и добавьте A-запись со значениями ниже. Делегирование проверим автоматически."
-  )
-    DataRow(label="Домен" :value="coop?.announce" mono)
-    DataRow(label="IP-адрес" :value="SERVER_IP" mono copyable)
+StepFrame(
+  title="Направьте домен на сервер платформы"
+  lead="Чтобы адрес кооператива открывал вашу копию платформы, домен нужно направить на сервер, где она будет установлена. Это делается в панели управления доменом у регистратора — там, где вы его покупали."
+  :next-disabled="!isDelegated"
+  @back="handleBack"
+  @next="handleContinue"
+)
+  ol.dns-step__how
+    li Откройте панель управления доменом у регистратора и найдите раздел DNS-записей.
+    li Добавьте запись типа
+      |  
+      span.t-mono A
+      |  для имени ниже со значением IP-адреса ниже. Если такая запись уже есть — замените значение.
+    li Сохраните. Обычно запись вступает в силу за несколько минут, но у некоторых регистраторов это занимает до суток — мы проверяем автоматически и продолжим сами.
 
-    .dns-step__status
-      BaseChip(:variant="isDelegated ? 'pos' : 'warn'")
-        span {{ isDelegated ? 'Домен делегирован' : 'Ожидаем делегирования' }}
-      BaseButton(
-        v-if="!isDelegated"
-        variant="ghost"
-        size="sm"
-        type="button"
-        @click="handleReload"
-      ) Проверить сейчас
+  .dns-step__values
+    DataRow(label="Имя записи" :value="coop?.announce" mono copyable)
+    DataRow(label="Значение (IP-адрес)" :value="SERVER_IP" mono copyable)
 
-  template(#footer)
-    .row.items-center.q-gutter-sm
-      BaseButton(variant="ghost" size="sm" type="button" @click="handleBack") Назад
-      q-space
-      BaseButton(
-        v-if="isDelegated"
-        variant="primary"
-        size="sm"
-        type="submit"
-      ) Дальше
+  .dns-step__status
+    BaseChip(:variant="isDelegated ? 'pos' : 'warn'")
+      q-icon(:name="isDelegated ? 'check' : 'schedule'" size="12px").q-mr-xs
+      span {{ isDelegated ? 'Домен направлен на сервер' : 'Ждём, когда запись вступит в силу' }}
+    BaseButton(
+      v-if="!isDelegated"
+      variant="secondary"
+      size="sm"
+      type="button"
+      :loading="isChecking"
+      @click="handleReload"
+    ) Проверить сейчас
 </template>
 
 <style scoped>
-.dns-step {
-  max-width: 640px;
+.dns-step__how {
+  margin: 0;
+  padding-left: var(--p-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  font-size: var(--p-fs-body);
+  line-height: var(--p-lh-body);
+  color: var(--p-ink-1);
+}
+.dns-step__values {
+  margin-top: var(--p-4);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md);
+  padding: 0 var(--p-4);
+  background: var(--p-surface-2);
 }
 .dns-step__status {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--p-3);
   margin-top: var(--p-4);
 }

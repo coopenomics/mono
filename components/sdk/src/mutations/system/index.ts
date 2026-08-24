@@ -18,3 +18,6 @@ export * as UpdateSettings from './updateSettings'
 
 /** Обновить параметры системы */
 export * as UpdateSystem from './updateSystem'
+
+/** Приложить устав кооператива к заявке на подключение */
+export * as UploadCooperativeCharter from './uploadCooperativeCharter'

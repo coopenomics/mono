@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
 import { Loader } from 'src/shared/ui/Loader'
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
+import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
 import { useAddCooperative } from 'src/features/Union/AddCooperative/model'
 import { useSessionStore } from 'src/entities/Session'
+import { FailAlert } from 'src/shared/api'
+import StepFrame from '../ui/StepFrame.vue'
 
 defineProps<{
   html?: string
@@ -32,7 +33,10 @@ const handleSign = async () => {
         is_cooperative: true,
         coop_type: 'conscoop',
         announce: connectionAgreement.formData.announce,
-        description: '',
+        // Рассказ кооператива о своей деятельности с первого шага мастера:
+        // единственный on-chain слот под него — `description` записи coops,
+        // из него же реестр совета показывает описание заявки.
+        description: connectionAgreement.formData.description,
         initial: connectionAgreement.formData.initial,
         minimum: connectionAgreement.formData.minimum,
         org_initial: connectionAgreement.formData.org_initial,
@@ -48,13 +52,10 @@ const handleSign = async () => {
     await addCooperative(registerData)
     await connectionAgreement.reloadCooperative()
     await connectionAgreement.loadCurrentInstance()
-
-    if (connectionAgreement.currentStep < 7) {
-      connectionAgreement.setCurrentStep(connectionAgreement.currentStep + 1)
-    }
-  } catch (error) {
+    connectionAgreement.setCurrentStep(CONNECTION_STEP.dns)
+  } catch (error: any) {
     console.error('Ошибка при подписании или отправке в блокчейн:', error)
-    throw error
+    FailAlert(`Не удалось подписать соглашение: ${error?.message ?? error}`)
   } finally {
     isSigning.value = false
   }
@@ -63,55 +64,32 @@ const handleSign = async () => {
 const handleBack = () => {
   connectionAgreement.setDocument(null)
   connectionAgreement.setSignedDocument(null)
-  if (connectionAgreement.currentStep > 0) {
-    connectionAgreement.setCurrentStep(connectionAgreement.currentStep - 1)
-  }
+  connectionAgreement.setCurrentStep(CONNECTION_STEP.financial)
 }
 </script>
 
 <template lang="pug">
-.agreement-step
-  template(v-if="html")
-    .agreement-step__doc
-      DocumentHtmlReader(:html="html")
-    .agreement-step__actions
-      BaseButton(
-        variant="ghost"
-        size="sm"
-        @click="handleBack"
-      ) Назад
-      .agreement-step__spacer
-      BaseButton(
-        variant="primary"
-        size="sm"
-        :loading="isSigning"
-        :disabled="!isDocumentReady"
-        @click="handleSign"
-      ) Подписать
-  template(v-else)
-    Loader(:text="'Готовим соглашение...'")
+StepFrame(
+  title="Соглашение о подключении"
+  lead="Это договор между кооперативом и платформой: в нём зафиксированы адрес, взносы с предыдущих шагов и условия обслуживания. Прочитайте и подпишите его своим ключом — после подписи кооператив будет зарегистрирован в блокчейне, и провайдер начнёт готовить установку."
+  next-label="Подписать"
+  :next-disabled="!isDocumentReady"
+  :loading="isSigning"
+  @back="handleBack"
+  @next="handleSign"
+)
+  .agreement-step__doc(v-if="html")
+    DocumentHtmlReader(:html="html")
+  Loader(v-else :text="'Готовим соглашение…'")
 </template>
 
 <style scoped>
-.agreement-step {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-5);
-}
 .agreement-step__doc {
-  background: var(--p-surface);
   border: 1px solid var(--p-line-1);
   border-radius: var(--p-r-md);
   padding: var(--p-5);
-  max-height: 540px;
+  max-height: 60vh;
   overflow: auto;
-}
-.agreement-step__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-}
-.agreement-step__spacer {
-  flex: 1 1 auto;
+  background: var(--p-surface-2);
 }
 </style>

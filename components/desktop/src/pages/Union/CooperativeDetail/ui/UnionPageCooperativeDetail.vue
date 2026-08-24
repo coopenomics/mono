@@ -16,48 +16,83 @@
     | Кооператив не найден в реестре.
 
   template(v-else)
-    BaseCard(
-      :title="row.name || row.coopname"
-      :subtitle="headerSubtitle"
-    )
-      template(#actions)
-        .coop-detail__head-actions
-          BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
-            span {{ registryStatusLabel(row.status) }}
-          BaseButton(
-            v-if="row.status !== 'active'"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="activate"
-          ) Активировать
-          BaseButton(
-            v-if="row.status !== 'blocked'"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="block"
-          ) Заблокировать
-
-      DataRow(v-if="row.announce" label="Сайт" :value="row.announce" mono)
-        template(#value-override)
-          a.coop-detail__link.t-mono(
+    //- Шапка заявки: кто подал, в каком состоянии и что с этим делать.
+    BaseCard
+      .coop-detail__head
+        .coop-detail__title
+          .coop-detail__name {{ row.name || row.coopname }}
+          .t-meta.t-muted {{ headerSubtitle }}
+          //- Домен — часть удостоверения кооператива, а не отдельная строка
+          //- «поле → значение»: в широкой карточке она разрывалась пустотой.
+          a.coop-detail__domain(
+            v-if="row.announce"
             :href="resolveSiteUrl(row.announce)"
             target="_blank"
             rel="noopener"
-          ) {{ row.announce }}
+          )
+            q-icon(name="language" size="14px")
+            span.t-mono {{ row.announce }}
+        BaseChip(:variant="registryStatusVariant(row.status)" size="sm")
+          span {{ registryStatusLabel(row.status) }}
+
+      .coop-detail__decision
+        BaseButton(
+          v-if="!isRegistryStatus(row.status, 'active')"
+          variant="primary"
+          size="sm"
+          type="button"
+          :loading="deciding"
+          @click="activate"
+        ) Подтвердить подключение
+        BaseButton(
+          v-if="!isRegistryStatus(row.status, 'blocked')"
+          variant="secondary"
+          size="sm"
+          type="button"
+          :loading="deciding"
+          @click="block"
+        ) Заблокировать
+
+    .coop-detail__section
+      .coop-detail__section-title Заявка кооператива
+
+      BaseCard(variant="flat")
+        //- Рассказ о деятельности и устав — то, по чему совет решает,
+        //- подтверждать ли подключение. Оба присланы на первом шаге мастера.
+        p.coop-detail__about(v-if="row.description") {{ row.description }}
+        p.coop-detail__about.t-muted(v-else) Кооператив не заполнил рассказ о своей деятельности.
+
+        .coop-detail__charter
+          template(v-if="row.charter")
+            q-icon.coop-detail__charter-icon(name="description" size="24px")
+            .coop-detail__charter-body
+              .coop-detail__charter-name {{ row.charter.original_filename || 'Устав кооператива' }}
+              .t-meta.t-muted Приложен {{ formatDateTime(row.charter.uploaded_at) }} · {{ formatFileSize(row.charter.size_bytes) }}
+            BaseButton(
+              variant="secondary"
+              size="sm"
+              type="button"
+              :loading="charterOpening"
+              @click="openCharter"
+            )
+              q-icon(name="open_in_new" size="14px").q-mr-xs
+              | Открыть устав
+          template(v-else)
+            q-icon.coop-detail__charter-icon(name="warning" size="20px")
+            .coop-detail__charter-body
+              .t-sm.t-muted Устав не приложен.
 
     .coop-detail__section
       .coop-detail__section-title Подписки
 
-      EmptyState(
-        v-if="!row.subscriptions || !row.subscriptions.length"
-        title="Подписок нет"
-        body="У кооператива пока нет активных подписок у провайдера"
-      )
-
-      BaseCard(v-else variant="flat")
+      BaseCard(variant="flat")
+        EmptyState(
+          v-if="!row.subscriptions || !row.subscriptions.length"
+          title="Подписок нет"
+          body="Появятся, когда провайдер начнёт поставку инфраструктуры"
+        )
         BaseTable(
+          v-else
           :columns="subscriptionColumns"
           :rows="row.subscriptions"
           row-key="id"
@@ -99,10 +134,11 @@
     .coop-detail__section
       .coop-detail__section-title История оплат
 
-      EmptyState(
-        title="История пока недоступна"
-        body="Раздел появится после реализации выгрузки операций биллинга по кооперативу."
-      )
+      BaseCard(variant="flat")
+        EmptyState(
+          title="История пока недоступна"
+          body="Раздел появится после реализации выгрузки операций биллинга по кооперативу."
+        )
 </template>
 
 <script setup lang="ts">
@@ -117,18 +153,23 @@ import {
   BaseTable,
   EmptyState,
 } from 'src/shared/ui/base'
-import { DataRow } from 'src/shared/ui/domain'
 import Loader from 'src/shared/ui/Loader/Loader.vue'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
+import { cooperativeCharterApi } from 'src/features/Union/UploadCooperativeCharter'
 import { useActivateCooperative } from 'src/features/Union/ActivateCooperative'
 import { useBlockCooperative } from 'src/features/Union/BlockCooperative'
 import { useUnionStore } from 'src/entities/Union/model'
+import {
+  isRegistryStatus,
+  registryStatusLabel,
+  registryStatusVariant,
+  subscriptionStatusLabel,
+  subscriptionStatusVariant,
+} from 'src/entities/Union'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
-
-type BaseChipVariant = 'neutral' | 'accent' | 'pos' | 'neg' | 'warn' | 'info'
 
 const route = useRoute()
 const router = useRouter()
@@ -194,6 +235,36 @@ const headerSubtitle = computed(() => {
   return parts.join(' · ')
 })
 
+// Решение совета — транзакция в цепь; пока она идёт, кнопки показывают загрузку.
+const deciding = ref(false)
+const charterOpening = ref(false)
+
+/**
+ * Ссылка на устав короткоживущая (её TTL задан бакетом), поэтому в списке она
+ * не передаётся — запрашиваем свежую в момент клика и открываем новой вкладкой.
+ */
+const openCharter = async () => {
+  if (!row.value) return
+  charterOpening.value = true
+  try {
+    const fresh = await cooperativeCharterApi.loadCooperativeCharter(
+      system.info.coopname,
+      row.value.coopname,
+    )
+    if (fresh?.read_url) window.open(fresh.read_url, '_blank', 'noopener')
+    else FailAlert('Ссылка на устав недоступна')
+  } catch (e: any) {
+    FailAlert(e)
+  } finally {
+    charterOpening.value = false
+  }
+}
+
+const formatFileSize = (bytes: number): string => {
+  const mb = bytes / (1024 * 1024)
+  return mb >= 1 ? `${mb.toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`
+}
+
 const formatDate = (d: string) => moment(d).format('DD.MM.YYYY')
 const formatDateTime = (d: string) => moment(d).format('DD.MM.YY HH:mm')
 const formatMoney = (value: number | string): string =>
@@ -205,61 +276,9 @@ const formatMoney = (value: number | string): string =>
 const resolveSiteUrl = (announce: string): string =>
   /^https?:\/\//.test(announce) ? announce : `https://${announce}`
 
-const registryStatusVariant = (status: string): BaseChipVariant => {
-  switch (status) {
-    case 'active':
-      return 'pos'
-    case 'pending':
-      return 'warn'
-    case 'blocked':
-      return 'neg'
-    default:
-      return 'neutral'
-  }
-}
 
-const registryStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'active':
-      return 'активен'
-    case 'pending':
-      return 'на рассмотрении'
-    case 'blocked':
-      return 'заблокирован'
-    default:
-      return status
-  }
-}
 
-const subscriptionStatusVariant = (status: string): BaseChipVariant => {
-  switch (status) {
-    case 'ACTIVE':
-      return 'pos'
-    case 'TRIAL':
-      return 'info'
-    case 'EXPIRED':
-      return 'warn'
-    case 'CANCELLED':
-      return 'neg'
-    default:
-      return 'neutral'
-  }
-}
 
-const subscriptionStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'ACTIVE':
-      return 'активна'
-    case 'TRIAL':
-      return 'триал'
-    case 'EXPIRED':
-      return 'истекла'
-    case 'CANCELLED':
-      return 'отменена'
-    default:
-      return status
-  }
-}
 
 const goBack = () => {
   const params = { ...route.params }
@@ -270,24 +289,30 @@ const goBack = () => {
 const activate = async () => {
   if (!row.value) return
   const { activateCooperative } = useActivateCooperative()
+  deciding.value = true
   try {
     await activateCooperative(row.value.coopname)
     await load()
-    SuccessAlert('Кооператив активирован')
+    SuccessAlert('Подключение кооператива подтверждено')
   } catch (e: any) {
     FailAlert(e)
+  } finally {
+    deciding.value = false
   }
 }
 
 const block = async () => {
   if (!row.value) return
   const { blockCooperative } = useBlockCooperative()
+  deciding.value = true
   try {
     await blockCooperative(row.value.coopname)
     await load()
     SuccessAlert('Кооператив заблокирован')
   } catch (e: any) {
     FailAlert(e)
+  } finally {
+    deciding.value = false
   }
 }
 </script>
@@ -296,23 +321,75 @@ const block = async () => {
 .coop-detail__back {
   margin-bottom: var(--p-3);
 }
-.coop-detail__head-actions {
+.coop-detail__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
+.coop-detail__title {
+  flex: 1;
+  min-width: 0;
+}
+.coop-detail__name {
+  font-size: var(--p-fs-h3);
+  line-height: var(--p-lh-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.coop-detail__domain {
   display: inline-flex;
   align-items: center;
-  gap: var(--p-2);
-}
-.coop-detail__link {
+  gap: var(--p-1);
+  margin-top: var(--p-2);
   color: var(--p-primary);
   text-decoration: none;
+  font-size: var(--p-fs-body-sm);
 }
-.coop-detail__link:hover {
+.coop-detail__domain:hover {
   text-decoration: underline;
+}
+.coop-detail__decision {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  margin-top: var(--p-4);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
 }
 .coop-detail__section {
   margin-top: var(--p-5);
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
+}
+.coop-detail__about {
+  margin: 0 0 var(--p-4);
+  color: var(--p-ink-1);
+  font-size: var(--p-fs-body);
+  line-height: var(--p-lh-body);
+  white-space: pre-line;
+}
+.coop-detail__charter {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  padding: var(--p-3) var(--p-4);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+}
+.coop-detail__charter-icon {
+  color: var(--p-ink-2);
+}
+.coop-detail__charter-body {
+  flex: 1;
+  min-width: 0;
+}
+.coop-detail__charter-name {
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  color: var(--p-ink);
+  overflow-wrap: anywhere;
 }
 .coop-detail__section-title {
   font-size: var(--p-fs-h6);

@@ -15,8 +15,9 @@ import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard } from './i
 </script>
 
 <style lang="scss" scoped>
+/* Влево и во всю ширину — как остальные разделы стола. Центрированная колонка
+   оставляла поля по краям, и карточки выглядели вставкой посреди холста. */
 .connection-dashboard {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 </style>

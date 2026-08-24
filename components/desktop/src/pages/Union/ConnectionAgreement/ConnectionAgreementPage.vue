@@ -46,7 +46,11 @@ div.row.q-pa-md
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement';
+import {
+  useConnectionAgreementStore,
+  CONNECTION_STEP,
+  FIRST_ONBOARDING_STEP,
+} from 'src/entities/ConnectionAgreement';
 import { ConnectionAgreementStepper } from 'src/widgets/ConnectionAgreementStepper';
 import { ConnectionDashboard } from 'src/widgets/ConnectionDashboard';
 import { ColorCard } from 'src/shared/ui';
@@ -168,18 +172,18 @@ const init = async () => {
   if (coop) {
     // Соглашение точно подписано (coop появился в registrator.coops).
     if (instance && typeof instance.progress === 'number' && instance.progress > 0) {
-      targetStep = 7; // установка идёт
+      targetStep = CONNECTION_STEP.installation; // установка идёт
     } else if (instance?.blockchain_status === 'active') {
-      targetStep = 7; // союз подтвердил, провайдер вот-вот стартует
+      targetStep = CONNECTION_STEP.installation; // совет подтвердил, провайдер вот-вот стартует
     } else if (instance?.is_delegated) {
-      targetStep = 6; // домен делегирован, ждём подтверждения союза
+      targetStep = CONNECTION_STEP.approval; // домен делегирован, ждём подтверждения совета
     } else {
-      targetStep = 5; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
+      targetStep = CONNECTION_STEP.dns; // DNS-шаг: ждём делегирования или провайдер ещё не подхватил coop
     }
   } else if (system.info.is_unioned) {
-    targetStep = 0; // нужна регистрация в мессенджере союза
+    targetStep = CONNECTION_STEP.union; // нужна регистрация в мессенджере союза
   } else {
-    targetStep = 1; // онбординг от выбора тарифа
+    targetStep = FIRST_ONBOARDING_STEP; // онбординг с первого показанного шага
   }
 
   connectionAgreement.setCurrentStep(targetStep);
@@ -209,24 +213,24 @@ watch(
       status: instance.status,
     });
 
-    // Автопереходы только для шагов 5 (dns), 6 (approval), 7 (installation).
-    // Шаги 0..4 (union/intro/domain/financial/agreement) — пользовательский ввод.
-    if (currentStep === 5) {
+    // Автопереходы только для шагов dns/approval/installation — остальные
+    // (union/intro/profile/domain/financial/agreement) ждут ввода пользователя.
+    if (currentStep === CONNECTION_STEP.dns) {
       // Шаг 5: Проверка делегирования домена.
       if (instance.is_valid && instance.is_delegated) {
         if (instance.blockchain_status === 'active') {
           console.log('✅ Домен готов и blockchain_status активен → переход к шагу 7 (installation)');
-          connectionAgreement.setCurrentStep(7);
+          connectionAgreement.setCurrentStep(CONNECTION_STEP.installation);
         } else {
           console.log('⏳ Домен готов, ждём подтверждения союза → переход к шагу 6 (approval)');
-          connectionAgreement.setCurrentStep(6);
+          connectionAgreement.setCurrentStep(CONNECTION_STEP.approval);
         }
       }
-    } else if (currentStep === 6) {
+    } else if (currentStep === CONNECTION_STEP.approval) {
       // Шаг 6: Ожидание подтверждения от союза.
       if (instance.blockchain_status === 'active') {
         console.log('✅ Подтверждение получено → переход к шагу 7 (installation)');
-        connectionAgreement.setCurrentStep(7);
+        connectionAgreement.setCurrentStep(CONNECTION_STEP.installation);
       }
     }
     // Редирект на страницу завершения теперь делает только InstallationStep.vue

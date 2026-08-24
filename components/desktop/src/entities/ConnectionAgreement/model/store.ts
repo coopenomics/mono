@@ -24,6 +24,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const coop = ref<any>(null)
   const hasMatrixAccount = ref<boolean>(false)
   const formData = ref<ICooperativeFormData>({
+    description: '',
     announce: '',
     initial: '',
     minimum: '',
@@ -83,6 +84,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
       // Передаем данные из формы в документ, если они есть
       if (formDataValue) {
+        params.description = formDataValue.description
         params.announce = formDataValue.announce
         params.initial = formDataValue.initial
         params.minimum = formDataValue.minimum
@@ -196,6 +198,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
     coop.value = null
     hasMatrixAccount.value = false
     formData.value = {
+      description: '',
       announce: '',
       initial: '',
       minimum: '',

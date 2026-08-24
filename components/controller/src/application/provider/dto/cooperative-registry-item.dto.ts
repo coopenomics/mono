@@ -1,6 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { CooperativeChainStatus } from '~/domain/billing/enums/billing-statuses.enum';
 import { ProviderSubscriptionDTO } from './provider-subscription.dto';
+import { CooperativeCharterOutputDTO } from './cooperative-charter.output';
 
 /**
  * Элемент реестра кооперативов для оператора (Восход).
@@ -22,6 +23,18 @@ export class CooperativeRegistryItemDTO {
 
   @Field(() => String, { nullable: true, description: 'Анонсированный домен/сайт кооператива' })
   announce?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Рассказ кооператива о своей деятельности (on-chain coops.description)',
+  })
+  description?: string;
+
+  @Field(() => CooperativeCharterOutputDTO, {
+    nullable: true,
+    description: 'Последний приложенный устав кооператива (без read_url — ссылку берут отдельным запросом)',
+  })
+  charter?: CooperativeCharterOutputDTO;
 
   @Field(() => CooperativeChainStatus, { description: 'Статус кооператива в блокчейне' })
   status!: CooperativeChainStatus;

@@ -4,6 +4,7 @@
 
 export { default as UnionMembershipStep } from './UnionMembershipStep.vue'
 export { default as IntroStep } from './IntroStep.vue'
+export { default as CooperativeProfileStep } from './CooperativeProfileStep.vue'
 export { default as DomainStep } from './DomainStep.vue'
 export { default as FinancialParamsStep } from './FinancialParamsStep.vue'
 export { default as AgreementStep } from './AgreementStep.vue'

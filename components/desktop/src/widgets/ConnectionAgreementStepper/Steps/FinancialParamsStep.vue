@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import {
-  BaseInput,
-  BaseButton,
-  BaseCard,
-  BaseForm,
-} from 'src/shared/ui/base'
+import { BaseInput } from 'src/shared/ui/base'
 import { notEmpty } from 'src/shared/lib/utils'
-import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
+import { useConnectionAgreementStore, CONNECTION_STEP } from 'src/entities/ConnectionAgreement'
+import StepFrame from '../ui/StepFrame.vue'
 
 const connectionAgreement = useConnectionAgreementStore()
 
@@ -47,26 +43,23 @@ const handleContinue = () => {
     org_initial: orgInitial.value,
     org_minimum: orgMinimum.value,
   })
-  if (connectionAgreement.currentStep < 7) {
-    connectionAgreement.setCurrentStep(connectionAgreement.currentStep + 1)
-  }
+  connectionAgreement.setCurrentStep(CONNECTION_STEP.agreement)
 }
 
-const handleBack = () => {
-  if (connectionAgreement.currentStep > 1) {
-    connectionAgreement.setCurrentStep(connectionAgreement.currentStep - 1)
-  }
-}
+const handleBack = () => connectionAgreement.setCurrentStep(CONNECTION_STEP.domain)
 </script>
 
 <template lang="pug">
-BaseForm.financial-step(@submit="handleContinue")
-  BaseCard.q-mb-md(
-    title="Финансовые параметры"
-    subtitle="Установите вступительные и минимальные паевые взносы для физических лиц, индивидуальных предпринимателей и организаций"
-  )
-
-  BaseCard.q-mb-md(title="Физические лица и ИП" subtitle="Применяется к пайщикам-гражданам при вступлении в кооператив")
+StepFrame(
+  title="Сколько платят при вступлении"
+  lead="Каждый новый пайщик при вступлении вносит вступительный взнос и первый паевой. Эти суммы платформа подставит в заявление о вступлении и проверит при оплате. Для граждан и для организаций они обычно разные — задайте обе пары."
+  @back="handleBack"
+  @next="handleContinue"
+)
+  .financial-step__group
+    .financial-step__group-head
+      .t-h3 Граждане и ИП
+      p.t-sm.t-muted.financial-step__group-note Физические лица и индивидуальные предприниматели.
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseInput(
@@ -75,19 +68,24 @@ BaseForm.financial-step(@submit="handleContinue")
           type="number"
           placeholder="100"
           suffix="RUB"
+          hint="Разовый, при вступлении"
           :error="errors.initial || undefined"
         )
       .col-12.col-md-6
         BaseInput(
           v-model="minimum"
-          label="Минимальный паевый взнос"
+          label="Минимальный паевой взнос"
           type="number"
           placeholder="300"
           suffix="RUB"
+          hint="Меньше этой суммы внести нельзя"
           :error="errors.minimum || undefined"
         )
 
-  BaseCard(title="Организации" subtitle="Применяется к пайщикам-юрлицам при вступлении в кооператив")
+  .financial-step__group
+    .financial-step__group-head
+      .t-h3 Организации
+      p.t-sm.t-muted.financial-step__group-note Юридические лица, вступающие в кооператив.
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseInput(
@@ -96,27 +94,31 @@ BaseForm.financial-step(@submit="handleContinue")
           type="number"
           placeholder="1000"
           suffix="RUB"
+          hint="Разовый, при вступлении"
           :error="errors.orgInitial || undefined"
         )
       .col-12.col-md-6
         BaseInput(
           v-model="orgMinimum"
-          label="Минимальный паевый взнос"
+          label="Минимальный паевой взнос"
           type="number"
           placeholder="3000"
           suffix="RUB"
+          hint="Меньше этой суммы внести нельзя"
           :error="errors.orgMinimum || undefined"
         )
-
-  template(#footer)
-    .row.items-center.q-gutter-sm
-      BaseButton(variant="ghost" size="sm" type="button" @click="handleBack") Назад
-      q-space
-      BaseButton(variant="primary" size="sm" type="submit") Дальше
 </template>
 
 <style scoped>
-.financial-step {
-  max-width: 640px;
+.financial-step__group + .financial-step__group {
+  margin-top: var(--p-5);
+  padding-top: var(--p-5);
+  border-top: 1px solid var(--p-line);
+}
+.financial-step__group-head {
+  margin-bottom: var(--p-3);
+}
+.financial-step__group-note {
+  margin: var(--p-1) 0 0;
 }
 </style>
