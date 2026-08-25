@@ -17,6 +17,14 @@
  * Отметок текущего времени в составе нет намеренно: ключ подавления повторов
  * в очереди уведомлений считается в том числе от данных шаблона, и время
  * внутри payload'а превратило бы одно событие в два разных письма.
+ *
+ * Зато в составе есть `message_id` — идентификатор записи ленты, из-за которой
+ * событие произошло. Он закрывает обратную опасность, о которой спецификация
+ * умалчивает: ключ подавления повторов считается от данных шаблона, поэтому
+ * два разных ответа на одно обращение дали бы одинаковый ключ (номер, тема и
+ * ссылка у них те же) — и второе письмо молча не ушло бы. Идентификатор записи
+ * различает события, оставаясь неизменным у одного и того же: повтор после
+ * сбоя доставки по-прежнему безопасен.
  */
 import { SupportMessageAuthorRole } from '../../domain/enums/support-message-author-role.enum';
 import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.enum';
@@ -30,6 +38,8 @@ export const SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT = 'support.ticket.author
 export interface SupportTicketAuthorRepliedEvent {
   coopname: string;
   ticket_id: string;
+  /** Запись ленты, о которой уведомление. Различает события в ключе подавления повторов. */
+  message_id: string;
   /** Человеко-читаемый номер обращения — им уведомление называет обращение. */
   ticket_number: string;
   subject: string;
@@ -42,6 +52,8 @@ export interface SupportTicketAuthorRepliedEvent {
 export interface SupportTicketAuthorStatusChangedEvent {
   coopname: string;
   ticket_id: string;
+  /** Системная запись ленты о переходе. Различает события в ключе подавления повторов. */
+  message_id: string;
   ticket_number: string;
   subject: string;
   previous_status: SupportTicketStatus;

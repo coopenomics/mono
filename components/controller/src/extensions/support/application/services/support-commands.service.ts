@@ -133,7 +133,7 @@ export class SupportCommandsService {
     // человеческая запись, значит факт произошёл. Письма из него не выйдет,
     // слушатель гасит отправку, когда инициатор совпадает с автором
     // обращения, а на создании это всегда так.
-    this.emitReplied(ticket, actor.username, message.authorRole);
+    this.emitReplied(ticket, message.id, actor.username, message.authorRole);
     return ticket;
   }
 
@@ -204,9 +204,11 @@ export class SupportCommandsService {
 
     const result = await this.tickets.appendAndUpdate(ticket.id, entries, changes);
 
-    this.emitReplied(result.ticket, actor.username, entries[0].message.authorRole);
+    // Записи возвращаются в том порядке, в каком переданы: первая — сообщение
+    // человека, вторая (если есть) — системная отметка о возврате в работу.
+    this.emitReplied(result.ticket, result.messages[0].id, actor.username, entries[0].message.authorRole);
     if (reopens) {
-      this.emitStatusChanged(result.ticket, ticket.status, actor.username);
+      this.emitStatusChanged(result.ticket, result.messages[1].id, ticket.status, actor.username);
     }
     return result.ticket;
   }
@@ -276,7 +278,7 @@ export class SupportCommandsService {
     );
 
     if (statusChanges) {
-      this.emitStatusChanged(result.ticket, ticket.status, actor.username);
+      this.emitStatusChanged(result.ticket, result.messages[0].id, ticket.status, actor.username);
     }
     return result.ticket;
   }
@@ -372,8 +374,11 @@ export class SupportCommandsService {
     });
 
     // Ровно одно событие, даже когда записей в ленту ушло две: одно действие
-    // человека не превращается в два письма пайщику.
-    this.emitStatusChanged(result.ticket, ticket.status, actor.username);
+    // человека не превращается в два письма пайщику. Различителем берётся
+    // системная запись о решении — она в списке последняя, комментарий
+    // оператора, если он был, идёт перед ней.
+    const resolvedEntry = result.messages[result.messages.length - 1];
+    this.emitStatusChanged(result.ticket, resolvedEntry.id, ticket.status, actor.username);
     return result.ticket;
   }
 
@@ -472,12 +477,14 @@ export class SupportCommandsService {
 
   private emitReplied(
     ticket: SupportTicketDomainEntity,
+    messageId: string,
     authorUsername: string,
     authorRole: SupportMessageAuthorRole
   ): void {
     const payload: SupportTicketAuthorRepliedEvent = {
       coopname: ticket.coopname,
       ticket_id: ticket.id,
+      message_id: messageId,
       ticket_number: ticket.number,
       subject: ticket.subject,
       author_username: authorUsername,
@@ -488,12 +495,14 @@ export class SupportCommandsService {
 
   private emitStatusChanged(
     ticket: SupportTicketDomainEntity,
+    messageId: string,
     previousStatus: SupportTicketStatus,
     initiatorUsername: string | null
   ): void {
     const payload: SupportTicketAuthorStatusChangedEvent = {
       coopname: ticket.coopname,
       ticket_id: ticket.id,
+      message_id: messageId,
       ticket_number: ticket.number,
       subject: ticket.subject,
       previous_status: previousStatus,

@@ -18,6 +18,7 @@ import { SupportTicketAttachmentTypeormRepository } from './infrastructure/repos
 import { SupportAttachmentsService } from './application/services/support-attachments.service';
 import { SupportCommandsService } from './application/services/support-commands.service';
 import { SupportAutoCloseService } from './application/services/support-auto-close.service';
+import { SupportTicketNotificationService } from './application/services/support-ticket-notification.service';
 
 /**
  * Обращение, лента переписки и вложения не заводят своих переключателей в
@@ -76,6 +77,9 @@ export class SupportExtension extends BaseExtensionModule {
     SupportAttachmentsService,
     SupportCommandsService,
     SupportAutoCloseService,
+    // Слушатель событий стола. Экспортировать его незачем: наружу он не
+    // вызывается, подписки поднимает сам при старте модуля.
+    SupportTicketNotificationService,
   ],
   exports: [SupportExtension, SupportCommandsService],
 })

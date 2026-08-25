@@ -118,6 +118,7 @@ export class SupportAutoCloseService implements OnModuleInit {
       const payload: SupportTicketAuthorStatusChangedEvent = {
         coopname: result.ticket.coopname,
         ticket_id: result.ticket.id,
+        message_id: result.message.id,
         ticket_number: result.ticket.number,
         subject: result.ticket.subject,
         previous_status: SupportTicketStatus.RESOLVED,
