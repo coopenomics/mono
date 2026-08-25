@@ -9,21 +9,11 @@ import {
 import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.enum';
 import { SupportMessageAuthorRole } from '../../domain/enums/support-message-author-role.enum';
 import { SupportSystemEvent } from '../../domain/enums/support-system-event.enum';
+import { SUPPORT_AUTO_CLOSE_HOURS } from '../../constants/support-auto-close';
 import {
   SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT,
   type SupportTicketAuthorStatusChangedEvent,
 } from '../events/support-notification.events';
-
-/**
- * Сколько часов обращение ждёт в статусе «решено», прежде чем закрыться.
- *
- * Значение из переменной окружения — константы в коде нет: порог задаёт
- * кооператив, а не сборка. По умолчанию 48 часов, верхняя граница
- * согласованного окна 24–48: смысл ожидания в том, чтобы пайщик успел
- * возразить, и меньшее значение урезает эту гарантию без нужды.
- * Подтверждено председателем 18.08.2026.
- */
-const AUTO_CLOSE_HOURS = Number(process.env.SUPPORT_AUTO_CLOSE_HOURS) || 48;
 
 /**
  * Как часто проверять кандидатов. Тик определяет только запаздывание закрытия
@@ -63,7 +53,7 @@ export class SupportAutoCloseService implements OnModuleInit {
 
   onModuleInit(): void {
     this.logger.log(
-      `Автозакрытие обращений включено: порог ${AUTO_CLOSE_HOURS} ч, проверка каждые ${Math.round(TICK_MS / 60000)} мин`
+      `Автозакрытие обращений включено: порог ${SUPPORT_AUTO_CLOSE_HOURS} ч, проверка каждые ${Math.round(TICK_MS / 60000)} мин`
     );
   }
 
@@ -83,7 +73,7 @@ export class SupportAutoCloseService implements OnModuleInit {
   }
 
   private async closeExpired(): Promise<void> {
-    const cutoff = new Date(Date.now() - AUTO_CLOSE_HOURS * HOUR_MS);
+    const cutoff = new Date(Date.now() - SUPPORT_AUTO_CLOSE_HOURS * HOUR_MS);
     const candidates = await this.tickets.findResolvedBefore(cutoff);
     if (candidates.length === 0) return;
 
@@ -99,7 +89,7 @@ export class SupportAutoCloseService implements OnModuleInit {
           authorRole: SupportMessageAuthorRole.SYSTEM,
           body: null,
           systemEvent: SupportSystemEvent.AUTO_CLOSED,
-          payload: { threshold_hours: AUTO_CLOSE_HOURS },
+          payload: { threshold_hours: SUPPORT_AUTO_CLOSE_HOURS },
         },
         attachments: [],
       });
@@ -129,7 +119,7 @@ export class SupportAutoCloseService implements OnModuleInit {
     }
 
     this.logger.log(
-      `Автозакрытие: закрыто ${closed}, отложено ${skipped} из ${candidates.length} кандидатов (порог ${AUTO_CLOSE_HOURS} ч)`
+      `Автозакрытие: закрыто ${closed}, отложено ${skipped} из ${candidates.length} кандидатов (порог ${SUPPORT_AUTO_CLOSE_HOURS} ч)`
     );
   }
 }

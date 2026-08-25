@@ -21,6 +21,7 @@ import { SupportResponsibilityZone } from '../../domain/enums/support-responsibi
 import { SupportMessageAuthorRole } from '../../domain/enums/support-message-author-role.enum';
 import { SupportSystemEvent } from '../../domain/enums/support-system-event.enum';
 import { SupportAttachmentsService } from './support-attachments.service';
+import { TICKET_NOT_FOUND_MESSAGE, isCouncilRole } from '../../constants/support-access';
 import {
   SUPPORT_TICKET_AUTHOR_REPLIED_EVENT,
   SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT,
@@ -37,25 +38,11 @@ import type {
   SupportActor,
 } from './support-commands.types';
 
-/** Роли, составляющие совет. Оператор в первой версии — это член совета. */
-const COUNCIL_ROLES: ReadonlyArray<string> = ['chairman', 'member'];
-
 /** Статусы, из которых обращение уже не ведут: назначать оператора в них нельзя. */
 const TERMINAL_STATUSES: ReadonlyArray<SupportTicketStatus> = [
   SupportTicketStatus.RESOLVED,
   SupportTicketStatus.CLOSED,
 ];
-
-/**
- * Ответ пайщику и про несуществующее обращение, и про чужое.
- *
- * Текст один на оба случая намеренно и вынесен в константу, чтобы формулировки
- * не разошлись при правке: если чужое обращение отвечает «нет прав», а
- * несуществующее — «не найдено», разница ответов сама по себе сообщает, что
- * обращение с таким идентификатором существует. Перебором это превращается в
- * список чужих обращений, ничего не показывая напрямую.
- */
-const TICKET_NOT_FOUND_MESSAGE = 'Обращение не найдено.';
 
 /**
  * Шесть команд стола поддержки.
@@ -435,7 +422,7 @@ export class SupportCommandsService {
   // ── Общее ───────────────────────────────────────────────────────────
 
   private isCouncil(actor: SupportActor): boolean {
-    return COUNCIL_ROLES.includes(actor.role);
+    return isCouncilRole(actor.role);
   }
 
   /**
@@ -462,7 +449,7 @@ export class SupportCommandsService {
     if (!assignee) {
       throw new BadRequestException(`Пайщик ${username} не найден в кооперативе.`);
     }
-    if (!COUNCIL_ROLES.includes(assignee.role)) {
+    if (!isCouncilRole(assignee.role)) {
       throw new BadRequestException(
         'Оператором обращения может быть только член совета кооператива.'
       );

@@ -17,6 +17,16 @@ export interface SupportTicketMessageRepository {
     ticketId: string,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<SupportTicketMessageDomainEntity>>;
+
+  /**
+   * Число записей ленты для каждого из переданных обращений — под счётчик в
+   * строке списка.
+   *
+   * Батчем на всю страницу, а не по обращению: иначе список из двадцати строк
+   * превращается в двадцать отдельных запросов. Обращения без записей в ответе
+   * отсутствуют — вызывающий подставляет ноль.
+   */
+  countByTicketIds(ticketIds: string[]): Promise<Map<string, number>>;
 }
 
 export const SUPPORT_TICKET_MESSAGE_REPOSITORY = Symbol('SupportTicketMessageRepository');

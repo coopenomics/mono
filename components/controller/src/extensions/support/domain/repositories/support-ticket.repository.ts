@@ -4,6 +4,7 @@ import { SupportTicketMessageDomainEntity } from '../entities/support-ticket-mes
 import { SupportTicketAttachmentDomainEntity } from '../entities/support-ticket-attachment.entity';
 import { SupportTicketStatus } from '../enums/support-ticket-status.enum';
 import { SupportTicketKind } from '../enums/support-ticket-kind.enum';
+import { SupportTicketPriority } from '../enums/support-ticket-priority.enum';
 
 /** Вложение, готовое к записи: тело уже лежит в хранилище, здесь только метаданные. */
 export type SupportAttachmentDraft = Omit<
@@ -27,6 +28,27 @@ export interface SupportLedgerEntryDraft {
 export type SupportTicketChanges = Partial<
   Omit<SupportTicketDomainEntity, 'id' | 'number' | 'coopname' | 'authorUsername' | 'createdAt'>
 >;
+
+/**
+ * Фильтр очереди совета. Все поля необязательны, пустой фильтр даёт всё.
+ *
+ * Статусы — набор, а не одно значение: закладка «активные» это `NEW` и
+ * `IN_PROGRESS` вместе (спецификация, раздел 2).
+ */
+export interface SupportTicketFilter {
+  statuses?: SupportTicketStatus[];
+  kind?: SupportTicketKind;
+  priority?: SupportTicketPriority;
+  assigneeUsername?: string;
+  /** `true` — только эскалированные, `false` — только неэскалированные. */
+  escalated?: boolean;
+  authorUsername?: string;
+  /** Подстрока темы без учёта регистра. Полнотекстового поиска по переписке нет. */
+  subjectContains?: string;
+}
+
+/** Фильтр «моих обращений» — беднее: приоритет и оператор пайщику как фильтр не нужны. */
+export type SupportMemberTicketFilter = Pick<SupportTicketFilter, 'statuses' | 'kind'>;
 
 export interface SupportTicketRepository {
   create(
@@ -68,6 +90,27 @@ export interface SupportTicketRepository {
 
   /** Эскалированные обращения — частичный индекс (escalated_at). */
   findEscalated(options?: PaginationInputDTO): Promise<PaginationResult<SupportTicketDomainEntity>>;
+
+  /** Очередь совета: составной фильтр по всем полям сразу. */
+  findByFilter(
+    filter: SupportTicketFilter,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SupportTicketDomainEntity>>;
+
+  /**
+   * «Мои обращения»: автор задаётся отдельным параметром, а не полем фильтра.
+   *
+   * Так его нечем подделать — вызывающий подставляет туда текущего пайщика, и
+   * структурно нет места, куда клиент мог бы передать чужое имя.
+   */
+  findByAuthorFilter(
+    authorUsername: string,
+    filter: SupportMemberTicketFilter,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SupportTicketDomainEntity>>;
+
+  /** Счётчики очереди: сколько обращений в каждом статусе. Ноли присутствуют. */
+  countByStatus(): Promise<Record<SupportTicketStatus, number>>;
 
   update(id: string, changes: SupportTicketChanges): Promise<SupportTicketDomainEntity>;
 

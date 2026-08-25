@@ -19,6 +19,8 @@ import { SupportAttachmentsService } from './application/services/support-attach
 import { SupportCommandsService } from './application/services/support-commands.service';
 import { SupportAutoCloseService } from './application/services/support-auto-close.service';
 import { SupportTicketNotificationService } from './application/services/support-ticket-notification.service';
+import { SupportQueriesService } from './application/services/support-queries.service';
+import { SupportVisibilityService } from './application/services/support-visibility.service';
 
 /**
  * Обращение, лента переписки и вложения не заводят своих переключателей в
@@ -80,8 +82,13 @@ export class SupportExtension extends BaseExtensionModule {
     // Слушатель событий стола. Экспортировать его незачем: наружу он не
     // вызывается, подписки поднимает сам при старте модуля.
     SupportTicketNotificationService,
+    // Слой чтений. Обезличивание вынесено отдельным провайдером и наружу не
+    // экспортируется: пользоваться им должен только слой чтений, иначе
+    // «единственное место» перестанет быть единственным.
+    SupportVisibilityService,
+    SupportQueriesService,
   ],
-  exports: [SupportExtension, SupportCommandsService],
+  exports: [SupportExtension, SupportCommandsService, SupportQueriesService],
 })
 export class SupportExtensionModule {
   constructor(private readonly supportExtension: SupportExtension) {}

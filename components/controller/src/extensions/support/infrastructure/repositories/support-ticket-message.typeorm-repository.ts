@@ -10,13 +10,15 @@ import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.ma
 /**
  * Поля записи ленты, по которым разрешена сортировка.
  *
- * `authorUsername` намеренно не включён: лента читается и автором обращения,
- * и оператором в одном и том же вызове (метод один на обе стороны, в отличие
- * от тикетов, где findByAuthor/findByAssignee/findByStatuses разведены по
- * сторонам) — а сортировка по автору продуктовой ценности не даёт, лента и
- * так хронологическая. Понадобится сортировка по автору оператору — вопрос,
- * который стоит решать вместе с тем, прячет ли DTO-слой личность оператора
- * от пайщика в самих сообщениях (сейчас этого слоя ещё нет).
+ * Список нужен и после возврата к `findAndCount`: TypeORM отвергает только
+ * несуществующее свойство, а `body` и `authorUsername` — настоящие колонки, и
+ * сортировка по ним прошла бы. Ограничение здесь про другое — лента
+ * хронологическая, и упорядочивать её по тексту сообщения незачем.
+ *
+ * `authorUsername` не включён по той же причине: продуктовой ценности такая
+ * сортировка не даёт. Прежнее обоснование ссылалось на обезличивание
+ * оператора — оно отменено 25.08.2026 и к этому списку больше отношения не
+ * имеет.
  */
 const MESSAGE_SORT_FIELDS: ReadonlyArray<keyof SupportTicketMessageDomainEntity> = [
   'authorRole',
@@ -74,5 +76,22 @@ export class SupportTicketMessageTypeormRepository implements SupportTicketMessa
     });
 
     return PaginationUtils.createPaginationResult(entities.map(SupportTicketMessageMapper.toDomain), total, validated);
+  }
+
+  async countByTicketIds(ticketIds: string[]): Promise<Map<string, number>> {
+    // Пустой список — пустой ответ без похода в базу: `IN ()` в SQL не бывает,
+    // а TypeORM на пустом `In([])` строит условие, которое незачем выполнять.
+    if (ticketIds.length === 0) return new Map();
+
+    const rows = await this.repository
+      .createQueryBuilder('message')
+      .select('message.ticketId', 'ticketId')
+      .addSelect('COUNT(*)', 'count')
+      .where('message.ticketId IN (:...ticketIds)', { ticketIds })
+      .groupBy('message.ticketId')
+      .getRawMany<{ ticketId: string; count: string }>();
+
+    // COUNT приходит строкой, приведение обязательно.
+    return new Map(rows.map((row) => [row.ticketId, Number(row.count)]));
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 import { SupportTicketAttachmentRepository } from '../../domain/repositories/support-ticket-attachment.repository';
 import { SupportTicketAttachmentDomainEntity } from '../../domain/entities/support-ticket-attachment.entity';
@@ -54,6 +54,42 @@ export class SupportTicketAttachmentTypeormRepository implements SupportTicketAt
       total,
       validated
     );
+  }
+
+  async findByMessageIds(
+    messageIds: string[]
+  ): Promise<Map<string, SupportTicketAttachmentDomainEntity[]>> {
+    if (messageIds.length === 0) return new Map();
+
+    const entities = await this.repository.find({
+      where: { messageId: In(messageIds) },
+      order: { uploadedAt: 'ASC' },
+    });
+
+    const grouped = new Map<string, SupportTicketAttachmentDomainEntity[]>();
+    for (const entity of entities) {
+      const attachment = SupportTicketAttachmentMapper.toDomain(entity);
+      const bucket = grouped.get(attachment.messageId);
+      if (bucket) bucket.push(attachment);
+      else grouped.set(attachment.messageId, [attachment]);
+    }
+    return grouped;
+  }
+
+  async findTicketIdsWithAttachments(ticketIds: string[]): Promise<Set<string>> {
+    // Пустой список — пустой ответ без похода в базу.
+    if (ticketIds.length === 0) return new Set();
+
+    // Наружу идут только идентификаторы: строке списка нужен признак, а не
+    // файлы. `DISTINCT` вместо группировки с подсчётом по той же причине —
+    // считать нечего, вопрос «есть ли хоть один».
+    const rows = await this.repository
+      .createQueryBuilder('attachment')
+      .select('DISTINCT attachment.ticketId', 'ticketId')
+      .where('attachment.ticketId IN (:...ticketIds)', { ticketIds })
+      .getRawMany<{ ticketId: string }>();
+
+    return new Set(rows.map((row) => row.ticketId));
   }
 
   async findByTicketAndChecksum(

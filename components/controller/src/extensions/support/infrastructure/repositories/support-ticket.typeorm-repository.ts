@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
+import { EntityManager, ILike, In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 import {
   SupportTicketRepository,
   type SupportLedgerEntryDraft,
+  type SupportMemberTicketFilter,
   type SupportTicketChanges,
+  type SupportTicketFilter,
 } from '../../domain/repositories/support-ticket.repository';
 import { SupportTicketDomainEntity } from '../../domain/entities/support-ticket.entity';
 import { SupportTicketMessageDomainEntity } from '../../domain/entities/support-ticket-message.entity';
@@ -20,17 +22,25 @@ import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.ma
 import { SupportTicketAttachmentMapper } from '../mappers/support-ticket-attachment.mapper';
 
 /**
- * Поля обращения, по которым разрешена сортировка со стороны автора.
+ * Поля обращения, по которым разрешена сортировка.
  *
- * `assigneeUsername` сюда не входит: автору обращения не показывают, кто из
- * совета с ним работает, а сортировка по скрытому полю восстановила бы это
- * без прямого отображения значения (значения operator'ов легли бы по порядку).
+ * Список один на обе стороны. Их было два: пайщику сортировка по исполнителю
+ * была закрыта, потому что упорядочивание по скрытому полю восстанавливает его
+ * значения без прямого показа. Обезличивание отменено 25.08.2026, исполнитель
+ * больше не скрыт — и второй причины для разделения не нашлось ни в
+ * спецификации, ни в комментариях фазы 2.
+ *
+ * Сам список нужен и дальше: TypeORM отвергает только несуществующее свойство,
+ * а `subject`, `authorUsername` и `body` — настоящие колонки, сортировка по
+ * которым прошла бы. Здесь перечислено то, по чему списки упорядочивать
+ * осмысленно.
  */
 const TICKET_SORT_FIELDS: ReadonlyArray<keyof SupportTicketDomainEntity> = [
   'number',
   'kind',
   'status',
   'priority',
+  'assigneeUsername',
   'responsibilityZone',
   'lastMessageAt',
   'resolvedAt',
@@ -38,16 +48,6 @@ const TICKET_SORT_FIELDS: ReadonlyArray<keyof SupportTicketDomainEntity> = [
   'reopenCount',
   'createdAt',
   'updatedAt',
-];
-
-/**
- * То же самое, плюс `assigneeUsername` — для методов, вызываемых со стороны
- * совета/оператора (findByStatuses/findByAssignee/findByKind/findEscalated),
- * где это поле не является скрытым от вызывающего.
- */
-const TICKET_SORT_FIELDS_OPERATOR: ReadonlyArray<keyof SupportTicketDomainEntity> = [
-  ...TICKET_SORT_FIELDS,
-  'assigneeUsername',
 ];
 
 type SupportTicketUpdateFields = Omit<
@@ -107,15 +107,11 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     return this.findPaginated(
       { status: In(statuses) },
       { lastMessageAt: 'DESC' },
-      TICKET_SORT_FIELDS_OPERATOR,
+      TICKET_SORT_FIELDS,
       options
     );
   }
 
-  // Единственный метод, читаемый со стороны автора обращения (список "мои
-  // обращения") — поэтому сортировка ограничена TICKET_SORT_FIELDS без
-  // assigneeUsername. Остальные find*-методы ключуются по статусу/kind/
-  // исполнителю, то есть уже сами по себе — обзор совета/оператора.
   async findByAuthor(
     authorUsername: string,
     options?: PaginationInputDTO
@@ -131,7 +127,7 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     return this.findPaginated(
       { assigneeUsername, ...(statuses ? { status: In(statuses) } : {}) },
       { createdAt: 'DESC' },
-      TICKET_SORT_FIELDS_OPERATOR,
+      TICKET_SORT_FIELDS,
       options
     );
   }
@@ -144,7 +140,7 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     return this.findPaginated(
       { kind, ...(statuses ? { status: In(statuses) } : {}) },
       { createdAt: 'DESC' },
-      TICKET_SORT_FIELDS_OPERATOR,
+      TICKET_SORT_FIELDS,
       options
     );
   }
@@ -163,9 +159,90 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     return this.findPaginated(
       { escalatedAt: Not(IsNull()) },
       { escalatedAt: 'DESC' },
-      TICKET_SORT_FIELDS_OPERATOR,
+      TICKET_SORT_FIELDS,
       options
     );
+  }
+
+  async findByFilter(
+    filter: SupportTicketFilter,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SupportTicketDomainEntity>> {
+    return this.findPaginated(
+      this.buildFilterWhere(filter),
+      { lastMessageAt: 'DESC' },
+      TICKET_SORT_FIELDS,
+      options
+    );
+  }
+
+  async findByAuthorFilter(
+    authorUsername: string,
+    filter: SupportMemberTicketFilter,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<SupportTicketDomainEntity>> {
+    // Автор идёт после разбора фильтра, а не внутри него: даже если в фильтр
+    // однажды просочится поле автора, оно будет перекрыто здесь и подделать
+    // выборку через аргумент не выйдет.
+    return this.findPaginated(
+      { ...this.buildFilterWhere(filter), authorUsername },
+      { lastMessageAt: 'DESC' },
+      TICKET_SORT_FIELDS,
+      options
+    );
+  }
+
+  async countByStatus(): Promise<Record<SupportTicketStatus, number>> {
+    const rows = await this.repository
+      .createQueryBuilder('ticket')
+      .select('ticket.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('ticket.status')
+      .getRawMany<{ status: SupportTicketStatus; count: string }>();
+
+    // Нули присутствуют: группировка возвращает только непустые статусы, а
+    // закладке очереди нужен полный набор — иначе «решённые» пропадут с
+    // экрана вместо того, чтобы показать ноль.
+    const counters = Object.fromEntries(
+      Object.values(SupportTicketStatus).map((status) => [status, 0])
+    ) as Record<SupportTicketStatus, number>;
+
+    for (const row of rows) {
+      // COUNT возвращается строкой — приведение обязательно.
+      counters[row.status] = Number(row.count);
+    }
+    return counters;
+  }
+
+  /**
+   * Разбор фильтра в условие выборки.
+   *
+   * Пустые поля не попадают в условие вовсе: пустой фильтр обязан дать всё, а
+   * не пустую страницу. Поиск по теме — сравнение подстроки без учёта регистра
+   * (`ILIKE`) по колонке `subject`; спецсимволы шаблона экранируются, иначе
+   * пайщик, набравший `%`, получил бы всю очередь.
+   */
+  private buildFilterWhere(filter: SupportTicketFilter): Record<string, unknown> {
+    const where: Record<string, unknown> = {};
+
+    if (filter.statuses?.length) where.status = In(filter.statuses);
+    if (filter.kind) where.kind = filter.kind;
+    if (filter.priority) where.priority = filter.priority;
+    if (filter.assigneeUsername) where.assigneeUsername = filter.assigneeUsername;
+    if (filter.authorUsername) where.authorUsername = filter.authorUsername;
+    if (filter.escalated !== undefined) {
+      where.escalatedAt = filter.escalated ? Not(IsNull()) : IsNull();
+    }
+
+    const search = filter.subjectContains?.trim();
+    if (search) where.subject = ILike(`%${this.escapeLikePattern(search)}%`);
+
+    return where;
+  }
+
+  /** `%`, `_` и `\` внутри искомой строки — литералы, а не шаблон поиска. */
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, (char) => `\\${char}`);
   }
 
   async update(id: string, changes: SupportTicketChanges): Promise<SupportTicketDomainEntity> {
