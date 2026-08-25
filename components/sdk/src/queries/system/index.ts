@@ -1,3 +1,6 @@
+/** История оплат кооператива (списания подписок из журнала биллинга) */
+export * as GetCooperativePayments from './getCooperativePayments'
+
 /** Реестр кооперативов оператора (список из блокчейна + данные провайдера) */
 export * as GetCooperativesRegistry from './getCooperativesRegistry'
 

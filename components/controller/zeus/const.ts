@@ -410,6 +410,7 @@ export const AllTypesProps: Record<string,any> = {
 		convert_statement:"SignedDigitalDocumentInput"
 	},
 	CooperativeChainStatus: "enum" as const,
+	CooperativePaymentStatus: "enum" as const,
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -2848,6 +2849,9 @@ export const AllTypesProps: Record<string,any> = {
 		getCooperativeCharter:{
 
 		},
+		getCooperativePayments:{
+
+		},
 		getCriticalActionAuditTrail:{
 
 		},
@@ -3664,6 +3668,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5121,6 +5129,15 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		username:"String",
 		verifications:"Verification"
+	},
+	CooperativePayment:{
+		created_at:"String",
+		last_error:"String",
+		payment_hash:"String",
+		quantity:"String",
+		status:"CooperativePaymentStatus",
+		tx_id:"String",
+		updated_at:"String"
 	},
 	CooperativeProgram:{
 		coopname:"String",
@@ -7823,6 +7840,7 @@ export const ReturnTypes: Record<string,any> = {
 		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
 		getCooperativeCharter:"CooperativeCharter",
+		getCooperativePayments:"CooperativePayment",
 		getCooperativesRegistry:"CooperativeRegistryItem",
 		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",

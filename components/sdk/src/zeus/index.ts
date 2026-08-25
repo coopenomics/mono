@@ -4650,7 +4650,7 @@ export type ValueTypes = {
 ["CapitalProjectPermissions"]: AliasType<{
 	/** Может ли изменять статус проекта */
 	can_change_project_status?:boolean | `@${string}`,
-	/** Может ли выполнять требования к проекту */
+	/** Может ли выполнять требован��я к проекту */
 	can_complete_requirement?:boolean | `@${string}`,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement?:boolean | `@${string}`,
@@ -5718,6 +5718,26 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CooperativeOperatorAccount']?: Omit<ValueTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
 }>;
+	["CooperativePayment"]: AliasType<{
+	/** Когда списание начато (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Текст последней ошибки — для FAILED и зависших попыток */
+	last_error?:boolean | `@${string}`,
+	/** Детерминированный идентификатор платежа из invoice провайдера */
+	payment_hash?:boolean | `@${string}`,
+	/** Сумма списания с символом, например «1660.0000 RUB» */
+	quantity?:boolean | `@${string}`,
+	/** Состояние списания */
+	status?:boolean | `@${string}`,
+	/** Идентификатор принятой транзакции (с SUBMITTED) */
+	tx_id?:boolean | `@${string}`,
+	/** Когда запись последний раз менялась (ISO) */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CooperativePayment']?: Omit<ValueTypes["CooperativePayment"], "...on CooperativePayment">
+}>;
+	/** Состояние списания: SUBMITTING — отправляется, SUBMITTED — принято нодой, CONFIRMED — провайдер подтвердил, FAILED — нода отклонила */
+["CooperativePaymentStatus"]:CooperativePaymentStatus;
 	["CooperativeProgram"]: AliasType<{
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
@@ -7089,7 +7109,7 @@ export type ValueTypes = {
 	title?: string | undefined | null | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
+	/** Версия генератора, использованного для создания докуме��та */
 	version?: string | undefined | null | Variable<any, string>
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -8321,7 +8341,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on KuDecision']?: Omit<ValueTypes["KuDecision"], "...on KuDecision">
 }>;
-	/** Фильтр решений собраний кооперативных участков */
+	/** Фильтр решений собран��й кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null | Variable<any, string>,
@@ -8868,7 +8888,7 @@ export type ValueTypes = {
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
+	/** Имя гене��атора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
 	lang: string | Variable<any, string>,
@@ -9425,7 +9445,7 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
@@ -14016,6 +14036,7 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
 getCooperativeCharter?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["CooperativeCharter"]],
+getCooperativePayments?: [{	coopname: string | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>},ValueTypes["CooperativePayment"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -19771,7 +19792,7 @@ export type ResolverInputTypes = {
 ["CapitalProjectPermissions"]: AliasType<{
 	/** Может ли изменять статус проекта */
 	can_change_project_status?:boolean | `@${string}`,
-	/** Может ли выполнять требования к проекту */
+	/** Может ли выполнять требован��я к проекту */
 	can_complete_requirement?:boolean | `@${string}`,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement?:boolean | `@${string}`,
@@ -20808,6 +20829,25 @@ export type ResolverInputTypes = {
 	verifications?:ResolverInputTypes["Verification"],
 		__typename?: boolean | `@${string}`
 }>;
+	["CooperativePayment"]: AliasType<{
+	/** Когда списание начато (ISO) */
+	created_at?:boolean | `@${string}`,
+	/** Текст последней ошибки — для FAILED и зависших попыток */
+	last_error?:boolean | `@${string}`,
+	/** Детерминированный идентификатор платежа из invoice провайдера */
+	payment_hash?:boolean | `@${string}`,
+	/** Сумма списания с символом, например «1660.0000 RUB» */
+	quantity?:boolean | `@${string}`,
+	/** Состояние списания */
+	status?:boolean | `@${string}`,
+	/** Идентификатор принятой транзакции (с SUBMITTED) */
+	tx_id?:boolean | `@${string}`,
+	/** Когда запись последний раз менялась (ISO) */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние списания: SUBMITTING — отправляется, SUBMITTED — принято нодой, CONFIRMED — провайдер подтвердил, FAILED — нода отклонила */
+["CooperativePaymentStatus"]:CooperativePaymentStatus;
 	["CooperativeProgram"]: AliasType<{
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
@@ -22155,7 +22195,7 @@ export type ResolverInputTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания документа */
+	/** Версия генератора, использованного для создания докуме��та */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -23363,7 +23403,7 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Фильтр решений собраний кооперативных участков */
+	/** Фильтр решений собран��й кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -23892,7 +23932,7 @@ export type ResolverInputTypes = {
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя генератора, использованного для создания документа */
+	/** Имя гене��атора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -24424,7 +24464,7 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -28859,6 +28899,7 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
 getCooperativeCharter?: [{	coopname: string,	username: string},ResolverInputTypes["CooperativeCharter"]],
+getCooperativePayments?: [{	coopname: string,	limit?: number | undefined | null},ResolverInputTypes["CooperativePayment"]],
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -34467,7 +34508,7 @@ export type ModelTypes = {
 ["CapitalProjectPermissions"]: {
 		/** Может ли изменять статус проекта */
 	can_change_project_status: boolean,
-	/** Может ли выполнять требования к проекту */
+	/** Может ли выполнять требован��я к проекту */
 	can_complete_requirement: boolean,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement: boolean,
@@ -35469,6 +35510,23 @@ export type ModelTypes = {
 	/** Верификации аккаунта (уровни подтверждения личности) */
 	verifications: Array<ModelTypes["Verification"]>
 };
+	["CooperativePayment"]: {
+		/** Когда списание начато (ISO) */
+	created_at: string,
+	/** Текст последней ошибки — для FAILED и зависших попыток */
+	last_error?: string | undefined | null,
+	/** Детерминированный идентификатор платежа из invoice провайдера */
+	payment_hash: string,
+	/** Сумма списания с символом, например «1660.0000 RUB» */
+	quantity: string,
+	/** Состояние списания */
+	status: ModelTypes["CooperativePaymentStatus"],
+	/** Идентификатор принятой транзакции (с SUBMITTED) */
+	tx_id?: string | undefined | null,
+	/** Когда запись последний раз менялась (ISO) */
+	updated_at: string
+};
+	["CooperativePaymentStatus"]:CooperativePaymentStatus;
 	["CooperativeProgram"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -36782,7 +36840,7 @@ export type ModelTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания документа */
+	/** Версия генератора, использованного для создания докуме��та */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -37956,7 +38014,7 @@ export type ModelTypes = {
 	/** Тип решения */
 	type?: ModelTypes["KuDecisionType"] | undefined | null
 };
-	/** Фильтр решений собраний кооперативных участков */
+	/** Фильтр решений собран��й кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -38461,7 +38519,7 @@ export type ModelTypes = {
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя генератора, использованного для создания документа */
+	/** Имя гене��атора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -38961,7 +39019,7 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -42205,7 +42263,7 @@ export type ModelTypes = {
 	marketplaceFinalizeStockIssuance: ModelTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
 	marketplaceGenerateInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
-	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
+	/** Председатель кооперативного участка ставит бокс в ячей��у или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: ModelTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
@@ -44121,6 +44179,10 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getCooperativeCharter?: ModelTypes["CooperativeCharter"] | undefined | null,
+	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху
+
+Требуемые роли: member, chairman.  */
+	getCooperativePayments: Array<ModelTypes["CooperativePayment"]>,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -44431,7 +44493,7 @@ export type ModelTypes = {
 	marketplaceListCatalog: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Категории кооператива (общие и собственные) — справочник для каталога и карточек */
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
-	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
+	/** Постраничный список сводных заявок поставщика — для стола поставщика �� для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Справочник типов боксов кооператива: габариты и объём. */
 	marketplaceListContainerTypes: Array<ModelTypes["MarketplaceContainerType"]>,
@@ -46496,10 +46558,7 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    // ------------------------------------------------------;
-	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
-	// ------------------------------------------------------;
-	["AccessGrant"]: {
+    ["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -50043,7 +50102,7 @@ export type GraphQLTypes = {
 	__typename: "CapitalProjectPermissions",
 	/** Может ли изменять статус проекта */
 	can_change_project_status: boolean,
-	/** Может ли выполнять требования к проекту */
+	/** Может ли выполнять требован��я к проекту */
 	can_complete_requirement: boolean,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement: boolean,
@@ -51110,6 +51169,26 @@ export type GraphQLTypes = {
 	verifications: Array<GraphQLTypes["Verification"]>,
 	['...on CooperativeOperatorAccount']: Omit<GraphQLTypes["CooperativeOperatorAccount"], "...on CooperativeOperatorAccount">
 };
+	["CooperativePayment"]: {
+	__typename: "CooperativePayment",
+	/** Когда списание начато (ISO) */
+	created_at: string,
+	/** Текст последней ошибки — для FAILED и зависших попыток */
+	last_error?: string | undefined | null,
+	/** Детерминированный идентификатор платежа из invoice провайдера */
+	payment_hash: string,
+	/** Сумма списания с символом, например «1660.0000 RUB» */
+	quantity: string,
+	/** Состояние списания */
+	status: GraphQLTypes["CooperativePaymentStatus"],
+	/** Идентификатор принятой транзакции (с SUBMITTED) */
+	tx_id?: string | undefined | null,
+	/** Когда запись последний раз менялась (ISO) */
+	updated_at: string,
+	['...on CooperativePayment']: Omit<GraphQLTypes["CooperativePayment"], "...on CooperativePayment">
+};
+	/** Состояние списания: SUBMITTING — отправляется, SUBMITTED — принято нодой, CONFIRMED — провайдер подтвердил, FAILED — нода отклонила */
+["CooperativePaymentStatus"]: CooperativePaymentStatus;
 	["CooperativeProgram"]: {
 	__typename: "CooperativeProgram",
 	/** Имя аккаунта кооператива */
@@ -52481,7 +52560,7 @@ export type GraphQLTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания документа */
+	/** Версия генератора, использованного для создания докуме��та */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -53713,7 +53792,7 @@ export type GraphQLTypes = {
 	type?: GraphQLTypes["KuDecisionType"] | undefined | null,
 	['...on KuDecision']: Omit<GraphQLTypes["KuDecision"], "...on KuDecision">
 };
-	/** Фильтр решений собраний кооперативных участков */
+	/** Фильтр решений собран��й кооперативных участков */
 ["KuDecisionFilterInput"]: {
 		/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -54260,7 +54339,7 @@ export type GraphQLTypes = {
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя генератора, использованного для создания документа */
+	/** Имя гене��атора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -54817,7 +54896,7 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-		/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+		/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -58268,7 +58347,7 @@ export type GraphQLTypes = {
 	marketplaceFinalizeStockIssuance: GraphQLTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
 	marketplaceGenerateInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
-	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
+	/** Председатель кооперативного участка ставит бокс в ячей��у или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: GraphQLTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
@@ -60364,6 +60443,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getCooperativeCharter?: GraphQLTypes["CooperativeCharter"] | undefined | null,
+	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху
+
+Требуемые роли: member, chairman.  */
+	getCooperativePayments: Array<GraphQLTypes["CooperativePayment"]>,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
 Требуемые роли: member, chairman.  */
@@ -60674,7 +60757,7 @@ export type GraphQLTypes = {
 	marketplaceListCatalog: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Категории кооператива (общие и собственные) — справочник для каталога и карточек */
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
-	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
+	/** Постраничный список сводных заявок поставщика — для стола поставщика �� для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Справочник типов боксов кооператива: габариты и объём. */
 	marketplaceListContainerTypes: Array<GraphQLTypes["MarketplaceContainerType"]>,
@@ -62991,6 +63074,13 @@ export enum CooperativeChainStatus {
 	BLOCKED = "BLOCKED",
 	PENDING = "PENDING"
 }
+/** Состояние списания: SUBMITTING — отправляется, SUBMITTED — принято нодой, CONFIRMED — провайдер подтвердил, FAILED — нода отклонила */
+export enum CooperativePaymentStatus {
+	CONFIRMED = "CONFIRMED",
+	FAILED = "FAILED",
+	SUBMITTED = "SUBMITTED",
+	SUBMITTING = "SUBMITTING"
+}
 /** Страна регистрации пользователя */
 export enum Country {
 	Russia = "Russia"
@@ -63898,6 +63988,7 @@ type ZEUS_VARIABLES = {
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
 	["CooperativeChainStatus"]: ValueTypes["CooperativeChainStatus"];
+	["CooperativePaymentStatus"]: ValueTypes["CooperativePaymentStatus"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchExpenseInput"]: ValueTypes["CreateBranchExpenseInput"];

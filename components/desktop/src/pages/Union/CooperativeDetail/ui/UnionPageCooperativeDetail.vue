@@ -124,17 +124,45 @@
 
     //- ─────────────── История оплат ───────────────
     .coop-detail__section(v-else)
+      BaseBanner(v-if="paymentsError" variant="neg") {{ paymentsError }}
+
       BaseCard(variant="flat")
         EmptyState(
-          title="История пока недоступна"
-          body="Раздел появится после реализации выгрузки операций биллинга по кооперативу."
+          v-if="!paymentsLoading && !payments.length"
+          title="Списаний ещё не было"
+          body="Здесь появятся списания за подписки: хаб списывает их с кошелька кооператива по расписанию"
         )
           template(#icon)
             q-icon(name="history" size="48px")
+        BaseTable(
+          v-else
+          :columns="paymentColumns"
+          :rows="payments"
+          :loading="paymentsLoading"
+          row-key="payment_hash"
+        )
+          template(#cell-date="{ row: payment }")
+            span.t-mono {{ formatDateTime(payment.created_at) }}
+          template(#cell-amount="{ row: payment }")
+            span.t-mono {{ formatAsset2Digits(payment.quantity) }}
+          template(#cell-status="{ row: payment }")
+            BaseChip(:variant="paymentStatusVariant(payment.status)" size="sm")
+              span {{ paymentStatusLabel(payment.status) }}
+            //- Причина отказа — рядом со статусом: без неё «отклонено»
+            //- не говорит совету ничего, а отдельной колонки текст не стоит.
+            .coop-detail__payment-error.t-meta(v-if="payment.last_error") {{ payment.last_error }}
+          template(#cell-tx="{ row: payment }")
+            //- Идентификатор без ссылки: обозревателя транзакций в интерфейсе
+            //- пока нет, а полное значение отдаём подсказкой — по нему сверяют
+            //- списание с цепью.
+            span.t-mono(v-if="payment.tx_id")
+              | {{ payment.tx_id.slice(0, 8) }}…
+              q-tooltip {{ payment.tx_id }}
+            span.t-muted(v-else) —
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import moment from 'src/shared/lib/utils/dates/moment'
 import {
@@ -150,9 +178,13 @@ import { DocumentRow } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { CooperativeDecisionActions } from 'src/widgets/CooperativeDecision'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
+import { useLoadCooperativePayments } from 'src/features/Union/LoadCooperativePayments'
 import { cooperativeCharterApi } from 'src/features/Union/UploadCooperativeCharter'
 import { useUnionStore } from 'src/entities/Union/model'
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import {
+  paymentStatusLabel,
+  paymentStatusVariant,
   registryStatusLabel,
   registryStatusVariant,
   subscriptionStatusLabel,
@@ -297,6 +329,28 @@ const charterDocument = computed(() => {
   }
 })
 
+const {
+  payments,
+  loading: paymentsLoading,
+  error: paymentsError,
+  loadPayments,
+} = useLoadCooperativePayments()
+
+const paymentColumns = [
+  { key: 'date', label: 'Когда', align: 'left' as const },
+  { key: 'amount', label: 'Сумма', align: 'right' as const, numeric: true },
+  { key: 'status', label: 'Состояние', align: 'left' as const },
+  { key: 'tx', label: 'Транзакция', align: 'right' as const },
+]
+
+// История грузится при первом заходе на вкладку, а не вместе со страницей:
+// журнал нужен редко, а тянуть его на каждое открытие карточки незачем.
+watch(activeTab, (tab) => {
+  if (tab === 'payments' && !payments.value.length && !paymentsLoading.value) {
+    loadPayments(coopname.value)
+  }
+})
+
 const goBack = () => {
   const params = { ...route.params }
   delete (params as any).detailCoopname
@@ -366,6 +420,12 @@ const goBack = () => {
 .coop-detail__tabs {
   margin-top: var(--p-4);
 }
+.coop-detail__payment-error {
+  margin-top: var(--p-1);
+  color: var(--p-neg);
+  overflow-wrap: anywhere;
+}
+
 .coop-detail__sub-name {
   display: inline-flex;
   align-items: center;

@@ -37,6 +37,20 @@ export class BillingPaymentLogService {
     private readonly repository: Repository<BillingPaymentLogEntity>,
   ) {}
 
+  /**
+   * История списаний одного кооператива — для карточки в реестре совета.
+   * Отдаём и незавершённые попытки: «оплата зависла» и «оплаты не было» —
+   * разные вещи, и совет должен их различать.
+   */
+  async listByCoopname(coopname: string, limit = 50): Promise<BillingPaymentLogEntity[]> {
+    return this.repository.find({
+      where: { coopname },
+      order: { created_at: 'DESC' },
+      // Потолок — чтобы карточка не тянула весь журнал за годы.
+      take: Math.min(Math.max(limit, 1), 200),
+    });
+  }
+
   async begin(paymentHash: string, coopname: string, quantity: string): Promise<BeginPaymentResult> {
     const existing = await this.repository.findOne({ where: { payment_hash: paymentHash } });
     if (existing) {

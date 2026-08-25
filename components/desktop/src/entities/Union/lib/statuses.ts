@@ -38,6 +38,8 @@ export const registryStatusVariant = (status: string | null | undefined): UnionC
   switch (normalize(status)) {
     case 'active':
       return 'pos'
+    case 'trial':
+      return 'info'
     case 'pending':
       return 'warn'
     case 'blocked':
@@ -90,6 +92,10 @@ export const subscriptionStatusLabel = (status: string | null | undefined): stri
   switch (normalize(status)) {
     case 'active':
       return 'активна'
+    // Пробный период провайдер отдаёт отдельным статусом (SubscriptionStatus.TRIAL),
+    // и без своей ветки он доезжал до совета сырым «TRIAL».
+    case 'trial':
+      return 'пробный период'
     case 'pending':
       return 'ожидает оплаты'
     case 'cancelled':
@@ -106,11 +112,50 @@ export const subscriptionStatusVariant = (status: string | null | undefined): Un
   switch (normalize(status)) {
     case 'active':
       return 'pos'
+    case 'trial':
+      return 'info'
     case 'pending':
       return 'warn'
     case 'cancelled':
     case 'canceled':
     case 'expired':
+      return 'neg'
+    default:
+      return 'neutral'
+  }
+}
+
+/**
+ * Состояние списания из журнала биллинга хаба.
+ *
+ * SUBMITTING/SUBMITTED — попытка в пути: транзакция отправлена, но провайдер
+ * ещё не подтвердил счёт оплаченным. Совет должен отличать их от CONFIRMED,
+ * иначе зависшее списание читается как успешная оплата.
+ */
+export const paymentStatusLabel = (status: string | null | undefined): string => {
+  switch (normalize(status)) {
+    case 'confirmed':
+      return 'оплачено'
+    case 'submitted':
+      return 'отправлено в цепь'
+    case 'submitting':
+      return 'отправляется'
+    case 'failed':
+      return 'отклонено'
+    default:
+      return status ?? '—'
+  }
+}
+
+export const paymentStatusVariant = (status: string | null | undefined): UnionChipVariant => {
+  switch (normalize(status)) {
+    case 'confirmed':
+      return 'pos'
+    case 'submitted':
+      return 'info'
+    case 'submitting':
+      return 'warn'
+    case 'failed':
       return 'neg'
     default:
       return 'neutral'

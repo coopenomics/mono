@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Mutation, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
@@ -10,12 +10,15 @@ import { ProviderConnectionCatalogDTO } from '../dto/provider-catalog.dto';
 import { CooperativeCharterService } from '../services/cooperative-charter.service';
 import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
 import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-charter.input';
+import { CooperativePaymentDTO } from '../dto/cooperative-payment.dto';
+import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 
 @Resolver()
 export class ProviderResolver {
   constructor(
     private readonly providerService: ProviderService,
-    private readonly charters: CooperativeCharterService
+    private readonly charters: CooperativeCharterService,
+    private readonly payments: BillingPaymentLogService
   ) {}
 
   @Query(() => ProviderConnectionCatalogDTO, {
@@ -39,6 +42,30 @@ export class ProviderResolver {
   @AuthRoles(['member', 'chairman'])
   async getCooperativesRegistry(): Promise<CooperativeRegistryItemDTO[]> {
     return this.providerService.getCooperativesRegistry();
+  }
+
+
+  @Query(() => [CooperativePaymentDTO], {
+    name: 'getCooperativePayments',
+    description:
+      'История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['member', 'chairman'])
+  async getCooperativePayments(
+    @Args('coopname') coopname: string,
+    @Args('limit', { type: () => Int, nullable: true }) limit?: number
+  ): Promise<CooperativePaymentDTO[]> {
+    const rows = await this.payments.listByCoopname(coopname, limit ?? 50);
+    return rows.map((row) => ({
+      payment_hash: row.payment_hash,
+      quantity: row.quantity,
+      status: row.status,
+      tx_id: row.tx_id ?? undefined,
+      last_error: row.last_error ?? undefined,
+      created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
+    }));
   }
 
   @Query(() => [ProviderSubscriptionDTO], {
