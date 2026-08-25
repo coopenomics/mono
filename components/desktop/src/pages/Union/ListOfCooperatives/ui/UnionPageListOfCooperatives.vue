@@ -77,22 +77,12 @@
           @click.stop="openDetail(row.coopname)"
         ) Открыть заявку
         q-space
-        BaseButton(
-          v-if="!isRegistryStatus(row.status, 'active')"
-          variant="primary"
-          size="sm"
-          type="button"
-          :loading="pending === row.coopname"
-          @click.stop="activate(row.coopname)"
-        ) Подтвердить подключение
-        BaseButton(
-          v-if="!isRegistryStatus(row.status, 'blocked')"
-          variant="secondary"
-          size="sm"
-          type="button"
-          :loading="pending === row.coopname"
-          @click.stop="block(row.coopname)"
-        ) Заблокировать
+        CooperativeDecisionActions(
+          :coopname="row.coopname"
+          :name="row.name"
+          :status="row.status"
+          @decided="load"
+        )
 </template>
 
 <script setup lang="ts">
@@ -102,18 +92,16 @@ import moment from 'src/shared/lib/utils/dates/moment'
 import { BaseButton, BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base'
 import Loader from 'src/shared/ui/Loader/Loader.vue'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
-import { useActivateCooperative } from 'src/features/Union/ActivateCooperative'
-import { useBlockCooperative } from 'src/features/Union/BlockCooperative'
+import { CooperativeDecisionActions } from 'src/widgets/CooperativeDecision'
 import { useUnionStore } from 'src/entities/Union/model'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import {
   instanceStatusLabel,
   instanceStatusVariant,
-  isRegistryStatus,
   registryStatusLabel,
   registryStatusVariant,
 } from 'src/entities/Union'
-import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
+import { FailAlert } from 'src/shared/api/alerts'
 
 type ICooperativeSubscription = ICooperativeRegistryItem['subscriptions'][number]
 
@@ -125,9 +113,6 @@ const { loadCooperatives } = useLoadCooperatives()
 const coops = computed(() => union.coops)
 
 const onLoading = ref(false)
-// Кооператив, по которому сейчас идёт транзакция: подпись занимает секунды,
-// и без этого признака непонятно, нажалась ли кнопка.
-const pending = ref<string>('')
 
 const load = async () => {
   onLoading.value = true
@@ -186,33 +171,6 @@ const openDetail = (coopname: string) => {
   router.push({ name: 'union-cooperative-detail', params })
 }
 
-const activate = async (coopname: string) => {
-  const { activateCooperative } = useActivateCooperative()
-  pending.value = coopname
-  try {
-    await activateCooperative(coopname)
-    await load()
-    SuccessAlert('Подключение кооператива подтверждено')
-  } catch (e: any) {
-    FailAlert(e)
-  } finally {
-    pending.value = ''
-  }
-}
-
-const block = async (coopname: string) => {
-  const { blockCooperative } = useBlockCooperative()
-  pending.value = coopname
-  try {
-    await blockCooperative(coopname)
-    await load()
-    SuccessAlert('Кооператив заблокирован')
-  } catch (e: any) {
-    FailAlert(e)
-  } finally {
-    pending.value = ''
-  }
-}
 </script>
 
 <style scoped>

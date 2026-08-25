@@ -16,7 +16,9 @@
     | Кооператив не найден в реестре.
 
   template(v-else)
-    //- Шапка заявки: кто подал, в каком состоянии и что с этим делать.
+    //- Шапка: кто подал, в каком состоянии и что с этим делать. Всё
+    //- остальное разнесено по вкладкам — на одном экране совет тонул
+    //- в подписках и кошельках, не дойдя до решения.
     BaseCard
       .coop-detail__head
         .coop-detail__title
@@ -36,38 +38,28 @@
           span {{ registryStatusLabel(row.status) }}
 
       .coop-detail__decision
-        BaseButton(
-          v-if="!isRegistryStatus(row.status, 'active')"
-          variant="primary"
-          size="sm"
-          type="button"
-          :loading="deciding"
-          @click="activate"
-        ) Подтвердить подключение
-        BaseButton(
-          v-if="!isRegistryStatus(row.status, 'blocked')"
-          variant="secondary"
-          size="sm"
-          type="button"
-          :loading="deciding"
-          @click="block"
-        ) Заблокировать
+        CooperativeDecisionActions(
+          :coopname="row.coopname"
+          :name="row.name"
+          :status="row.status"
+          @decided="load"
+        )
 
-    .coop-detail__section
-      .coop-detail__section-title Заявка кооператива
+    PageTabs.coop-detail__tabs(
+      :tabs="tabs"
+      :active-key="activeTab"
+      @select="(tab) => (activeTab = tab.key)"
+    )
 
+    //- ─────────────── Описание ───────────────
+    .coop-detail__section(v-if="activeTab === 'about'")
       BaseCard(variant="flat")
-        //- Рассказ о деятельности и устав — то, по чему совет решает,
-        //- подтверждать ли подключение. Оба присланы на первом шаге мастера.
         p.coop-detail__about(v-if="row.description") {{ row.description }}
-        p.coop-detail__about.t-muted(v-else) Кооператив не заполнил рассказ о своей деятельности.
+        p.coop-detail__about.t-muted(v-else) Описание не заполнено.
 
-        .coop-detail__charter
-          template(v-if="row.charter")
-            q-icon.coop-detail__charter-icon(name="description" size="24px")
-            .coop-detail__charter-body
-              .coop-detail__charter-name {{ row.charter.original_filename || 'Устав кооператива' }}
-              .t-meta.t-muted Приложен {{ formatDateTime(row.charter.uploaded_at) }} · {{ formatFileSize(row.charter.size_bytes) }}
+        //- Устав — то, по чему совет решает, подтверждать ли подключение.
+        DocumentRow(v-if="charterDocument" :document="charterDocument")
+          template(#actions)
             BaseButton(
               variant="secondary"
               size="sm"
@@ -77,20 +69,20 @@
             )
               q-icon(name="open_in_new" size="14px").q-mr-xs
               | Открыть устав
-          template(v-else)
-            q-icon.coop-detail__charter-icon(name="warning" size="20px")
-            .coop-detail__charter-body
-              .t-sm.t-muted Устав не приложен.
+        .coop-detail__charter-missing(v-else)
+          q-icon(name="warning" size="20px")
+          span.t-sm.t-muted Устав не приложен.
 
-    .coop-detail__section
-      .coop-detail__section-title Подписки
-
+    //- ─────────────── Подписки ───────────────
+    .coop-detail__section(v-else-if="activeTab === 'subscriptions'")
       BaseCard(variant="flat")
         EmptyState(
-          v-if="!row.subscriptions || !row.subscriptions.length"
+          v-if="!subscriptionsCount"
           title="Подписок нет"
           body="Появятся, когда провайдер начнёт поставку инфраструктуры"
         )
+          template(#icon)
+            q-icon(name="receipt_long" size="48px")
         BaseTable(
           v-else
           :columns="subscriptionColumns"
@@ -111,9 +103,8 @@
             span.t-mono(v-if="sub.next_payment_due") {{ formatDate(sub.next_payment_due) }}
             span.t-muted(v-else) —
 
-    .coop-detail__section
-      .coop-detail__section-title Кошельки кооператива в Восходе
-
+    //- ─────────────── Кошельки ───────────────
+    .coop-detail__section(v-else-if="activeTab === 'wallets'")
       BaseBanner(v-if="walletError" variant="neg") {{ walletError }}
 
       .coop-detail__wallets
@@ -131,14 +122,15 @@
               | {{ formatAmount(walletMembership) }} {{ walletDisplaySymbol }}
             .coop-detail__wallet-hint Списывается за инфраструктурные подписки.
 
-    .coop-detail__section
-      .coop-detail__section-title История оплат
-
+    //- ─────────────── История оплат ───────────────
+    .coop-detail__section(v-else)
       BaseCard(variant="flat")
         EmptyState(
           title="История пока недоступна"
           body="Раздел появится после реализации выгрузки операций биллинга по кооперативу."
         )
+          template(#icon)
+            q-icon(name="history" size="48px")
 </template>
 
 <script setup lang="ts">
@@ -154,13 +146,13 @@ import {
   EmptyState,
 } from 'src/shared/ui/base'
 import Loader from 'src/shared/ui/Loader/Loader.vue'
+import { DocumentRow } from 'src/shared/ui/domain'
+import { PageTabs, type PageTab } from 'src/shared/ui/layout'
+import { CooperativeDecisionActions } from 'src/widgets/CooperativeDecision'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
 import { cooperativeCharterApi } from 'src/features/Union/UploadCooperativeCharter'
-import { useActivateCooperative } from 'src/features/Union/ActivateCooperative'
-import { useBlockCooperative } from 'src/features/Union/BlockCooperative'
 import { useUnionStore } from 'src/entities/Union/model'
 import {
-  isRegistryStatus,
   registryStatusLabel,
   registryStatusVariant,
   subscriptionStatusLabel,
@@ -169,7 +161,7 @@ import {
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSystemStore } from 'src/entities/System/model'
-import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
+import { FailAlert } from 'src/shared/api/alerts'
 
 const route = useRoute()
 const router = useRouter()
@@ -235,8 +227,6 @@ const headerSubtitle = computed(() => {
   return parts.join(' · ')
 })
 
-// Решение совета — транзакция в цепь; пока она идёт, кнопки показывают загрузку.
-const deciding = ref(false)
 const charterOpening = ref(false)
 
 /**
@@ -280,41 +270,39 @@ const resolveSiteUrl = (announce: string): string =>
 
 
 
+// Вкладки: заявка, деньги и история — три разных разговора, и держать их
+// на одном полотне значит прятать решение совета под таблицами.
+const activeTab = ref('about')
+
+const subscriptionsCount = computed(() => row.value?.subscriptions?.length || 0)
+
+const tabs = computed<PageTab[]>(() => [
+  { key: 'about', label: 'Описание' },
+  { key: 'subscriptions', label: 'Подписки', count: subscriptionsCount.value || undefined },
+  { key: 'wallets', label: 'Кошельки' },
+  { key: 'payments', label: 'История оплат' },
+])
+
+/** Тип документа берём из расширения файла — иконку рисует канон-компонент. */
+const charterDocument = computed(() => {
+  const charter = row.value?.charter
+  if (!charter) return undefined
+  const name = charter.original_filename || 'Устав кооператива'
+  const ext = name.split('.').pop()?.toLowerCase()
+  const type = ext === 'docx' || ext === 'doc' ? 'docx' : ext === 'html' ? 'html' : ext === 'txt' ? 'txt' : 'pdf'
+  return {
+    type: type as 'docx' | 'pdf' | 'html' | 'txt',
+    title: name,
+    description: `Приложен ${formatDateTime(charter.uploaded_at)} · ${formatFileSize(charter.size_bytes)}`,
+  }
+})
+
 const goBack = () => {
   const params = { ...route.params }
   delete (params as any).detailCoopname
   router.push({ name: 'union-cooperatives', params })
 }
 
-const activate = async () => {
-  if (!row.value) return
-  const { activateCooperative } = useActivateCooperative()
-  deciding.value = true
-  try {
-    await activateCooperative(row.value.coopname)
-    await load()
-    SuccessAlert('Подключение кооператива подтверждено')
-  } catch (e: any) {
-    FailAlert(e)
-  } finally {
-    deciding.value = false
-  }
-}
-
-const block = async () => {
-  if (!row.value) return
-  const { blockCooperative } = useBlockCooperative()
-  deciding.value = true
-  try {
-    await blockCooperative(row.value.coopname)
-    await load()
-    SuccessAlert('Кооператив заблокирован')
-  } catch (e: any) {
-    FailAlert(e)
-  } finally {
-    deciding.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -357,7 +345,7 @@ const block = async () => {
   border-top: 1px solid var(--p-line);
 }
 .coop-detail__section {
-  margin-top: var(--p-5);
+  margin-top: var(--p-4);
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
@@ -369,32 +357,14 @@ const block = async () => {
   line-height: var(--p-lh-body);
   white-space: pre-line;
 }
-.coop-detail__charter {
+.coop-detail__charter-missing {
   display: flex;
   align-items: center;
-  gap: var(--p-3);
-  padding: var(--p-3) var(--p-4);
-  border: 1px solid var(--p-line-1);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface-2);
-}
-.coop-detail__charter-icon {
+  gap: var(--p-2);
   color: var(--p-ink-2);
 }
-.coop-detail__charter-body {
-  flex: 1;
-  min-width: 0;
-}
-.coop-detail__charter-name {
-  font-size: var(--p-fs-body-sm);
-  font-weight: 600;
-  color: var(--p-ink);
-  overflow-wrap: anywhere;
-}
-.coop-detail__section-title {
-  font-size: var(--p-fs-h6);
-  font-weight: 600;
-  color: var(--p-ink);
+.coop-detail__tabs {
+  margin-top: var(--p-4);
 }
 .coop-detail__sub-name {
   display: inline-flex;
