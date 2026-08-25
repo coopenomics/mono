@@ -102,27 +102,3 @@ export interface SupportTicketMessageView {
 
 /** Счётчики закладок очереди оператора. */
 export type SupportQueueSummaryView = Record<SupportTicketStatus, number>;
-
-/** Фильтр очереди, как его принимает слой чтений. */
-export interface SupportTicketsFilterInput {
-  statuses?: SupportTicketStatus[];
-  kind?: SupportTicketKind;
-  priority?: SupportTicketPriority;
-  assignee_username?: string;
-  escalated?: boolean;
-  author_username?: string;
-  /** Подстрока темы без учёта регистра. */
-  subject_contains?: string;
-}
-
-/**
- * Фильтр «моих обращений».
- *
- * Имени пайщика здесь нет и быть не должно: автор подставляется из актора.
- * Совет смотрит чужие обращения через очередь с фильтром по автору — один
- * способ вместо двух, и подделать нечем (спецификация, раздел 2).
- */
-export interface SupportMemberTicketsFilterInput {
-  statuses?: SupportTicketStatus[];
-  kind?: SupportTicketKind;
-}

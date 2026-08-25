@@ -20,13 +20,13 @@ import { SupportVisibilityService, type SupportTicketAggregates } from './suppor
 import type { SupportActor } from './support-commands.types';
 import type {
   SupportAttachmentWithUrlView,
-  SupportMemberTicketsFilterInput,
   SupportQueueSummaryView,
   SupportTicketCardView,
   SupportTicketListItemView,
   SupportTicketMessageView,
-  SupportTicketsFilterInput,
 } from './support-queries.types';
+import type { SupportTicketsFilterInputDTO } from '../dto/support-tickets-filter.input';
+import type { SupportMemberTicketsFilterInputDTO } from '../dto/support-member-tickets-filter.input';
 
 /**
  * Шесть операций чтения стола поддержки.
@@ -64,7 +64,7 @@ export class SupportQueriesService {
 
   /** Очередь совета: все обращения кооператива с составным фильтром. */
   async supportTicketsByCooperative(
-    filter: SupportTicketsFilterInput | undefined,
+    filter: SupportTicketsFilterInputDTO | undefined,
     options: PaginationInputDTO | undefined,
     actor: SupportActor
   ): Promise<PaginationResult<SupportTicketListItemView>> {
@@ -82,7 +82,7 @@ export class SupportQueriesService {
    * способ вместо двух, и подделать нечем.
    */
   async supportTicketsByMember(
-    filter: SupportMemberTicketsFilterInput | undefined,
+    filter: SupportMemberTicketsFilterInputDTO | undefined,
     options: PaginationInputDTO | undefined,
     actor: SupportActor
   ): Promise<PaginationResult<SupportTicketListItemView>> {
@@ -187,7 +187,7 @@ export class SupportQueriesService {
     return ticket;
   }
 
-  private toRepositoryFilter(filter: SupportTicketsFilterInput | undefined): SupportTicketFilter {
+  private toRepositoryFilter(filter: SupportTicketsFilterInputDTO | undefined): SupportTicketFilter {
     return {
       statuses: filter?.statuses,
       kind: filter?.kind,

@@ -20,6 +20,7 @@ import { SupportTicketAttachmentTypeormEntity } from '../entities/support-ticket
 import { SupportTicketMapper } from '../mappers/support-ticket.mapper';
 import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.mapper';
 import { SupportTicketAttachmentMapper } from '../mappers/support-ticket-attachment.mapper';
+import { assertSortFieldAllowed } from './support-sort.util';
 
 /**
  * Поля обращения, по которым разрешена сортировка.
@@ -387,11 +388,7 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortOrder: 'ASC' as const };
 
-    if (validated.sortBy && !allowedSortFields.includes(validated.sortBy as keyof SupportTicketDomainEntity)) {
-      throw new Error(
-        `Сортировка обращений по полю "${validated.sortBy}" не поддерживается. Допустимые поля: ${allowedSortFields.join(', ')}`
-      );
-    }
+    assertSortFieldAllowed(validated.sortBy, allowedSortFields as ReadonlyArray<string>, 'обращения');
 
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const order = validated.sortBy ? { [validated.sortBy]: validated.sortOrder } : defaultOrder;

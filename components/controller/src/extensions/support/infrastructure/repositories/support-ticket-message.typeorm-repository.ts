@@ -6,6 +6,7 @@ import { SupportTicketMessageRepository } from '../../domain/repositories/suppor
 import { SupportTicketMessageDomainEntity } from '../../domain/entities/support-ticket-message.entity';
 import { SupportTicketMessageTypeormEntity } from '../entities/support-ticket-message.typeorm-entity';
 import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.mapper';
+import { assertSortFieldAllowed } from './support-sort.util';
 
 /**
  * Поля записи ленты, по которым разрешена сортировка.
@@ -59,11 +60,7 @@ export class SupportTicketMessageTypeormRepository implements SupportTicketMessa
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortOrder: 'ASC' as const };
 
-    if (validated.sortBy && !MESSAGE_SORT_FIELDS.includes(validated.sortBy as keyof SupportTicketMessageDomainEntity)) {
-      throw new Error(
-        `Сортировка ленты по полю "${validated.sortBy}" не поддерживается. Допустимые поля: ${MESSAGE_SORT_FIELDS.join(', ')}`
-      );
-    }
+    assertSortFieldAllowed(validated.sortBy, MESSAGE_SORT_FIELDS as ReadonlyArray<string>, 'лента');
 
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const order = validated.sortBy ? { [validated.sortBy]: validated.sortOrder } : { createdAt: 'ASC' as const };

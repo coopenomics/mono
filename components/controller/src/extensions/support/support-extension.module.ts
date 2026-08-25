@@ -21,6 +21,7 @@ import { SupportAutoCloseService } from './application/services/support-auto-clo
 import { SupportTicketNotificationService } from './application/services/support-ticket-notification.service';
 import { SupportQueriesService } from './application/services/support-queries.service';
 import { SupportVisibilityService } from './application/services/support-visibility.service';
+import { SupportQueriesResolver } from './application/resolvers/support-queries.resolver';
 
 /**
  * Обращение, лента переписки и вложения не заводят своих переключателей в
@@ -87,6 +88,8 @@ export class SupportExtension extends BaseExtensionModule {
     // «единственное место» перестанет быть единственным.
     SupportVisibilityService,
     SupportQueriesService,
+    // Слой доступа. Резолверы команд появятся своей фазой.
+    SupportQueriesResolver,
   ],
   exports: [SupportExtension, SupportCommandsService, SupportQueriesService],
 })
