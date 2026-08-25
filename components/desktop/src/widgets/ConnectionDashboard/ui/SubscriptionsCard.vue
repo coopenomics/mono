@@ -32,28 +32,138 @@
           .subs-card__price(v-else)
             .subs-card__price-value.t-mono {{ formatPrice(sub.price) }}
             .subs-card__price-period {{ currencySymbol }}/месяц
+            //- Смена тарифа сервера — решение кооператива, не оператора:
+            //- отсюда председатель апгрейдит свой узел; провайдер со своей
+            //- стороны цену менять не вправе.
+            BaseButton.subs-card__upgrade(
+              v-if="isHosting(sub) && sub.instance_status === 'active'"
+              variant="ghost"
+              size="sm"
+              type="button"
+              @click="openUpgrade(sub)"
+            ) Сменить тариф
 
     EmptyState(
       v-else
       title="Нет активных подписок"
       body="Подписки появятся после подключения услуг платформы"
     )
+
+  //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
+  //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
+  //- сервера должен вмещать данные текущего.
+  BaseDialog(
+    v-model="upgradeOpen"
+    title="Сменить тариф сервера"
+    size="md"
+  )
+    p.subs-card__dlg-text
+      | Новая цена начнёт действовать сразу: неиспользованный остаток текущего
+      | тарифа будет зачтён днями нового.
+    BaseBanner(variant="warn")
+      | Во время переезда система кооператива будет недоступна примерно час —
+      | идут технические работы. После этого она откроется уже на новом сервере.
+    .subs-card__dlg-options(v-if="upgradeOptions.length")
+      BaseRadioCard(
+        v-for="opt in upgradeOptions"
+        :key="opt.instance_type_id"
+        :model-value="selectedTypeId"
+        :value="opt.instance_type_id"
+        :title="opt.name"
+        :description="optionSubtitle(opt)"
+        @update:model-value="selectedTypeId = Number($event)"
+      )
+    EmptyState(
+      v-else
+      title="Тарифов мощнее нет"
+      body="Сейчас вы на самой мощной конфигурации из каталога"
+    )
+    template(#footer)
+      BaseButton(
+        variant="ghost"
+        type="button"
+        :disabled="upgrading"
+        @click="upgradeOpen = false"
+      ) Отменить
+      BaseButton(
+        variant="primary"
+        type="button"
+        :loading="upgrading"
+        :disabled="!selectedTypeId"
+        @click="confirmUpgrade"
+      ) Перейти на новый тариф
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import { useProviderSubscriptions } from 'src/features/Provider/model'
+import { onMounted, computed, ref } from 'vue'
+import { Mutations } from '@coopenomics/sdk'
+import { useProviderSubscriptions, useConnectionCatalog } from 'src/features/Provider/model'
 import { useSystemStore } from 'src/entities/System/model'
-import { BaseBanner, BaseCard, EmptyState } from 'src/shared/ui/base'
+import { BaseBanner, BaseButton, BaseCard, BaseDialog, BaseRadioCard, EmptyState } from 'src/shared/ui/base'
 import Loader from 'src/shared/ui/Loader/Loader.vue'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
+import { client } from 'src/shared/api/client'
+import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
 
 const { subscriptions, isLoading, error, loadSubscriptions } = useProviderSubscriptions()
+const { catalog, load: loadCatalog } = useConnectionCatalog()
 const { info } = useSystemStore()
 
 onMounted(async () => {
   await loadSubscriptions()
 })
+
+// ── Смена тарифа сервера (решение кооператива) ─────────────────────────────
+const upgradeOpen = ref(false)
+const upgrading = ref(false)
+const selectedTypeId = ref<number | null>(null)
+const currentPrice = ref(0)
+
+const isHosting = (sub: any): boolean => sub?.subscription_type_id === 1
+
+// Только дороже текущего: даунгрейд провайдер отклонит — диск нового сервера
+// должен вмещать данные старого, поэтому и не предлагаем.
+const upgradeOptions = computed(() =>
+  (catalog.value?.server_options ?? []).filter((opt: any) => Number(opt.price) > currentPrice.value),
+)
+
+const optionSubtitle = (opt: any): string => {
+  const specs = opt.specs as Record<string, unknown> | null
+  const parts: string[] = []
+  if (specs?.cpu) parts.push(`${specs.cpu} CPU`)
+  if (specs?.ram_gb) parts.push(`${specs.ram_gb} GB RAM`)
+  if (specs?.disk) parts.push(String(specs.disk))
+  parts.push(`${formatPrice(opt.price)} ${currencySymbol.value}/месяц`)
+  return parts.join(' · ')
+}
+
+const openUpgrade = async (sub: any) => {
+  currentPrice.value = Number(sub.price) || 0
+  selectedTypeId.value = null
+  upgradeOpen.value = true
+  if (!catalog.value) await loadCatalog()
+}
+
+const confirmUpgrade = async () => {
+  if (!selectedTypeId.value) return
+  upgrading.value = true
+  try {
+    const { [Mutations.System.ChangeProviderHostingPlan.name]: result } = await client.Mutation(
+      Mutations.System.ChangeProviderHostingPlan.mutation,
+      { variables: { instanceTypeId: selectedTypeId.value } },
+    )
+    upgradeOpen.value = false
+    SuccessAlert(
+      `Переход оформлен: новая цена ${formatPrice(result.new_price)} ${currencySymbol.value}/месяц уже действует, ` +
+        'система переедет на новый сервер в течение часа',
+    )
+    await loadSubscriptions()
+  } catch (e: any) {
+    FailAlert(e)
+  } finally {
+    upgrading.value = false
+  }
+}
 
 const formatPrice = (price: number | string) => {
   const priceStr = typeof price === 'number' ? price.toString() : price
@@ -148,5 +258,17 @@ const iconColorClass = (subscription: any): string => {
 .subs-card__price-period {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
+}
+.subs-card__upgrade {
+  margin-top: var(--p-1);
+}
+.subs-card__dlg-text {
+  margin: 0 0 var(--p-3);
+}
+.subs-card__dlg-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  margin-top: var(--p-3);
 }
 </style>

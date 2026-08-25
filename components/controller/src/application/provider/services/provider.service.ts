@@ -180,6 +180,34 @@ export class ProviderService {
   }
 
   /**
+   * Смена тарифа сервера по решению кооператива: команда уходит провайдеру
+   * server-secret каналом (POST /instances/:username/change-plan). Цена
+   * применяется немедленно с зачётом неиспользованного остатка, дальше идёт
+   * перенос на сервер новой конфигурации — система кооператива уходит в
+   * технические работы примерно на час. Даунгрейд провайдер отклоняет.
+   */
+  async changeHostingPlan(
+    username: string,
+    instanceTypeId: number,
+  ): Promise<{ migration_state: string; new_price: number }> {
+    if (!this.isProviderAvailable()) {
+      throw new BadRequestException('Провайдер не настроен (PROVIDER_BASE_URL)');
+    }
+    try {
+      const response = await axios.post(
+        `${config.provider_base_url}/instances/${username}/change-plan`,
+        { instance_type_id: instanceTypeId },
+        { headers: { 'server-secret': config.server_secret }, timeout: 30_000 },
+      );
+      return response.data;
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'неизвестная ошибка';
+      this.logger.error(`Смена тарифа для ${username} не прошла: ${message}`);
+      throw new BadRequestException(`Не удалось сменить тариф: ${message}`);
+    }
+  }
+
+  /**
    * Получить подписку по ID
    */
   async getSubscriptionById(id: number): Promise<ProviderSubscriptionDTO> {

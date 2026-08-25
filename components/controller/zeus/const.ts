@@ -1767,6 +1767,9 @@ export const AllTypesProps: Record<string,any> = {
 		chairmanDeclineApprove:{
 			data:"DeclineApproveInput"
 		},
+		changeProviderHostingPlan:{
+
+		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
 		},
@@ -5016,6 +5019,10 @@ export const ReturnTypes: Record<string,any> = {
 		voskhod_membership_done:"Boolean",
 		wallet_agreement_done:"Boolean"
 	},
+	ChangeHostingPlanResult:{
+		migration_state:"String",
+		new_price:"Float"
+	},
 	ChartOfAccountsItem:{
 		available:"String",
 		blocked:"String",
@@ -6914,6 +6921,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
+		changeProviderHostingPlan:"ChangeHostingPlanResult",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",

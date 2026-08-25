@@ -5341,6 +5341,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChairmanOnboardingState']?: Omit<ValueTypes["ChairmanOnboardingState"], "...on ChairmanOnboardingState">
 }>;
+	["ChangeHostingPlanResult"]: AliasType<{
+	/** Состояние запущенного переноса (renting, …) */
+	migration_state?:boolean | `@${string}`,
+	/** Новая цена за период, применена немедленно */
+	new_price?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ChangeHostingPlanResult']?: Omit<ValueTypes["ChangeHostingPlanResult"], "...on ChangeHostingPlanResult">
+}>;
 	["ChartOfAccountsItem"]: AliasType<{
 	/** Доступные средства */
 	available?:boolean | `@${string}`,
@@ -7109,7 +7117,7 @@ export type ValueTypes = {
 	title?: string | undefined | null | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания докуме��та */
+	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null | Variable<any, string>
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -8341,7 +8349,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on KuDecision']?: Omit<ValueTypes["KuDecision"], "...on KuDecision">
 }>;
-	/** Фильтр решений собран��й кооперативных участков */
+	/** Фильтр решений собраний кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null | Variable<any, string>,
@@ -8882,13 +8890,13 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
-	/** Символ валюты для сумм в акте. */
+	/** Симво�� валюты для сумм в акте. */
 	currency: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number | Variable<any, string>,
-	/** Имя гене��атора, использованного для создания документа */
+	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
 	lang: string | Variable<any, string>,
@@ -9445,7 +9453,7 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
@@ -11068,7 +11076,7 @@ export type ValueTypes = {
 	warranty_days: number | Variable<any, string>
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
 	method_id: string | Variable<any, string>
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -12124,6 +12132,7 @@ capitalUpdateProcessTemplate?: [{	data: ValueTypes["UpdateProcessTemplateInput"]
 capitalUpdateStory?: [{	data: ValueTypes["UpdateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ValueTypes["DeclineApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
+changeProviderHostingPlan?: [{	instanceTypeId: number | Variable<any, string>},ValueTypes["ChangeHostingPlanResult"]],
 chatcoopCreateAccount?: [{	data: ValueTypes["CreateMatrixAccountInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ValueTypes["CreateChatCoopCalendarEventInput"] | Variable<any, string>},ValueTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
@@ -20465,6 +20474,13 @@ export type ResolverInputTypes = {
 	wallet_agreement_done?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ChangeHostingPlanResult"]: AliasType<{
+	/** Состояние запущенного переноса (renting, …) */
+	migration_state?:boolean | `@${string}`,
+	/** Новая цена за период, применена немедленно */
+	new_price?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ChartOfAccountsItem"]: AliasType<{
 	/** Доступные средства */
 	available?:boolean | `@${string}`,
@@ -22195,7 +22211,7 @@ export type ResolverInputTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания докуме��та */
+	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -23403,7 +23419,7 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Фильтр решений собран��й кооперативных участков */
+	/** Фильтр решений собраний кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -23926,13 +23942,13 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Символ валюты для сумм в акте. */
+	/** Симво�� валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя гене��атора, использованного для создания документа */
+	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -24464,7 +24480,7 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -26043,7 +26059,7 @@ export type ResolverInputTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -27061,6 +27077,7 @@ capitalUpdateProcessTemplate?: [{	data: ResolverInputTypes["UpdateProcessTemplat
 capitalUpdateStory?: [{	data: ResolverInputTypes["UpdateStoryInput"]},ResolverInputTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},ResolverInputTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ResolverInputTypes["DeclineApproveInput"]},ResolverInputTypes["Approval"]],
+changeProviderHostingPlan?: [{	instanceTypeId: number},ResolverInputTypes["ChangeHostingPlanResult"]],
 chatcoopCreateAccount?: [{	data: ResolverInputTypes["CreateMatrixAccountInputDTO"]},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ResolverInputTypes["CreateChatCoopCalendarEventInput"]},ResolverInputTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
@@ -35162,6 +35179,12 @@ export type ModelTypes = {
 	voskhod_membership_done: boolean,
 	wallet_agreement_done: boolean
 };
+	["ChangeHostingPlanResult"]: {
+		/** Состояние запущенного переноса (renting, …) */
+	migration_state: string,
+	/** Новая цена за период, применена немедленно */
+	new_price: number
+};
 	["ChartOfAccountsItem"]: {
 		/** Доступные средства */
 	available: string,
@@ -36840,7 +36863,7 @@ export type ModelTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания докуме��та */
+	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -38014,7 +38037,7 @@ export type ModelTypes = {
 	/** Тип решения */
 	type?: ModelTypes["KuDecisionType"] | undefined | null
 };
-	/** Фильтр решений собран��й кооперативных участков */
+	/** Фильтр решений собраний кооперативных участков */
 ["KuDecisionFilterInput"]: {
 	/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -38513,13 +38536,13 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Символ валюты для сумм в акте. */
+	/** Симво�� валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя гене��атора, использованного для создания документа */
+	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -39019,7 +39042,7 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -40526,7 +40549,7 @@ export type ModelTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -41805,6 +41828,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	chairmanDeclineApprove: ModelTypes["Approval"],
+	/** Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ)
+
+Требуемые роли: chairman.  */
+	changeProviderHostingPlan: ModelTypes["ChangeHostingPlanResult"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем
 
 Требуемые роли: chairman, member, user.  */
@@ -42263,7 +42290,7 @@ export type ModelTypes = {
 	marketplaceFinalizeStockIssuance: ModelTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
 	marketplaceGenerateInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
-	/** Председатель кооперативного участка ставит бокс в ячей��у или снимает с адреса. Бокс без адреса — допустимое состояние. */
+	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: ModelTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
@@ -44493,7 +44520,7 @@ export type ModelTypes = {
 	marketplaceListCatalog: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Категории кооператива (общие и собственные) — справочник для каталога и карточек */
 	marketplaceListCategories: Array<ModelTypes["MarketplaceCategory"]>,
-	/** Постраничный список сводных заявок поставщика — для стола поставщика �� для прослеживания состояния заказов. */
+	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: ModelTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Справочник типов боксов кооператива: габариты и объём. */
 	marketplaceListContainerTypes: Array<ModelTypes["MarketplaceContainerType"]>,
@@ -50792,6 +50819,14 @@ export type GraphQLTypes = {
 	wallet_agreement_done: boolean,
 	['...on ChairmanOnboardingState']: Omit<GraphQLTypes["ChairmanOnboardingState"], "...on ChairmanOnboardingState">
 };
+	["ChangeHostingPlanResult"]: {
+	__typename: "ChangeHostingPlanResult",
+	/** Состояние запущенного переноса (renting, …) */
+	migration_state: string,
+	/** Новая цена за период, применена немедленно */
+	new_price: number,
+	['...on ChangeHostingPlanResult']: Omit<GraphQLTypes["ChangeHostingPlanResult"], "...on ChangeHostingPlanResult">
+};
 	["ChartOfAccountsItem"]: {
 	__typename: "ChartOfAccountsItem",
 	/** Доступные средства */
@@ -52560,7 +52595,7 @@ export type GraphQLTypes = {
 	title?: string | undefined | null,
 	/** Имя пользователя, создавшего документ */
 	username: string,
-	/** Версия генератора, использованного для создания докуме��та */
+	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
 	["ExpenseProposalStatementSignedDocumentInput"]: {
@@ -53792,7 +53827,7 @@ export type GraphQLTypes = {
 	type?: GraphQLTypes["KuDecisionType"] | undefined | null,
 	['...on KuDecision']: Omit<GraphQLTypes["KuDecision"], "...on KuDecision">
 };
-	/** Фильтр решений собран��й кооперативных участков */
+	/** Фильтр решений собраний кооперативных участков */
 ["KuDecisionFilterInput"]: {
 		/** Наименование кооперативного участка */
 	braname?: string | undefined | null,
@@ -54333,13 +54368,13 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Символ валюты для сумм в акте. */
+	/** Симво�� валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
 	fact_quantity: number,
-	/** Имя гене��атора, использованного для создания документа */
+	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
@@ -54896,7 +54931,7 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-		/** Сумма конвертации (стоимость заказа + членский взнос), �� валютой. */
+		/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
@@ -56520,7 +56555,7 @@ export type GraphQLTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -57889,6 +57924,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	chairmanDeclineApprove: GraphQLTypes["Approval"],
+	/** Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ)
+
+Требуемые роли: chairman.  */
+	changeProviderHostingPlan: GraphQLTypes["ChangeHostingPlanResult"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем
 
 Требуемые роли: chairman, member, user.  */
@@ -58347,7 +58386,7 @@ export type GraphQLTypes = {
 	marketplaceFinalizeStockIssuance: GraphQLTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
 	marketplaceGenerateInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
-	/** Председатель кооперативного участка ставит бокс в ячей��у или снимает с адреса. Бокс без адреса — допустимое состояние. */
+	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: GraphQLTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
@@ -60757,7 +60796,7 @@ export type GraphQLTypes = {
 	marketplaceListCatalog: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Категории кооператива (общие и собственные) — справочник для каталога и карточек */
 	marketplaceListCategories: Array<GraphQLTypes["MarketplaceCategory"]>,
-	/** Постраничный список сводных заявок поставщика — для стола поставщика �� для прослеживания состояния заказов. */
+	/** Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов. */
 	marketplaceListConsolidatedRequests: GraphQLTypes["MarketplaceConsolidatedRequestPaginationResult"],
 	/** Справочник типов боксов кооператива: габариты и объём. */
 	marketplaceListContainerTypes: Array<GraphQLTypes["MarketplaceContainerType"]>,

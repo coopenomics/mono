@@ -11,6 +11,7 @@ import { CooperativeCharterService } from '../services/cooperative-charter.servi
 import { CooperativeCharterOutputDTO } from '../dto/cooperative-charter.output';
 import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-charter.input';
 import { CooperativePaymentDTO } from '../dto/cooperative-payment.dto';
+import { ChangeHostingPlanResultDTO } from '../dto/change-hosting-plan.dto';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 
 @Resolver()
@@ -66,6 +67,22 @@ export class ProviderResolver {
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
     }));
+  }
+
+  @Mutation(() => ChangeHostingPlanResultDTO, {
+    name: 'changeProviderHostingPlan',
+    description:
+      'Кооператив переходит на тариф сервера дороже: цена применяется немедленно с зачётом остатка, запускается перенос (~час технических работ)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async changeProviderHostingPlan(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('instanceTypeId', { type: () => Int }) instanceTypeId: number
+  ): Promise<ChangeHostingPlanResultDTO> {
+    // Только свой кооператив: имя берётся из сессии, а не из аргументов —
+    // председатель не может сменить тариф соседу.
+    return this.providerService.changeHostingPlan(currentUser.username, instanceTypeId);
   }
 
   @Query(() => [ProviderSubscriptionDTO], {

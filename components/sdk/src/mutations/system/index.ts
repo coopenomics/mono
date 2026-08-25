@@ -1,3 +1,6 @@
+/** Перейти на тариф сервера дороже: зачёт остатка + перенос (~час работ) */
+export * as ChangeProviderHostingPlan from './changeProviderHostingPlan'
+
 /** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 export * as InitSystem from './initSystem'
 
