@@ -16,6 +16,9 @@
     template(#icon)
       q-icon(name="handshake" size="28px")
 
+  //- Решения совета живут внутри карточки кооператива, а не в реестре:
+  //- заблокировать «мимоходом», не открыв заявку, нельзя. Сама карточка —
+  //- вход в неё, отдельная кнопка «Открыть заявку» для этого не нужна.
   .coop-registry__list(v-else)
     BaseCard.coop-registry__card(
       v-for="row in coops"
@@ -43,7 +46,7 @@
       //- Первое, что нужно совету на строке заявки: чем кооператив занимается
       //- и приложен ли устав. Полный текст и сам файл — в карточке кооператива.
       p.coop-registry__about(v-if="row.description") {{ row.description }}
-      p.coop-registry__about.t-muted(v-else) Рассказ о деятельности не заполнен.
+      p.coop-registry__about.t-muted(v-else) Описание не заполнено.
 
       .coop-registry__summary
         .coop-registry__metric
@@ -68,31 +71,15 @@
             BaseChip(v-if="hostingStatus(row)" :variant="instanceStatusVariant(hostingStatus(row))" size="sm")
               span {{ instanceStatusLabel(hostingStatus(row)) }}
             span.t-muted(v-else) не разворачивался
-
-      .coop-registry__actions
-        BaseButton(
-          variant="ghost"
-          size="sm"
-          type="button"
-          @click.stop="openDetail(row.coopname)"
-        ) Открыть заявку
-        q-space
-        CooperativeDecisionActions(
-          :coopname="row.coopname"
-          :name="row.name"
-          :status="row.status"
-          @decided="load"
-        )
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import moment from 'src/shared/lib/utils/dates/moment'
-import { BaseButton, BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base'
+import { BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base'
 import Loader from 'src/shared/ui/Loader/Loader.vue'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
-import { CooperativeDecisionActions } from 'src/widgets/CooperativeDecision'
 import { useUnionStore } from 'src/entities/Union/model'
 import type { ICooperativeRegistryItem } from 'src/entities/Union/model'
 import {
@@ -241,13 +228,5 @@ const openDetail = (coopname: string) => {
   font-size: var(--p-fs-body);
   font-weight: 600;
   color: var(--p-ink);
-}
-.coop-registry__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  margin-top: var(--p-4);
-  padding-top: var(--p-4);
-  border-top: 1px solid var(--p-line);
 }
 </style>
