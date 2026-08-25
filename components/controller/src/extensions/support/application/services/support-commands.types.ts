@@ -1,0 +1,62 @@
+import { SupportTicketKind } from '../../domain/enums/support-ticket-kind.enum';
+import { SupportTicketPriority } from '../../domain/enums/support-ticket-priority.enum';
+import type { SupportAttachmentInput } from './support-attachments.service';
+
+/**
+ * Кто выполняет команду.
+ *
+ * Передаётся явным параметром, а не берётся из глобального контекста запроса:
+ * прикладной сервис не должен знать, что вызов вообще пришёл по HTTP. Резолвер
+ * (отдельная фаза) заполнит это из своего текущего пользователя.
+ *
+ * Состав структурно совместим с учётной записью платформы, поэтому передать
+ * можно её саму, без перекладывания полей.
+ */
+export interface SupportActor {
+  username: string;
+  /** Роль в кооперативе: `chairman`, `member`, `user`. */
+  role: string;
+}
+
+/**
+ * Приоритет во входных данных отсутствует намеренно: автор обращения его не
+ * задаёт, все обращения заводятся со значением по умолчанию, а меняет его
+ * оператор отдельной командой (спецификация, раздел 3). Если принять приоритет
+ * здесь, решение обойдётся первым же пайщиком, ставящим «критический» всему.
+ *
+ * Кооператива здесь тоже нет: он берётся из настроек контура, а не от клиента.
+ */
+export interface CreateSupportTicketInput {
+  kind: SupportTicketKind;
+  subject: string;
+  /** Первый текст обращения — он же первая запись ленты, отдельного поля нет. */
+  body: string;
+  attachments?: SupportAttachmentInput[];
+}
+
+export interface ReplySupportTicketInput {
+  ticket_id: string;
+  body: string;
+  attachments?: SupportAttachmentInput[];
+}
+
+export interface AssignSupportTicketInput {
+  ticket_id: string;
+  assignee_username: string;
+}
+
+export interface ChangeSupportTicketPriorityInput {
+  ticket_id: string;
+  priority: SupportTicketPriority;
+}
+
+export interface ResolveSupportTicketInput {
+  ticket_id: string;
+  /** Необязательный комментарий оператора: попадёт в ленту отдельной записью. */
+  comment?: string | null;
+}
+
+export interface EscalateSupportTicketInput {
+  ticket_id: string;
+  reason?: string | null;
+}

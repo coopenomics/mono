@@ -3,10 +3,11 @@ import { z } from 'zod';
 import {
   BaseExtensionModule,
   EXTENSION_REPOSITORY,
+  bucketProvidersFor,
   type ExtensionDomainEntity,
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { FILE_STORAGE_PORT, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { SupportDatabaseModule } from './infrastructure/database/support-database.module';
 import { SUPPORT_TICKET_REPOSITORY } from './domain/repositories/support-ticket.repository';
 import { SUPPORT_TICKET_MESSAGE_REPOSITORY } from './domain/repositories/support-ticket-message.repository';
@@ -14,6 +15,9 @@ import { SUPPORT_TICKET_ATTACHMENT_REPOSITORY } from './domain/repositories/supp
 import { SupportTicketTypeormRepository } from './infrastructure/repositories/support-ticket.typeorm-repository';
 import { SupportTicketMessageTypeormRepository } from './infrastructure/repositories/support-ticket-message.typeorm-repository';
 import { SupportTicketAttachmentTypeormRepository } from './infrastructure/repositories/support-ticket-attachment.typeorm-repository';
+import { SupportAttachmentsService } from './application/services/support-attachments.service';
+import { SupportCommandsService } from './application/services/support-commands.service';
+import { SupportAutoCloseService } from './application/services/support-auto-close.service';
 
 /**
  * Обращение, лента переписки и вложения не заводят своих переключателей в
@@ -51,6 +55,9 @@ export class SupportExtension extends BaseExtensionModule {
   imports: [SupportDatabaseModule],
   providers: [
     SupportExtension,
+    // Хранилище вложений: объявление бакета висит на самом сервисе
+    // (`@UseBucket`), здесь оно превращается в провайдер.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [SupportAttachmentsService]),
     // Репозитории
     {
       provide: SUPPORT_TICKET_REPOSITORY,
@@ -64,8 +71,13 @@ export class SupportExtension extends BaseExtensionModule {
       provide: SUPPORT_TICKET_ATTACHMENT_REPOSITORY,
       useClass: SupportTicketAttachmentTypeormRepository,
     },
+    // Прикладной слой: команды, вложения, автозакрытие. Резолверов пока нет —
+    // они появятся своей фазой и будут звать эти же сервисы.
+    SupportAttachmentsService,
+    SupportCommandsService,
+    SupportAutoCloseService,
   ],
-  exports: [SupportExtension],
+  exports: [SupportExtension, SupportCommandsService],
 })
 export class SupportExtensionModule {
   constructor(private readonly supportExtension: SupportExtension) {}

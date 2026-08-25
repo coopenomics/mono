@@ -1,13 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
+import { EntityManager, In, IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
 import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
-import { SupportTicketRepository } from '../../domain/repositories/support-ticket.repository';
+import {
+  SupportTicketRepository,
+  type SupportLedgerEntryDraft,
+  type SupportTicketChanges,
+} from '../../domain/repositories/support-ticket.repository';
 import { SupportTicketDomainEntity } from '../../domain/entities/support-ticket.entity';
+import { SupportTicketMessageDomainEntity } from '../../domain/entities/support-ticket-message.entity';
+import { SupportTicketAttachmentDomainEntity } from '../../domain/entities/support-ticket-attachment.entity';
 import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.enum';
 import { SupportTicketKind } from '../../domain/enums/support-ticket-kind.enum';
 import { SupportTicketTypeormEntity } from '../entities/support-ticket.typeorm-entity';
+import { SupportTicketMessageTypeormEntity } from '../entities/support-ticket-message.typeorm-entity';
+import { SupportTicketAttachmentTypeormEntity } from '../entities/support-ticket-attachment.typeorm-entity';
 import { SupportTicketMapper } from '../mappers/support-ticket.mapper';
+import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.mapper';
+import { SupportTicketAttachmentMapper } from '../mappers/support-ticket-attachment.mapper';
 
 /**
  * Поля обращения, по которым разрешена сортировка со стороны автора.
@@ -158,12 +168,7 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     );
   }
 
-  async update(
-    id: string,
-    changes: Partial<
-      Omit<SupportTicketDomainEntity, 'id' | 'number' | 'coopname' | 'authorUsername' | 'createdAt'>
-    >
-  ): Promise<SupportTicketDomainEntity> {
+  async update(id: string, changes: SupportTicketChanges): Promise<SupportTicketDomainEntity> {
     // Свойства домена и TypeORM-сущности совпадают 1:1 (camelCase), поэтому
     // партиал передаётся как есть — прогон через toEntity() затронул бы и
     // не указанные вызывающим поля, подставив им undefined. Совпадение
@@ -174,6 +179,125 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     const updated = await this.repository.findOne({ where: { id } });
     if (!updated) throw new Error(`Обращение ${id} не найдено после обновления`);
     return SupportTicketMapper.toDomain(updated);
+  }
+
+  // ── Атомарные записи ────────────────────────────────────────────────
+  //
+  // Граница транзакции живёт здесь, потому что другой в контроллере нет:
+  // ни декоратора, ни единицы работы, ни менеджера в контейнере. Приём взят
+  // с единственного существующего образца — `manager.transaction` внутри
+  // инфраструктурного адаптера (marketplace-inventory-repository).
+  //
+  // Условий про статусы, роли и допустимость переходов здесь намеренно нет
+  // (кроме условного гейта автозакрытия, где условие и есть суть операции):
+  // что записать — решает сервис, репозиторий только записывает атомарно.
+
+  async createWithFirstMessage(
+    ticket: Omit<SupportTicketDomainEntity, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
+    firstMessage: SupportLedgerEntryDraft
+  ): Promise<{
+    ticket: SupportTicketDomainEntity;
+    message: SupportTicketMessageDomainEntity;
+    attachments: SupportTicketAttachmentDomainEntity[];
+  }> {
+    return this.repository.manager.transaction(async (em) => {
+      const savedTicket = await em.save(
+        em.create(SupportTicketTypeormEntity, SupportTicketMapper.toEntity(ticket))
+      );
+      const { message, attachments } = await this.appendEntry(em, savedTicket.id, firstMessage);
+      return { ticket: SupportTicketMapper.toDomain(savedTicket), message, attachments };
+    });
+  }
+
+  async appendAndUpdate(
+    ticketId: string,
+    messages: SupportLedgerEntryDraft[],
+    changes: SupportTicketChanges
+  ): Promise<{ ticket: SupportTicketDomainEntity; messages: SupportTicketMessageDomainEntity[] }> {
+    return this.repository.manager.transaction(async (em) => {
+      const saved: SupportTicketMessageDomainEntity[] = [];
+      for (const entry of messages) {
+        const { message } = await this.appendEntry(em, ticketId, entry);
+        saved.push(message);
+      }
+
+      // Пустой changes — законный случай (запись в ленту без правки шапки),
+      // но `update` с пустым партиалом TypeORM считает ошибкой, поэтому вызов
+      // делается только когда есть что менять.
+      if (Object.keys(changes).length > 0) {
+        await em.update(SupportTicketTypeormEntity, { id: ticketId }, this.toEntityChanges(changes));
+      }
+
+      const updated = await em.findOne(SupportTicketTypeormEntity, { where: { id: ticketId } });
+      if (!updated) throw new Error(`Обращение ${ticketId} не найдено после обновления`);
+      return { ticket: SupportTicketMapper.toDomain(updated), messages: saved };
+    });
+  }
+
+  async closeIfStillResolved(
+    ticketId: string,
+    cutoff: Date,
+    systemMessage: SupportLedgerEntryDraft
+  ): Promise<{ ticket: SupportTicketDomainEntity; message: SupportTicketMessageDomainEntity } | null> {
+    return this.repository.manager.transaction(async (em) => {
+      // Условие в самом UPDATE, а не отдельной проверкой перед ним: между
+      // чтением и записью автор успел бы вернуть обращение в работу. Здесь
+      // строка либо подходит под условие в момент записи, либо не подходит —
+      // третьего нет, и повторный тик безопасен по той же причине.
+      const result = await em.update(
+        SupportTicketTypeormEntity,
+        { id: ticketId, status: SupportTicketStatus.RESOLVED, resolvedAt: LessThanOrEqual(cutoff) },
+        { status: SupportTicketStatus.CLOSED, lastMessageAt: new Date() }
+      );
+      if (!result.affected) return null;
+
+      const { message } = await this.appendEntry(em, ticketId, systemMessage);
+      const closed = await em.findOne(SupportTicketTypeormEntity, { where: { id: ticketId } });
+      if (!closed) throw new Error(`Обращение ${ticketId} не найдено после закрытия`);
+      return { ticket: SupportTicketMapper.toDomain(closed), message };
+    });
+  }
+
+  /** Запись ленты вместе с её вложениями в уже открытой транзакции. */
+  private async appendEntry(
+    em: EntityManager,
+    ticketId: string,
+    entry: SupportLedgerEntryDraft
+  ): Promise<{
+    message: SupportTicketMessageDomainEntity;
+    attachments: SupportTicketAttachmentDomainEntity[];
+  }> {
+    const savedMessage = await em.save(
+      em.create(
+        SupportTicketMessageTypeormEntity,
+        SupportTicketMessageMapper.toEntity({ ...entry.message, ticketId })
+      )
+    );
+
+    const attachments: SupportTicketAttachmentDomainEntity[] = [];
+    for (const attachment of entry.attachments) {
+      const savedAttachment = await em.save(
+        em.create(
+          SupportTicketAttachmentTypeormEntity,
+          SupportTicketAttachmentMapper.toEntity({
+            ...attachment,
+            ticketId,
+            messageId: savedMessage.id,
+          })
+        )
+      );
+      attachments.push(SupportTicketAttachmentMapper.toDomain(savedAttachment));
+    }
+
+    return { message: SupportTicketMessageMapper.toDomain(savedMessage), attachments };
+  }
+
+  /**
+   * Доменный партиал → партиал ORM-сущности. Приведения нет: совпадение
+   * ключей проверяет assertUpdateFieldsMatchEntity() выше по файлу.
+   */
+  private toEntityChanges(changes: SupportTicketChanges): Partial<SupportTicketTypeormEntity> {
+    return changes;
   }
 
   private async findPaginated(

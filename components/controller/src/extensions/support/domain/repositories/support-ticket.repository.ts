@@ -1,7 +1,32 @@
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { SupportTicketDomainEntity } from '../entities/support-ticket.entity';
+import { SupportTicketMessageDomainEntity } from '../entities/support-ticket-message.entity';
+import { SupportTicketAttachmentDomainEntity } from '../entities/support-ticket-attachment.entity';
 import { SupportTicketStatus } from '../enums/support-ticket-status.enum';
 import { SupportTicketKind } from '../enums/support-ticket-kind.enum';
+
+/** Вложение, готовое к записи: тело уже лежит в хранилище, здесь только метаданные. */
+export type SupportAttachmentDraft = Omit<
+  SupportTicketAttachmentDomainEntity,
+  'id' | 'ticketId' | 'messageId' | 'uploadedAt'
+>;
+
+/** Запись ленты вместе со своими вложениями — единица атомарной дописи. */
+export interface SupportLedgerEntryDraft {
+  message: Omit<SupportTicketMessageDomainEntity, 'id' | 'ticketId' | 'createdAt'>;
+  attachments: SupportAttachmentDraft[];
+}
+
+/**
+ * Поля обращения, которые команда вправе изменить.
+ *
+ * `lastMessageAt` входит сюда намеренно: связка «дописали ленту — сдвинули
+ * время последнего сообщения» лежит на сервисном слое, и он передаёт значение
+ * явно. Репозиторий его не выводит и не подставляет.
+ */
+export type SupportTicketChanges = Partial<
+  Omit<SupportTicketDomainEntity, 'id' | 'number' | 'coopname' | 'authorUsername' | 'createdAt'>
+>;
 
 export interface SupportTicketRepository {
   create(
@@ -44,12 +69,72 @@ export interface SupportTicketRepository {
   /** Эскалированные обращения — частичный индекс (escalated_at). */
   findEscalated(options?: PaginationInputDTO): Promise<PaginationResult<SupportTicketDomainEntity>>;
 
-  update(
-    id: string,
-    changes: Partial<
-      Omit<SupportTicketDomainEntity, 'id' | 'number' | 'coopname' | 'authorUsername' | 'createdAt'>
-    >
-  ): Promise<SupportTicketDomainEntity>;
+  update(id: string, changes: SupportTicketChanges): Promise<SupportTicketDomainEntity>;
+
+  // ── Атомарные записи ────────────────────────────────────────────────
+  //
+  // Прикладной границы транзакции в контроллере нет: ни декоратора, ни единицы
+  // работы, ни менеджера в контейнере. Единственный существующий приём —
+  // `manager.transaction` внутри инфраструктурного адаптера, где вся операция
+  // упакована в один метод репозитория (образец: marketplace-inventory).
+  //
+  // Поэтому граница транзакции живёт здесь, а решения — в сервисе. Методы
+  // ниже намеренно тупые: внутри нет ни одного условия про статусы, роли и
+  // допустимость переходов. Сервис вычисляет, ЧТО записать; репозиторий
+  // записывает это атомарно и не знает, почему.
+
+  /**
+   * Одной транзакцией: обращение, первая запись его ленты и её вложения.
+   *
+   * Первый текст обращения — это первое сообщение, отдельной колонки под него
+   * нет (модель, раздел 11), поэтому обращение без записи ленты не создаётся
+   * вовсе и раздельного метода создания для команд не предусмотрено.
+   */
+  createWithFirstMessage(
+    ticket: Omit<SupportTicketDomainEntity, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
+    firstMessage: SupportLedgerEntryDraft
+  ): Promise<{
+    ticket: SupportTicketDomainEntity;
+    message: SupportTicketMessageDomainEntity;
+    attachments: SupportTicketAttachmentDomainEntity[];
+  }>;
+
+  /**
+   * Одной транзакцией: N записей ленты со своими вложениями и частичное
+   * обновление обращения.
+   *
+   * Двух записей требует решение с комментарием — сообщение оператора и
+   * системная запись о решении идут вместе, одним действием человека
+   * (спецификация, раздел 3). Пустой список записей допустим: смена
+   * приоритета меняет только обращение.
+   */
+  appendAndUpdate(
+    ticketId: string,
+    messages: SupportLedgerEntryDraft[],
+    changes: SupportTicketChanges
+  ): Promise<{
+    ticket: SupportTicketDomainEntity;
+    messages: SupportTicketMessageDomainEntity[];
+  }>;
+
+  /**
+   * Одной транзакцией и одним условным обновлением: закрыть обращение, если
+   * оно всё ещё в статусе `RESOLVED` и отсчёт не сдвинулся позже `cutoff`, и
+   * дописать системную запись о закрытии.
+   *
+   * Возвращает `null`, если под условие не подошла ни одна строка: автор
+   * успел написать и вернуть обращение в работу. Гонка «таймер против
+   * сообщения автора» гасится этим сама, и повторный тик безопасен — второй
+   * раз условие уже не выполнится (спецификация, раздел 8).
+   */
+  closeIfStillResolved(
+    ticketId: string,
+    cutoff: Date,
+    systemMessage: SupportLedgerEntryDraft
+  ): Promise<{
+    ticket: SupportTicketDomainEntity;
+    message: SupportTicketMessageDomainEntity;
+  } | null>;
 }
 
 export const SUPPORT_TICKET_REPOSITORY = Symbol('SupportTicketRepository');
