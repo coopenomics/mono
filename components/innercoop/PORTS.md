@@ -77,7 +77,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace | Права пайщика на рабочем столе расширения. |
+| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace, support | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
 Всего портов: 48.

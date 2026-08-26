@@ -10,7 +10,6 @@ import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UserDocumentsPage } from 'src/pages/User/DocumentsPage';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { UserPaymentsPage } from 'src/pages/User/PaymentsPage';
-import { SupportTrigger } from 'src/pages/Support';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
@@ -182,8 +181,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
-            // Предпоследний пункт: выйти из кооператива (не путать с «Выйти из
+            // Последний пункт: выйти из кооператива (не путать с «Выйти из
             // кабинета» в RailUserCard). Иконка group_remove — не logout.
+            // Был предпоследним, пока за ним стояла «Поддержка»; тот пункт и
+            // имя маршрута `support` переехали в расширение стола поддержки.
             meta: {
               title: 'Выйти из кооператива',
               icon: 'group_remove',
@@ -193,19 +194,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'membership-exit',
             name: 'membership-exit',
             component: markRaw(MembershipExitPage),
-            children: [],
-          },
-          {
-            meta: {
-              title: 'Поддержка',
-              icon: 'fa-solid fa-headset',
-              roles: [],
-              requiresAuth: true,
-              action: 'toggleSupportChat',
-            },
-            path: '/:coopname/support',
-            name: 'support',
-            component: markRaw(SupportTrigger),
             children: [],
           },
         ],

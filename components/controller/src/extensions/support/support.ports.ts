@@ -12,9 +12,14 @@
  *
  * Стол в цепь не ходит, документов не выпускает, своей оферты не имеет —
  * поэтому CHAIN_PORT, DOCUMENT_PORT, VAULT_PORT и подобные не заявляются.
+ *
+ * Реестр прав на рабочем столе заявлен потому, что у стола их два — пайщика и
+ * совета, — и видимость каждого решается выданным набором прав, а не ролью в
+ * маршруте.
  */
 import {
   ACCOUNT_PORT,
+  DESKTOP_GRANTS_REGISTRY_PORT,
   FILE_STORAGE_PORT,
   LOGGER_PORT,
   NOTIFICATION_PORT,
@@ -24,6 +29,7 @@ import {
 export const supportPorts = {
   required: [
     ACCOUNT_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
     FILE_STORAGE_PORT,
     LOGGER_PORT,
     NOTIFICATION_PORT,

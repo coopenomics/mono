@@ -23,6 +23,7 @@ import { SupportAutoCloseService } from './application/services/support-auto-clo
 import { SupportTicketNotificationService } from './application/services/support-ticket-notification.service';
 import { SupportQueriesService } from './application/services/support-queries.service';
 import { SupportVisibilityService } from './application/services/support-visibility.service';
+import { SupportDesktopGrantsProvider } from './application/desktop/support-desktop-grants.provider';
 import { SupportQueriesResolver } from './application/resolvers/support-queries.resolver';
 import { SupportMutationsResolver } from './application/resolvers/support-mutations.resolver';
 
@@ -94,6 +95,9 @@ export class SupportExtension extends BaseExtensionModule {
     // «единственное место» перестанет быть единственным.
     SupportVisibilityService,
     SupportQueriesService,
+    // Права пайщика на столах расширения. Кладёт себя в реестр платформы сам,
+    // поэтому ядро модуль расширения не импортирует.
+    SupportDesktopGrantsProvider,
     // Слой доступа.
     SupportQueriesResolver,
     SupportMutationsResolver,

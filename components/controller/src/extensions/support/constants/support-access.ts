@@ -20,6 +20,18 @@ export const CHAIRMAN_ROLE = 'chairman';
 export const COUNCIL_ROLES: ReadonlyArray<string> = [CHAIRMAN_ROLE, 'member'];
 
 /**
+ * Все роли пайщика кооператива — тот же список, что у резолверов пайщицких
+ * операций (`@AuthRoles(['chairman', 'member', 'user'])`).
+ *
+ * Нужен провайдеру прав на рабочем столе: обращение вправе подать любой
+ * пайщик, но не служебная учётная запись с ролью вне этого списка. Держать
+ * список рядом с составом совета, а не отдельной строкой в провайдере, — по
+ * той же причине, по которой здесь лежит и всё остальное: разойдись он с
+ * резолверами, стол показывал бы страницу, на которой сервер отвечает отказом.
+ */
+export const COOPERATIVE_ROLES: ReadonlyArray<string> = [...COUNCIL_ROLES, 'user'];
+
+/**
  * Ответ пайщику и про несуществующее обращение, и про чужое.
  *
  * Текст один на оба случая намеренно: если чужое обращение отвечает «нет
@@ -29,7 +41,19 @@ export const COUNCIL_ROLES: ReadonlyArray<string> = [CHAIRMAN_ROLE, 'member'];
  */
 export const TICKET_NOT_FOUND_MESSAGE = 'Обращение не найдено.';
 
-/** Входит ли актор в совет кооператива. */
-export function isCouncilRole(role: string): boolean {
-  return COUNCIL_ROLES.includes(role);
+/**
+ * Входит ли актор в совет кооператива.
+ *
+ * Роль допускается пустой: у актора она есть всегда, но провайдер прав на
+ * рабочем столе получает её из контекста запроса, где гостя может не быть
+ * вовсе. Отсутствие роли — это «не совет», а не повод для приведения типа на
+ * стороне вызывающего.
+ */
+export function isCouncilRole(role: string | undefined | null): boolean {
+  return !!role && COUNCIL_ROLES.includes(role);
+}
+
+/** Состоит ли актор в кооперативе хоть в какой-то роли пайщика. */
+export function isCooperativeRole(role: string | undefined | null): boolean {
+  return !!role && COOPERATIVE_ROLES.includes(role);
 }
