@@ -1768,6 +1768,12 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["AssignSupportTicketInput"]: {
+	/** Член совета, назначаемый оператором обращения. */
+	assignee_username: string | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
+};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -4994,6 +5000,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChairmanOnboardingState']?: Omit<ValueTypes["ChairmanOnboardingState"], "...on ChairmanOnboardingState">
 }>;
+	["ChangeSupportTicketPriorityInput"]: {
+	/** Новый приоритет обращения. */
+	priority: ValueTypes["SupportTicketPriority"] | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
+};
 	["ChartOfAccountsItem"]: AliasType<{
 	/** Доступные средства */
 	available?:boolean | `@${string}`,
@@ -5992,6 +6004,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CreateSubscriptionResponse']?: Omit<ValueTypes["CreateSubscriptionResponse"], "...on CreateSubscriptionResponse">
 }>;
+	["CreateSupportTicketInput"]: {
+	/** Файлы, приложенные к первому сообщению. */
+	attachments?: Array<ValueTypes["SupportAttachmentInput"]> | undefined | null | Variable<any, string>,
+	/** Первый текст обращения — он же первая запись в ленте переписки. */
+	body: string | Variable<any, string>,
+	/** Вид обращения. */
+	kind: ValueTypes["SupportTicketKind"] | Variable<any, string>,
+	/** Тема обращения. */
+	subject: string | Variable<any, string>
+};
 	["CreateWithdrawInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -6409,6 +6431,12 @@ export type ValueTypes = {
 	inn: string | Variable<any, string>,
 	/** ОГРН */
 	ogrn: string | Variable<any, string>
+};
+	["EscalateSupportTicketInput"]: {
+	/** Причина эскалации — внутренняя записка совета, автору обращения не показывается. */
+	reason?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
 };
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
@@ -11593,6 +11621,7 @@ addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, stri
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+assignSupportTicket?: [{	data: ValueTypes["AssignSupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -11688,6 +11717,7 @@ capitalUpdateProcessTemplate?: [{	data: ValueTypes["UpdateProcessTemplateInput"]
 capitalUpdateStory?: [{	data: ValueTypes["UpdateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ValueTypes["DeclineApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
+changeSupportTicketPriority?: [{	data: ValueTypes["ChangeSupportTicketPriorityInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 chatcoopCreateAccount?: [{	data: ValueTypes["CreateMatrixAccountInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ValueTypes["CreateChatCoopCalendarEventInput"] | Variable<any, string>},ValueTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
@@ -11715,6 +11745,7 @@ createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variab
 createMembershipExit?: [{	data: ValueTypes["CreateMembershipExitInput"] | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
+createSupportTicket?: [{	data: ValueTypes["CreateSupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -11730,6 +11761,7 @@ deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+escalateSupportTicket?: [{	data: ValueTypes["EscalateSupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -11877,11 +11909,13 @@ publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionIn
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
+replySupportTicket?: [{	data: ValueTypes["ReplySupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ValueTypes["Account"],
+resolveSupportTicket?: [{	data: ValueTypes["ResolveSupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
@@ -12504,6 +12538,30 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedMarketplaceWriteoffProposals']?: Omit<ValueTypes["PaginatedMarketplaceWriteoffProposals"], "...on PaginatedMarketplaceWriteoffProposals">
+}>;
+	["PaginatedSupportTicketMessagesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["SupportTicketMessage"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedSupportTicketMessagesPaginationResult']?: Omit<ValueTypes["PaginatedSupportTicketMessagesPaginationResult"], "...on PaginatedSupportTicketMessagesPaginationResult">
+}>;
+	["PaginatedSupportTicketsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["SupportTicketListItem"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedSupportTicketsPaginationResult']?: Omit<ValueTypes["PaginatedSupportTicketsPaginationResult"], "...on PaginatedSupportTicketsPaginationResult">
 }>;
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
@@ -13624,6 +13682,15 @@ process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<a
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
+supportTicket?: [{	id: string | Variable<any, string>},ValueTypes["SupportTicket"]],
+supportTicketAttachment?: [{	id: string | Variable<any, string>},ValueTypes["SupportTicketAttachmentWithUrl"]],
+supportTicketMessages?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>,	ticket_id: string | Variable<any, string>},ValueTypes["PaginatedSupportTicketMessagesPaginationResult"]],
+	/** Сколько обращений в каждом статусе — числа на закладках очереди совета.
+
+Требуемые роли: chairman, member.  */
+	supportTicketQueueSummary?:ValueTypes["SupportQueueSummary"],
+supportTicketsByCooperative?: [{	filter?: ValueTypes["SupportTicketsFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedSupportTicketsPaginationResult"]],
+supportTicketsByMember?: [{	filter?: ValueTypes["SupportMemberTicketsFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedSupportTicketsPaginationResult"]],
 validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["FieldError"]],
 		__typename?: boolean | `@${string}`,
 	['...on Query']?: Omit<ValueTypes["Query"], "...on Query">
@@ -13840,6 +13907,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Типы товаров */
 	categoryTypes: Array<ValueTypes["CategoryTypeInput"]> | Variable<any, string>
 };
+	["ReplySupportTicketInput"]: {
+	/** Файлы, приложенные к сообщению. */
+	attachments?: Array<ValueTypes["SupportAttachmentInput"]> | undefined | null | Variable<any, string>,
+	/** Текст сообщения. */
+	body: string | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
+};
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
 	dueMonth?:boolean | `@${string}`,
@@ -14050,6 +14125,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	public_key: string | Variable<any, string>,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string | Variable<any, string>
+};
+	["ResolveSupportTicketInput"]: {
+	/** Комментарий оператора к решению — необязателен. */
+	comment?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
 };
 	["ResourceDelegationDTO"]: AliasType<{
 	/** Вес CPU */
@@ -14731,6 +14812,196 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 		__typename?: boolean | `@${string}`,
 	['...on SubscriptionStatsDto']?: Omit<ValueTypes["SubscriptionStatsDto"], "...on SubscriptionStatsDto">
 }>;
+	["SupportAttachmentInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string | Variable<any, string>,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string | Variable<any, string>,
+	/** Заявленный MIME-тип содержимого — сервер сверяет его с определённым по содержимому файла. */
+	mime_type: string | Variable<any, string>,
+	/** Оригинальное имя файла — только для отображения. */
+	original_filename?: string | undefined | null | Variable<any, string>,
+	/** Размер файла в байтах — сервер сверяет его с фактическим. */
+	size_bytes: number | Variable<any, string>
+};
+	["SupportMemberTicketsFilterInput"]: {
+	/** Вид обращения. */
+	kind?: ValueTypes["SupportTicketKind"] | undefined | null | Variable<any, string>,
+	/** Статусы обращений. Набор, а не одно значение. */
+	statuses?: Array<ValueTypes["SupportTicketStatus"]> | undefined | null | Variable<any, string>
+};
+	/** Роль автора записи в переписке обращения. */
+["SupportMessageAuthorRole"]:SupportMessageAuthorRole;
+	/** Сколько обращений в каждом статусе. */
+["SupportQueueSummary"]: AliasType<{
+	/** Закрытые обращения. */
+	closed?:boolean | `@${string}`,
+	/** Обращения в работе. */
+	in_progress?:boolean | `@${string}`,
+	/** Новые обращения, которые ещё никто не взял в работу. */
+	new?:boolean | `@${string}`,
+	/** Обращения, помеченные решёнными и ожидающие автоматического закрытия. */
+	resolved?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportQueueSummary']?: Omit<ValueTypes["SupportQueueSummary"], "...on SupportQueueSummary">
+}>;
+	/** Зона ответственности за обращение. */
+["SupportResponsibilityZone"]:SupportResponsibilityZone;
+	/** Вид события в системной записи ленты обращения. */
+["SupportSystemEvent"]:SupportSystemEvent;
+	/** Обращение в поддержку: карточка. */
+["SupportTicket"]: AliasType<{
+	/** Пайщик, обратившийся в поддержку. */
+	author_username?:boolean | `@${string}`,
+	/** Когда обращение закроется само, если пайщик не возразит. Пусто, если отсчёт не идёт: обращение не решено, возвращено в работу или уже закрыто. */
+	auto_close_at?:boolean | `@${string}`,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side?:boolean | `@${string}`,
+	/** Время создания обращения. */
+	created_at?:boolean | `@${string}`,
+	/** Обращение эскалировано председателю. */
+	escalated?:boolean | `@${string}`,
+	/** Когда обращение эскалировано председателю. */
+	escalated_at?:boolean | `@${string}`,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments?:boolean | `@${string}`,
+	/** Идентификатор обращения. */
+	id?:boolean | `@${string}`,
+	/** Вид обращения. */
+	kind?:boolean | `@${string}`,
+	/** Время последнего сообщения в обращении. */
+	last_message_at?:boolean | `@${string}`,
+	/** Число записей в переписке обращения. */
+	message_count?:boolean | `@${string}`,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number?:boolean | `@${string}`,
+	/** Приоритет обращения. */
+	priority?:boolean | `@${string}`,
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count?:boolean | `@${string}`,
+	/** Когда обращение помечено решённым. */
+	resolved_at?:boolean | `@${string}`,
+	/** Зона ответственности по обращению. */
+	responsibility_zone?:boolean | `@${string}`,
+	/** Текущий статус обращения. */
+	status?:boolean | `@${string}`,
+	/** Тема обращения. */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportTicket']?: Omit<ValueTypes["SupportTicket"], "...on SupportTicket">
+}>;
+	/** Файл, приложенный к обращению. */
+["SupportTicketAttachment"]: AliasType<{
+	/** Идентификатор файла. */
+	id?:boolean | `@${string}`,
+	/** Тип файла, определённый по содержимому. */
+	mime_type?:boolean | `@${string}`,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда файл приложен. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто приложил файл. */
+	uploaded_by_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportTicketAttachment']?: Omit<ValueTypes["SupportTicketAttachment"], "...on SupportTicketAttachment">
+}>;
+	/** Файл обращения вместе со ссылкой на скачивание. */
+["SupportTicketAttachmentWithUrl"]: AliasType<{
+	/** Идентификатор файла. */
+	id?:boolean | `@${string}`,
+	/** Тип файла, определённый по содержимому. */
+	mime_type?:boolean | `@${string}`,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда файл приложен. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто приложил файл. */
+	uploaded_by_username?:boolean | `@${string}`,
+	/** Ссылка на скачивание. Действует ограниченное время, поэтому запрашивается непосредственно перед открытием файла. */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportTicketAttachmentWithUrl']?: Omit<ValueTypes["SupportTicketAttachmentWithUrl"], "...on SupportTicketAttachmentWithUrl">
+}>;
+	/** Вид обращения пайщика в поддержку. */
+["SupportTicketKind"]:SupportTicketKind;
+	/** Обращение в поддержку: строка списка. */
+["SupportTicketListItem"]: AliasType<{
+	/** Пайщик, обратившийся в поддержку. */
+	author_username?:boolean | `@${string}`,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side?:boolean | `@${string}`,
+	/** Время создания обращения. */
+	created_at?:boolean | `@${string}`,
+	/** Обращение эскалировано председателю. */
+	escalated?:boolean | `@${string}`,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments?:boolean | `@${string}`,
+	/** Идентификатор обращения. */
+	id?:boolean | `@${string}`,
+	/** Вид обращения. */
+	kind?:boolean | `@${string}`,
+	/** Время последнего сообщения в обращении. */
+	last_message_at?:boolean | `@${string}`,
+	/** Число записей в переписке обращения. */
+	message_count?:boolean | `@${string}`,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number?:boolean | `@${string}`,
+	/** Приоритет обращения. */
+	priority?:boolean | `@${string}`,
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count?:boolean | `@${string}`,
+	/** Текущий статус обращения. */
+	status?:boolean | `@${string}`,
+	/** Тема обращения. */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportTicketListItem']?: Omit<ValueTypes["SupportTicketListItem"], "...on SupportTicketListItem">
+}>;
+	/** Запись переписки обращения. */
+["SupportTicketMessage"]: AliasType<{
+	/** Файлы, приложенные к записи. */
+	attachments?:ValueTypes["SupportTicketAttachment"],
+	/** Кем написана запись: пайщиком, советом или системой. Записывается в момент записи и потом не меняется. */
+	author_role?:boolean | `@${string}`,
+	/** Кто написал. Пусто у действий самой системы — например, у автоматического закрытия. */
+	author_username?:boolean | `@${string}`,
+	/** Текст сообщения. Пусто у системных записей. */
+	body?:boolean | `@${string}`,
+	/** Когда запись добавлена. */
+	created_at?:boolean | `@${string}`,
+	/** Идентификатор записи. */
+	id?:boolean | `@${string}`,
+	/** Детали системного события — например, прежний и новый приоритет. Состав зависит от вида события; часть деталей остаётся внутри совета и наружу не идёт. */
+	payload?:boolean | `@${string}`,
+	/** Вид системного события. Пусто у сообщений, написанных человеком. */
+	system_event?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on SupportTicketMessage']?: Omit<ValueTypes["SupportTicketMessage"], "...on SupportTicketMessage">
+}>;
+	/** Приоритет обращения в поддержку. */
+["SupportTicketPriority"]:SupportTicketPriority;
+	/** Статус обращения в поддержку. */
+["SupportTicketStatus"]:SupportTicketStatus;
+	["SupportTicketsFilterInput"]: {
+	/** Член совета, взявший обращение в работу. */
+	assignee_username?: string | undefined | null | Variable<any, string>,
+	/** Автор обращения. Так же смотрят историю общения с конкретным пайщиком. */
+	author_username?: string | undefined | null | Variable<any, string>,
+	/** Только эскалированные обращения либо, наоборот, только неэскалированные. */
+	escalated?: boolean | undefined | null | Variable<any, string>,
+	/** Вид обращения. */
+	kind?: ValueTypes["SupportTicketKind"] | undefined | null | Variable<any, string>,
+	/** Приоритет обращения. */
+	priority?: ValueTypes["SupportTicketPriority"] | undefined | null | Variable<any, string>,
+	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
+	statuses?: Array<ValueTypes["SupportTicketStatus"]> | undefined | null | Variable<any, string>,
+	/** Поиск по теме обращения: подстрока без учёта регистра. По текстам переписки поиска нет. */
+	subject_contains?: string | undefined | null | Variable<any, string>
+};
 	["Symbols"]: AliasType<{
 	/** Точность символа управления */
 	root_govern_precision?:boolean | `@${string}`,
@@ -16147,6 +16418,12 @@ export type ResolverInputTypes = {
 	["ArchiveComponentMetricInput"]: {
 	/** Хеш метрики */
 	metric_hash: string
+};
+	["AssignSupportTicketInput"]: {
+	/** Член совета, назначаемый оператором обращения. */
+	assignee_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
@@ -19295,6 +19572,12 @@ export type ResolverInputTypes = {
 	wallet_agreement_done?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ChangeSupportTicketPriorityInput"]: {
+	/** Новый приоритет обращения. */
+	priority: ResolverInputTypes["SupportTicketPriority"],
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ChartOfAccountsItem"]: AliasType<{
 	/** Доступные средства */
 	available?:boolean | `@${string}`,
@@ -20279,6 +20562,16 @@ export type ResolverInputTypes = {
 	success?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CreateSupportTicketInput"]: {
+	/** Файлы, приложенные к первому сообщению. */
+	attachments?: Array<ResolverInputTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Первый текст обращения — он же первая запись в ленте переписки. */
+	body: string,
+	/** Вид обращения. */
+	kind: ResolverInputTypes["SupportTicketKind"],
+	/** Тема обращения. */
+	subject: string
+};
 	["CreateWithdrawInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -20681,6 +20974,12 @@ export type ResolverInputTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	["EscalateSupportTicketInput"]: {
+	/** Причина эскалации — внутренняя записка совета, автору обращения не показывается. */
+	reason?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
@@ -25714,6 +26013,7 @@ addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInp
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
+assignSupportTicket?: [{	data: ResolverInputTypes["AssignSupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
@@ -25809,6 +26109,7 @@ capitalUpdateProcessTemplate?: [{	data: ResolverInputTypes["UpdateProcessTemplat
 capitalUpdateStory?: [{	data: ResolverInputTypes["UpdateStoryInput"]},ResolverInputTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},ResolverInputTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ResolverInputTypes["DeclineApproveInput"]},ResolverInputTypes["Approval"]],
+changeSupportTicketPriority?: [{	data: ResolverInputTypes["ChangeSupportTicketPriorityInput"]},ResolverInputTypes["SupportTicket"]],
 chatcoopCreateAccount?: [{	data: ResolverInputTypes["CreateMatrixAccountInputDTO"]},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ResolverInputTypes["CreateChatCoopCalendarEventInput"]},ResolverInputTypes["ChatCoopCalendarEvent"]],
 	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
@@ -25836,6 +26137,7 @@ createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]}
 createMembershipExit?: [{	data: ResolverInputTypes["CreateMembershipExitInput"]},ResolverInputTypes["MembershipExitResult"]],
 createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
+createSupportTicket?: [{	data: ResolverInputTypes["CreateSupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
 deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubscriptionInput"]},boolean | `@${string}`],
@@ -25851,6 +26153,7 @@ deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
+escalateSupportTicket?: [{	data: ResolverInputTypes["EscalateSupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -25998,11 +26301,13 @@ publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDe
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
+replySupportTicket?: [{	data: ResolverInputTypes["ReplySupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ResolverInputTypes["Account"],
+resolveSupportTicket?: [{	data: ResolverInputTypes["ResolveSupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramDocDataInput"]},ResolverInputTypes["CapitalOnboardingState"]],
@@ -26581,6 +26886,28 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["MarketplaceWriteoffProposal"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedSupportTicketMessagesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["SupportTicketMessage"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedSupportTicketsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["SupportTicketListItem"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -27679,6 +28006,15 @@ process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
+supportTicket?: [{	id: string},ResolverInputTypes["SupportTicket"]],
+supportTicketAttachment?: [{	id: string},ResolverInputTypes["SupportTicketAttachmentWithUrl"]],
+supportTicketMessages?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null,	ticket_id: string},ResolverInputTypes["PaginatedSupportTicketMessagesPaginationResult"]],
+	/** Сколько обращений в каждом статусе — числа на закладках очереди совета.
+
+Требуемые роли: chairman, member.  */
+	supportTicketQueueSummary?:ResolverInputTypes["SupportQueueSummary"],
+supportTicketsByCooperative?: [{	filter?: ResolverInputTypes["SupportTicketsFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedSupportTicketsPaginationResult"]],
+supportTicketsByMember?: [{	filter?: ResolverInputTypes["SupportMemberTicketsFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedSupportTicketsPaginationResult"]],
 validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["FieldError"]],
 		__typename?: boolean | `@${string}`
 }>;
@@ -27887,6 +28223,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Типы товаров */
 	categoryTypes: Array<ResolverInputTypes["CategoryTypeInput"]>
 };
+	["ReplySupportTicketInput"]: {
+	/** Файлы, приложенные к сообщению. */
+	attachments?: Array<ResolverInputTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Текст сообщения. */
+	body: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReportCalendarPeriodEntry"]: AliasType<{
 	dueDate?:boolean | `@${string}`,
 	dueMonth?:boolean | `@${string}`,
@@ -28085,6 +28429,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResolveSupportTicketInput"]: {
+	/** Комментарий оператора к решению — необязателен. */
+	comment?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["ResourceDelegationDTO"]: AliasType<{
 	/** Вес CPU */
@@ -28754,6 +29104,190 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	uniqueUsers?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["SupportAttachmentInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Заявленный MIME-тип содержимого — сервер сверяет его с определённым по содержимому файла. */
+	mime_type: string,
+	/** Оригинальное имя файла — только для отображения. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах — сервер сверяет его с фактическим. */
+	size_bytes: number
+};
+	["SupportMemberTicketsFilterInput"]: {
+	/** Вид обращения. */
+	kind?: ResolverInputTypes["SupportTicketKind"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение. */
+	statuses?: Array<ResolverInputTypes["SupportTicketStatus"]> | undefined | null
+};
+	/** Роль автора записи в переписке обращения. */
+["SupportMessageAuthorRole"]:SupportMessageAuthorRole;
+	/** Сколько обращений в каждом статусе. */
+["SupportQueueSummary"]: AliasType<{
+	/** Закрытые обращения. */
+	closed?:boolean | `@${string}`,
+	/** Обращения в работе. */
+	in_progress?:boolean | `@${string}`,
+	/** Новые обращения, которые ещё никто не взял в работу. */
+	new?:boolean | `@${string}`,
+	/** Обращения, помеченные решёнными и ожидающие автоматического закрытия. */
+	resolved?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Зона ответственности за обращение. */
+["SupportResponsibilityZone"]:SupportResponsibilityZone;
+	/** Вид события в системной записи ленты обращения. */
+["SupportSystemEvent"]:SupportSystemEvent;
+	/** Обращение в поддержку: карточка. */
+["SupportTicket"]: AliasType<{
+	/** Пайщик, обратившийся в поддержку. */
+	author_username?:boolean | `@${string}`,
+	/** Когда обращение закроется само, если пайщик не возразит. Пусто, если отсчёт не идёт: обращение не решено, возвращено в работу или уже закрыто. */
+	auto_close_at?:boolean | `@${string}`,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side?:boolean | `@${string}`,
+	/** Время создания обращения. */
+	created_at?:boolean | `@${string}`,
+	/** Обращение эскалировано председателю. */
+	escalated?:boolean | `@${string}`,
+	/** Когда обращение эскалировано председателю. */
+	escalated_at?:boolean | `@${string}`,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments?:boolean | `@${string}`,
+	/** Идентификатор обращения. */
+	id?:boolean | `@${string}`,
+	/** Вид обращения. */
+	kind?:boolean | `@${string}`,
+	/** Время последнего сообщения в обращении. */
+	last_message_at?:boolean | `@${string}`,
+	/** Число записей в переписке обращения. */
+	message_count?:boolean | `@${string}`,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number?:boolean | `@${string}`,
+	/** Приоритет обращения. */
+	priority?:boolean | `@${string}`,
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count?:boolean | `@${string}`,
+	/** Когда обращение помечено решённым. */
+	resolved_at?:boolean | `@${string}`,
+	/** Зона ответственности по обращению. */
+	responsibility_zone?:boolean | `@${string}`,
+	/** Текущий статус обращения. */
+	status?:boolean | `@${string}`,
+	/** Тема обращения. */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Файл, приложенный к обращению. */
+["SupportTicketAttachment"]: AliasType<{
+	/** Идентификатор файла. */
+	id?:boolean | `@${string}`,
+	/** Тип файла, определённый по содержимому. */
+	mime_type?:boolean | `@${string}`,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда файл приложен. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто приложил файл. */
+	uploaded_by_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Файл обращения вместе со ссылкой на скачивание. */
+["SupportTicketAttachmentWithUrl"]: AliasType<{
+	/** Идентификатор файла. */
+	id?:boolean | `@${string}`,
+	/** Тип файла, определённый по содержимому. */
+	mime_type?:boolean | `@${string}`,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** Когда файл приложен. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто приложил файл. */
+	uploaded_by_username?:boolean | `@${string}`,
+	/** Ссылка на скачивание. Действует ограниченное время, поэтому запрашивается непосредственно перед открытием файла. */
+	url?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид обращения пайщика в поддержку. */
+["SupportTicketKind"]:SupportTicketKind;
+	/** Обращение в поддержку: строка списка. */
+["SupportTicketListItem"]: AliasType<{
+	/** Пайщик, обратившийся в поддержку. */
+	author_username?:boolean | `@${string}`,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side?:boolean | `@${string}`,
+	/** Время создания обращения. */
+	created_at?:boolean | `@${string}`,
+	/** Обращение эскалировано председателю. */
+	escalated?:boolean | `@${string}`,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments?:boolean | `@${string}`,
+	/** Идентификатор обращения. */
+	id?:boolean | `@${string}`,
+	/** Вид обращения. */
+	kind?:boolean | `@${string}`,
+	/** Время последнего сообщения в обращении. */
+	last_message_at?:boolean | `@${string}`,
+	/** Число записей в переписке обращения. */
+	message_count?:boolean | `@${string}`,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number?:boolean | `@${string}`,
+	/** Приоритет обращения. */
+	priority?:boolean | `@${string}`,
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count?:boolean | `@${string}`,
+	/** Текущий статус обращения. */
+	status?:boolean | `@${string}`,
+	/** Тема обращения. */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запись переписки обращения. */
+["SupportTicketMessage"]: AliasType<{
+	/** Файлы, приложенные к записи. */
+	attachments?:ResolverInputTypes["SupportTicketAttachment"],
+	/** Кем написана запись: пайщиком, советом или системой. Записывается в момент записи и потом не меняется. */
+	author_role?:boolean | `@${string}`,
+	/** Кто написал. Пусто у действий самой системы — например, у автоматического закрытия. */
+	author_username?:boolean | `@${string}`,
+	/** Текст сообщения. Пусто у системных записей. */
+	body?:boolean | `@${string}`,
+	/** Когда запись добавлена. */
+	created_at?:boolean | `@${string}`,
+	/** Идентификатор записи. */
+	id?:boolean | `@${string}`,
+	/** Детали системного события — например, прежний и новый приоритет. Состав зависит от вида события; часть деталей остаётся внутри совета и наружу не идёт. */
+	payload?:boolean | `@${string}`,
+	/** Вид системного события. Пусто у сообщений, написанных человеком. */
+	system_event?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Приоритет обращения в поддержку. */
+["SupportTicketPriority"]:SupportTicketPriority;
+	/** Статус обращения в поддержку. */
+["SupportTicketStatus"]:SupportTicketStatus;
+	["SupportTicketsFilterInput"]: {
+	/** Член совета, взявший обращение в работу. */
+	assignee_username?: string | undefined | null,
+	/** Автор обращения. Так же смотрят историю общения с конкретным пайщиком. */
+	author_username?: string | undefined | null,
+	/** Только эскалированные обращения либо, наоборот, только неэскалированные. */
+	escalated?: boolean | undefined | null,
+	/** Вид обращения. */
+	kind?: ResolverInputTypes["SupportTicketKind"] | undefined | null,
+	/** Приоритет обращения. */
+	priority?: ResolverInputTypes["SupportTicketPriority"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
+	statuses?: Array<ResolverInputTypes["SupportTicketStatus"]> | undefined | null,
+	/** Поиск по теме обращения: подстрока без учёта регистра. По текстам переписки поиска нет. */
+	subject_contains?: string | undefined | null
+};
 	["Symbols"]: AliasType<{
 	/** Точность символа управления */
 	root_govern_precision?:boolean | `@${string}`,
@@ -30136,6 +30670,12 @@ export type ModelTypes = {
 	["ArchiveComponentMetricInput"]: {
 	/** Хеш метрики */
 	metric_hash: string
+};
+	["AssignSupportTicketInput"]: {
+	/** Член совета, назначаемый оператором обращения. */
+	assignee_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AuthSequence"]: {
 		account: string,
@@ -33202,6 +33742,12 @@ export type ModelTypes = {
 	voskhod_membership_done: boolean,
 	wallet_agreement_done: boolean
 };
+	["ChangeSupportTicketPriorityInput"]: {
+	/** Новый приоритет обращения. */
+	priority: ModelTypes["SupportTicketPriority"],
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ChartOfAccountsItem"]: {
 		/** Доступные средства */
 	available: string,
@@ -34169,6 +34715,16 @@ export type ModelTypes = {
 	/** Успешно ли создана подписка */
 	success: boolean
 };
+	["CreateSupportTicketInput"]: {
+	/** Файлы, приложенные к первому сообщению. */
+	attachments?: Array<ModelTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Первый текст обращения — он же первая запись в ленте переписки. */
+	body: string,
+	/** Вид обращения. */
+	kind: ModelTypes["SupportTicketKind"],
+	/** Тема обращения. */
+	subject: string
+};
 	["CreateWithdrawInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -34553,6 +35109,12 @@ export type ModelTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	["EscalateSupportTicketInput"]: {
+	/** Причина эскалации — внутренняя записка совета, автору обращения не показывается. */
+	reason?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
@@ -39381,6 +39943,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
+	/** Взять обращение в работу или переназначить оператора.
+
+Требуемые роли: chairman, member.  */
+	assignSupportTicket: ModelTypes["SupportTicket"],
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
@@ -39755,6 +40321,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	chairmanDeclineApprove: ModelTypes["Approval"],
+	/** Изменить приоритет обращения.
+
+Требуемые роли: chairman, member.  */
+	changeSupportTicketPriority: ModelTypes["SupportTicket"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем
 
 Требуемые роли: chairman, member, user.  */
@@ -39845,6 +40415,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
+	/** Завести обращение в поддержку вместе с первым сообщением и его вложениями.
+
+Требуемые роли: chairman, member, user.  */
+	createSupportTicket: ModelTypes["SupportTicket"],
 	/** Создать веб-пуш подписку для пользователя
 
 Требуемые роли: chairman, member.  */
@@ -39901,6 +40475,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
+	/** Перевести обращение на председателя.
+
+Требуемые роли: chairman, member.  */
+	escalateSupportTicket: ModelTypes["SupportTicket"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -40319,6 +40897,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
+	/** Добавить сообщение и вложения в ленту обращения. Сообщение автора в решённом или закрытом обращении возвращает его в работу.
+
+Требуемые роли: chairman, member, user.  */
+	replySupportTicket: ModelTypes["SupportTicket"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -40331,6 +40913,10 @@ export type ModelTypes = {
 	resetKey: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: ModelTypes["Account"],
+	/** Пометить обращение решённым и запустить отсчёт автозакрытия. Возможно только для обращения, взятого в работу.
+
+Требуемые роли: chairman, member.  */
+	resolveSupportTicket: ModelTypes["SupportTicket"],
 	/** Перезапуск общего собрания пайщиков
 
 Требуемые роли: chairman.  */
@@ -40934,6 +41520,26 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["MarketplaceWriteoffProposal"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedSupportTicketMessagesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["SupportTicketMessage"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedSupportTicketsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["SupportTicketListItem"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -42352,6 +42958,30 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<ModelTypes["PrivateAccountSearchResult"]>,
+	/** Карточка обращения. Пайщику доступно только его собственное обращение.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicket: ModelTypes["SupportTicket"],
+	/** Файл обращения вместе со ссылкой на скачивание. Ссылка действует ограниченное время, поэтому запрашивается перед самым открытием файла.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketAttachment: ModelTypes["SupportTicketAttachmentWithUrl"],
+	/** Переписка обращения от старых записей к новым. Отдельный запрос, а не поле карточки: переписка растёт неограниченно.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketMessages: ModelTypes["PaginatedSupportTicketMessagesPaginationResult"],
+	/** Сколько обращений в каждом статусе — числа на закладках очереди совета.
+
+Требуемые роли: chairman, member.  */
+	supportTicketQueueSummary: ModelTypes["SupportQueueSummary"],
+	/** Очередь обращений кооператива. Тем же запросом с фильтром по автору смотрят историю общения с конкретным пайщиком.
+
+Требуемые роли: chairman, member.  */
+	supportTicketsByCooperative: ModelTypes["PaginatedSupportTicketsPaginationResult"],
+	/** Обращения текущего пайщика. Имя пайщика аргументом не принимается — список всегда свой.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketsByMember: ModelTypes["PaginatedSupportTicketsPaginationResult"],
 	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
 
 Требуемые роли: chairman.  */
@@ -42555,6 +43185,14 @@ export type ModelTypes = {
 	/** Типы товаров */
 	categoryTypes: Array<ModelTypes["CategoryTypeInput"]>
 };
+	["ReplySupportTicketInput"]: {
+	/** Файлы, приложенные к сообщению. */
+	attachments?: Array<ModelTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Текст сообщения. */
+	body: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReportCalendarPeriodEntry"]: {
 		dueDate: string,
 	dueMonth: number,
@@ -42735,6 +43373,12 @@ export type ModelTypes = {
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResolveSupportTicketInput"]: {
+	/** Комментарий оператора к решению — необязателен. */
+	comment?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["ResourceDelegationDTO"]: {
 		/** Вес CPU */
@@ -43388,6 +44032,178 @@ export type ModelTypes = {
 	total: number,
 	/** Количество уникальных пользователей */
 	uniqueUsers: number
+};
+	["SupportAttachmentInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Заявленный MIME-тип содержимого — сервер сверяет его с определённым по содержимому файла. */
+	mime_type: string,
+	/** Оригинальное имя файла — только для отображения. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах — сервер сверяет его с фактическим. */
+	size_bytes: number
+};
+	["SupportMemberTicketsFilterInput"]: {
+	/** Вид обращения. */
+	kind?: ModelTypes["SupportTicketKind"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение. */
+	statuses?: Array<ModelTypes["SupportTicketStatus"]> | undefined | null
+};
+	["SupportMessageAuthorRole"]:SupportMessageAuthorRole;
+	/** Сколько обращений в каждом статусе. */
+["SupportQueueSummary"]: {
+		/** Закрытые обращения. */
+	closed: number,
+	/** Обращения в работе. */
+	in_progress: number,
+	/** Новые обращения, которые ещё никто не взял в работу. */
+	new: number,
+	/** Обращения, помеченные решёнными и ожидающие автоматического закрытия. */
+	resolved: number
+};
+	["SupportResponsibilityZone"]:SupportResponsibilityZone;
+	["SupportSystemEvent"]:SupportSystemEvent;
+	/** Обращение в поддержку: карточка. */
+["SupportTicket"]: {
+		/** Пайщик, обратившийся в поддержку. */
+	author_username: string,
+	/** Когда обращение закроется само, если пайщик не возразит. Пусто, если отсчёт не идёт: обращение не решено, возвращено в работу или уже закрыто. */
+	auto_close_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side: Array<string>,
+	/** Время создания обращения. */
+	created_at: ModelTypes["DateTime"],
+	/** Обращение эскалировано председателю. */
+	escalated: boolean,
+	/** Когда обращение эскалировано председателю. */
+	escalated_at?: ModelTypes["DateTime"] | undefined | null,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments: boolean,
+	/** Идентификатор обращения. */
+	id: string,
+	/** Вид обращения. */
+	kind: ModelTypes["SupportTicketKind"],
+	/** Время последнего сообщения в обращении. */
+	last_message_at: ModelTypes["DateTime"],
+	/** Число записей в переписке обращения. */
+	message_count: number,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number: string,
+	/** Приоритет обращения. */
+	priority: ModelTypes["SupportTicketPriority"],
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count: number,
+	/** Когда обращение помечено решённым. */
+	resolved_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Зона ответственности по обращению. */
+	responsibility_zone: ModelTypes["SupportResponsibilityZone"],
+	/** Текущий статус обращения. */
+	status: ModelTypes["SupportTicketStatus"],
+	/** Тема обращения. */
+	subject: string
+};
+	/** Файл, приложенный к обращению. */
+["SupportTicketAttachment"]: {
+		/** Идентификатор файла. */
+	id: string,
+	/** Тип файла, определённый по содержимому. */
+	mime_type: string,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда файл приложен. */
+	uploaded_at: ModelTypes["DateTime"],
+	/** Кто приложил файл. */
+	uploaded_by_username: string
+};
+	/** Файл обращения вместе со ссылкой на скачивание. */
+["SupportTicketAttachmentWithUrl"]: {
+		/** Идентификатор файла. */
+	id: string,
+	/** Тип файла, определённый по содержимому. */
+	mime_type: string,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда файл приложен. */
+	uploaded_at: ModelTypes["DateTime"],
+	/** Кто приложил файл. */
+	uploaded_by_username: string,
+	/** Ссылка на скачивание. Действует ограниченное время, поэтому запрашивается непосредственно перед открытием файла. */
+	url: string
+};
+	["SupportTicketKind"]:SupportTicketKind;
+	/** Обращение в поддержку: строка списка. */
+["SupportTicketListItem"]: {
+		/** Пайщик, обратившийся в поддержку. */
+	author_username: string,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side: Array<string>,
+	/** Время создания обращения. */
+	created_at: ModelTypes["DateTime"],
+	/** Обращение эскалировано председателю. */
+	escalated: boolean,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments: boolean,
+	/** Идентификатор обращения. */
+	id: string,
+	/** Вид обращения. */
+	kind: ModelTypes["SupportTicketKind"],
+	/** Время последнего сообщения в обращении. */
+	last_message_at: ModelTypes["DateTime"],
+	/** Число записей в переписке обращения. */
+	message_count: number,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number: string,
+	/** Приоритет обращения. */
+	priority: ModelTypes["SupportTicketPriority"],
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count: number,
+	/** Текущий статус обращения. */
+	status: ModelTypes["SupportTicketStatus"],
+	/** Тема обращения. */
+	subject: string
+};
+	/** Запись переписки обращения. */
+["SupportTicketMessage"]: {
+		/** Файлы, приложенные к записи. */
+	attachments: Array<ModelTypes["SupportTicketAttachment"]>,
+	/** Кем написана запись: пайщиком, советом или системой. Записывается в момент записи и потом не меняется. */
+	author_role: ModelTypes["SupportMessageAuthorRole"],
+	/** Кто написал. Пусто у действий самой системы — например, у автоматического закрытия. */
+	author_username?: string | undefined | null,
+	/** Текст сообщения. Пусто у системных записей. */
+	body?: string | undefined | null,
+	/** Когда запись добавлена. */
+	created_at: ModelTypes["DateTime"],
+	/** Идентификатор записи. */
+	id: string,
+	/** Детали системного события — например, прежний и новый приоритет. Состав зависит от вида события; часть деталей остаётся внутри совета и наружу не идёт. */
+	payload?: ModelTypes["JSON"] | undefined | null,
+	/** Вид системного события. Пусто у сообщений, написанных человеком. */
+	system_event?: ModelTypes["SupportSystemEvent"] | undefined | null
+};
+	["SupportTicketPriority"]:SupportTicketPriority;
+	["SupportTicketStatus"]:SupportTicketStatus;
+	["SupportTicketsFilterInput"]: {
+	/** Член совета, взявший обращение в работу. */
+	assignee_username?: string | undefined | null,
+	/** Автор обращения. Так же смотрят историю общения с конкретным пайщиком. */
+	author_username?: string | undefined | null,
+	/** Только эскалированные обращения либо, наоборот, только неэскалированные. */
+	escalated?: boolean | undefined | null,
+	/** Вид обращения. */
+	kind?: ModelTypes["SupportTicketKind"] | undefined | null,
+	/** Приоритет обращения. */
+	priority?: ModelTypes["SupportTicketPriority"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
+	statuses?: Array<ModelTypes["SupportTicketStatus"]> | undefined | null,
+	/** Поиск по теме обращения: подстрока без учёта регистра. По текстам переписки поиска нет. */
+	subject_contains?: string | undefined | null
 };
 	["Symbols"]: {
 		/** Точность символа управления */
@@ -44768,6 +45584,12 @@ export type GraphQLTypes = {
 	["ArchiveComponentMetricInput"]: {
 		/** Хеш метрики */
 	metric_hash: string
+};
+	["AssignSupportTicketInput"]: {
+		/** Член совета, назначаемый оператором обращения. */
+	assignee_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
@@ -47995,6 +48817,12 @@ export type GraphQLTypes = {
 	wallet_agreement_done: boolean,
 	['...on ChairmanOnboardingState']: Omit<GraphQLTypes["ChairmanOnboardingState"], "...on ChairmanOnboardingState">
 };
+	["ChangeSupportTicketPriorityInput"]: {
+		/** Новый приоритет обращения. */
+	priority: GraphQLTypes["SupportTicketPriority"],
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ChartOfAccountsItem"]: {
 	__typename: "ChartOfAccountsItem",
 	/** Доступные средства */
@@ -48993,6 +49821,16 @@ export type GraphQLTypes = {
 	success: boolean,
 	['...on CreateSubscriptionResponse']: Omit<GraphQLTypes["CreateSubscriptionResponse"], "...on CreateSubscriptionResponse">
 };
+	["CreateSupportTicketInput"]: {
+		/** Файлы, приложенные к первому сообщению. */
+	attachments?: Array<GraphQLTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Первый текст обращения — он же первая запись в ленте переписки. */
+	body: string,
+	/** Вид обращения. */
+	kind: GraphQLTypes["SupportTicketKind"],
+	/** Тема обращения. */
+	subject: string
+};
 	["CreateWithdrawInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -49410,6 +50248,12 @@ export type GraphQLTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	["EscalateSupportTicketInput"]: {
+		/** Причина эскалации — внутренняя записка совета, автору обращения не показывается. */
+	reason?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	/** Направление заявления председателя собрания в совет */
 ["ExecKuDecisionInput"]: {
@@ -54609,6 +55453,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	archiveProductCard: boolean,
+	/** Взять обращение в работу или переназначить оператора.
+
+Требуемые роли: chairman, member.  */
+	assignSupportTicket: GraphQLTypes["SupportTicket"],
 	/** Утвердить и исполнить решение совета
 
 Требуемые роли: chairman.  */
@@ -54983,6 +55831,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	chairmanDeclineApprove: GraphQLTypes["Approval"],
+	/** Изменить приоритет обращения.
+
+Требуемые роли: chairman, member.  */
+	changeSupportTicketPriority: GraphQLTypes["SupportTicket"],
 	/** Создать Matrix аккаунт с именем пользователя и паролем
 
 Требуемые роли: chairman, member, user.  */
@@ -55073,6 +55925,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
+	/** Завести обращение в поддержку вместе с первым сообщением и его вложениями.
+
+Требуемые роли: chairman, member, user.  */
+	createSupportTicket: GraphQLTypes["SupportTicket"],
 	/** Создать веб-пуш подписку для пользователя
 
 Требуемые роли: chairman, member.  */
@@ -55129,6 +55985,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
+	/** Перевести обращение на председателя.
+
+Требуемые роли: chairman, member.  */
+	escalateSupportTicket: GraphQLTypes["SupportTicket"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков
 
 Требуемые роли: chairman, member.  */
@@ -55547,6 +56407,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
+	/** Добавить сообщение и вложения в ленту обращения. Сообщение автора в решённом или закрытом обращении возвращает его в работу.
+
+Требуемые роли: chairman, member, user.  */
+	replySupportTicket: GraphQLTypes["SupportTicket"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -55559,6 +56423,10 @@ export type GraphQLTypes = {
 	resetKey: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: GraphQLTypes["Account"],
+	/** Пометить обращение решённым и запустить отсчёт автозакрытия. Возможно только для обращения, взятого в работу.
+
+Требуемые роли: chairman, member.  */
+	resolveSupportTicket: GraphQLTypes["SupportTicket"],
 	/** Перезапуск общего собрания пайщиков
 
 Требуемые роли: chairman.  */
@@ -56250,6 +57118,30 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedMarketplaceWriteoffProposals']: Omit<GraphQLTypes["PaginatedMarketplaceWriteoffProposals"], "...on PaginatedMarketplaceWriteoffProposals">
+};
+	["PaginatedSupportTicketMessagesPaginationResult"]: {
+	__typename: "PaginatedSupportTicketMessagesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["SupportTicketMessage"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedSupportTicketMessagesPaginationResult']: Omit<GraphQLTypes["PaginatedSupportTicketMessagesPaginationResult"], "...on PaginatedSupportTicketMessagesPaginationResult">
+};
+	["PaginatedSupportTicketsPaginationResult"]: {
+	__typename: "PaginatedSupportTicketsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["SupportTicketListItem"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedSupportTicketsPaginationResult']: Omit<GraphQLTypes["PaginatedSupportTicketsPaginationResult"], "...on PaginatedSupportTicketsPaginationResult">
 };
 	["PaginationInput"]: {
 		/** Количество элементов на странице */
@@ -57739,6 +58631,30 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<GraphQLTypes["PrivateAccountSearchResult"]>,
+	/** Карточка обращения. Пайщику доступно только его собственное обращение.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicket: GraphQLTypes["SupportTicket"],
+	/** Файл обращения вместе со ссылкой на скачивание. Ссылка действует ограниченное время, поэтому запрашивается перед самым открытием файла.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketAttachment: GraphQLTypes["SupportTicketAttachmentWithUrl"],
+	/** Переписка обращения от старых записей к новым. Отдельный запрос, а не поле карточки: переписка растёт неограниченно.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketMessages: GraphQLTypes["PaginatedSupportTicketMessagesPaginationResult"],
+	/** Сколько обращений в каждом статусе — числа на закладках очереди совета.
+
+Требуемые роли: chairman, member.  */
+	supportTicketQueueSummary: GraphQLTypes["SupportQueueSummary"],
+	/** Очередь обращений кооператива. Тем же запросом с фильтром по автору смотрят историю общения с конкретным пайщиком.
+
+Требуемые роли: chairman, member.  */
+	supportTicketsByCooperative: GraphQLTypes["PaginatedSupportTicketsPaginationResult"],
+	/** Обращения текущего пайщика. Имя пайщика аргументом не принимается — список всегда свой.
+
+Требуемые роли: chairman, member, user.  */
+	supportTicketsByMember: GraphQLTypes["PaginatedSupportTicketsPaginationResult"],
 	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
 
 Требуемые роли: chairman.  */
@@ -57957,6 +58873,14 @@ export type GraphQLTypes = {
 	/** Типы товаров */
 	categoryTypes: Array<GraphQLTypes["CategoryTypeInput"]>
 };
+	["ReplySupportTicketInput"]: {
+		/** Файлы, приложенные к сообщению. */
+	attachments?: Array<GraphQLTypes["SupportAttachmentInput"]> | undefined | null,
+	/** Текст сообщения. */
+	body: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReportCalendarPeriodEntry"]: {
 	__typename: "ReportCalendarPeriodEntry",
 	dueDate: string,
@@ -58167,6 +59091,12 @@ export type GraphQLTypes = {
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResolveSupportTicketInput"]: {
+		/** Комментарий оператора к решению — необязателен. */
+	comment?: string | undefined | null,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["ResourceDelegationDTO"]: {
 	__typename: "ResourceDelegationDTO",
@@ -58848,6 +59778,196 @@ export type GraphQLTypes = {
 	/** Количество уникальных пользователей */
 	uniqueUsers: number,
 	['...on SubscriptionStatsDto']: Omit<GraphQLTypes["SubscriptionStatsDto"], "...on SubscriptionStatsDto">
+};
+	["SupportAttachmentInput"]: {
+		/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Заявленный MIME-тип содержимого — сервер сверяет его с определённым по содержимому файла. */
+	mime_type: string,
+	/** Оригинальное имя файла — только для отображения. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах — сервер сверяет его с фактическим. */
+	size_bytes: number
+};
+	["SupportMemberTicketsFilterInput"]: {
+		/** Вид обращения. */
+	kind?: GraphQLTypes["SupportTicketKind"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение. */
+	statuses?: Array<GraphQLTypes["SupportTicketStatus"]> | undefined | null
+};
+	/** Роль автора записи в переписке обращения. */
+["SupportMessageAuthorRole"]: SupportMessageAuthorRole;
+	/** Сколько обращений в каждом статусе. */
+["SupportQueueSummary"]: {
+	__typename: "SupportQueueSummary",
+	/** Закрытые обращения. */
+	closed: number,
+	/** Обращения в работе. */
+	in_progress: number,
+	/** Новые обращения, которые ещё никто не взял в работу. */
+	new: number,
+	/** Обращения, помеченные решёнными и ожидающие автоматического закрытия. */
+	resolved: number,
+	['...on SupportQueueSummary']: Omit<GraphQLTypes["SupportQueueSummary"], "...on SupportQueueSummary">
+};
+	/** Зона ответственности за обращение. */
+["SupportResponsibilityZone"]: SupportResponsibilityZone;
+	/** Вид события в системной записи ленты обращения. */
+["SupportSystemEvent"]: SupportSystemEvent;
+	/** Обращение в поддержку: карточка. */
+["SupportTicket"]: {
+	__typename: "SupportTicket",
+	/** Пайщик, обратившийся в поддержку. */
+	author_username: string,
+	/** Когда обращение закроется само, если пайщик не возразит. Пусто, если отсчёт не идёт: обращение не решено, возвращено в работу или уже закрыто. */
+	auto_close_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side: Array<string>,
+	/** Время создания обращения. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Обращение эскалировано председателю. */
+	escalated: boolean,
+	/** Когда обращение эскалировано председателю. */
+	escalated_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments: boolean,
+	/** Идентификатор обращения. */
+	id: string,
+	/** Вид обращения. */
+	kind: GraphQLTypes["SupportTicketKind"],
+	/** Время последнего сообщения в обращении. */
+	last_message_at: GraphQLTypes["DateTime"],
+	/** Число записей в переписке обращения. */
+	message_count: number,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number: string,
+	/** Приоритет обращения. */
+	priority: GraphQLTypes["SupportTicketPriority"],
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count: number,
+	/** Когда обращение помечено решённым. */
+	resolved_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Зона ответственности по обращению. */
+	responsibility_zone: GraphQLTypes["SupportResponsibilityZone"],
+	/** Текущий статус обращения. */
+	status: GraphQLTypes["SupportTicketStatus"],
+	/** Тема обращения. */
+	subject: string,
+	['...on SupportTicket']: Omit<GraphQLTypes["SupportTicket"], "...on SupportTicket">
+};
+	/** Файл, приложенный к обращению. */
+["SupportTicketAttachment"]: {
+	__typename: "SupportTicketAttachment",
+	/** Идентификатор файла. */
+	id: string,
+	/** Тип файла, определённый по содержимому. */
+	mime_type: string,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда файл приложен. */
+	uploaded_at: GraphQLTypes["DateTime"],
+	/** Кто приложил файл. */
+	uploaded_by_username: string,
+	['...on SupportTicketAttachment']: Omit<GraphQLTypes["SupportTicketAttachment"], "...on SupportTicketAttachment">
+};
+	/** Файл обращения вместе со ссылкой на скачивание. */
+["SupportTicketAttachmentWithUrl"]: {
+	__typename: "SupportTicketAttachmentWithUrl",
+	/** Идентификатор файла. */
+	id: string,
+	/** Тип файла, определённый по содержимому. */
+	mime_type: string,
+	/** Исходное имя файла — как его назвал отправитель. */
+	original_filename?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** Когда файл приложен. */
+	uploaded_at: GraphQLTypes["DateTime"],
+	/** Кто приложил файл. */
+	uploaded_by_username: string,
+	/** Ссылка на скачивание. Действует ограниченное время, поэтому запрашивается непосредственно перед открытием файла. */
+	url: string,
+	['...on SupportTicketAttachmentWithUrl']: Omit<GraphQLTypes["SupportTicketAttachmentWithUrl"], "...on SupportTicketAttachmentWithUrl">
+};
+	/** Вид обращения пайщика в поддержку. */
+["SupportTicketKind"]: SupportTicketKind;
+	/** Обращение в поддержку: строка списка. */
+["SupportTicketListItem"]: {
+	__typename: "SupportTicketListItem",
+	/** Пайщик, обратившийся в поддержку. */
+	author_username: string,
+	/** Члены совета, работающие с обращением. Сегодня в списке не больше одного; список — потому что к обращению можно будет подключать нескольких. */
+	council_side: Array<string>,
+	/** Время создания обращения. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Обращение эскалировано председателю. */
+	escalated: boolean,
+	/** К обращению приложен хотя бы один файл. */
+	has_attachments: boolean,
+	/** Идентификатор обращения. */
+	id: string,
+	/** Вид обращения. */
+	kind: GraphQLTypes["SupportTicketKind"],
+	/** Время последнего сообщения в обращении. */
+	last_message_at: GraphQLTypes["DateTime"],
+	/** Число записей в переписке обращения. */
+	message_count: number,
+	/** Номер обращения, который видит пайщик. Строка, а не число: номера выдаёт последовательность базы и растут они без ограничения сверху. */
+	number: string,
+	/** Приоритет обращения. */
+	priority: GraphQLTypes["SupportTicketPriority"],
+	/** Сколько раз обращение возвращалось в работу. */
+	reopen_count: number,
+	/** Текущий статус обращения. */
+	status: GraphQLTypes["SupportTicketStatus"],
+	/** Тема обращения. */
+	subject: string,
+	['...on SupportTicketListItem']: Omit<GraphQLTypes["SupportTicketListItem"], "...on SupportTicketListItem">
+};
+	/** Запись переписки обращения. */
+["SupportTicketMessage"]: {
+	__typename: "SupportTicketMessage",
+	/** Файлы, приложенные к записи. */
+	attachments: Array<GraphQLTypes["SupportTicketAttachment"]>,
+	/** Кем написана запись: пайщиком, советом или системой. Записывается в момент записи и потом не меняется. */
+	author_role: GraphQLTypes["SupportMessageAuthorRole"],
+	/** Кто написал. Пусто у действий самой системы — например, у автоматического закрытия. */
+	author_username?: string | undefined | null,
+	/** Текст сообщения. Пусто у системных записей. */
+	body?: string | undefined | null,
+	/** Когда запись добавлена. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Идентификатор записи. */
+	id: string,
+	/** Детали системного события — например, прежний и новый приоритет. Состав зависит от вида события; часть деталей остаётся внутри совета и наружу не идёт. */
+	payload?: GraphQLTypes["JSON"] | undefined | null,
+	/** Вид системного события. Пусто у сообщений, написанных человеком. */
+	system_event?: GraphQLTypes["SupportSystemEvent"] | undefined | null,
+	['...on SupportTicketMessage']: Omit<GraphQLTypes["SupportTicketMessage"], "...on SupportTicketMessage">
+};
+	/** Приоритет обращения в поддержку. */
+["SupportTicketPriority"]: SupportTicketPriority;
+	/** Статус обращения в поддержку. */
+["SupportTicketStatus"]: SupportTicketStatus;
+	["SupportTicketsFilterInput"]: {
+		/** Член совета, взявший обращение в работу. */
+	assignee_username?: string | undefined | null,
+	/** Автор обращения. Так же смотрят историю общения с конкретным пайщиком. */
+	author_username?: string | undefined | null,
+	/** Только эскалированные обращения либо, наоборот, только неэскалированные. */
+	escalated?: boolean | undefined | null,
+	/** Вид обращения. */
+	kind?: GraphQLTypes["SupportTicketKind"] | undefined | null,
+	/** Приоритет обращения. */
+	priority?: GraphQLTypes["SupportTicketPriority"] | undefined | null,
+	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
+	statuses?: Array<GraphQLTypes["SupportTicketStatus"]> | undefined | null,
+	/** Поиск по теме обращения: подстрока без учёта регистра. По текстам переписки поиска нет. */
+	subject_contains?: string | undefined | null
 };
 	["Symbols"]: {
 	__typename: "Symbols",
@@ -60368,6 +61488,46 @@ export enum StoryStatus {
 	COMPLETED = "COMPLETED",
 	PENDING = "PENDING"
 }
+/** Роль автора записи в переписке обращения. */
+export enum SupportMessageAuthorRole {
+	MEMBER = "MEMBER",
+	OPERATOR = "OPERATOR",
+	SYSTEM = "SYSTEM"
+}
+/** Зона ответственности за обращение. */
+export enum SupportResponsibilityZone {
+	COOPERATIVE = "COOPERATIVE",
+	PLATFORM = "PLATFORM"
+}
+/** Вид события в системной записи ленты обращения. */
+export enum SupportSystemEvent {
+	ASSIGNED = "ASSIGNED",
+	AUTO_CLOSED = "AUTO_CLOSED",
+	ESCALATED = "ESCALATED",
+	PRIORITY_CHANGED = "PRIORITY_CHANGED",
+	REOPENED = "REOPENED",
+	RESOLVED = "RESOLVED"
+}
+/** Вид обращения пайщика в поддержку. */
+export enum SupportTicketKind {
+	GOVERNANCE_APPEAL = "GOVERNANCE_APPEAL",
+	INCIDENT = "INCIDENT",
+	SERVICE_REQUEST = "SERVICE_REQUEST"
+}
+/** Приоритет обращения в поддержку. */
+export enum SupportTicketPriority {
+	CRITICAL = "CRITICAL",
+	HIGH = "HIGH",
+	LOW = "LOW",
+	NORMAL = "NORMAL"
+}
+/** Статус обращения в поддержку. */
+export enum SupportTicketStatus {
+	CLOSED = "CLOSED",
+	IN_PROGRESS = "IN_PROGRESS",
+	NEW = "NEW",
+	RESOLVED = "RESOLVED"
+}
 /** Состояние контроллера кооператива */
 export enum SystemStatus {
 	active = "active",
@@ -60451,6 +61611,7 @@ type ZEUS_VARIABLES = {
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
 	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
+	["AssignSupportTicketInput"]: ValueTypes["AssignSupportTicketInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
@@ -60517,6 +61678,7 @@ type ZEUS_VARIABLES = {
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
+	["ChangeSupportTicketPriorityInput"]: ValueTypes["ChangeSupportTicketPriorityInput"];
 	["CheckMatrixUsernameInput"]: ValueTypes["CheckMatrixUsernameInput"];
 	["CloseKuDecisionInput"]: ValueTypes["CloseKuDecisionInput"];
 	["CloseProjectInput"]: ValueTypes["CloseProjectInput"];
@@ -60575,6 +61737,7 @@ type ZEUS_VARIABLES = {
 	["CreateSovietIndividualDataInput"]: ValueTypes["CreateSovietIndividualDataInput"];
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
+	["CreateSupportTicketInput"]: ValueTypes["CreateSupportTicketInput"];
 	["CreateWithdrawInput"]: ValueTypes["CreateWithdrawInput"];
 	["CurrentTableStatesFiltersInput"]: ValueTypes["CurrentTableStatesFiltersInput"];
 	["CycleStatus"]: ValueTypes["CycleStatus"];
@@ -60602,6 +61765,7 @@ type ZEUS_VARIABLES = {
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
+	["EscalateSupportTicketInput"]: ValueTypes["EscalateSupportTicketInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];
 	["ExpenseFileKind"]: ValueTypes["ExpenseFileKind"];
@@ -60945,6 +62109,7 @@ type ZEUS_VARIABLES = {
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
 	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
+	["ReplySupportTicketInput"]: ValueTypes["ReplySupportTicketInput"];
 	["ReportExpenseItemInput"]: ValueTypes["ReportExpenseItemInput"];
 	["ReportHistoryFilterInput"]: ValueTypes["ReportHistoryFilterInput"];
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
@@ -60961,6 +62126,7 @@ type ZEUS_VARIABLES = {
 	["RequestTypeInput"]: ValueTypes["RequestTypeInput"];
 	["RequisiteSource"]: ValueTypes["RequisiteSource"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
+	["ResolveSupportTicketInput"]: ValueTypes["ResolveSupportTicketInput"];
 	["RestartAnnualGeneralMeetInput"]: ValueTypes["RestartAnnualGeneralMeetInput"];
 	["ResultContributionActGenerateInput"]: ValueTypes["ResultContributionActGenerateInput"];
 	["ResultContributionDecisionGenerateInput"]: ValueTypes["ResultContributionDecisionGenerateInput"];
@@ -61014,6 +62180,15 @@ type ZEUS_VARIABLES = {
 	["StoryStatus"]: ValueTypes["StoryStatus"];
 	["SubmitExpenseReportInput"]: ValueTypes["SubmitExpenseReportInput"];
 	["SubmitVoteInput"]: ValueTypes["SubmitVoteInput"];
+	["SupportAttachmentInput"]: ValueTypes["SupportAttachmentInput"];
+	["SupportMemberTicketsFilterInput"]: ValueTypes["SupportMemberTicketsFilterInput"];
+	["SupportMessageAuthorRole"]: ValueTypes["SupportMessageAuthorRole"];
+	["SupportResponsibilityZone"]: ValueTypes["SupportResponsibilityZone"];
+	["SupportSystemEvent"]: ValueTypes["SupportSystemEvent"];
+	["SupportTicketKind"]: ValueTypes["SupportTicketKind"];
+	["SupportTicketPriority"]: ValueTypes["SupportTicketPriority"];
+	["SupportTicketStatus"]: ValueTypes["SupportTicketStatus"];
+	["SupportTicketsFilterInput"]: ValueTypes["SupportTicketsFilterInput"];
 	["SystemStatus"]: ValueTypes["SystemStatus"];
 	["TranscriptionStatus"]: ValueTypes["TranscriptionStatus"];
 	["TriggerNotificationWorkflowInput"]: ValueTypes["TriggerNotificationWorkflowInput"];

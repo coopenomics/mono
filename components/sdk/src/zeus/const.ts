@@ -113,6 +113,9 @@ export const AllTypesProps: Record<string,any> = {
 	ArchiveComponentMetricInput:{
 
 	},
+	AssignSupportTicketInput:{
+
+	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -317,6 +320,9 @@ export const AllTypesProps: Record<string,any> = {
 	ChairmanOnboardingGeneralMeetInput:{
 
 	},
+	ChangeSupportTicketPriorityInput:{
+		priority:"SupportTicketPriority"
+	},
 	CheckMatrixUsernameInput:{
 
 	},
@@ -512,6 +518,10 @@ export const AllTypesProps: Record<string,any> = {
 	CreateSubscriptionInput:{
 		subscription:"WebPushSubscriptionDataInput"
 	},
+	CreateSupportTicketInput:{
+		attachments:"SupportAttachmentInput",
+		kind:"SupportTicketKind"
+	},
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
@@ -581,6 +591,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EntrepreneurDetailsInput:{
+
+	},
+	EscalateSupportTicketInput:{
 
 	},
 	ExecKuDecisionInput:{
@@ -1387,6 +1400,9 @@ export const AllTypesProps: Record<string,any> = {
 		archiveProductCard:{
 
 		},
+		assignSupportTicket:{
+			data:"AssignSupportTicketInput"
+		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
@@ -1694,6 +1710,9 @@ export const AllTypesProps: Record<string,any> = {
 		chairmanDeclineApprove:{
 			data:"DeclineApproveInput"
 		},
+		changeSupportTicketPriority:{
+			data:"ChangeSupportTicketPriorityInput"
+		},
 		chatcoopCreateAccount:{
 			data:"CreateMatrixAccountInputDTO"
 		},
@@ -1763,6 +1782,9 @@ export const AllTypesProps: Record<string,any> = {
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
 		},
+		createSupportTicket:{
+			data:"CreateSupportTicketInput"
+		},
 		createWebPushSubscription:{
 			data:"CreateSubscriptionInput"
 		},
@@ -1807,6 +1829,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		editBranch:{
 			data:"EditBranchInput"
+		},
+		escalateSupportTicket:{
+			data:"EscalateSupportTicketInput"
 		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
@@ -2262,6 +2287,9 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		replySupportTicket:{
+			data:"ReplySupportTicketInput"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
@@ -2270,6 +2298,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		resetKey:{
 			data:"ResetKeyInput"
+		},
+		resolveSupportTicket:{
+			data:"ResolveSupportTicketInput"
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
@@ -3084,6 +3115,23 @@ export const AllTypesProps: Record<string,any> = {
 		searchPrivateAccounts:{
 			data:"SearchPrivateAccountsInput"
 		},
+		supportTicket:{
+
+		},
+		supportTicketAttachment:{
+
+		},
+		supportTicketMessages:{
+			options:"PaginationInput"
+		},
+		supportTicketsByCooperative:{
+			filter:"SupportTicketsFilterInput",
+			options:"PaginationInput"
+		},
+		supportTicketsByMember:{
+			filter:"SupportMemberTicketsFilterInput",
+			options:"PaginationInput"
+		},
 		validateReportEdits:{
 			reportType:"ReportType"
 		}
@@ -3129,6 +3177,9 @@ export const AllTypesProps: Record<string,any> = {
 	ReplaceAvailableItemsInput:{
 		categoryTypes:"CategoryTypeInput"
 	},
+	ReplySupportTicketInput:{
+		attachments:"SupportAttachmentInput"
+	},
 	ReportExpenseItemInput:{
 
 	},
@@ -3160,6 +3211,9 @@ export const AllTypesProps: Record<string,any> = {
 	RequestTypeInput: "enum" as const,
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
+
+	},
+	ResolveSupportTicketInput:{
 
 	},
 	RestartAnnualGeneralMeetInput:{
@@ -3327,6 +3381,24 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceEvents:{
 			input:"MarketplaceEventsInput"
 		}
+	},
+	SupportAttachmentInput:{
+
+	},
+	SupportMemberTicketsFilterInput:{
+		kind:"SupportTicketKind",
+		statuses:"SupportTicketStatus"
+	},
+	SupportMessageAuthorRole: "enum" as const,
+	SupportResponsibilityZone: "enum" as const,
+	SupportSystemEvent: "enum" as const,
+	SupportTicketKind: "enum" as const,
+	SupportTicketPriority: "enum" as const,
+	SupportTicketStatus: "enum" as const,
+	SupportTicketsFilterInput:{
+		kind:"SupportTicketKind",
+		priority:"SupportTicketPriority",
+		statuses:"SupportTicketStatus"
 	},
 	SystemStatus: "enum" as const,
 	TranscriptionStatus: "enum" as const,
@@ -6439,6 +6511,7 @@ export const ReturnTypes: Record<string,any> = {
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		archiveProductCard:"Boolean",
+		assignSupportTicket:"SupportTicket",
 		authorizeDecision:"Transaction",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
@@ -6534,6 +6607,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
+		changeSupportTicketPriority:"SupportTicket",
 		chatcoopCreateAccount:"Boolean",
 		chatcoopCreateCalendarEvent:"ChatCoopCalendarEvent",
 		chatcoopCreateCalendarIcsSubscription:"ChatCoopCalendarIcsUrlResponse",
@@ -6558,6 +6632,7 @@ export const ReturnTypes: Record<string,any> = {
 		createMembershipExit:"MembershipExitResult",
 		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
+		createSupportTicket:"SupportTicket",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
@@ -6573,6 +6648,7 @@ export const ReturnTypes: Record<string,any> = {
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		editBranch:"Branch",
+		escalateSupportTicket:"SupportTicket",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
@@ -6716,10 +6792,12 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		replySupportTicket:"SupportTicket",
 		reportExpenseItem:"ExpenseReportResult",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetRegistration:"Account",
+		resolveSupportTicket:"SupportTicket",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
@@ -7013,6 +7091,18 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedMarketplaceWriteoffProposals:{
 		currentPage:"Int",
 		items:"MarketplaceWriteoffProposal",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedSupportTicketMessagesPaginationResult:{
+		currentPage:"Int",
+		items:"SupportTicketMessage",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedSupportTicketsPaginationResult:{
+		currentPage:"Int",
+		items:"SupportTicketListItem",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -7519,6 +7609,12 @@ export const ReturnTypes: Record<string,any> = {
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
+		supportTicket:"SupportTicket",
+		supportTicketAttachment:"SupportTicketAttachmentWithUrl",
+		supportTicketMessages:"PaginatedSupportTicketMessagesPaginationResult",
+		supportTicketQueueSummary:"SupportQueueSummary",
+		supportTicketsByCooperative:"PaginatedSupportTicketsPaginationResult",
+		supportTicketsByMember:"PaginatedSupportTicketsPaginationResult",
 		validateReportEdits:"FieldError"
 	},
 	Question:{
@@ -7749,6 +7845,75 @@ export const ReturnTypes: Record<string,any> = {
 		inactive:"Int",
 		total:"Int",
 		uniqueUsers:"Int"
+	},
+	SupportQueueSummary:{
+		closed:"Int",
+		in_progress:"Int",
+		new:"Int",
+		resolved:"Int"
+	},
+	SupportTicket:{
+		author_username:"String",
+		auto_close_at:"DateTime",
+		council_side:"String",
+		created_at:"DateTime",
+		escalated:"Boolean",
+		escalated_at:"DateTime",
+		has_attachments:"Boolean",
+		id:"String",
+		kind:"SupportTicketKind",
+		last_message_at:"DateTime",
+		message_count:"Int",
+		number:"String",
+		priority:"SupportTicketPriority",
+		reopen_count:"Int",
+		resolved_at:"DateTime",
+		responsibility_zone:"SupportResponsibilityZone",
+		status:"SupportTicketStatus",
+		subject:"String"
+	},
+	SupportTicketAttachment:{
+		id:"String",
+		mime_type:"String",
+		original_filename:"String",
+		size_bytes:"Int",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
+	},
+	SupportTicketAttachmentWithUrl:{
+		id:"String",
+		mime_type:"String",
+		original_filename:"String",
+		size_bytes:"Int",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String",
+		url:"String"
+	},
+	SupportTicketListItem:{
+		author_username:"String",
+		council_side:"String",
+		created_at:"DateTime",
+		escalated:"Boolean",
+		has_attachments:"Boolean",
+		id:"String",
+		kind:"SupportTicketKind",
+		last_message_at:"DateTime",
+		message_count:"Int",
+		number:"String",
+		priority:"SupportTicketPriority",
+		reopen_count:"Int",
+		status:"SupportTicketStatus",
+		subject:"String"
+	},
+	SupportTicketMessage:{
+		attachments:"SupportTicketAttachment",
+		author_role:"SupportMessageAuthorRole",
+		author_username:"String",
+		body:"String",
+		created_at:"DateTime",
+		id:"String",
+		payload:"JSON",
+		system_event:"SupportSystemEvent"
 	},
 	Symbols:{
 		root_govern_precision:"Float",
