@@ -27,14 +27,16 @@
       template(#cell-status="{ row }")
         BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
 
-      //- Пакетная подписка (Epic 13 v5.1) считает израсходованное из месячной
-      //- квоты, обычная — фиксированную цену периода. Валюта называется один
-      //- раз: её печатает formatPrice, дописывать рядом нельзя.
+      //- Три случая: услуга включена оператором (цена 0), пакетная услуга
+      //- (документооборот — платится кратно пакету по мере расхода) и обычная
+      //- повременная. Валюту печатает formatPrice, рядом её не дописываем.
       template(#cell-price="{ row }")
-        template(v-if="isPackage(row)")
-          .subs-card__price.t-mono.t-num
-            | {{ formatAmount(row.packages_current_period_amount || 0) }} / {{ formatPrice(row.monthly_quota_rub || 0) }}
-          .subs-card__period пакеты в месяц
+        template(v-if="isFree(row)")
+          .subs-card__price.t-mono.t-num {{ formatPrice(0) }}
+          .subs-card__period включено оператором
+        template(v-else-if="isPackage(row)")
+          .subs-card__price.t-mono.t-num {{ formatPrice(row.packages_current_period_amount || 0) }}
+          .subs-card__period {{ packageBreakdown(row) }}
         template(v-else)
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
           .subs-card__period в месяц
@@ -153,6 +155,30 @@ const isHosting = (sub: any): boolean => sub?.subscription_type_id === 1
 // Epic 13 v5.1: пакетная подписка считает израсходованное из месячной квоты.
 const isPackage = (sub: any): boolean => sub?.kind === 'package'
 
+// Услуга с нулевой ценой — освобождение, назначенное оператором: оператор
+// эмитирует AXON сам, у отдельных кооперативов ЭДО покрыт договорённостью, а
+// ранние участники не подписывали соглашение на платный хостинг. Строку всё
+// равно показываем: подписка у кооператива есть, просто встречного платежа нет.
+const isFree = (sub: any): boolean => Number(sub?.price ?? 0) === 0
+
+/**
+ * Пакетная услуга платится кратно: цена одного пакета фиксирована, а сумма
+ * месяца растёт по мере расхода — кончился ресурс, куплен ещё пакет. Поэтому
+ * под суммой объясняем, из чего она сложилась и где потолок, выше которого
+ * автоматика докупать не станет.
+ */
+const packageBreakdown = (sub: any): string => {
+  const packagePrice = Number(sub?.price ?? 0)
+  const spent = Number(sub?.packages_current_period_amount ?? 0)
+  const quota = Number(sub?.monthly_quota_rub ?? 0)
+  const packages = packagePrice > 0 ? Math.round(spent / packagePrice) : 0
+  const quotaPart = quota > 0 ? ` · потолок ${formatPrice(quota)}` : ''
+  if (packages > 0) {
+    return `${packages} × ${formatPrice(packagePrice)}${quotaPart}`
+  }
+  return `${formatPrice(packagePrice)} за пакет${quotaPart}`
+}
+
 // Только дороже текущего: даунгрейд провайдер отклонит — диск нового сервера
 // должен вмещать данные старого, поэтому и не предлагаем.
 const upgradeOptions = computed(() =>
@@ -203,16 +229,6 @@ const confirmUpgrade = async () => {
 const formatPrice = (price: number | string): string => {
   const sym = info.symbols?.root_govern_symbol || 'AXON'
   return formatAsset2Digits(`${String(price)} ${sym}`)
-}
-
-// Та же сумма без валюты — для первой части дроби «израсходовано / квота»,
-// где валюта называется один раз, у второго числа. Отрезаем символ у готовой
-// строки, а не форматируем число без символа: на нуле форматтер уходит в
-// раннюю ветку и отдаёт «0.00» с точкой вместо «0,00».
-const formatAmount = (price: number | string): string => {
-  const formatted = formatPrice(price)
-  const symbolAt = formatted.lastIndexOf(' ')
-  return symbolAt > 0 ? formatted.slice(0, symbolAt) : formatted
 }
 </script>
 
