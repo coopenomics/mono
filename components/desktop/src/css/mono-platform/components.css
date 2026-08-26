@@ -446,6 +446,17 @@ body {
    вариант для всех карточек группы; выключка суммы вправо сохраняется. */
 .wallet--stacked .wallet__amount { flex: 1 0 100%; }
 
+/* Строка действий кошелька: во всю ширину тела, отделена hairline'ом. */
+.wallet__actions {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+  margin-top: var(--p-1);
+  padding-top: var(--p-3);
+  border-top: 1px solid var(--p-line);
+}
+
 /* ---- Table ---- */
 .table-wrap {
   background: var(--p-surface);

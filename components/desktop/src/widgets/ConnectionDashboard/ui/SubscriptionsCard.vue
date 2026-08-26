@@ -47,7 +47,7 @@
       template(#cell-actions="{ row }")
         BaseButton(
           v-if="isHosting(row)"
-          variant="ghost"
+          variant="secondary"
           size="sm"
           type="button"
           @click="openUpgrade(row)"
@@ -228,6 +228,7 @@ const formatAmount = (price: number | string): string => {
   margin-top: 2px;
 }
 .subs-card__price {
+  font-size: var(--p-fs-h3);
   font-weight: 600;
   color: var(--p-ink);
 }

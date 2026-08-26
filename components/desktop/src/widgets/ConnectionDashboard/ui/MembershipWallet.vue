@@ -8,16 +8,15 @@
     :symbol="balance.symbol || fallbackSymbol"
     :loading="initialLoading"
   )
-  //- Действие живёт под карточкой, а не внутри неё: WalletCard — законченная
-  //- плитка канона, и врезать в неё кнопку значило бы верстать кошелёк руками.
-  BaseButton.membership-wallet__action(
-    variant="ghost"
-    size="sm"
-    type="button"
-    @click="openConvert"
-  )
-    q-icon(name="sync_alt" size="14px").q-mr-xs
-    | Конвертировать в членский
+    template(#actions)
+      BaseButton(
+        variant="ghost"
+        size="sm"
+        type="button"
+        @click="openConvert"
+      )
+        q-icon(name="sync_alt" size="14px").q-mr-xs
+        | Конвертировать в членский
 
   ConvertToBillingDialog
 </template>
@@ -61,13 +60,9 @@ watch(isVisible, (open, wasOpen) => {
 </script>
 
 <style scoped>
+/* Обёртка нужна только чтобы рядом с карточкой жил диалог конвертации —
+   собственной геометрии у неё нет, ширину задаёт колонка сетки. */
 .membership-wallet {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--p-2);
-}
-.membership-wallet__action {
-  margin-left: calc(-1 * var(--p-2));
+  display: contents;
 }
 </style>

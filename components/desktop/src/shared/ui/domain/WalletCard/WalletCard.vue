@@ -32,6 +32,13 @@
           <span class="ccy">&nbsp;{{ symbol }}</span>
         </div>
       </div>
+
+      <!-- Действие кошелька («конвертировать», «пополнить») живёт внутри
+           карточки: снаружи кнопка выглядит потерянной, а плитка перестаёт
+           читаться как законченный объект. -->
+      <div v-if="$slots.actions" class="wallet__actions">
+        <slot name="actions" />
+      </div>
     </div>
   </div>
 </template>

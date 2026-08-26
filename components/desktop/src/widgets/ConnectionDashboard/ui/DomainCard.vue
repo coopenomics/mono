@@ -13,7 +13,7 @@
         BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
         BaseButton(
           v-if="!isEditing"
-          variant="ghost"
+          variant="secondary"
           size="sm"
           type="button"
           aria-label="Изменить домен"

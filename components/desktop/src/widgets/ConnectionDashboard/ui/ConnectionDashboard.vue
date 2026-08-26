@@ -4,15 +4,14 @@
   //- механика подключения, поэтому внутри карточек пояснительных баннеров
   //- больше нет.
   PageHint(storage-key="connection:dashboard:banner-dismissed")
-    | Подписки кооператива оплачиваются членскими взносами: пайщик переводит
-    | свой паевой взнос в членский, а оператор платформы сам докупает на него
-    | AXON — ресурс, которым оплачивается документооборот (расход по факту
-    | работы, но не меньше 5 AXON в день). Прямое пополнение AXON паевым
-    | взносом не предусмотрено.
+    | Подписки оплачиваются членскими взносами: пайщик переводит в них свой
+    | паевой взнос. AXON для документооборота оператор докупает сам — по факту
+    | работы, но не меньше 5 AXON в день; напрямую паевым взносом он не
+    | пополняется.
 
   DomainCard
 
-  .row.q-col-gutter-md
+  .conn-dash__wallets.row.q-col-gutter-md
     .col-12.col-md-6
       MembershipWallet
     .col-12.col-md-6
@@ -35,5 +34,13 @@ import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard } from './i
   display: flex;
   flex-direction: column;
   gap: var(--p-5);
+}
+/* Кошельки — одной высоты: у членских есть строка действия, у AXON её нет,
+   и без растяжения плитки стояли бы ступенькой. */
+.conn-dash__wallets > [class^='col'] {
+  display: flex;
+}
+.conn-dash__wallets :deep(.wallet) {
+  flex: 1;
 }
 </style>
