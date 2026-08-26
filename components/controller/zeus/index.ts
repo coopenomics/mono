@@ -1253,6 +1253,12 @@ export type ValueTypes = {
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["AddSupportTicketParticipantInput"]: {
+	/** Член совета, подключаемый к обращению. */
+	participant_username: string | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
+};
 	["AddTrustedAccountInput"]: {
 	/** Имя аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
@@ -11619,6 +11625,7 @@ export type ValueTypes = {
 addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
+addSupportTicketParticipant?: [{	data: ValueTypes["AddSupportTicketParticipantInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 assignSupportTicket?: [{	data: ValueTypes["AssignSupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
@@ -11909,6 +11916,7 @@ publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionIn
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
+removeSupportTicketParticipant?: [{	data: ValueTypes["RemoveSupportTicketParticipantInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 replySupportTicket?: [{	data: ValueTypes["ReplySupportTicketInput"] | Variable<any, string>},ValueTypes["SupportTicket"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
@@ -13901,6 +13909,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string | Variable<any, string>
 };
+	["RemoveSupportTicketParticipantInput"]: {
+	/** Участник, отключаемый от обращения. */
+	participant_username: string | Variable<any, string>,
+	/** Идентификатор обращения. */
+	ticket_id: string | Variable<any, string>
+};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number> | Variable<any, string>,
@@ -14995,6 +15009,8 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	escalated?: boolean | undefined | null | Variable<any, string>,
 	/** Вид обращения. */
 	kind?: ValueTypes["SupportTicketKind"] | undefined | null | Variable<any, string>,
+	/** Член совета, подключённый к обращению участником. Своим именем так смотрят обращения, где участвуешь. */
+	participant_username?: string | undefined | null | Variable<any, string>,
 	/** Приоритет обращения. */
 	priority?: ValueTypes["SupportTicketPriority"] | undefined | null | Variable<any, string>,
 	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
@@ -15909,6 +15925,12 @@ export type ResolverInputTypes = {
 	sbp_data?: ResolverInputTypes["SbpDataInput"] | undefined | null,
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["AddSupportTicketParticipantInput"]: {
+	/** Член совета, подключаемый к обращению. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AddTrustedAccountInput"]: {
 	/** Имя аккаунта кооперативного участка */
@@ -26011,6 +26033,7 @@ export type ResolverInputTypes = {
 addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
+addSupportTicketParticipant?: [{	data: ResolverInputTypes["AddSupportTicketParticipantInput"]},ResolverInputTypes["SupportTicket"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignSupportTicket?: [{	data: ResolverInputTypes["AssignSupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
@@ -26301,6 +26324,7 @@ publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDe
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
+removeSupportTicketParticipant?: [{	data: ResolverInputTypes["RemoveSupportTicketParticipantInput"]},ResolverInputTypes["SupportTicket"]],
 replySupportTicket?: [{	data: ResolverInputTypes["ReplySupportTicketInput"]},ResolverInputTypes["SupportTicket"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
@@ -28217,6 +28241,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
 };
+	["RemoveSupportTicketParticipantInput"]: {
+	/** Участник, отключаемый от обращения. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -29281,6 +29311,8 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	escalated?: boolean | undefined | null,
 	/** Вид обращения. */
 	kind?: ResolverInputTypes["SupportTicketKind"] | undefined | null,
+	/** Член совета, подключённый к обращению участником. Своим именем так смотрят обращения, где участвуешь. */
+	participant_username?: string | undefined | null,
 	/** Приоритет обращения. */
 	priority?: ResolverInputTypes["SupportTicketPriority"] | undefined | null,
 	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
@@ -30169,6 +30201,12 @@ export type ModelTypes = {
 	sbp_data?: ModelTypes["SbpDataInput"] | undefined | null,
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["AddSupportTicketParticipantInput"]: {
+	/** Член совета, подключаемый к обращению. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AddTrustedAccountInput"]: {
 	/** Имя аккаунта кооперативного участка */
@@ -39935,6 +39973,10 @@ export type ModelTypes = {
 	addParticipant: ModelTypes["Account"],
 	/** Добавить метод оплаты (банковский счёт или СБП) */
 	addPaymentMethod: ModelTypes["PaymentMethod"],
+	/** Подключить члена совета к обращению: он начнёт получать уведомления по нему и увидит его в своей очереди.
+
+Требуемые роли: chairman, member.  */
+	addSupportTicketParticipant: ModelTypes["SupportTicket"],
 	/** Добавить доверенное лицо кооперативного участка
 
 Требуемые роли: chairman.  */
@@ -40897,6 +40939,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
+	/** Отключить участника от обращения: он перестанет получать уведомления по нему, доступ к обращению у совета сохраняется.
+
+Требуемые роли: chairman, member.  */
+	removeSupportTicketParticipant: ModelTypes["SupportTicket"],
 	/** Добавить сообщение и вложения в ленту обращения. Сообщение автора в решённом или закрытом обращении возвращает его в работу.
 
 Требуемые роли: chairman, member, user.  */
@@ -43179,6 +43225,12 @@ export type ModelTypes = {
 	/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
 };
+	["RemoveSupportTicketParticipantInput"]: {
+	/** Участник, отключаемый от обращения. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReplaceAvailableItemsInput"]: {
 	/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -44198,6 +44250,8 @@ export type ModelTypes = {
 	escalated?: boolean | undefined | null,
 	/** Вид обращения. */
 	kind?: ModelTypes["SupportTicketKind"] | undefined | null,
+	/** Член совета, подключённый к обращению участником. Своим именем так смотрят обращения, где участвуешь. */
+	participant_username?: string | undefined | null,
 	/** Приоритет обращения. */
 	priority?: ModelTypes["SupportTicketPriority"] | undefined | null,
 	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
@@ -45069,6 +45123,12 @@ export type GraphQLTypes = {
 	sbp_data?: GraphQLTypes["SbpDataInput"] | undefined | null,
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["AddSupportTicketParticipantInput"]: {
+		/** Член совета, подключаемый к обращению. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
 };
 	["AddTrustedAccountInput"]: {
 		/** Имя аккаунта кооперативного участка */
@@ -55445,6 +55505,10 @@ export type GraphQLTypes = {
 	addParticipant: GraphQLTypes["Account"],
 	/** Добавить метод оплаты (банковский счёт или СБП) */
 	addPaymentMethod: GraphQLTypes["PaymentMethod"],
+	/** Подключить члена совета к обращению: он начнёт получать уведомления по нему и увидит его в своей очереди.
+
+Требуемые роли: chairman, member.  */
+	addSupportTicketParticipant: GraphQLTypes["SupportTicket"],
 	/** Добавить доверенное лицо кооперативного участка
 
 Требуемые роли: chairman.  */
@@ -56407,6 +56471,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
+	/** Отключить участника от обращения: он перестанет получать уведомления по нему, доступ к обращению у совета сохраняется.
+
+Требуемые роли: chairman, member.  */
+	removeSupportTicketParticipant: GraphQLTypes["SupportTicket"],
 	/** Добавить сообщение и вложения в ленту обращения. Сообщение автора в решённом или закрытом обращении возвращает его в работу.
 
 Требуемые роли: chairman, member, user.  */
@@ -58867,6 +58935,12 @@ export type GraphQLTypes = {
 		/** Идентификатор комнаты в реестре, которую нужно удалить */
 	id: string
 };
+	["RemoveSupportTicketParticipantInput"]: {
+		/** Участник, отключаемый от обращения. */
+	participant_username: string,
+	/** Идентификатор обращения. */
+	ticket_id: string
+};
 	["ReplaceAvailableItemsInput"]: {
 		/** ID категорий (целые категории) */
 	categoryIds: Array<number>,
@@ -59962,6 +60036,8 @@ export type GraphQLTypes = {
 	escalated?: boolean | undefined | null,
 	/** Вид обращения. */
 	kind?: GraphQLTypes["SupportTicketKind"] | undefined | null,
+	/** Член совета, подключённый к обращению участником. Своим именем так смотрят обращения, где участвуешь. */
+	participant_username?: string | undefined | null,
 	/** Приоритет обращения. */
 	priority?: GraphQLTypes["SupportTicketPriority"] | undefined | null,
 	/** Статусы обращений. Набор, а не одно значение: закладка «активные» — это новые и в работе вместе. */
@@ -61585,6 +61661,7 @@ type ZEUS_VARIABLES = {
 	["AddBranchWhitelistInput"]: ValueTypes["AddBranchWhitelistInput"];
 	["AddParticipantInput"]: ValueTypes["AddParticipantInput"];
 	["AddPaymentMethodInput"]: ValueTypes["AddPaymentMethodInput"];
+	["AddSupportTicketParticipantInput"]: ValueTypes["AddSupportTicketParticipantInput"];
 	["AddTrustedAccountInput"]: ValueTypes["AddTrustedAccountInput"];
 	["AgendaGeneralMeetPointInput"]: ValueTypes["AgendaGeneralMeetPointInput"];
 	["AgendaGeneralMeetQuestion"]: ValueTypes["AgendaGeneralMeetQuestion"];
@@ -62108,6 +62185,7 @@ type ZEUS_VARIABLES = {
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];
 	["RemoveAvailableCategoryTypesInput"]: ValueTypes["RemoveAvailableCategoryTypesInput"];
 	["RemoveSecretaryRoomInput"]: ValueTypes["RemoveSecretaryRoomInput"];
+	["RemoveSupportTicketParticipantInput"]: ValueTypes["RemoveSupportTicketParticipantInput"];
 	["ReplaceAvailableItemsInput"]: ValueTypes["ReplaceAvailableItemsInput"];
 	["ReplySupportTicketInput"]: ValueTypes["ReplySupportTicketInput"];
 	["ReportExpenseItemInput"]: ValueTypes["ReportExpenseItemInput"];

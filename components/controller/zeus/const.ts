@@ -28,6 +28,9 @@ export const AllTypesProps: Record<string,any> = {
 		bank_transfer_data:"BankAccountInput",
 		sbp_data:"SbpDataInput"
 	},
+	AddSupportTicketParticipantInput:{
+
+	},
 	AddTrustedAccountInput:{
 
 	},
@@ -1394,6 +1397,9 @@ export const AllTypesProps: Record<string,any> = {
 		addPaymentMethod:{
 			data:"AddPaymentMethodInput"
 		},
+		addSupportTicketParticipant:{
+			data:"AddSupportTicketParticipantInput"
+		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
@@ -2287,6 +2293,9 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		removeSupportTicketParticipant:{
+			data:"RemoveSupportTicketParticipantInput"
+		},
 		replySupportTicket:{
 			data:"ReplySupportTicketInput"
 		},
@@ -3172,6 +3181,9 @@ export const AllTypesProps: Record<string,any> = {
 		categoryTypes:"CategoryTypeInput"
 	},
 	RemoveSecretaryRoomInput:{
+
+	},
+	RemoveSupportTicketParticipantInput:{
 
 	},
 	ReplaceAvailableItemsInput:{
@@ -6509,6 +6521,7 @@ export const ReturnTypes: Record<string,any> = {
 		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
+		addSupportTicketParticipant:"SupportTicket",
 		addTrustedAccount:"Branch",
 		archiveProductCard:"Boolean",
 		assignSupportTicket:"SupportTicket",
@@ -6792,6 +6805,7 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		removeSupportTicketParticipant:"SupportTicket",
 		replySupportTicket:"SupportTicket",
 		reportExpenseItem:"ExpenseReportResult",
 		resendNotification:"Notification",
