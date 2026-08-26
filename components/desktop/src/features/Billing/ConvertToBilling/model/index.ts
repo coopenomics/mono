@@ -24,20 +24,21 @@ export function useConvertToBillingVisibility() {
  *
  * Двухшаговый flow (как select-branch): generate (заявление document2 по
  * registry 1095) → sign (WIF пайщика) → мутация billingConvert.
- * `amountRub` — сумма в рублях (строка/число), к мутации уходит как "<N> RUB".
+ * `amountRub` — сумма в рублях числом (как её отдаёт AmountInput), к мутации
+ * уходит как "<N> RUB".
  */
 export function useConvertToBilling() {
   const isLoading = ref(false)
   const isSubmitting = ref(false)
   const step = ref(1)
-  const amountRub = ref<string>('')
+  const amountRub = ref<number | null>(null)
   const generated = ref<Awaited<ReturnType<DigitalDocument['generate']>>>()
 
   const system = useSystemStore()
   const session = useSessionStore()
   const digitalDocument = new DigitalDocument()
 
-  const assetAmount = () => `${Number(amountRub.value)} ${system.info.symbols?.root_govern_symbol ?? 'RUB'}`
+  const assetAmount = () => `${amountRub.value ?? 0} ${system.info.symbols?.root_govern_symbol ?? 'RUB'}`
 
   const generate = async () => {
     isLoading.value = true
@@ -68,7 +69,7 @@ export function useConvertToBilling() {
       })
       isVisible.value = false
       step.value = 1
-      amountRub.value = ''
+      amountRub.value = null
       return result
     } finally {
       isSubmitting.value = false
