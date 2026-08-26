@@ -77,12 +77,11 @@ export class ProviderSubscriptionDTO {
 
   // Epic 13 v5.1 — пакетная модель подписки. Эти поля нужны desktop'у
   // (`SubscriptionsCard.isPackage`, `ResourceMonitorPage`), чтобы отличать
-  // time-подписку от package-подписки и показывать прогресс «потрачено/квота».
+  // time-подписку от package-подписки и показывать расход месяца. Месячного
+  // потолка среди них больше нет (@ant 2026-08-26): расход ограничивает баланс
+  // кошелька членских взносов — списать больше, чем на нём есть, нельзя.
   @Field(() => String, { nullable: true, description: 'Тип подписки: time или package' })
   kind?: string | null;
-
-  @Field(() => Number, { nullable: true, description: 'Месячный потолок RUB для пакетной модели' })
-  monthly_quota_rub?: number | null;
 
   @Field(() => Number, { nullable: true, description: 'Сумма RUB, докупленная в текущем месячном периоде' })
   packages_current_period_amount?: number | null;
@@ -110,11 +109,9 @@ export class ProviderSubscriptionDTO {
     // (старые time-подписки оставляют их null/undefined).
     const sub = subscription as ProviderSubscriptionType & {
       kind?: string | null;
-      monthly_quota_rub?: number | string | null;
       packages_current_period_amount?: number | string | null;
     };
     this.kind = sub.kind ?? null;
-    this.monthly_quota_rub = sub.monthly_quota_rub != null ? Number(sub.monthly_quota_rub) : null;
     this.packages_current_period_amount =
       sub.packages_current_period_amount != null ? Number(sub.packages_current_period_amount) : null;
 

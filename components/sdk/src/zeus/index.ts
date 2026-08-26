@@ -4650,7 +4650,7 @@ export type ValueTypes = {
 ["CapitalProjectPermissions"]: AliasType<{
 	/** Может ли изменять статус проекта */
 	can_change_project_status?:boolean | `@${string}`,
-	/** Может ли выполнять требован��я к проекту */
+	/** Может ли выполнять требования к проекту */
 	can_complete_requirement?:boolean | `@${string}`,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement?:boolean | `@${string}`,
@@ -8890,7 +8890,7 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
-	/** Симво�� валюты для сумм в акте. */
+	/** Символ валюты для сумм в акте. */
 	currency: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
@@ -11076,7 +11076,7 @@ export type ValueTypes = {
 	warranty_days: number | Variable<any, string>
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string | Variable<any, string>
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -13867,8 +13867,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	is_trial?:boolean | `@${string}`,
 	/** Тип подписки: time или package */
 	kind?:boolean | `@${string}`,
-	/** Месячный потолок RUB для пакетной модели */
-	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
@@ -19801,7 +19799,7 @@ export type ResolverInputTypes = {
 ["CapitalProjectPermissions"]: AliasType<{
 	/** Может ли изменять статус проекта */
 	can_change_project_status?:boolean | `@${string}`,
-	/** Может ли выполнять требован��я к проекту */
+	/** Может ли выполнять требования к проекту */
 	can_complete_requirement?:boolean | `@${string}`,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement?:boolean | `@${string}`,
@@ -23942,7 +23940,7 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Симво�� валюты для сумм в акте. */
+	/** Символ валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
@@ -26059,7 +26057,7 @@ export type ResolverInputTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -28740,8 +28738,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	is_trial?:boolean | `@${string}`,
 	/** Тип подписки: time или package */
 	kind?:boolean | `@${string}`,
-	/** Месячный потолок RUB для пакетной модели */
-	monthly_quota_rub?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
@@ -34525,7 +34521,7 @@ export type ModelTypes = {
 ["CapitalProjectPermissions"]: {
 		/** Может ли изменять статус проекта */
 	can_change_project_status: boolean,
-	/** Может ли выполнять требован��я к проекту */
+	/** Может ли выполнять требования к проекту */
 	can_complete_requirement: boolean,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement: boolean,
@@ -38536,7 +38532,7 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Симво�� валюты для сумм в акте. */
+	/** Символ валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
@@ -40549,7 +40545,7 @@ export type ModelTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -43858,8 +43854,6 @@ export type ModelTypes = {
 	is_trial: boolean,
 	/** Тип подписки: time или package */
 	kind?: string | undefined | null,
-	/** Месячный потолок RUB для пакетной модели */
-	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
@@ -46585,7 +46579,10 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    ["AccessGrant"]: {
+    // ------------------------------------------------------;
+	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
+	// ------------------------------------------------------;
+	["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -50129,7 +50126,7 @@ export type GraphQLTypes = {
 	__typename: "CapitalProjectPermissions",
 	/** Может ли изменять статус проекта */
 	can_change_project_status: boolean,
-	/** Может ли выполнять требован��я к проекту */
+	/** Может ли выполнять требования к проекту */
 	can_complete_requirement: boolean,
 	/** Может ли создавать требования к проекту */
 	can_create_requirement: boolean,
@@ -54368,7 +54365,7 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Симво�� валюты для сумм в акте. */
+	/** Символ валюты для сумм в акте. */
 	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
@@ -56555,7 +56552,7 @@ export type GraphQLTypes = {
 	warranty_days: number
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
-		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты�� пайщика. */
+		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
 };
 	["MarketplaceSetTrusteeWeightInput"]: {
@@ -60129,8 +60126,6 @@ export type GraphQLTypes = {
 	is_trial: boolean,
 	/** Тип подписки: time или package */
 	kind?: string | undefined | null,
-	/** Месячный потолок RUB для пакетной модели */
-	monthly_quota_rub?: number | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
 	/** Сумма RUB, докупленная в текущем месячном периоде */

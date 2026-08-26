@@ -3671,10 +3671,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -7737,7 +7733,6 @@ export const ReturnTypes: Record<string,any> = {
 		instance_username:"String",
 		is_trial:"Boolean",
 		kind:"String",
-		monthly_quota_rub:"Float",
 		next_payment_due:"String",
 		packages_current_period_amount:"Float",
 		period_days:"Float",

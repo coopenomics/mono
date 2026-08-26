@@ -52,12 +52,19 @@ export class ProviderResolver {
       'История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @AuthRoles(['member', 'chairman', 'user'])
   async getCooperativePayments(
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('coopname') coopname: string,
     @Args('limit', { type: () => Int, nullable: true }) limit?: number
   ): Promise<CooperativePaymentDTO[]> {
-    const rows = await this.payments.listByCoopname(coopname, limit ?? 50);
+    // Свой журнал доступен и кооперативу: у себя в кабинете он обычный пайщик
+    // контура (роль user), а списания за его же подписки — его собственные
+    // данные. Чужой журнал остаётся правом совета: для роли user имя берётся из
+    // сессии, аргумент игнорируется — соседа посмотреть нельзя.
+    const isBoard = currentUser.role === 'member' || currentUser.role === 'chairman';
+    const targetCoopname = isBoard ? coopname : currentUser.username;
+    const rows = await this.payments.listByCoopname(targetCoopname, limit ?? 50);
     return rows.map((row) => ({
       payment_hash: row.payment_hash,
       quantity: row.quantity,

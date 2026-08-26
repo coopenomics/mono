@@ -164,19 +164,17 @@ const isFree = (sub: any): boolean => Number(sub?.price ?? 0) === 0
 /**
  * Пакетная услуга платится кратно: цена одного пакета фиксирована, а сумма
  * месяца растёт по мере расхода — кончился ресурс, куплен ещё пакет. Поэтому
- * под суммой объясняем, из чего она сложилась и где потолок, выше которого
- * автоматика докупать не станет.
+ * под суммой объясняем, из чего она сложилась. Потолка расхода нет: докупку
+ * ограничивает баланс кошелька членских взносов.
  */
 const packageBreakdown = (sub: any): string => {
   const packagePrice = Number(sub?.price ?? 0)
   const spent = Number(sub?.packages_current_period_amount ?? 0)
-  const quota = Number(sub?.monthly_quota_rub ?? 0)
   const packages = packagePrice > 0 ? Math.round(spent / packagePrice) : 0
-  const quotaPart = quota > 0 ? ` · потолок ${formatPrice(quota)}` : ''
   if (packages > 0) {
-    return `${packages} × ${formatPrice(packagePrice)}${quotaPart}`
+    return `${packages} × ${formatPrice(packagePrice)} в этом месяце`
   }
-  return `${formatPrice(packagePrice)} за пакет${quotaPart}`
+  return `${formatPrice(packagePrice)} за пакет`
 }
 
 // Только дороже текущего: даунгрейд провайдер отклонит — диск нового сервера
@@ -233,15 +231,20 @@ const formatPrice = (price: number | string): string => {
 </script>
 
 <style scoped>
+/* Название и описание переносятся по словам: q-table держит ячейки в одну
+   строку, и длинное описание услуги уезжало под соседние колонки. */
 .subs-card__name {
   font-size: var(--p-fs-body);
   font-weight: 600;
   color: var(--p-ink);
+  white-space: normal;
 }
 .subs-card__desc {
   font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
   color: var(--p-ink-2);
   margin-top: 2px;
+  white-space: normal;
 }
 .subs-card__price {
   font-size: var(--p-fs-h3);
