@@ -26,20 +26,23 @@ div.row.q-pa-md
         //- Router view для дочерних страниц (завершение установки) только на дочерних маршрутах
         router-view(v-if="isOnCompletionRoute")
 
-      div(v-else).row
-        //- Заглушка для недоступного провайдера
-        div.col-md-12.col-xs-12
-          ColorCard(color="blue")
-            .text-center.q-pa-md
-              q-icon(name="fas fa-info-circle" size="2rem").q-mb-sm
-              .text-h6.q-mb-md Подключение к Кооперативной Экономике
-              p Для запуска вашего Цифрового Кооператива и подключения к платформе Кооперативной Экономики обратитесь в ПК ВОСХОД.
-              q-btn(
-                color="primary"
-                label="Перейти на сайт"
+      //- Провайдер к этому кооперативу не подключён: подключение начинается
+      //- не здесь, а обращением в ПК ВОСХОД — поэтому пустое состояние, а не
+      //- форма.
+      div(v-else)
+        BaseCard
+          EmptyState(
+            title="Подключение к кооперативной экономике"
+            body="Чтобы запустить цифровой кооператив и подключить его к платформе, обратитесь в ПК ВОСХОД."
+          )
+            template(#icon)
+              q-icon(name="hub" size="28px")
+            template(#action)
+              BaseButton(
+                variant="primary"
+                type="button"
                 @click="openProviderWebsite"
-                size="md"
-              ).q-mt-md
+              ) Перейти на сайт
 
 </template>
 <script setup lang="ts">
@@ -53,7 +56,7 @@ import {
 } from 'src/entities/ConnectionAgreement';
 import { ConnectionAgreementStepper } from 'src/widgets/ConnectionAgreementStepper';
 import { ConnectionDashboard } from 'src/widgets/ConnectionDashboard';
-import { ColorCard } from 'src/shared/ui';
+import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { Zeus } from '@coopenomics/sdk';
 import { MatrixRegistration } from '../../../../extensions/chatcoop/widgets/MatrixRegistration';

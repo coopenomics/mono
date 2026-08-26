@@ -1,34 +1,35 @@
 <template lang="pug">
 .membership-wallet
-  BaseCard(
-    title="Кошелёк членских взносов"
-    subtitle="Списывается за инфраструктурные подписки кооператива у провайдера. Пополняется конвертацией паевого взноса."
+  WalletCard(
+    program="wallet"
+    title="Членские взносы"
+    subtitle="Оплата подписок кооператива"
+    :balance="balance.amount"
+    :symbol="balance.symbol || fallbackSymbol"
+    :loading="initialLoading"
   )
-    .membership-wallet__metric
-      .membership-wallet__metric-label Доступно
-      .membership-wallet__metric-value.t-mono(v-if="initialLoading") …
-      .membership-wallet__metric-value.t-mono(v-else) {{ formattedBalance }}
-
-    .membership-wallet__actions
-      BaseButton(
-        variant="primary"
-        size="md"
-        type="button"
-        @click="openConvert"
-      )
-        q-icon(name="sync_alt" size="16px").q-mr-xs
-        | Конвертировать в членский
+  //- Действие живёт под карточкой, а не внутри неё: WalletCard — законченная
+  //- плитка канона, и врезать в неё кнопку значило бы верстать кошелёк руками.
+  BaseButton.membership-wallet__action(
+    variant="ghost"
+    size="sm"
+    type="button"
+    @click="openConvert"
+  )
+    q-icon(name="sync_alt" size="14px").q-mr-xs
+    | Конвертировать в членский
 
   ConvertToBillingDialog
 </template>
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { BaseButton, BaseCard } from 'src/shared/ui/base'
+import { BaseButton } from 'src/shared/ui/base'
+import { WalletCard } from 'src/shared/ui/domain'
 import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
 import { useSessionStore } from 'src/entities/Session'
 import { useSystemStore } from 'src/entities/System/model'
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
+import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import {
   ConvertToBillingDialog,
   useConvertToBillingVisibility,
@@ -42,12 +43,12 @@ const { membership, symbol, initialLoading, refresh } = useCooperativeMainWallet
   () => session.username || '',
 )
 
-const displaySymbol = computed(
-  () => symbol.value || system.info.symbols?.root_govern_symbol || 'RUB',
+const fallbackSymbol = computed(
+  () => system.info.symbols?.root_govern_symbol || 'RUB',
 )
 
-const formattedBalance = computed(() =>
-  formatAsset2Digits(`${membership.value} ${displaySymbol.value}`),
+const balance = computed(() =>
+  splitAsset2Digits(`${membership.value} ${symbol.value || fallbackSymbol.value}`),
 )
 
 const { isVisible } = useConvertToBillingVisibility()
@@ -60,24 +61,13 @@ watch(isVisible, (open, wasOpen) => {
 </script>
 
 <style scoped>
-.membership-wallet__metric {
+.membership-wallet {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--p-3) 0;
-}
-.membership-wallet__metric-label {
-  font-size: var(--p-fs-meta);
-  color: var(--p-ink-2);
-}
-.membership-wallet__metric-value {
-  font-size: var(--p-fs-h1);
-  font-weight: 700;
-  color: var(--p-ink);
-  min-height: 32px;
-}
-.membership-wallet__actions {
-  display: flex;
+  align-items: flex-start;
   gap: var(--p-2);
+}
+.membership-wallet__action {
+  margin-left: calc(-1 * var(--p-2));
 }
 </style>

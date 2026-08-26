@@ -71,3 +71,19 @@ export const formatAssetsInText = (text: string): string => {
       formatAsset2Digits(`${amount} ${symbol}`),
   );
 };
+
+/**
+ * Разбирает актив на отформатированную сумму и тикер по отдельности:
+ * «99999.9999 RUB» → `{ amount: '99 999,99', symbol: 'RUB' }`.
+ *
+ * Нужно там, где сумма и валюта рисуются разными элементами — прежде всего
+ * {@link WalletCard}, у которого тикер идёт отдельным `span.ccy` меньшего
+ * кегля. Раньше эта же тройка строк лежала копией в каждом виджете кошелька.
+ */
+export const splitAsset2Digits = (
+  asset: string | null | undefined,
+): { amount: string; symbol: string } => {
+  if (!asset) return { amount: '0,00', symbol: '' };
+  const parts = formatAsset2Digits(asset).split(' ');
+  return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
+};

@@ -63,7 +63,7 @@ import { useLogoutUser } from 'src/features/User/Logout';
 import { useDepositDialog, DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
 import { FailAlert } from 'src/shared/api';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
 import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
@@ -218,20 +218,14 @@ const shareWallet = computed(() =>
 );
 const walletReady = computed<boolean>(() => walletStore.program_wallets.length > 0);
 
-function splitAsset(asset?: string | null): { amount: string; symbol: string } {
-  if (!asset) return { amount: '0,00', symbol: '' };
-  const formatted = formatAsset2Digits(asset);
-  const parts = formatted.split(' ');
-  return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
-}
 
-const walletAvail = computed(() => splitAsset(shareWallet.value?.available));
+const walletAvail = computed(() => splitAsset2Digits(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
   () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
-  const split = splitAsset(shareWallet.value?.blocked);
+  const split = splitAsset2Digits(shareWallet.value?.blocked);
   if (split.amount === '0,00' || split.amount === '0.00') return undefined;
   return split.amount;
 });

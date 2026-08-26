@@ -47,7 +47,7 @@ import { collectWalletCards } from 'src/processes/init-installed-extensions/wall
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import type { WalletProgram } from 'src/shared/ui/domain/WalletCard';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 interface WalletCardEntry {
   key: string;
@@ -70,12 +70,6 @@ const session = useSessionStore();
 const desktop = useDesktopStore();
 const { info } = useSystemStore();
 
-function splitAsset(asset?: string | null): { amount: string; symbol: string } {
-  if (!asset) return { amount: '0,00', symbol: '' };
-  const formatted = formatAsset2Digits(asset);
-  const parts = formatted.split(' ');
-  return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
-}
 
 // Установленные у кооператива расширения — по их workspace'ам с бэкенда.
 // Реестр-фабрика (путь B) собирает карточки кошельков core + только этих
@@ -95,8 +89,8 @@ const walletByName = computed<Map<string, IUserWalletData>>(() => {
 const cardEntries = computed<WalletCardEntry[]>(() =>
   collectWalletCards(installedExtensions.value).map((card) => {
     const row = walletByName.value.get(card.wallet_name);
-    const available = splitAsset(row?.available);
-    const blocked = splitAsset(row?.blocked);
+    const available = splitAsset2Digits(row?.available);
+    const blocked = splitAsset2Digits(row?.blocked);
     const hasBlocked = parseFloat(row?.blocked || '0') > 0;
     return {
       key: card.wallet_name,
@@ -118,7 +112,7 @@ const minimumBalance = computed<MinimumBalance | undefined>(() => {
   const raw = session.participantAccount?.minimum_amount;
   if (!raw) return undefined;
   if (parseFloat(raw) <= 0) return undefined;
-  const split = splitAsset(`${raw} ${info.symbols.root_govern_symbol}`);
+  const split = splitAsset2Digits(`${raw} ${info.symbols.root_govern_symbol}`);
   return { amount: split.amount, symbol: split.symbol };
 });
 </script>

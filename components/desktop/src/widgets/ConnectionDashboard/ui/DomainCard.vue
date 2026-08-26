@@ -1,19 +1,19 @@
 <template lang="pug">
 .domain-card
-  BaseCard(title="Подключение" subtitle="Доменное имя цифрового кооператива у провайдера")
-    template(#actions)
+  BaseCard
+    //- Адрес — самое крупное на странице: это «шильдик» кооператива, по нему
+    //- его находят пайщики. Поэтому название карточки уходит в eyebrow, а
+    //- место заголовка занимает сам домен. Шапка BaseCard не используется:
+    //- вне режима правки тело карточки было бы пустым и давало лишний отступ.
+    .domain-card__top
+      .domain-card__head
+        .t-eyebrow.t-muted Адрес кооператива
+        .domain-card__host.t-mono(:class="{ 't-muted': isEditing }") {{ announce || '—' }}
       .domain-card__actions
-        BaseChip(
-          :variant="isDelegatingLoading ? 'neutral' : (instance?.is_delegated ? 'pos' : 'warn')"
-          size="sm"
-        )
-          q-icon(v-if="isDelegatingLoading" name="autorenew" size="12px").q-mr-xs.domain-card__spin
-          q-icon(v-else-if="instance?.is_delegated" name="check" size="12px").q-mr-xs
-          q-icon(v-else name="schedule" size="12px").q-mr-xs
-          span {{ delegationLabel }}
+        BaseBadge(:variant="delegationVariant") {{ delegationLabel }}
         BaseButton(
           v-if="!isEditing"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           type="button"
           aria-label="Изменить домен"
@@ -22,11 +22,7 @@
           q-icon(name="edit" size="14px").q-mr-xs
           | Изменить
 
-    template(v-if="!isEditing")
-      .domain-card__view
-        .domain-card__host.t-mono {{ coop.publicCooperativeData?.announce || '—' }}
-
-    template(v-else)
+    template(v-if="isEditing")
       BaseBanner(variant="warn").q-mb-md
         | Убедитесь, что домен делегирован на IP {{ SERVER_IP }}.
         | Обновление перезагрузит цифровой кооператив; данные сохранятся.
@@ -38,7 +34,7 @@
         mono
       )
 
-      .domain-card__edit-actions.q-mt-sm
+      .domain-card__edit-actions
         BaseButton(
           variant="primary"
           size="sm"
@@ -66,10 +62,10 @@ import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import {
+  BaseBadge,
   BaseBanner,
   BaseButton,
   BaseCard,
-  BaseChip,
   BaseInput,
 } from 'src/shared/ui/base'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
@@ -85,9 +81,16 @@ const isEditing = ref(false)
 const domainValue = ref('')
 const isDelegatingLoading = ref(false)
 
+const announce = computed(() => coop.publicCooperativeData?.announce || '')
+
 const delegationLabel = computed(() => {
   if (isDelegatingLoading.value) return 'обновляем'
   return instance.value?.is_delegated ? 'домен делегирован' : 'ожидание делегирования'
+})
+
+const delegationVariant = computed(() => {
+  if (isDelegatingLoading.value) return 'neutral'
+  return instance.value?.is_delegated ? 'pos' : 'warn'
 })
 
 coop.loadPublicCooperativeData(session.username)
@@ -144,32 +147,38 @@ const saveDomain = async () => {
 </script>
 
 <style scoped>
+.domain-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--p-4);
+}
+.domain-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  min-width: 0;
+}
+.domain-card__host {
+  font-size: var(--p-fs-h1);
+  line-height: var(--p-lh-h1);
+  letter-spacing: var(--p-ls-h1);
+  font-weight: 600;
+  color: var(--p-ink);
+  word-break: break-all;
+}
 .domain-card__actions {
   display: flex;
   align-items: center;
   gap: var(--p-2);
-}
-.domain-card__view {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  padding: var(--p-2) 0;
-}
-.domain-card__host {
-  font-size: var(--p-fs-h2);
-  font-weight: 600;
-  color: var(--p-ink);
-  word-break: break-all;
-  flex: 1;
+  flex-shrink: 0;
 }
 .domain-card__edit-actions {
   display: flex;
   gap: var(--p-2);
+  margin-top: var(--p-3);
 }
-.domain-card__spin {
-  animation: domain-card-rotate 1.6s linear infinite;
-}
-@keyframes domain-card-rotate {
-  to { transform: rotate(360deg); }
+.domain-card__top + * {
+  margin-top: var(--p-4);
 }
 </style>
