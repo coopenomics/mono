@@ -72,6 +72,14 @@ export const MEMBERSHIP_WALLET_NAME = 'w.wal.member'
 export const SHARE_WALLET_NAME = 'w.wal.share'
 
 /**
+ * Биллинг-кошелёк пайщика (`w.wal.bill`, USER_SHARED в леджере оператора):
+ * сюда `billing::convert` зачисляет членский взнос пайщика (o.bil.fund), с него
+ * оплачиваются подписки (o.bil.pay). Относится к той же программе ЦК, что и
+ * паевой с членским, но это ТРЕТИЙ кошелёк — не путать ни с одним из них.
+ */
+export const BILLING_WALLET_NAME = 'w.wal.bill'
+
+/**
  * wallet_name минимального паевого взноса пайщика (required_program_id=0 —
  * вне программ, заполняется при регистрации). Возвращается пайщику при выходе.
  */

@@ -8,8 +8,8 @@
     :symbol="balance.symbol || fallbackSymbol"
     :loading="initialLoading"
   )
-    //- Пополнение кошелька технически и есть конвертация паевого взноса в
-    //- членский (ConvertToBillingDialog), но пайщику это действие известно как
+    //- Пополнение технически и есть трансляция паевого взноса в членский
+    //- (ConvertToBillingDialog), но пайщику это действие известно как
     //- «пополнить»; заливкой — потому что при нулевом остатке подписки списать
     //- нечем, и это главное действие карточки.
     template(#actions)
@@ -29,7 +29,7 @@
 import { computed, watch } from 'vue'
 import { BaseButton } from 'src/shared/ui/base'
 import { WalletCard } from 'src/shared/ui/domain'
-import { useCooperativeMainWallet } from 'src/entities/Wallet/model'
+import { useBillingWallet } from 'src/entities/Wallet/model'
 import { useSessionStore } from 'src/entities/Session'
 import { useSystemStore } from 'src/entities/System/model'
 import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
@@ -41,7 +41,10 @@ import {
 const session = useSessionStore()
 const system = useSystemStore()
 
-const { membership, symbol, initialLoading, refresh } = useCooperativeMainWallet(
+// Показываем биллинг-кошелёк (`w.wal.bill`) — именно на него ложится
+// пополнение и с него провайдер списывает подписки. MAIN-кошелёк для этого не
+// годится: он сворачивает только паевой и членский, биллинга в нём нет.
+const { available, symbol, initialLoading, refresh } = useBillingWallet(
   () => system.info.coopname || '',
   () => session.username || '',
 )
@@ -51,15 +54,34 @@ const fallbackSymbol = computed(
 )
 
 const balance = computed(() =>
-  splitAsset2Digits(`${membership.value} ${symbol.value || fallbackSymbol.value}`),
+  splitAsset2Digits(`${available.value} ${symbol.value || fallbackSymbol.value}`),
 )
 
 const { isVisible } = useConvertToBillingVisibility()
 const openConvert = () => {
   isVisible.value = true
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * После пополнения баланс в цепи меняется не мгновенно для интерфейса: между
+ * транзакцией и появлением дельты в кеше бэкенда проходит около трёх секунд.
+ * Поэтому обновляемся не один раз, а несколькими попытками с паузами и
+ * останавливаемся, как только сумма изменилась. Тихо, без лоадера поверх
+ * экрана: карточка просто дорисует новое число.
+ */
+const refreshAfterConvert = async (): Promise<void> => {
+  const before = available.value
+  for (const delay of [1500, 3000, 5000]) {
+    await sleep(delay)
+    await refresh()
+    if (available.value !== before) return
+  }
+}
+
 watch(isVisible, (open, wasOpen) => {
-  if (wasOpen && !open) void refresh()
+  if (wasOpen && !open) void refreshAfterConvert()
 })
 </script>
 

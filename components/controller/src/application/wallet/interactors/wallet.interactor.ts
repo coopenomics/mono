@@ -283,7 +283,11 @@ export class WalletInteractor {
     }
 
     // 3. Buckets из L3-rows.
-    type Bucket = { share?: UserWalletDomainEntity; member?: UserWalletDomainEntity; single?: UserWalletDomainEntity };
+    type Bucket = {
+      share?: UserWalletDomainEntity;
+      member?: UserWalletDomainEntity;
+      single?: UserWalletDomainEntity;
+    };
     const buckets = new Map<string, Bucket>();
     for (const row of rows) {
       if (row.present === false) continue;
@@ -295,7 +299,12 @@ export class WalletInteractor {
       const key = `${row.coopname}::${row.username}::${pid}`;
       const bucket = buckets.get(key) ?? {};
       if (pid === 1) {
+        // К программе ЦК относятся ТРИ кошелька: паевой, членский и биллинг.
+        // Биллинг (`w.wal.bill`) живёт в леджере оператора и в MAIN-кошелёк не
+        // сворачивается — до 26.08.2026 он попадал в ветку `else` и подменял
+        // собой паевой баланс, если приходил в выборке последним.
         if (wn === Ledger2.MEMBERSHIP_WALLET_NAME) bucket.member = row;
+        else if (wn === Ledger2.BILLING_WALLET_NAME) continue;
         else bucket.share = row;
       } else {
         bucket.single = row;
