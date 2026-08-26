@@ -56,6 +56,7 @@ import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-reso
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 import { workflow as supportTicketRepliedWorkflow } from './support-ticket-replied';
 import { workflow as supportTicketStatusChangedWorkflow } from './support-ticket-status-changed';
+import { workflow as supportTicketParticipantAddedWorkflow } from './support-ticket-participant-added';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -110,6 +111,7 @@ export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 export * as SupportTicketReplied from './support-ticket-replied';
 export * as SupportTicketStatusChanged from './support-ticket-status-changed';
+export * as SupportTicketParticipantAdded from './support-ticket-participant-added';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -169,6 +171,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   expenseAdvanceReportReminderWorkflow,
   supportTicketRepliedWorkflow,
   supportTicketStatusChangedWorkflow,
+  supportTicketParticipantAddedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

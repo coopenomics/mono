@@ -17,8 +17,10 @@ import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.en
 import {
   SUPPORT_TICKET_AUTHOR_REPLIED_EVENT,
   SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT,
+  SUPPORT_TICKET_PARTICIPANT_ADDED_EVENT,
   type SupportTicketAuthorRepliedEvent,
   type SupportTicketAuthorStatusChangedEvent,
+  type SupportTicketParticipantAddedEvent,
 } from '../events/support-notification.events';
 
 /** Человеческое название статуса для письма. Показывается пайщику как есть. */
@@ -30,9 +32,9 @@ const STATUS_LABELS: Readonly<Record<SupportTicketStatus, string>> = {
 };
 
 /**
- * Отправка уведомлений автору обращения.
+ * Отправка уведомлений по событиям стола.
  *
- * Слушает оба события стола и зовёт Центр уведомлений. Своей очереди и своих
+ * Слушает все три события стола и зовёт Центр уведомлений. Своей очереди и своих
  * повторов не заводит: `notifyUser` пишет строки в транзакционный outbox, а
  * доставку разбирает фоновый обработчик — успешный вызов означает «принято к
  * доставке», а не «доставлено».
@@ -41,6 +43,10 @@ const STATUS_LABELS: Readonly<Record<SupportTicketStatus, string>> = {
  * факт домена, он произошёл независимо от того, кому о нём писать. Адресата
  * определяет слушатель (спецификация, раздел 7), и обращение он читает сам:
  * автор обращения в состав события не входит.
+ *
+ * У подключения к обращению получатель всё же приходит событием, и это не
+ * исключение из правила, а то же правило: подключённый — не «кому писать про
+ * факт», а сам факт. Обращение о нём ничего не знает, вычитывать оттуда нечего.
  *
  * **Почему учётные данные не берутся портом.** Спецификация предписывала
  * доставать `subscriber_id` и почту через порт учётных записей. С тех пор у
@@ -64,7 +70,9 @@ export class SupportTicketNotificationService implements OnModuleInit {
   }
 
   onModuleInit(): void {
-    this.logger.log('Уведомления стола поддержки подключены: ответ в обращении и смена статуса');
+    this.logger.log(
+      'Уведомления стола поддержки подключены: ответ в обращении, смена статуса и подключение к обращению'
+    );
   }
 
   @OnEvent(SUPPORT_TICKET_AUTHOR_REPLIED_EVENT)
@@ -133,6 +141,51 @@ export class SupportTicketNotificationService implements OnModuleInit {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         `Уведомление о смене статуса не отправлено (обращение ${event.ticket_id}): ${message}`
+      );
+    }
+  }
+
+  /**
+   * **Единственное уведомление стола, которое идёт не автору обращения.**
+   *
+   * Получатель приходит прямо в событии, а не вычитывается из обращения: кого
+   * подключили — это и есть суть события, обращение об этом ничего не знает.
+   * Остальные два уведомления адресуются автору, и его слушатель достаёт сам.
+   */
+  @OnEvent(SUPPORT_TICKET_PARTICIPANT_ADDED_EVENT)
+  async handleParticipantAdded(event: SupportTicketParticipantAddedEvent): Promise<void> {
+    try {
+      // Подключивший самого себя письма о своём же действии не получает — то
+      // же правило, что у двух других уведомлений, только сравнивается не с
+      // автором обращения, а с подключённым.
+      if (event.initiator_username === event.participant_username) return;
+
+      const ticket = await this.loadTicket(event.ticket_id);
+      if (!ticket) return;
+
+      const payload: Workflows.SupportTicketParticipantAdded.IPayload = {
+        ticketNumber: ticket.number,
+        subject: ticket.subject,
+        ticketUrl: this.buildTicketUrl(event.coopname, ticket.id),
+        // В тексте письма не показывается: различитель для ключа подавления
+        // повторов. Берётся идентификатор записи подключения, а не пара
+        // «обращение и человек», — иначе повторное подключение после
+        // отключения молча не дошло бы, повторив ключ первого.
+        participationId: event.participation_id,
+      };
+
+      await this.notifications.notifyUser(
+        event.participant_username,
+        Workflows.SupportTicketParticipantAdded.id,
+        payload
+      );
+      this.logger.log(
+        `Уведомление о подключении принято к доставке: обращение № ${ticket.number}, участник ${event.participant_username}`
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Уведомление о подключении не отправлено (обращение ${event.ticket_id}): ${message}`
       );
     }
   }

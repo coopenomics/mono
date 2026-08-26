@@ -10,9 +10,11 @@
 import { SupportTicketTypeormEntity } from './infrastructure/entities/support-ticket.typeorm-entity';
 import { SupportTicketMessageTypeormEntity } from './infrastructure/entities/support-ticket-message.typeorm-entity';
 import { SupportTicketAttachmentTypeormEntity } from './infrastructure/entities/support-ticket-attachment.typeorm-entity';
+import { SupportTicketParticipantTypeormEntity } from './infrastructure/entities/support-ticket-participant.typeorm-entity';
 
 export const supportEntities = [
   SupportTicketTypeormEntity,
   SupportTicketMessageTypeormEntity,
   SupportTicketAttachmentTypeormEntity,
+  SupportTicketParticipantTypeormEntity,
 ];

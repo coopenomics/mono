@@ -14,25 +14,35 @@ import {
   type SupportTicketChanges,
   type SupportTicketRepository,
 } from '../../domain/repositories/support-ticket.repository';
+import {
+  SUPPORT_TICKET_PARTICIPANT_REPOSITORY,
+  type SupportParticipantDraft,
+  type SupportTicketParticipantRepository,
+} from '../../domain/repositories/support-ticket-participant.repository';
 import type { SupportTicketDomainEntity } from '../../domain/entities/support-ticket.entity';
+import type { SupportTicketParticipantDomainEntity } from '../../domain/entities/support-ticket-participant.entity';
 import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.enum';
 import { SupportTicketPriority } from '../../domain/enums/support-ticket-priority.enum';
 import { SupportResponsibilityZone } from '../../domain/enums/support-responsibility-zone.enum';
 import { SupportMessageAuthorRole } from '../../domain/enums/support-message-author-role.enum';
 import { SupportSystemEvent } from '../../domain/enums/support-system-event.enum';
 import { SupportAttachmentsService } from './support-attachments.service';
-import { TICKET_NOT_FOUND_MESSAGE, isCouncilRole } from '../../constants/support-access';
+import { CHAIRMAN_ROLE, TICKET_NOT_FOUND_MESSAGE, isCouncilRole } from '../../constants/support-access';
 import {
   SUPPORT_TICKET_AUTHOR_REPLIED_EVENT,
   SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT,
+  SUPPORT_TICKET_PARTICIPANT_ADDED_EVENT,
   type SupportTicketAuthorRepliedEvent,
   type SupportTicketAuthorStatusChangedEvent,
+  type SupportTicketParticipantAddedEvent,
 } from '../events/support-notification.events';
 import type {
+  AddSupportTicketParticipantInput,
   AssignSupportTicketInput,
   ChangeSupportTicketPriorityInput,
   CreateSupportTicketInput,
   EscalateSupportTicketInput,
+  RemoveSupportTicketParticipantInput,
   ReplySupportTicketInput,
   ResolveSupportTicketInput,
 } from './support-commands.types';
@@ -45,13 +55,17 @@ const TERMINAL_STATUSES: ReadonlyArray<SupportTicketStatus> = [
 ];
 
 /**
- * Шесть команд стола поддержки.
+ * Команды стола поддержки: шесть над самим обращением и две над составом его
+ * участников.
  *
  * Что здесь есть и чего нет:
  *
  * - **Кооператив не принимается аргументом ни одной командой** — берётся из
  *   настроек контура. Область видимости задаёт сервер, подменить кооператив
  *   запросом невозможно в принципе, а не «потому что мы проверили».
+ * - **Участие не даёт прав и не отнимает их.** Совет читает любое обращение
+ *   кооператива и пишет в любое независимо от участия; подключение меняет
+ *   только адресацию уведомлений и попадание в очередь «где я участвую».
  * - **Ручного закрытия среди команд нет** и не будет: единственный путь в
  *   статус «закрыто» — фоновый таймер. Ожидание перед закрытием существует
  *   ради пайщика, и команда, снимающая его решением другой стороны, отменяла
@@ -68,6 +82,8 @@ const TERMINAL_STATUSES: ReadonlyArray<SupportTicketStatus> = [
 export class SupportCommandsService {
   constructor(
     @Inject(SUPPORT_TICKET_REPOSITORY) private readonly tickets: SupportTicketRepository,
+    @Inject(SUPPORT_TICKET_PARTICIPANT_REPOSITORY)
+    private readonly participants: SupportTicketParticipantRepository,
     @Inject(USER_DIRECTORY_PORT) private readonly users: IUserDirectoryPort,
     private readonly attachments: SupportAttachmentsService,
     private readonly events: EventEmitter2
@@ -234,7 +250,10 @@ export class SupportCommandsService {
     // расширение не держит. Проверка стоит после молчаливого повтора намеренно:
     // повтор ничего не меняет и не должен ходить в справочник, а назначенного
     // ранее оператора команда не обязана перепроверять.
-    await this.assertAssigneeIsCouncil(input.assignee_username);
+    await this.assertIsCouncilMember(
+      input.assignee_username,
+      'Оператором обращения может быть только член совета кооператива.'
+    );
 
     const now = new Date();
     const changes: SupportTicketChanges = {
@@ -391,6 +410,18 @@ export class SupportCommandsService {
     // абзацем спецификации — сначала перечитать это решение.
     if (ticket.escalatedAt) return ticket;
 
+    // Эскалация — это подключение председателя, а не переназначение на него.
+    // Имена берутся из справочника: своего списка совета расширение не держит.
+    // Пустой ответ — это не «эскалировать некому, но ладно»: смысл действия в
+    // том, чтобы дело увидел председатель, и молча сделать вид, что оно
+    // выполнено, нельзя.
+    const chairmen = await this.users.findByRoles([CHAIRMAN_ROLE]);
+    if (chairmen.length === 0) {
+      throw new BadRequestException(
+        'Эскалировать обращение некому: в кооперативе не найден председатель.'
+      );
+    }
+
     const now = new Date();
     const reason = input.reason?.trim() || null;
 
@@ -409,14 +440,85 @@ export class SupportCommandsService {
         },
       ],
       // Статус эскалация не меняет: она про то, что дело подняли к
-      // председателю, а не про этап работы над ним.
-      { escalatedAt: now, lastMessageAt: now }
+      // председателю, а не про этап работы над ним. Отметка остаётся навсегда:
+      // отключат председателя из участников — отметка не снимется, она про
+      // факт, а не про текущий состав.
+      { escalatedAt: now, lastMessageAt: now },
+      // Одной транзакцией с отметкой и системной записью: разъехаться эти три
+      // вещи не должны. Уже подключённый председатель пропускается молча и в
+      // ответ не попадает — второго письма он не получит.
+      chairmen.map((chairman) => ({
+        participantUsername: chairman.username,
+        addedByUsername: actor.username,
+      }))
     );
 
-    // Событие не излучается: отметка эскалации автору не показывается вовсе —
-    // для него это внутренняя маршрутизация внутри совета, а не событие его
-    // обращения (спецификация, раздел 5). Статус при этом не изменился.
+    // Автору обращения событие не излучается: отметка эскалации для него —
+    // внутренняя маршрутизация внутри совета, а не событие его обращения
+    // (спецификация, раздел 5), и статус при этом не изменился. А вот
+    // подключённому председателю уведомление уходит — по общему правилу для
+    // всех подключений.
+    this.emitParticipantsAdded(result.ticket, result.participants, actor.username);
     return result.ticket;
+  }
+
+  // ── Участники обращения ─────────────────────────────────────────────
+  //
+  // Участие — подписка, а не право. Совет и без него читает любое обращение
+  // кооператива и пишет в любое; эти две команды меняют только то, кого
+  // уведомлять и чья очередь пополнится. Если рядом появится проверка «а
+  // участник ли он» в роли проверки права — это ошибка.
+
+  async addSupportTicketParticipant(
+    input: AddSupportTicketParticipantInput,
+    actor: SupportActor
+  ): Promise<SupportTicketDomainEntity> {
+    this.assertCouncil(actor, 'Подключать участников к обращению может только совет кооператива.');
+
+    const ticket = await this.getTicketOrFail(input.ticket_id);
+
+    // Участником может быть только член совета — по той же причине, по которой
+    // им может быть только ответственный: очередь совета собирается по роли, и
+    // пайщик в неё не попадёт, сколько его ни подключай.
+    await this.assertIsCouncilMember(
+      input.participant_username,
+      'Участником обращения может быть только член совета кооператива.'
+    );
+
+    const draft: SupportParticipantDraft = {
+      participantUsername: input.participant_username,
+      addedByUsername: actor.username,
+    };
+    const added = await this.participants.addIfAbsent(ticket.id, draft);
+
+    // Повтор подключения — молчаливое «ничего не делаем», как все прочие
+    // повторы стола: `null` означает, что человек уже был подключён, и второго
+    // письма он не получает.
+    if (added) this.emitParticipantsAdded(ticket, [added], actor.username);
+
+    // Записи в ленту нет намеренно: лента — история состояний обращения, а
+    // участие это подписка. Подключения и отключения замусорили бы переписку,
+    // которую читает пайщик, служебными строками, к его вопросу не
+    // относящимися.
+    return ticket;
+  }
+
+  async removeSupportTicketParticipant(
+    input: RemoveSupportTicketParticipantInput,
+    actor: SupportActor
+  ): Promise<SupportTicketDomainEntity> {
+    this.assertCouncil(actor, 'Отключать участников обращения может только совет кооператива.');
+
+    const ticket = await this.getTicketOrFail(input.ticket_id);
+
+    // Отключение неподключённого — то же молчаливое «ничего не делаем».
+    // Проверять роль отключаемого незачем: если он подключён, роль у него уже
+    // проверяли при подключении, а если нет — отключать нечего.
+    await this.participants.remove(ticket.id, input.participant_username);
+
+    // Уведомления об отключении нет: согласовано одно уведомление про участие
+    // — о подключении. В ленту, как и подключение, ничего не пишется.
+    return ticket;
   }
 
   // ── Общее ───────────────────────────────────────────────────────────
@@ -439,20 +541,23 @@ export class SupportCommandsService {
   }
 
   /**
-   * Назначаемый оператор обязан состоять в совете.
+   * Названный пайщик обязан состоять в совете.
+   *
+   * Одна проверка на два случая — назначаемый ответственный и подключаемый
+   * участник: причина у них общая (очередь совета собирается по роли, и того,
+   * кто в совет не входит, обращение просто не достигнет), а расходятся они
+   * только текстом отказа, поэтому он и передаётся параметром.
    *
    * Порт справочника сообщает роль, но решение принимает вызывающий — сам порт
    * прав не проверяет. Поэтому сравнение с составом совета живёт здесь.
    */
-  private async assertAssigneeIsCouncil(username: string): Promise<void> {
-    const assignee = await this.users.findByUsername(username);
-    if (!assignee) {
+  private async assertIsCouncilMember(username: string, rejectionMessage: string): Promise<void> {
+    const user = await this.users.findByUsername(username);
+    if (!user) {
       throw new BadRequestException(`Пайщик ${username} не найден в кооперативе.`);
     }
-    if (!isCouncilRole(assignee.role)) {
-      throw new BadRequestException(
-        'Оператором обращения может быть только член совета кооператива.'
-      );
+    if (!isCouncilRole(user.role)) {
+      throw new BadRequestException(rejectionMessage);
     }
   }
 
@@ -497,5 +602,33 @@ export class SupportCommandsService {
       initiator_username: initiatorUsername,
     };
     this.events.emit(SUPPORT_TICKET_AUTHOR_STATUS_CHANGED_EVENT, payload);
+  }
+
+  /**
+   * По событию на каждое фактически созданное подключение.
+   *
+   * Приходят сюда только новые записи: уже подключённый участник в ответ
+   * репозитория не попадает, и письма о нём не будет. Различителем в ключе
+   * подавления повторов идёт идентификатор самой записи подключения — пара
+   * «обращение и участник» на эту роль не годится, она у повторного
+   * подключения та же самая.
+   */
+  private emitParticipantsAdded(
+    ticket: SupportTicketDomainEntity,
+    participants: SupportTicketParticipantDomainEntity[],
+    initiatorUsername: string
+  ): void {
+    for (const participant of participants) {
+      const payload: SupportTicketParticipantAddedEvent = {
+        coopname: ticket.coopname,
+        ticket_id: ticket.id,
+        participation_id: participant.id,
+        ticket_number: ticket.number,
+        subject: ticket.subject,
+        participant_username: participant.participantUsername,
+        initiator_username: initiatorUsername,
+      };
+      this.events.emit(SUPPORT_TICKET_PARTICIPANT_ADDED_EVENT, payload);
+    }
   }
 }

@@ -2,6 +2,8 @@ import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extensio
 import { SupportTicketDomainEntity } from '../entities/support-ticket.entity';
 import { SupportTicketMessageDomainEntity } from '../entities/support-ticket-message.entity';
 import { SupportTicketAttachmentDomainEntity } from '../entities/support-ticket-attachment.entity';
+import { SupportTicketParticipantDomainEntity } from '../entities/support-ticket-participant.entity';
+import type { SupportParticipantDraft } from './support-ticket-participant.repository';
 import { SupportTicketStatus } from '../enums/support-ticket-status.enum';
 import { SupportTicketKind } from '../enums/support-ticket-kind.enum';
 import { SupportTicketPriority } from '../enums/support-ticket-priority.enum';
@@ -43,6 +45,14 @@ export interface SupportTicketFilter {
   /** `true` — только эскалированные, `false` — только неэскалированные. */
   escalated?: boolean;
   authorUsername?: string;
+  /**
+   * Член совета, подключённый к обращению участником.
+   *
+   * Ответственный сюда не попадает: он в своей колонке, и отбирают его полем
+   * `assigneeUsername`. Экран «где я участвую» — это очередь с этим полем,
+   * заполненным своим именем; отдельного запроса под него нет.
+   */
+  participantUsername?: string;
   /** Подстрока темы без учёта регистра. Полнотекстового поиска по переписке нет. */
   subjectContains?: string;
 }
@@ -150,14 +160,22 @@ export interface SupportTicketRepository {
    * системная запись о решении идут вместе, одним действием человека
    * (спецификация, раздел 3). Пустой список записей допустим: смена
    * приоритета меняет только обращение.
+   *
+   * `participants` — подключения, которые обязаны попасть в ту же транзакцию.
+   * Такое нужно ровно эскалации: она одним действием ставит отметку, пишет
+   * системную запись и подключает председателя, и разъехаться эти три вещи не
+   * должны. Уже существующие подключения пропускаются молча, в ответ идут
+   * только фактически созданные — по ним команда решает, кого уведомлять.
    */
   appendAndUpdate(
     ticketId: string,
     messages: SupportLedgerEntryDraft[],
-    changes: SupportTicketChanges
+    changes: SupportTicketChanges,
+    participants?: SupportParticipantDraft[]
   ): Promise<{
     ticket: SupportTicketDomainEntity;
     messages: SupportTicketMessageDomainEntity[];
+    participants: SupportTicketParticipantDomainEntity[];
   }>;
 
   /**

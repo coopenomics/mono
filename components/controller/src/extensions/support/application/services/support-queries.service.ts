@@ -13,6 +13,10 @@ import {
   SUPPORT_TICKET_ATTACHMENT_REPOSITORY,
   type SupportTicketAttachmentRepository,
 } from '../../domain/repositories/support-ticket-attachment.repository';
+import {
+  SUPPORT_TICKET_PARTICIPANT_REPOSITORY,
+  type SupportTicketParticipantRepository,
+} from '../../domain/repositories/support-ticket-participant.repository';
 import type { SupportTicketDomainEntity } from '../../domain/entities/support-ticket.entity';
 import { TICKET_NOT_FOUND_MESSAGE, isCouncilRole } from '../../constants/support-access';
 import { SupportAttachmentsService } from './support-attachments.service';
@@ -56,6 +60,8 @@ export class SupportQueriesService {
     @Inject(SUPPORT_TICKET_MESSAGE_REPOSITORY) private readonly messages: SupportTicketMessageRepository,
     @Inject(SUPPORT_TICKET_ATTACHMENT_REPOSITORY)
     private readonly attachments: SupportTicketAttachmentRepository,
+    @Inject(SUPPORT_TICKET_PARTICIPANT_REPOSITORY)
+    private readonly participants: SupportTicketParticipantRepository,
     private readonly attachmentFiles: SupportAttachmentsService,
     private readonly visibility: SupportVisibilityService
   ) {}
@@ -195,6 +201,7 @@ export class SupportQueriesService {
       assigneeUsername: filter?.assignee_username,
       escalated: filter?.escalated,
       authorUsername: filter?.author_username,
+      participantUsername: filter?.participant_username,
       subjectContains: filter?.subject_contains,
     };
   }
@@ -210,7 +217,11 @@ export class SupportQueriesService {
   }
 
   /**
-   * Агрегаты строки списка — двумя запросами на всю страницу, а не по строке.
+   * Агрегаты строки списка — тремя запросами на всю страницу, а не по строке.
+   *
+   * Участники добавились третьим запросом тем же приёмом, что и два первых:
+   * ответная сторона показывается в каждой строке, поэтому список участников
+   * нужен всем строкам сразу, а не запросом на строку.
    *
    * Порядок ответа совпадает с порядком переданных обращений: вызывающий
    * берёт агрегат по тому же индексу.
@@ -219,15 +230,18 @@ export class SupportQueriesService {
     tickets: SupportTicketDomainEntity[]
   ): Promise<SupportTicketAggregates[]> {
     const ids = tickets.map((ticket) => ticket.id);
-    const [counts, withAttachments] = await Promise.all([
+    const [counts, withAttachments, participants] = await Promise.all([
       this.messages.countByTicketIds(ids),
       this.attachments.findTicketIdsWithAttachments(ids),
+      this.participants.findUsernamesByTicketIds(ids),
     ]);
 
     return tickets.map((ticket) => ({
       // Обращения без записей в ответе группировки отсутствуют — здесь ноль.
       messageCount: counts.get(ticket.id) ?? 0,
       hasAttachments: withAttachments.has(ticket.id),
+      // Обращения без участников в ответе тоже отсутствуют — здесь пусто.
+      participants: participants.get(ticket.id) ?? [],
     }));
   }
 }

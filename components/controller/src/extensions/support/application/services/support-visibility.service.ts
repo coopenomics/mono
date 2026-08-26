@@ -17,6 +17,12 @@ import type {
 export interface SupportTicketAggregates {
   messageCount: number;
   hasAttachments: boolean;
+  /**
+   * Участники обращения — члены совета, подключённые помимо ответственного.
+   * Приходят батчем на всю страницу, как и два соседних агрегата: ответная
+   * сторона показывается в каждой строке списка.
+   */
+  participants: string[];
 }
 
 /**
@@ -76,13 +82,27 @@ export class SupportVisibilityService {
   /**
    * Ответная сторона обращения — множеством, а не одним полем.
    *
-   * Сегодня в множестве не больше одного имени (колонка исполнителя). Форма
-   * списка сохранена не ради обезличивания — его больше нет, — а ради фазы
-   * участников: к обращению можно будет подключать нескольких членов совета, и
-   * тогда изменится только наполнение этого метода.
+   * Ответственный плюс подключённые участники, без повторов. Форма списка
+   * заводилась именно под это, и когда участники появились (решение
+   * председателя от 20.08.2026), поменялось только наполнение метода — ни одно
+   * поле видов ответа не тронуто.
+   *
+   * Ответственный идёт первым и берётся из своей колонки, а не из списка
+   * участников: в таблицу связи он не дублируется. Дублирование завело бы
+   * инвариант «ответственный обязан быть в участниках», проверять который
+   * некому. Поэтому объединение делается здесь, на выдаче, — и оно же
+   * единственное место, где «ответная сторона» вообще собирается.
+   *
+   * Повтор возможен на законном основании: члена совета подключили участником,
+   * а потом назначили ответственным по тому же обращению. В ответе он должен
+   * быть один раз.
    */
-  private councilSide(ticket: SupportTicketDomainEntity): string[] {
-    return ticket.assigneeUsername ? [ticket.assigneeUsername] : [];
+  private councilSide(ticket: SupportTicketDomainEntity, participants: string[]): string[] {
+    const side = ticket.assigneeUsername ? [ticket.assigneeUsername] : [];
+    for (const participant of participants) {
+      if (!side.includes(participant)) side.push(participant);
+    }
+    return side;
   }
 
   // ── Обращение ───────────────────────────────────────────────────────
@@ -99,7 +119,7 @@ export class SupportVisibilityService {
       priority: ticket.priority,
       subject: ticket.subject,
       authorUsername: ticket.authorUsername,
-      councilSide: this.councilSide(ticket),
+      councilSide: this.councilSide(ticket, aggregates.participants),
       escalated: ticket.escalatedAt !== null,
       reopenCount: ticket.reopenCount,
       lastMessageAt: ticket.lastMessageAt,

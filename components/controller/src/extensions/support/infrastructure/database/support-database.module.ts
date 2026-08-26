@@ -3,11 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SupportTicketTypeormEntity } from '../entities/support-ticket.typeorm-entity';
 import { SupportTicketMessageTypeormEntity } from '../entities/support-ticket-message.typeorm-entity';
 import { SupportTicketAttachmentTypeormEntity } from '../entities/support-ticket-attachment.typeorm-entity';
+import { SupportTicketParticipantTypeormEntity } from '../entities/support-ticket-participant.typeorm-entity';
 
 const SUPPORT_ENTITIES = [
   SupportTicketTypeormEntity,
   SupportTicketMessageTypeormEntity,
   SupportTicketAttachmentTypeormEntity,
+  SupportTicketParticipantTypeormEntity,
 ];
 
 @Module({

@@ -11,19 +11,28 @@ import { AssignSupportTicketInputDTO } from '../dto/assign-support-ticket.input'
 import { ChangeSupportTicketPriorityInputDTO } from '../dto/change-support-ticket-priority.input';
 import { ResolveSupportTicketInputDTO } from '../dto/resolve-support-ticket.input';
 import { EscalateSupportTicketInputDTO } from '../dto/escalate-support-ticket.input';
+import { AddSupportTicketParticipantInputDTO } from '../dto/add-support-ticket-participant.input';
+import { RemoveSupportTicketParticipantInputDTO } from '../dto/remove-support-ticket-participant.input';
 import { SupportTicketOutputDTO } from '../dto/support-ticket.output';
 
 /**
- * Команды стола поддержки: шесть мутаций.
+ * Команды стола поддержки: шесть мутаций над обращением и две над составом его
+ * участников.
  *
  * **Резолвер ничего не проверяет по данным** — то же правило, что у чтений
  * (см. `SupportQueriesResolver`). Декоратор ролей отвечает на вопрос «такой
  * род операций вообще доступен этой роли»; «своё или чужое», допустимость
  * перехода и повторные вызовы уже разобраны в `SupportCommandsService`.
- * `assignSupportTicket` / `changeSupportTicketPriority` / `resolveSupportTicket`
- * / `escalateSupportTicket` держат явную проверку роли в коде сервиса —
- * послабление `RolesGuard` по совпадению имени здесь не годится (спецификация,
- * раздел 6), и дублировать эту проверку в резолвере незачем.
+ * Все команды совета — назначение, приоритет, решение, эскалация и обе команды
+ * участников — держат явную проверку роли в коде сервиса: послабление
+ * `RolesGuard` по совпадению имени здесь не годится (спецификация, раздел 6),
+ * и дублировать эту проверку в резолвере незачем.
+ *
+ * **Участие не проверяется как право нигде.** Подключение к обращению не
+ * открывает доступа и не закрывает его: совет читает любое обращение
+ * кооператива и пишет в любое независимо от состава участников. Обе команды
+ * меняют только адресацию уведомлений и попадание обращения в очередь «где я
+ * участвую».
  *
  * **Кооператив аргументом не принимается ни одной мутацией** — как и у чтений.
  * **Автор нигде не принимается аргументом** — ни в создании, ни в ответе:
@@ -145,6 +154,40 @@ export class SupportMutationsResolver {
   ): Promise<SupportTicketOutputDTO> {
     const actor = toSupportActor(currentUser);
     const ticket = await this.commands.escalateSupportTicket(data, actor);
+    return this.toCard(ticket.id, actor);
+  }
+
+  // ── Участники обращения ─────────────────────────────────────────────
+
+  @Mutation(() => SupportTicketOutputDTO, {
+    name: 'addSupportTicketParticipant',
+    description: 'Подключить члена совета к обращению: он начнёт получать уведомления по нему и увидит его в своей очереди.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async addSupportTicketParticipant(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data', { type: () => AddSupportTicketParticipantInputDTO })
+    data: AddSupportTicketParticipantInputDTO
+  ): Promise<SupportTicketOutputDTO> {
+    const actor = toSupportActor(currentUser);
+    const ticket = await this.commands.addSupportTicketParticipant(data, actor);
+    return this.toCard(ticket.id, actor);
+  }
+
+  @Mutation(() => SupportTicketOutputDTO, {
+    name: 'removeSupportTicketParticipant',
+    description: 'Отключить участника от обращения: он перестанет получать уведомления по нему, доступ к обращению у совета сохраняется.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async removeSupportTicketParticipant(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data', { type: () => RemoveSupportTicketParticipantInputDTO })
+    data: RemoveSupportTicketParticipantInputDTO
+  ): Promise<SupportTicketOutputDTO> {
+    const actor = toSupportActor(currentUser);
+    const ticket = await this.commands.removeSupportTicketParticipant(data, actor);
     return this.toCard(ticket.id, actor);
   }
 

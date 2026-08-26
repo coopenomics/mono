@@ -9,17 +9,21 @@ import {
   type SupportTicketChanges,
   type SupportTicketFilter,
 } from '../../domain/repositories/support-ticket.repository';
+import type { SupportParticipantDraft } from '../../domain/repositories/support-ticket-participant.repository';
 import { SupportTicketDomainEntity } from '../../domain/entities/support-ticket.entity';
 import { SupportTicketMessageDomainEntity } from '../../domain/entities/support-ticket-message.entity';
 import { SupportTicketAttachmentDomainEntity } from '../../domain/entities/support-ticket-attachment.entity';
+import { SupportTicketParticipantDomainEntity } from '../../domain/entities/support-ticket-participant.entity';
 import { SupportTicketStatus } from '../../domain/enums/support-ticket-status.enum';
 import { SupportTicketKind } from '../../domain/enums/support-ticket-kind.enum';
 import { SupportTicketTypeormEntity } from '../entities/support-ticket.typeorm-entity';
 import { SupportTicketMessageTypeormEntity } from '../entities/support-ticket-message.typeorm-entity';
 import { SupportTicketAttachmentTypeormEntity } from '../entities/support-ticket-attachment.typeorm-entity';
+import { SupportTicketParticipantTypeormEntity } from '../entities/support-ticket-participant.typeorm-entity';
 import { SupportTicketMapper } from '../mappers/support-ticket.mapper';
 import { SupportTicketMessageMapper } from '../mappers/support-ticket-message.mapper';
 import { SupportTicketAttachmentMapper } from '../mappers/support-ticket-attachment.mapper';
+import { SupportTicketParticipantMapper } from '../mappers/support-ticket-participant.mapper';
 import { assertSortFieldAllowed } from './support-sort.util';
 
 /**
@@ -169,12 +173,32 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     filter: SupportTicketFilter,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<SupportTicketDomainEntity>> {
+    // Участие живёт в отдельной таблице, поэтому отбор по нему идёт отдельным
+    // обращением к её индексу (participant_username), а не соединением:
+    // соединение размножило бы строку обращения по числу его участников и
+    // сбило бы и счётчик страницы, и саму страницу.
+    const restrictToIds = filter.participantUsername
+      ? await this.ticketIdsWhereParticipates(filter.participantUsername)
+      : undefined;
+
     return this.findPaginated(
       this.buildFilterWhere(filter),
       { lastMessageAt: 'DESC' },
       TICKET_SORT_FIELDS,
-      options
+      options,
+      restrictToIds
     );
+  }
+
+  /** Обращения, где человек подключён участником, — индекс (participant_username). */
+  private async ticketIdsWhereParticipates(participantUsername: string): Promise<string[]> {
+    const rows = await this.repository.manager
+      .createQueryBuilder(SupportTicketParticipantTypeormEntity, 'participant')
+      .select('participant.ticketId', 'ticketId')
+      .where('participant.participantUsername = :participantUsername', { participantUsername })
+      .getRawMany<{ ticketId: string }>();
+
+    return rows.map((row) => row.ticketId);
   }
 
   async findByAuthorFilter(
@@ -290,13 +314,26 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
   async appendAndUpdate(
     ticketId: string,
     messages: SupportLedgerEntryDraft[],
-    changes: SupportTicketChanges
-  ): Promise<{ ticket: SupportTicketDomainEntity; messages: SupportTicketMessageDomainEntity[] }> {
+    changes: SupportTicketChanges,
+    participants: SupportParticipantDraft[] = []
+  ): Promise<{
+    ticket: SupportTicketDomainEntity;
+    messages: SupportTicketMessageDomainEntity[];
+    participants: SupportTicketParticipantDomainEntity[];
+  }> {
     return this.repository.manager.transaction(async (em) => {
       const saved: SupportTicketMessageDomainEntity[] = [];
       for (const entry of messages) {
         const { message } = await this.appendEntry(em, ticketId, entry);
         saved.push(message);
+      }
+
+      const addedParticipants: SupportTicketParticipantDomainEntity[] = [];
+      for (const participant of participants) {
+        const added = await this.appendParticipant(em, ticketId, participant);
+        // Уже подключённый пропускается молча: эскалация не обязана падать
+        // из-за того, что председателя подключили к обращению заранее руками.
+        if (added) addedParticipants.push(added);
       }
 
       // Пустой changes — законный случай (запись в ленту без правки шапки),
@@ -308,7 +345,11 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
 
       const updated = await em.findOne(SupportTicketTypeormEntity, { where: { id: ticketId } });
       if (!updated) throw new Error(`Обращение ${ticketId} не найдено после обновления`);
-      return { ticket: SupportTicketMapper.toDomain(updated), messages: saved };
+      return {
+        ticket: SupportTicketMapper.toDomain(updated),
+        messages: saved,
+        participants: addedParticipants,
+      };
     });
   }
 
@@ -371,6 +412,40 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
   }
 
   /**
+   * Подключение участника в уже открытой транзакции; `null`, если он был
+   * подключён раньше.
+   *
+   * Приём тот же, что в репозитории участников: вставка с «пропустить при
+   * конфликте», а не «прочитать и вставить», — уникальность пары стоит в
+   * схеме, и разрешает гонку она.
+   */
+  private async appendParticipant(
+    em: EntityManager,
+    ticketId: string,
+    draft: SupportParticipantDraft
+  ): Promise<SupportTicketParticipantDomainEntity | null> {
+    const result = await em
+      .createQueryBuilder()
+      .insert()
+      .into(SupportTicketParticipantTypeormEntity)
+      .values({
+        ticketId,
+        participantUsername: draft.participantUsername,
+        addedByUsername: draft.addedByUsername,
+      })
+      .orIgnore()
+      .returning('*')
+      .execute();
+
+    const inserted = result.raw?.[0];
+    if (!inserted) return null;
+
+    // Как и в репозитории участников: `returning` отдаёт колонки базы,
+    // раскладку знает маппер.
+    return SupportTicketParticipantMapper.fromRaw(inserted);
+  }
+
+  /**
    * Доменный партиал → партиал ORM-сущности. Приведения нет: совпадение
    * ключей проверяет assertUpdateFieldsMatchEntity() выше по файлу.
    */
@@ -378,23 +453,36 @@ export class SupportTicketTypeormRepository implements SupportTicketRepository {
     return changes;
   }
 
+  /**
+   * @param restrictToIds если передан — выборка сужается до этих обращений.
+   *   Пустой список означает «подходящих нет вовсе»: страница отдаётся пустой
+   *   без похода в базу. Отдельная ветка нужна потому, что `IN ()` без
+   *   значений — не пустое условие, а неверный SQL.
+   */
   private async findPaginated(
     where: Record<string, unknown>,
     defaultOrder: Record<string, 'ASC' | 'DESC'>,
     allowedSortFields: ReadonlyArray<keyof SupportTicketDomainEntity>,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    restrictToIds?: string[]
   ): Promise<PaginationResult<SupportTicketDomainEntity>> {
     const validated = options
       ? PaginationUtils.validatePaginationOptions(options)
       : { page: 1, limit: 10, sortOrder: 'ASC' as const };
 
+    // Проверка поля сортировки идёт до ветки пустого сужения: неверное поле
+    // обязано отвечать отказом одинаково, нашлись обращения или нет.
     assertSortFieldAllowed(validated.sortBy, allowedSortFields as ReadonlyArray<string>, 'обращения');
+
+    if (restrictToIds !== undefined && restrictToIds.length === 0) {
+      return PaginationUtils.createPaginationResult([], 0, validated);
+    }
 
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const order = validated.sortBy ? { [validated.sortBy]: validated.sortOrder } : defaultOrder;
 
     const [entities, total] = await this.repository.findAndCount({
-      where,
+      where: restrictToIds ? { ...where, id: In(restrictToIds) } : where,
       order,
       take: limit,
       skip: offset,

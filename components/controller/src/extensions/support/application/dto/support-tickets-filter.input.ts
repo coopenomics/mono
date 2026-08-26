@@ -55,6 +55,14 @@ export class SupportTicketsFilterInputDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Член совета, подключённый к обращению участником. Своим именем так смотрят обращения, где участвуешь.',
+  })
+  @IsOptional()
+  @IsString()
+  participant_username?: string;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Поиск по теме обращения: подстрока без учёта регистра. По текстам переписки поиска нет.',
   })
   @IsOptional()

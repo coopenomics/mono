@@ -12,9 +12,11 @@ import { SupportDatabaseModule } from './infrastructure/database/support-databas
 import { SUPPORT_TICKET_REPOSITORY } from './domain/repositories/support-ticket.repository';
 import { SUPPORT_TICKET_MESSAGE_REPOSITORY } from './domain/repositories/support-ticket-message.repository';
 import { SUPPORT_TICKET_ATTACHMENT_REPOSITORY } from './domain/repositories/support-ticket-attachment.repository';
+import { SUPPORT_TICKET_PARTICIPANT_REPOSITORY } from './domain/repositories/support-ticket-participant.repository';
 import { SupportTicketTypeormRepository } from './infrastructure/repositories/support-ticket.typeorm-repository';
 import { SupportTicketMessageTypeormRepository } from './infrastructure/repositories/support-ticket-message.typeorm-repository';
 import { SupportTicketAttachmentTypeormRepository } from './infrastructure/repositories/support-ticket-attachment.typeorm-repository';
+import { SupportTicketParticipantTypeormRepository } from './infrastructure/repositories/support-ticket-participant.typeorm-repository';
 import { SupportAttachmentsService } from './application/services/support-attachments.service';
 import { SupportCommandsService } from './application/services/support-commands.service';
 import { SupportAutoCloseService } from './application/services/support-auto-close.service';
@@ -75,6 +77,10 @@ export class SupportExtension extends BaseExtensionModule {
     {
       provide: SUPPORT_TICKET_ATTACHMENT_REPOSITORY,
       useClass: SupportTicketAttachmentTypeormRepository,
+    },
+    {
+      provide: SUPPORT_TICKET_PARTICIPANT_REPOSITORY,
+      useClass: SupportTicketParticipantTypeormRepository,
     },
     // Прикладной слой: команды, вложения, автозакрытие.
     SupportAttachmentsService,

@@ -44,3 +44,20 @@ export interface EscalateSupportTicketInput {
   ticket_id: string;
   reason?: string | null;
 }
+
+/**
+ * Подключение и отключение участника.
+ *
+ * Участие — подписка, а не право: совет и так читает любое обращение
+ * кооператива и пишет в любое. Эти команды меняют, кого уведомлять и чью
+ * очередь обращение пополнит, и ничего сверх того.
+ */
+export interface AddSupportTicketParticipantInput {
+  ticket_id: string;
+  participant_username: string;
+}
+
+export interface RemoveSupportTicketParticipantInput {
+  ticket_id: string;
+  participant_username: string;
+}
