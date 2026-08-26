@@ -519,8 +519,22 @@ export abstract class DocFactory<T extends IGenerate> {
     translation: ITranslations,
     meta: IMetaDocument,
     skip_save: boolean = false,
+    skip_pdf: boolean = false,
   ): Promise<IGeneratedDocument> {
     const pdfService = new PDFService()
+
+    /**
+     * skip_pdf — документ нужен только для показа на экране. Собираем HTML тем
+     * же движком подстановки и пропускаем weasyprint: без PDF нет и хэша,
+     * поэтому такой документ не сохраняется ни при каком skip_save — сохранить
+     * его значило бы завести в базе черновик, который нечем подписать.
+     */
+    if (skip_pdf) {
+      const html = pdfService.renderHtml(context, vars, translation)
+
+      return { full_title: '', html, hash: '', binary: new Uint8Array(), meta }
+    }
+
     const document: IGeneratedDocument = await pdfService.generateDocument(context, vars, translation, meta)
     const full_name = this.getFullName(data)
 

@@ -6,6 +6,12 @@ export * from './decisionsRegistry'
 export interface IGenerationOptions {
   skip_save?: boolean
   lang?: string
+  /**
+   * Собрать только HTML, без PDF и без хэша. Для публичного показа положения
+   * на сайте: страница берёт тот же документ, что уходит на подпись, но не
+   * платит за рендер PDF на каждый заход. Документ без хэша не сохраняется.
+   */
+  skip_pdf?: boolean
 }
 
 export type LangType = 'ru'
