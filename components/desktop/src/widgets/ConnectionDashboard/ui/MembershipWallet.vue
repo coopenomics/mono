@@ -8,15 +8,19 @@
     :symbol="balance.symbol || fallbackSymbol"
     :loading="initialLoading"
   )
+    //- Пополнение кошелька технически и есть конвертация паевого взноса в
+    //- членский (ConvertToBillingDialog), но пайщику это действие известно как
+    //- «пополнить»; заливкой — потому что при нулевом остатке подписки списать
+    //- нечем, и это главное действие карточки.
     template(#actions)
       BaseButton(
-        variant="ghost"
-        size="sm"
+        variant="primary"
+        size="md"
         type="button"
         @click="openConvert"
       )
-        q-icon(name="sync_alt" size="14px").q-mr-xs
-        | Конвертировать в членский
+        q-icon(name="add" size="16px").q-mr-xs
+        | Пополнить
 
   ConvertToBillingDialog
 </template>
