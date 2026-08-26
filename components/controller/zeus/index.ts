@@ -13861,6 +13861,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	installation_progress?:boolean | `@${string}`,
 	/** Статус инстанса */
 	instance_status?:boolean | `@${string}`,
+	/** Конфигурация сервера, на которой работает подписка хостинга */
+	instance_type_id?:boolean | `@${string}`,
 	/** Имя пользователя инстанса */
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
@@ -28732,6 +28734,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	installation_progress?:boolean | `@${string}`,
 	/** Статус инстанса */
 	instance_status?:boolean | `@${string}`,
+	/** Конфигурация сервера, на которой работает подписка хостинга */
+	instance_type_id?:boolean | `@${string}`,
 	/** Имя пользователя инстанса */
 	instance_username?:boolean | `@${string}`,
 	/** Пробный период */
@@ -43848,6 +43852,8 @@ export type ModelTypes = {
 	installation_progress?: number | undefined | null,
 	/** Статус инстанса */
 	instance_status?: string | undefined | null,
+	/** Конфигурация сервера, на которой работает подписка хостинга */
+	instance_type_id?: number | undefined | null,
 	/** Имя пользователя инстанса */
 	instance_username?: string | undefined | null,
 	/** Пробный период */
@@ -44202,7 +44208,7 @@ export type ModelTypes = {
 	getCooperativeCharter?: ModelTypes["CooperativeCharter"] | undefined | null,
 	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху
 
-Требуемые роли: member, chairman.  */
+Требуемые роли: member, chairman, user.  */
 	getCooperativePayments: Array<ModelTypes["CooperativePayment"]>,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 
@@ -60120,6 +60126,8 @@ export type GraphQLTypes = {
 	installation_progress?: number | undefined | null,
 	/** Статус инстанса */
 	instance_status?: string | undefined | null,
+	/** Конфигурация сервера, на которой работает подписка хостинга */
+	instance_type_id?: number | undefined | null,
 	/** Имя пользователя инстанса */
 	instance_username?: string | undefined | null,
 	/** Пробный период */
@@ -60479,7 +60487,7 @@ export type GraphQLTypes = {
 	getCooperativeCharter?: GraphQLTypes["CooperativeCharter"] | undefined | null,
 	/** История оплат кооператива: списания подписок из журнала биллинга хаба, свежие сверху
 
-Требуемые роли: member, chairman.  */
+Требуемые роли: member, chairman, user.  */
 	getCooperativePayments: Array<GraphQLTypes["CooperativePayment"]>,
 	/** Реестр кооперативов оператора: список кооперативов из блокчейна с данными провайдера (подписки, инстанс, биллинг)
 

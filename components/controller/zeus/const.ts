@@ -7730,6 +7730,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Float",
 		installation_progress:"Float",
 		instance_status:"String",
+		instance_type_id:"Float",
 		instance_username:"String",
 		is_trial:"Boolean",
 		kind:"String",

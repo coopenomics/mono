@@ -41,6 +41,12 @@ export class ProviderSubscriptionDTO {
   @Field(() => String, { nullable: true, description: 'Имя пользователя инстанса' })
   instance_username: string | null;
 
+  @Field(() => Number, {
+    nullable: true,
+    description: 'Конфигурация сервера, на которой работает подписка хостинга',
+  })
+  instance_type_id?: number | null;
+
   @Field(() => String, { description: 'Статус подписки' })
   status: string;
 
@@ -108,9 +114,15 @@ export class ProviderSubscriptionDTO {
     // Epic 13 v5.1: пакетные поля приходят опциональными от provider'а
     // (старые time-подписки оставляют их null/undefined).
     const sub = subscription as ProviderSubscriptionType & {
+      // instance_type_id провайдер отдаёт, но опубликованный provider-client
+      // его ещё не описывает — читаем тем же расширением типа, что и пакетные
+      // поля. Рабочему столу он нужен, чтобы назвать текущий тариф сервера
+      // словом («Мощный»), а не оставлять кооператив гадать по цене.
+      instance_type_id?: number | null;
       kind?: string | null;
       packages_current_period_amount?: number | string | null;
     };
+    this.instance_type_id = typeof sub.instance_type_id === 'number' ? sub.instance_type_id : null;
     this.kind = sub.kind ?? null;
     this.packages_current_period_amount =
       sub.packages_current_period_amount != null ? Number(sub.packages_current_period_amount) : null;

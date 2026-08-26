@@ -14,7 +14,7 @@
     BaseTable(
       v-else
       :columns="columns"
-      :rows="subscriptions"
+      :rows="orderedSubscriptions"
       row-key="id"
       :loading="isLoading"
       :skeleton-rows="3"
@@ -23,6 +23,17 @@
       template(#cell-name="{ row }")
         .subs-card__name {{ row.subscription_type_name }}
         .subs-card__desc(v-if="row.subscription_type_description") {{ row.subscription_type_description }}
+        //- Текущая конфигурация и смена тарифа стоят здесь, а не отдельной
+        //- колонкой: действие относится к самой услуге, а по одной цене
+        //- кооператив не понимал, на каком сервере работает.
+        .subs-card__plan(v-if="isHosting(row)")
+          BaseChip(variant="neutral" size="sm") {{ planName(row) }}
+          BaseButton(
+            variant="secondary"
+            size="sm"
+            type="button"
+            @click="openUpgrade(row)"
+          ) Сменить тариф
 
       template(#cell-status="{ row }")
         BaseBadge(:variant="subscriptionStatusVariant(row.status)") {{ subscriptionStatusLabel(row.status) }}
@@ -40,20 +51,6 @@
         template(v-else)
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
           .subs-card__period в месяц
-
-      //- Смена тарифа сервера — решение кооператива, не оператора: отсюда
-      //- председатель апгрейдит свой узел; провайдер со своей стороны цену
-      //- менять не вправе. Готовность узла здесь не проверяем: instance_status
-      //- на подписку провайдер не кладёт (поле всегда пусто), а узел не в строю
-      //- честно отклонит сам провайдер понятной ошибкой.
-      template(#cell-actions="{ row }")
-        BaseButton(
-          v-if="isHosting(row)"
-          variant="secondary"
-          size="sm"
-          type="button"
-          @click="openUpgrade(row)"
-        ) Сменить тариф
 
   //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
   //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
@@ -132,6 +129,8 @@ const { info } = useSystemStore()
 
 onMounted(async () => {
   await loadSubscriptions()
+  // Каталог нужен не только диалогу: по нему подписывается текущий тариф.
+  await loadCatalog()
 })
 
 // Ширины колонок фиксированы: цена и действие держат правый край, а название
@@ -141,8 +140,33 @@ const columns: BaseTableColumn<ProviderSubscription>[] = [
   { key: 'name', label: 'Услуга' },
   { key: 'status', label: 'Состояние', width: '170px' },
   { key: 'price', label: 'Стоимость', numeric: true, width: '170px', nowrap: true },
-  { key: 'actions', label: '', width: '150px', align: 'right' },
 ]
+
+// Порядок услуг в реестре: документооборот — основа участия и платится
+// каждым, поэтому он первый; хостинг идёт следом, остальные услуги — за ними
+// в том порядке, в каком их отдал провайдер.
+const orderedSubscriptions = computed(() =>
+  [...subscriptions.value].sort((a: any, b: any) => serviceRank(a) - serviceRank(b)),
+)
+
+const serviceRank = (sub: any): number => {
+  if (isPackage(sub)) return 0
+  if (isHosting(sub)) return 1
+  return 2
+}
+
+/**
+ * Имя текущей конфигурации сервера («Мощный»). Берём из каталога провайдера по
+ * instance_type_id подписки: цена сама по себе тариф не называет, а кооперативу
+ * важно видеть, на чём он работает, прежде чем менять.
+ */
+const planName = (sub: any): string => {
+  const typeId = sub?.instance_type_id
+  const option = (catalog.value?.server_options ?? []).find(
+    (opt: any) => opt.instance_type_id === typeId,
+  )
+  return option?.name ? `Тариф «${option.name}»` : 'Тариф не определён'
+}
 
 // ── Смена тарифа сервера (решение кооператива) ─────────────────────────────
 const upgradeOpen = ref(false)
@@ -245,6 +269,13 @@ const formatPrice = (price: number | string): string => {
   color: var(--p-ink-2);
   margin-top: 2px;
   white-space: normal;
+}
+.subs-card__plan {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  margin-top: var(--p-2);
+  flex-wrap: wrap;
 }
 .subs-card__price {
   font-size: var(--p-fs-h3);
