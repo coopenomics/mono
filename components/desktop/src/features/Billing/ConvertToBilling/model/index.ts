@@ -20,19 +20,21 @@ export function useConvertToBillingVisibility() {
 }
 
 /**
- * Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (Epic 12).
+ * Пополнение биллинг-кошелька: паевой взнос пайщика по программе «Цифровой
+ * Кошелёк» переводится в членский взнос по соглашению о подключении (Epic 12,
+ * действие billing::convert).
  *
- * Двухшаговый flow (как select-branch): generate (заявление document2 по
- * registry 1095) → sign (WIF пайщика) → мутация billingConvert.
+ * Заявление (document2 по registry 1095) формируется и подписывается одним
+ * действием: его текст целиком определён шаблоном реестра и не зависит ни от
+ * чего, кроме суммы, поэтому показывать пайщику предпросмотр перед подписью
+ * незачем — подписанный экземпляр остаётся в реестре документов.
+ *
  * `amountRub` — сумма в рублях числом (как её отдаёт AmountInput), к мутации
  * уходит как "<N> RUB".
  */
 export function useConvertToBilling() {
-  const isLoading = ref(false)
   const isSubmitting = ref(false)
-  const step = ref(1)
   const amountRub = ref<number | null>(null)
-  const generated = ref<Awaited<ReturnType<DigitalDocument['generate']>>>()
 
   const system = useSystemStore()
   const session = useSessionStore()
@@ -40,35 +42,28 @@ export function useConvertToBilling() {
 
   const assetAmount = () => `${amountRub.value ?? 0} ${system.info.symbols?.root_govern_symbol ?? 'RUB'}`
 
-  const generate = async () => {
-    isLoading.value = true
+  const convert = async (): Promise<IConvertToBillingOutput> => {
+    isSubmitting.value = true
     try {
-      generated.value = await digitalDocument.generate<Cooperative.Registry.BillingConversionStatement.Action>({
+      await digitalDocument.generate<Cooperative.Registry.BillingConversionStatement.Action>({
         registry_id: Cooperative.Registry.BillingConversionStatement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         convert_amount: assetAmount(),
       })
-      step.value = 2
-    } finally {
-      isLoading.value = false
-    }
-  }
 
-  const sign = async (): Promise<IConvertToBillingOutput> => {
-    isSubmitting.value = true
-    try {
       const document = await digitalDocument.sign<Cooperative.Registry.BillingConversionStatement.Meta>(
         session.username,
       )
+
       const result = await api.convertToBilling({
         coopname: system.info.coopname,
         username: session.username,
         amount: assetAmount(),
         document,
       })
+
       isVisible.value = false
-      step.value = 1
       amountRub.value = null
       return result
     } finally {
@@ -76,6 +71,5 @@ export function useConvertToBilling() {
     }
   }
 
-  return { isVisible, isLoading, isSubmitting, step, amountRub, generated, generate, sign }
+  return { isVisible, isSubmitting, amountRub, convert }
 }
-
