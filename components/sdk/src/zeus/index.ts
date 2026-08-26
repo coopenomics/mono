@@ -7920,6 +7920,10 @@ export type ValueTypes = {
 	/** Хеш проекта */
 	projectHash: string | Variable<any, string>
 };
+	["GetPublicProvisionInput"]: {
+	/** Идентификатор шаблона в реестре документов */
+	registry_id: number | Variable<any, string>
+};
 	["GetRequestByHashInput"]: {
 	/** Хэш заявки */
 	hash: string | Variable<any, string>
@@ -13723,6 +13727,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PublicChairman']?: Omit<ValueTypes["PublicChairman"], "...on PublicChairman">
 }>;
+	["PublicProvision"]: AliasType<{
+	/** HTML положения, собранный из шаблона реестра в блокчейне */
+	html?:boolean | `@${string}`,
+	/** Название положения */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PublicProvision']?: Omit<ValueTypes["PublicProvision"], "...on PublicProvision">
+}>;
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -13906,6 +13918,7 @@ getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes[
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ValueTypes["ProviderSubscription"],
+getPublicProvision?: [{	data: ValueTypes["GetPublicProvisionInput"] | Variable<any, string>},ValueTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
 getRegistrationAgreements?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>,	program_key?: string | undefined | null | Variable<any, string>},ValueTypes["RegistrationAgreement"]],
@@ -22796,6 +22809,10 @@ export type ResolverInputTypes = {
 	/** Хеш проекта */
 	projectHash: string
 };
+	["GetPublicProvisionInput"]: {
+	/** Идентификатор шаблона в реестре документов */
+	registry_id: number
+};
 	["GetRequestByHashInput"]: {
 	/** Хэш заявки */
 	hash: string
@@ -28396,6 +28413,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	middle_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PublicProvision"]: AliasType<{
+	/** HTML положения, собранный из шаблона реестра в блокчейне */
+	html?:boolean | `@${string}`,
+	/** Название положения */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -28579,6 +28603,7 @@ getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscri
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ResolverInputTypes["ProviderSubscription"],
+getPublicProvision?: [{	data: ResolverInputTypes["GetPublicProvisionInput"]},ResolverInputTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
 getRegistrationAgreements?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string,	program_key?: string | undefined | null},ResolverInputTypes["RegistrationAgreement"]],
@@ -37236,6 +37261,10 @@ export type ModelTypes = {
 	/** Хеш проекта */
 	projectHash: string
 };
+	["GetPublicProvisionInput"]: {
+	/** Идентификатор шаблона в реестре документов */
+	registry_id: number
+};
 	["GetRequestByHashInput"]: {
 	/** Хэш заявки */
 	hash: string
@@ -43317,6 +43346,12 @@ export type ModelTypes = {
 	last_name: string,
 	middle_name: string
 };
+	["PublicProvision"]: {
+		/** HTML положения, собранный из шаблона реестра в блокчейне */
+	html: string,
+	/** Название положения */
+	title: string
+};
 	["PublishProjectFreeDecisionInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -43740,6 +43775,8 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<ModelTypes["ProviderSubscription"]>,
+	/** Получить текст публичного положения кооператива (политика обработки персональных данных и другие положения, не зависящие от субъекта) */
+	getPublicProvision: ModelTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: ModelTypes["RecoveryStrategy"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
@@ -52789,6 +52826,10 @@ export type GraphQLTypes = {
 		/** Хеш проекта */
 	projectHash: string
 };
+	["GetPublicProvisionInput"]: {
+		/** Идентификатор шаблона в реестре документов */
+	registry_id: number
+};
 	["GetRequestByHashInput"]: {
 		/** Хэш заявки */
 	hash: string
@@ -59366,6 +59407,14 @@ export type GraphQLTypes = {
 	middle_name: string,
 	['...on PublicChairman']: Omit<GraphQLTypes["PublicChairman"], "...on PublicChairman">
 };
+	["PublicProvision"]: {
+	__typename: "PublicProvision",
+	/** HTML положения, собранный из шаблона реестра в блокчейне */
+	html: string,
+	/** Название положения */
+	title: string,
+	['...on PublicProvision']: Omit<GraphQLTypes["PublicProvision"], "...on PublicProvision">
+};
 	["PublishProjectFreeDecisionInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -59790,6 +59839,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
+	/** Получить текст публичного положения кооператива (политика обработки персональных данных и другие положения, не зависящие от субъекта) */
+	getPublicProvision: GraphQLTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: GraphQLTypes["RecoveryStrategy"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
@@ -63315,6 +63366,7 @@ type ZEUS_VARIABLES = {
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
 	["GetProjectInput"]: ValueTypes["GetProjectInput"];
 	["GetProjectWithRelationsInput"]: ValueTypes["GetProjectWithRelationsInput"];
+	["GetPublicProvisionInput"]: ValueTypes["GetPublicProvisionInput"];
 	["GetRequestByHashInput"]: ValueTypes["GetRequestByHashInput"];
 	["GetRequestInput"]: ValueTypes["GetRequestInput"];
 	["GetRequestStatisticsInput"]: ValueTypes["GetRequestStatisticsInput"];

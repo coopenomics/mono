@@ -36,7 +36,7 @@ onMounted(async () => {
   }
 
   try {
-    const provision = await fetchPublicProvision(Cooperative.Registry.PrivacyPolicy.registry_id);
+    const provision = await fetchPublicProvision({ registry_id: Cooperative.Registry.PrivacyPolicy.registry_id });
     html.value = provision.html;
   } catch (e: any) {
     error.value = e?.message ?? 'Не удалось загрузить текст политики конфиденциальности';
