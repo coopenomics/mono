@@ -26,6 +26,10 @@
         //- Текущая конфигурация и смена тарифа стоят здесь, а не отдельной
         //- колонкой: действие относится к самой услуге, а по одной цене
         //- кооператив не понимал, на каком сервере работает.
+        //- Что входит в тариф — строкой под описанием: название конфигурации
+        //- само по себе ничего не говорит, а сравнивать её с предложением о
+        //- смене нужно здесь же.
+        .subs-card__specs(v-if="isHosting(row) && planSpecs(row)") {{ planSpecs(row) }}
         .subs-card__plan(v-if="isHosting(row)")
           BaseChip(variant="neutral" size="sm") {{ planName(row) }}
           BaseButton(
@@ -155,17 +159,40 @@ const serviceRank = (sub: any): number => {
   return 2
 }
 
+/** Конфигурация подписки из каталога провайдера по её instance_type_id. */
+const planOption = (sub: any): any =>
+  (catalog.value?.server_options ?? []).find(
+    (opt: any) => opt.instance_type_id === sub?.instance_type_id,
+  )
+
 /**
- * Имя текущей конфигурации сервера («Мощный»). Берём из каталога провайдера по
- * instance_type_id подписки: цена сама по себе тариф не называет, а кооперативу
- * важно видеть, на чём он работает, прежде чем менять.
+ * Имя текущей конфигурации сервера («Мощный»): цена сама по себе тариф не
+ * называет, а кооперативу важно видеть, на чём он работает, прежде чем менять.
  */
 const planName = (sub: any): string => {
-  const typeId = sub?.instance_type_id
-  const option = (catalog.value?.server_options ?? []).find(
-    (opt: any) => opt.instance_type_id === typeId,
-  )
+  const option = planOption(sub)
   return option?.name ? `Тариф «${option.name}»` : 'Тариф не определён'
+}
+
+/** Характеристики текущей конфигурации — «4 CPU · 8 ГБ RAM · 120 GB». */
+const planSpecs = (sub: any): string => {
+  const option = planOption(sub)
+  return option ? optionSpecs(option) : ''
+}
+
+/**
+ * Объём накопителя конфигурации в гигабайтах. По нему решается, можно ли
+ * перейти на тариф: перенос идёт слепком дисков, поэтому диск нового сервера
+ * обязан быть больше текущего — в обратную сторону данные просто не поместятся.
+ */
+const diskGb = (opt: any): number => {
+  const raw = String((opt?.specs as Record<string, unknown> | null)?.disk ?? '')
+  const match = raw.match(/([\d.]+)\s*(TB|ТБ|GB|ГБ)?/i)
+  if (!match) return 0
+  const value = Number(match[1])
+  if (!Number.isFinite(value)) return 0
+  const unit = (match[2] ?? '').toUpperCase()
+  return unit === 'TB' || unit === 'ТБ' ? value * 1024 : value
 }
 
 // ── Смена тарифа сервера (решение кооператива) ─────────────────────────────
@@ -173,6 +200,7 @@ const upgradeOpen = ref(false)
 const upgrading = ref(false)
 const selectedTypeId = ref<number | null>(null)
 const currentPrice = ref(0)
+const currentDiskGb = ref(0)
 
 const isHosting = (sub: any): boolean => sub?.subscription_type_id === 1
 
@@ -201,11 +229,18 @@ const packageBreakdown = (sub: any): string => {
   return `${formatPrice(packagePrice)} за пакет`
 }
 
-// Только дороже текущего: даунгрейд провайдер отклонит — диск нового сервера
-// должен вмещать данные старого, поэтому и не предлагаем.
-const upgradeOptions = computed(() =>
-  (catalog.value?.server_options ?? []).filter((opt: any) => Number(opt.price) > currentPrice.value),
-)
+// Предлагаем только конфигурации с бо́льшим накопителем: перенос копирует диск
+// целиком, поэтому на меньший он не встанет, а равный — это текущий тариф,
+// менять его на себя же незачем. Если конфигурация подписки неизвестна
+// (старые записи без instance_type_id), падаем на прежнее правило «дороже
+// текущего» — лучше показать больше вариантов, чем пустой список.
+const upgradeOptions = computed(() => {
+  const options = catalog.value?.server_options ?? []
+  if (currentDiskGb.value > 0) {
+    return options.filter((opt: any) => diskGb(opt) > currentDiskGb.value)
+  }
+  return options.filter((opt: any) => Number(opt.price) > currentPrice.value)
+})
 
 const optionSpecs = (opt: any): string => {
   const specs = opt.specs as Record<string, unknown> | null
@@ -223,6 +258,7 @@ const openUpgrade = async (sub: any) => {
   selectedTypeId.value = null
   upgradeOpen.value = true
   if (!catalog.value) await loadCatalog()
+  currentDiskGb.value = diskGb(planOption(sub))
 }
 
 const confirmUpgrade = async () => {
@@ -268,6 +304,12 @@ const formatPrice = (price: number | string): string => {
   line-height: var(--p-lh-meta);
   color: var(--p-ink-2);
   margin-top: 2px;
+  white-space: normal;
+}
+.subs-card__specs {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-2);
+  margin-top: var(--p-1);
   white-space: normal;
 }
 .subs-card__plan {
