@@ -11,7 +11,7 @@ import {
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SupportQueriesService } from '../services/support-queries.service';
-import { toSupportActor } from '../services/support-commands.types';
+import { toSupportActor } from '../services/support-actor';
 import { SupportTicketsFilterInputDTO } from '../dto/support-tickets-filter.input';
 import { SupportMemberTicketsFilterInputDTO } from '../dto/support-member-tickets-filter.input';
 import {

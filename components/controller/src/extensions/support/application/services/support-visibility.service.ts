@@ -5,7 +5,7 @@ import type { SupportTicketAttachmentDomainEntity } from '../../domain/entities/
 import { SupportSystemEvent } from '../../domain/enums/support-system-event.enum';
 import { isCouncilRole } from '../../constants/support-access';
 import { supportAutoCloseAt } from '../../constants/support-auto-close';
-import type { SupportActor } from './support-commands.types';
+import type { SupportActor } from './support-actor';
 import type {
   SupportAttachmentView,
   SupportTicketCardView,

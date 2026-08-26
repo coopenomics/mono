@@ -35,8 +35,8 @@ import type {
   EscalateSupportTicketInput,
   ReplySupportTicketInput,
   ResolveSupportTicketInput,
-  SupportActor,
 } from './support-commands.types';
+import type { SupportActor } from './support-actor';
 
 /** Статусы, из которых обращение уже не ведут: назначать оператора в них нельзя. */
 const TERMINAL_STATUSES: ReadonlyArray<SupportTicketStatus> = [

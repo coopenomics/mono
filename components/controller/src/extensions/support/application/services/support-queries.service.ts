@@ -17,7 +17,7 @@ import type { SupportTicketDomainEntity } from '../../domain/entities/support-ti
 import { TICKET_NOT_FOUND_MESSAGE, isCouncilRole } from '../../constants/support-access';
 import { SupportAttachmentsService } from './support-attachments.service';
 import { SupportVisibilityService, type SupportTicketAggregates } from './support-visibility.service';
-import type { SupportActor } from './support-commands.types';
+import type { SupportActor } from './support-actor';
 import type {
   SupportAttachmentWithUrlView,
   SupportQueueSummaryView,

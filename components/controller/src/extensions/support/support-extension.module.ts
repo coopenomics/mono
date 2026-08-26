@@ -22,6 +22,7 @@ import { SupportTicketNotificationService } from './application/services/support
 import { SupportQueriesService } from './application/services/support-queries.service';
 import { SupportVisibilityService } from './application/services/support-visibility.service';
 import { SupportQueriesResolver } from './application/resolvers/support-queries.resolver';
+import { SupportMutationsResolver } from './application/resolvers/support-mutations.resolver';
 
 /**
  * Обращение, лента переписки и вложения не заводят своих переключателей в
@@ -75,8 +76,7 @@ export class SupportExtension extends BaseExtensionModule {
       provide: SUPPORT_TICKET_ATTACHMENT_REPOSITORY,
       useClass: SupportTicketAttachmentTypeormRepository,
     },
-    // Прикладной слой: команды, вложения, автозакрытие. Резолверов пока нет —
-    // они появятся своей фазой и будут звать эти же сервисы.
+    // Прикладной слой: команды, вложения, автозакрытие.
     SupportAttachmentsService,
     SupportCommandsService,
     SupportAutoCloseService,
@@ -88,8 +88,9 @@ export class SupportExtension extends BaseExtensionModule {
     // «единственное место» перестанет быть единственным.
     SupportVisibilityService,
     SupportQueriesService,
-    // Слой доступа. Резолверы команд появятся своей фазой.
+    // Слой доступа.
     SupportQueriesResolver,
+    SupportMutationsResolver,
   ],
   exports: [SupportExtension, SupportCommandsService, SupportQueriesService],
 })
