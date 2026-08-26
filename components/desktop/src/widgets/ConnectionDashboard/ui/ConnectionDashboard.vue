@@ -18,11 +18,27 @@
       AxonWallet
 
   SubscriptionsCard
+
+  //- Журнал списаний за подписки: тот же виджет, что видит совет в карточке
+  //- кооператива — здесь он отвечает на вопрос «за что и когда списали».
+  PaymentsHistory(
+    v-if="coopname"
+    :coopname="coopname"
+    title="История списаний"
+    subtitle="Оплаты подписок членскими взносами кооператива"
+    :limit="20"
+  )
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { PageHint } from 'src/shared/ui/domain'
+import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
+import { useSystemStore } from 'src/entities/System/model'
 import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard } from './index'
+
+const { info } = useSystemStore()
+const coopname = computed(() => info.coopname || '')
 </script>
 
 <style scoped>
