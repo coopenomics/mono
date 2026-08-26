@@ -21,17 +21,20 @@
           .subs-card__body
             .subs-card__title {{ sub.subscription_type_name }}
             .subs-card__sub {{ sub.subscription_type_description }}
-          // — Epic 13 v5.1: пакетная подписка показывает «пакеты RUB/мес»
+          //- Epic 13 v5.1: пакетная подписка показывает «израсходовано из квоты».
+          //- Символ валюты печатает formatPrice — в подписи его повторять
+          //- нельзя, иначе выходит «RUB RUB/мес»; у дроби валюта одна, у
+          //- второго числа.
           .subs-card__price(v-if="isPackage(sub)")
             .subs-card__price-value.t-mono
-              | {{ formatPriceLine(sub.packages_current_period_amount || 0) }}
+              | {{ formatAmount(sub.packages_current_period_amount || 0) }}
               | /
-              | {{ formatPriceLine(sub.monthly_quota_rub || 0) }}
-            .subs-card__price-period пакеты {{ currencySymbol }}/мес
-          // — обычная time-подписка: руб/месяц
+              | {{ formatPrice(sub.monthly_quota_rub || 0) }}
+            .subs-card__price-period пакеты в месяц
+          //- Обычная time-подписка: сумма (уже с валютой) и период.
           .subs-card__price(v-else)
             .subs-card__price-value.t-mono {{ formatPrice(sub.price) }}
-            .subs-card__price-period {{ currencySymbol }}/месяц
+            .subs-card__price-period в месяц
             //- Смена тарифа сервера — решение кооператива, не оператора:
             //- отсюда председатель апгрейдит свой узел; провайдер со своей
             //- стороны цену менять не вправе.
@@ -136,7 +139,7 @@ const optionSubtitle = (opt: any): string => {
   if (specs?.cpu) parts.push(`${specs.cpu} CPU`)
   if (specs?.ram_gb) parts.push(`${specs.ram_gb} GB RAM`)
   if (specs?.disk) parts.push(String(specs.disk))
-  parts.push(`${formatPrice(opt.price)} ${currencySymbol.value}/месяц`)
+  parts.push(`${formatPrice(opt.price)} в месяц`)
   return parts.join(' · ')
 }
 
@@ -157,7 +160,7 @@ const confirmUpgrade = async () => {
     )
     upgradeOpen.value = false
     SuccessAlert(
-      `Переход оформлен: новая цена ${formatPrice(result.new_price)} ${currencySymbol.value}/месяц уже действует, ` +
+      `Переход оформлен: новая цена ${formatPrice(result.new_price)} в месяц уже действует, ` +
         'система переедет на новый сервер в течение часа',
     )
     await loadSubscriptions()
@@ -168,21 +171,25 @@ const confirmUpgrade = async () => {
   }
 }
 
-const formatPrice = (price: number | string) => {
-  const priceStr = typeof price === 'number' ? price.toString() : price
+// Сумма с валютой: «3 660,00 RUB». Символ печатает сам форматтер, поэтому
+// рядом дописывать валюту нельзя — период пишется словами («в месяц»).
+const formatPrice = (price: number | string): string => {
   const sym = info.symbols?.root_govern_symbol || 'AXON'
-  return formatAsset2Digits(`${priceStr} ${sym}`)
+  return formatAsset2Digits(`${String(price)} ${sym}`)
 }
 
-const currencySymbol = computed(() => info.symbols?.root_govern_symbol || 'AXON')
+// Та же сумма без валюты — для первой части дроби «израсходовано / квота»,
+// где валюта называется один раз, у второго числа. Отрезаем символ у готовой
+// строки, а не форматируем число без символа: на нуле форматтер уходит в
+// раннюю ветку и отдаёт «0.00» с точкой вместо «0,00».
+const formatAmount = (price: number | string): string => {
+  const formatted = formatPrice(price)
+  const symbolAt = formatted.lastIndexOf(' ')
+  return symbolAt > 0 ? formatted.slice(0, symbolAt) : formatted
+}
 
-// Epic 13 v5.1: распознавание пакетных подписок и форматирование пакетной строки.
+// Epic 13 v5.1: распознавание пакетных подписок.
 const isPackage = (sub: any): boolean => sub?.kind === 'package'
-
-const formatPriceLine = (rub: number): string => {
-  const sym = info.symbols?.root_govern_symbol || 'AXON'
-  return formatAsset2Digits(`${Number(rub).toString()} ${sym}`)
-}
 
 const getSubscriptionIcon = (subscription: any) => {
   if (subscription.is_trial) return 'local_offer'
