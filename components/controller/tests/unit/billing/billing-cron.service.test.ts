@@ -155,6 +155,45 @@ describe('BillingCronService — тик хаба', () => {
   });
 });
 
+describe('BillingCronService — классификация отказов ноды', () => {
+  // Отказ, после которого транзакции в блоке точно нет, обязан помечаться FAILED:
+  // только из FAILED журнал разрешает повтор. Всё, что могло пройти, остаётся
+  // SUBMITTING без автоповтора — иначе списание уйдёт дважды.
+  const deterministic = [
+    ['лимит CPU цепи', 'transaction 81cf2406 was executing for too long 304824us reached on chain max_transaction_cpu_usage 290000us'],
+    ['лимит NET', 'tx_net_usage_exceeded: transaction net usage is too high'],
+    ['протухший срок', 'expired transaction: transaction expired'],
+    ['assert контракта', 'assertion failure with message: walletop TRANSFER: недостаточно средств'],
+  ] as const;
+
+  it.each(deterministic)('break: %s → FAILED, повтор разрешён — иначе платёж навсегда застревает в «отправляется»', async (_name, message) => {
+    const h = build({ payError: new Error(message) });
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.markFailed).toHaveBeenCalledWith(HASH, expect.stringContaining(message.slice(0, 20)));
+    expect(h.paymentLog.recordError).not.toHaveBeenCalled();
+  });
+
+  it('side: обрыв связи → запись остаётся SUBMITTING без автоповтора — транзакция могла пройти', async () => {
+    const h = build({ payError: new Error('connect ECONNREFUSED 172.27.0.10:8888') });
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.recordError).toHaveBeenCalled();
+    expect(h.paymentLog.markFailed).not.toHaveBeenCalled();
+  });
+
+  it('side: дубль транзакции → НЕ отказ: цепь её уже приняла, повторять нельзя', async () => {
+    const h = build({ payError: new Error('duplicate transaction 81cf2406') });
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.markFailed).not.toHaveBeenCalled();
+    expect(h.paymentLog.recordError).toHaveBeenCalled();
+  });
+});
+
 describe('BillingCronService — состав платежа в журнале', () => {
   it('happy: несколько платных услуг → в журнал уходит перечень имён, бесплатные в него не попадают', async () => {
     const h = build({

@@ -17,7 +17,7 @@
       :rows="payments"
       :loading="loading"
       row-key="payment_hash"
-      min-width="640px"
+      min-width="560px"
     )
       template(#cell-date="{ row: payment }")
         span.t-mono {{ formatDateTime(payment.created_at) }}
@@ -29,23 +29,14 @@
       template(#cell-amount="{ row: payment }")
         span.t-mono {{ formatAsset2Digits(payment.quantity) }}
       template(#cell-status="{ row: payment }")
-        BaseChip(:variant="paymentStatusVariant(payment.status)" size="sm")
-          span {{ paymentStatusLabel(payment.status) }}
-        //- Причина отказа — рядом со статусом: без неё «отклонено» не говорит
-        //- ничего, а отдельной колонки текст не стоит. Показываем человеческую
-        //- формулировку, отладочный ответ узла прячем в подсказку — он нужен
-        //- при разборе, но читать его пайщику незачем.
-        .payments-history__error.t-meta(v-if="payment.reason")
-          | {{ payment.reason }}
-          q-tooltip(v-if="payment.last_error && payment.last_error !== payment.reason") {{ payment.last_error }}
-      template(#cell-tx="{ row: payment }")
-        //- Идентификатор без ссылки: обозревателя транзакций в интерфейсе пока
-        //- нет, а полное значение отдаём подсказкой — по нему сверяют списание
-        //- с цепью.
-        span.t-mono(v-if="payment.tx_id")
-          | {{ payment.tx_id.slice(0, 8) }}…
-          q-tooltip {{ payment.tx_id }}
-        span.t-muted(v-else) —
+        .payments-history__status
+          BaseChip(:variant="paymentStatusVariant(payment.status, Boolean(payment.reason))" size="sm")
+            span {{ paymentStatusLabel(payment.status, Boolean(payment.reason)) }}
+          //- Причина — рядом со статусом: без неё «отклонено» не говорит ничего.
+          //- Текст переносится по строкам целиком: обрезка ровно на «кооперати…»
+          //- превращает объяснение в загадку. Отладочный ответ узла сюда не
+          //- попадает — он остаётся в журнале, читать его пайщику незачем.
+          .payments-history__error.t-meta(v-if="payment.reason") {{ payment.reason }}
 </template>
 
 <script setup lang="ts">
@@ -78,12 +69,14 @@ const props = withDefaults(
 
 const { payments, loading, error, loadPayments } = useLoadCooperativePayments()
 
+// Идентификатора транзакции здесь нет намеренно (@ant 2026-08-27): обозревателя
+// цепи в интерфейсе нет, ссылкой хэш не станет, а пайщику он ничего не говорит —
+// колонка только съедала ширину у причины отказа. Значение остаётся в журнале.
 const columns = [
   { key: 'date', label: 'Когда', align: 'left' as const },
   { key: 'subject', label: 'За что', align: 'left' as const },
   { key: 'amount', label: 'Сумма', align: 'right' as const, numeric: true },
-  { key: 'status', label: 'Состояние', align: 'left' as const },
-  { key: 'tx', label: 'Транзакция', align: 'right' as const },
+  { key: 'status', label: 'Состояние', align: 'left' as const, width: '38%' },
 ]
 
 const formatDateTime = (d: string) => moment(d).format('DD.MM.YY HH:mm')
@@ -97,8 +90,22 @@ watch(() => props.coopname, load)
 </script>
 
 <style scoped>
+.payments-history__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-1);
+  /* Ячейка таблицы не растягивается под содержимое — иначе длинная причина
+     тянет строку вширь и вылезает за карточку. */
+  max-width: 100%;
+}
+
 .payments-history__error {
   color: var(--p-neg);
-  margin-top: 2px;
+  /* Причина — предложение целиком, в несколько строк; переносим и по словам,
+     и внутри длинного слова, чтобы ничего не уезжало за край. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 </style>

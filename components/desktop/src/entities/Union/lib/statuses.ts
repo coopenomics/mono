@@ -132,7 +132,17 @@ export const subscriptionStatusVariant = (status: string | null | undefined): Un
  * ещё не подтвердил счёт оплаченным. Совет должен отличать их от CONFIRMED,
  * иначе зависшее списание читается как успешная оплата.
  */
-export const paymentStatusLabel = (status: string | null | undefined): string => {
+/**
+ * Попытка списания «зависла»: отправка началась, но исход неизвестен и
+ * автоповтора у неё нет — нужна сверка с цепью. Показывать такую строку как
+ * «отправляется» нельзя: пайщик возвращается на страницу через час и видит всё
+ * тот же вечный процесс (@ant 2026-08-27).
+ */
+const isStalledAttempt = (status: string | null | undefined, hasError: boolean): boolean =>
+  hasError && normalize(status) === 'submitting'
+
+export const paymentStatusLabel = (status: string | null | undefined, hasError = false): string => {
+  if (isStalledAttempt(status, hasError)) return 'не подтверждено'
   switch (normalize(status)) {
     case 'confirmed':
       return 'оплачено'
@@ -147,7 +157,11 @@ export const paymentStatusLabel = (status: string | null | undefined): string =>
   }
 }
 
-export const paymentStatusVariant = (status: string | null | undefined): UnionChipVariant => {
+export const paymentStatusVariant = (
+  status: string | null | undefined,
+  hasError = false,
+): UnionChipVariant => {
+  if (isStalledAttempt(status, hasError)) return 'neg'
   switch (normalize(status)) {
     case 'confirmed':
       return 'pos'

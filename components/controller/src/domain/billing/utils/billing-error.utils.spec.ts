@@ -34,6 +34,18 @@ describe('humanizeBillingError', () => {
     );
   });
 
+  it('happy: отказ ноды по ресурсам/сроку читается как «повторим», а не как отказ в оплате', () => {
+    expect(
+      humanizeBillingError(
+        'transaction 81cf2406 was executing for too long 304824us reached on chain max_transaction_cpu_usage 290000us',
+      ),
+    ).toBe('Сеть не успела провести списание — повторим на следующем круге');
+
+    expect(humanizeBillingError('expired transaction: transaction expired')).toBe(
+      'Списание не успело попасть в блок — повторим на следующем круге',
+    );
+  });
+
   it('side: незнакомый отказ контракта → показываем суть без служебной обёртки', () => {
     expect(humanizeBillingError('assertion failure with message: billing: unknown guard')).toBe(
       'Блокчейн отклонил списание: billing: unknown guard',

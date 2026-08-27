@@ -378,9 +378,32 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       .map((item) => ({ subscription_id: item.subscription_id, period_days: summary.period_days }));
   }
 
+  /**
+   * Отказ, после которого транзакции в блоке ТОЧНО нет, — значит повтор
+   * безопасен и запись журнала помечается FAILED (следующий тик её подхватит).
+   * Всё остальное (обрыв связи, таймаут ожидания ответа) оставляет SUBMITTING:
+   * там транзакция могла пройти, и автоповтор списал бы дважды.
+   *
+   * Кроме assert'ов контракта сюда входят отказы САМОЙ ноды по ресурсам и
+   * сроку: превышение лимита CPU/NET и протухший срок — это не «сбой связи»,
+   * транзакция отвергнута детерминированно. Пока они считались сетевыми,
+   * запись навсегда застревала в SUBMITTING: автоповтора у неё нет, а
+   * payment_hash тот же — кооператив оставался без списания и после пополнения
+   * кошелька (поймано на стенде 2026-08-27: `was executing for too long ...
+   * reached on chain max_transaction_cpu_usage`).
+   */
   private isDomainRejection(error: any): boolean {
     const message = String(error?.message ?? error ?? '');
-    return message.includes('assertion failure') || message.includes('eosio_assert') || message.includes('недостаточно');
+    // Дубль — обратный случай: транзакция уже принята цепью, повторять нельзя.
+    if (/duplicate transaction/i.test(message)) return false;
+    return (
+      message.includes('assertion failure') ||
+      message.includes('eosio_assert') ||
+      message.includes('недостаточно') ||
+      /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded/i.test(message) ||
+      /tx_net_usage_exceeded|transaction (was )?too large/i.test(message) ||
+      /expired transaction|transaction expired/i.test(message)
+    );
   }
 
   /**

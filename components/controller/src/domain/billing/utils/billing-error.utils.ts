@@ -36,6 +36,16 @@ const RULES: Array<{ match: RegExp; text: string }> = [
     text: 'Кооператив или кошелёк не найдены в реестре',
   },
   {
+    // Нода отвергла транзакцию по своим лимитам (CPU/NET) или по сроку —
+    // списание не состоялось, следующий тик повторит его сам.
+    match: /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded|tx_net_usage_exceeded/i,
+    text: 'Сеть не успела провести списание — повторим на следующем круге',
+  },
+  {
+    match: /expired transaction|transaction expired/i,
+    text: 'Списание не успело попасть в блок — повторим на следующем круге',
+  },
+  {
     match: /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|socket hang up|network/i,
     text: 'Сервис оплаты временно недоступен',
   },
