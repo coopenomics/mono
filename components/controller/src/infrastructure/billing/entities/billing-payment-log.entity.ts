@@ -42,6 +42,16 @@ export class BillingPaymentLogEntity {
   @Column({ length: 64 })
   quantity!: string;
 
+  /**
+   * За что списано — перечень услуг человеческим текстом («Хостинг на сервере»,
+   * «Электронный документооборот»). Состав платежа знает только провайдер, а
+   * летопись живёт здесь, поэтому имена сохраняются в момент списания: позже
+   * восстановить их будет неоткуда (invoice протухает, тариф переименовывают).
+   * Null у записей, заведённых до появления поля.
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  subject!: string | null;
+
   @Column({ type: 'enum', enum: BillingPaymentLogStatus, default: BillingPaymentLogStatus.SUBMITTING })
   status!: BillingPaymentLogStatus;
 

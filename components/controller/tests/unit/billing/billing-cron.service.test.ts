@@ -87,7 +87,9 @@ describe('BillingCronService — тик хаба', () => {
     expect(h.providerClient.getBillingSummary).toHaveBeenCalledTimes(1);
     expect(h.providerClient.getBillingSummary).toHaveBeenCalledWith('partner1');
     expect(h.providerClient.createInvoice).toHaveBeenCalledWith('partner1', [{ subscription_id: 1, period_days: 30 }]);
-    expect(h.paymentLog.begin).toHaveBeenCalledWith(HASH, 'partner1', '1500.0000 RUB');
+    // Четвёртым аргументом — за что списано: журнал единственная летопись
+    // платежей, и без состава в истории у пайщика видна одна сумма.
+    expect(h.paymentLog.begin).toHaveBeenCalledWith(HASH, 'partner1', '1500.0000 RUB', 'Хостинг');
     expect(h.blockchainPort.pay).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', username: 'partner1', quantity: '1500.0000 RUB', paymentHash: HASH }));
     expect(h.paymentLog.markSubmitted).toHaveBeenCalledWith(HASH, 'tx-pay');
     expect(h.providerClient.confirmPayment).toHaveBeenCalledWith({ paymentHash: HASH, blockchainTransactionId: 'tx-pay' });
@@ -150,6 +152,43 @@ describe('BillingCronService — тик хаба', () => {
     expect(h.providerService.getCooperativesRegistry).toHaveBeenCalledTimes(1);
     release();
     await first;
+  });
+});
+
+describe('BillingCronService — состав платежа в журнале', () => {
+  it('happy: несколько платных услуг → в журнал уходит перечень имён, бесплатные в него не попадают', async () => {
+    const h = build({
+      summary: summary({
+        total_amount: 5160,
+        items: [
+          { subscription_id: 1, subscription_type_id: 1, subscription_type_name: 'Хостинг на сервере', status: 'ACTIVE', amount: 3660, is_free: false },
+          { subscription_id: 2, subscription_type_id: 2, subscription_type_name: 'Поддержка', status: 'ACTIVE', amount: 1500, is_free: false },
+          { subscription_id: 3, subscription_type_id: 3, subscription_type_name: 'Освобождённая услуга', status: 'ACTIVE', amount: 0, is_free: true },
+        ],
+      }),
+    });
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.begin).toHaveBeenCalledWith(
+      HASH,
+      'partner1',
+      expect.any(String),
+      'Хостинг на сервере, Поддержка',
+    );
+  });
+
+  it('side: имя услуги в сводке отсутствует → журнал получает пустой состав, списание всё равно идёт', async () => {
+    const h = build({
+      summary: summary({
+        items: [{ subscription_id: 1, subscription_type_id: 1, subscription_type_name: '', status: 'ACTIVE', amount: 1500, is_free: false }],
+      }),
+    });
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.begin).toHaveBeenCalledWith(HASH, 'partner1', '1500.0000 RUB', '');
+    expect(h.blockchainPort.pay).toHaveBeenCalled();
   });
 });
 

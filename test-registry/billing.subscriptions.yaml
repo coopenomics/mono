@@ -27,6 +27,7 @@ sources:
     - components/controller/src/application/provider/**
   ui:
     - components/desktop/src/features/Billing/**
+    - components/desktop/src/widgets/Billing/**
     - components/desktop/src/entities/Billing/**
     - components/desktop/src/entities/Wallet/model/useCooperativeMainWallet.ts
     - components/desktop/src/widgets/ConnectionDashboard/ui/AxonWallet.vue
@@ -218,3 +219,33 @@ cases:
       закупка и наценка в схеме отсутствуют by design
     test: components/controller/src/application/provider/services/provider-catalog.spec.ts
     status: passing
+
+  # История списаний глазами пайщика (@ant 2026-08-27): в журнале была одна
+  # сумма и отладочный ответ узла — «за что» и «почему отклонено» не читалось.
+  - id: bill.happy.09
+    level: backend
+    kind: happy
+    scenario: >
+      Хаб списывает подписки кооператива и докупает пакет документооборота.
+    expect: >
+      в журнал вместе с суммой уходит состав платежа человеческим текстом
+      («Хостинг на сервере, Поддержка»); бесплатные позиции в состав не входят,
+      пустое имя услуги списание не срывает; у пакетной ноги состав берётся из
+      ответа провайдера
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: passing
+
+  - id: bill.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Узел отклонил списание: нет средств, нет программного соглашения, сетевой
+      сбой, незнакомый assert контракта, пустое сообщение.
+    expect: >
+      история показывает одну понятную фразу («Недостаточно средств на кошельке
+      кооператива»), у незнакомого отказа — его суть без обёртки «assertion
+      failure with message»; сырой ответ узла не теряется и уходит в подсказку;
+      пустому сообщению причина не выдумывается
+    test: components/controller/src/domain/billing/utils/billing-error.utils.spec.ts
+    status: passing
+

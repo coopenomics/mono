@@ -31,7 +31,19 @@ export class CooperativePaymentDTO {
   @Field(() => String, { nullable: true, description: 'Идентификатор принятой транзакции (с SUBMITTED)' })
   tx_id?: string;
 
-  @Field(() => String, { nullable: true, description: 'Текст последней ошибки — для FAILED и зависших попыток' })
+  @Field(() => String, { nullable: true, description: 'За что списано: перечень услуг («Хостинг на сервере»)' })
+  subject?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Причина отказа человеческим языком — её и показывает интерфейс',
+  })
+  reason?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Сырое сообщение узла — отладочный след для сверки, в интерфейсе прячется в подсказку',
+  })
   last_error?: string;
 
   @Field(() => String, { description: 'Когда списание начато (ISO)' })

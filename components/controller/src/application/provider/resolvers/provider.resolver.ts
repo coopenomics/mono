@@ -13,6 +13,7 @@ import { UploadCooperativeCharterInputDTO } from '../dto/upload-cooperative-char
 import { CooperativePaymentDTO } from '../dto/cooperative-payment.dto';
 import { ChangeHostingPlanResultDTO } from '../dto/change-hosting-plan.dto';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
+import { humanizeBillingError } from '~/domain/billing/utils/billing-error.utils';
 
 @Resolver()
 export class ProviderResolver {
@@ -69,7 +70,11 @@ export class ProviderResolver {
       payment_hash: row.payment_hash,
       quantity: row.quantity,
       status: row.status,
+      subject: row.subject ?? undefined,
       tx_id: row.tx_id ?? undefined,
+      // Отказ узла приходит отладочным текстом контракта; пайщику показываем
+      //понятную причину, сырое сообщение оставляем для сверки.
+      reason: humanizeBillingError(row.last_error),
       last_error: row.last_error ?? undefined,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),

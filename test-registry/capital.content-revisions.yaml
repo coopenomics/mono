@@ -23,7 +23,8 @@ sources:
     - components/desktop/extensions/capital/features/ContentRevisions/**
     - components/desktop/extensions/capital/pages/ProjectDescriptionPage/**
     - components/desktop/extensions/capital/pages/ComponentDescriptionPage/**
-  cli:
+    # blago-cli ходит тем же API синхронизации; отдельного уровня «cli» в
+    # реестре нет, маски живут в backend.
     - components/blago-cli/src/sync/push.ts
     - components/blago-cli/src/sync/merge3.ts
     - components/blago-cli/src/sync/sync-entity-file.ts
@@ -90,7 +91,6 @@ cases:
     kind: side
     scenario: просмотр истории артефакта без допуска к проекту
     expect: отказ «Недостаточно прав для просмотра истории редакций»
-    test: components/controller/tests/unit/capital/content-revision-api.service.test.ts
     status: missing
 
   - id: cap.rev.happy.02
@@ -98,7 +98,6 @@ cases:
     kind: happy
     scenario: проект/компонент — правка описания, кнопка «Сохранить», окно «Редакции» показывает новую запись
     expect: без кнопки на сервер ничего не уходит; в списке редакций появляется запись с автором
-    test: components/docs-harness/scenarios/capital/content-revisions.ts
     status: missing
 
   - id: cap.rev.side.07
@@ -106,5 +105,4 @@ cases:
     kind: side
     scenario: откат к прежней редакции из окна «Редакции»
     expect: содержимое редактора заменено, в истории новая запись RESTORE со ссылкой на исходную
-    test: components/docs-harness/scenarios/capital/content-revisions.ts
     status: missing

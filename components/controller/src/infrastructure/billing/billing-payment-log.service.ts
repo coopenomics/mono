@@ -51,7 +51,12 @@ export class BillingPaymentLogService {
     });
   }
 
-  async begin(paymentHash: string, coopname: string, quantity: string): Promise<BeginPaymentResult> {
+  async begin(
+    paymentHash: string,
+    coopname: string,
+    quantity: string,
+    subject?: string,
+  ): Promise<BeginPaymentResult> {
     const existing = await this.repository.findOne({ where: { payment_hash: paymentHash } });
     if (existing) {
       if (existing.status === BillingPaymentLogStatus.FAILED) {
@@ -62,6 +67,11 @@ export class BillingPaymentLogService {
           { status: BillingPaymentLogStatus.SUBMITTING, last_error: null },
         );
         if (updated.affected === 1) {
+          // Повтор после отказа: состав платежа мог уточниться (сменился тариф),
+          // поэтому обновляем его вместе со снятием ошибки.
+          if (subject) {
+            await this.repository.update({ payment_hash: paymentHash }, { subject });
+          }
           return { started: true };
         }
       }
@@ -74,6 +84,7 @@ export class BillingPaymentLogService {
           payment_hash: paymentHash,
           coopname,
           quantity,
+          subject: subject ?? null,
           status: BillingPaymentLogStatus.SUBMITTING,
         }),
       );

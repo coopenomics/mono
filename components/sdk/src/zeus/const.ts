@@ -3671,6 +3671,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5138,7 +5142,9 @@ export const ReturnTypes: Record<string,any> = {
 		last_error:"String",
 		payment_hash:"String",
 		quantity:"String",
+		reason:"String",
 		status:"CooperativePaymentStatus",
+		subject:"String",
 		tx_id:"String",
 		updated_at:"String"
 	},

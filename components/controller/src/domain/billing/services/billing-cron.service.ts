@@ -141,7 +141,12 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       // идемпотентности: контракт on-chain таблиц не ведёт (RAM чейна на
       // платежи не тратится, решение @ant 2026-06-11). Существующая запись
       // блокирует повторное списание при любом сценарии.
-      const begin = await this.paymentLog.begin(invoice.payment_hash, coopname, quantity);
+      const begin = await this.paymentLog.begin(
+        invoice.payment_hash,
+        coopname,
+        quantity,
+        this.describeItems(summary, payableItems),
+      );
       if (!begin.started) {
         await this.handleExistingPayment(coopname, invoice.payment_hash, begin.existing?.status, begin.existing?.tx_id);
         return;
@@ -204,7 +209,12 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       const quantity = `${amountRub.toFixed(config.blockchain.root_govern_precision)} ${config.blockchain.root_govern_symbol}`;
 
       // Журнал платежей ДО transact — та же идемпотентность, что и в pay-потоке.
-      const begin = await this.paymentLog.begin(paymentHash, coopname, quantity);
+      const begin = await this.paymentLog.begin(
+        paymentHash,
+        coopname,
+        quantity,
+        invoice.subscription_type_name || 'Пакет документооборота',
+      );
       if (!begin.started) {
         await this.handleExistingPackageTopup(coopname, paymentHash, amountRub, begin.existing?.status, begin.existing?.tx_id);
         return;
@@ -341,6 +351,24 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
     await this.paymentLog.markSubmitted(paymentHash, transactionId);
     return transactionId;
+  }
+
+  /**
+   * За что списание — человеческим текстом для журнала. Состав знает только
+   * провайдер (в сводке лежат имена услуг), а в истории у пайщика без него
+   * видна одна сумма без объяснения.
+   */
+  private describeItems(
+    summary: ProviderBillingSummary,
+    payableItems: Array<{ subscription_id: number; period_days: number }>,
+  ): string {
+    const ids = new Set(payableItems.map((i) => i.subscription_id));
+    const names = (summary.items ?? [])
+      .filter((item) => ids.has(item.subscription_id))
+      .map((item) => item.subscription_type_name)
+      .filter((name): name is string => Boolean(name));
+    // Дублей быть не должно, но одна услуга дважды в списке выглядит как ошибка.
+    return [...new Set(names)].join(', ');
   }
 
   /** Позиции invoice: только платные (не free, сумма > 0). */

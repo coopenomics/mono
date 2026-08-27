@@ -60,6 +60,8 @@ export interface ProviderPackageInvoice {
   coopname?: string;
   total_amount?: number;
   expires_at?: string;
+  /** Название услуги — попадает в журнал списаний, чтобы в истории было видно, за что списано. */
+  subscription_type_name?: string;
 }
 
 /**

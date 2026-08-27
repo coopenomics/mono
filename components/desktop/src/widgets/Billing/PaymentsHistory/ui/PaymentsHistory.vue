@@ -17,18 +17,27 @@
       :rows="payments"
       :loading="loading"
       row-key="payment_hash"
-      min-width="520px"
+      min-width="640px"
     )
       template(#cell-date="{ row: payment }")
         span.t-mono {{ formatDateTime(payment.created_at) }}
+      template(#cell-subject="{ row: payment }")
+        //- За что списано. У записей, заведённых до появления поля, состава нет —
+        //- честнее показать прочерк, чем догадку.
+        span(v-if="payment.subject") {{ payment.subject }}
+        span.t-muted(v-else) —
       template(#cell-amount="{ row: payment }")
         span.t-mono {{ formatAsset2Digits(payment.quantity) }}
       template(#cell-status="{ row: payment }")
         BaseChip(:variant="paymentStatusVariant(payment.status)" size="sm")
           span {{ paymentStatusLabel(payment.status) }}
         //- Причина отказа — рядом со статусом: без неё «отклонено» не говорит
-        //- ничего, а отдельной колонки текст не стоит.
-        .payments-history__error.t-meta(v-if="payment.last_error") {{ payment.last_error }}
+        //- ничего, а отдельной колонки текст не стоит. Показываем человеческую
+        //- формулировку, отладочный ответ узла прячем в подсказку — он нужен
+        //- при разборе, но читать его пайщику незачем.
+        .payments-history__error.t-meta(v-if="payment.reason")
+          | {{ payment.reason }}
+          q-tooltip(v-if="payment.last_error && payment.last_error !== payment.reason") {{ payment.last_error }}
       template(#cell-tx="{ row: payment }")
         //- Идентификатор без ссылки: обозревателя транзакций в интерфейсе пока
         //- нет, а полное значение отдаём подсказкой — по нему сверяют списание
@@ -71,6 +80,7 @@ const { payments, loading, error, loadPayments } = useLoadCooperativePayments()
 
 const columns = [
   { key: 'date', label: 'Когда', align: 'left' as const },
+  { key: 'subject', label: 'За что', align: 'left' as const },
   { key: 'amount', label: 'Сумма', align: 'right' as const, numeric: true },
   { key: 'status', label: 'Состояние', align: 'left' as const },
   { key: 'tx', label: 'Транзакция', align: 'right' as const },
