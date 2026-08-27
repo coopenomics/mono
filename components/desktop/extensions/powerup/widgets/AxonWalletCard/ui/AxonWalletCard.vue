@@ -31,6 +31,7 @@ import { computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { pluralizeDays, pluralizeAccounts } from 'src/shared/lib/utils';
+import { axonAccountsAffordable, axonDaysOfWork } from 'src/shared/lib/axon';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const systemStore = useSystemStore();
@@ -47,15 +48,12 @@ const formattedBalance = computed(() => {
   return formatAsset2Digits(`${balance} AXON`);
 });
 
-// Минимальных квот в днях
-const minQuotasDays = computed(() => {
-  return Math.floor(axonBalance.value / 5);
-});
+// Минимальных квот в днях и максимум новых пайщиков считаются общими формулами
+// (shared/lib/axon): та же прикидка нужна кооперативу на дашборде подключения,
+// и двум копиям тарифов платформы разъезжаться нельзя.
+const minQuotasDays = computed(() => axonDaysOfWork(axonBalance.value));
 
-// Максимум новых пайщиков
-const maxNewMembers = computed(() => {
-  return Math.floor(axonBalance.value);
-});
+const maxNewMembers = computed(() => axonAccountsAffordable(axonBalance.value));
 
 // Текст для дней с правильным склонением
 const minQuotasDaysText = computed(() => {
