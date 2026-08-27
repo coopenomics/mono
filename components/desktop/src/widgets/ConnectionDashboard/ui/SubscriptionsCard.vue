@@ -142,8 +142,12 @@ onMounted(async () => {
 // а не наезд ячеек друг на друга.
 const columns: BaseTableColumn<ProviderSubscription>[] = [
   { key: 'name', label: 'Услуга' },
-  { key: 'status', label: 'Состояние', width: '170px' },
-  { key: 'price', label: 'Стоимость', numeric: true, width: '170px', nowrap: true },
+  { key: 'status', label: 'Состояние', width: '130px' },
+  // nowrap здесь стоять не может: он держит в одну строку не только сумму, но и
+  // подпись под ней («1 × 1 500,00 RUB в этом месяце»), а она длиннее колонки —
+  // таблица разъезжалась шире карточки и уходила в горизонтальную прокрутку.
+  // Сумму от переноса бережёт свой стиль, подпись переносится по словам.
+  { key: 'price', label: 'Стоимость', numeric: true, width: '190px' },
 ]
 
 // Порядок услуг в реестре: документооборот — основа участия и платится
@@ -323,11 +327,16 @@ const formatPrice = (price: number | string): string => {
   font-size: var(--p-fs-h3);
   font-weight: 600;
   color: var(--p-ink);
+  /* Сумму не ломаем: «3 660,00» в две строки читается как две суммы. */
+  white-space: nowrap;
 }
 .subs-card__period {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
   margin-top: 2px;
+  /* Подпись — обычный текст, переносится по словам внутри своей колонки. */
+  white-space: normal;
+  line-height: var(--p-lh-tight, 1.3);
 }
 .subs-card__dlg-text {
   margin: 0 0 var(--p-3);
