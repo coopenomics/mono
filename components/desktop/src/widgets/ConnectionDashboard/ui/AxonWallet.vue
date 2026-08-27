@@ -7,11 +7,16 @@ WalletCard(
   :balance="axon.amount"
   :symbol="axon.symbol || 'AXON'"
 )
-  //- Прикидка «на сколько хватит» по тарифам платформы — теми же формулами,
-  //- что на столе «Системные ресурсы». Живёт в слоте действий: там уже есть
-  //- своя линия-разделитель, и карточка не становится выше соседней.
-  template(v-if="capacity" #actions)
-    .axon-wallet__capacity.t-meta {{ capacity }}
+  //- Ёмкость баланса тремя показателями по тарифам платформы. Живёт в слоте
+  //- действий: там уже есть своя линия-разделитель, и карточка не становится
+  //- выше соседней. Показатели независимы (ресурсы делят один баланс) — это
+  //- объясняет подсказка, в строку такое пояснение не помещается.
+  template(v-if="metrics.length" #actions)
+    .axon-capacity
+      .axon-capacity__item(v-for="metric in metrics" :key="metric.key")
+        .axon-capacity__value.t-mono.t-num {{ metric.value }}
+        .axon-capacity__label.t-meta {{ metric.label }}
+      q-tooltip {{ capacityHint }}
 </template>
 
 <script setup lang="ts">
@@ -19,7 +24,7 @@ import { computed } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { WalletCard } from 'src/shared/ui/domain';
 import { splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { axonCapacitySummary } from 'src/shared/lib/axon';
+import { AXON_CAPACITY_HINT, axonCapacityMetrics } from 'src/shared/lib/axon';
 
 /**
  * Баланс AXON кооператива. Кнопка «Пополнить» убрана (Epic 13, решение @ant
@@ -41,11 +46,25 @@ const axonBalance = computed(() => {
   return Number.parseFloat(String(raw).replace(/[^\d.-]/g, '')) || 0;
 });
 
-const capacity = computed(() => axonCapacitySummary(axonBalance.value));
+const metrics = computed(() => axonCapacityMetrics(axonBalance.value));
+const capacityHint = AXON_CAPACITY_HINT;
 </script>
 
 <style scoped>
-.axon-wallet__capacity {
-  color: var(--p-ink-2);
+.axon-capacity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2) var(--p-6);
+}
+
+.axon-capacity__value {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+  line-height: 1.2;
+}
+
+.axon-capacity__label {
+  color: var(--p-ink-3);
 }
 </style>

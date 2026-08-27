@@ -16,9 +16,12 @@
     .detail-row
       span.detail-label Новых пайщиков
       span.detail-value {{ maxNewMembers }} {{ maxNewMembersText }}
+    .detail-row
+      span.detail-label Пакетов документов
+      span.detail-value {{ maxDocumentPackages }} {{ maxDocumentPackagesText }}
 
   .axon-wallet-card__note
-    | AXON используется для аренды вычислительных ресурсов (минимум 5 AXON/день) и регистрации пайщиков (1 AXON/аккаунт). Курс: 1 AXON = 10 RUB.
+    | AXON используется для аренды вычислительных ресурсов (минимум 5 AXON/день), регистрации пайщиков (2 AXON — аккаунт и пакет его документов) и пакетов документов (1 AXON). Курс: 1 AXON = 10 RUB.
 
   BaseButton.axon-wallet-card__action(variant="primary", size="sm", block, @click="goToReplenishment")
     template(#icon-left)
@@ -30,8 +33,12 @@
 import { computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { pluralizeDays, pluralizeAccounts } from 'src/shared/lib/utils';
-import { axonAccountsAffordable, axonDaysOfWork } from 'src/shared/lib/axon';
+import { pluralize, pluralizeDays, pluralizeAccounts } from 'src/shared/lib/utils';
+import {
+  axonDaysOfWork,
+  axonDocumentPackagesAffordable,
+  axonMembersAffordable,
+} from 'src/shared/lib/axon';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const systemStore = useSystemStore();
@@ -48,12 +55,17 @@ const formattedBalance = computed(() => {
   return formatAsset2Digits(`${balance} AXON`);
 });
 
-// Минимальных квот в днях и максимум новых пайщиков считаются общими формулами
-// (shared/lib/axon): та же прикидка нужна кооперативу на дашборде подключения,
-// и двум копиям тарифов платформы разъезжаться нельзя.
+// Ёмкость баланса считается общими формулами (shared/lib/axon): та же прикидка
+// нужна кооперативу на дашборде подключения, и двум копиям тарифов платформы
+// разъезжаться нельзя. Регистрация пайщика стоит 2 AXON, а не 1: помимо самого
+// аккаунта оплачивается пакет его регистрационных документов — это видно и по
+// прайсу (20 ₽ за пайщика при курсе 1 AXON = 10 ₽). Прежний расчёт по 1 AXON
+// обещал вдвое больше регистраций, чем баланс на самом деле покрывает.
 const minQuotasDays = computed(() => axonDaysOfWork(axonBalance.value));
 
-const maxNewMembers = computed(() => axonAccountsAffordable(axonBalance.value));
+const maxNewMembers = computed(() => axonMembersAffordable(axonBalance.value));
+
+const maxDocumentPackages = computed(() => axonDocumentPackagesAffordable(axonBalance.value));
 
 // Текст для дней с правильным склонением
 const minQuotasDaysText = computed(() => {
@@ -64,6 +76,10 @@ const minQuotasDaysText = computed(() => {
 const maxNewMembersText = computed(() => {
   return pluralizeAccounts(maxNewMembers.value);
 });
+
+const maxDocumentPackagesText = computed(() =>
+  pluralize(maxDocumentPackages.value, ['пакет', 'пакета', 'пакетов']),
+);
 
 // Переход на сайт пополнения
 const goToReplenishment = () => {
