@@ -92,6 +92,17 @@ export class ProviderSubscriptionDTO {
   @Field(() => Number, { nullable: true, description: 'Сумма RUB, докупленная в текущем месячном периоде' })
   packages_current_period_amount?: number | null;
 
+  // Порог докупки: пакет покупается не по календарю, а когда ликвидный остаток
+  // AXON падает ниже этого числа. Кооперативу его нужно видеть — иначе списание
+  // «раз в сколько-то» выглядит необъяснимым (@ant 2026-08-27). Значение живёт
+  // на хабе (BILLING_PACKAGE_LOW_WATER_AXON), поэтому проставляется сервисом,
+  // а не приходит от провайдера.
+  @Field(() => Number, {
+    nullable: true,
+    description: 'Остаток AXON, ниже которого автоматически докупается следующий пакет',
+  })
+  package_low_water_axon?: number | null;
+
   constructor(subscription: ProviderSubscriptionType) {
     this.id = subscription.id;
     this.subscriber_id = subscription.subscriber_id;

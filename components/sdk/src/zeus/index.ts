@@ -13865,6 +13865,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	kind?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Остаток AXON, ниже которого автоматически докупается следующий пакет */
+	package_low_water_axon?:boolean | `@${string}`,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
 	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
@@ -28694,6 +28696,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	kind?:boolean | `@${string}`,
 	/** Дата следующего платежа */
 	next_payment_due?:boolean | `@${string}`,
+	/** Остаток AXON, ниже которого автоматически докупается следующий пакет */
+	package_low_water_axon?:boolean | `@${string}`,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
 	packages_current_period_amount?:boolean | `@${string}`,
 	/** Период подписки в днях */
@@ -43322,6 +43326,8 @@ export type ModelTypes = {
 	kind?: string | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Остаток AXON, ниже которого автоматически докупается следующий пакет */
+	package_low_water_axon?: number | undefined | null,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
 	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */
@@ -58913,6 +58919,8 @@ export type GraphQLTypes = {
 	kind?: string | undefined | null,
 	/** Дата следующего платежа */
 	next_payment_due?: string | undefined | null,
+	/** Остаток AXON, ниже которого автоматически докупается следующий пакет */
+	package_low_water_axon?: number | undefined | null,
 	/** Сумма RUB, докупленная в текущем месячном периоде */
 	packages_current_period_amount?: number | undefined | null,
 	/** Период подписки в днях */

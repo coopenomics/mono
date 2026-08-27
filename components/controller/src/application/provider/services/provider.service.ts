@@ -169,6 +169,12 @@ export class ProviderService {
       for (const subscription of subscriptions) {
         // Провайдер уже возвращает обогащенные данные
         const providerSubscription = new ProviderSubscriptionDTO(subscription);
+        // Порог докупки пакета знает хаб, а не провайдер: пакетная услуга
+        // платится по расходу ресурса, и без этого числа кооперативу неоткуда
+        // понять, когда именно спишется следующие деньги.
+        if (providerSubscription.kind === 'package') {
+          providerSubscription.package_low_water_axon = config.billing.package_low_water_axon;
+        }
         result.push(providerSubscription);
       }
 

@@ -28,6 +28,7 @@ export const rawProviderSubscriptionSelector = {
   instance_type_id: true,
   kind: true,
   packages_current_period_amount: true,
+  package_low_water_axon: true,
 }
 
 // Проверка валидности

@@ -155,6 +155,31 @@ describe('BillingCronService — тик хаба', () => {
   });
 });
 
+describe('BillingCronService — идентификатор транзакции', () => {
+  it('break: id лежит в ответе ноды (response.transaction_id), а не в корне — иначе провайдер получает подтверждение без ссылки на цепь', async () => {
+    const h = build();
+    // Форма ответа wharfkit: сам результат несёт response с id.
+    h.blockchainPort.pay = jest.fn(async () => ({ response: { transaction_id: 'tx-real' } })) as any;
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.markSubmitted).toHaveBeenCalledWith(HASH, 'tx-real');
+    expect(h.providerClient.confirmPayment).toHaveBeenCalledWith({
+      paymentHash: HASH,
+      blockchainTransactionId: 'tx-real',
+    });
+  });
+
+  it('side: id в корне результата тоже читается — старую форму ответа не ломаем', async () => {
+    const h = build();
+    h.blockchainPort.pay = jest.fn(async () => ({ transaction_id: 'tx-flat' })) as any;
+
+    await h.svc.tick();
+
+    expect(h.paymentLog.markSubmitted).toHaveBeenCalledWith(HASH, 'tx-flat');
+  });
+});
+
 describe('BillingCronService — классификация отказов ноды', () => {
   // Отказ, после которого транзакции в блоке точно нет, обязан помечаться FAILED:
   // только из FAILED журнал разрешает повтор. Всё, что могло пройти, остаётся

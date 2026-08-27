@@ -7741,6 +7741,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_trial:"Boolean",
 		kind:"String",
 		next_payment_due:"String",
+		package_low_water_axon:"Float",
 		packages_current_period_amount:"Float",
 		period_days:"Float",
 		price:"Float",

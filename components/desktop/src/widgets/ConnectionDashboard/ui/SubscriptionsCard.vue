@@ -30,6 +30,9 @@
         //- само по себе ничего не говорит, а сравнивать её с предложением о
         //- смене нужно здесь же.
         .subs-card__specs(v-if="isHosting(row) && planSpecs(row)") {{ planSpecs(row) }}
+        //- Пакет платится не по календарю, а по расходу ресурса: без порога
+        //- списание «когда-то раз в столько-то» выглядит необъяснимым.
+        .subs-card__specs(v-if="packageRule(row)") {{ packageRule(row) }}
         .subs-card__plan(v-if="isHosting(row)")
           BaseChip(variant="neutral" size="sm") {{ planName(row) }}
           BaseButton(
@@ -223,6 +226,17 @@ const isFree = (sub: any): boolean => Number(sub?.price ?? 0) === 0
  * под суммой объясняем, из чего она сложилась. Потолка расхода нет: докупку
  * ограничивает баланс кошелька членских взносов.
  */
+/**
+ * Правило докупки пакета словами. Порог приходит с хаба (он же им и управляет);
+ * без него правило не пишем — выдумывать число нельзя.
+ */
+const packageRule = (sub: any): string => {
+  if (!isPackage(sub)) return ''
+  const threshold = Number(sub?.package_low_water_axon ?? 0)
+  if (!Number.isFinite(threshold) || threshold <= 0) return ''
+  return `Следующий пакет за ${formatPrice(Number(sub?.price ?? 0))} докупается автоматически, когда остаток AXON опускается ниже ${threshold}`
+}
+
 const packageBreakdown = (sub: any): string => {
   const packagePrice = Number(sub?.price ?? 0)
   const spent = Number(sub?.packages_current_period_amount ?? 0)

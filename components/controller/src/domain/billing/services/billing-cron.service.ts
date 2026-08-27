@@ -336,10 +336,14 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     let transactionId = '';
     try {
       const result = await send();
-      transactionId =
-        result && typeof result === 'object' && 'transaction_id' in result
-          ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
-          : '';
+      // Идентификатор транзакции у wharfkit лежит в ответе ноды
+      // (`response.transaction_id`), а не в корне результата — канон проекта,
+      // см. BlockchainService. Читая только корень, мы отправляли провайдеру
+      // подтверждение с пустым tx_id: платёж проходил в цепи, а провайдер
+      // отвечал 500 на уникальном индексе, и подписка не продлевалась при
+      // списанных деньгах (@ant 2026-08-27).
+      const raw = result as { response?: { transaction_id?: unknown }; transaction_id?: unknown } | null;
+      transactionId = String(raw?.response?.transaction_id ?? raw?.transaction_id ?? '');
     } catch (error: any) {
       const message = String(error?.message ?? error);
       if (this.isDomainRejection(error)) {
