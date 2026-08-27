@@ -28,6 +28,17 @@ import { config } from '~/config';
 /**
  * Интерактор приложения wallet для управления паевыми взносами, их возвратами, генерацией документов и работой с программными кошельками
  */
+/**
+ * Нулевой остаток в том же символе, что и последнее известное значение
+ * («3660.0000 RUB» → «0.0000 RUB»). Символ берём из строки, чтобы не тянуть
+ * сюда конфиг токена: у разных контуров он разный.
+ */
+function zeroLike(asset?: string | null): string {
+  const [amount, symbol] = String(asset ?? '').trim().split(' ');
+  const precision = amount?.includes('.') ? amount.split('.')[1].length : 4;
+  return `${(0).toFixed(precision)}${symbol ? ` ${symbol}` : ''}`;
+}
+
 @Injectable()
 export class WalletInteractor {
   private readonly logger = new Logger(WalletInteractor.name);
@@ -212,8 +223,15 @@ export class WalletInteractor {
       dto.human_name = Ledger2.getWalletHumanName(named) ?? wallet_name;
       dto.program_id = pid !== undefined ? String(pid) : null;
       dto.username = row.username ?? username;
-      dto.available = row.available ?? '0';
-      dto.blocked = row.blocked ?? '0';
+      // Стёртая строка (present=false) — это ОБНУЛЁННЫЙ кошелёк: контракт
+      // удаляет запись из chain-RAM, когда баланс дошёл до нуля, а проекция
+      // хранит последнее известное значение как след истории. Отдавать его
+      // как остаток нельзя: кооператив видел на членском кошельке 3 660 ₽,
+      // которых в цепи давно не было, и не понимал, почему списание не идёт
+      // (@ant 2026-08-27).
+      const present = row.present !== false;
+      dto.available = present ? (row.available ?? '0') : zeroLike(row.available);
+      dto.blocked = present ? (row.blocked ?? '0') : zeroLike(row.blocked);
       return dto;
     });
   }

@@ -249,3 +249,16 @@ cases:
     test: components/controller/src/domain/billing/utils/billing-error.utils.spec.ts
     status: passing
 
+  - id: bill.break.11
+    level: backend
+    kind: break
+    scenario: >
+      Кошелёк пайщика обнулён и стёрт из цепи (контракт удаляет запись из chain-RAM), а в
+      проекции осталось последнее известное значение с пометкой present=false.
+    expect: >
+      наружу уходит ноль в том же символе, а не сумма из истории: иначе кооператив видит на
+      членском кошельке деньги, которых в цепи нет, и не понимает, почему списание отклоняется;
+      живые строки и легаси-записи без флага отдаются как есть
+    test: components/controller/tests/unit/wallet/user-wallets-erased.test.ts
+    status: passing
+
