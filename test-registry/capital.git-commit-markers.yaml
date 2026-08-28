@@ -79,6 +79,30 @@ cases:
     test: components/controller/tests/unit/capital/git-patch-id.test.ts
     status: passing
 
+  - id: cap.gitmark.side.07
+    level: backend
+    kind: side
+    scenario: в репозитории проекта нет ветки из настройки «Ветка GitHub для синхронизации» (у mono `dev`, у отдельного продукта только `main`)
+    expect: обходится ветка репозитория по умолчанию; если и её нет — репозиторий пропускается, а не синкается вслепую
+    test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    status: missing   # тесты написаны, прогон не подтверждён — гоняет CI
+
+  - id: cap.gitmark.side.08
+    level: backend
+    kind: side
+    scenario: тик по репозиторию с сотнями веток
+    expect: HEAD каждой ветки берётся из листинга веток; отдельный запрос на ветку не делается (иначе один кооператив выбирает часовой лимит GitHub API целиком)
+    test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    status: missing   # тесты написаны, прогон не подтверждён — гоняет CI
+
+  - id: cap.gitmark.break.02
+    level: backend
+    kind: break
+    scenario: листинг веток не удался (лимит GitHub API, сеть)
+    expect: тик деградирует до настроенной ветки и сам запрашивает её HEAD; ошибка не роняет опрос остальных репозиториев
+    test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    status: missing   # тесты написаны, прогон не подтверждён — гоняет CI
+
   - id: cap.gitmark.break.01
     level: backend
     kind: break
