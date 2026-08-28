@@ -39,6 +39,23 @@ function zeroLike(asset?: string | null): string {
   return `${(0).toFixed(precision)}${symbol ? ` ${symbol}` : ''}`;
 }
 
+/**
+ * Остатки строки проекции так, как их должен видеть пайщик. Стёртая строка
+ * (present=false) — обнулённый кошелёк: контракт удаляет запись из chain-RAM,
+ * когда баланс дошёл до нуля, а проекция хранит последнее значение следом
+ * истории. Отдавать его остатком нельзя — кооператив видел на членском
+ * кошельке 3 660 ₽, которых в цепи давно не было (@ant 2026-08-27).
+ */
+function visibleBalances(row: { present?: boolean; available?: string | null; blocked?: string | null }): {
+  available: string;
+  blocked: string;
+} {
+  if (row.present === false) {
+    return { available: zeroLike(row.available), blocked: zeroLike(row.blocked) };
+  }
+  return { available: row.available ?? '0', blocked: row.blocked ?? '0' };
+}
+
 @Injectable()
 export class WalletInteractor {
   private readonly logger = new Logger(WalletInteractor.name);
@@ -223,15 +240,9 @@ export class WalletInteractor {
       dto.human_name = Ledger2.getWalletHumanName(named) ?? wallet_name;
       dto.program_id = pid !== undefined ? String(pid) : null;
       dto.username = row.username ?? username;
-      // Стёртая строка (present=false) — это ОБНУЛЁННЫЙ кошелёк: контракт
-      // удаляет запись из chain-RAM, когда баланс дошёл до нуля, а проекция
-      // хранит последнее известное значение как след истории. Отдавать его
-      // как остаток нельзя: кооператив видел на членском кошельке 3 660 ₽,
-      // которых в цепи давно не было, и не понимал, почему списание не идёт
-      // (@ant 2026-08-27).
-      const present = row.present !== false;
-      dto.available = present ? (row.available ?? '0') : zeroLike(row.available);
-      dto.blocked = present ? (row.blocked ?? '0') : zeroLike(row.blocked);
+      const balances = visibleBalances(row);
+      dto.available = balances.available;
+      dto.blocked = balances.blocked;
       return dto;
     });
   }

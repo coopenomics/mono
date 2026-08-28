@@ -59,6 +59,16 @@
           .subs-card__price.t-mono.t-num {{ formatPrice(row.price) }}
           .subs-card__period в месяц
 
+      //- Итог: сколько кооператив платит за платформу в месяц. По строкам это
+      //- не складывалось в голове, а именно эта сумма нужна, чтобы держать
+      //- кошелёк наполненным.
+      template(#footer)
+        .subs-card__total
+          .subs-card__total-label Итого в месяц
+          .subs-card__total-value
+            .t-mono.t-num {{ formatPrice(summary.monthlyTotal) }}
+            .subs-card__period(v-if="hasPackage") документооборот — по мере расхода
+
   //- Апгрейд сервера: конфигурация выбирается здесь, дальше провайдер сам
   //- переносит систему. Даунгрейд намеренно не предлагается — диск нового
   //- сервера должен вмещать данные текущего.
@@ -111,6 +121,7 @@ import { Mutations } from '@coopenomics/sdk'
 import {
   useProviderSubscriptions,
   useConnectionCatalog,
+  summarizeSubscriptions,
   type ProviderSubscription,
 } from 'src/features/Provider/model'
 import { useSystemStore } from 'src/entities/System/model'
@@ -159,6 +170,12 @@ const columns: BaseTableColumn<ProviderSubscription>[] = [
 const orderedSubscriptions = computed(() =>
   [...subscriptions.value].sort((a: any, b: any) => serviceRank(a) - serviceRank(b)),
 )
+
+// Плата за месяц по всем платным услугам — считает общий helper, тот же, что
+// показывает сумму к оплате при просрочке.
+const summary = computed(() => summarizeSubscriptions(subscriptions.value))
+
+const hasPackage = computed(() => subscriptions.value.some((s: any) => isPackage(s)))
 
 const serviceRank = (sub: any): number => {
   if (isPackage(sub)) return 0
@@ -323,6 +340,25 @@ const formatPrice = (price: number | string): string => {
   color: var(--p-ink-2);
   margin-top: 2px;
   white-space: normal;
+}
+.subs-card__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--p-3);
+  width: 100%;
+  padding: var(--p-2) 0;
+}
+.subs-card__total-label {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.subs-card__total-value {
+  text-align: right;
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
 }
 .subs-card__specs {
   font-size: var(--p-fs-meta);

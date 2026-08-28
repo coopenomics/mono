@@ -26,14 +26,18 @@ export type ProviderSubscription = Queries.System.GetProviderSubscriptions.IOutp
 // Курс конвертации AXON в валюту системы (RUB)
 export const AXON_GOVERN_RATE = 10; // 1 AXON = 10 RUB
 
+// Один стейт на процесс подключения: реестр подписок и карточка просрочки
+// показывают одни и те же услуги, и вторая загрузка тех же данных приводила бы
+// к расхождению сумм на одном экране.
+const subscriptions = ref<ProviderSubscription[]>([]);
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+
 /**
  * Composable для работы с подписками провайдера
  */
 export function useProviderSubscriptions() {
   const system = useSystemStore();
-  const subscriptions = ref<ProviderSubscription[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
 
   // IP адрес сервера для делегирования домена
   const SERVER_IP = '51.250.114.13';
@@ -115,3 +119,4 @@ export function useProviderSubscriptions() {
 }
 
 export * from './catalog';
+export * from './billing-summary';

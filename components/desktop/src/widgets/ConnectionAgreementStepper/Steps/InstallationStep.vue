@@ -8,7 +8,16 @@ const instance = computed(() => connectionAgreement.currentInstance)
 
 const progress = computed(() => Math.max(0, Math.min(100, instance.value?.progress || 0)))
 
-const STAGES = [
+/**
+ * Возврат в строй отличается от первой установки: платформа разворачивается
+ * заново, но данные кооператива никуда не делись — они лежат в резервной
+ * копии, снятой перед отключением сервера, и вернутся в конце цикла. Об этом
+ * нужно сказать прямо: тот же экран с заголовком «устанавливаем» читается как
+ * «всё начинается с чистого листа».
+ */
+const isRestoring = computed(() => instance.value?.is_restoring === true)
+
+const INSTALL_STAGES = [
   { from: 0, title: 'Готовим сервер', body: 'Настраиваем окружение и разворачиваем серверные компоненты.' },
   { from: 20, title: 'Устанавливаем платформу', body: 'Загружаем программное обеспечение Цифрового Кооператива.' },
   { from: 40, title: 'Настраиваем хранилища', body: 'Разворачиваем базы данных и резервное копирование.' },
@@ -16,9 +25,36 @@ const STAGES = [
   { from: 80, title: 'Завершаем установку', body: 'Выполняем финальные настройки и проверяем, что всё работает.' },
 ]
 
+const RESTORE_STAGES = [
+  { from: 0, title: 'Арендуем новый сервер', body: 'Конфигурация та же, что была у кооператива до отключения.' },
+  { from: 20, title: 'Устанавливаем платформу', body: 'Загружаем программное обеспечение Цифрового Кооператива.' },
+  { from: 40, title: 'Настраиваем хранилища', body: 'Готовим базы данных и файловое хранилище под ваши данные.' },
+  { from: 60, title: 'Запускаем блокчейн-узел', body: 'Синхронизируем узел с сетью Кооперативной Экономики.' },
+  {
+    from: 80,
+    title: 'Возвращаем данные из копии',
+    body: 'Восстанавливаем базы и файлы из последней резервной копии и открываем доступ к платформе.',
+  },
+]
+
+const stages = computed(() => (isRestoring.value ? RESTORE_STAGES : INSTALL_STAGES))
+
+const title = computed(() =>
+  isRestoring.value ? 'Возвращаем кооператив в строй' : 'Устанавливаем вашу копию платформы',
+)
+
+const lead = computed(() =>
+  isRestoring.value
+    ? 'Оплата получена. Провайдер разворачивает платформу на новом сервере той же конфигурации ' +
+      'и вернёт данные кооператива из последней резервной копии: документы, базы и файлы на месте, ' +
+      'ничего заново заводить не нужно. Ждать на этой странице не обязательно.'
+    : 'Провайдер разворачивает Цифровой Кооператив на вашем домене. Ждать на этой странице ' +
+      'не обязательно: когда установка завершится, здесь появится панель подключения.',
+)
+
 const stageIndex = computed(() => {
   let i = 0
-  STAGES.forEach((s, idx) => { if (progress.value >= s.from) i = idx })
+  stages.value.forEach((s, idx) => { if (progress.value >= s.from) i = idx })
   return i
 })
 
@@ -27,8 +63,8 @@ const remainingMinutes = computed(() => Math.max(0, 100 - progress.value))
 
 <template lang="pug">
 StepFrame(
-  title="Устанавливаем вашу копию платформы"
-  lead="Провайдер разворачивает Цифровой Кооператив на вашем домене. Ждать на этой странице не обязательно: когда установка завершится, здесь появится панель подключения."
+  :title="title"
+  :lead="lead"
   :can-back="false"
   :has-next="false"
 )
@@ -41,7 +77,7 @@ StepFrame(
 
   ol.installation-step__stages
     li.installation-step__stage(
-      v-for="(s, idx) in STAGES"
+      v-for="(s, idx) in stages"
       :key="s.from"
       :class="{ 'installation-step__stage--done': idx < stageIndex, 'installation-step__stage--active': idx === stageIndex }"
     )

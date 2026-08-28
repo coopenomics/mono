@@ -18,10 +18,19 @@ import {
 } from 'src/entities/ConnectionAgreement'
 import { useSystemStore } from 'src/entities/System/model'
 import { useConnectionCatalog } from 'src/features/Provider/model'
+import { DOCUMENT_PACKAGE_PRICE_RUB, MEMBER_PRICE_RUB } from 'src/shared/lib/axon'
 
 const connectionAgreement = useConnectionAgreementStore()
-// Живой каталог провайдера (Epic 28): «от N ₽» и триал в сводке условий.
-const { minPriceLabel, trialDays, load: loadCatalog } = useConnectionCatalog()
+// Живой каталог провайдера (Epic 28): цена, состав платы и триал в сводке условий.
+const {
+  mandatoryServices,
+  minServerPrice,
+  serverPrice,
+  monthlyTotal,
+  trialDays,
+  formatPrice,
+  load: loadCatalog,
+} = useConnectionCatalog()
 onMounted(() => { void loadCatalog() })
 const system = useSystemStore()
 
@@ -74,6 +83,14 @@ const completedKeys = computed(() =>
 
 const stepNumber = computed(() => visibleSteps.value.findIndex((s) => s.key === activeKey.value) + 1)
 
+// Плата за месяц — сервер плюс обязательные услуги: документооборот заводится
+// каждому кооперативу, и цена одной аренды сервера вводила в заблуждение.
+// Пока конфигурация не выбрана, считаем по самой дешёвой — это «от N ₽».
+const chosenInstanceTypeId = computed(() => selectedTariff.value?.instanceTypeId ?? null)
+const monthlyServerPrice = computed(() => serverPrice(chosenInstanceTypeId.value) ?? minServerPrice.value)
+const monthlyTotalPrice = computed(() => monthlyTotal(chosenInstanceTypeId.value))
+const serverLabel = computed(() => selectedTariff.value?.name ?? 'Сервер')
+
 function onStepperChange(key: string) {
   const found = ALL_STEPS.find((s) => s.key === key)
   if (!found) return
@@ -113,13 +130,23 @@ watch(
         .connection-stepper__term
           dt Стоимость
           dd
-            | от 
-            span.t-mono.t-num {{ minPriceLabel ?? '…' }}
+            template(v-if="!selectedTariff") от&nbsp;
+            span.t-mono.t-num {{ monthlyTotalPrice != null ? formatPrice(monthlyTotalPrice) : '…' }} ₽
             |  в месяц
-          //- Из чего складывается сверх минимума — по факту работы кооператива.
+          //- Из чего складывается плата: сервер и обязательные услуги.
           ul.connection-stepper__breakdown
-            li ≈20 ₽ — новый пайщик
-            li ≈10 ₽ — пакет документов
+            li
+              | {{ serverLabel }} —&nbsp;
+              span.t-mono.t-num {{ monthlyServerPrice != null ? formatPrice(monthlyServerPrice) : '…' }} ₽
+            li(v-for="svc in mandatoryServices" :key="svc.id")
+              | {{ svc.name }} —&nbsp;
+              span.t-mono.t-num {{ formatPrice(svc.price) }} ₽
+          //- Документооборот тратится по факту работы, а не по календарю:
+          //- пакет докупается, когда исчерпан.
+          p.t-sm.t-muted.connection-stepper__note
+            | Документооборот расходуется по мере работы: {{ MEMBER_PRICE_RUB }} ₽ — регистрация
+            | пайщика, {{ DOCUMENT_PACKAGE_PRICE_RUB }} ₽ — пакет документов. Когда пакет
+            | заканчивается, кооператив докупает следующий.
         .connection-stepper__term(v-if="trialDays")
           dt Первые {{ trialDays }} дней
           dd бесплатно
@@ -202,6 +229,9 @@ watch(
   line-height: var(--p-lh-body-sm);
   color: var(--p-ink);
   font-weight: 500;
+}
+.connection-stepper__note {
+  margin: var(--p-2) 0 0;
 }
 .connection-stepper__counter {
   margin: 0;

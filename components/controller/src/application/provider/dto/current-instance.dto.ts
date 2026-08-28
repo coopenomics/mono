@@ -29,4 +29,21 @@ export class CurrentInstanceDTO {
 
   @Field({ description: 'URL изображения инстанса' })
   image!: string;
+
+  @Field({
+    description:
+      'Обслуживание приостановлено: на домене кооператива стоит заглушка «временно недоступен»',
+  })
+  maintenance_mode!: boolean;
+
+  @Field({
+    description:
+      'Идёт не первичная установка, а возврат в строй: после развёртывания провайдер вернёт данные из резервной копии',
+  })
+  is_restoring!: boolean;
+
+  @Field({
+    description: 'Сервер кооператива освобождён: аренда отменена, данные лежат в резервной копии',
+  })
+  is_released!: boolean;
 }

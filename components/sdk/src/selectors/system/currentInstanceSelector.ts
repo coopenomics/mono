@@ -11,6 +11,9 @@ export const rawCurrentInstanceSelector = {
   title: true,
   description: true,
   image: true,
+  maintenance_mode: true,
+  is_restoring: true,
+  is_released: true,
 }
 
 // Проверка валидности

@@ -264,6 +264,14 @@ export class ProviderService {
       currentInstance.title = instance.instance.title;
       currentInstance.description = instance.instance.description;
       currentInstance.image = instance.instance.image;
+      // Состояние поставки, по которому фронт отличает первичную установку от
+      // возврата в строй (после освобождения сервера за неоплату) и объясняет
+      // пайщику, что данные вернутся из резервной копии. Типы provider-client
+      // отстают от REST-ответа провайдера, поэтому поля читаются мягко.
+      const raw = instance.instance as unknown as Record<string, unknown>;
+      currentInstance.maintenance_mode = raw.maintenance_mode === true;
+      currentInstance.is_restoring = raw.redeploy_restore === true;
+      currentInstance.is_released = raw.release_state === 'done';
 
       return currentInstance;
     } catch (error: any) {

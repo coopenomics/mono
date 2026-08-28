@@ -24,6 +24,15 @@ export const AXON_PER_MEMBER = 2;
 /** Один пакет документов. */
 export const AXON_PER_DOCUMENT_PACKAGE = 1;
 
+/** Курс платформы: 1 AXON = 10 ₽ (тот же, по которому считает калькулятор лендинга). */
+export const AXON_PRICE_RUB = 10;
+
+/** Регистрация пайщика в рублях — для витрин, где цены показываются деньгами. */
+export const MEMBER_PRICE_RUB = AXON_PER_MEMBER * AXON_PRICE_RUB;
+
+/** Пакет документов в рублях. */
+export const DOCUMENT_PACKAGE_PRICE_RUB = AXON_PER_DOCUMENT_PACKAGE * AXON_PRICE_RUB;
+
 /** Показатель ёмкости баланса: сколько чего и в чём измеряется. */
 export interface AxonCapacityMetric {
   key: 'days' | 'members' | 'documents';

@@ -9,6 +9,10 @@
     | работы, но не меньше 5 AXON в день; напрямую паевым взносом он не
     | пополняется.
 
+  //- Просрочка и приостановка — первым экраном: пока долг не закрыт, всё
+  //- остальное на этой странице вторично.
+  BillingDueCard
+
   DomainCard
 
   .conn-dash__wallets.row.q-col-gutter-md
@@ -35,7 +39,7 @@ import { computed } from 'vue'
 import { PageHint } from 'src/shared/ui/domain'
 import { PaymentsHistory } from 'src/widgets/Billing/PaymentsHistory'
 import { useSystemStore } from 'src/entities/System/model'
-import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard } from './index'
+import { AxonWallet, MembershipWallet, DomainCard, SubscriptionsCard, BillingDueCard } from './index'
 
 const { info } = useSystemStore()
 const coopname = computed(() => info.coopname || '')
