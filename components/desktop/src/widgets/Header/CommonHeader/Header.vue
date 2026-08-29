@@ -1,7 +1,11 @@
 <template lang="pug">
 q-header.app-q-header(:bordered='false')
+  //- Бургер показываем только там, где дровер вообще существует: он живёт
+  //- внутри рабочего стола кооператива (layout рендерит его при
+  //- showDrawer && loggedIn). На страницах вне стола — публичных положениях,
+  //- например, — кнопка открывала бы пустоту.
   AppHeader(
-    :show-menu-button='loggedIn',
+    :show-menu-button='loggedIn && showDrawer',
     @toggle-menu="emit('toggle-left-drawer')"
   )
     template(v-if='!loggedIn && coopTitle', #brand)
