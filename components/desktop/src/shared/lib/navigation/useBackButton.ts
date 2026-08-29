@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useDesktopStore } from 'src/entities/Desktop/model'
 import type { IBackNavigationButton } from 'src/entities/Desktop/model/types'
 
@@ -19,7 +19,6 @@ interface BackButtonOptions {
  */
 export function useBackButton(options: BackButtonOptions) {
   const router = useRouter()
-  const route = useRoute()
   const desktopStore = useDesktopStore()
 
   // Устанавливаем кнопку навигации назад
