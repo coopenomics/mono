@@ -7,6 +7,7 @@ import { RECOVERY_FINALIZATION_PORT } from '~/domain/auth-v2/ports/recovery-fina
 import { AuditService } from './audit/audit.service';
 import { AuditActionInterceptor } from './audit/audit-action.interceptor';
 import { AuthentikEventsController } from './authentik-events.controller';
+import { ParticipantClaimsController } from './claims/participant-claims.controller';
 import { SessionBindingService } from './session-binding/session-binding.service';
 import { SessionBindingController } from './session-binding/session-binding.controller';
 import { VaultService } from './vault/vault.service';
@@ -81,7 +82,7 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
   // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
   // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController, LoginTwoFactorController],
+  controllers: [AuthentikEventsController, ParticipantClaimsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, MigrationController, SecurityIncidentController, ForceRecoveryController, LoginTwoFactorController],
   providers: [
     // Снимки сверки личности (coopid:verification) — бакет по @UseBucket.
     ...bucketProvidersFor(FILE_STORAGE_PORT, [VerificationReviewService]),

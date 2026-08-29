@@ -1,0 +1,177 @@
+# Карта пайщика, Story 7.0 (FR-E1): confidential-клиент card.coop в CoopID кооператива.
+#
+# Зачем. card.coop подключает кооператив как federated-источник входа: пайщик,
+# нажав «Выпустить карту пайщика», уходит на CoopID своего кооператива, входит
+# там и возвращается на card.coop уже опознанным. Чтобы этот переход был
+# возможен, у card.coop должен быть собственный OIDC-клиент на стороне
+# кооператива — он и заводится здесь.
+#
+# Почему отдельный клиент, а не общий `coopid`. Тот обслуживает рабочий стол
+# самого кооператива: он публичный (браузерное приложение, секрет хранить негде)
+# и с неявным согласием. card.coop — сторонний сервис при АНО, поэтому клиент
+# confidential (секрет живёт на сервере card.coop) и согласие явное: пайщик
+# видит, какие сведения кооператив передаёт наружу, и решает сам. Согласие
+# запоминается — на каждом входе экран не повторяется.
+#
+# Что уезжает наружу: идентификатор пайщика, кооператив, почта и факт членства.
+# Персональных данных анкеты здесь нет и быть не должно — карта построена на
+# принципе «подтверждение вместо данных».
+#
+# Переменные окружения (см. .env.example и infra/coopid/README.md):
+#   CARDCOOP_CLIENT_SECRET  — обязательна; без неё блюпринт намеренно падает и
+#                             клиент не создаётся (лучше отсутствующий клиент,
+#                             чем confidential-клиент с пустым секретом);
+#   CARDCOOP_CLIENT_ID      — по умолчанию `cardcoop`;
+#   CARDCOOP_BASE_URL       — адрес card.coop (адрес возврата собирается из него
+#                             и имени кооператива);
+#   COOPNAME                — имя кооператива: оно же слаг источника на card.coop;
+#   COOPID_CLAIMS_URL       — internal-маршрут контроллера с claims членства.
+version: 1
+metadata:
+  name: CoopID - card.coop OAuth2 client
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # ── Кастомный scope coop:membership ──────────────────────────────────────
+  # Членство спрашивается у контроллера в момент выдачи токена, а не берётся из
+  # атрибутов учётной записи. Причина простая: членство прекращает кооператив
+  # решением в цепи, а не действие в authentik. Атрибут, проставленный однажды,
+  # пережил бы исключение пайщика и продолжал бы заявлять членство, которого нет.
+  #
+  # Недоступность контроллера НЕ рвёт вход: claim приходит пустым (`member: null`
+  # — «неизвестно»), а не ложным `true`. Для card.coop это честный ответ: право
+  # членства ему в итоге доказывает подписанное подтверждение кооператива, а не
+  # этот claim.
+  - identifiers:
+      name: CoopID OIDC scope - coop:membership
+    id: cardcoop-scope-membership
+    model: authentik_providers_oauth2.scopemapping
+    attrs:
+      name: CoopID OIDC scope - coop:membership
+      scope_name: "coop:membership"
+      description: Членство в кооперативе, дата приёма и уровни верификации (карта пайщика)
+      expression: !Format
+        - |
+          try:
+              res = requests.get(
+                  "%s",
+                  params={"username": request.user.username},
+                  headers={"X-Authentik-Webhook-Token": "%s"},
+                  timeout=3,
+              )
+              if res.status_code != 200:
+                  return {"coopname": None, "member": None}
+              data = res.json()
+              return {
+                  "coopname": data.get("coopname"),
+                  "coop_username": data.get("username"),
+                  "member": data.get("member"),
+                  "member_since": data.get("member_since"),
+                  "verification_types": data.get("verification_types", []),
+              }
+          except Exception:
+              return {"coopname": None, "member": None}
+        - !Env [COOPID_CLAIMS_URL, "http://coopback:2998/coop/internal/participant-claims"]
+        - !Env COOPID_WEBHOOK_TOKEN
+
+  # ── Свой маппинг scope email ─────────────────────────────────────────────
+  # Стандартный маппинг authentik отдаёт `email_verified: False` всегда: сам
+  # authentik почту не подтверждает и знать о ней ничего не может. Подтверждает
+  # её контроллер при регистрации пайщика, и card.coop именно по этому признаку
+  # решает, слать ли собственное письмо (FR-A2а). Поэтому у клиента card.coop
+  # стандартный маппинг заменён этим — иначе кооператив как «доверенный
+  # источник» сообщал бы неправду о собственной почте.
+  - identifiers:
+      name: CoopID OIDC scope - email (card.coop)
+    id: cardcoop-scope-email
+    model: authentik_providers_oauth2.scopemapping
+    attrs:
+      name: CoopID OIDC scope - email (card.coop)
+      scope_name: "email"
+      description: Почта пайщика и признак её подтверждения кооперативом
+      expression: !Format
+        - |
+          try:
+              res = requests.get(
+                  "%s",
+                  params={"username": request.user.username},
+                  headers={"X-Authentik-Webhook-Token": "%s"},
+                  timeout=3,
+              )
+              if res.status_code != 200:
+                  return {"email": request.user.email, "email_verified": False}
+              data = res.json()
+              return {
+                  "email": data.get("email") or request.user.email,
+                  "email_verified": bool(data.get("email_verified")),
+              }
+          except Exception:
+              return {"email": request.user.email, "email_verified": False}
+        - !Env [COOPID_CLAIMS_URL, "http://coopback:2998/coop/internal/participant-claims"]
+        - !Env COOPID_WEBHOOK_TOKEN
+
+  # ── OAuth2/OpenID-провайдер card.coop ────────────────────────────────────
+  - identifiers:
+      name: cardcoop
+    id: cardcoop-provider
+    model: authentik_providers_oauth2.oauth2provider
+    attrs:
+      name: cardcoop
+      # CONFIDENTIAL: секрет хранит сервер card.coop, а не браузер. Секрет и
+      # идентификатор клиента оператор сети передаёт в реестр АНО при активации
+      # кооператива (FR-D3/E6) — в репозитории их нет.
+      client_type: confidential
+      client_id: !Env [CARDCOOP_CLIENT_ID, "cardcoop"]
+      # Без переменной значение пустое, сериализатор отклоняет запись, и клиент
+      # не создаётся вовсе. Это намеренно: confidential-клиент с пустым секретом
+      # тихо превратился бы в публичный, то есть в открытую дверь в кооператив.
+      client_secret: !Env CARDCOOP_CLIENT_SECRET
+      # Адрес возврата authentik'а card.coop: он принимает ответ источника по
+      # пути /source/oauth/callback/<слаг источника>/, а слаг источника — имя
+      # кооператива (card.coop заводит источники по имени аккаунта в цепи).
+      redirect_uris:
+        - matching_mode: strict
+          url: !Format [
+            "%s/source/oauth/callback/%s/",
+            !Env [CARDCOOP_BASE_URL, "https://card.coop"],
+            !Env [COOPNAME, "unset"],
+          ]
+      # sub = uuid учётной записи: стабилен при смене имени аккаунта и почты.
+      # На стороне card.coop он становится external_subject связки.
+      sub_mode: user_uuid
+      issuer_mode: per_provider
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+      # ЯВНОЕ согласие: card.coop — сторона вне кооператива, и передача сведений
+      # о членстве наружу должна быть решением пайщика, а не молчаливым следствием
+      # нажатия кнопки. Экран показывается один раз и запоминается.
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, default-provider-authorization-explicit-consent],
+        ]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
+        - !KeyOf cardcoop-scope-email
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
+        - !KeyOf cardcoop-scope-membership
+
+  # ── Приложение (без него нет ни discovery, ни экрана согласия) ────────────
+  - identifiers:
+      slug: cardcoop
+    model: authentik_core.application
+    attrs:
+      name: CardCOOP
+      slug: cardcoop
+      provider: !KeyOf cardcoop-provider
+      meta_description: Карта пайщика — единая карта кооперативной сети при АНО
+      meta_publisher: АНО «Кооперативная Экономика»
