@@ -661,13 +661,28 @@ body {
    место делится с табами, полноразмерная кнопка съедает половину строки */
 @media (max-width: 640px) {
   .tabbar__actions {
-    padding: 6px var(--p-3);
+    padding: 6px var(--p-2);
     gap: 6px;
+    /* Вертикальная линия слева на узком экране читается как случайная тень и
+       съедает и без того дефицитную ширину — табам нужнее */
+    border-left: 0;
   }
   .tabbar__actions .q-btn {
     font-size: 12px;
     min-height: 28px;
     padding: 2px 10px;
+  }
+  /* Кнопка с иконкой сворачивается до неё одной: «+ Артефакт» занимал треть
+     строки и обрезал соседний таб. Текст остаётся у кнопок без иконки —
+     иначе от них остался бы пустой прямоугольник (см. то же правило шапки). */
+  .tabbar__actions .q-btn:has(.q-icon) .base-btn__label {
+    display: none;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) {
+    padding: 2px 8px;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) .q-btn__content {
+    gap: 0;
   }
 }
 
@@ -1698,12 +1713,23 @@ body {
 .topbar__actions .q-btn .q-btn__content {
   flex-wrap: nowrap;
 }
-/* На мобильном крошка/заголовок страницы не показывается вовсе: от «Проекты ›
-   Компонент…» остаётся обрезанный огрызок, наезжающий на правую группу, а
-   ориентир пользователю дают табы и заголовок контента. Кнопка «Назад»
-   продолжает показываться. */
-.topbar--mobile .topbar__crumb > *:not(.back-button) {
-  display: none;
+/* На мобильном крошка/заголовок страницы не показывается вовсе: даже одиночное
+   имя страницы наезжает на правую группу (колокольчик, тема), а ориентир даёт
+   полоса табов и заголовок контента. Кнопка «Назад» продолжает показываться.
+   Правило завязано на ширину, а не на класс: `topbar--mobile` навешивать
+   некому — это был модификатор HTML-прототипа, и раньше правило не работало. */
+@media (max-width: 600px) {
+  .topbar__crumb > *:not(.back-button) {
+    display: none;
+  }
+  /* Крошка скрыта — правая группа не должна прилипать к бургеру */
+  .topbar__crumb {
+    flex: 0 0 auto;
+  }
+  .topbar {
+    padding: 0 12px;
+    gap: 8px;
+  }
 }
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий
    (остался только пустой teleport-host) — прячем блок, чтобы не появлялся
@@ -1730,41 +1756,6 @@ body {
   align-items: center;
   gap: 4px;
 }
-
-/* Mobile demo modifier — collapses everything except primary + overflow */
-.topbar--mobile {
-  height: 52px;
-  padding: 0 12px;
-  gap: 8px;
-}
-.topbar--mobile .topbar__crumb {
-  font-size: 14px;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.topbar--mobile .topbar__crumb b {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  min-width: 0;
-  display: inline-block;
-  max-width: 100%;
-}
-.topbar--mobile .topbar__crumb svg { width: 11px; height: 11px; flex-shrink: 0; }
-.topbar--mobile .topbar__brand { font-size: 14px; gap: 8px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.topbar--mobile .topbar__brand img,
-.topbar--mobile .topbar__brand svg { width: 20px; height: 20px; }
-.topbar--mobile .topbar__brand b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; display: inline-block; max-width: 100%; }
-.topbar--mobile .topbar__brand small { display: none; }
-.topbar--mobile .topbar__actions { gap: 4px; flex-shrink: 0; }
-.topbar--mobile .topbar__actions > .btn:not(.is-mobile-keep) { display: none; }
-.topbar--mobile .topbar__right > :not(:last-child) { display: none; }
-.topbar--mobile .topbar__right { padding-left: 4px; border-left: 0; }
-.topbar--mobile .topbar__actions + .topbar__right { padding-left: 4px; border-left: 0; }
 
 /* ---- Page header ---- */
 .page-head {
