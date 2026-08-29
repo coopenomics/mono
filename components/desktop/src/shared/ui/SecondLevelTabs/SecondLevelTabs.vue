@@ -1,6 +1,12 @@
 <template lang="pug">
 nav.tabbar
-  .tabbar__tabs
+  TabsScrollArrow(
+    v-if='scrollable',
+    direction='left',
+    :disabled='!canScrollLeft',
+    @scroll='scrollTowards(-1)'
+  )
+  .tabbar__tabs(ref='tabsRef')
     button.tab(
       v-for='t in tabs',
       :key='t.routeName',
@@ -10,12 +16,21 @@ nav.tabbar
     )
       q-icon.tab__ico(v-if='t.icon', :name='t.icon', size='15px')
       span {{ t.label }}
+  TabsScrollArrow(
+    v-if='scrollable',
+    direction='right',
+    :disabled='!canScrollRight',
+    @scroll='scrollTowards(1)'
+  )
   .tabbar__actions(v-if='$slots.actions')
     slot(name='actions')
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
+import { TabsScrollArrow } from 'src/shared/ui/layout/TabsScrollArrow';
 
 /**
  * Канон-меню второго уровня (sub-navigation) для столов с дочерними
@@ -33,12 +48,18 @@ interface SecondLevelTab {
   icon?: string;
 }
 
-defineProps<{
+const props = defineProps<{
   tabs: SecondLevelTab[];
 }>();
 
 const route = useRoute();
 const router = useRouter();
+
+const tabsRef = ref<HTMLElement | null>(null);
+const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(
+  tabsRef,
+  () => props.tabs,
+);
 
 function isActive(tab: SecondLevelTab): boolean {
   if (route.name === tab.routeName) return true;

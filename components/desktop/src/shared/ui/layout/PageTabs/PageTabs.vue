@@ -1,6 +1,19 @@
 <template>
   <div class="tabbar">
-    <div class="tabbar__tabs">
+    <!--
+      Стрелки прокрутки. Появляются обе сразу, как только вкладки перестают
+      помещаться, и гаснут поодиночке, когда крутить в ту сторону уже некуда.
+      Показывать их по одной нельзя: полоса меняла бы ширину на каждый щелчок
+      прокрутки, а на границе помещаемости стрелки мигали бы сами по себе.
+    -->
+    <TabsScrollArrow
+      v-if="scrollable"
+      direction="left"
+      :disabled="!canScrollLeft"
+      @scroll="scrollTowards(-1)"
+    />
+
+    <div ref="tabsRef" class="tabbar__tabs">
       <component
         :is="tab.route ? 'router-link' : 'button'"
         v-for="tab in tabs"
@@ -17,6 +30,14 @@
         <span v-if="tab.count !== undefined" class="tab__count">{{ tab.count }}</span>
       </component>
     </div>
+
+    <TabsScrollArrow
+      v-if="scrollable"
+      direction="right"
+      :disabled="!canScrollRight"
+      @scroll="scrollTowards(1)"
+    />
+
     <div v-if="$slots.actions" class="tabbar__actions">
       <slot name="actions" />
     </div>
@@ -24,13 +45,22 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
+import { TabsScrollArrow } from '../TabsScrollArrow';
 import type { PageTabsProps, PageTab } from './PageTabs.types';
 
-defineProps<PageTabsProps>();
+const props = defineProps<PageTabsProps>();
 
 const emit = defineEmits<{
   select: [tab: PageTab];
 }>();
+
+const tabsRef = ref<HTMLElement | null>(null);
+const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(
+  tabsRef,
+  () => props.tabs,
+);
 </script>
 
 <style scoped>
