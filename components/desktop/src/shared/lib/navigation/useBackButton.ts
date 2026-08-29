@@ -24,16 +24,13 @@ export function useBackButton(options: BackButtonOptions) {
 
   // Устанавливаем кнопку навигации назад
   function setBackButton() {
-    // Проверяем, есть ли флаг принудительного использования router.back()
-    const forceHistoryBack = route.query._useHistoryBack === 'true'
-
     // Формируем данные для кнопки
     const button: IBackNavigationButton = {
       text: options.text,
       componentId: options.componentId,
       onClick: options.onClick || (() => {
-        // Приоритет: явно заданный routeName (если нет флага принудительного history back) > router.back()
-        if (options.routeName && !forceHistoryBack) {
+        // Явно заданный родитель важнее истории; иначе — назад по истории
+        if (options.routeName) {
           router.push({
             name: options.routeName,
             params: options.params || {}

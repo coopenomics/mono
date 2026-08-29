@@ -190,7 +190,6 @@ const goToComponent = (projectHash: string) => {
   router.push({
     name: 'component-description',
     params: { project_hash: projectHash },
-    query: { _useHistoryBack: 'true' },
   });
 };
 
