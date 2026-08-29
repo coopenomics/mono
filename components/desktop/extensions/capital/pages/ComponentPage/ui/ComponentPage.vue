@@ -161,7 +161,7 @@
       router-view
 </template>
 <script lang="ts" setup>
-import { onMounted, computed, watch, ref } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
