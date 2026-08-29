@@ -55,37 +55,19 @@ const truncateText = (text: string, maxLength: number): string => {
   return text.substring(0, maxLength - 3) + '...';
 };
 
+// Переход вверх по крошке — обычный push: «назад» с целевой страницы вернёт
+// сюда штатной историей (см. smartBack.ts), снимки маршрута в sessionStorage
+// больше не нужны
 const goToParentProject = (projectHash?: string) => {
   if (!projectHash) return;
-
-  // Сохраняем текущие параметры маршрута для возможности возврата
-  const backRouteKey = `backroute_${Date.now()}`;
-  sessionStorage.setItem(backRouteKey, JSON.stringify({
-    name: route.name,
-    params: route.params,
-    query: { ...route.query, _backRoute: undefined, _useHistoryBack: undefined } // Убираем циклические ссылки
-  }));
-
-  // Родительский элемент всегда проект, переходим на страницу описания проекта
   router.push({
     name: capitalRouteName('project-description', route),
     params: { project_hash: projectHash },
-    query: {
-      _backRoute: backRouteKey
-    }
   });
 };
 
 const goToCurrentItem = (projectHash?: string) => {
   if (!projectHash) return;
-
-  // Сохраняем текущие параметры маршрута для возможности возврата
-  const backRouteKey = `backroute_${Date.now()}`;
-  sessionStorage.setItem(backRouteKey, JSON.stringify({
-    name: route.name,
-    params: route.params,
-    query: { ...route.query, _backRoute: undefined, _useHistoryBack: undefined } // Убираем циклические ссылки
-  }));
 
   // Для текущего элемента: если есть parent_hash — это компонент, иначе — проект.
   // Со страницы задачи компонента чаще нужен список задач, а не описание.
@@ -99,9 +81,6 @@ const goToCurrentItem = (projectHash?: string) => {
   router.push({
     name: routeName,
     params: { project_hash: projectHash },
-    query: {
-      _backRoute: backRouteKey
-    }
   });
 };
 </script>

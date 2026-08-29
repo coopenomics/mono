@@ -26,7 +26,7 @@ router-view(v-if='!isWorkshopRoot')
         :components='sortCapitalList(project.components, sort.sortBy, sort.sortOrder)',
         :project='project',
         :expanded='expandedComponents',
-        @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
+        @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash } })',
         @toggle-component='handleComponentToggle'
       )
         template(#component-content='{ component }')
@@ -36,7 +36,7 @@ router-view(v-if='!isWorkshopRoot')
             :compact='true',
             :sort-by='sort.sortBy',
             :sort-order='sort.sortOrder',
-            @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
+            @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash } })'
           )
 
 
@@ -132,7 +132,7 @@ const handleComponentToggle = (componentHash: string) => {
 };
 
 const handleOpenProject = (projectHash: string) => {
-  router.push({ name: 'project-description', params: { project_hash: projectHash }, query: { _backRoute: 'projects-list' } });
+  router.push({ name: 'project-description', params: { project_hash: projectHash } });
 };
 
 const handleProjectsDataLoaded = (projectHashes: string[], totalComponents?: number) => {

@@ -14,11 +14,19 @@
     />
 
     <div ref="tabsRef" class="tabbar__tabs">
+      <!--
+        Вкладки ходят через replace: переключение вкладок — не путешествие, а
+        смена среза той же сущности, и push-записи на каждую вкладку
+        замусоривали историю. Из-за этого «назад» вместо возврата на предыдущую
+        страницу шагал по всем посещённым вкладкам — и по системе расползались
+        обходные механизмы угадывания обратного маршрута (см. smartBack.ts).
+      -->
       <component
         :is="tab.route ? 'router-link' : 'button'"
         v-for="tab in tabs"
         :key="tab.key"
         :to="tab.route"
+        replace
         active-class=""
         exact-active-class=""
         :type="tab.route ? undefined : 'button'"
@@ -88,7 +96,7 @@ function onSelect(tab: PageTab): void {
   // Параметры текущего маршрута сохраняются: разделы-оболочки живут внутри
   // маршрута кооператива, и без них переход уводит в никуда
   if (tab.routeName && !isActive(tab)) {
-    void router.push({ name: tab.routeName, params: { ...route.params } });
+    void router.replace({ name: tab.routeName, params: { ...route.params } });
   }
 }
 </script>

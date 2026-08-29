@@ -137,7 +137,7 @@ import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
-import { useBackButton } from 'src/shared/lib/navigation'
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
 import { BaseButton, EmptyState } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
@@ -257,14 +257,12 @@ const issueTabs = computed(() => {
         project_hash: projectHash.value,
         issue_hash: issueHash.value,
       }
-  const currentBackRoute = route.query._backRoute as string
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {}
 
   return [
-    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params, query } },
-    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params, query } },
-    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params, query } },
-    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params, query } },
+    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params } },
+    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params } },
+    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params } },
+    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params } },
   ]
 })
 
@@ -356,46 +354,21 @@ const handleDescriptionChange = async () => {
   await saveIssueContent({ description: issue.value.description ?? '' })
 }
 
+// Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
+// ссылке — на список задач компонента-владельца или в свой контекст my-*
 useBackButton({
   text: 'Назад',
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
-    if (isMyTaskContext.value) {
-      router.push({ name: 'capital-my-tasks', params: { coopname: route.params.coopname } })
-      return
-    }
-    if (isMyProjectsContext.value) {
-      if (projectHash.value) {
-        router.push({
-          name: capitalRouteName('component-tasks', route),
-          params: { coopname: route.params.coopname, project_hash: projectHash.value },
-        })
-        return
-      }
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } })
-      return
-    }
-    const backRoute = route.query._backRoute as string
-    if (backRoute) {
-      const storedRoute = sessionStorage.getItem(backRoute)
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute)
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query,
-          })
-          sessionStorage.removeItem(backRoute)
-          return
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error)
-        }
-      }
-      router.push({ name: backRoute })
-    } else {
-      router.back()
-    }
+    const fallback = isMyTaskContext.value
+      ? { name: 'capital-my-tasks', params: { coopname: route.params.coopname } }
+      : projectHash.value
+        ? {
+            name: capitalRouteName('component-tasks', route),
+            params: { coopname: route.params.coopname, project_hash: projectHash.value },
+          }
+        : { name: 'capital-my-projects', params: { coopname: route.params.coopname } }
+    goBackOr(router, fallback)
   },
 })
 
@@ -493,11 +466,6 @@ const handleIssueMoved = ({
       project_hash: toProjectHash,
       issue_hash: updatedIssue.issue_hash,
     },
-    query: isMyTaskContext.value
-      ? { _backRoute: 'capital-my-tasks' }
-      : isMyProjectsContext.value
-        ? {}
-        : { ...route.query },
   })
 }
 

@@ -135,11 +135,11 @@
       router-view
 </template>
 <script lang="ts" setup>
-import { onMounted, computed, watch, ref } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
-import { useBackButton } from 'src/shared/lib/navigation';
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
 import { EmptyState } from 'src/shared/ui/base';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
@@ -250,66 +250,35 @@ const showSidebar = computed(
 // Субменю проекта (вкладки)
 const projectTabs = computed(() => {
   const params = { project_hash: projectHash.value };
-  const currentBackRoute = route.query._backRoute as string;
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
   const tabs = [
-    { key: routeName('project-description'), label: 'Описание', route: { name: routeName('project-description'), params, query } },
-    { key: routeName('project-requirements'), label: 'Артефакты', route: { name: routeName('project-requirements'), params, query } },
-    { key: routeName('project-components'), label: 'Компоненты', route: { name: routeName('project-components'), params, query } },
-    { key: routeName('project-planning'), label: 'План', route: { name: routeName('project-planning'), params, query } },
+    { key: routeName('project-description'), label: 'Описание', route: { name: routeName('project-description'), params } },
+    { key: routeName('project-requirements'), label: 'Артефакты', route: { name: routeName('project-requirements'), params } },
+    { key: routeName('project-components'), label: 'Компоненты', route: { name: routeName('project-components'), params } },
+    { key: routeName('project-planning'), label: 'План', route: { name: routeName('project-planning'), params } },
   ];
 
   if (!isLocalProject.value) {
     tabs.push(
-      { key: routeName('project-contributors'), label: 'Участники', route: { name: routeName('project-contributors'), params, query } },
+      { key: routeName('project-contributors'), label: 'Участники', route: { name: routeName('project-contributors'), params } },
     );
   }
 
-  tabs.push({ key: routeName('project-history'), label: 'История', route: { name: routeName('project-history'), params, query } });
+  tabs.push({ key: routeName('project-history'), label: 'История', route: { name: routeName('project-history'), params } });
 
   return tabs;
 });
 
-// Настраиваем кнопку "Назад"
-const { setBackButton } = useBackButton({
+// Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
+// ссылке истории нет — уходим на канонический список
+useBackButton({
   text: 'Назад',
   componentId: 'project-base-' + projectHash.value,
-  onClick: () => {
-    if (isMyProjects.value) {
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } });
-      return;
-    }
-    const backRoute = route.query._backRoute as string;
-    if (backRoute) {
-      // Проверяем, является ли backRoute ключом sessionStorage
-      const storedRoute = sessionStorage.getItem(backRoute);
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute);
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query
-          });
-          // Очищаем сохраненные данные
-          sessionStorage.removeItem(backRoute);
-          return;
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error);
-        }
-      }
-      // Если это обычное название маршрута, переходим стандартно
-      router.push({ name: backRoute });
-    } else {
-      router.push({ name: listRoute.value });
-    }
-  }
-});
-
-// Отслеживаем изменение backRoute для обновления кнопки "Назад"
-watch(() => route.query._backRoute, () => {
-  setBackButton();
+  onClick: () =>
+    goBackOr(router, {
+      name: isMyProjects.value ? 'capital-my-projects' : listRoute.value,
+      params: { coopname: route.params.coopname },
+    }),
 });
 
 // Обработчик создания компонента

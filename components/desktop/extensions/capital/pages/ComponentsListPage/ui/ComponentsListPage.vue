@@ -87,7 +87,6 @@ const handleOpenParent = (parentHash: string) => {
   router.push({
     name: 'project-description',
     params: { project_hash: parentHash },
-    query: { _backRoute: 'components-list' },
   });
 };
 
