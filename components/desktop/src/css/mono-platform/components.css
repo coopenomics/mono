@@ -635,27 +635,11 @@ body {
   position: relative;
 }
 .tabbar__tabs::-webkit-scrollbar { display: none; }
-/* — fade edges to communicate horizontal scroll — */
-.tabbar__tabs::before,
-.tabbar__tabs::after {
-  content: "";
-  position: sticky;
-  top: 0; bottom: 0;
-  width: 24px;
-  pointer-events: none;
-  flex-shrink: 0;
-  z-index: 1;
-}
-.tabbar__tabs::before {
-  left: 0;
-  margin-right: -24px;
-  background: linear-gradient(to right, var(--p-canvas), transparent);
-}
-.tabbar__tabs::after {
-  right: 0;
-  margin-left: -24px;
-  background: linear-gradient(to left, var(--p-canvas), transparent);
-}
+/* Растворяющих градиентов по краям здесь намеренно нет. Они рисовались слоем
+   ПОВЕРХ табов (sticky, 24px, отрицательный внешний отступ), поэтому текст под
+   слоем шёл притемнённым, а на его правом крае яркость возвращалась скачком —
+   через слово проходила вертикальная линия, стоявшая на месте при прокрутке.
+   Что полосу можно листать, и без них видно по обрезанному крайнему табу. */
 .tab {
   position: relative;
   display: inline-flex;
