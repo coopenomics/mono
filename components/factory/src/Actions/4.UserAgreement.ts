@@ -20,7 +20,7 @@ export class Factory extends DocFactory<UserAgreement.Action> {
   }
 
   async generateDocument(data: UserAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const isBlank = isEmpty(data.username)
+    const isBlank = options?.blank_signer === true || isEmpty(data.username)
 
     // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
     const { template, coop, vars, user } = await this.resolveParallel({

@@ -62,10 +62,13 @@ export class PublicProvisionService {
     }
 
     const document = await this.documentInteractor.generateDocument({
-      data: { coopname: config.coopname, registry_id } as any,
+      // username в метаданных — от кого сформирован документ, и он обязателен по
+      // канону документа. При публичном показе документ формирует сам кооператив,
+      // подписант же не известен: его место занимает прочерк по blank_signer.
+      data: { coopname: config.coopname, username: config.coopname, registry_id } as any,
       // Документ показывается на экране: PDF не собираем и в базу не пишем —
       // подписывать этот экземпляр никто не будет.
-      options: { skip_save: true, skip_pdf: true },
+      options: { skip_save: true, skip_pdf: true, blank_signer: true },
     });
 
     const html = document.html;
