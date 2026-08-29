@@ -682,6 +682,13 @@ body {
   letter-spacing: -0.005em;
 }
 .tab:hover { color: var(--p-ink); }
+/* Иконка таба наследует приглушённый цвет, у активного — акцент */
+.tab__ico {
+  color: var(--p-ink-3);
+}
+.tab--active .tab__ico {
+  color: var(--p-primary);
+}
 .tab__count {
   font-family: var(--p-mono);
   font-size: 11px;

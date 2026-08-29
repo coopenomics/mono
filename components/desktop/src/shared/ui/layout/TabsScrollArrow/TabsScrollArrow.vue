@@ -13,9 +13,8 @@
 
 <script setup lang="ts">
 /**
- * Стрелка прокрутки полосы вкладок. Общая для обоих таб-баров — канонного
- * PageTabs и меню второго уровня SecondLevelTabs; логика доступности живёт в
- * useTabsScroll.
+ * Стрелка прокрутки полосы вкладок. Логика доступности — в useTabsScroll,
+ * разметка полосы — в PageTabs.
  */
 defineProps<{
   direction: 'left' | 'right';

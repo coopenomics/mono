@@ -1,19 +1,19 @@
 <template lang="pug">
 .reports-shell
-  SecondLevelTabs(:tabs='tabs')
+  PageTabs(:tabs='tabs')
   .reports-shell__content
     router-view
 </template>
 
 <script setup lang="ts">
-import { SecondLevelTabs } from 'src/shared/ui/SecondLevelTabs'
+import { PageTabs } from 'src/shared/ui/layout'
 
 // Shell-страница «Реестр кошельков»: канон-меню второго уровня
 // (Кооператив / Пайщики). Кнопка «Перевести» живёт в топбаре —
 // её регистрирует дочерняя CoopWalletsPage через useHeaderActions.
 const tabs = [
-  { routeName: 'reports-wallets-coop', label: 'Кооператив', icon: 'fa-solid fa-building' },
-  { routeName: 'reports-wallets-participants', label: 'Пайщики', icon: 'fa-solid fa-users' },
+  { key: 'reports-wallets-coop', routeName: 'reports-wallets-coop', label: 'Кооператив', icon: 'apartment' },
+  { key: 'reports-wallets-participants', routeName: 'reports-wallets-participants', label: 'Пайщики', icon: 'groups' },
 ]
 </script>
 

@@ -1,19 +1,19 @@
 <template lang="pug">
 .reports-shell
-  SecondLevelTabs(:tabs='tabs')
+  PageTabs(:tabs='tabs')
   .reports-shell__content
     router-view
 </template>
 
 <script setup lang="ts">
-import { SecondLevelTabs } from 'src/shared/ui/SecondLevelTabs'
+import { PageTabs } from 'src/shared/ui/layout'
 
 // Shell-страница «Отчётность»: канон-меню второго уровня
 // (Календарь / Список форм / Архив). Содержимое — через <router-view>.
 const tabs = [
-  { routeName: 'reports-documents-calendar', label: 'Календарь', icon: 'fa-solid fa-calendar-days' },
-  { routeName: 'reports-documents-forms', label: 'Список форм', icon: 'fa-solid fa-list' },
-  { routeName: 'reports-documents-archive', label: 'Архив', icon: 'fa-solid fa-box-archive' },
+  { key: 'reports-documents-calendar', routeName: 'reports-documents-calendar', label: 'Календарь', icon: 'calendar_month' },
+  { key: 'reports-documents-forms', routeName: 'reports-documents-forms', label: 'Список форм', icon: 'list' },
+  { key: 'reports-documents-archive', routeName: 'reports-documents-archive', label: 'Архив', icon: 'inventory_2' },
 ]
 </script>
 

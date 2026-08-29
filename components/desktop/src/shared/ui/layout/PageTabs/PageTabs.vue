@@ -1,5 +1,5 @@
 <template>
-  <div class="tabbar">
+  <nav class="tabbar">
     <!--
       Стрелки прокрутки. Появляются обе сразу, как только вкладки перестают
       помещаться, и гаснут поодиночке, когда крутить в ту сторону уже некуда.
@@ -22,10 +22,11 @@
         active-class=""
         exact-active-class=""
         :type="tab.route ? undefined : 'button'"
-        :class="['tab', { 'tab--active': tab.key === activeKey }]"
+        :class="['tab', { 'tab--active': isActive(tab) }]"
         :disabled="tab.disabled || undefined"
-        @click="!tab.disabled && emit('select', tab)"
+        @click="onSelect(tab)"
       >
+        <q-icon v-if="tab.icon" class="tab__ico" :name="tab.icon" size="15px" />
         <span>{{ tab.label }}</span>
         <span v-if="tab.count !== undefined" class="tab__count">{{ tab.count }}</span>
       </component>
@@ -41,11 +42,12 @@
     <div v-if="$slots.actions" class="tabbar__actions">
       <slot name="actions" />
     </div>
-  </div>
+  </nav>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
 import { TabsScrollArrow } from '../TabsScrollArrow';
 import type { PageTabsProps, PageTab } from './PageTabs.types';
@@ -56,11 +58,39 @@ const emit = defineEmits<{
   select: [tab: PageTab];
 }>();
 
+const route = useRoute();
+const router = useRouter();
+
 const tabsRef = ref<HTMLElement | null>(null);
 const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(
   tabsRef,
   () => props.tabs,
 );
+
+/**
+ * Активность таба. Два источника: ключ, заданный страницей, и собственный
+ * маршрут таба. Раздел-оболочка с `<router-view>` внутри не обязан следить за
+ * активной вкладкой сам — он объявляет у таба `routeName`, и подсветка
+ * остаётся на нём даже когда открыт дочерний маршрут.
+ */
+function isActive(tab: PageTab): boolean {
+  if (props.activeKey !== undefined) return tab.key === props.activeKey;
+  if (tab.routeName) {
+    if (route.name === tab.routeName) return true;
+    return route.matched.some((m) => m.name === tab.routeName);
+  }
+  return false;
+}
+
+function onSelect(tab: PageTab): void {
+  if (tab.disabled) return;
+  emit('select', tab);
+  // Параметры текущего маршрута сохраняются: разделы-оболочки живут внутри
+  // маршрута кооператива, и без них переход уводит в никуда
+  if (tab.routeName && !isActive(tab)) {
+    void router.push({ name: tab.routeName, params: { ...route.params } });
+  }
+}
 </script>
 
 <style scoped>
