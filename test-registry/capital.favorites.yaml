@@ -104,6 +104,14 @@ cases:
     test: components/controller/tests/unit/capital/favorites.service.test.ts
     status: written
 
+  - id: cap.fav.side.09
+    level: backend
+    kind: side
+    scenario: в избранном задача и артефакт — офчейн-сущности, у которых present никто не выставляет
+    expect: фильтр по present к ним не применяется, обе записи возвращаются с актуальными наименованиями
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    status: written
+
   - id: cap.fav.side.06
     level: backend
     kind: side
