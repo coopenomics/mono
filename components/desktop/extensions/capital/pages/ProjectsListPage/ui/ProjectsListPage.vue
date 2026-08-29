@@ -43,7 +43,7 @@ router-view(v-if='!isWorkshopRoot')
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onBeforeMount, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -51,7 +51,6 @@ import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Proje
 import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
 import { useListPreferences, sortCapitalList } from 'app/extensions/capital/shared/lib';
 import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
-import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
 
@@ -75,7 +74,6 @@ useCapitalFabHotkeys(
   { enabled: capitalFabHotkeysEnabled },
 );
 
-const projectStore = useProjectStore();
 
 // Фильтры и сортировка списка — общие с кнопками в шапке, переживают перезагрузку
 const { filters, sort } = useListPreferences('projects');
@@ -156,15 +154,9 @@ const handlePaginationChanged = (paginationData: { page: number; rowsPerPage: nu
   currentDescending.value = paginationData.descending;
 };
 
-// Очищаем данные проектов перед монтированием, чтобы не было мелькания старых данных
-onBeforeMount(() => {
-  projectStore.projects = {
-    items: [],
-    totalCount: 0,
-    totalPages: 1,
-    currentPage: 1,
-  };
-});
+// Стор перед монтированием НЕ обнуляется: сохранённая лента — это и есть
+// мгновенный возврат «назад» без перезагрузки (см. listMemory в
+// ProjectsListWidget). Устаревший фильтр виджет сверяет и сбрасывает сам.
 
 function registerListHeaderActions(): void {
   registerHeaderAction({
