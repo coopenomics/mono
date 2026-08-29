@@ -17,7 +17,14 @@ DetailsDrawer(
       | Открыть задачу
 
   .issue-overlay__body(v-if='issue')
-    .issue-overlay__title {{ issue.title }}
+    //- Заголовок правится тем же редактором, что на полной странице
+    IssueTitleEditor.full-width(
+      :issue='issue',
+      @update:title='handleTitleUpdate',
+      @save='handleTitleUpdate'
+    )
+      template(#prepend-icon)
+        q-icon(name='task', size='24px', color='primary')
     IssueSidebarWidget(
       :issue='issue',
       :permissions='issue.permissions',
@@ -31,31 +38,59 @@ DetailsDrawer(
       @issue-deleted='overlay.close()',
       @issue-moved='reload'
     )
-    //- Описание в оверлее только для чтения: правка текста живёт на полной
-    //- странице — там автосохранение, редакции и слияние конфликтов
+    .row.items-center
+      .col
+        AutoSaveIndicator(:is-auto-saving='isAutoSaving', :auto-save-error='autoSaveError')
+      .col-auto
+        RevisionsButton(
+          :entity-type='Zeus.CapitalContentEntityType.ISSUE',
+          :entity-hash='issue.issue_hash',
+          :current-title='issue.title || ""',
+          :current-description='issue.description || ""',
+          :current-rev='issue.content_rev ?? 0',
+          :can-edit='!!issue.permissions?.can_edit_issue',
+          @restored='reload'
+        )
+
+    //- Правка описания — та же машина, что на полной странице (автосохранение
+    //- с редакциями и слиянием), общая через useIssueContentSave
     Editor(
-      v-if='issue.description',
-      :model-value='issue.description',
+      v-model='issue.description',
       label='Описание задачи',
-      readonly,
-      :padded='false'
+      placeholder='Опишите задачу подробно...',
+      :readonly='!issue.permissions?.can_edit_issue',
+      :padded='false',
+      @change='handleDescriptionChange'
     )
+
   .issue-overlay__loading(v-else)
     q-spinner(size='28px', color='primary')
+
+  ConflictDialog(
+    v-model='conflictOpen',
+    :conflict='conflict',
+    @resolve='applyConflictResolution'
+  )
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { FailAlert } from 'src/shared/api';
+import { Zeus } from '@coopenomics/sdk';
 import { DetailsDrawer } from 'src/shared/ui/domain';
 import { BaseButton } from 'src/shared/ui/base';
-import { Editor } from 'src/shared/ui';
+import { Editor, AutoSaveIndicator } from 'src/shared/ui';
+import {
+  ConflictDialog,
+  RevisionsButton,
+} from 'app/extensions/capital/features/ContentRevisions';
+import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
-import { IssueSidebarWidget } from 'app/extensions/capital/widgets';
+import { IssueSidebarWidget, IssueTitleEditor } from 'app/extensions/capital/widgets';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 /**
@@ -73,6 +108,30 @@ const router = useRouter();
 const issueStore = useIssueStore();
 
 const issue = ref<IIssue | null>(null);
+const issueProjectHash = computed(() => issue.value?.project_hash ?? null);
+
+// Та же машина автосохранения, что на полной странице задачи
+const {
+  isAutoSaving,
+  autoSaveError,
+  conflict,
+  conflictOpen,
+  saveIssueContent,
+  applyConflictResolution,
+} = useIssueContentSave(issue, issueProjectHash);
+
+async function handleTitleUpdate(value: string): Promise<void> {
+  if (!issue.value) return;
+  issue.value.title = value;
+  await saveIssueContent({ title: value });
+  void issueStore.updateIssueByHash(issue.value.project_hash, issue.value.issue_hash);
+}
+
+async function handleDescriptionChange(): Promise<void> {
+  if (!issue.value) return;
+  await saveIssueContent({ description: issue.value.description ?? '' });
+  void issueStore.updateIssueByHash(issue.value.project_hash, issue.value.issue_hash);
+}
 
 async function fetchIssue(hash: string): Promise<void> {
   try {
@@ -138,13 +197,6 @@ function openFullPage(): void {
   gap: var(--p-3);
 }
 
-.issue-overlay__title {
-  font-size: var(--p-fs-h5, 18px);
-  font-weight: 600;
-  color: var(--p-ink);
-  line-height: var(--p-lh-h5, 1.35);
-  overflow-wrap: anywhere;
-}
 
 .issue-overlay__loading {
   display: grid;

@@ -36,10 +36,10 @@ router-view(v-if='!isWorkshopRoot')
             :compact='true',
             :sort-by='sort.sortBy',
             :sort-order='sort.sortOrder',
-            @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash } })'
+            @issue-click='(issue) => issueOverlay.open(issue.issue_hash)'
           )
-
-
+  //- Оверлей задачи поверх списка: список не размонтируется, «назад» его закрывает
+  IssueOverlay
 </template>
 
 <script lang="ts" setup>
@@ -53,7 +53,12 @@ import { useListPreferences, sortCapitalList } from 'app/extensions/capital/shar
 import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { useSessionStore } from 'src/entities/Session';
 import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
+import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 
+
+// Задача открывается оверлеем поверх списка (?issue= в адресе)
+const issueOverlay = useQueryOverlay('issue');
 const router = useRouter();
 const route = useRoute();
 const session = useSessionStore();

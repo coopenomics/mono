@@ -26,6 +26,8 @@ router-view(v-if='!isListRoot')
         :sort-order='sort.sortOrder',
         @issue-click='handleIssueClick'
       )
+  //- Оверлей задачи поверх списка: список не размонтируется, «назад» его закрывает
+  IssueOverlay
 </template>
 
 <script lang="ts" setup>
@@ -38,7 +40,12 @@ import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/s
 import { CreateComponentHeaderButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { useListPreferences } from 'app/extensions/capital/shared/lib';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 
+
+// Задача открывается оверлеем поверх списка (?issue= в адресе)
+const overlay = useQueryOverlay('issue');
 const router = useRouter();
 const route = useRoute();
 
@@ -90,14 +97,9 @@ const handleOpenParent = (parentHash: string) => {
   });
 };
 
+// Задача — оверлеем поверх списка; полная страница по кнопке в оверлее
 const handleIssueClick = (issue: IIssue) => {
-  router.push({
-    name: 'cmp-component-issue-description',
-    params: {
-      project_hash: issue.project_hash,
-      issue_hash: issue.issue_hash,
-    },
-  });
+  overlay.open(issue.issue_hash);
 };
 
 // Кнопки фильтров и сортировки живут в шапке — как на списке проектов

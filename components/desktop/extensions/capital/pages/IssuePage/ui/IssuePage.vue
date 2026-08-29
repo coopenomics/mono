@@ -141,8 +141,8 @@ import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
 import { BaseButton, EmptyState } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
-import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
-import { ConflictDialog, extractContentConflict, type IContentConflict } from 'app/extensions/capital/features/ContentRevisions'
+import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue'
+import { ConflictDialog } from 'app/extensions/capital/features/ContentRevisions'
 import { IssueSidebarWidget } from 'app/extensions/capital/widgets'
 import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor'
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget'
@@ -181,7 +181,7 @@ const saveSidebarWidth = (width: number) => {
 }
 
 const isMobileLayout = isMobile
-const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
+
 
 const issueHash = computed(() => route.params.issue_hash as string)
 const isMyTaskContext = computed(() =>
@@ -297,51 +297,20 @@ const loadParentInfo = async () => {
 
 const handleFieldChange = () => {}
 
-// Конфликт редакций: сервер не смог слить автоматически — показываем обе версии
-const conflict = ref<IContentConflict | null>(null)
-const conflictOpen = ref(false)
-
-/**
- * Автосохранение задачи с редакцией: base_rev = content_rev, с которого начата правка.
- * Сервер сливает параллельные правки и возвращает итоговый текст — подменяем его в редакторе;
- * настоящий конфликт открывает диалог выбора.
- */
-const saveIssueContent = async (patch: { title?: string; description?: string }) => {
-  if (!issue.value) return
-  const baseRev = issue.value.content_rev
-  try {
-    const updated = await debounceSave(
-      { issue_hash: issue.value.issue_hash, ...patch, base_rev: baseRev },
-      projectHash.value || '',
-    )
-    if (updated && issue.value) {
-      issue.value.content_rev = updated.content_rev
-      if (patch.description !== undefined && updated.description !== patch.description) {
-        issue.value.description = updated.description ?? ''
-      }
-      if (patch.title !== undefined && updated.title !== patch.title) {
-        issue.value.title = updated.title
-      }
-    }
+// Автосохранение с редакциями — общий composable: та же машина работает в
+// оверлее задачи, поведение правки обязано совпадать
+const {
+  isAutoSaving,
+  autoSaveError,
+  conflict,
+  conflictOpen,
+  saveIssueContent,
+  applyConflictResolution,
+} = useIssueContentSave(issue, projectHash, {
+  onSaved: () => {
     logsRefreshTrigger.value++
-  } catch (error) {
-    const c = extractContentConflict(error)
-    if (c) {
-      conflict.value = c
-      conflictOpen.value = true
-      return
-    }
-    console.error('Failed to save issue content:', error)
-  }
-}
-
-const applyConflictResolution = async (value: { title: string; description: string; base_rev: number }) => {
-  if (!issue.value) return
-  issue.value.title = value.title
-  issue.value.description = value.description
-  issue.value.content_rev = value.base_rev
-  await saveIssueContent({ title: value.title, description: value.description })
-}
+  },
+})
 
 const handleTitleUpdate = async (value: string) => {
   if (!issue.value) return
