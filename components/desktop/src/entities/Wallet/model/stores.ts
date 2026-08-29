@@ -40,6 +40,13 @@ interface IWalletStore {
   methods: Ref<IPaymentMethodData[]>;
   agreements: Ref<IUserAgreement[]>;
   /**
+   * Удалось ли хоть раз получить подписи пайщика с сервера. Пустой список —
+   * это «пайщик ничего не подписал», и по нему интерфейс требует подписей;
+   * неудачная выборка выглядит точно так же, поэтому её нельзя выдавать за
+   * пустоту. Пока здесь false, о подписях достоверно не известно ничего.
+   */
+  agreementsLoaded: Ref<boolean>;
+  /**
    * Подписано ли пайщиком главное соглашение цифрового кошелька. Пока оно не
    * подписано, кошелёк не активен — операции взноса и возврата недоступны
    * (так же скрыта карточка кошелька в столе пайщика).
@@ -71,6 +78,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const _program_wallets_base = ref<ExtendedProgramWalletData[]>([]);
   const methods = ref<IPaymentMethodData[]>([]);
   const agreements = ref<IUserAgreement[]>([]);
+  const agreementsLoaded = ref(false);
   const _patches = ref<IWalletPatch[]>([]);
 
   const isWalletAgreementSigned = computed<boolean>(() =>
@@ -147,7 +155,19 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws.value = unwrap(withdrawsRes, []);
     _program_wallets_base.value = unwrap(programWalletsRes, []);
     methods.value = unwrap(methodsRes, []);
-    agreements.value = unwrap(agreementsRes, []);
+    /**
+     * Подписи не проходят через unwrap: его запасное значение — пустой список,
+     * а пустой список подписей интерфейс читает как «ничего не подписано» и
+     * снова просит подписать уже подписанное. Упавшую выборку оставляем без
+     * последствий: прежние данные достовернее пустоты, а если их ещё не было,
+     * состояние так и останется «неизвестно» до успешной загрузки.
+     */
+    if (agreementsRes.status === 'fulfilled') {
+      agreements.value = agreementsRes.value ?? [];
+      agreementsLoaded.value = true;
+    } else {
+      console.error(agreementsRes.reason);
+    }
     user_wallets.value = unwrap(userWalletsRes, []);
     // Серверная правда выигрывает — все наложенные оптимистичные патчи
     // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
@@ -162,6 +182,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws,
     methods,
     agreements,
+    agreementsLoaded,
     isWalletAgreementSigned,
     loadUserWallet,
     applyOptimisticPatch,
