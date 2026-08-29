@@ -20,7 +20,7 @@ import { useNotificationPermissionDialog } from 'src/features/NotificationPermis
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
-import { env, initOpenReplayTracker } from 'src/shared/config';
+import { initOpenReplayTracker } from 'src/shared/config';
 // Start tracker
 const session = useSessionStore();
 const system = useSystemStore();
@@ -77,51 +77,9 @@ onMounted(async () => {
   try {
     console.log('systemInfo', info);
 
-    // Нормализация URL под режим роутера (см. src/app/providers/router.ts):
-    // — history (типичный SSR в проде): маршрут в pathname, без #. Старые ссылки вида /#/... переносим в path.
-    // — hash (типичный SPA dev): маршрут после #; если путь оказался в pathname — переносим в hash.
-    const hasWindow = typeof window !== 'undefined';
-    const isClientBundle = process.env.CLIENT === 'true' || hasWindow;
-    const isNotSsrRuntime = process.env.SERVER !== 'true';
-    const routerMode = env.VUE_ROUTER_MODE || process.env.VUE_ROUTER_MODE || 'hash';
-
-    if (hasWindow && isClientBundle && isNotSsrRuntime) {
-      if (routerMode === 'history') {
-        const rawHash = window.location.hash;
-        if (rawHash.length > 1 && rawHash.startsWith('#/')) {
-          let inner = rawHash.slice(1);
-          if (!inner.startsWith('/')) {
-            inner = `/${inner}`;
-          }
-          const current = window.location.pathname + window.location.search;
-          const pathOnly = window.location.pathname;
-          if (inner === current) {
-            window.history.replaceState(window.history.state, '', current);
-          } else if (pathOnly === '/' || pathOnly === '' || pathOnly === '/index.html') {
-            window.location.replace(window.location.origin + inner);
-            clearSafetyTimer();
-            return;
-          }
-        }
-      } else if (routerMode === 'hash') {
-        const shouldCorrectHashUrl =
-          window.location.pathname !== '/' &&
-          window.location.pathname !== '/index.html' &&
-          (!window.location.hash ||
-            !window.location.hash.includes(window.location.pathname));
-
-        if (shouldCorrectHashUrl) {
-          const newUrl =
-            window.location.origin +
-            '/#' +
-            window.location.pathname +
-            window.location.search;
-          window.location.replace(newUrl);
-          clearSafetyTimer();
-          return;
-        }
-      }
-    }
+    // Адрес страницы к этому моменту уже приведён к режиму роутера — конвертер
+    // ссылок живёт в src/app/providers/router.ts (normalizeEntryUrl), до создания
+    // роутера. Здесь, после первой навигации, чинить URL поздно.
 
     // Запускаем процесс мониторинга "технического обслуживания" после монтирования
     useDesktopHealthWatcherProcess();

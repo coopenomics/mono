@@ -1,19 +1,19 @@
-import { env } from 'src/shared/config';
+import { resolveRouterMode } from './entryUrl';
 
 /**
  * Внутренний путь приложения → href с учётом режима роутера.
  *
  * Прод работает в history-режиме (маршрут в pathname, без `#`), dev — в hash.
  * Канонический формат ссылок платформы — БЕЗ `#` (так их строит и сервер в
- * письмах); App.vue при загрузке нормализует URL под свой режим. Но для
+ * письмах); входящий адрес приводит к режиму роутера normalizeEntryUrl
+ * (./entryUrl, вызывается до createRouter). Но для
  * НАВИГАЦИИ ИЗНУТРИ приложения прямое `window.location.hash = …` работает
  * только в hash-режиме — на проде хэш молча игнорируется роутером. Отсюда
  * этот helper: он строит href под фактический режим.
  */
 export function appHref(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  const mode = env.VUE_ROUTER_MODE || process.env.VUE_ROUTER_MODE || 'hash';
-  return mode === 'history' ? normalized : `/#${normalized}`;
+  return resolveRouterMode() === 'history' ? normalized : `/#${normalized}`;
 }
 
 /**
@@ -24,8 +24,7 @@ export function appHref(path: string): string {
  */
 export function navigateToPath(path: string, options: { reload?: boolean } = {}): void {
   window.location.assign(appHref(path));
-  const mode = env.VUE_ROUTER_MODE || process.env.VUE_ROUTER_MODE || 'hash';
-  if (options.reload && mode !== 'history') {
+  if (options.reload && resolveRouterMode() !== 'history') {
     window.location.reload();
   }
 }
