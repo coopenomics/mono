@@ -1,5 +1,5 @@
 <template lang="pug">
-.issue-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.issue-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   PageTabs(
     v-if="issue"
     :tabs="issueTabs"
@@ -555,13 +555,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
-.issue-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость: контент на --p-surface, табы на --p-canvas
 .page-surface {
   background: var(--p-surface);

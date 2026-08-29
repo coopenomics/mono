@@ -558,6 +558,29 @@ body {
 .icon-btn:hover { background: var(--p-surface-2); color: var(--p-ink); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* ---- Page shell (раздел на всю высоту экрана) -----------------------
+   Оболочка страницы раздела: на десктопе занимает вьюпорт под шапкой, и
+   прокручивается не она, а лента внутри — так у раздела всегда виден каркас
+   (заголовок, табы), а бежит только содержимое.
+
+   На мобильном фиксация снимается: страница прокручивается окном, как обычный
+   документ. Без этого шапка не могла уехать при прокрутке (reveal у q-header
+   реагирует только на скролл окна), а вложенный скролл внутри скролла ловил
+   инерцию и заставлял ленту дрожать под пальцем.
+   ------------------------------------------------------------------- */
+.page-shell {
+  height: calc(100vh - var(--p-topbar-h));
+  max-height: calc(100vh - var(--p-topbar-h));
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .page-shell {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 /* ---- Page tabs (sub-navigation) -------------------------------------
    Horizontal sub-nav living between the topbar and the content. Scrolls
    horizontally on overflow. Right side is a fixed slot for page-scoped
@@ -570,6 +593,19 @@ body {
   border-bottom: 1px solid var(--p-line);
   background: var(--p-canvas);
   min-height: 52px;
+  /* Полоса табов липнет под шапкой и остаётся на виду всю прокрутку: это
+     основная навигация раздела, уезжать вместе с контентом ей незачем.
+     Отступ сверху равен высоте шапки — ровно под ней. */
+  position: sticky;
+  top: var(--p-topbar-h);
+  z-index: 5;
+  transition: top var(--p-dur-fast);
+}
+/* Шапка уехала (reveal на мобильном) — Quasar обнуляет её вклад в отступ
+   контента, поэтому табы поднимаются к самому верху экрана. Селектор идёт от
+   шапки к контейнеру страницы: в q-layout это соседи. */
+.q-header--hidden ~ .q-page-container .tabbar {
+  top: 0;
 }
 .tabbar__tabs {
   flex: 1;

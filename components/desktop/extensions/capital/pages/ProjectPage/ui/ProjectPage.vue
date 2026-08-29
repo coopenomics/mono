@@ -1,5 +1,5 @@
 <template lang="pug">
-.project-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.project-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   // Меню вкладок — сразу под шапкой, без внешних отступов (chrome на canvas)
   PageTabs(
     v-if="project && !isIssueRoute"
@@ -360,13 +360,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
-.project-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость страницы проекта: контент на --p-surface,
 // табы/шапка остаются на --p-canvas (канон canvas → surface)
 .page-surface {

@@ -1,5 +1,5 @@
 <template lang="pug">
-.component-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.component-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   // Меню вкладок — сразу под шапкой, без внешних отступов
   PageTabs(
     v-if="project && !isIssueRoute"
@@ -422,27 +422,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — иначе flex-1 у page-surface
-// схлопывается по контенту (План/Артефакты «короткие», Задачи с 100vh — длиннее экрана).
-.component-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
-// Мобильный: страница прокручивается окном, а не внутренней панелью.
-// Фиксированная высота имитировала приложение — окно при этом не двигалось,
-// и шапка не могла уехать при прокрутке (reveal у q-header реагирует только
-// на скролл окна). Заодно исчезает вложенный скролл внутри скролла, из-за
-// которого лента ловила инерцию и «дрожала».
-@media (max-width: 600px) {
-  .component-page-shell {
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
-}
-
 // Рабочая плоскость: контент на --p-surface, табы на --p-canvas
 .page-surface {
   background: var(--p-surface);
