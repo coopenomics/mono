@@ -26,6 +26,9 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { z } from 'zod';
 import { CardcoopIdentityService } from './identity/identity.service';
 import { CardcoopAttestationService } from './attestation/attestation.service';
+import { CardcoopMembershipService } from './membership/membership.service';
+import { CardcoopExitEventsService } from './membership/exit-events.service';
+import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
 
 /**
  * Параметры расширения.
@@ -96,8 +99,15 @@ export class CardcoopExtension extends BaseExtensionModule {
 }
 
 @Module({
-  providers: [CardcoopExtension, CardcoopIdentityService, CardcoopAttestationService],
-  exports: [CardcoopExtension, CardcoopAttestationService],
+  imports: [CardcoopDatabaseModule],
+  providers: [
+    CardcoopExtension,
+    CardcoopIdentityService,
+    CardcoopAttestationService,
+    CardcoopMembershipService,
+    CardcoopExitEventsService,
+  ],
+  exports: [CardcoopExtension, CardcoopAttestationService, CardcoopMembershipService],
 })
 export class CardcoopExtensionModule {
   constructor(private readonly cardcoopExtension: CardcoopExtension) {}

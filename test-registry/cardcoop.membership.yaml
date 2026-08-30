@@ -1,0 +1,123 @@
+feature: cardcoop.membership
+title: Журнал подтверждений и отзыв при прекращении членства (Story 7.3)
+
+# Отозвать подтверждение можно только по идентификатору, который присваивает
+# card.coop при приёме, а о прекращении членства кооператив узнаёт из цепи — там
+# ни карты, ни идентификатора нет, только пайщик. Журнал выданных подтверждений и
+# связывает одно с другим.
+#
+# Ключевое решение: пайщик запоминается в НАЧАЛЕ процесса выхода (`exitcoop`), а
+# не в конце. Завершающее действие `registrator::completexit` называет только
+# процесс, а запись о выходе контракт к этому моменту уже удалил (`exits.erase`) —
+# спросить у цепи, чей это был выход, поздно.
+#
+# Отзыв — только по завершении выхода: заявление совет может и отклонить, и всё
+# это время карта обязана показывать членство действующим.
+#
+# Недоставка отзыва НЕ метит подтверждение отозванным: в сети оно ещё действует,
+# и расхождение состояний между кооперативом и сетью хуже, чем видимая недоставка.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/membership/**
+    - components/controller/src/extensions/cardcoop/infrastructure/**
+
+cases:
+  - id: cc.mbr.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Сеть приняла подтверждение и назвала его идентификатор.
+    expect: >
+      запись переходит в «действующее» и хранит идентификатор — по нему потом
+      выполняется отзыв
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Выход пайщика из кооператива завершён (`completexit`).
+    expect: >
+      отзывается подтверждение именно того пайщика, чей это был выход; запись о
+      процессе удаляется
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Уведомление о той же связке пришло повторно (сеть повторяет при недоставке).
+    expect: >
+      второго свидетельства не выпускается — иначе один пайщик оброс бы дублями
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Совет отклонил заявление о выходе (`declinexit`).
+    expect: >
+      членство сохраняется, подтверждение остаётся действующим, запись о процессе
+      забывается
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Недоставка отличается от отказа по существу (сеть недоступна против 422).
+    expect: >
+      недоставка остаётся ожиданием и будет повторена, отказ по существу —
+      отдельное состояние с причиной для разбора оператором
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Выход завершён, но пайщик по этому процессу неизвестен (расширение
+      поставили после начала выхода).
+    expect: >
+      ничего не отзывается, факт попадает в журнал — молчать здесь опаснее, чем
+      не сделать ничего
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Сеть приняла подтверждение, но идентификатор не назвала; позже членство
+      прекращается.
+    expect: >
+      запись метится отозванной локально с явной причиной и громкой записью в
+      журнал: автоматически отозвать нечем, нужен ручной разбор
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Отзыв не доставлен (сеть недоступна).
+    expect: >
+      подтверждение остаётся действующим, причина сохранена: в сети членство ещё
+      не прекращено, и делать вид, что прекращено, нельзя
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Действие выхода пришло по ЧУЖОМУ кооперативу (узел видит всю цепь).
+    expect: >
+      обработчик его игнорирует — иначе чужой выход отозвал бы наше подтверждение
+    test: components/controller/tests/unit/cardcoop/cardcoop-exit-events.test.ts
+    status: passing

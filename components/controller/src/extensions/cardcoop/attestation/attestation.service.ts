@@ -51,6 +51,14 @@ export interface AttestationDeliveryResult {
   delivered: boolean;
   /** Код ответа последней попытки; `null`, если до сети не дошли вовсе. */
   status: number | null;
+  /**
+   * Идентификатор, присвоенный сетью принятому подтверждению.
+   *
+   * Только по нему подтверждение потом отзывается, поэтому он и сохраняется в
+   * журнале: прекращение членства кооператив узнаёт из цепи, а там ни карты, ни
+   * этого идентификатора нет.
+   */
+  attestationId?: string;
   /** Причина отказа для журнала и разбора оператором. */
   reason?: string;
 }
@@ -166,7 +174,9 @@ export class CardcoopAttestationService {
           body: JSON.stringify(envelope),
         });
 
-        if (response.ok) return { delivered: true, status: response.status };
+        if (response.ok) {
+          return { delivered: true, status: response.status, ...(await readAttestationId(response)) };
+        }
 
         lastStatus = response.status;
         lastReason = await readReason(response);
@@ -196,6 +206,26 @@ export const backoffMs = (attempt: number): number => Math.min(RETRY_BASE_MS * 2
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const trimSlash = (url: string) => url.replace(/\/+$/, '');
+
+/**
+ * Идентификатор принятого подтверждения из ответа сети.
+ *
+ * Отсутствие тела или неожиданная его форма не считаются провалом доставки:
+ * сеть документ приняла, а без идентификатора мы всего лишь не сможем отозвать
+ * его автоматически — это разбирает оператор, и терять из-за этого сам факт
+ * приёма было бы хуже.
+ */
+const readAttestationId = async (response: Response): Promise<{ attestationId?: string }> => {
+  try {
+    const text = await response.text();
+    if (!text) return {};
+    const parsed = JSON.parse(text) as { id?: unknown; attestation_id?: unknown };
+    const id = parsed.attestation_id ?? parsed.id;
+    return typeof id === 'string' && id ? { attestationId: id } : {};
+  } catch {
+    return {};
+  }
+};
 
 /** Причина отказа из ответа; тело может быть пустым или неJSON — это не должно ронять отправку. */
 const readReason = async (response: Response): Promise<string> => {

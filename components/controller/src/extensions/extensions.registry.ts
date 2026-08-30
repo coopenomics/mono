@@ -19,6 +19,7 @@ import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-exte
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
+import { cardcoopEntities } from './cardcoop/cardcoop.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
 import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { expensesEntities } from './expenses/expenses.entities';
@@ -278,6 +279,7 @@ export const AppRegistry: INamedExtension = {
     class: CardcoopExtensionModule,
     extensionClass: CardcoopExtension,
     defaults: { enabled: false, config: cardcoopDefaultConfig },
+    entities: cardcoopEntities,
     ports: cardcoopPorts,
     schema: CardcoopSchema,
     configPolicy: {
