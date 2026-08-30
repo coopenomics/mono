@@ -27,6 +27,12 @@ describe('Доступность расширений по сети', () => {
       }
     });
 
+    it('Карта пайщика открыта только вне основной сети — сеть карт обкатывается на тестовом контуре', () => {
+      expect(AppRegistry.cardcoop.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
+      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, true)).toBe(false);
+      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, false)).toBe(true);
+    });
+
     it('Стол заказов открыт только вне основной сети', () => {
       expect(AppRegistry.market.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
       expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
