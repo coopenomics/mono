@@ -46,6 +46,7 @@ import {
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
+  COOP_CREDENTIAL_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -105,6 +106,7 @@ import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
 } from '~/infrastructure/innercoop/party-card-innercoop.adapter';
+import { CoopCredentialInnercoopAdapter } from '~/infrastructure/innercoop/coop-credential-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
 import { NotificationModule } from '~/application/notification/notification.module';
@@ -197,6 +199,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
     OrganizationInnercoopAdapter,
+    CoopCredentialInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -309,6 +312,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: VAULT_PORT,
       useExisting: VaultInnercoopAdapter,
+    },
+    {
+      provide: COOP_CREDENTIAL_PORT,
+      useExisting: CoopCredentialInnercoopAdapter,
     },
     {
       provide: BRANCH_PORT,
@@ -432,6 +439,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,
+    COOP_CREDENTIAL_PORT,
     BRANCH_PORT,
     CHAIN_PORT,
     SECRET_CIPHER_PORT,

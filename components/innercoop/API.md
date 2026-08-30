@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 258.
+Всего экспортов: 261.
 
 ## ACCOUNT_PORT
 
@@ -78,6 +78,12 @@
 `const` · cross-plugin-ports
 
 - `Symbol.for('Innercoop.CrossPlugin.CoopCalendarEventNotification')`
+
+## COOP_CREDENTIAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.CoopCredential')`
 
 ## COOPERATIVE_VARS_PORT
 
@@ -287,6 +293,14 @@
 
 - `notifyEventCreated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
 - `notifyEventUpdated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
+
+## ICoopCredentialPort
+
+`interface` · core-ports
+
+- `signWithCertKey(message: Uint8Array): Promise<string>`
+- `getTrustChain(): Promise<InnerEndorsementCredential[]>`
+- `getChainId(): Promise<string>`
 
 ## ICooperativeVarsPort
 
@@ -782,6 +796,12 @@
 - `original_found: boolean`
 - `hash_matches: boolean`
 - `signatures_valid: boolean`
+
+## InnerEndorsementCredential
+
+`type` · core-ports
+
+- `string`
 
 ## InnerEnsureProgramParams
 

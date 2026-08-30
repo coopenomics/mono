@@ -11,25 +11,26 @@
  * - `INDIVIDUAL_PORT` / `ORGANIZATION_PORT` — анкетные данные, из которых
  *   считается блок `identity` подтверждения (story 7.7): ФИО открыто, прочие
  *   поля — пополевыми отпечатками;
- * - `VAULT_PORT` — ключ подписи кооператива: подтверждение членства подписывает
- *   кооператив, и проверяющая сторона доверяет именно этой подписи;
+ * - `COOP_CREDENTIAL_PORT` — подпись ключом заверения и цепочка признания:
+ *   подтверждение членства проверяется третьей стороной по признанному ключу
+ *   кооператива, а сам ключ расширению не выдаётся — порт подписывает у себя;
  * - `LOGGER_PORT` — диагностика отправки и отзыва.
  */
 import {
   ACCOUNT_PORT,
+  COOP_CREDENTIAL_PORT,
   INDIVIDUAL_PORT,
   LOGGER_PORT,
   ORGANIZATION_PORT,
-  VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const cardcoopPorts = {
   required: [
     ACCOUNT_PORT,
+    COOP_CREDENTIAL_PORT,
     INDIVIDUAL_PORT,
     LOGGER_PORT,
     ORGANIZATION_PORT,
-    VAULT_PORT,
   ],
   optional: [],
 };
