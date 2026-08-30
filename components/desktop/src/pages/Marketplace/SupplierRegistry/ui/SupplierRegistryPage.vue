@@ -7,6 +7,8 @@ import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState } from 'src/sh
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
 import { IdentityCell } from 'src/shared/ui/domain';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
+import SupplierDetailOverlay from './SupplierDetailOverlay.vue';
 import { getName } from 'src/shared/lib/utils/account';
 import { api as accountApi } from 'src/entities/Account/api';
 import {
@@ -35,6 +37,7 @@ const isChairman = computed(() => session.isChairman);
 const items = ref<MarketplaceSupplierView[]>([]);
 const loading = ref(false);
 const acting = ref<string | null>(null);
+const supplierOverlay = useQueryOverlay('supplier');
 
 // Резолв ФИО/наименования организации по username (реестр несёт только
 // member_account) — канон из NotificationJournalWidget. Кэш на компонент.
@@ -181,7 +184,14 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
             th Статус
             th.col-action Действия
         tbody
-          tr.data-row(v-for="row in items", :key="row.id")
+          tr.data-row(
+            v-for="row in items",
+            :key="row.id",
+            role="button",
+            tabindex="0",
+            @click="supplierOverlay.open(row.member_account)",
+            @keydown.enter="supplierOverlay.open(row.member_account)"
+          )
             td
               IdentityCell(
                 :account-name="row.member_account",
@@ -240,6 +250,17 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
     template(#footer)
       BaseButton(variant="ghost", :disabled="adding", @click="addOpen = false") Отмена
       BaseButton(variant="primary", :loading="adding", :disabled="!canAdd", @click="onAdd") Добавить
+
+  //- Карточка поставщика — оверлеем поверх реестра (?supplier= в адресе):
+  //- отдельной страницы у поставщика нет, решение принимается здесь же
+  SupplierDetailOverlay(
+    :items="items",
+    :can-moderate="isChairman",
+    :acting="!!acting",
+    :name-by-account="supplierNames",
+    @approve="onApprove",
+    @reject="onReject"
+  )
 </template>
 
 <style scoped lang="scss">

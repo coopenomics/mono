@@ -11,6 +11,7 @@ import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyStat
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import {
   cancelWriteoffDraft,
   createWriteoffDraft,
@@ -73,8 +74,25 @@ const candidateColumns = [
 ];
 
 const submitDialogOpen = ref(false);
-const detailsOpen = ref(false);
-const selected = ref<MarketplaceWriteoffProposalView | null>(null);
+
+/**
+ * Открытый проект списания живёт в адресе (`?writeoff=<id>`): вид прежний —
+ * тот же диалог поверх ленты, — но ссылка на конкретный проект пересылается,
+ * F5 её восстанавливает, а «назад» закрывает диалог, а не уводит со страницы.
+ * Сам проект берём из уже загруженных лент, отдельного запроса не нужно.
+ */
+const writeoffOverlay = useQueryOverlay('writeoff');
+const selected = computed<MarketplaceWriteoffProposalView | null>(() => {
+  const id = writeoffOverlay.value.value;
+  if (!id) return null;
+  return [...inCouncil.value, ...archive.value].find((p) => String(p.id) === id) ?? null;
+});
+const detailsOpen = computed({
+  get: () => writeoffOverlay.isOpen.value && !!selected.value,
+  set: (v: boolean) => {
+    if (!v) writeoffOverlay.close();
+  },
+});
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -165,8 +183,7 @@ async function signAndSend(): Promise<void> {
 }
 
 function openDetails(proposal: MarketplaceWriteoffProposalView): void {
-  selected.value = proposal;
-  detailsOpen.value = true;
+  writeoffOverlay.open(String(proposal.id));
 }
 
 const router = useRouter();
