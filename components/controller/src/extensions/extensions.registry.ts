@@ -16,6 +16,7 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/marketplace-extension.module';
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
+import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
@@ -31,6 +32,7 @@ import { powerupMigrations } from './powerup/powerup.migrations';
 
 import { builtinPorts } from './builtin/builtin.ports';
 import { capitalPorts } from './capital/capital.ports';
+import { cardcoopPorts } from './cardcoop/cardcoop.ports';
 import { chairmanPorts } from './chairman/chairman.ports';
 import { chatcoopPorts } from './chatcoop/chatcoop.ports';
 import { kuPorts } from './ku/ku.ports';
@@ -43,6 +45,7 @@ import { sberpollPorts } from './sberpoll/sberpoll.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
 
 import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
+import { defaultConfig as cardcoopDefaultConfig } from './cardcoop/cardcoop-extension.module';
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
@@ -259,6 +262,30 @@ export const AppRegistry: INamedExtension = {
     tags: ['платежи'],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  cardcoop: {
+    is_builtin: false,
+    is_internal: true,
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    desktops: undefined, // Это не desktop расширение
+    title: 'Карта пайщика',
+    description:
+      'Подтверждение членства пайщика в сети «Карта пайщика»: кооператив свидетельствует участие, карта живёт в сети.',
+    image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
+    class: CardcoopExtensionModule,
+    extensionClass: CardcoopExtension,
+    defaults: { enabled: false, config: cardcoopDefaultConfig },
+    ports: cardcoopPorts,
+    schema: CardcoopSchema,
+    configPolicy: {
+      webhook_secret: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+    },
+    tags: ['членство'],
+    readme: getReadmeContent('./cardcoop'),
+    instructions: getInstructionsContent('./cardcoop'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
