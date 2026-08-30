@@ -51,13 +51,32 @@ morgan.token('client-ip', (req) => {
   return req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 });
 
+// Сквозной идентификатор запроса (C28-53). Его выдаёт L7-маршрутизатор и
+// передаёт заголовком вниз по ярусам; каждый ярус пишет его в свою строку лога.
+// До этого один запрос пайщика оставлял след в четырёх местах — access-лог L7,
+// лог приёмника, лог внутреннего nginx узла и лог контроллера, — и связать их
+// можно было только по времени и адресу, то есть на глаз. Теперь весь след
+// собирается одним запросом в Loki: `|= "rid=<идентификатор>"`.
+//
+// Формат проверяется, а не берётся как есть. Nginx выдаёт ровно 32
+// шестнадцатеричных знака, и всё, что на это не похоже, — либо обращение мимо
+// яруса (локальная разработка, запрос изнутри docker-сети), либо чужая
+// подстановка. Незнакомое значение в строку лога пускать нельзя: с переводом
+// строки внутри оно дописало бы в журнал что угодно.
+const RID = /^[0-9a-f]{32}$/i;
+
+morgan.token('request-id', (req) => {
+  const header = req.headers['x-request-id'];
+  return typeof header === 'string' && RID.test(header) ? header : '-';
+});
+
 // Форматы с использованием нового токена 'client-ip'
 const getIpFormat = () => (config.env === 'production' ? ':client-ip - ' : ':remote-addr - ');
 // Операция дописывается В КОНЕЦ строки, а не в середину: у Loki/promtail разбор
 // идёт по началу строки, и вставка поля посередине сломала бы существующие
 // запросы к логам.
-const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - op: :gql-operation`;
-const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - message: :message - op: :gql-operation`;
+const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - op: :gql-operation rid=:request-id`;
+const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms - message: :message - op: :gql-operation rid=:request-id`;
 
 const successHandler = morgan(successResponseFormat, {
   skip: (req, res) => res.statusCode >= 400,
