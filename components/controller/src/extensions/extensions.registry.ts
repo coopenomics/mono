@@ -283,7 +283,9 @@ export const AppRegistry: INamedExtension = {
     ports: cardcoopPorts,
     schema: CardcoopSchema,
     configPolicy: {
-      webhook_secret: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
+      // Ключ открытый — прятать его незачем, а прятать было бы вредно: председатель
+      // должен видеть, тот ли ключ у него стоит, когда уведомления не проходят.
+      webhook_key: { suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
     },
     tags: ['членство'],
     readme: getReadmeContent('./cardcoop'),

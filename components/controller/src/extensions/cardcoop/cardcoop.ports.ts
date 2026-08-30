@@ -14,6 +14,8 @@
  * - `COOP_CREDENTIAL_PORT` — подпись ключом заверения и цепочка признания:
  *   подтверждение членства проверяется третьей стороной по признанному ключу
  *   кооператива, а сам ключ расширению не выдаётся — порт подписывает у себя;
+ * - `USER_DIRECTORY_PORT` — по учётной записи из уведомления о связке находится
+ *   пайщик: сеть присылает идентификатор записи в CoopID кооператива, а не имя;
  * - `LOGGER_PORT` — диагностика отправки и отзыва.
  */
 import {
@@ -22,6 +24,7 @@ import {
   INDIVIDUAL_PORT,
   LOGGER_PORT,
   ORGANIZATION_PORT,
+  USER_DIRECTORY_PORT,
 } from '@coopenomics/innercoop';
 
 export const cardcoopPorts = {
@@ -31,6 +34,7 @@ export const cardcoopPorts = {
     INDIVIDUAL_PORT,
     LOGGER_PORT,
     ORGANIZATION_PORT,
+    USER_DIRECTORY_PORT,
   ],
   optional: [],
 };

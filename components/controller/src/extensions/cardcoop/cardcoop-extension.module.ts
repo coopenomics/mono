@@ -29,6 +29,7 @@ import { CardcoopAttestationService } from './attestation/attestation.service';
 import { CardcoopMembershipService } from './membership/membership.service';
 import { CardcoopExitEventsService } from './membership/exit-events.service';
 import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
+import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
 
 /**
  * Параметры расширения.
@@ -37,20 +38,23 @@ import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-datab
  * кооперативов сети, поэтому председателю трогать его незачем: значение по
  * умолчанию рабочее, а поле оставлено настраиваемым ради тестового контура.
  *
- * `webhook_secret` — общий секрет, которым card.coop подписывает уведомления о
- * новых связках (story 4.6). Пустое значение означает, что кооператив ещё не
- * получил секрет при регистрации в сети: расширение стартует, но входящие
- * уведомления отвергает — принять неподписанное значило бы подписать
- * подтверждение членства по чужой команде.
+ * `webhook_key` — открытый ключ, которым card.coop подписывает уведомления о
+ * новых связках (story 4.6). Именно ключ, а не общий секрет: сеть подписывает
+ * уведомление той же криптографией, что и остальные документы контура, и
+ * проверяющей стороне нужна только открытая часть — красть у кооператива нечего.
+ *
+ * Пустое значение означает, что кооператив ещё не получил ключ при включении в
+ * реестр сети: расширение стартует, но входящие уведомления отвергает. Принять
+ * неподписанное значило бы выпустить подтверждение членства по чужой команде.
  */
 export const Schema = z.object({
   api_url: z.string().url(),
-  webhook_secret: z.string(),
+  webhook_key: z.string(),
 });
 
 export const defaultConfig = {
   api_url: 'https://card.coop',
-  webhook_secret: '',
+  webhook_key: '',
 };
 
 export type IConfig = z.infer<typeof Schema>;
@@ -85,9 +89,9 @@ export class CardcoopExtension extends BaseExtensionModule {
 
     this.logger.info(`Инициализация ${this.name}`, { api_url: this.config.api_url });
 
-    if (!this.config.webhook_secret) {
+    if (!this.config.webhook_key) {
       this.logger.warn(
-        `Расширение ${this.name}: секрет вебхука не задан — уведомления о связках от card.coop приниматься не будут`
+        `Расширение ${this.name}: ключ проверки уведомлений не задан — связки от card.coop приниматься не будут`
       );
     }
   }
@@ -100,6 +104,7 @@ export class CardcoopExtension extends BaseExtensionModule {
 
 @Module({
   imports: [CardcoopDatabaseModule],
+  controllers: [CardcoopLinkWebhookController],
   providers: [
     CardcoopExtension,
     CardcoopIdentityService,

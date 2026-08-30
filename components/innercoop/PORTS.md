@@ -54,7 +54,7 @@
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
-| `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
+| `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, cardcoop, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
 | `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports | Ключи подписи, хранимые кооперативом. |
 | `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |

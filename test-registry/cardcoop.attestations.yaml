@@ -113,3 +113,57 @@ cases:
       ситуация, её разбирает оператор, а выпуск документа не должен падать
     test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
     status: written
+
+  - id: cc.att.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Сеть прислала подписанное уведомление о новой связке карты с кооперативом.
+    expect: >
+      выпускается подтверждение членства; дата вступления берётся из цепи, а не
+      из учётной записи — третья сторона проверяет именно запись цепи
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Уведомление пришло без подписи, с чужой подписью либо с подменённым телом.
+    expect: >
+      отказ во всех трёх случаях, подтверждение не выпускается: принять такое
+      значило бы засвидетельствовать членство по чужой команде
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Уведомление адресовано ДРУГОМУ кооперативу.
+    expect: >
+      отказ — кооператив свидетельствует только о своих пайщиках
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.05
+    level: backend
+    kind: break
+    scenario: >
+      Ключ проверки уведомлений в настройках не задан.
+    expect: >
+      приём закрыт: проверять подпись нечем, и единственный безопасный ответ —
+      отказ с внятной причиной, а не молчаливый приём
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик по уведомлению не принят в кооператив в цепи.
+    expect: >
+      подтверждение не выпускается, причина в журнале; сети возвращается приём —
+      повторная присылка того же уведомления ничего не исправит
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
