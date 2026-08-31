@@ -17,7 +17,7 @@ import {
   CardcoopAttestationTypeormEntity,
 } from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
 import { CardcoopPendingExitTypeormEntity } from '../infrastructure/entities/cardcoop-pending-exit.typeorm-entity';
-import { CardcoopAttestationService } from '../attestation/attestation.service';
+import { CardcoopAttestationService, type AttestationDeliveryResult } from '../attestation/attestation.service';
 
 @Injectable()
 export class CardcoopMembershipService {
@@ -44,44 +44,91 @@ export class CardcoopMembershipService {
    * @param username — пайщик, о котором свидетельствует кооператив.
    * @param cardId — карта держателя из уведомления о связке.
    * @param memberSince — дата вступления, `YYYY-MM-DD`.
+   * @param cardNumber — номер карты для показа в столе пайщика; `null`, если сеть его не
+   *   прислала (установка сети старее story 7.4).
    */
-  async issue(apiUrl: string, username: string, cardId: string, memberSince: string): Promise<void> {
+  async issue(
+    apiUrl: string,
+    username: string,
+    cardId: string,
+    memberSince: string,
+    cardNumber: string | null = null
+  ): Promise<void> {
     const existing = await this.attestations.findOne({ where: { username, cardId } });
-    const record =
-      existing ??
-      this.attestations.create({ username, cardId, memberSince, state: CardcoopAttestationState.Pending });
 
     if (existing?.state === CardcoopAttestationState.Active) {
+      await this.catchUpCardNumber(existing, cardNumber);
       this.logger.info(`Членство пайщика ${username} на карте ${cardId} уже подтверждено — повтор пропущен`);
       return;
     }
 
+    const record =
+      existing ??
+      this.attestations.create({ username, cardId, memberSince, state: CardcoopAttestationState.Pending });
+
     record.memberSince = memberSince;
+    if (cardNumber) record.cardNumber = cardNumber;
     await this.attestations.save(record);
 
     const result = await this.attestationService.issueMembership(apiUrl, { username, cardId, memberSince });
+    this.applyOutcome(record, result, username);
 
-    if (result.delivered) {
-      record.state = CardcoopAttestationState.Active;
-      record.attestationId = result.attestationId ?? null;
-      record.lastError = null;
+    await this.attestations.save(record);
+  }
 
-      if (!result.attestationId) {
-        this.logger.warn(
-          `Сеть приняла подтверждение пайщика ${username}, но не назвала его идентификатор — автоматический отзыв будет невозможен`
-        );
-      }
-    } else {
-      // Отказ по существу повторять нечем, недоставку — можно: состояния разные,
-      // чтобы оператор видел, где ждать, а где разбираться.
+  /**
+   * Дописывает номер карты к уже подтверждённому членству.
+   *
+   * У записей, заведённых до story 7.4, номера нет, а повторное уведомление о связке —
+   * единственный случай, когда он приезжает. Без этого стол пайщика показывал бы карту
+   * без номера до самого выхода человека из кооператива.
+   *
+   * @param record — запись журнала с действующим членством.
+   * @param cardNumber — номер из уведомления; `null` — сеть его не прислала.
+   */
+  private async catchUpCardNumber(
+    record: CardcoopAttestationTypeormEntity,
+    cardNumber: string | null
+  ): Promise<void> {
+    if (!cardNumber || record.cardNumber === cardNumber) return;
+
+    record.cardNumber = cardNumber;
+    await this.attestations.save(record);
+  }
+
+  /**
+   * Переносит исход отправки в запись журнала.
+   *
+   * Отказ по существу повторять нечем, недоставку — можно: состояния разные, чтобы
+   * оператор видел, где ждать, а где разбираться.
+   *
+   * @param record — запись журнала.
+   * @param result — что ответила сеть.
+   * @param username — пайщик; нужен только для внятного сообщения в журнале.
+   */
+  private applyOutcome(
+    record: CardcoopAttestationTypeormEntity,
+    result: AttestationDeliveryResult,
+    username: string
+  ): void {
+    if (!result.delivered) {
       record.state =
         result.status && result.status >= 400 && result.status < 500
           ? CardcoopAttestationState.Rejected
           : CardcoopAttestationState.Pending;
       record.lastError = result.reason ?? null;
+      return;
     }
 
-    await this.attestations.save(record);
+    record.state = CardcoopAttestationState.Active;
+    record.attestationId = result.attestationId ?? null;
+    record.lastError = null;
+
+    if (!result.attestationId) {
+      this.logger.warn(
+        `Сеть приняла подтверждение пайщика ${username}, но не назвала его идентификатор — автоматический отзыв будет невозможен`
+      );
+    }
   }
 
   /** Запоминает начатый выход: в момент завершения цепь назовёт только процесс, но не пайщика. */

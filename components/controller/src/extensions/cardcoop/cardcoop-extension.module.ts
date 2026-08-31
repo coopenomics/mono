@@ -28,6 +28,8 @@ import { z } from 'zod';
 import { CardcoopIdentityService } from './identity/identity.service';
 import { CardcoopAttestationService } from './attestation/attestation.service';
 import { CardcoopMembershipService } from './membership/membership.service';
+import { CardcoopCardService } from './application/cardcoop-card.service';
+import { CardcoopCardResolver } from './application/cardcoop-card.resolver';
 import { CardcoopExitEventsService } from './membership/exit-events.service';
 import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
 import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
@@ -103,6 +105,8 @@ export class CardcoopExtension extends BaseExtensionModule {
   controllers: [CardcoopLinkWebhookController],
   providers: [
     CardcoopExtension,
+    CardcoopCardService,
+    CardcoopCardResolver,
     CardcoopIdentityService,
     CardcoopAttestationService,
     CardcoopMembershipService,

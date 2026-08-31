@@ -335,6 +335,7 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalTopupProgramExpenseInput:{
 
 	},
+	CardcoopAttestationState: "enum" as const,
 	CategoryTypeInput:{
 
 	},
@@ -4942,6 +4943,13 @@ export const ReturnTypes: Record<string,any> = {
 		label:"WaveLabel",
 		value:"Float"
 	},
+	CardcoopMyCard:{
+		cardNumber:"String",
+		enterUrl:"String",
+		issued:"Boolean",
+		memberSince:"String",
+		state:"CardcoopAttestationState"
+	},
 	Category:{
 		coopname:"String",
 		description:"String",
@@ -7697,6 +7705,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTimeStats:"CapitalTimeStats",
 		capitalVote:"CapitalVote",
 		capitalVotes:"PaginatedCapitalVotesPaginationResult",
+		cardcoopMyCard:"CardcoopMyCard",
 		chairmanApproval:"Approval",
 		chairmanApprovals:"PaginatedChairmanApprovalsPaginationResult",
 		chatcoopCheckUsernameAvailability:"Boolean",

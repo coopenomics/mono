@@ -5180,6 +5180,22 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalWaveSwing']?: Omit<ValueTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 }>;
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта пайщика» */
+["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopMyCard"]: AliasType<{
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?:boolean | `@${string}`,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl?:boolean | `@${string}`,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued?:boolean | `@${string}`,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?:boolean | `@${string}`,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CardcoopMyCard']?: Omit<ValueTypes["CardcoopMyCard"], "...on CardcoopMyCard">
+}>;
 	["Category"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
@@ -13806,6 +13822,10 @@ capitalTimeEntriesByIssues?: [{	filter?: ValueTypes["CapitalTimeEntriesFilter"] 
 capitalTimeStats?: [{	data?: ValueTypes["CapitalTimeStatsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ValueTypes["GetVoteInput"] | Variable<any, string>},ValueTypes["CapitalVote"]],
 capitalVotes?: [{	filter?: ValueTypes["VoteFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalVotesPaginationResult"]],
+	/** Карта пайщика в сети «Карта пайщика»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard?:ValueTypes["CardcoopMyCard"],
 chairmanApproval?: [{	id: string | Variable<any, string>},ValueTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ValueTypes["ApprovalFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ValueTypes["CheckMatrixUsernameInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -20121,6 +20141,21 @@ export type ResolverInputTypes = {
 	label?:boolean | `@${string}`,
 	/** Значение на экстремуме */
 	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта пайщика» */
+["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopMyCard"]: AliasType<{
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?:boolean | `@${string}`,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl?:boolean | `@${string}`,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued?:boolean | `@${string}`,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?:boolean | `@${string}`,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["Category"]: AliasType<{
@@ -28491,6 +28526,10 @@ capitalTimeEntriesByIssues?: [{	filter?: ResolverInputTypes["CapitalTimeEntriesF
 capitalTimeStats?: [{	data?: ResolverInputTypes["CapitalTimeStatsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ResolverInputTypes["GetVoteInput"]},ResolverInputTypes["CapitalVote"]],
 capitalVotes?: [{	filter?: ResolverInputTypes["VoteFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalVotesPaginationResult"]],
+	/** Карта пайщика в сети «Карта пайщика»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard?:ResolverInputTypes["CardcoopMyCard"],
 chairmanApproval?: [{	id: string},ResolverInputTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ResolverInputTypes["ApprovalFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ResolverInputTypes["CheckMatrixUsernameInput"]},boolean | `@${string}`],
@@ -34646,6 +34685,19 @@ export type ModelTypes = {
 	label: ModelTypes["WaveLabel"],
 	/** Значение на экстремуме */
 	value: number
+};
+	["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopMyCard"]: {
+		/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?: string | undefined | null,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl: string,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued: boolean,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?: string | undefined | null,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?: ModelTypes["CardcoopAttestationState"] | undefined | null
 };
 	["Category"]: {
 		coopname: string,
@@ -43531,6 +43583,10 @@ export type ModelTypes = {
 	capitalVote?: ModelTypes["CapitalVote"] | undefined | null,
 	/** Получение списка голосов кооператива с фильтрацией */
 	capitalVotes: ModelTypes["PaginatedCapitalVotesPaginationResult"],
+	/** Карта пайщика в сети «Карта пайщика»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard: ModelTypes["CardcoopMyCard"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: ModelTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -50085,6 +50141,22 @@ export type GraphQLTypes = {
 	/** Значение на экстремуме */
 	value: number,
 	['...on CapitalWaveSwing']: Omit<GraphQLTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
+};
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта пайщика» */
+["CardcoopAttestationState"]: CardcoopAttestationState;
+	["CardcoopMyCard"]: {
+	__typename: "CardcoopMyCard",
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?: string | undefined | null,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl: string,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued: boolean,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?: string | undefined | null,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?: GraphQLTypes["CardcoopAttestationState"] | undefined | null,
+	['...on CardcoopMyCard']: Omit<GraphQLTypes["CardcoopMyCard"], "...on CardcoopMyCard">
 };
 	["Category"]: {
 	__typename: "Category",
@@ -59595,6 +59667,10 @@ export type GraphQLTypes = {
 	capitalVote?: GraphQLTypes["CapitalVote"] | undefined | null,
 	/** Получение списка голосов кооператива с фильтрацией */
 	capitalVotes: GraphQLTypes["PaginatedCapitalVotesPaginationResult"],
+	/** Карта пайщика в сети «Карта пайщика»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard: GraphQLTypes["CardcoopMyCard"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: GraphQLTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -62292,6 +62368,13 @@ export enum CapitalStoryContentFormat {
 	MARKDOWN = "MARKDOWN",
 	MERMAID = "MERMAID"
 }
+/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта пайщика» */
+export enum CardcoopAttestationState {
+	Active = "Active",
+	Pending = "Pending",
+	Rejected = "Rejected",
+	Revoked = "Revoked"
+}
 export enum ChairmanOnboardingAgendaStep {
 	participant_application = "participant_application",
 	privacy_agreement = "privacy_agreement",
@@ -63193,6 +63276,7 @@ type ZEUS_VARIABLES = {
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
 	["CapitalTopupProgramExpenseInput"]: ValueTypes["CapitalTopupProgramExpenseInput"];
+	["CardcoopAttestationState"]: ValueTypes["CardcoopAttestationState"];
 	["CategoryTypeInput"]: ValueTypes["CategoryTypeInput"];
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];

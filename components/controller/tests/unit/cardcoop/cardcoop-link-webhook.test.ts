@@ -64,7 +64,17 @@ describe('Уведомление о связке карты с кооперат�
     await controller.handleLinkCreated(notification, sign(notification));
     await settle();
 
-    expect(issue).toHaveBeenCalledWith('https://card.coop', 'ant', 'card-1', '2026-01-15');
+    expect(issue).toHaveBeenCalledWith('https://card.coop', 'ant', 'card-1', '2026-01-15', null);
+  });
+
+  it('номер карты из уведомления доезжает до журнала: столу нужен номер, а не идентификатор', async () => {
+    const { controller, issue } = build();
+    const withNumber = { ...notification, card_number: '9689205327798678' };
+
+    await controller.handleLinkCreated(withNumber, sign(withNumber));
+    await settle();
+
+    expect(issue).toHaveBeenCalledWith('https://card.coop', 'ant', 'card-1', '2026-01-15', '9689205327798678');
   });
 
   it('уведомление без подписи отвергается', async () => {

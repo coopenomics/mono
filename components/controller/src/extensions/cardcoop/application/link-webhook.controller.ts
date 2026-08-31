@@ -63,6 +63,8 @@ const LINK_CREATED = 'link.created';
 interface LinkCreatedNotification {
   event?: string;
   card_id?: string;
+  /** Номер карты для показа в столе пайщика; у старых установок сети его нет (story 7.4). */
+  card_number?: string | null;
   coopname?: string;
   external_subject?: string;
   origin?: string;
@@ -106,10 +108,10 @@ export class CardcoopLinkWebhookController {
       throw new ForbiddenException('Уведомление адресовано другому кооперативу');
     }
 
-    const { card_id: cardId, external_subject: subject } = notification;
+    const { card_id: cardId, card_number: cardNumber, external_subject: subject } = notification;
     if (!cardId || !subject) throw new ForbiddenException('В уведомлении нет карты или учётной записи');
 
-    void this.issue(cardId, subject);
+    void this.issue(cardId, subject, cardNumber ?? null);
     return { accepted: true };
   }
 
@@ -120,12 +122,12 @@ export class CardcoopLinkWebhookController {
    * отказом принять уведомление — она разбирается по журналу и по состоянию
    * записи, а повторная присылка того же уведомления ничего не исправит.
    */
-  private async issue(cardId: string, subject: string): Promise<void> {
+  private async issue(cardId: string, subject: string, cardNumber: string | null): Promise<void> {
     try {
       const user = await this.directory.findBySubject(subject);
       const memberSince = await this.memberSince(user.username);
 
-      await this.membership.issue(this.extension.config.api_url, user.username, cardId, memberSince);
+      await this.membership.issue(this.extension.config.api_url, user.username, cardId, memberSince, cardNumber);
     } catch (error) {
       this.logger.error(
         `Подтверждение по связке карты ${cardId} не выпущено: ${error instanceof Error ? error.message : String(error)}`
