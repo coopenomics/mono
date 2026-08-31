@@ -23,6 +23,7 @@ import {
   type ExtensionDomainRepository,
 } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { CardcoopIdentityService } from './identity/identity.service';
 import { CardcoopAttestationService } from './attestation/attestation.service';
@@ -47,9 +48,26 @@ import { CardcoopLinkWebhookController } from './application/link-webhook.contro
  * реестр сети: расширение стартует, но входящие уведомления отвергает. Принять
  * неподписанное значило бы выпустить подтверждение членства по чужой команде.
  */
+/** Подпись поля в форме настроек: председатель видит человеческий текст, а не имя параметра. */
+const describeField = (description: DeserializedDescriptionOfExtension): string => JSON.stringify(description);
+
 export const Schema = z.object({
-  api_url: z.string().url(),
-  webhook_key: z.string(),
+  api_url: z
+    .string()
+    .url('Адрес должен быть ссылкой вида https://card.coop')
+    .describe(
+      describeField({
+        label: 'Адрес сети «Карта пайщика»',
+        note: 'Менять не требуется: значение по умолчанию рабочее. Поле оставлено для тестового контура.',
+      })
+    ),
+  webhook_key: z.string().describe(
+    describeField({
+      label: 'Ключ проверки уведомлений',
+      note:
+        'Открытый ключ сети, которым она подписывает уведомления о выпущенных картах. Выдаётся кооперативу при включении в реестр сети. Пока поле пусто, уведомления не принимаются: пайщик выпустит карту, но членство на ней не подтвердится.',
+    })
+  ),
 });
 
 export const defaultConfig = {
