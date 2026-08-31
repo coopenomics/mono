@@ -16,12 +16,19 @@
  *   кооператива, а сам ключ расширению не выдаётся — порт подписывает у себя;
  * - `USER_DIRECTORY_PORT` — по учётной записи из уведомления о связке находится
  *   пайщик: сеть присылает идентификатор записи в CoopID кооператива, а не имя;
- * - `LOGGER_PORT` — диагностика отправки и отзыва.
+ * - `LOGGER_PORT` — диагностика отправки и отзыва;
+ * - `CHAIN_PORT` — наименование кооператива из записи цепи при объявлении допуска
+ *   оператором (story 7.6): объявляется то, под чем кооператив зарегистрирован в цепи;
+ * - `INTEGRATION_SETTINGS_PORT` — реквизиты клиента card.coop в CoopID установки: они
+ *   задаются развёртыванием и доносятся в реестр сети подписанным документом (story 7.6),
+ *   через настройки расширения не проходят.
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_PORT,
   COOP_CREDENTIAL_PORT,
   INDIVIDUAL_PORT,
+  INTEGRATION_SETTINGS_PORT,
   LOGGER_PORT,
   ORGANIZATION_PORT,
   USER_DIRECTORY_PORT,
@@ -30,8 +37,10 @@ import {
 export const cardcoopPorts = {
   required: [
     ACCOUNT_PORT,
+    CHAIN_PORT,
     COOP_CREDENTIAL_PORT,
     INDIVIDUAL_PORT,
+    INTEGRATION_SETTINGS_PORT,
     LOGGER_PORT,
     ORGANIZATION_PORT,
     USER_DIRECTORY_PORT,

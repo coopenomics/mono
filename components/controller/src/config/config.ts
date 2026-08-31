@@ -309,6 +309,16 @@ const envVarsSchema = z.object({
   // Параметры GitHub
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
 
+  // Клиент card.coop в CoopID кооператива (карта пайщика, story 7.0/7.6). Те же значения
+  // получает блюпринт coopid-cardcoop-client через окружение authentik; расширение доносит
+  // их в реестр сети подписанным документом. Пустой секрет = подключение не отправляется.
+  CARDCOOP_CLIENT_ID: z.string().optional().describe('client_id клиента card.coop в CoopID кооператива'),
+  CARDCOOP_CLIENT_SECRET: z.string().optional().describe('client_secret того же клиента'),
+  CARDCOOP_OIDC_ISSUER: z
+    .string()
+    .optional()
+    .describe('Issuer OIDC-провайдера cardcoop в CoopID кооператива — точно как в токенах'),
+
   // Параметры LiveKit для секретаря-агента
   LIVEKIT_URL: z.string().optional().describe('LiveKit server URL (ws://livekit:7880)'),
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
@@ -574,6 +584,11 @@ export default {
   },
   github: {
     token: envVars.data.GITHUB_TOKEN,
+  },
+  cardcoop_client: {
+    client_id: envVars.data.CARDCOOP_CLIENT_ID,
+    client_secret: envVars.data.CARDCOOP_CLIENT_SECRET,
+    issuer: envVars.data.CARDCOOP_OIDC_ISSUER,
   },
   livekit: {
     url: envVars.data.LIVEKIT_URL,

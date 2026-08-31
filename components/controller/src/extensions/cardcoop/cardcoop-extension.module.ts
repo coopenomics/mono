@@ -35,6 +35,8 @@ import { CardcoopJoinEventsService } from './membership/join-events.service';
 import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
 import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
 import { CardcoopDisclosureController } from './application/disclosure.controller';
+import { CardcoopConnectService } from './registry/connect.service';
+import { CardcoopOperatorAnnounceService } from './registry/operator-announce.service';
 import { CardcoopDisclosureService } from './disclosure/disclosure.service';
 import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
 
@@ -64,10 +66,25 @@ export const Schema = z.object({
         note: 'Менять не требуется: значение по умолчанию рабочее. Поле оставлено для тестового контура.',
       })
     ),
+  // Юридическая половина подключения кооперативов (story 7.6) — функция установки оператора,
+  // а не каждого кооператива. Флаг, а не отдельное расширение: сеть и так примет объявление
+  // только от кооператива, названного оператором в её конфигурации, — включённый по ошибке
+  // флаг даёт отказ в журнале, а не чужие допуски.
+  announce_as_operator: z
+    .boolean()
+    // default: поле появилось после первых установок, и конфиг без него обязан читаться.
+    .default(false)
+    .describe(
+      describeField({
+        label: 'Я — оператор сети (ВОСХОД)',
+        note: 'Объявлять card.coop допуск кооперативов, активированных в цепи. Включается только на установке оператора сети.',
+      })
+    ),
 });
 
 export const defaultConfig = {
   api_url: 'https://card.coop',
+  announce_as_operator: false,
 };
 
 export type IConfig = z.infer<typeof Schema>;
@@ -118,13 +135,24 @@ export class CardcoopExtension extends BaseExtensionModule {
     CardcoopJoinEventsService,
     CardcoopGrantVerifier,
     CardcoopDisclosureService,
+    CardcoopConnectService,
+    CardcoopOperatorAnnounceService,
   ],
   exports: [CardcoopExtension, CardcoopAttestationService, CardcoopMembershipService],
 })
 export class CardcoopExtensionModule {
-  constructor(private readonly cardcoopExtension: CardcoopExtension) {}
+  constructor(
+    private readonly cardcoopExtension: CardcoopExtension,
+    private readonly connect: CardcoopConnectService,
+    private readonly operatorAnnounce: CardcoopOperatorAnnounceService
+  ) {}
 
   async initialize() {
     await this.cardcoopExtension.initialize();
+
+    // Самоподключение и повтор недоставленных объявлений идут в фоне: старт кооператива не
+    // зависит от доступности сети карт (NFR-3), а исходы видны в журнале и в таблицах.
+    void this.connect.connectIfChanged(this.cardcoopExtension.config.api_url);
+    void this.operatorAnnounce.resendUndelivered();
   }
 }
