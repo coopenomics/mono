@@ -12,6 +12,7 @@ import {
   CardcoopAttestationState,
   CardcoopAttestationTypeormEntity,
 } from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
+import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
 import type { CardcoopMyCardDTO } from './dto/cardcoop-my-card.dto';
 
 /** Состояния, в которых членство уже не действует: карта есть, а свидетельства нет. */
@@ -21,7 +22,9 @@ const CLOSED_STATES: readonly CardcoopAttestationState[] = [CardcoopAttestationS
 export class CardcoopCardService {
   constructor(
     @InjectRepository(CardcoopAttestationTypeormEntity)
-    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>
+    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
+    @InjectRepository(CardcoopPendingLinkTypeormEntity)
+    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>
   ) {}
 
   /**
@@ -45,7 +48,22 @@ export class CardcoopCardService {
     });
 
     const record = records[0];
-    if (!record) return { issued: false, cardNumber: null, state: null, memberSince: null, enterUrl };
+    if (!record) {
+      // Карта, связанная при вступлении: свидетельства ещё нет и быть не может — совет не
+      // решил, — но карта у человека уже есть, и говорить ему «не выпущена» неправда.
+      const pending = await this.pendingLinks.findOne({ where: { username } });
+      if (pending) {
+        return {
+          issued: true,
+          cardNumber: pending.cardNumber,
+          state: CardcoopAttestationState.Pending,
+          memberSince: null,
+          enterUrl,
+        };
+      }
+
+      return { issued: false, cardNumber: null, state: null, memberSince: null, enterUrl };
+    }
 
     return {
       // Запись журнала появляется по уведомлению о связке — значит карта у человека уже есть,

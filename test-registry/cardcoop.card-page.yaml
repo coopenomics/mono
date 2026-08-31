@@ -25,6 +25,7 @@ sources:
   ui:
     - components/desktop/src/pages/User/CardcoopPage/**
     - components/desktop/src/entities/CardcoopCard/**
+    - components/desktop/src/pages/Registrator/SignUp/LinkCardcoop.vue
 
 cases:
   - id: cc.card.happy.01
@@ -102,3 +103,15 @@ cases:
       состояние чипом и дата вступления; переход в сеть открывается в новой вкладке
     test: ''
     status: missing
+
+  - id: cc.card.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Карта связана кандидатом при вступлении, свидетельства ещё нет.
+    expect: >
+      стол показывает карту выпущенной и без даты вступления — говорить человеку
+      «карта не выпущена» неправда, он её выпустил и связал
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+

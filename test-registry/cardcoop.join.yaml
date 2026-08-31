@@ -1,0 +1,89 @@
+feature: cardcoop.join
+title: Связка карты при вступлении и выпуск свидетельства по приёму (Story 7.5)
+
+# Вступающий приходит со своей картой ещё на этапе регистрации — и это цель, а не
+# случайность: вторая карта обнулила бы накопленное участие (PRD 4.3).
+#
+# Но свидетельствовать о членстве в этот момент нечего: совет ещё не решил, а в
+# цепи нет даты приёма, на которую документ обязан опираться. Поэтому связка
+# ЖДЁТ, а выпуск происходит по записи цепи о приёме (`registrator::adduser`).
+#
+# До этой истории такая связка молча терялась: дата приёма отсутствовала, выпуск
+# падал с ошибкой, и повторить его было некому.
+#
+# Шаг в потоке вступления необязателен по построению: отказ ничего не ломает,
+# связать карту можно и позже, из стола пайщика.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/membership/join-events.service.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-pending-link.typeorm-entity.ts
+  ui:
+    - components/desktop/src/pages/Registrator/SignUp/LinkCardcoop.vue
+    - components/desktop/src/entities/Registrator/model/store.ts
+
+cases:
+  - id: cc.join.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Кандидат связал карту до приёма: в цепи даты вступления ещё нет.
+    expect: >
+      связка запоминается, а не теряется; свидетельство не выпускается — совет
+      ещё не принял решения
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.join.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Цепь записала приём пайщика (`adduser`).
+    expect: >
+      по ожидавшей связке выпускается свидетельство с датой приёма из самого
+      действия — именно её потом проверяет третья сторона
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Принят пайщик, который карту не связывал.
+    expect: >
+      ничего не происходит и в журнал не пишется: так вступает большинство, и шум
+      на каждом приёме мешал бы разбирать настоящие сбои
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Приём пайщика в чужой кооператив.
+    expect: >
+      игнорируется — свидетельствовать о чужом пайщике мы не вправе
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Сеть недоступна в момент приёма пайщика.
+    expect: >
+      обработка события не падает, ошибка уходит в журнал; связка остаётся
+      ожидающей и не теряется
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Вступающий доходит до шага «У меня есть карта пайщика».
+    expect: >
+      шаг показывается только когда расширение установлено и карта ещё не связана;
+      «Пропустить» продолжает вступление, переход в сеть открывается новой вкладкой
+    test: ''
+    status: missing

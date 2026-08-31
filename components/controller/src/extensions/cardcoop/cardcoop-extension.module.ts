@@ -31,6 +31,7 @@ import { CardcoopMembershipService } from './membership/membership.service';
 import { CardcoopCardService } from './application/cardcoop-card.service';
 import { CardcoopCardResolver } from './application/cardcoop-card.resolver';
 import { CardcoopExitEventsService } from './membership/exit-events.service';
+import { CardcoopJoinEventsService } from './membership/join-events.service';
 import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
 import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
 
@@ -111,6 +112,7 @@ export class CardcoopExtension extends BaseExtensionModule {
     CardcoopAttestationService,
     CardcoopMembershipService,
     CardcoopExitEventsService,
+    CardcoopJoinEventsService,
   ],
   exports: [CardcoopExtension, CardcoopAttestationService, CardcoopMembershipService],
 })

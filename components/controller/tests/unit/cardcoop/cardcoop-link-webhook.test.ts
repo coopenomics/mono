@@ -35,12 +35,15 @@ const notification = {
   event_id: 'evt-1',
 };
 
-const build = (overrides: { chainKey?: string | null; issue?: jest.Mock; chainAccount?: unknown } = {}) => {
+const build = (
+  overrides: { chainKey?: string | null; issue?: jest.Mock; rememberLink?: jest.Mock; chainAccount?: unknown } = {}
+) => {
   const issue = overrides.issue ?? jest.fn(async () => undefined);
+  const rememberLink = overrides.rememberLink ?? jest.fn(async () => undefined);
   const getPermissionKey = jest.fn(async () => (overrides.chainKey === undefined ? publicKey : overrides.chainKey));
   const controller = new CardcoopLinkWebhookController(
     { config: { api_url: 'https://card.coop' } } as any,
-    { issue } as any,
+    { issue, rememberLink } as any,
     { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
     {
       getChainAccount: async () =>
@@ -49,7 +52,7 @@ const build = (overrides: { chainKey?: string | null; issue?: jest.Mock; chainAc
     { getPermissionKey } as any,
     logger as any
   );
-  return { controller, issue, getPermissionKey };
+  return { controller, issue, rememberLink, getPermissionKey };
 };
 
 /** Выпуск идёт в фоне — даём микрозадачам отработать. */
@@ -157,13 +160,17 @@ describe('Уведомление о связке карты с кооперат�
     expect(issue).not.toHaveBeenCalled();
   });
 
-  it('пайщик, не принятый в цепи, не получает свидетельства, но сеть об этом не узнаёт', async () => {
-    const { controller, issue } = build({ chainAccount: null });
+  it('кандидат связал карту до приёма — связка ждёт решения совета, а не теряется', async () => {
+    // Свидетельствовать нечего: в цепи нет даты приёма. Но человек пришёл со своей картой
+    // ровно затем, чтобы не заводить вторую, — потерять связку значит обнулить накопленное
+    // (story 7.5).
+    const withNumber = { ...notification, card_number: '9689205327798678' };
+    const { controller, issue, rememberLink } = build({ chainAccount: null });
 
-    await expect(controller.handleLinkCreated(notification, sign(notification))).resolves.toEqual({ accepted: true });
+    await expect(controller.handleLinkCreated(withNumber, sign(withNumber))).resolves.toEqual({ accepted: true });
     await settle();
 
     expect(issue).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('не принят в кооператив в цепи'));
+    expect(rememberLink).toHaveBeenCalledWith('ant', 'card-1', '9689205327798678');
   });
 });

@@ -127,6 +127,13 @@ export class CardcoopLinkWebhookController {
       const user = await this.directory.findBySubject(subject);
       const memberSince = await this.memberSince(user.username);
 
+      // Кандидат ещё не принят: свидетельствовать не о чем, но и терять связку нельзя —
+      // человек пришёл со своей картой ровно затем, чтобы не заводить вторую (story 7.5).
+      if (!memberSince) {
+        await this.membership.rememberLink(user.username, cardId, cardNumber);
+        return;
+      }
+
       await this.membership.issue(this.extension.config.api_url, user.username, cardId, memberSince, cardNumber);
     } catch (error) {
       this.logger.error(
@@ -140,14 +147,20 @@ export class CardcoopLinkWebhookController {
    *
    * Берётся из цепи, а не из учётной записи: свидетельство о членстве обязано
    * опираться на то, что записала цепь, — именно её потом проверяет третья
-   * сторона. Отсутствие записи означает, что пайщик в цепи не принят, и
-   * свидетельствовать не о чем.
+   * сторона.
+   *
+   * Пустая дата — не ошибка: так выглядит кандидат, который связал карту на этапе
+   * вступления (story 7.5). Связка в этом случае ждёт решения совета, а свидетельство
+   * выпускается по записи цепи о приёме.
+   *
+   * @param username — пайщик или кандидат.
+   * @returns Дата приёма `YYYY-MM-DD`; `null`, если в цепи приёма ещё нет.
    */
-  private async memberSince(username: string): Promise<string> {
+  private async memberSince(username: string): Promise<string | null> {
     const account = await this.accounts.getChainAccount(username);
     const registeredAt = account?.registered_at;
 
-    if (!registeredAt) throw new Error(`Пайщик ${username} не принят в кооператив в цепи`);
+    if (!registeredAt) return null;
 
     return new Date(registeredAt).toISOString().slice(0, 10);
   }

@@ -17,6 +17,7 @@ import {
   CardcoopAttestationTypeormEntity,
 } from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
 import { CardcoopPendingExitTypeormEntity } from '../infrastructure/entities/cardcoop-pending-exit.typeorm-entity';
+import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
 import { CardcoopAttestationService, type AttestationDeliveryResult } from '../attestation/attestation.service';
 
 @Injectable()
@@ -26,6 +27,8 @@ export class CardcoopMembershipService {
     private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
     @InjectRepository(CardcoopPendingExitTypeormEntity)
     private readonly pendingExits: Repository<CardcoopPendingExitTypeormEntity>,
+    @InjectRepository(CardcoopPendingLinkTypeormEntity)
+    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -129,6 +132,50 @@ export class CardcoopMembershipService {
         `Сеть приняла подтверждение пайщика ${username}, но не назвала его идентификатор — автоматический отзыв будет невозможен`
       );
     }
+  }
+
+  /**
+   * Запоминает карту, связанную до приёма в пайщики (story 7.5).
+   *
+   * Свидетельствовать в этот момент не о чем: совет ещё не решил, и в цепи нет даты приёма,
+   * на которую документ обязан опираться. Но и потерять связку нельзя — человек пришёл со
+   * своей картой именно затем, чтобы не заводить вторую.
+   *
+   * @param username — вступающий кандидат.
+   * @param cardId — карта держателя из уведомления о связке.
+   * @param cardNumber — номер карты для показа в столе, пока свидетельства нет.
+   */
+  async rememberLink(username: string, cardId: string, cardNumber: string | null): Promise<void> {
+    await this.pendingLinks.save(this.pendingLinks.create({ username, cardId, cardNumber }));
+    this.logger.info(`Карта ${cardId} связана кандидатом ${username} до приёма — свидетельство ждёт решения совета`);
+  }
+
+  /**
+   * Выпускает подтверждение по связке, ждавшей приёма (story 7.5).
+   *
+   * Вызывается, когда цепь записала приём пайщика. Отсутствие ожидающей записи — норма:
+   * большинство принимаемых карту не связывали, и молчать тут правильно.
+   *
+   * @param apiUrl — адрес узла сети из конфигурации расширения.
+   * @param username — принятый пайщик.
+   * @param memberSince — дата приёма, `YYYY-MM-DD`.
+   */
+  async issuePendingLink(apiUrl: string, username: string, memberSince: string): Promise<void> {
+    const pending = await this.pendingLinks.findOne({ where: { username } });
+    if (!pending) return;
+
+    await this.issue(apiUrl, username, pending.cardId, memberSince, pending.cardNumber);
+    await this.pendingLinks.delete({ username });
+  }
+
+  /**
+   * Карта, ждущая приёма, — для показа в столе пайщика (story 7.4).
+   *
+   * @param username — пайщик.
+   * @returns Ожидающая связка либо `null`.
+   */
+  async pendingLink(username: string): Promise<CardcoopPendingLinkTypeormEntity | null> {
+    return this.pendingLinks.findOne({ where: { username } });
   }
 
   /** Запоминает начатый выход: в момент завершения цепь назовёт только процесс, но не пайщика. */

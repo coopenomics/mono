@@ -20,9 +20,10 @@ const record = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const build = (rows: unknown[]) => {
+const build = (rows: unknown[], pending: unknown = null) => {
   const find = jest.fn(async () => rows.slice(0, 1));
-  return new CardcoopCardService({ find } as any);
+  const findOne = jest.fn(async () => pending);
+  return new CardcoopCardService({ find } as any, { findOne } as any);
 };
 
 describe('Карта пайщика в столе кооператива', () => {
@@ -75,6 +76,20 @@ describe('Карта пайщика в столе кооператива', () =>
 
     expect(card.cardNumber).toBeNull();
     expect(card.issued).toBe(true);
+  });
+
+  it('карта связана при вступлении, свидетельства ещё нет — стол показывает её выпущенной', async () => {
+    // Совет ещё не решил, и в цепи нет даты приёма. Сказать человеку «карта не выпущена»
+    // было бы неправдой: он её выпустил и связал (story 7.5).
+    const card = await build([], { username: 'ant', cardId: 'card-1', cardNumber: '9689205327798678' }).forMember(
+      'ant',
+      'https://card.coop',
+      'voskhod'
+    );
+
+    expect(card.issued).toBe(true);
+    expect(card.cardNumber).toBe('9689205327798678');
+    expect(card.memberSince).toBeNull();
   });
 
   it('хвостовой слэш в адресе сети не удваивается', async () => {

@@ -33,8 +33,11 @@ const makeRepo = (rows: any[] = []) => {
 
 const logger = { setContext: () => undefined, info: jest.fn(), warn: jest.fn(), error: jest.fn(), log: () => undefined };
 
-const build = (attestations: any, exits: any, service: any) =>
-  new CardcoopMembershipService(attestations as any, exits as any, service as any, logger as any);
+/** Связки, ждущие приёма в пайщики (story 7.5): в этих сценариях их нет. */
+const noPendingLinks = () => makeRepo();
+
+const build = (attestations: any, exits: any, service: any, links: any = noPendingLinks()) =>
+  new CardcoopMembershipService(attestations as any, exits as any, links as any, service as any, logger as any);
 
 describe('Членство пайщика в сети карт', () => {
   beforeEach(() => jest.clearAllMocks());
