@@ -129,3 +129,46 @@ describe('Отпечатки реквизитов пайщика для card.coo
     await expect(service.build('ant')).rejects.toThrow(/Анкета пайщика/);
   });
 });
+
+/**
+ * Анкета целиком — для выдачи по гранту раскрытия (story 7.8).
+ *
+ * Это единственный случай, когда данные уходят значениями, а не отпечатками, и происходит он
+ * только по согласию держателя. Проверяем ровно две вещи: состав не урезан (иначе получателю
+ * пришлось бы добирать поля руками — тем самым способом, который и порождает расхождения) и
+ * внутреннее учётное имя наружу не уходит.
+ */
+describe('Анкета пайщика для раскрытия', () => {
+  it('уходит значениями и в полном составе', async () => {
+    const { kind, data } = await buildService(individualAccount, individual).profile('ant');
+
+    expect(kind).toBe(InnerAccountType.individual);
+    expect(data.last_name).toBe('Муравьёв');
+    expect(data.birthdate).toBe('1980-05-01');
+    expect(data.full_address).toBe('г. Москва, ул. Мира, д. 1');
+    expect(data.passport).toEqual(individual.passport);
+  });
+
+  it('учётное имя пайщика в нашем кооперативе наружу не уходит', async () => {
+    const { data } = await buildService(individualAccount, individual).profile('ant');
+
+    expect(data.username).toBeUndefined();
+    // Исходная карточка при этом не портится: она читается и другими потребителями.
+    expect(individual.username).toBe('ant');
+  });
+
+  it('организация раскрывается своими реквизитами', async () => {
+    const { kind, data } = await buildService(organizationAccount, organization).profile('voskhod');
+
+    expect(kind).toBe(InnerAccountType.organization);
+    expect(data.full_name).toBe('Потребительский кооператив «ВОСХОД»');
+    expect(data.details).toEqual(organization.details);
+    expect(data.username).toBeUndefined();
+  });
+
+  it('пайщик без анкеты раскрытию не подлежит', async () => {
+    const service = buildService({ private_account: null }, individual);
+
+    await expect(service.profile('ant')).rejects.toThrow(/Анкета пайщика/);
+  });
+});

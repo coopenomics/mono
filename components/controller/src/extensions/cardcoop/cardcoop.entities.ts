@@ -8,9 +8,11 @@
 import { CardcoopAttestationTypeormEntity } from './infrastructure/entities/cardcoop-attestation.typeorm-entity';
 import { CardcoopPendingExitTypeormEntity } from './infrastructure/entities/cardcoop-pending-exit.typeorm-entity';
 import { CardcoopPendingLinkTypeormEntity } from './infrastructure/entities/cardcoop-pending-link.typeorm-entity';
+import { CardcoopUsedGrantTypeormEntity } from './infrastructure/entities/cardcoop-used-grant.typeorm-entity';
 
 export const cardcoopEntities = [
   CardcoopAttestationTypeormEntity,
   CardcoopPendingExitTypeormEntity,
   CardcoopPendingLinkTypeormEntity,
+  CardcoopUsedGrantTypeormEntity,
 ];

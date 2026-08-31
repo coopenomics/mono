@@ -9,6 +9,25 @@
  */
 import type { CardcoopIdentityBlock } from '../identity/identity.types';
 
+/**
+ * Общая форма любого документа кооператива.
+ *
+ * Что бы кооператив ни выпускал — подтверждение членства, отзыв, анкету по гранту, — он
+ * называет себя, тип бумаги, момент выпуска и сеть, и всё это накрывается одной подписью.
+ * Общий минимум объявлен здесь, чтобы подпись и отправку не пришлось писать заново на
+ * каждый новый документ.
+ */
+export interface CardcoopDocumentPayload {
+  /** Что за бумага: подпись доказывает не только авторство, но и то, что подписано именно это. */
+  type: string;
+  /** Кооператив-издатель; сверяется с тем, кем заканчивается цепочка признания. */
+  coopname: string;
+  /** Момент выпуска документа, ISO-8601 UTC. */
+  issued_at: string;
+  /** Сеть, в которой действует документ: защита от переноса между подсетью и главной цепью. */
+  chain_id: string;
+}
+
 /** Тип документа: подпись доказывает не только авторство, но и то, что подписано именно это. */
 export enum CardcoopAttestationType {
   Membership = 'membership',
@@ -47,9 +66,17 @@ export interface CardcoopRevocationPayload {
   chain_id: string;
 }
 
-/** Конверт, в котором документ уезжает: сам документ, подпись и цепочка признания. */
-export interface CardcoopSignedEnvelope {
-  payload: CardcoopMembershipPayload | CardcoopRevocationPayload;
+/**
+ * Конверт, в котором документ уезжает: сам документ, подпись и цепочка признания.
+ *
+ * Параметризован документом, а не сведён к общей форме: вызывающий, составивший
+ * подтверждение членства, должен получить обратно именно его — иначе состав полей
+ * терялся бы на выходе из подписи и проверять его было бы нечем.
+ */
+export interface CardcoopSignedEnvelope<
+  TPayload extends CardcoopDocumentPayload = CardcoopMembershipPayload | CardcoopRevocationPayload,
+> {
+  payload: TPayload;
   /** Подпись `SIG_K1_…` ключом заверения кооператива. */
   signature: string;
   /** Цепочка признания от корня к кооперативу — заверения целиком. */

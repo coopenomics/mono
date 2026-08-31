@@ -34,6 +34,9 @@ import { CardcoopExitEventsService } from './membership/exit-events.service';
 import { CardcoopJoinEventsService } from './membership/join-events.service';
 import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
 import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
+import { CardcoopDisclosureController } from './application/disclosure.controller';
+import { CardcoopDisclosureService } from './disclosure/disclosure.service';
+import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
 
 /**
  * Параметры расширения.
@@ -103,7 +106,7 @@ export class CardcoopExtension extends BaseExtensionModule {
 
 @Module({
   imports: [CardcoopDatabaseModule],
-  controllers: [CardcoopLinkWebhookController],
+  controllers: [CardcoopLinkWebhookController, CardcoopDisclosureController],
   providers: [
     CardcoopExtension,
     CardcoopCardService,
@@ -113,6 +116,8 @@ export class CardcoopExtension extends BaseExtensionModule {
     CardcoopMembershipService,
     CardcoopExitEventsService,
     CardcoopJoinEventsService,
+    CardcoopGrantVerifier,
+    CardcoopDisclosureService,
   ],
   exports: [CardcoopExtension, CardcoopAttestationService, CardcoopMembershipService],
 })

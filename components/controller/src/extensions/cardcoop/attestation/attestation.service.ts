@@ -24,6 +24,7 @@ import { platformSettings } from '@coopenomics/extension-kit';
 import { CardcoopIdentityService } from '../identity/identity.service';
 import {
   CardcoopAttestationType,
+  type CardcoopDocumentPayload,
   type CardcoopMembershipPayload,
   type CardcoopRevocationPayload,
   type CardcoopSignedEnvelope,
@@ -91,7 +92,7 @@ export class CardcoopAttestationService {
    */
   async issueMembership(apiUrl: string, request: MembershipAttestationRequest): Promise<AttestationDeliveryResult> {
     const envelope = await this.buildMembership(request);
-    return this.deliver(`${trimSlash(apiUrl)}/v1/attestations`, envelope);
+    return this.deliverDocument(`${trimSlash(apiUrl)}/v1/attestations`, envelope);
   }
 
   /**
@@ -109,12 +110,12 @@ export class CardcoopAttestationService {
       chain_id: await this.credential.getChainId(),
     };
 
-    const envelope = await this.sign(payload);
-    return this.deliver(`${trimSlash(apiUrl)}/v1/attestations/${attestationId}/revoke`, envelope);
+    const envelope = await this.signDocument(payload);
+    return this.deliverDocument(`${trimSlash(apiUrl)}/v1/attestations/${attestationId}/revoke`, envelope);
   }
 
   /** Подписанный конверт подтверждения членства — отдельно от отправки, чтобы его можно было проверить тестом. */
-  async buildMembership(request: MembershipAttestationRequest): Promise<CardcoopSignedEnvelope> {
+  async buildMembership(request: MembershipAttestationRequest): Promise<CardcoopSignedEnvelope<CardcoopMembershipPayload>> {
     const payload: CardcoopMembershipPayload = {
       type: CardcoopAttestationType.Membership,
       coopname: platformSettings().coopname,
@@ -125,7 +126,7 @@ export class CardcoopAttestationService {
       identity: await this.identity.build(request.username),
     };
 
-    return this.sign(payload);
+    return this.signDocument(payload);
   }
 
   /**
@@ -134,10 +135,17 @@ export class CardcoopAttestationService {
    * Пустая цепочка не мешает выпуску, но отмечается в журнале: документ уедет и
    * будет отвергнут как непризнанный, и знать причину лучше здесь, чем гадать по
    * отказам сети.
+   *
+   * Открыт наружу и не ограничен подтверждениями: анкета по гранту раскрытия
+   * (story 7.8) едет в таком же конверте и по той же цепочке признания — иначе
+   * получателю пришлось бы проверять кооператива вторым способом.
+   *
+   * @param payload — документ; подпись накроет его канонический образ целиком.
+   * @returns Конверт с тем же документом, подписью и цепочкой признания.
    */
-  private async sign(
-    payload: CardcoopMembershipPayload | CardcoopRevocationPayload
-  ): Promise<CardcoopSignedEnvelope> {
+  async signDocument<TPayload extends CardcoopDocumentPayload>(
+    payload: TPayload
+  ): Promise<CardcoopSignedEnvelope<TPayload>> {
     const canonical = canonicalize(payload);
     if (canonical === undefined) throw new Error('Документ подтверждения не сериализуется в строгий JSON');
 
@@ -161,8 +169,15 @@ export class CardcoopAttestationService {
    * (4xx) повторять незачем — документ не станет другим, а повторы засоряют
    * журнал и мешают увидеть настоящую причину. Исключение — 429: сеть
    * попросила подождать, а не отвергла документ.
+   *
+   * @param url — адрес приёмника в сети.
+   * @param envelope — подписанный конверт.
+   * @returns Исход доставки; исключений не бросает.
    */
-  private async deliver(url: string, envelope: CardcoopSignedEnvelope): Promise<AttestationDeliveryResult> {
+  async deliverDocument(
+    url: string,
+    envelope: CardcoopSignedEnvelope<CardcoopDocumentPayload>
+  ): Promise<AttestationDeliveryResult> {
     let lastStatus: number | null = null;
     let lastReason = 'сеть недоступна';
 

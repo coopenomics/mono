@@ -130,11 +130,52 @@ export class CardcoopIdentityService {
    *   свидетельствует о человеке, которого верифицировал, а не о пустой записи
    */
   async build(username: string): Promise<CardcoopIdentityBlock> {
+    const { kind, source } = await this.read(username);
+
+    return {
+      kind,
+      public: this.publicPart(kind, source),
+      digests: this.digestPart(kind, source),
+    };
+  }
+
+  /**
+   * Анкета пайщика целиком — для выдачи кооперативу-получателю по гранту (story 7.8).
+   *
+   * Это единственное место, где анкета уходит из кооператива не отпечатками, а значениями, и
+   * происходит это только по согласию держателя, удостоверенному card.coop. Состав не
+   * урезается: получатель предзаполняет ею заявление, и недостающие поля человеку пришлось бы
+   * вводить руками — то есть ровно тем способом, который и порождает расхождения реквизитов.
+   *
+   * Учётное имя пайщика в нашем кооперативе вырезается: у получателя оно будет своё, а знать
+   * чужие внутренние имена ему незачем.
+   *
+   * @param username учётное имя пайщика в кооперативе
+   * @returns вид субъекта и его анкета в форме `cooptypes`
+   * @throws если анкеты нет — выдавать нечего
+   */
+  async profile(username: string): Promise<{ kind: InnerAccountType; data: Record<string, unknown> }> {
+    const { kind, source } = await this.read(username);
+
+    const data = { ...source };
+    delete data.username;
+
+    return { kind, data };
+  }
+
+  /**
+   * Вид субъекта и его карточка.
+   *
+   * @param username учётное имя пайщика
+   * @throws если у пайщика нет анкеты — свидетельствовать и раскрывать нечего: кооператив
+   *   отвечает за человека, которого верифицировал, а не за пустую запись
+   */
+  private async read(username: string): Promise<{ kind: InnerAccountType; source: Record<string, unknown> }> {
     const account = await this.accounts.getAccount(username);
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw new Error(`Анкета пайщика ${username} не заполнена — подтверждение членства не сформировать`);
+      throw new Error(`Анкета пайщика ${username} не заполнена`);
     }
 
     const kind = privateAccount.type;
@@ -144,11 +185,7 @@ export class CardcoopIdentityService {
       throw new Error(`Данные пайщика ${username} для вида субъекта «${kind}» не найдены`);
     }
 
-    return {
-      kind,
-      public: this.publicPart(kind, source),
-      digests: this.digestPart(kind, source),
-    };
+    return { kind, source };
   }
 
   /**
