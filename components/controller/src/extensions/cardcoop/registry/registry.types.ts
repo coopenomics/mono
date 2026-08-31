@@ -39,4 +39,6 @@ export interface CardcoopConnectPayload extends CardcoopDocumentPayload {
   attestation_callback_url: string;
   /** Адрес выдачи анкеты по гранту (story 9.3). */
   disclosure_url: string;
+  /** Адрес возврата «Входа с CardCOOP» (story 9.2): по нему сеть заводит OAuth2-клиента. */
+  entry_callback_url: string;
 }

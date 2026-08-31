@@ -97,6 +97,7 @@ export class CardcoopConnectService {
       oidc_client_secret: client.client_secret,
       attestation_callback_url: `${backend}/v1/extensions/cardcoop/webhooks`,
       disclosure_url: `${backend}/v1/extensions/cardcoop/disclosures`,
+      entry_callback_url: `${backend}/v1/extensions/cardcoop/entry/callback`,
     };
   }
 
@@ -129,6 +130,17 @@ export class CardcoopConnectService {
     if (result.delivered) {
       record.deliveredHash = hash;
       record.lastError = null;
+      // Реквизиты «Входа с CardCOOP» сеть выдаёт только здесь и при каждом подключении
+      // заново (story 9.2): потерянный секрет возвращается повторным подключением, а не
+      // ручным переносом.
+      const rpClient = result.body?.rpClient as
+        | { clientId?: string; clientSecret?: string; issuer?: string }
+        | undefined;
+      if (rpClient?.clientId && rpClient.clientSecret && rpClient.issuer) {
+        record.rpClientId = rpClient.clientId;
+        record.rpClientSecret = rpClient.clientSecret;
+        record.rpIssuer = rpClient.issuer;
+      }
       this.logger.info('Параметры установки донесены до сети карт');
     } else {
       record.lastError = result.reason ?? 'сеть недоступна';

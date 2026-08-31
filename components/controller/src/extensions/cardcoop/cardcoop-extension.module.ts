@@ -37,6 +37,10 @@ import { CardcoopLinkWebhookController } from './application/link-webhook.contro
 import { CardcoopDisclosureController } from './application/disclosure.controller';
 import { CardcoopConnectService } from './registry/connect.service';
 import { CardcoopOperatorAnnounceService } from './registry/operator-announce.service';
+import { CardcoopEntryService } from './entry/entry.service';
+import { CardcoopDisclosureIntakeService } from './entry/disclosure-intake.service';
+import { CardcoopEntryController } from './application/entry.controller';
+import { CardcoopEntryResolver } from './application/cardcoop-entry.resolver';
 import { CardcoopDisclosureService } from './disclosure/disclosure.service';
 import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
 
@@ -123,7 +127,7 @@ export class CardcoopExtension extends BaseExtensionModule {
 
 @Module({
   imports: [CardcoopDatabaseModule],
-  controllers: [CardcoopLinkWebhookController, CardcoopDisclosureController],
+  controllers: [CardcoopLinkWebhookController, CardcoopDisclosureController, CardcoopEntryController],
   providers: [
     CardcoopExtension,
     CardcoopCardService,
@@ -137,6 +141,9 @@ export class CardcoopExtension extends BaseExtensionModule {
     CardcoopDisclosureService,
     CardcoopConnectService,
     CardcoopOperatorAnnounceService,
+    CardcoopEntryService,
+    CardcoopDisclosureIntakeService,
+    CardcoopEntryResolver,
   ],
   exports: [CardcoopExtension, CardcoopAttestationService, CardcoopMembershipService],
 })

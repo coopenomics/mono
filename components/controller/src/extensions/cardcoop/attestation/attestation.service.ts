@@ -53,6 +53,13 @@ export interface AttestationDeliveryResult {
   /** Код ответа последней попытки; `null`, если до сети не дошли вовсе. */
   status: number | null;
   /**
+   * Разобранное тело успешного ответа; отсутствует, если тела нет или оно не JSON.
+   *
+   * Нужно там, где сеть отвечает данными, а не только фактом приёма: подключение возвращает
+   * реквизиты клиента (story 7.6/9.2), запрос раскрытия — идентификатор согласия (story 9.3).
+   */
+  body?: Record<string, unknown>;
+  /**
    * Идентификатор, присвоенный сетью принятому подтверждению.
    *
    * Только по нему подтверждение потом отзывается, поэтому он и сохраняется в
@@ -190,7 +197,7 @@ export class CardcoopAttestationService {
         });
 
         if (response.ok) {
-          return { delivered: true, status: response.status, ...(await readAttestationId(response)) };
+          return { delivered: true, status: response.status, ...(await readSuccessBody(response)) };
         }
 
         lastStatus = response.status;
@@ -223,20 +230,26 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const trimSlash = (url: string) => url.replace(/\/+$/, '');
 
 /**
- * Идентификатор принятого подтверждения из ответа сети.
+ * Идентификатор принятого подтверждения и разобранное тело из ответа сети.
  *
  * Отсутствие тела или неожиданная его форма не считаются провалом доставки:
  * сеть документ приняла, а без идентификатора мы всего лишь не сможем отозвать
  * его автоматически — это разбирает оператор, и терять из-за этого сам факт
- * приёма было бы хуже.
+ * приёма было бы хуже. Тело отдаётся целиком: подключение и запрос раскрытия
+ * читают из него свои данные, и разбирать его дважды незачем.
  */
-const readAttestationId = async (response: Response): Promise<{ attestationId?: string }> => {
+const readSuccessBody = async (
+  response: Response
+): Promise<{ attestationId?: string; body?: Record<string, unknown> }> => {
   try {
     const text = await response.text();
     if (!text) return {};
-    const parsed = JSON.parse(text) as { id?: unknown; attestation_id?: unknown };
+    const parsed = JSON.parse(text) as Record<string, unknown>;
     const id = parsed.attestation_id ?? parsed.id;
-    return typeof id === 'string' && id ? { attestationId: id } : {};
+    return {
+      ...(typeof id === 'string' && id ? { attestationId: id } : {}),
+      body: parsed,
+    };
   } catch {
     return {};
   }

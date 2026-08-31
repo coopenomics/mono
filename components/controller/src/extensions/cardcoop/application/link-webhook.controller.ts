@@ -31,6 +31,7 @@ import {
 } from '@coopenomics/innercoop';
 import { CardcoopExtension } from '../cardcoop-extension.module';
 import { CardcoopMembershipService } from '../membership/membership.service';
+import { CardcoopDisclosureIntakeService } from '../entry/disclosure-intake.service';
 
 /** Заголовок, которым сеть подписывает уведомление. */
 const SIGNATURE_HEADER = 'x-cardcoop-signature';
@@ -52,6 +53,10 @@ const KEY_CACHE_MS = 5 * 60 * 1000;
 
 /** Событие о новой связке карты с кооперативом. */
 const LINK_CREATED = 'link.created';
+
+/** Решения держателя по раскрытию анкеты (story 9.3, ADR-2 card.coop). */
+const DISCLOSURE_GRANTED = 'disclosure.granted';
+const DISCLOSURE_DENIED = 'disclosure.denied';
 
 /**
  * Тело уведомления.
@@ -79,6 +84,7 @@ export class CardcoopLinkWebhookController {
   constructor(
     private readonly extension: CardcoopExtension,
     private readonly membership: CardcoopMembershipService,
+    private readonly disclosureIntake: CardcoopDisclosureIntakeService,
     @Inject(USER_DIRECTORY_PORT) private readonly directory: IUserDirectoryPort,
     @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort,
     @Inject(COOP_CREDENTIAL_PORT) private readonly credential: ICoopCredentialPort,
@@ -101,6 +107,18 @@ export class CardcoopLinkWebhookController {
     @Headers(SIGNATURE_HEADER) signature?: string
   ): Promise<{ accepted: boolean }> {
     await this.verify(notification, signature);
+
+    // Решения держателя по раскрытиям адресованы не кооперативу карты, а получателю анкеты:
+    // проверка принадлежности здесь не нужна — сессию находит идентификатор согласия,
+    // который выдавали нам.
+    if (notification.event === DISCLOSURE_GRANTED) {
+      void this.disclosureIntake.handleGranted(notification as never);
+      return { accepted: true };
+    }
+    if (notification.event === DISCLOSURE_DENIED) {
+      void this.disclosureIntake.handleDenied(notification as never);
+      return { accepted: true };
+    }
 
     if (notification.event !== LINK_CREATED) return { accepted: true };
     if (notification.coopname !== platformSettings().coopname) {

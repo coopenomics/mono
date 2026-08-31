@@ -44,6 +44,7 @@ const build = (
   const controller = new CardcoopLinkWebhookController(
     { config: { api_url: 'https://card.coop' } } as any,
     { issue, rememberLink } as any,
+    { handleGranted: jest.fn(), handleDenied: jest.fn() } as any,
     { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
     {
       getChainAccount: async () =>
@@ -133,6 +134,7 @@ describe('Уведомление о связке карты с кооперат�
     const controller = new CardcoopLinkWebhookController(
       { config: { api_url: 'https://card.coop' } } as any,
       { issue } as any,
+      { handleGranted: jest.fn(), handleDenied: jest.fn() } as any,
       { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
       { getChainAccount: async () => ({ registered_at: '2026-01-15T08:00:00.000Z' }) } as any,
       { getPermissionKey } as any,

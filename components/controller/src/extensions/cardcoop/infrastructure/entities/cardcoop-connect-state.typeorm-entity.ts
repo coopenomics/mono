@@ -24,6 +24,18 @@ export class CardcoopConnectStateTypeormEntity {
   @Column({ name: 'last_error', type: 'text', nullable: true })
   lastError!: string | null;
 
+  /** `client_id` для «Входа с CardCOOP» — выдан сетью при подключении (story 9.2). */
+  @Column({ name: 'rp_client_id', type: 'text', nullable: true })
+  rpClientId!: string | null;
+
+  /** `client_secret` того же клиента; сеть его не хранит и при подключении выдаёт заново. */
+  @Column({ name: 'rp_client_secret', type: 'text', nullable: true })
+  rpClientSecret!: string | null;
+
+  /** Issuer провайдера на card.coop — по нему проверяется `iss` пришедших токенов. */
+  @Column({ name: 'rp_issuer', type: 'text', nullable: true })
+  rpIssuer!: string | null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 }

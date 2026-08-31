@@ -11,6 +11,7 @@ import { CardcoopPendingLinkTypeormEntity } from './infrastructure/entities/card
 import { CardcoopUsedGrantTypeormEntity } from './infrastructure/entities/cardcoop-used-grant.typeorm-entity';
 import { CardcoopConnectStateTypeormEntity } from './infrastructure/entities/cardcoop-connect-state.typeorm-entity';
 import { CardcoopOperatorAnnouncementTypeormEntity } from './infrastructure/entities/cardcoop-operator-announcement.typeorm-entity';
+import { CardcoopEntrySessionTypeormEntity } from './infrastructure/entities/cardcoop-entry-session.typeorm-entity';
 
 export const cardcoopEntities = [
   CardcoopAttestationTypeormEntity,
@@ -19,4 +20,5 @@ export const cardcoopEntities = [
   CardcoopUsedGrantTypeormEntity,
   CardcoopConnectStateTypeormEntity,
   CardcoopOperatorAnnouncementTypeormEntity,
+  CardcoopEntrySessionTypeormEntity,
 ];
