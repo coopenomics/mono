@@ -66,4 +66,8 @@ export class CoopCredentialInnercoopAdapter implements ICoopCredentialPort {
   async getChainId(): Promise<string> {
     return (await this.blockchain.getInfo()).chain_id;
   }
+
+  async getPermissionKey(account: string, permission: string): Promise<string | null> {
+    return this.blockchain.getPermissionPublicKey(account, permission);
+  }
 }

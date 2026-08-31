@@ -301,6 +301,7 @@
 - `signWithCertKey(message: Uint8Array): Promise<string>`
 - `getTrustChain(): Promise<InnerEndorsementCredential[]>`
 - `getChainId(): Promise<string>`
+- `getPermissionKey(account: string, permission: string): Promise<string | null>`
 
 ## ICooperativeVarsPort
 

@@ -242,10 +242,18 @@ export class BlockchainService implements BlockchainPort {
 
   // Authentication related methods
   public async getCertPublicKey(accountName: string): Promise<string | null> {
+    return this.getPermissionPublicKey(accountName, 'cert');
+  }
+
+  /**
+   * Единственный ключ именованного разрешения аккаунта. Правило то же, что у права
+   * заверения: один ключ, без делегирования — иначе проверить подпись нечем.
+   */
+  public async getPermissionPublicKey(accountName: string, permission: string): Promise<string | null> {
     const account = await this.getAccount(accountName);
     if (!account) return null;
     const accountJson = JSON.parse(JSON.stringify(account));
-    const certPerm = accountJson.permissions?.find((p: any) => p.perm_name === 'cert');
+    const certPerm = accountJson.permissions?.find((p: any) => p.perm_name === permission);
     const auth = certPerm?.required_auth;
     // строго single-key cert-permission: один ключ, без делегирования (accounts/waits)
     if (!auth || auth.threshold !== 1 || auth.keys?.length !== 1 || auth.accounts?.length || auth.waits?.length)

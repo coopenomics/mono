@@ -14,6 +14,9 @@ jest.mock('@coopenomics/extension-kit', () => ({
  * Это команда выпустить свидетельство о членстве, поэтому проверка подписи и
  * принадлежности кооперативу здесь не формальность: принять чужое или
  * неподписанное значит засвидетельствовать членство по чужому указанию.
+ *
+ * Ключ проверки читается из цепи (разрешение на аккаунте сети), не из настроек:
+ * ручной ввод ключей запрещён архитектурно.
  */
 const key = PrivateKey.generate(KeyType.K1);
 const publicKey = key.toPublic().toString();
@@ -32,19 +35,21 @@ const notification = {
   event_id: 'evt-1',
 };
 
-const build = (overrides: { webhookKey?: string; issue?: jest.Mock; chainAccount?: unknown } = {}) => {
+const build = (overrides: { chainKey?: string | null; issue?: jest.Mock; chainAccount?: unknown } = {}) => {
   const issue = overrides.issue ?? jest.fn(async () => undefined);
+  const getPermissionKey = jest.fn(async () => (overrides.chainKey === undefined ? publicKey : overrides.chainKey));
   const controller = new CardcoopLinkWebhookController(
-    { config: { api_url: 'https://card.coop', webhook_key: overrides.webhookKey ?? publicKey } } as any,
+    { config: { api_url: 'https://card.coop' } } as any,
     { issue } as any,
     { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
     {
       getChainAccount: async () =>
         overrides.chainAccount === undefined ? { registered_at: '2026-01-15T08:00:00.000Z' } : overrides.chainAccount,
     } as any,
+    { getPermissionKey } as any,
     logger as any
   );
-  return { controller, issue };
+  return { controller, issue, getPermissionKey };
 };
 
 /** Выпуск идёт в фоне — даём микрозадачам отработать. */
@@ -89,12 +94,40 @@ describe('Уведомление о связке карты с кооперат�
     expect(issue).not.toHaveBeenCalled();
   });
 
-  it('без заданного ключа приём закрыт — проверять нечем, и принимать нельзя', async () => {
-    const { controller } = build({ webhookKey: '' });
+  it('ключ сети читается из цепи — с аккаунта сети, из разрешения для уведомлений', async () => {
+    const { controller, getPermissionKey } = build();
+
+    await controller.handleLinkCreated(notification, sign(notification));
+
+    expect(getPermissionKey).toHaveBeenCalledWith('ano', 'cardcoop');
+  });
+
+  it('неопубликованный в цепи ключ закрывает приём — проверять нечем, и принимать нельзя', async () => {
+    const { controller } = build({ chainKey: null });
 
     await expect(controller.handleLinkCreated(notification, sign(notification))).rejects.toThrow(
       ServiceUnavailableException
     );
+  });
+
+  it('ротация ключа сети подхватывается перечиткой цепи, без простоя и перенастройки', async () => {
+    const issue = jest.fn(async () => undefined);
+    const oldKey = PrivateKey.generate(KeyType.K1).toPublic().toString();
+    // Первое чтение вернёт старый ключ (он осядет в кэше), перечитка — действующий.
+    const getPermissionKey = jest
+      .fn(async () => publicKey)
+      .mockResolvedValueOnce(oldKey);
+    const controller = new CardcoopLinkWebhookController(
+      { config: { api_url: 'https://card.coop' } } as any,
+      { issue } as any,
+      { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
+      { getChainAccount: async () => ({ registered_at: '2026-01-15T08:00:00.000Z' }) } as any,
+      { getPermissionKey } as any,
+      logger as any
+    );
+
+    await expect(controller.handleLinkCreated(notification, sign(notification))).resolves.toEqual({ accepted: true });
+    expect(getPermissionKey).toHaveBeenCalledTimes(2);
   });
 
   it('уведомление о чужом кооперативе отвергается', async () => {
