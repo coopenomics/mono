@@ -11,14 +11,27 @@
  */
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { RegistratorContract } from 'cooptypes';
+import { SovietContract } from 'cooptypes';
 import type { InnerChainActionRecord } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CardcoopExtension } from '../cardcoop-extension.module';
 import { CardcoopMembershipService } from './membership.service';
+import { chainDate } from './chain-date';
 
-const CONTRACT = RegistratorContract.contractName.production;
+const CONTRACT = SovietContract.contractName.production;
+
+/**
+ * Действие цепи, которым человек становится пайщиком.
+ *
+ * Точка выбрана намеренно: и приём кандидата советом (`registrator::confirmreg`), и импорт
+ * действующего пайщика оператором (`registrator::adduser`) заканчиваются одним и тем же
+ * inline-действием — записью в реестр пайщиков. Слушать сами команды регистратора значило бы
+ * перечислять пути приёма и однажды пропустить новый; у `confirmreg` вдобавок нет `username`
+ * в данных — там только хэш регистрации. В `cooptypes` действие не объявлено — имя по цепи,
+ * как у действий процесса выхода.
+ */
+const ADD_PARTICIPANT = 'addpartcpnt';
 
 /** Приводит ошибку к строке для журнала. */
 const describe = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -39,7 +52,7 @@ export class CardcoopJoinEventsService {
    * Отсутствие ожидающей связки — норма и молчит: большинство принимаемых карту не
    * связывали, и шум в журнале на каждом приёме только мешал бы разбирать настоящие сбои.
    */
-  @OnEvent(`action::${CONTRACT}::${RegistratorContract.Actions.AddUser.actionName}`)
+  @OnEvent(`action::${CONTRACT}::${ADD_PARTICIPANT}`)
   async handleMemberAdded(actionData: InnerChainActionRecord): Promise<void> {
     const action = actionData.data as { coopname?: string; username?: string; created_at?: string };
     if (!this.isOurs(action.coopname) || !action.username) return;
@@ -64,13 +77,12 @@ export class CardcoopJoinEventsService {
    * то, что записала цепь. Если поля нет — сегодняшний день, потому что приём произошёл
    * прямо сейчас, и это ровно тот момент, о котором мы свидетельствуем.
    *
-   * @param createdAt — момент приёма из действия.
+   * @param createdAt — момент приёма из действия (`time_point_sec`, без зоны — это UTC).
    * @returns Дата `YYYY-MM-DD`.
    */
   private memberSince(createdAt?: string): string {
-    const parsed = createdAt ? new Date(createdAt) : new Date();
-    const moment = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-    return moment.toISOString().slice(0, 10);
+    const fromChain = createdAt ? chainDate(createdAt) : null;
+    return fromChain ?? new Date().toISOString().slice(0, 10);
   }
 
   /** Наш ли это кооператив: свидетельствовать о пайщике чужого мы не вправе. */

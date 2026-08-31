@@ -151,7 +151,8 @@ export class CardcoopExtensionModule {
   constructor(
     private readonly cardcoopExtension: CardcoopExtension,
     private readonly connect: CardcoopConnectService,
-    private readonly operatorAnnounce: CardcoopOperatorAnnounceService
+    private readonly operatorAnnounce: CardcoopOperatorAnnounceService,
+    private readonly membership: CardcoopMembershipService
   ) {}
 
   async initialize() {
@@ -161,5 +162,9 @@ export class CardcoopExtensionModule {
     // зависит от доступности сети карт (NFR-3), а исходы видны в журнале и в таблицах.
     void this.connect.connectIfChanged(this.cardcoopExtension.config.api_url);
     void this.operatorAnnounce.resendUndelivered();
+    // Свидетельства и отзывы, не доставленные за время внутренних ретраев, повторяются
+    // периодически: card.coop о них больше не напомнит — уведомление о связке мы уже
+    // подтвердили, а событие выхода в цепи не повторится.
+    this.membership.startRetries(this.cardcoopExtension.config.api_url);
   }
 }

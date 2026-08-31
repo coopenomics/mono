@@ -136,6 +136,55 @@ describe('Членство пайщика в сети карт', () => {
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('не доставлен'));
   });
 
+  it('повтор недоставленного: застрявшее свидетельство переотправляется, неудавшийся отзыв повторяется', async () => {
+    // card.coop о застрявшем не напомнит: уведомление о связке уже подтверждено ответом 200,
+    // а событие выхода в цепи не повторится. Значит повтор — наша обязанность (FR-E2/E3).
+    const pendingRow = {
+      username: 'ant',
+      cardId: 'card-1',
+      memberSince: '2026-01-15',
+      cardNumber: null,
+      state: CardcoopAttestationState.Pending,
+    };
+    const failedRevoke = {
+      username: 'petr',
+      cardId: 'card-2',
+      attestationId: 'att-2',
+      state: CardcoopAttestationState.Active,
+      lastError: 'сеть недоступна',
+    };
+    const attestations = makeRepo([pendingRow, failedRevoke]);
+    // Игрушечный find не понимает операторов Not(IsNull()) — раскладываем выборки по state.
+    attestations.find = jest.fn(async ({ where }: any) => {
+      if (where.state === CardcoopAttestationState.Pending) return [pendingRow];
+      if (where.state === CardcoopAttestationState.Active) return [failedRevoke];
+      return [];
+    });
+    const issueMembership = jest.fn(async () => ({ delivered: true, status: 200, attestationId: 'att-1' }));
+    const revoke = jest.fn(async () => ({ delivered: true, status: 200 }));
+
+    await build(attestations, makeRepo(), { issueMembership, revoke }).retryUndelivered('https://card.coop');
+
+    expect(issueMembership).toHaveBeenCalledWith('https://card.coop', {
+      username: 'ant',
+      cardId: 'card-1',
+      memberSince: '2026-01-15',
+    });
+    expect(revoke).toHaveBeenCalledWith('https://card.coop', 'att-2');
+    expect(pendingRow.state).toBe(CardcoopAttestationState.Active);
+    expect(failedRevoke.state).toBe(CardcoopAttestationState.Revoked);
+  });
+
+  it('сбой прохода повтора глотается: вызов приходит из setInterval, падать там нельзя', async () => {
+    const attestations = makeRepo();
+    attestations.find = jest.fn(async (_query: any) => {
+      throw new Error('база недоступна');
+    });
+
+    await expect(build(attestations, makeRepo(), {}).retryUndelivered('https://card.coop')).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Повтор недоставленных'));
+  });
+
   it('отклонённый советом выход просто забывается — членство сохраняется', async () => {
     const exits = makeRepo([{ exitHash: 'exit-1', username: 'ant', coopname: 'voskhod' }]);
     const attestations = makeRepo([

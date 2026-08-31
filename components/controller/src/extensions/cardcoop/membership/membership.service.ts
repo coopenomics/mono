@@ -8,7 +8,7 @@
  * цепи — там ни карты, ни идентификатора нет, только пайщик. Журнал и связывает
  * одно с другим.
  */
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -20,8 +20,20 @@ import { CardcoopPendingExitTypeormEntity } from '../infrastructure/entities/car
 import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
 import { CardcoopAttestationService, type AttestationDeliveryResult } from '../attestation/attestation.service';
 
+/**
+ * Пауза между проходами повтора недоставленного.
+ *
+ * Внутренние ретраи доставки живут около минуты (attestation.service) — их хватает на
+ * моргнувшую сеть, но не на лежащий час card.coop. Без этого прохода свидетельство
+ * зависало бы в `pending`, а неотозванное членство оставалось бы действующим в сети
+ * навсегда — второе хуже: карта показывала бы членство, которого больше нет.
+ */
+const RETRY_SWEEP_MS = 10 * 60 * 1000;
+
 @Injectable()
-export class CardcoopMembershipService {
+export class CardcoopMembershipService implements OnModuleDestroy {
+  private retryTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     @InjectRepository(CardcoopAttestationTypeormEntity)
     private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
@@ -246,6 +258,66 @@ export class CardcoopMembershipService {
       }
 
       await this.attestations.save(record);
+    }
+  }
+
+  /**
+   * Запускает периодический повтор недоставленного (FR-E2/E3: «ретраи с backoff»).
+   *
+   * Повторяются два вида застрявшего:
+   * - свидетельства в `pending` — доставка не удалась, а card.coop сам их не переспросит:
+   *   его уведомление о связке мы уже подтвердили ответом 200;
+   * - неудавшиеся отзывы — запись действующая, но с ошибкой последней доставки: членство
+   *   уже прекращено, и оставлять его действующим в сети нельзя (FR-B2).
+   *
+   * Отвергнутое по существу (`rejected`, ответ 4xx) не повторяется — это разбор для
+   * человека, а не задача доставки.
+   *
+   * @param apiUrl — адрес сети карт из конфигурации расширения.
+   */
+  startRetries(apiUrl: string): void {
+    if (this.retryTimer) return;
+    this.retryTimer = setInterval(() => void this.retryUndelivered(apiUrl), RETRY_SWEEP_MS);
+    // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
+    this.retryTimer.unref();
+  }
+
+  /** Останавливает повторы при выключении приложения. */
+  onModuleDestroy(): void {
+    if (this.retryTimer) clearInterval(this.retryTimer);
+    this.retryTimer = null;
+  }
+
+  /**
+   * Один проход повтора недоставленного.
+   *
+   * Ошибки не выпускает наружу: вызов приходит из setInterval, где необработанный отказ
+   * промиса убивает node целиком, — сбой прохода означает «подождать следующего тика»,
+   * а не ронять контроллер кооператива.
+   *
+   * @param apiUrl — адрес сети карт.
+   */
+  async retryUndelivered(apiUrl: string): Promise<void> {
+    try {
+      const pending = await this.attestations.find({
+        where: { state: CardcoopAttestationState.Pending },
+      });
+      for (const record of pending) {
+        await this.issue(apiUrl, record.username, record.cardId, record.memberSince, record.cardNumber ?? null);
+      }
+
+      // Действующая запись с ошибкой последней доставки — это неудавшийся отзыв: успех
+      // выпуска стирает ошибку, отказ по существу переводит в rejected, других путей нет.
+      const failedRevokes = await this.attestations.find({
+        where: { state: CardcoopAttestationState.Active, lastError: Not(IsNull()) },
+      });
+      for (const record of failedRevokes) {
+        await this.revokeAllFor(apiUrl, record.username);
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Повтор недоставленных свидетельств не прошёл: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

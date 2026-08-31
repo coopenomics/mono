@@ -54,6 +54,18 @@ describe('Приём пайщика в кооператив', () => {
     expect(issuePendingLink).not.toHaveBeenCalled();
   });
 
+  it('время цепи без зоны читается как UTC, а не как местное время сервера', async () => {
+    // `time_point_sec` приезжает без зоны; поздним вечером ошибка зоны сдвинула бы дату
+    // приёма в свидетельстве на сутки.
+    const { service, issuePendingLink } = build();
+
+    await service.handleMemberAdded(
+      action({ coopname: 'voskhod', username: 'ant', created_at: '2026-08-30T23:30:00' })
+    );
+
+    expect(issuePendingLink).toHaveBeenCalledWith('https://card.coop', 'ant', '2026-08-30');
+  });
+
   it('без даты в действии берётся день приёма — он произошёл прямо сейчас', async () => {
     const { service, issuePendingLink } = build();
 

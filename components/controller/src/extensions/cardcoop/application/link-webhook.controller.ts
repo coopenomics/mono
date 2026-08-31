@@ -31,6 +31,7 @@ import {
 } from '@coopenomics/innercoop';
 import { CardcoopExtension } from '../cardcoop-extension.module';
 import { CardcoopMembershipService } from '../membership/membership.service';
+import { chainDate } from '../membership/chain-date';
 import { CardcoopDisclosureIntakeService } from '../entry/disclosure-intake.service';
 
 /** Заголовок, которым сеть подписывает уведомление. */
@@ -163,24 +164,27 @@ export class CardcoopLinkWebhookController {
   /**
    * Дата приёма пайщика в кооператив.
    *
-   * Берётся из цепи, а не из учётной записи: свидетельство о членстве обязано
-   * опираться на то, что записала цепь, — именно её потом проверяет третья
-   * сторона.
+   * Источник — реестр пайщиков цепи (`soviet::participants` в области кооператива), а не
+   * строка `registrator::accounts`: та заводится при создании аккаунта любому кандидату, и
+   * её `registered_at` — момент регистрации аккаунта, а не приёма. Свидетельство членства
+   * по ней получал бы кандидат, которого совет ещё не принимал, — то есть документ лгал бы.
+   * Строка реестра пайщиков появляется только решением о приёме (`confirmreg`/`adduser` →
+   * `soviet::addpartcpnt`) и удаляется при выходе — её существование и есть членство.
    *
    * Пустая дата — не ошибка: так выглядит кандидат, который связал карту на этапе
    * вступления (story 7.5). Связка в этом случае ждёт решения совета, а свидетельство
    * выпускается по записи цепи о приёме.
    *
    * @param username — пайщик или кандидат.
-   * @returns Дата приёма `YYYY-MM-DD`; `null`, если в цепи приёма ещё нет.
+   * @returns Дата приёма `YYYY-MM-DD`; `null`, если человек не принят в кооператив.
    */
   private async memberSince(username: string): Promise<string | null> {
-    const account = await this.accounts.getChainAccount(username);
-    const registeredAt = account?.registered_at;
+    const account = await this.accounts.getAccount(username);
+    const createdAt = account.participant_account?.created_at;
 
-    if (!registeredAt) return null;
+    if (!createdAt) return null;
 
-    return new Date(registeredAt).toISOString().slice(0, 10);
+    return chainDate(String(createdAt));
   }
 
   /**

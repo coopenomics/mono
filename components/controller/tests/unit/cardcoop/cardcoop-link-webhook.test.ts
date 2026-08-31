@@ -36,7 +36,7 @@ const notification = {
 };
 
 const build = (
-  overrides: { chainKey?: string | null; issue?: jest.Mock; rememberLink?: jest.Mock; chainAccount?: unknown } = {}
+  overrides: { chainKey?: string | null; issue?: jest.Mock; rememberLink?: jest.Mock; participant?: unknown } = {}
 ) => {
   const issue = overrides.issue ?? jest.fn(async () => undefined);
   const rememberLink = overrides.rememberLink ?? jest.fn(async () => undefined);
@@ -47,8 +47,12 @@ const build = (
     { handleGranted: jest.fn(), handleDenied: jest.fn() } as any,
     { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
     {
-      getChainAccount: async () =>
-        overrides.chainAccount === undefined ? { registered_at: '2026-01-15T08:00:00.000Z' } : overrides.chainAccount,
+      // Членство — строка реестра пайщиков (soviet::participants), а не аккаунт регистратора:
+      // тот существует и у кандидата, которого совет ещё не принимал.
+      getAccount: async () => ({
+        participant_account:
+          overrides.participant === undefined ? { created_at: '2026-01-15T08:00:00' } : overrides.participant,
+      }),
     } as any,
     { getPermissionKey } as any,
     logger as any
@@ -136,7 +140,7 @@ describe('Уведомление о связке карты с кооперат�
       { issue } as any,
       { handleGranted: jest.fn(), handleDenied: jest.fn() } as any,
       { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
-      { getChainAccount: async () => ({ registered_at: '2026-01-15T08:00:00.000Z' }) } as any,
+      { getAccount: async () => ({ participant_account: { created_at: '2026-01-15T08:00:00' } }) } as any,
       { getPermissionKey } as any,
       logger as any
     );
@@ -163,11 +167,11 @@ describe('Уведомление о связке карты с кооперат�
   });
 
   it('кандидат связал карту до приёма — связка ждёт решения совета, а не теряется', async () => {
-    // Свидетельствовать нечего: в цепи нет даты приёма. Но человек пришёл со своей картой
+    // Свидетельствовать нечего: в реестре пайщиков цепи его нет. Но человек пришёл со своей картой
     // ровно затем, чтобы не заводить вторую, — потерять связку значит обнулить накопленное
     // (story 7.5).
     const withNumber = { ...notification, card_number: '9689205327798678' };
-    const { controller, issue, rememberLink } = build({ chainAccount: null });
+    const { controller, issue, rememberLink } = build({ participant: null });
 
     await expect(controller.handleLinkCreated(withNumber, sign(withNumber))).resolves.toEqual({ accepted: true });
     await settle();
