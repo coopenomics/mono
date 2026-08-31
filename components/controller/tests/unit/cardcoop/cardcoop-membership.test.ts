@@ -136,9 +136,10 @@ describe('Членство пайщика в сети карт', () => {
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('не доставлен'));
   });
 
-  it('повтор недоставленного: застрявшее свидетельство переотправляется, неудавшийся отзыв повторяется', async () => {
+  it('повтор недоставленного: pending, неудавшийся отзыв и отлежавшееся rejected переотправляются', async () => {
     // card.coop о застрявшем не напомнит: уведомление о связке уже подтверждено ответом 200,
-    // а событие выхода в цепи не повторится. Значит повтор — наша обязанность (FR-E2/E3).
+    // а событие выхода в цепи не повторится. Значит повтор — наша обязанность (FR-E2/E3),
+    // и ручной доставки не существует (решение ant 31.08.2026).
     const pendingRow = {
       username: 'ant',
       cardId: 'card-1',
@@ -153,11 +154,20 @@ describe('Членство пайщика в сети карт', () => {
       state: CardcoopAttestationState.Active,
       lastError: 'сеть недоступна',
     };
-    const attestations = makeRepo([pendingRow, failedRevoke]);
-    // Игрушечный find не понимает операторов Not(IsNull()) — раскладываем выборки по state.
+    const rejectedRow = {
+      username: 'olga',
+      cardId: 'card-3',
+      memberSince: '2026-02-01',
+      cardNumber: null,
+      state: CardcoopAttestationState.Rejected,
+      updatedAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
+    };
+    const attestations = makeRepo([pendingRow, failedRevoke, rejectedRow]);
+    // Игрушечный find не понимает операторов Not/LessThan — раскладываем выборки по state.
     attestations.find = jest.fn(async ({ where }: any) => {
       if (where.state === CardcoopAttestationState.Pending) return [pendingRow];
       if (where.state === CardcoopAttestationState.Active) return [failedRevoke];
+      if (where.state === CardcoopAttestationState.Rejected) return [rejectedRow];
       return [];
     });
     const issueMembership = jest.fn(async () => ({ delivered: true, status: 200, attestationId: 'att-1' }));
@@ -173,6 +183,14 @@ describe('Членство пайщика в сети карт', () => {
     expect(revoke).toHaveBeenCalledWith('https://card.coop', 'att-2');
     expect(pendingRow.state).toBe(CardcoopAttestationState.Active);
     expect(failedRevoke.state).toBe(CardcoopAttestationState.Revoked);
+    // Отвергнутое по существу тоже переотправлено: обычная причина 4xx — просроченное
+    // заверение, а его продлевает автоматика; ручного «повторить» не существует.
+    expect(issueMembership).toHaveBeenCalledWith('https://card.coop', {
+      username: 'olga',
+      cardId: 'card-3',
+      memberSince: '2026-02-01',
+    });
+    expect(rejectedRow.state).toBe(CardcoopAttestationState.Active);
   });
 
   it('сбой прохода повтора глотается: вызов приходит из setInterval, падать там нельзя', async () => {

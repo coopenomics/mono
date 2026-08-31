@@ -10,7 +10,7 @@
  */
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, LessThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   CardcoopAttestationState,
@@ -29,6 +29,17 @@ import { CardcoopAttestationService, type AttestationDeliveryResult } from '../a
  * навсегда — второе хуже: карта показывала бы членство, которого больше нет.
  */
 const RETRY_SWEEP_MS = 10 * 60 * 1000;
+
+/**
+ * Через сколько повторяется отвергнутое по существу (`rejected`).
+ *
+ * Отказ 4xx тоже не приговор (решение ant 31.08.2026): самая обычная его причина —
+ * просроченное заверение кооператива в цепи, а заверения продлеваются автоматикой
+ * оператора, и после продления та же отправка проходит. Никто не должен ничего нажимать:
+ * повтор идёт сам, просто заметно реже недоставки — причины 4xx живут часами, а не
+ * секундами, и долбить сеть тем же документом каждые десять минут незачем.
+ */
+const RETRY_REJECTED_AFTER_MS = 6 * 60 * 60 * 1000;
 
 @Injectable()
 export class CardcoopMembershipService implements OnModuleDestroy {
@@ -114,8 +125,9 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   /**
    * Переносит исход отправки в запись журнала.
    *
-   * Отказ по существу повторять нечем, недоставку — можно: состояния разные, чтобы
-   * оператор видел, где ждать, а где разбираться.
+   * Состояния недоставки и отказа по существу разные, чтобы по журналу было видно, где
+   * молчит сеть, а где она ответила «нет». Повторяются оба — с разным шагом (см.
+   * {@link retryUndelivered}): ручной доставки не существует.
    *
    * @param record — запись журнала.
    * @param result — что ответила сеть.
@@ -264,14 +276,14 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   /**
    * Запускает периодический повтор недоставленного (FR-E2/E3: «ретраи с backoff»).
    *
-   * Повторяются два вида застрявшего:
+   * Повторяется всё застрявшее — ручной доставки не существует (решение ant 31.08.2026):
    * - свидетельства в `pending` — доставка не удалась, а card.coop сам их не переспросит:
    *   его уведомление о связке мы уже подтвердили ответом 200;
    * - неудавшиеся отзывы — запись действующая, но с ошибкой последней доставки: членство
-   *   уже прекращено, и оставлять его действующим в сети нельзя (FR-B2).
-   *
-   * Отвергнутое по существу (`rejected`, ответ 4xx) не повторяется — это разбор для
-   * человека, а не задача доставки.
+   *   уже прекращено, и оставлять его действующим в сети нельзя (FR-B2);
+   * - отвергнутое по существу (`rejected`) — реже, раз в {@link RETRY_REJECTED_AFTER_MS}:
+   *   обычная причина 4xx — просроченное заверение, а его продлевает автоматика оператора,
+   *   и после продления та же отправка проходит.
    *
    * @param apiUrl — адрес сети карт из конфигурации расширения.
    */
@@ -313,6 +325,18 @@ export class CardcoopMembershipService implements OnModuleDestroy {
       });
       for (const record of failedRevokes) {
         await this.revokeAllFor(apiUrl, record.username);
+      }
+
+      // Отвергнутое по существу: повтор редкий, но обязательный — иначе продлённое
+      // заверение оставило бы свидетельства висеть до ручного вмешательства, которого нет.
+      const rejected = await this.attestations.find({
+        where: {
+          state: CardcoopAttestationState.Rejected,
+          updatedAt: LessThan(new Date(Date.now() - RETRY_REJECTED_AFTER_MS)),
+        },
+      });
+      for (const record of rejected) {
+        await this.issue(apiUrl, record.username, record.cardId, record.memberSince, record.cardNumber ?? null);
       }
     } catch (error) {
       this.logger.warn(
