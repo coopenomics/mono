@@ -161,6 +161,7 @@ describe('Членство пайщика в сети карт', () => {
       cardNumber: null,
       state: CardcoopAttestationState.Rejected,
       updatedAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
     };
     const attestations = makeRepo([pendingRow, failedRevoke, rejectedRow]);
     // Игрушечный find не понимает операторов Not/LessThan — раскладываем выборки по state.

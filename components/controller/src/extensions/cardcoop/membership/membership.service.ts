@@ -10,7 +10,7 @@
  */
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, LessThan, Not, Repository } from 'typeorm';
+import { IsNull, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   CardcoopAttestationState,
@@ -40,6 +40,17 @@ const RETRY_SWEEP_MS = 10 * 60 * 1000;
  * секундами, и долбить сеть тем же документом каждые десять минут незачем.
  */
 const RETRY_REJECTED_AFTER_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Как долго отвергнутое повторяется, считая от появления записи.
+ *
+ * Повтор чинит временные причины — прежде всего просроченное заверение, которое
+ * автоматика оператора продлевает за дни. Месяца на это хватает с запасом; что не
+ * починилось за месяц, само уже не починится (например, карта стёрта держателем), и
+ * гонять один и тот же документ вечно — значит копить бессмысленный трафик. Запись
+ * остаётся в журнале с причиной.
+ */
+const RETRY_REJECTED_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class CardcoopMembershipService implements OnModuleDestroy {
@@ -328,11 +339,13 @@ export class CardcoopMembershipService implements OnModuleDestroy {
       }
 
       // Отвергнутое по существу: повтор редкий, но обязательный — иначе продлённое
-      // заверение оставило бы свидетельства висеть до ручного вмешательства, которого нет.
+      // заверение оставило бы свидетельства висеть до ручного вмешательства, которого
+      // нет. Повтор не вечный: месяц — и запись оставляется в покое (см. константу).
       const rejected = await this.attestations.find({
         where: {
           state: CardcoopAttestationState.Rejected,
           updatedAt: LessThan(new Date(Date.now() - RETRY_REJECTED_AFTER_MS)),
+          createdAt: MoreThan(new Date(Date.now() - RETRY_REJECTED_MAX_AGE_MS)),
         },
       });
       for (const record of rejected) {
