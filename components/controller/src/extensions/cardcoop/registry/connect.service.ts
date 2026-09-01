@@ -63,7 +63,11 @@ export class CardcoopConnectService {
 
       const hash = createHash('sha256').update(canonicalize(stable) as string, 'utf8').digest('hex');
       const known = await this.state.findOne({ where: { id: SELF } });
-      if (known?.deliveredHash === hash) return;
+      // Отпечатка мало: реквизиты клиента «Входа с CardCOOP» сеть выдаёт только в ответе на
+      // подключение, и если они у нас не осели (ответ потерялся, запись завели до story 9.2),
+      // вход по карте молча не работал бы до следующей правки параметров. Нет реквизитов —
+      // подключаемся заново, даже когда параметры те же (3B5-59).
+      if (known?.deliveredHash === hash && known.rpClientId && known.rpClientSecret && known.rpIssuer) return;
 
       await this.deliver(apiUrl, stable, hash, known);
     } catch (error) {
