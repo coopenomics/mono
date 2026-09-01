@@ -6,6 +6,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { PlatformMetricsModule } from '~/application/metrics/platform-metrics.module';
 
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -33,6 +35,7 @@ import { FreeDecisionDomainModule } from './domain/free-decision/free-decision.m
 import { AgreementDomainModule } from './domain/agreement/agreement-domain.module';
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
+import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
@@ -100,6 +103,23 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
       },
     ]),
     ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
+    // Prometheus pull-метрики (Story 9.11, NFR28): GET /metrics в Prometheus
+    // exposition format + процессные метрики Node на глобальном реестре prom-client
+    // (туда же пишут доменные счётчики AuthMetricsService и PlatformMetricsService).
+    //
+    // ВНИМАНИЕ ПРО ДОСТУП. Здесь раньше стояло, что доступ снаружи режет edge.
+    // Это было неверно: 29.08.2026 проверено снаружи — https://<домен>/backend/metrics
+    // отдавал 200 на всех четырёх активных кооперативах. Само приложение путь
+    // никак не закрывает и закрывать не пытается; ограничение живёт в конфигурации
+    // L7-маршрутизатора (playbooks: mono/templates/nginx/l7-external.conf,
+    // mono/l7-metrics-guard.yaml — allow только адресу мониторинга и mesh-сети).
+    // Если добавляете сюда метрику с данными кооператива — сначала убедитесь, что
+    // на контуре этот локейшн раскатан.
+    PrometheusModule.register({ defaultMetrics: { enabled: true } }),
+    // Прикладные метрики кооператива: пайщики, кандидаты, заходы, очередь
+    // уведомлений, состояние парсера. Модуль глобальный — его зовут точка
+    // проверки JWT и тик NodeSyncHealthService.
+    PlatformMetricsModule,
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
@@ -121,6 +141,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     }),
     // Domain modules
     AuthDomainModule,
+    AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
     AgendaDomainModule,

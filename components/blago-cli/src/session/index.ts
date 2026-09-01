@@ -1,4 +1,4 @@
-// Сессия: login (email+WIF), токены в .blago/session.<env>.json, refresh при 401.
+// Сессия: login (email + пароль или WIF), токены в .blago/session.<env>.json, refresh при 401.
 
 import type { ReadStream } from 'node:tty'
 import * as fs from 'node:fs/promises'
@@ -10,6 +10,7 @@ import { refreshGlobalAgentMirrorAsync } from '../config/agent-mirror.js'
 import { toGraphqlApiUrl } from '../config/api-url.js'
 import { type BlagoConfigFile, type BlagoRemoteProfile, getActiveProfile, loadConfig } from '../config/index.js'
 import { sessionPath } from '../config/paths.js'
+import { coopidLogin } from './coopid-login.js'
 
 export interface BlagoSessionFile {
   readonly accessToken: string
@@ -127,6 +128,17 @@ export function createClient(profile: BlagoRemoteProfile): Client {
   })
 }
 
+/** Введённый секрет похож на приватный ключ (WIF/PVT), а не на пароль. */
+function looksLikeWif(secret: string): boolean {
+  return /^5[1-9A-HJ-NP-Za-km-z]{50}$/.test(secret) || secret.startsWith('PVT_K1_')
+}
+
+/**
+ * Интерактивный вход. Основной путь — пароль (контур CoopID: authentik → vault →
+ * timestamp-handshake, при включённом 2FA коды спрашиваются тут же). Ввод, похожий
+ * на WIF, уводит на легаси-вход по подписи — он остаётся для аккаунтов без пароля
+ * (локальный девнет, сервисные учётки); мигрировавшим сервер его закрыл.
+ */
 export async function loginInteractive(
   client: Client,
   root: string,
@@ -136,15 +148,35 @@ export async function loginInteractive(
   if (!email) {
     throw new Error('Email не может быть пустым')
   }
-  const wif = await promptSecret('Приватный ключ (WIF), ввод скрыт: ')
-  if (!wif) {
-    throw new Error('Ключ не может быть пустым')
+  const secret = await promptSecret('Пароль (или ключ доступа WIF), ввод скрыт: ')
+  if (!secret) {
+    throw new Error('Пароль не может быть пустым')
   }
-  const loginResult = await client.login(email, wif)
-  const access = loginResult.tokens.access.token
-  const refresh = loginResult.tokens.refresh.token
-  const username = loginResult.account.username
-  const session: BlagoSessionFile = { accessToken: access, refreshToken: refresh, username }
+
+  let session: BlagoSessionFile
+  if (looksLikeWif(secret)) {
+    const loginResult = await client.login(email, secret)
+    session = {
+      accessToken: loginResult.tokens.access.token,
+      refreshToken: loginResult.tokens.refresh.token,
+      username: loginResult.account.username,
+    }
+  }
+  else {
+    const cfg = await loadConfig(root)
+    const profile = getActiveProfile(cfg)
+    const result = await coopidLogin({
+      apiUrl: profile.api_url,
+      issuer: profile.issuer,
+      email,
+      password: secret,
+      promptCode: factor => promptLine(
+        factor === 'totp' ? 'Код из приложения-аутентификатора: ' : 'Код подтверждения из письма: ',
+      ),
+    })
+    session = { accessToken: result.accessToken, refreshToken: result.refreshToken, username: result.username }
+  }
+
   await saveSession(root, envName, session)
   return session
 }

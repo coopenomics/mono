@@ -1,6 +1,6 @@
 <template lang="pug">
 //- Коммиты: «Моё время» | «Мои коммиты» | «На проверке»; PageTabs на canvas.
-.commits-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.commits-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   PageTabs(
     :tabs='tabs',
     :active-key='activeTab',
@@ -374,13 +374,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка: табы на --p-canvas (глобальный .tabbar), контент на --p-surface
-.commits-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 .page-surface {
   background: var(--p-surface);
   overflow: auto;

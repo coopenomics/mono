@@ -9,6 +9,8 @@ export * as GetComponentMetrics from './getComponentMetrics'
 export * as GetMeasures from './getMeasures'
 
 export * as GetCommits from './getCommits'
+export * as GetContentRevision from './getContentRevision'
+export * as GetContentRevisions from './getContentRevisions'
 
 export * as GetContributor from './getContributor'
 

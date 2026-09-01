@@ -110,11 +110,20 @@ export const AllTypesProps: Record<string,any> = {
 		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
+	ApproveVerificationInput:{
+
+	},
 	ArchiveComponentMetricInput:{
+
+	},
+	AssignCapabilitySetInput:{
 
 	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
+	},
+	AuthorizeForceRecoveryInput:{
+
 	},
 	BankAccountDetailsInput:{
 
@@ -235,6 +244,8 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
+	CapitalContentEntityType: "enum" as const,
+	CapitalContentRevisionOrigin: "enum" as const,
 	CapitalContributorFilter:{
 		status:"ContributorStatus"
 	},
@@ -261,6 +272,12 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalFavoriteTargetType: "enum" as const,
 	CapitalFavoritesFilter:{
 
+	},
+	CapitalGetContentRevisionInput:{
+		entity_type:"CapitalContentEntityType"
+	},
+	CapitalGetContentRevisionsInput:{
+		entity_type:"CapitalContentEntityType"
 	},
 	CapitalGetOpenTimerInput:{
 
@@ -289,6 +306,9 @@ export const AllTypesProps: Record<string,any> = {
 		has_issues_with_statuses:"IssueStatus",
 		priorities:"ProjectPriority",
 		statuses:"ProjectStatus"
+	},
+	CapitalRestoreContentRevisionInput:{
+		entity_type:"CapitalContentEntityType"
 	},
 	CapitalResumeTimerInput:{
 
@@ -523,6 +543,8 @@ export const AllTypesProps: Record<string,any> = {
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
+	CriticalActionStatus: "enum" as const,
+	CriticalActionType: "enum" as const,
 	CurrentTableStatesFiltersInput:{
 
 	},
@@ -586,7 +608,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EditProjectInput:{
-
+		origin:"CapitalContentRevisionOrigin"
 	},
 	EntrepreneurDetailsInput:{
 
@@ -661,6 +683,7 @@ export const AllTypesProps: Record<string,any> = {
 	FindPotentialMatchesInput:{
 
 	},
+	ForceRecoveryConsentVia: "enum" as const,
 	FreeDecisionGenerateDocumentInput:{
 
 	},
@@ -835,6 +858,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetProjectWithRelationsInput:{
 
 	},
+	GetPublicProvisionInput:{
+
+	},
 	GetRequestByHashInput:{
 
 	},
@@ -873,6 +899,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	Init:{
 		organization_data:"CreateInitOrganizationDataInput"
+	},
+	InitiateCriticalActionInput:{
+		action_type:"CriticalActionType",
+		payload:"JSON"
 	},
 	Install:{
 		soviet:"SovietMemberInput",
@@ -1380,6 +1410,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	Mutation:{
+		activateTwoFactor:{
+			data:"TwoFactorCodeInput"
+		},
 		addBranchWhitelist:{
 			data:"AddBranchWhitelistInput"
 		},
@@ -1392,11 +1425,20 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
+		approveVerification:{
+			data:"ApproveVerificationInput"
+		},
 		archiveProductCard:{
 
 		},
+		assignCapabilitySet:{
+			data:"AssignCapabilitySetInput"
+		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
+		},
+		authorizeForceRecovery:{
+			data:"AuthorizeForceRecoveryInput"
 		},
 		cancelMembershipExit:{
 
@@ -1639,6 +1681,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRemoveFavorite:{
 			data:"CapitalFavoriteInput"
 		},
+		capitalRestoreContentRevision:{
+			data:"CapitalRestoreContentRevisionInput"
+		},
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
 		},
@@ -1747,6 +1792,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
+		confirmCriticalAction:{
+
+		},
 		confirmMembershipExit:{
 
 		},
@@ -1821,6 +1869,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		deleteTrustedAccount:{
 			data:"DeleteTrustedAccountInput"
+		},
+		disableTwoFactor:{
+			data:"TwoFactorCodeInput"
 		},
 		editBranch:{
 			data:"EditBranchInput"
@@ -1920,6 +1971,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		initSystem:{
 			data:"Init"
+		},
+		initiateCriticalAction:{
+			data:"InitiateCriticalActionInput"
 		},
 		installExtension:{
 			data:"ExtensionInput"
@@ -2279,8 +2333,17 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		rejectVerification:{
+			data:"RejectVerificationInput"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
+		},
+		reportNotMe:{
+			data:"ReportNotMeInput"
+		},
+		requestForceRecoveryConsent:{
+			data:"RequestForceRecoveryConsentInput"
 		},
 		resendNotification:{
 
@@ -2293,6 +2356,15 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		returnExpenseItem:{
 			data:"ReturnExpenseItemInput"
+		},
+		revokeCapabilitySet:{
+			data:"RevokeCapabilitySetInput"
+		},
+		revokeParticipantKey:{
+			data:"RevokeParticipantKeyInput"
+		},
+		revokeSession:{
+			data:"RevokeSessionInput"
 		},
 		saveCapitalProgramDocDataHash:{
 			data:"SaveCapitalProgramDocDataInput"
@@ -2312,8 +2384,14 @@ export const AllTypesProps: Record<string,any> = {
 		setBranchPrivate:{
 			data:"SetBranchPrivateInput"
 		},
+		setLoginFactors:{
+			data:"SetLoginFactorsInput"
+		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
+		},
+		setRecoveryStrategy:{
+			data:"SetRecoveryStrategyInput"
 		},
 		setWif:{
 			data:"SetWifInput"
@@ -2338,6 +2416,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		uninstallExtension:{
 			data:"UninstallExtensionInput"
+		},
+		unverifyParticipant:{
+			data:"UnverifyParticipantInput"
 		},
 		updateAccount:{
 			data:"UpdateAccountInput"
@@ -2365,6 +2446,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
+		},
+		verifyParticipantOnsite:{
+			data:"VerifyParticipantOnsiteInput"
 		},
 		voteOnAnnualGeneralMeet:{
 			data:"VoteOnAnnualGeneralMeetInput"
@@ -2415,6 +2499,12 @@ export const AllTypesProps: Record<string,any> = {
 	ParticipantApplicationSignedMetaDocumentInput:{
 
 	},
+	ParticipantIdentityForVerificationInput:{
+
+	},
+	ParticipantVerificationSource: "enum" as const,
+	ParticipantVerificationStatus: "enum" as const,
+	ParticipantVerificationType: "enum" as const,
 	PassportInput:{
 
 	},
@@ -2548,6 +2638,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalFavorites:{
 			filter:"CapitalFavoritesFilter"
+		},
+		capitalGetContentRevision:{
+			data:"CapitalGetContentRevisionInput"
+		},
+		capitalGetContentRevisions:{
+			data:"CapitalGetContentRevisionsInput"
 		},
 		capitalGetOpenTimer:{
 			data:"CapitalGetOpenTimerInput"
@@ -2738,6 +2834,9 @@ export const AllTypesProps: Record<string,any> = {
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
 		},
+		getCriticalActionAuditTrail:{
+
+		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
 			pagination:"PaginationInput"
@@ -2796,6 +2895,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"NotificationsFilterInput",
 			pagination:"PaginationInput"
 		},
+		getParticipantCapabilitySets:{
+
+		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
 		},
@@ -2819,6 +2921,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getProviderSubscriptionById:{
 
+		},
+		getPublicProvision:{
+			data:"GetPublicProvisionInput"
 		},
 		getRegistrationAgreements:{
 			account_type:"AccountType"
@@ -3086,6 +3191,9 @@ export const AllTypesProps: Record<string,any> = {
 		membershipExitReturnPreview:{
 
 		},
+		participantIdentityForVerification:{
+			data:"ParticipantIdentityForVerificationInput"
+		},
 		paymentFile:{
 
 		},
@@ -3107,8 +3215,15 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		validateReportEdits:{
 			reportType:"ReportType"
+		},
+		verificationReviewPhotos:{
+			data:"VerificationReviewPhotosInput"
+		},
+		verificationReviews:{
+			data:"VerificationReviewsInput"
 		}
 	},
+	RecoveryStrategy: "enum" as const,
 	RefreshInput:{
 
 	},
@@ -3138,6 +3253,9 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"SignedDigitalDocumentInput",
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
+	RejectVerificationInput:{
+
+	},
 	RemoveAvailableCategoriesInput:{
 
 	},
@@ -3156,6 +3274,9 @@ export const AllTypesProps: Record<string,any> = {
 	ReportHistoryFilterInput:{
 		reportType:"ReportType"
 	},
+	ReportNotMeInput:{
+
+	},
 	ReportPreviewInput:{
 		reportType:"ReportType"
 	},
@@ -3165,6 +3286,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RequestAttributeInput:{
+
+	},
+	RequestForceRecoveryConsentInput:{
 
 	},
 	RequestImageInput:{
@@ -3215,6 +3339,15 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ReturnExpenseItemInput:{
+
+	},
+	RevokeCapabilitySetInput:{
+
+	},
+	RevokeParticipantKeyInput:{
+
+	},
+	RevokeSessionInput:{
 
 	},
 	RoomMessageKind: "enum" as const,
@@ -3277,6 +3410,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetIssueMetricBindingsInput:{
 		bindings:"IssueMetricBindingItemInput"
 	},
+	SetLoginFactorsInput:{
+
+	},
 	SetMasterInput:{
 
 	},
@@ -3285,6 +3421,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetPlanInput:{
 
+	},
+	SetRecoveryStrategyInput:{
+		strategy:"RecoveryStrategy"
 	},
 	SetVarsInput:{
 		coopenomics_agreement:"AgreementVarInput",
@@ -3358,7 +3497,13 @@ export const AllTypesProps: Record<string,any> = {
 		payload:"JSONObject",
 		to:"NotificationWorkflowRecipientInput"
 	},
+	TwoFactorCodeInput:{
+
+	},
 	UninstallExtensionInput:{
+
+	},
+	UnverifyParticipantInput:{
 
 	},
 	Update:{
@@ -3392,6 +3537,7 @@ export const AllTypesProps: Record<string,any> = {
 		passport:"PassportInput"
 	},
 	UpdateIssueInput:{
+		origin:"CapitalContentRevisionOrigin",
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
@@ -3416,6 +3562,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UpdateStoryInput:{
 		content_format:"CapitalStoryContentFormat",
+		origin:"CapitalContentRevisionOrigin",
 		status:"StoryStatus"
 	},
 	UploadExpenseFileInput:{
@@ -3436,8 +3583,21 @@ export const AllTypesProps: Record<string,any> = {
 		user_agreement:"AgreementInput",
 		wallet_agreement:"AgreementInput"
 	},
+	VerificationPhotoInput:{
+
+	},
+	VerificationReviewPhotosInput:{
+
+	},
+	VerificationReviewStatus: "enum" as const,
+	VerificationReviewsInput:{
+		status:"VerificationReviewStatus"
+	},
 	VerifyEmailInputDTO:{
 
+	},
+	VerifyParticipantOnsiteInput:{
+		photos:"VerificationPhotoInput"
 	},
 	VoteDistributionInput:{
 
@@ -3487,9 +3647,14 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	AccessGrant:{
+		action:"String",
+		resource:"String"
+	},
 	Account:{
 		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
+		has_password:"Boolean",
 		participant_account:"ParticipantAccount",
 		private_account:"PrivateAccount",
 		provider_account:"MonoAccount",
@@ -3507,6 +3672,14 @@ export const ReturnTypes: Record<string,any> = {
 		last_usage_update_time:"String",
 		max:"String",
 		used:"String"
+	},
+	AccountSession:{
+		created_at:"String",
+		current:"Boolean",
+		device:"String",
+		id:"String",
+		ip:"String",
+		last_seen_at:"String"
 	},
 	AccountsPaginationResult:{
 		currentPage:"Int",
@@ -3642,6 +3815,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		blockchain_status:"String",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -3857,6 +4031,21 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String",
 		username_display_name:"String"
 	},
+	CapabilitySet:{
+		builtin:"Boolean",
+		coopname:"String",
+		description:"String",
+		grants:"AccessGrant",
+		set_key:"String",
+		title:"String"
+	},
+	CapabilitySetAssignment:{
+		expires_at:"String",
+		granted_at:"String",
+		granted_by:"String",
+		set_key:"String",
+		username:"String"
+	},
 	CapitalCandidate:{
 		about:"String",
 		braname:"String",
@@ -3946,6 +4135,38 @@ export const ReturnTypes: Record<string,any> = {
 		level_depth_base:"Float",
 		level_growth_coefficient:"Float",
 		voting_period_in_days:"Float"
+	},
+	CapitalContentRevision:{
+		author:"String",
+		base_rev:"Int",
+		content_format:"String",
+		content_hash:"String",
+		created_at:"DateTime",
+		description:"String",
+		description_delta:"Int",
+		description_length:"Int",
+		entity_hash:"String",
+		entity_type:"CapitalContentEntityType",
+		merged:"Boolean",
+		origin:"CapitalContentRevisionOrigin",
+		restored_from_rev:"Int",
+		rev:"Int",
+		title:"String"
+	},
+	CapitalContentRevisionSummary:{
+		author:"String",
+		base_rev:"Int",
+		content_hash:"String",
+		created_at:"DateTime",
+		description_delta:"Int",
+		description_length:"Int",
+		entity_hash:"String",
+		entity_type:"CapitalContentEntityType",
+		merged:"Boolean",
+		origin:"CapitalContentRevisionOrigin",
+		restored_from_rev:"Int",
+		rev:"Int",
+		title:"String"
 	},
 	CapitalContributor:{
 		_created_at:"DateTime",
@@ -4086,6 +4307,7 @@ export const ReturnTypes: Record<string,any> = {
 		_id:"String",
 		_updated_at:"DateTime",
 		block_num:"Float",
+		content_rev:"Int",
 		created_by:"String",
 		creators:"String",
 		cycle_id:"String",
@@ -4353,6 +4575,7 @@ export const ReturnTypes: Record<string,any> = {
 		block_num:"Float",
 		blockchain_status:"String",
 		components:"CapitalProjectComponent",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -4388,6 +4611,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		blockchain_status:"String",
+		content_rev:"Int",
 		coopname:"String",
 		counts:"CapitalProjectCountsData",
 		created_at:"String",
@@ -4627,6 +4851,7 @@ export const ReturnTypes: Record<string,any> = {
 		_updated_at:"DateTime",
 		block_num:"Float",
 		content_format:"CapitalStoryContentFormat",
+		content_rev:"Int",
 		coopname:"String",
 		created_by:"String",
 		description:"String",
@@ -4867,6 +5092,22 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		question:"String",
 		title:"String"
+	},
+	CriticalActionAuditEntry:{
+		action_type:"CriticalActionType",
+		confirmer_ids:"CriticalActionConfirmation",
+		created_at:"String",
+		finalized_at:"String",
+		id:"String",
+		initiated_at:"String",
+		initiator_id:"String",
+		payload_hash:"String",
+		status:"CriticalActionStatus",
+		target_id:"String"
+	},
+	CriticalActionConfirmation:{
+		at:"String",
+		by:"String"
 	},
 	CurrentInstanceDTO:{
 		blockchain_status:"String",
@@ -5117,6 +5358,11 @@ export const ReturnTypes: Record<string,any> = {
 	FieldError:{
 		message:"String",
 		path:"String"
+	},
+	ForceRecoveryAuthorization:{
+		authorized:"Boolean",
+		consent_via:"ForceRecoveryConsentVia",
+		triggered_by:"String"
 	},
 	GatewayPayment:{
 		blockchain_data:"JSON",
@@ -5388,6 +5634,12 @@ export const ReturnTypes: Record<string,any> = {
 	LedgerState:{
 		chartOfAccounts:"ChartOfAccountsItem",
 		coopname:"String"
+	},
+	LoginFactors:{
+		email_available:"Boolean",
+		email_enabled:"Boolean",
+		totp_enabled:"Boolean",
+		totp_enrolled:"Boolean"
 	},
 	MarketplaceAid:{
 		amount:"String",
@@ -5889,6 +6141,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_account:"String",
 		orderer_name:"String",
 		orderer_signed_at:"DateTime",
+		orderer_verification_passed:"Boolean",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",
@@ -6473,12 +6726,16 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	Mutation:{
+		activateTwoFactor:"Boolean",
 		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		approveVerification:"VerificationReview",
 		archiveProductCard:"Boolean",
+		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
+		authorizeForceRecovery:"ForceRecoveryAuthorization",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
@@ -6552,6 +6809,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
 		capitalRemoveFavorite:"CapitalFavorite",
+		capitalRestoreContentRevision:"CapitalContentRevisionSummary",
 		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
@@ -6589,6 +6847,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
+		confirmCriticalAction:"PendingCriticalAction",
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
@@ -6614,7 +6873,9 @@ export const ReturnTypes: Record<string,any> = {
 		deleteProductCard:"Boolean",
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
+		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
+		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
@@ -6640,6 +6901,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
 		initSystem:"SystemInfo",
+		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
 		kuApproveTrusted:"Transaction",
@@ -6758,19 +7020,28 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		rejectVerification:"VerificationReview",
 		reportExpenseItem:"ExpenseReportResult",
+		reportNotMe:"RevokedSessionsResult",
+		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
+		revokeAllSessions:"RevokedSessionsResult",
+		revokeCapabilitySet:"Boolean",
+		revokeParticipantKey:"RevokeKeyResult",
+		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
 		setBranchPrivate:"Branch",
+		setLoginFactors:"LoginFactors",
 		setPaymentStatus:"GatewayPayment",
+		setRecoveryStrategy:"Boolean",
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
@@ -6779,6 +7050,7 @@ export const ReturnTypes: Record<string,any> = {
 		submitExpenseReport:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
+		unverifyParticipant:"ParticipantVerification",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
 		updateExtension:"Extension",
@@ -6788,6 +7060,7 @@ export const ReturnTypes: Record<string,any> = {
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
+		verifyParticipantOnsite:"ParticipantVerification",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
 	},
@@ -7058,6 +7331,10 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ParticipantAccess:{
+		grants:"AccessGrant",
+		sets:"String"
+	},
 	ParticipantAccount:{
 		braname:"String",
 		created_at:"DateTime",
@@ -7071,6 +7348,34 @@ export const ReturnTypes: Record<string,any> = {
 		status:"String",
 		type:"String",
 		username:"String"
+	},
+	ParticipantCertificate:{
+		participant_certificate:"String"
+	},
+	ParticipantIdentityForVerification:{
+		birthdate:"String",
+		full_address:"String",
+		full_name:"String",
+		inn:"String",
+		ogrn:"String",
+		passport_code:"String",
+		passport_issued_at:"String",
+		passport_issued_by:"String",
+		passport_number:"String",
+		passport_series:"String",
+		representative_based_on:"String",
+		representative_name:"String",
+		representative_position:"String",
+		type:"AccountType",
+		username:"String"
+	},
+	ParticipantVerification:{
+		attested_by:"String",
+		attested_in:"String",
+		source:"ParticipantVerificationSource",
+		status:"ParticipantVerificationStatus",
+		type:"ParticipantVerificationType",
+		verified_at:"String"
 	},
 	Passport:{
 		code:"String",
@@ -7120,6 +7425,18 @@ export const ReturnTypes: Record<string,any> = {
 		items:"PaymentMethod",
 		totalCount:"Int",
 		totalPages:"Int"
+	},
+	PendingCriticalAction:{
+		action_type:"CriticalActionType",
+		actor_id:"String",
+		confirmations:"CriticalActionConfirmation",
+		created_at:"String",
+		expires_at:"String",
+		finalized_at:"String",
+		id:"String",
+		payload:"JSON",
+		status:"CriticalActionStatus",
+		target_id:"String"
 	},
 	Permission:{
 		parent:"String",
@@ -7323,6 +7640,10 @@ export const ReturnTypes: Record<string,any> = {
 		last_name:"String",
 		middle_name:"String"
 	},
+	PublicProvision:{
+		html:"String",
+		title:"String"
+	},
 	Query:{
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
@@ -7341,6 +7662,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
 		capitalFavorites:"CapitalFavorite",
+		capitalGetContentRevision:"CapitalContentRevision",
+		capitalGetContentRevisions:"CapitalContentRevisionSummary",
 		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",
@@ -7404,11 +7727,13 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
+		getCapabilitySets:"CapabilitySet",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -7425,12 +7750,16 @@ export const ReturnTypes: Record<string,any> = {
 		getLedger2Postings:"Ledger2PostingsResponse",
 		getLedger2Wallets:"Ledger2Wallet",
 		getLedgerHistory:"LedgerHistoryResponse",
+		getLoginFactors:"LoginFactors",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
+		getMyAccess:"ParticipantAccess",
+		getMyCertificate:"ParticipantCertificate",
 		getMyProductCards:"ProductCard",
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
+		getParticipantCapabilitySets:"CapabilitySetAssignment",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProductCard:"ProductCard",
@@ -7439,6 +7768,8 @@ export const ReturnTypes: Record<string,any> = {
 		getProgramWallets:"ProgramWalletsPaginationResult",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
+		getPublicProvision:"PublicProvision",
+		getRecoveryStrategy:"RecoveryStrategy",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",
@@ -7447,6 +7778,7 @@ export const ReturnTypes: Record<string,any> = {
 		getReportHistory:"ReportHistoryPage",
 		getReportPreview:"ReportPreview",
 		getReportRequisites:"ReportRequisitesView",
+		getSessions:"AccountSession",
 		getSystemInfo:"SystemInfo",
 		getUnreadNotificationsCount:"UnreadNotificationsCount",
 		getUserWallets:"UserWallet",
@@ -7556,13 +7888,16 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		membershipExit:"MembershipExit",
 		membershipExitReturnPreview:"MembershipExitReturnPreview",
+		participantIdentityForVerification:"ParticipantIdentityForVerification",
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
-		validateReportEdits:"FieldError"
+		validateReportEdits:"FieldError",
+		verificationReviewPhotos:"VerificationReviewPhoto",
+		verificationReviews:"VerificationReview"
 	},
 	Question:{
 		context:"String",
@@ -7724,6 +8059,15 @@ export const ReturnTypes: Record<string,any> = {
 		owner:"String",
 		ram_bytes:"Int"
 	},
+	RevokeKeyResult:{
+		must_recover:"Boolean",
+		sessions_revoked:"Int",
+		status:"String",
+		target_id:"String"
+	},
+	RevokedSessionsResult:{
+		revoked:"Int"
+	},
 	SbpAccount:{
 		phone:"String"
 	},
@@ -7846,6 +8190,10 @@ export const ReturnTypes: Record<string,any> = {
 		startOffset:"Float",
 		text:"String"
 	},
+	TwoFactorEnrollment:{
+		otpauth_uri:"String",
+		secret:"String"
+	},
 	UnreadNotificationsCount:{
 		count:"Int"
 	},
@@ -7902,6 +8250,25 @@ export const ReturnTypes: Record<string,any> = {
 		notice:"String",
 		procedure:"String",
 		verificator:"String"
+	},
+	VerificationReview:{
+		braname:"String",
+		created_at:"String",
+		decided_at:"String",
+		decided_by:"String",
+		decision_reason:"String",
+		id:"String",
+		photos_count:"Int",
+		procedure:"String",
+		status:"VerificationReviewStatus",
+		username:"String",
+		verificator:"String"
+	},
+	VerificationReviewPhoto:{
+		mime_type:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String"
 	},
 	WaitWeight:{
 		wait_sec:"Int",

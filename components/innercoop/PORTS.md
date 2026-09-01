@@ -55,6 +55,7 @@
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
 | `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports | Ключи подписи, хранимые кооперативом. |
+| `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
 | `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | marketplace | Кошельки пайщика. |
 
@@ -79,7 +80,7 @@
 |---|---|---|---|---|
 | `DESKTOP_GRANTS_FILTER_REGISTRY_PORT` | `IDesktopGrantsFilterRegistryPort` (2)<br><sub>hooks/desktop-grants-filter.hook.ts</sub> | `ExtensionGrantsFilterRegistry` | — | Сужение прав пайщика на столах ЧУЖОГО расширения. |
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, marketplace | Права пайщика на рабочем столе расширения. |
-| `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
+| `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | — | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 50.
+Всего портов: 51.

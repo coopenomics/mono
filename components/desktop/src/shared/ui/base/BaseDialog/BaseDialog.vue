@@ -4,6 +4,7 @@
     :persistent="!closeOnBackdrop"
     :no-esc-dismiss="!closeOnEscape"
     :no-backdrop-dismiss="!closeOnBackdrop"
+    :no-route-dismiss="!closeOnRouteChange"
     :maximized="maximized"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
@@ -48,6 +49,7 @@ withDefaults(defineProps<BaseDialogProps>(), {
   size: 'md',
   closeOnBackdrop: true,
   closeOnEscape: true,
+  closeOnRouteChange: true,
   hideCloseButton: false,
   maximized: false,
 });
@@ -61,6 +63,7 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
   md: '440px',
   lg: '640px',
   xl: '800px',
+  xxl: '1200px',
 };
 </script>
 

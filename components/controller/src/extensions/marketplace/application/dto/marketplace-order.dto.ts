@@ -94,6 +94,13 @@ export class MarketplaceOrderDTO {
   })
   public readonly orderer_name!: string | null;
 
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался).',
+  })
+  public readonly orderer_verification_passed!: boolean | null;
+
   @Field(() => String, { description: 'Идентификатор предложения, по которому оформлен заказ.' })
   public readonly offer_id!: string;
 
@@ -410,6 +417,7 @@ export interface MarketplaceOrderDisplayFields {
   delivery_point_lng?: number | null;
   orderer_account?: string | null;
   orderer_name?: string | null;
+  orderer_verification_passed?: boolean | null;
   supplier_name?: string | null;
   group_accumulated_quantity?: number | null;
   group_min_volume?: number | null;
@@ -440,6 +448,7 @@ export function toMarketplaceOrderDTO(
     order_hash: o.order_hash,
     orderer_account: o.orderer_account,
     orderer_name: display?.orderer_name ?? null,
+    orderer_verification_passed: display?.orderer_verification_passed ?? null,
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,

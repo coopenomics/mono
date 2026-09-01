@@ -19,6 +19,47 @@ import { consoleIt } from '../tests/shared/consoleIt'
 
 import type { Contract, Feature, Keys, Network } from '../types'
 
+/**
+ * Ретрай транзакций, срезанных лимитом `max_transaction_cpu_usage` (290000us).
+ *
+ * Тяжёлые действия — установка крупных WASM'ов (capital, marketplace, soviet)
+ * при первой компиляции в eos-vm и заливка шаблонов документов
+ * (`draft::createdraft`) — стоят ~290-310ms и на загруженной машине не влезают
+ * в лимит. Это wall-time, а не детерминированная стоимость: то же действие на
+ * свободной машине проходит. Транзакция, срезанная по CPU, в цепь не попадает,
+ * поэтому повтор безопасен и не даёт дублей.
+ *
+ * Ретрай ставится на `api.transact` целиком, а не вокруг отдельных вызовов:
+ * иначе на загруженном стенде boot падает в случайном месте — там, где ретрая
+ * ещё не завели.
+ */
+const CPU_RETRY_ATTEMPTS = 8
+const CPU_RETRY_DELAY_MS = 2000
+
+function isCpuTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /executing for too long|max_transaction_cpu_usage|tx_cpu_usage_exceeded/i.test(message)
+}
+
+function withCpuTimeoutRetry(api: any): void {
+  const transact = api.transact.bind(api)
+
+  api.transact = async (...args: any[]) => {
+    for (let attempt = 1; attempt <= CPU_RETRY_ATTEMPTS; attempt++) {
+      try {
+        return await transact(...args)
+      }
+      catch (error) {
+        if (!isCpuTimeoutError(error) || attempt === CPU_RETRY_ATTEMPTS)
+          throw error
+
+        console.warn(`[transact] CPU timeout, попытка ${attempt}/${CPU_RETRY_ATTEMPTS} — повтор через ${CPU_RETRY_DELAY_MS / 1000}с`)
+        await new Promise(resolve => setTimeout(resolve, CPU_RETRY_DELAY_MS))
+      }
+    }
+  }
+}
+
 export default class Blockchain {
   public signatureProvider: any
   public privateKeys: any[] = []
@@ -51,6 +92,7 @@ export default class Blockchain {
       textEncoder: new TextEncoder() as any,
     })
     this.api.read = await EosApi({ httpEndpoint: res })
+    withCpuTimeoutRetry(this.api)
   }
 
   generateRandomUsername(): string {
@@ -232,66 +274,44 @@ export default class Blockchain {
       // console.log(data)
       // console.log("abi: ", serializedAbiHexString)
 
-      // Retry на CPU-timeout: тяжёлые WASM'ы (capital, marketplace, soviet)
-      // на старте требуют ~290-300ms CPU при первой компиляции в eos-vm.
-      // Дефолт chain `max_transaction_cpu_usage=290000us` срезает их.
-      // CPU usage варьируется по +-N us; повторные попытки иногда влезают.
-      const MAX_ATTEMPTS = 8
-      let lastErr: unknown
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        try {
-          await this.api.transact(
+      // Ретрай на CPU-таймаут навешен на api.transact целиком
+      // (см. withCpuTimeoutRetry) — здесь его дублировать не нужно.
+      await this.api.transact(
+        {
+          actions: [
             {
-              actions: [
+              account: 'eosio',
+              name: 'setcode',
+              authorization: [
                 {
-                  account: 'eosio',
-                  name: 'setcode',
-                  authorization: [
-                    {
-                      actor: contract.target,
-                      permission: 'active',
-                    },
-                  ],
-                  data,
-                },
-                {
-                  account: 'eosio',
-                  name: 'setabi',
-                  authorization: [
-                    {
-                      actor: contract.target,
-                      permission: 'active',
-                    },
-                  ],
-                  data: {
-                    account: contract.target,
-                    abi: serializedAbiHexString,
-                  },
+                  actor: contract.target,
+                  permission: 'active',
                 },
               ],
+              data,
             },
             {
-              blocksBehind: 3,
-              expireSeconds: 30,
+              account: 'eosio',
+              name: 'setabi',
+              authorization: [
+                {
+                  actor: contract.target,
+                  permission: 'active',
+                },
+              ],
+              data: {
+                account: contract.target,
+                abi: serializedAbiHexString,
+              },
             },
-          )
-          if (attempt > 1) console.log(`contract setted (attempt ${attempt}): `, contract.target)
-          else console.log('contract setted: ', contract.target)
-          lastErr = undefined
-          break
-        }
-        catch (txErr) {
-          const txMsg = txErr instanceof Error ? txErr.message : String(txErr)
-          const isCpuTimeout = /executing for too long|max_transaction_cpu_usage/i.test(txMsg)
-          if (!isCpuTimeout || attempt === MAX_ATTEMPTS) {
-            lastErr = txErr
-            break
-          }
-          console.warn(`[setContract] CPU timeout on '${contract.target}' attempt ${attempt}/${MAX_ATTEMPTS} — retrying in 2s`)
-          await new Promise(resolve => setTimeout(resolve, 2000))
-        }
-      }
-      if (lastErr) throw lastErr
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+      console.log('contract setted: ', contract.target)
     }
     catch (e) {
       // Отсутствующий wasm/abi — soft warn. Контракт может быть
@@ -846,6 +866,119 @@ export default class Blockchain {
       console.log(
         `Updated account permissions: ${account_for_change} -> ${account_for_set_code}`,
       )
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
+  /**
+   * Передаёт распорядительные права аккаунта другому аккаунту — по имени, а не по
+   * ключу.
+   *
+   * Так кооператив-оператор получает возможность вести аккаунт АНО: подписывать за
+   * него, не владея его ключами. Ключами АНО не владеет никто из установок — иначе
+   * корень цепочки доверия лежал бы на диске у оператора, и всё построение теряло
+   * бы смысл. Полномочие же можно отобрать одной транзакцией, не трогая ключ.
+   *
+   * Ключ аккаунта при этом сохраняется: полномочие добавляется рядом, а не вместо.
+   */
+  async delegateActiveTo(account: string, delegate: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'active',
+                parent: 'owner',
+                auth: {
+                  threshold: 1,
+                  keys: [
+                    {
+                      key:
+                        this.new_accounts.find(
+                          (el: any) => el.username === account,
+                        )?.publicKey || config.default_public_key,
+                      weight: 1,
+                    },
+                  ],
+                  accounts: [
+                    {
+                      permission: { actor: delegate, permission: 'active' },
+                      weight: 1,
+                    },
+                  ],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Распорядительные права переданы: ${account} -> ${delegate}`)
+      return result
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
+
+  /**
+   * Публикует право заверения `cert` — отдельное разрешение аккаунта с ровно одним
+   * ключом. Им кооператив подписывает удостоверения пайщиков, а публичная часть
+   * лежит в цепи, чтобы подпись можно было проверить, ни у кого ничего не спрашивая.
+   *
+   * Отдельное разрешение, а не `active`: подписывать удостоверения и распоряжаться
+   * средствами кооператива — разные полномочия, и ключи у них разные.
+   *
+   * Строго один ключ без делегирования — контроллер иначе такое право не примет
+   * (цепь доверия должна вести к конкретному ключу, а не к набору подписантов).
+   */
+  async setCertPermission(account: string, publicKey: string) {
+    try {
+      await this.update_pass_instance()
+
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account: 'eosio',
+              name: 'updateauth',
+              authorization: [{ actor: account, permission: 'active' }],
+              data: {
+                account,
+                permission: 'cert',
+                parent: 'active',
+                auth: {
+                  threshold: 1,
+                  keys: [{ key: publicKey, weight: 1 }],
+                  accounts: [],
+                  waits: [],
+                },
+              },
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        },
+      )
+
+      console.log(`Опубликовано право заверения: ${account}@cert -> ${publicKey}`)
       return result
     }
     catch (e) {

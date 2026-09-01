@@ -32,6 +32,13 @@ const KEYS = [
   'UPLOAD_URL', 'TIMEZONE', 'VUE_ROUTER_MODE', 'VUE_ROUTER_BASE',
   'VAPID_PUBLIC_KEY', 'SENTRY_DSN', 'OPENREPLAY_PROJECT_KEY',
   'YANDEX_MAPS_API_KEY',
+  // CoopID: без них `loginWithPassword` считает авторизацию кооператива
+  // неподключённой и отдаёт «войдите по ключу доступа». В SSR они есть
+  // (generateConfig/injectEnv), а в SPA-dev конфиг собирается здесь — и
+  // 23.08.2026 набор разошёлся: переменные стояли в .env, но до браузера
+  // не доезжали. Добавляя переменную клиента, правь ЧЕТЫРЕ места:
+  // createEnvObject.ts, injectEnv.ts, generateConfig.ts и этот список.
+  'COOPID_ISSUER', 'COOPID_CLIENT_ID', 'COOPID_TRUST_ANCHOR_KEY',
 ];
 
 function parseEnv(file) {
@@ -68,7 +75,9 @@ function jsString(value) {
 export function ensureDesktopConfig() {
   const env = parseEnv(path.join(DESKTOP, '.env'));
   const config = {};
-  for (const k of KEYS) if (env[k] !== undefined) config[k] = env[k];
+  // Пустые значения пропускаем: `COOPID_TRUST_ANCHOR_KEY=` в .env-example
+  // иначе перекрыл бы пустой строкой корень доверия, вшитый в пакет авторизации.
+  for (const k of KEYS) if (env[k] !== undefined && env[k] !== '') config[k] = env[k];
   config.TIMEZONE = config.TIMEZONE || 'Europe/Moscow';
 
   const entries = Object.entries(config)

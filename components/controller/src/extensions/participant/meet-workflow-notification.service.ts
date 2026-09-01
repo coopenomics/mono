@@ -110,11 +110,63 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
     }
   }
 
-  // 1. Начальное уведомление при появлении собрания в статусе WAITING_FOR_OPENING
-  async sendInitialNotification(meet: TrackedMeet): Promise<void> {
+  /**
+   * Рассылает уведомление пайщикам и сообщает, ушло ли оно хоть кому-то.
+   *
+   * Возврат важен: трекер по нему помечает уведомление отправленным и больше к нему
+   * не возвращается. Раньше методы возвращали `void` и молча выходили на пустом
+   * списке получателей, а флаг всё равно выставлялся — сбой выборки в момент
+   * назначения даты навсегда съедал рассылку по этому собранию, не оставляя следа
+   * в журнале (инцидент 2026-08-27).
+   */
+  private async broadcast(
+    workflowId: string,
+    payload: Record<string, unknown>,
+    meet: TrackedMeet,
+    description: string
+  ): Promise<boolean> {
     const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
+    if (users.length === 0) {
+      this.logger.warn(
+        `Рассылка «${description}» по собранию ${meet.hash} (№${meet.id}) не выполнена: получателей не найдено`
+      );
+      return false;
+    }
 
+    let sentCount = 0;
+    for (const user of users) {
+      try {
+        await this.notificationPort.notify({
+          coopname: meet.coopname,
+          workflowId,
+          to: {
+            subscriberId: user.subscriberId,
+            email: user.email,
+            username: user.username,
+          },
+          payload,
+        });
+        sentCount++;
+      } catch (error: any) {
+        this.logger.error(`Ошибка отправки «${description}» пользователю ${user.username}: ${error.message}`);
+      }
+    }
+
+    if (sentCount === 0) {
+      this.logger.warn(
+        `Рассылка «${description}» по собранию ${meet.hash} (№${meet.id}) не дошла ни до одного из ${users.length} пайщиков`
+      );
+      return false;
+    }
+
+    this.logger.info(
+      `Рассылка «${description}» по собранию ${meet.hash} (№${meet.id}): ${sentCount}/${users.length} пайщиков`
+    );
+    return true;
+  }
+
+  // 1. Начальное уведомление при появлении собрания в статусе WAITING_FOR_OPENING
+  async sendInitialNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetDate = DateUtils.formatLocalDate(meet.open_at);
     const meetTime = DateUtils.formatLocalTime(meet.open_at);
@@ -136,36 +188,11 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       ...detailsPart,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetInitial.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(`Ошибка отправки начального уведомления пользователю ${user.username}: ${error.message}`);
-      }
-    }
-
-    this.logger.info(
-      `Отправлено начальное уведомление о собрании ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
-    );
+    return this.broadcast(Workflows.MeetInitial.id, payload, meet, 'новое общее собрание');
   }
 
   // 2. Уведомление за N минут до начала собрания
-  async sendThreeDaysBeforeStartNotification(meet: TrackedMeet): Promise<void> {
-    const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
-
+  async sendThreeDaysBeforeStartNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetDate = DateUtils.formatLocalDate(meet.open_at);
     const meetTime = DateUtils.formatLocalTime(meet.open_at);
@@ -189,36 +216,16 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       ...detailsPart,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetReminderStart.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(`Ошибка отправки уведомления о начале собрания пользователю ${user.username}: ${error.message}`);
-      }
-    }
-
-    this.logger.info(
-      `Отправлено уведомление за ${timeDescription} до начала собрания ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
+    return this.broadcast(
+      Workflows.MeetReminderStart.id,
+      payload,
+      meet,
+      `напоминание за ${timeDescription} до начала`
     );
   }
 
   // 3. Уведомление о начале собрания (при переходе в статус VOTING_IN_PROGRESS)
-  async sendStartNotification(meet: TrackedMeet): Promise<void> {
-    const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
-
+  async sendStartNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetEndDate = DateUtils.formatLocalDate(meet.close_at);
     const meetEndTime = DateUtils.formatLocalTime(meet.close_at);
@@ -236,36 +243,11 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       ...detailsPart,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetStarted.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(`Ошибка отправки уведомления о старте собрания пользователю ${user.username}: ${error.message}`);
-      }
-    }
-
-    this.logger.info(
-      `Отправлено уведомление о начале собрания ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
-    );
+    return this.broadcast(Workflows.MeetStarted.id, payload, meet, 'собрание началось');
   }
 
   // 4. Уведомление за N минут до окончания собрания
-  async sendOneDayBeforeEndNotification(meet: TrackedMeet): Promise<void> {
-    const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
-
+  async sendOneDayBeforeEndNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetEndDate = DateUtils.formatLocalDate(meet.close_at);
     const meetEndTime = DateUtils.formatLocalTime(meet.close_at);
@@ -289,38 +271,16 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       meetUrl,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetReminderEnd.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(
-          `Ошибка отправки уведомления об окончании собрания пользователю ${user.username}: ${error.message}`
-        );
-      }
-    }
-
-    this.logger.info(
-      `Отправлено уведомление за ${timeDescription} до завершения собрания ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
+    return this.broadcast(
+      Workflows.MeetReminderEnd.id,
+      payload,
+      meet,
+      `напоминание за ${timeDescription} до завершения`
     );
   }
 
   // 5. Уведомление о назначении новой даты для повторного собрания
-  async sendRestartNotification(meet: TrackedMeet): Promise<void> {
-    const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
-
+  async sendRestartNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetDate = DateUtils.formatLocalDate(meet.open_at);
     const meetTime = DateUtils.formatLocalTime(meet.open_at);
@@ -340,38 +300,11 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       meetUrl,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetRestart.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(
-          `Ошибка отправки уведомления о повторном собрании пользователю ${user.username}: ${error.message}`
-        );
-      }
-    }
-
-    this.logger.info(
-      `Отправлено уведомление о новой дате повторного собрания ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
-    );
+    return this.broadcast(Workflows.MeetRestart.id, payload, meet, 'назначена новая дата повторного собрания');
   }
 
   // 6. Уведомление о разных вариантах завершения собрания
-  async sendEndNotification(meet: TrackedMeet): Promise<void> {
-    const users = await this.getMeetRecipients();
-    if (users.length === 0) return;
-
+  async sendEndNotification(meet: TrackedMeet): Promise<boolean> {
     const coopShortName = await this.getCoopShortName();
     const meetUrl = this.getNotificationUrl(meet);
 
@@ -401,7 +334,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
 
     if (!endTitle || !endMessage) {
       this.logger.warn(`Неподдерживаемый статус для отправки уведомления о завершении: ${meet.extendedStatus}`);
-      return;
+      return false;
     }
 
     const payload: Workflows.MeetEnded.IPayload = {
@@ -413,30 +346,6 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       endMessage,
     };
 
-    // Отправляем уведомления каждому пользователю в цикле
-    let sentCount = 0;
-    for (const user of users) {
-      try {
-        await this.notificationPort.notify({
-          coopname: meet.coopname,
-          workflowId: Workflows.MeetEnded.id,
-          to: {
-            subscriberId: user.subscriberId,
-            email: user.email,
-            username: user.username,
-          },
-          payload,
-        });
-        sentCount++;
-      } catch (error: any) {
-        this.logger.error(
-          `Ошибка отправки уведомления о завершении собрания пользователю ${user.username}: ${error.message}`
-        );
-      }
-    }
-
-    this.logger.info(
-      `Отправлено уведомление о завершении собрания ${meet.hash} (№${meet.id}) для ${sentCount}/${users.length} пользователей`
-    );
+    return this.broadcast(Workflows.MeetEnded.id, payload, meet, 'собрание завершено');
   }
 }

@@ -24,6 +24,16 @@ export class TokenApplicationService {
   }
 
   /**
+   * Обновляет пару токенов, не меняя личность сессии
+   * @param userId - ID пользователя
+   * @param sessionId - ID существующей сессии (строки refresh-токена)
+   * @returns Пара токенов
+   */
+  async rotateAuthTokens(userId: string, sessionId: string): Promise<TokenPairDomainInterface> {
+    return this.tokenDomainService.rotateAuthTokens(userId, sessionId);
+  }
+
+  /**
    * Генерирует сервисный токен доступа для пользователя
    * @param userId - ID пользователя
    * @returns Сервисный токен
@@ -80,12 +90,31 @@ export class TokenApplicationService {
   }
 
   /**
+   * Находит активные токены пользователя заданного типа (напр. refresh-сессии для Story 3.7)
+   * @param userId - ID пользователя
+   * @param type - тип токена
+   * @returns Список токенов пользователя
+   */
+  async findActiveByUser(userId: string, type: TokenType): Promise<TokenDomainInterface[]> {
+    return this.tokenDomainService.findByUserIdAndType(userId, type);
+  }
+
+  /**
    * Удаляет токены по критериям
    * @param criteria - критерии для удаления
    * @returns Количество удаленных токенов
    */
   async deleteTokens(criteria: Partial<TokenDomainInterface>): Promise<number> {
     return this.tokenDomainService.deleteTokens(criteria);
+  }
+
+  /**
+   * Удаляет токен по его идентификатору (отзыв конкретной сессии, Story 3.7)
+   * @param id - ID строки токена
+   * @returns true, если запись была удалена
+   */
+  async deleteById(id: string): Promise<boolean> {
+    return this.tokenDomainService.deleteById(id);
   }
 
   /**

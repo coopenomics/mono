@@ -21,6 +21,12 @@ type TickOptions = {
 
 type RepositoryKey = { owner: string; repo: string; key: string }
 
+type RepositoryTickPlan = {
+  baseBranch: string
+  branches: string[]
+  headShaByBranch: Map<string, string>
+}
+
 /**
  * Планировщик опроса GitHub по URL репозиториев проектов/компонентов (PRD §6.2.1, эпик 6).
  * Legacy markdown-синхронизация проектов/результатов с GitHub удалена.
@@ -29,6 +35,8 @@ type RepositoryKey = { owner: string; repo: string; key: string }
 export class GitHubSyncSchedulerService implements OnModuleDestroy {
   private readonly logger = new Logger(GitHubSyncSchedulerService.name)
   private cronJob: cron.ScheduledTask | null = null
+  /** Базовая ветка, выбранная для репозитория в прошлый тик, — чтобы не писать в лог одно и то же каждую минуту. */
+  private readonly announcedBaseBranchByKey = new Map<string, string>()
 
   constructor(
     @Inject(PROJECT_REPOSITORY)
@@ -120,15 +128,19 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
     }
 
     for (const repositoryKey of repositoryKeys) {
-      const branches = await this.resolveBranchesToSync(repositoryKey, options)
-      for (const branch of branches) {
+      const plan = await this.buildRepositoryTickPlan(repositoryKey, options)
+      if (!plan) {
+        continue
+      }
+      for (const branch of plan.branches) {
         try {
           await this.gitCommitMarkersSyncService.syncMarkedCommits({
             owner: repositoryKey.owner,
             repo: repositoryKey.repo,
             branch,
-            defaultBranch: options.baseBranch,
+            defaultBranch: plan.baseBranch,
             githubRepositoryKey: repositoryKey.key,
+            headSha: plan.headShaByBranch.get(branch),
           })
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error)
@@ -136,8 +148,8 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
           this.logger.error(`Ошибка синхронизации маркеров для ${repositoryKey.key}@${branch}: ${message}`, trace)
         }
       }
-      if (options.syncAllBranches && branches.length > 1) {
-        await this.cleanupStaleBranchCursors(coopname, repositoryKey.key, branches)
+      if (options.syncAllBranches && plan.branches.length > 1) {
+        await this.cleanupStaleBranchCursors(coopname, repositoryKey.key, plan.branches)
       }
     }
   }
@@ -157,24 +169,92 @@ export class GitHubSyncSchedulerService implements OnModuleDestroy {
     return [...normalizedKeys.values()]
   }
 
-  /** Базовая ветка — первой: её SHA должны стать каноническими раньше фичевых воплощений. */
-  private async resolveBranchesToSync(repositoryKey: RepositoryKey, options: TickOptions): Promise<string[]> {
-    if (!options.syncAllBranches) {
-      return [options.baseBranch]
-    }
+  /**
+   * План опроса репозитория за один тик: базовая ветка (настроенная либо ветка репозитория
+   * по умолчанию), список веток к обходу и их HEAD-SHA из того же листинга.
+   * Базовая ветка идёт первой: её SHA должны стать каноническими раньше фичевых воплощений.
+   * @returns null, если репозиторий в этот тик синхронизировать нечем.
+   */
+  private async buildRepositoryTickPlan(
+    repositoryKey: RepositoryKey,
+    options: TickOptions
+  ): Promise<RepositoryTickPlan | null> {
+    let heads: { name: string; sha: string }[]
     try {
-      const all = await this.githubService.listBranches(repositoryKey.owner, repositoryKey.repo)
-      return [
-        options.baseBranch,
-        ...all.filter((b) => b !== options.baseBranch && this.branchMatchesFilter(b, options.branchFilter)),
-      ]
+      heads = await this.githubService.listBranchHeads(repositoryKey.owner, repositoryKey.repo)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       this.logger.warn(
         `Маркеры Git: не удалось получить список веток ${repositoryKey.key} (${message}) — тик только по ${options.baseBranch}`
       )
-      return [options.baseBranch]
+      return { baseBranch: options.baseBranch, branches: [options.baseBranch], headShaByBranch: new Map() }
     }
+
+    const baseBranch = await this.resolveBaseBranch(repositoryKey, options.baseBranch, heads)
+    if (!baseBranch) {
+      return null
+    }
+
+    const headShaByBranch = new Map(heads.map((h) => [h.name, h.sha]))
+    const branches = options.syncAllBranches
+      ? [
+          baseBranch,
+          ...heads
+            .map((h) => h.name)
+            .filter((b) => b !== baseBranch && this.branchMatchesFilter(b, options.branchFilter)),
+        ]
+      : [baseBranch]
+    return { baseBranch, branches, headShaByBranch }
+  }
+
+  /**
+   * Настройка «Ветка GitHub для синхронизации» одна на кооператив, а репозитории проектов живут
+   * с разными канонами (`dev` у mono, `main` у отдельных продуктов). Если настроенной ветки в
+   * репозитории нет — обходим его ветку по умолчанию, иначе он не синхронизировался бы вовсе.
+   */
+  private async resolveBaseBranch(
+    repositoryKey: RepositoryKey,
+    configuredBranch: string,
+    heads: { name: string; sha: string }[]
+  ): Promise<string | null> {
+    let resolved: string | null
+    try {
+      resolved = await this.githubService.resolveExistingBaseBranch(
+        repositoryKey.owner,
+        repositoryKey.repo,
+        configuredBranch,
+        heads.map((h) => h.name)
+      )
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      this.logger.warn(`Маркеры Git: не удалось определить базовую ветку ${repositoryKey.key} (${message}) — тик пропущен`)
+      return null
+    }
+
+    if (!resolved) {
+      if (this.announceBaseBranch(repositoryKey.key, '')) {
+        this.logger.warn(
+          `Маркеры Git: в ${repositoryKey.key} нет ни ветки «${configuredBranch}», ни доступной ветки по умолчанию — репозиторий не опрашивается`
+        )
+      }
+      return null
+    }
+    const changed = this.announceBaseBranch(repositoryKey.key, resolved)
+    if (changed && resolved !== configuredBranch) {
+      this.logger.log(
+        `Маркеры Git: в ${repositoryKey.key} нет ветки «${configuredBranch}» — обходим ветку репозитория по умолчанию «${resolved}»`
+      )
+    }
+    return resolved
+  }
+
+  /** @returns true, если для этого репозитория выбор базовой ветки ещё не логировался. */
+  private announceBaseBranch(repositoryKey: string, branch: string): boolean {
+    if (this.announcedBaseBranchByKey.get(repositoryKey) === branch) {
+      return false
+    }
+    this.announcedBaseBranchByKey.set(repositoryKey, branch)
+    return true
   }
 
   private async cleanupStaleBranchCursors(coopname: string, repositoryKey: string, branches: string[]): Promise<void> {

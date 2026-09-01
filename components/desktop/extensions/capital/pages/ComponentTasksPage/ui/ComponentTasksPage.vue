@@ -7,22 +7,26 @@
     :is-private='project?.origin === "local"',
     @issue-click='handleIssueClick'
   )
+
+  //- Задача открывается оверлеем поверх списка (?issue= в адресе): список не
+  //- размонтируется, «назад» закрывает оверлей; полная страница — по кнопке
+  IssueOverlay
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert } from 'src/shared/api';
 import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidget';
+import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
-import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 const route = useRoute();
-const router = useRouter();
 const projectStore = useProjectStore();
-const { routeName } = useCapitalWorkspaceRoutes();
+const overlay = useQueryOverlay('issue');
 
 // Состояние проекта
 const project = ref<IProject | null | undefined>(null);
@@ -50,15 +54,10 @@ const loadProject = async () => {
   }
 };
 
-// Обработчик клика по задаче
+// Клик по задаче — оверлей поверх списка; полная страница осталась для
+// прямых ссылок и кнопки «Открыть задачу» в оверлее
 const handleIssueClick = (issue: IIssue) => {
-  router.push({
-    name: routeName('component-issue-description'),
-    params: {
-      project_hash: projectHash.value,
-      issue_hash: issue.issue_hash,
-    },
-  });
+  overlay.open(issue.issue_hash);
 };
 
 // Watcher для синхронизации локального состояния с store

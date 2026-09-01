@@ -87,6 +87,7 @@ import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState } from 'src/shared/lib/composables';
+import { goBackOr } from 'src/shared/lib/navigation';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { EmptyState, BaseButton, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -159,12 +160,7 @@ function formatMoneyAmount(raw: string | number | undefined): string {
 }
 
 const goBack = () => {
-  const back = route.query._backRoute as string | undefined;
-  if (back) {
-    router.push({ name: back });
-    return;
-  }
-  router.push({ name: 'results' });
+  goBackOr(router, { name: 'results' });
 };
 
 const SEGMENTS_EXPANDED_KEY = 'capital_component_results_segments_expanded';

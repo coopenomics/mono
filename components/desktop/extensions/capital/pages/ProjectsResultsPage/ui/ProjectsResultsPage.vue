@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Родитель «Результаты»: список на корне, деталь — child через router-view
 router-view(v-if='!isResultsRoot')
-.results-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
+.results-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
   PageTabs(
     :tabs='tabs',
     :active-key='activeTab',
@@ -309,13 +309,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка: табы на --p-canvas (глобальный .tabbar), контент на --p-surface
-.results-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 .page-surface {
   background: var(--p-surface);
   overflow: auto;

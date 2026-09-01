@@ -29,7 +29,10 @@ import { ORGANIZATION_PORT, type IOrganizationPort,
   InnerAccountType,
   USER_CERTIFICATE_PORT,
   type IUserCertificatePort,
+  VERIFICATION_PORT,
+  type IVerificationPort,
 } from '@coopenomics/innercoop';
+import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -64,6 +67,7 @@ export class MarketplaceOrderDisplayService {
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(USER_CERTIFICATE_PORT) private readonly userCertificate: IUserCertificatePort,
+    @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
@@ -84,6 +88,12 @@ export class MarketplaceOrderDisplayService {
        * должны видеть «сколько реально есть», а не только заказанное.
        */
       withWarehouseQuantity?: boolean;
+      /**
+       * Подмешать вердикт верификации личности получателя для действия выдачи
+       * (`orderer_verification_passed`) — лентам выдачи: оператор до открытия
+       * акта видит, что получателя сперва нужно верифицировать по паспорту.
+       */
+      withOrdererVerification?: boolean;
     }
   ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const result = new Map<string, MarketplaceOrderDisplayFields>();
@@ -129,6 +139,18 @@ export class MarketplaceOrderDisplayService {
           ? this.resolveWarehouseArrivalPrice(orders)
           : Promise.resolve(new Map<string, string>()),
       ]);
+    // Вердикт верификации получателя — по уникальным аккаунтам заказчиков
+    // (несколько заказов одного пайщика проверяются один раз).
+    const verificationByAccount = new Map<string, boolean>();
+    if (opts?.withOrdererVerification) {
+      const ordererAccounts = [...new Set(orders.map((o) => o.orderer_account))];
+      await Promise.all(
+        ordererAccounts.map(async (account) => {
+          const check = await this.verificationPort.checkRequired(account, MARKETPLACE_ISSUE_ACTION_CODE);
+          verificationByAccount.set(account, check.passed);
+        })
+      );
+    }
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     // Обложка товара — первое изображение оффера (как в каталоге/корзине).
     // Резолвим по уникальным офферам, не по заказам — несколько заказов часто
@@ -183,6 +205,9 @@ export class MarketplaceOrderDisplayService {
         delivery_point_lng: branch?.lng ?? null,
         orderer_account: order.orderer_account,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
+        orderer_verification_passed: opts?.withOrdererVerification
+          ? (verificationByAccount.get(order.orderer_account) ?? false)
+          : null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
         group_accumulated_quantity: accumulated,
         group_min_volume: minVolume,

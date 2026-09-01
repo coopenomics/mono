@@ -97,6 +97,7 @@ function buildService(accepted: number, orderOverrides: Partial<MarketplaceOrder
     chainPort,
     assetConfig,
     documentDomainService,
+    { checkRequired: jest.fn().mockResolvedValue({ passed: true, missing: [] }), getVerificationTypes: jest.fn().mockResolvedValue([]) } as any,
     { emit: jest.fn() } as any,
     logger
   );

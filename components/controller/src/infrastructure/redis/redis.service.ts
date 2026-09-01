@@ -31,6 +31,16 @@ export class RedisService implements OnModuleDestroy, RedisPort {
     await this.redisClient.publisher.publish(channel, JSON.stringify(message));
   }
 
+  async setSingleUse(key: string, value: string, ttlSec: number): Promise<boolean> {
+    const res = await this.redisClient.publisher.set(key, value, 'EX', ttlSec, 'NX');
+    return res === 'OK';
+  }
+
+  async consumeSingleUse(key: string): Promise<string | null> {
+    // GETDEL (Redis ≥6.2) — атомарное чтение+удаление, гарантирует single-use.
+    return this.redisClient.publisher.getdel(key);
+  }
+
   async hgetall(key: string): Promise<Record<string, string> | null> {
     if (this.redisClient.streamManager.status !== 'ready') {
       this.logger.error('Клиент StreamManager Redis не готов');

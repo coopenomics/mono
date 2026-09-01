@@ -1,0 +1,208 @@
+# CoopID Story 8.3: аудит OIDC-операций кооператива.
+#
+# Все OIDC-операции (login/logout/выдача токена при авторизации приложения)
+# выполняет authentik — контроллер узнаёт о них ТОЛЬКО через native-события
+# authentik, доставляемые этим webhook'ом на /coop/internal/authentik-events.
+# Контроллер маппит их в audit_events: login→OidcLoginSuccess, logout→OidcLogout,
+# authorize_application→OidcTokenIssued; native security-события login_failed/
+# suspicious_request → Authentik* (зеркало). Токен webhook'а сверяется constant-time.
+#
+# Поля моделей сверены со /blueprints/schema.json образа 2026.2:
+# notificationrule{transports,severity,destination_group}, notificationtransport
+# {mode,webhook_url,webhook_mapping_body/headers,send_once}, eventmatcherpolicy{action}.
+version: 1
+metadata:
+  name: CoopID - OIDC operations audit
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # ── webhook body: action/user/client_ip/app/created ──────────────────────
+  - identifiers:
+      name: coopid-oidc-webhook-body
+    id: coopid-oidc-webhook-body
+    model: authentik_events.notificationwebhookmapping
+    attrs:
+      expression: |
+        event = notification.event
+        ctx = (event.context or {}) if event else {}
+        app = ctx.get("authorized_application")
+        if not isinstance(app, dict):
+            app = {}
+        return {
+            "event_action": event.action if event else None,
+            "event_user": ((event.user or {}).get("username")) if event else None,
+            "client_ip": event.client_ip if event else None,
+            "app": app.get("name"),
+            "created": event.created.isoformat() if event else None,
+        }
+
+  # ── webhook headers: shared-токен из env (как у password-policy) ──────────
+  - identifiers:
+      name: coopid-oidc-webhook-headers
+    id: coopid-oidc-webhook-headers
+    model: authentik_events.notificationwebhookmapping
+    attrs:
+      expression: !Format [
+        "return {'X-Authentik-Webhook-Token': '%s'}",
+        !Env COOPID_WEBHOOK_TOKEN,
+      ]
+
+  - identifiers:
+      name: coopid-oidc-webhook-transport
+    id: coopid-oidc-webhook-transport
+    model: authentik_events.notificationtransport
+    attrs:
+      mode: webhook
+      # Адрес контроллера параметризован: в dev это сервис `coopback` из компоуза,
+      # а на проде контейнер зовётся <coopname>-coopback-blue|green и меняется при
+      # каждой сине-зелёной раскатке — постоянного имени, на которое можно сослаться,
+      # там просто нет. Прод-плейбук подставляет публичный адрес бэкенда
+      # (https://<домен>/backend/...), он всегда указывает на активную версию.
+      webhook_url: !Env [
+        COOPID_WEBHOOK_URL,
+        "http://coopback:2998/coop/internal/authentik-events",
+      ]
+      webhook_mapping_body: !KeyOf coopid-oidc-webhook-body
+      webhook_mapping_headers: !KeyOf coopid-oidc-webhook-headers
+      send_once: true
+
+  # Сервис-приёмник: authentik рассылает notification по ЧЛЕНАМ destination_group;
+  # пустая группа ⇒ транспорт (webhook) не вызывается вовсе. Поэтому нужен хотя бы
+  # один член — неактивный сервис-юзер: доставка webhook'ом надёжна, а реальные
+  # админы (группа «authentik Admins») не получают спам на каждый вход.
+  - identifiers:
+      username: coopid-audit-sink
+    id: coopid-audit-user
+    model: authentik_core.user
+    attrs:
+      name: CoopID Audit Sink (service)
+      is_active: false
+      path: goauthentik.io/coopid/service
+  - identifiers:
+      name: coopid-audit
+    id: coopid-audit-group
+    model: authentik_core.group
+    attrs:
+      name: coopid-audit
+      users:
+        - !KeyOf coopid-audit-user
+
+  # ── login → OidcLoginSuccess ─────────────────────────────────────────────
+  - identifiers:
+      name: coopid-em-login
+    id: coopid-em-login
+    model: authentik_policies_event_matcher.eventmatcherpolicy
+    attrs:
+      action: login
+  - identifiers:
+      name: coopid-oidc-rule-login
+    id: coopid-oidc-rule-login
+    model: authentik_events.notificationrule
+    attrs:
+      severity: notice
+      destination_group: !KeyOf coopid-audit-group
+      transports:
+        - !KeyOf coopid-oidc-webhook-transport
+  - identifiers:
+      policy: !KeyOf coopid-em-login
+      target: !KeyOf coopid-oidc-rule-login
+      order: 0
+    model: authentik_policies.policybinding
+    attrs:
+      enabled: true
+
+  # ── logout → OidcLogout ──────────────────────────────────────────────────
+  - identifiers:
+      name: coopid-em-logout
+    id: coopid-em-logout
+    model: authentik_policies_event_matcher.eventmatcherpolicy
+    attrs:
+      action: logout
+  - identifiers:
+      name: coopid-oidc-rule-logout
+    id: coopid-oidc-rule-logout
+    model: authentik_events.notificationrule
+    attrs:
+      severity: notice
+      destination_group: !KeyOf coopid-audit-group
+      transports:
+        - !KeyOf coopid-oidc-webhook-transport
+  - identifiers:
+      policy: !KeyOf coopid-em-logout
+      target: !KeyOf coopid-oidc-rule-logout
+      order: 0
+    model: authentik_policies.policybinding
+    attrs:
+      enabled: true
+
+  # ── authorize_application → OidcTokenIssued ──────────────────────────────
+  - identifiers:
+      name: coopid-em-authorize
+    id: coopid-em-authorize
+    model: authentik_policies_event_matcher.eventmatcherpolicy
+    attrs:
+      action: authorize_application
+  - identifiers:
+      name: coopid-oidc-rule-authorize
+    id: coopid-oidc-rule-authorize
+    model: authentik_events.notificationrule
+    attrs:
+      severity: notice
+      destination_group: !KeyOf coopid-audit-group
+      transports:
+        - !KeyOf coopid-oidc-webhook-transport
+  - identifiers:
+      policy: !KeyOf coopid-em-authorize
+      target: !KeyOf coopid-oidc-rule-authorize
+      order: 0
+    model: authentik_policies.policybinding
+    attrs:
+      enabled: true
+
+  # ── login_failed → AuthentikLoginFailed (native security) ────────────────
+  - identifiers:
+      name: coopid-em-login-failed
+    id: coopid-em-login-failed
+    model: authentik_policies_event_matcher.eventmatcherpolicy
+    attrs:
+      action: login_failed
+  - identifiers:
+      name: coopid-oidc-rule-login-failed
+    id: coopid-oidc-rule-login-failed
+    model: authentik_events.notificationrule
+    attrs:
+      severity: warning
+      destination_group: !KeyOf coopid-audit-group
+      transports:
+        - !KeyOf coopid-oidc-webhook-transport
+  - identifiers:
+      policy: !KeyOf coopid-em-login-failed
+      target: !KeyOf coopid-oidc-rule-login-failed
+      order: 0
+    model: authentik_policies.policybinding
+    attrs:
+      enabled: true
+
+  # ── suspicious_request → AuthentikSuspiciousRequest (native security) ─────
+  - identifiers:
+      name: coopid-em-suspicious
+    id: coopid-em-suspicious
+    model: authentik_policies_event_matcher.eventmatcherpolicy
+    attrs:
+      action: suspicious_request
+  - identifiers:
+      name: coopid-oidc-rule-suspicious
+    id: coopid-oidc-rule-suspicious
+    model: authentik_events.notificationrule
+    attrs:
+      severity: warning
+      destination_group: !KeyOf coopid-audit-group
+      transports:
+        - !KeyOf coopid-oidc-webhook-transport
+  - identifiers:
+      policy: !KeyOf coopid-em-suspicious
+      target: !KeyOf coopid-oidc-rule-suspicious
+      order: 0
+    model: authentik_policies.policybinding
+    attrs:
+      enabled: true

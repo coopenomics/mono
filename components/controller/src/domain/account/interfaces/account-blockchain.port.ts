@@ -23,6 +23,11 @@ export interface AccountBlockchainPort {
   getUserAccount(username: string): Promise<RegistratorContract.Tables.Accounts.IAccount | null>;
   addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;
   registerBlockchainAccount(candidate: CandidateDomainInterface): Promise<void>;
+  // Верификация личности пайщика на кооперативном участке (registrator::verifyacc),
+  // подписывается аккаунтом верификатора (председатель участка или доверенное лицо)
+  verifyAccount(data: RegistratorContract.Actions.VerifyAccount.IVerifyAccount): Promise<void>;
+  // Отзыв верификации личности председателем кооператива (registrator::unverifyacc)
+  unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void>;
   // Подача заявления на выход пайщика из кооператива (registrator::exitcoop)
   exitCoop(data: ExitCoopDomainInterface): Promise<void>;
   // Текущий процесс выхода пайщика (registrator::exits), либо null

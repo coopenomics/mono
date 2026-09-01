@@ -484,7 +484,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     // Если настроенный маршрут существует, используем его
     if (configuredRoute) {
       // Глобальные маршруты (не принадлежащие конкретному workspace)
-      const globalRoutes = ['signin', 'signup', 'lostkey', 'resetkey', 'invite'];
+      const globalRoutes = ['signin', 'signup', 'lostkey', 'resetkey', 'recover', 'recoverConfirm', 'invite'];
       if (globalRoutes.includes(configuredRoute)) {
         return {
           name: configuredRoute,

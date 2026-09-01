@@ -67,7 +67,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FileUploader } from 'src/shared/ui/domain/FileUploader';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { BaseButton } from 'src/shared/ui/base';
-import { formatAsset2Digits } from 'src/shared/lib/utils';
+import { formatAsset2Digits, readFileForUpload } from 'src/shared/lib/utils';
 import { ExpenseReportState } from 'src/shared/lib/expenses';
 import {
   attachExpenseProofApi,
@@ -225,36 +225,17 @@ async function openFile(file: IExpenseFile): Promise<void> {
   }
 }
 
-async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function toBase64(buffer: ArrayBuffer): string {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 async function upload(): Promise<boolean> {
   const file = pending.value;
   if (!file) return false;
   try {
     uploading.value = true;
-    const buffer = await file.arrayBuffer();
     await attachExpenseProofApi.uploadExpenseFile({
       coopname: system.info.coopname,
       proposal_hash: props.proposalHash,
       item_hash: props.itemHash,
       kind: Zeus.ExpenseFileKind.REPORT_FILE,
-      mime_type: file.type,
-      size_bytes: file.size,
-      checksum_sha256: await sha256Hex(buffer),
-      content_base64: toBase64(buffer),
-      original_filename: file.name,
+      ...(await readFileForUpload(file)),
     });
     pending.value = null;
     return true;

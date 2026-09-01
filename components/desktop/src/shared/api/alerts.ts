@@ -135,7 +135,13 @@ export function FailAlert(error: unknown, text?: string): void {
   });
 }
 
-export function NotifyAlert(title: string, body?: string, avatar?: string): void {
+export function NotifyAlert(
+  title: string,
+  body?: string,
+  avatar?: string,
+  /** Действие тоста (например «Открыть» с переходом к источнику уведомления). */
+  action?: { label: string; handler: () => void },
+): void {
   Notify.create({
     message: title,
     caption: body,
@@ -144,7 +150,9 @@ export function NotifyAlert(title: string, body?: string, avatar?: string): void
     icon: avatar ? undefined : 'notifications',
     position: POSITION,
     timeout: TIMEOUT_INFO + 3000,
-    actions: [CLOSE_ACTION],
+    actions: action
+      ? [{ label: action.label, color: 'white', noDismiss: false, handler: action.handler }, CLOSE_ACTION]
+      : [CLOSE_ACTION],
   });
 }
 

@@ -7,13 +7,29 @@ import type { PaginationResultDomainInterface } from '~/domain/common/interfaces
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import { UseGuards, UnauthorizedException } from '@nestjs/common';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
+import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-provision.dto';
+import { PublicProvisionService } from '../services/public-provision.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 
 @Resolver()
 export class DocumentResolver {
-  constructor(private readonly documentService: DocumentService) {}
+  constructor(
+    private readonly documentService: DocumentService,
+    private readonly publicProvisionService: PublicProvisionService
+  ) {}
+
+  @Query(() => PublicProvisionDTO, {
+    name: 'getPublicProvision',
+    description:
+      'Получить текст публичного положения кооператива (политика обработки персональных данных и другие положения, не зависящие от субъекта)',
+  })
+  async getPublicProvision(
+    @Args('data', { type: () => GetPublicProvisionInputDTO }) data: GetPublicProvisionInputDTO
+  ): Promise<PublicProvisionDTO> {
+    return this.publicProvisionService.getProvisionHtml(data.registry_id);
+  }
 
   @Query(() => paginationResultAggregate)
   @UseGuards(GqlJwtAuthGuard, RolesGuard)

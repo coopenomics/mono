@@ -66,6 +66,14 @@ export class TokenTypeormRepository implements TokenRepository {
   }
 
   /**
+   * Находит токен по ID
+   */
+  async findById(id: string): Promise<TokenDomainInterface | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? entity.toDomainEntity() : null;
+  }
+
+  /**
    * Удаляет токен по ID
    */
   async deleteById(id: string): Promise<boolean> {

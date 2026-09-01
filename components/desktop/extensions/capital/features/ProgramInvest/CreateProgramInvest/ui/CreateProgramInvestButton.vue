@@ -1,10 +1,16 @@
 <template lang="pug">
 div
+  //- Иконка обязательна: в шапке на узком экране канон скрывает текстовый label
+  //- (.topbar__actions .base-btn__label), и кнопка без иконки осталась бы пустой
   BaseButton(
     variant='primary',
     :loading='isGenerating',
+    aria-label='Инвестировать в программу',
     @click='showDialog = true'
-  ) Инвестировать
+  )
+    template(#icon-left)
+      q-icon(name='savings', size='18px')
+    | Инвестировать
 
   BaseDialog(
     v-model='showDialog',

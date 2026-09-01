@@ -1,0 +1,1 @@
+export { CertificateQr } from './ui';

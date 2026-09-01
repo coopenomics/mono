@@ -12,6 +12,9 @@ import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/int
 import { CapitalContract } from 'cooptypes';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
+import { ContentRevisionService } from '../services/content-revision.service';
+import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
+import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
@@ -36,7 +39,8 @@ export class ProjectSyncService
     private readonly eventEmitter: EventEmitter2,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
-    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService
+    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService,
+    private readonly contentRevisionService: ContentRevisionService
   ) {
     super(projectRepository, projectDeltaMapper, logger);
   }
@@ -118,6 +122,17 @@ export class ProjectSyncService
       getAppliedBlockNum(transactResult),
       true
     );
+
+    // Текст пришёл из цепи мимо ContentRevisionService (правка не через API) — фиксируем редакцию CHAIN.
+    try {
+      await this.contentRevisionService.recordExternalIfChanged(
+        ContentEntityType.PROJECT,
+        projectEntity.project_hash,
+        ContentRevisionOrigin.CHAIN
+      );
+    } catch (e: any) {
+      this.logger.warn(`Редакция из цепи для проекта ${hashLower} не зафиксирована: ${e?.message ?? e}`);
+    }
 
     if (projectEntity.isComponent()) {
       this.componentMatrixAnnouncement.onProjectSyncedFromTransact(projectEntity, projectBeforeSync);

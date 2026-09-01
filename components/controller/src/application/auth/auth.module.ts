@@ -13,6 +13,7 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { NotificationModule } from '~/application/notification/notification.module';
 import { TokenApplicationModule } from '~/application/token/token-application.module';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
+import { AuthV2Module } from '~/application/auth-v2/auth-v2.module';
 import config from '~/config/config';
 
 @Module({
@@ -28,6 +29,8 @@ import config from '~/config/config';
     NotificationModule,
     TokenApplicationModule,
     BlockchainModule,
+    // 2FA-гейт легаси-входа по подписи: LoginTwoFactorService (auth-v2).
+    AuthV2Module,
   ],
   providers: [JwtAuthStrategy, HttpJwtAuthGuard, AuthInteractor, AuthResolver, AuthService],
   exports: [PassportModule, JwtModule, HttpJwtAuthGuard],

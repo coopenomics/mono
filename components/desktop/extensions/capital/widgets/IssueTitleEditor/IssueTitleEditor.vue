@@ -62,8 +62,6 @@ q-input(
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/Issue/model'
-import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
-import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui'
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model'
@@ -80,6 +78,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   fieldChange: []
   'update:title': [value: string]
+  /** Кнопка «Сохранить»: страница сохраняет немедленно */
+  save: [value: string]
 }>()
 
 const route = useRoute()
@@ -94,8 +94,6 @@ const isPrivateIssue = computed(() => {
   return project?.origin === 'local'
 })
 
-// Используем composable для обновления задач
-const { debounceSave, saveImmediately } = useUpdateIssue()
 
 // Локальное состояние
 const originalTitle = ref('')
@@ -125,29 +123,9 @@ const hasChanges = computed(() => {
 // Сохранение изменений
 const saveChanges = async () => {
   if (!props.issue) return
-
-  try {
-    isSaving.value = true
-
-    const updateData = {
-      issue_hash: props.issue.issue_hash,
-      title: props.issue.title,
-    }
-
-    await saveImmediately(updateData, projectHash.value)
-
-    // Обновляем оригинальное состояние после успешного сохранения
-    if (props.issue) {
-      originalTitle.value = props.issue.title
-    }
-
-    SuccessAlert('Название задачи сохранено успешно')
-  } catch (error) {
-    console.error('Ошибка при сохранении названия задачи:', error)
-    FailAlert('Не удалось сохранить название задачи')
-  } finally {
-    isSaving.value = false
-  }
+  // Сохраняет страница (один путь с base_rev и слиянием), виджет только сообщает
+  emit('save', props.issue.title)
+  originalTitle.value = props.issue.title
 }
 
 // Сброс изменений
@@ -163,14 +141,7 @@ const resetChanges = () => {
 const handleTitleChange = () => {
   if (!props.issue) return
 
-  const updateData = {
-    issue_hash: props.issue.issue_hash,
-    title: props.issue.title,
-  }
-
-  // Запускаем авто-сохранение с задержкой
-  debounceSave(updateData, projectHash.value)
-
+  // Автосохранение делает страница по update:title (с base_rev и слиянием)
   emit('fieldChange')
 }
 

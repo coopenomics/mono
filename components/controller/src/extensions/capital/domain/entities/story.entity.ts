@@ -20,6 +20,7 @@ export class StoryDomainEntity extends BaseDomainEntity<IStoryDatabaseData> {
   public issue_hash?: string; // Хеш задачи (если история привязана к задаче)
   public created_by: string; // Имя пользователя, создавшего историю
   public sort_order: number; // Порядок сортировки
+  public content_rev: number; // Редакция содержимого
   public content_format: StoryContentFormat; // Формат содержимого истории
   public matrix_requirement_announcement_events?: IStoryMatrixRequirementAnnouncementEvent[];
   /**
@@ -42,6 +43,7 @@ export class StoryDomainEntity extends BaseDomainEntity<IStoryDatabaseData> {
     this.issue_hash = databaseData.issue_hash;
     this.created_by = databaseData.created_by;
     this.sort_order = databaseData.sort_order;
+    this.content_rev = databaseData.content_rev ?? 0;
     this.matrix_requirement_announcement_events = databaseData.matrix_requirement_announcement_events;
   }
 }

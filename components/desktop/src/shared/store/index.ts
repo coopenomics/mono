@@ -17,7 +17,25 @@ interface IGlobalStore {
   tokens: Ref<ITokens | undefined>;
   wif: Ref<PrivateKey | undefined>;
   setWif: (newUsername: string, key: string) => Promise<void>;
+  useSessionKey: (account: string, key: string) => void;
+  clearSessionKey: () => void;
+  /**
+   * Ключ для подписи, с отпиранием кошелька по необходимости. Единственный
+   * правильный способ добраться до ключа: `wif` напрямую не знает, что кошелёк
+   * заперт, и подпись падала бы вместо запроса PIN-кода.
+   */
+  ensureSigningKey: () => Promise<string>;
+  /** Регистрирует отпирание кошелька (ставит контур CoopID при инициализации). */
+  setUnlockProvider: (provider: (() => Promise<void>) | null) => void;
   setTokens: (newTokens: ITokens) => Promise<void>;
+  /**
+   * Стирает легаси-креды (ключ/токены в IndexedDB), НЕ трогая ключ сессии в
+   * памяти. Для перехода «ключ → пароль» в активной сессии: CoopID-сессия уже
+   * установлена и подписывает ключом из памяти, а легаси-артефакты обязаны
+   * исчезнуть — иначе `session.init()` после перезагрузки предпочтёт их и
+   * соберёт легаси-сессию поверх отозванных сервером токенов.
+   */
+  clearLegacyCredentials: () => Promise<void>;
   logout: () => Promise<void>;
   init: () => void;
   signDigest: (digest: string) => IMessageSignature;
@@ -107,6 +125,59 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     username.value = newUsername;
   };
 
+  /**
+   * Кладёт ключ входа по паролю в память приложения — БЕЗ записи в браузерное
+   * хранилище (этим `useSessionKey` и отличается от `setWif`).
+   *
+   * Зачем: подпись документов кооператива собирается классом из SDK, который берёт
+   * ключ строкой отсюда. При входе по паролю ключ живёт в отдельном хранилище нового
+   * контура и сюда не попадал — поэтому любая подпись (повестка совета, заявления,
+   * акты) падала с «Приватный ключ не установлен».
+   *
+   * Почему не `setWif`: тот шифрует ключ константой и кладёт в IndexedDB. Для нового
+   * контура это ровно та копия, от которой мы уходим: ключ обязан лежать на сервере
+   * зашифрованным паролем пайщика и подниматься в память только на время сессии.
+   */
+  const useSessionKey = (account: string, key: string) => {
+    wif.value = PrivateKey.fromString(key);
+    username.value = account;
+    client.setWif(account, key);
+  };
+
+  /** Убирает ключ из памяти, не трогая браузерное хранилище (авто-лок, запирание). */
+  const clearSessionKey = () => {
+    wif.value = undefined;
+  };
+
+  /**
+   * Отпирание кошелька, зарегистрированное контуром CoopID.
+   *
+   * Инъекция, а не прямой вызов: этот стор лежит слоем ниже сессии и знать о ней
+   * не должен. Тем же приёмом сюда приходит и источник access-токена.
+   */
+  let unlockProvider: (() => Promise<void>) | null = null;
+  const setUnlockProvider = (provider: (() => Promise<void>) | null) => {
+    unlockProvider = provider;
+  };
+
+  /**
+   * Ключ для подписи; если кошелёк заперт — сначала отпирает его.
+   *
+   * Подпись документов (повестка совета, заявления, акты) собирается классом SDK,
+   * который берёт ключ строкой. Раньше её брали прямо из `wif`, и запертый кошелёк
+   * ронял подпись с «Приватный ключ не установлен» вместо того, чтобы спросить
+   * PIN-код. Отпирание попутно продлевает получасовой отсчёт — как и любая другая
+   * подпись.
+   */
+  const ensureSigningKey = async (): Promise<string> => {
+    // Одним условием, а не ранним `return` на заполненном ключе: после раннего
+    // выхода TypeScript считает ключ навсегда пустым и не верит, что отпирание
+    // его вернуло (тип схлопывается в never).
+    if (!wif.value && unlockProvider) await unlockProvider();
+    if (!wif.value) throw new Error('Приватный ключ не установлен');
+    return wif.value.toString();
+  };
+
   const setTokens = async (newTokens: ITokens) => {
     const encryptedTokens = await encrypt(JSON.stringify(newTokens), password);
     await setToIndexedDB(
@@ -118,14 +189,18 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     tokens.value = newTokens;
   };
 
-  const logout = async () => {
-    username.value = '';
-    wif.value = undefined;
+  const clearLegacyCredentials = async () => {
     hasCreditials.value = false;
     tokens.value = undefined;
     await setToIndexedDB(info.coopname, 'store', 'encryptedKey', '');
     await setToIndexedDB(info.coopname, 'store', 'encryptedUsername', '');
     await setToIndexedDB(info.coopname, 'store', 'encryptedTokens', '');
+  };
+
+  const logout = async () => {
+    username.value = '';
+    wif.value = undefined;
+    await clearLegacyCredentials();
     // Сбрасываем активный workspace из localStorage
     localStorage.removeItem('monocoop-active-workspace');
   };
@@ -255,6 +330,11 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
     hasCreditials,
     tokens,
     setWif,
+    useSessionKey,
+    clearSessionKey,
+    clearLegacyCredentials,
+    ensureSigningKey,
+    setUnlockProvider,
     setTokens,
     logout,
     signDigest,

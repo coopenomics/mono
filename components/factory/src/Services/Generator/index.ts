@@ -230,9 +230,31 @@ export interface IPDFService {
     translation: ITranslations,
     meta: IMetaDocument,
   ) => Promise<IGeneratedDocument>
+  renderHtml: (
+    template: string,
+    combinedVars: any,
+    translation: ITranslations,
+  ) => string
 }
 
 export class PDFService implements IPDFService {
+  /**
+   * Подстановка переводов и переменных без сборки PDF — ровно первый шаг
+   * generateDocument. Нужен там, где документ показывают на экране, а не
+   * отдают на подпись: публичная страница положения берёт тот же шаблон из
+   * цепи и тот же движок подстановки, поэтому разойтись с подписываемым
+   * документом не может.
+   */
+  public renderHtml(
+    template: string,
+    combinedVars: any,
+    translation: ITranslations,
+  ): string {
+    const templateEngine = new TemplateEngine(translation)
+
+    return templateEngine.renderTemplate(template, combinedVars)
+  }
+
   public async generateDocument(
     template: string,
     combinedVars: any,

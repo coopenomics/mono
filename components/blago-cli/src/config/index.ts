@@ -11,7 +11,7 @@ import {
 } from './install-bundled-agent-homes.js'
 import { blagoDir, CONFIG_FILE, configPath, gitignorePath } from './paths.js'
 
-export type { BlagoAgentHomeRoot } from './install-bundled-agent-homes.js'
+export type { BlagoGlobalConfigFile } from './global-config.js'
 
 export type BlagoEnvironmentName = 'dev' | 'testnet' | 'production' | (string & {})
 
@@ -28,6 +28,12 @@ export interface BlagoRemoteProfile {
   readonly label?: string
   /** Short name кооператива для этой среды (фильтры Capital / pull). У разных сред может быть разное значение. */
   readonly coopname?: string
+  /**
+   * Issuer authentik для входа по паролю (CoopID). По умолчанию — origin от
+   * api_url (same-origin топология кооператива); поле нужно только средам,
+   * где authentik живёт на другом адресе.
+   */
+  readonly issuer?: string
 }
 
 export interface BlagoConfigFile {
@@ -177,7 +183,6 @@ export function getActiveProfile(cfg: BlagoConfigFile): BlagoRemoteProfile {
   return profile
 }
 
-export type { BlagoGlobalConfigFile } from './global-config.js'
 export {
   buildDefaultGlobalConfig,
   defaultBlagoHomeDataRoot,
@@ -192,6 +197,7 @@ export {
   resolveActiveWorkspaceRoot,
   writeGlobalBlagoConfig,
 } from './global-config.js'
+export type { BlagoAgentHomeRoot } from './install-bundled-agent-homes.js'
 
 export async function initBlagoGlobalLayout(
   options?: {

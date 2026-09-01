@@ -42,6 +42,13 @@ export interface Permission {
   perm_name: string;
   parent: string;
   required_auth: Authority;
+  /**
+   * Время последнего изменения permission (block_timestamp, ISO-8601). Отдаётся
+   * нодой в `get_account`. По нему проверяется финализация активного ключа
+   * (Story 9.6): пока last_updated новее границы LIB — смена ключа реверсивна.
+   * Опционально: старые ноды/моки могут не возвращать поле.
+   */
+  last_updated?: string;
 }
 export interface PermissionLevel {
   actor: string;

@@ -18,6 +18,7 @@ import type { CommitFilterInputDTO } from '../dto/generation/commit-filter.input
 import type { CycleFilterInputDTO } from '../dto/generation/cycle-filter.input';
 import type { GetIssueByIdInputDTO } from '../dto/generation/get-issue-by-id.input';
 import type { GetCommitByIdInputDTO } from '../dto/generation/get-commit-by-id.input';
+import { FAVORITE_REPOSITORY, type FavoriteRepository } from '../../domain/repositories/favorite.repository';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
@@ -67,6 +68,9 @@ import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
+import { ContentRevisionService } from './content-revision.service';
+import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
+import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { generateUniqueHash } from '@coopenomics/extension-kit';
@@ -81,6 +85,7 @@ export class GenerationService {
 
   constructor(
     private readonly generationInteractor: GenerationInteractor,
+    private readonly contentRevisionService: ContentRevisionService,
     @Inject(STORY_REPOSITORY)
     private readonly storyRepository: StoryRepository,
     @Inject(ISSUE_REPOSITORY)
@@ -109,7 +114,9 @@ export class GenerationService {
     private readonly matrixRoomMessaging: IMatrixRoomMessagingPort | undefined,
     @Optional()
     @Inject(PROJECT_COMMUNICATION_ARTIFACTS_PORT)
-    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined
+    private readonly projectCommArtifacts: IProjectCommunicationArtifactsPort | undefined,
+    @Inject(FAVORITE_REPOSITORY)
+    private readonly favoriteRepository: FavoriteRepository
   ) {}
 
   private rowsToLinkedCommitSummaries(rows: IssueLinkedGitCommitRow[]): IssueLinkedGitCommitSummaryDTO[] {
@@ -344,6 +351,7 @@ export class GenerationService {
       issue_hash: story.issue_hash,
       created_by: story.created_by,
       sort_order: story.sort_order,
+      content_rev: story.content_rev,
       block_num: story.block_num,
       present: story.present,
       _created_at: story._created_at,
@@ -560,7 +568,12 @@ export class GenerationService {
   /**
    * Обновление истории
    */
-  async updateStory(data: UpdateStoryInputDTO, username: string, currentUser?: IMonoAccount): Promise<StoryOutputDTO> {
+  async updateStory(
+    data: UpdateStoryInputDTO,
+    username: string,
+    currentUser?: IMonoAccount,
+    opts?: { restored_from_rev?: number }
+  ): Promise<StoryOutputDTO> {
     // Получаем существующую историю
     const existingStory = await this.storyRepository.findByStoryHash(data.story_hash);
 
@@ -595,8 +608,22 @@ export class GenerationService {
       }
     }
 
-    const nextTitle = data.title ?? existingStory.title;
-    const titleChanged = data.title !== undefined && data.title !== existingStory.title;
+    // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService)
+    const write = await this.contentRevisionService.prepareWrite({
+      entity_type: ContentEntityType.STORY,
+      entity_hash: existingStory.story_hash,
+      author: username,
+      origin: data.origin ?? ContentRevisionOrigin.WEB,
+      base_rev: data.base_rev,
+      restored_from_rev: opts?.restored_from_rev,
+      incoming: {
+        title: data.title,
+        description: data.description === undefined ? undefined : (nextDescription ?? ''),
+      },
+    });
+    const nextTitle = write.title;
+    nextDescription = write.description;
+    const titleChanged = nextTitle !== existingStory.title;
 
     // Создаем обновленные данные для доменной сущности
     const updatedStoryDatabaseData: IStoryDatabaseData = {
@@ -612,6 +639,7 @@ export class GenerationService {
       issue_hash: issueHash && issueHash.trim() !== '' ? issueHash : undefined,
       created_by: existingStory.created_by,
       sort_order: data.sort_order ?? existingStory.sort_order,
+      content_rev: write.content_rev,
       block_num: existingStory.block_num,
       present: existingStory.present,
       matrix_requirement_announcement_events: existingStory.matrix_requirement_announcement_events,
@@ -856,6 +884,8 @@ export class GenerationService {
     await this.assertCanDeleteStoryRequirement(storyEntity, currentUser);
     const matrixRefs = storyEntity.matrix_requirement_announcement_events ?? [];
     await this.storyRepository.delete(storyEntity._id);
+    // Снимаем удалённый артефакт с избранного у всех пайщиков
+    await this.favoriteRepository.removeAllByTargetHash(storyEntity.story_hash);
     void this.removeStoryMatrixAnnouncements(matrixRefs);
     return true;
   }
@@ -1085,6 +1115,7 @@ export class GenerationService {
       status: issue.status,
       estimate: issue.estimate ?? 0,
       sort_order: issue.sort_order,
+      content_rev: issue.content_rev,
       created_by: issue.created_by,
       creators: [...issue.creators],
       submaster: issue.submaster,
@@ -1120,7 +1151,8 @@ export class GenerationService {
   async updateIssue(
     data: UpdateIssueInputDTO,
     username: string,
-    currentUser?: IMonoAccount
+    currentUser?: IMonoAccount,
+    opts?: { restored_from_rev?: number }
   ): Promise<IssueOutputDTO> {
     // Получаем существующую задачу
     const existingIssue = await this.issueRepository.findByIssueHash(data.issue_hash);
@@ -1220,14 +1252,25 @@ export class GenerationService {
         currentUser?.role
       );
     }
+    // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService)
+    const write = await this.contentRevisionService.prepareWrite({
+      entity_type: ContentEntityType.ISSUE,
+      entity_hash: existingIssue.issue_hash,
+      author: username,
+      origin: data.origin ?? ContentRevisionOrigin.WEB,
+      base_rev: data.base_rev,
+      restored_from_rev: opts?.restored_from_rev,
+      incoming: { title: data.title, description: data.description },
+    });
     // Создаем обновленные данные для доменной сущности
     const updatedIssueDatabaseData: IIssueDatabaseData = {
       _id: existingIssue._id,
       id: existingIssue.id,
       issue_hash: existingIssue.issue_hash,
       coopname: existingIssue.coopname,
-      title: data.title ?? existingIssue.title,
-      description: data.description ?? existingIssue.description,
+      title: write.title,
+      description: write.description,
+      content_rev: write.content_rev,
       priority: data.priority ?? existingIssue.priority,
       status: data.status ?? existingIssue.status,
       estimate: data.estimate ?? existingIssue.estimate,
@@ -1387,6 +1430,8 @@ export class GenerationService {
     // их не трогаем.
     await this.timeTrackingInteractor.cleanupIssueTimeEntries(issueHash);
     await this.issueRepository.delete(issueEntity._id);
+    // Снимаем удалённую задачу с избранного у всех пайщиков
+    await this.favoriteRepository.removeAllByTargetHash(issueEntity.issue_hash);
     return true;
   }
 

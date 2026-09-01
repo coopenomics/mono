@@ -100,7 +100,7 @@ export class CooperativeOperatorAccountDTO
   @IsString()
   public readonly registered_at!: string;
 
-  @Field(() => [VerificationDTO], { description: 'Дата регистрации' })
+  @Field(() => [VerificationDTO], { description: 'Верификации аккаунта (уровни подтверждения личности)' })
   @IsString()
   public readonly verifications!: VerificationDTO[];
 

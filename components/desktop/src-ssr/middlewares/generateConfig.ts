@@ -27,6 +27,18 @@ export default ssrMiddleware(({ app }) => {
     SENTRY_DSN: process.env.SENTRY_DSN as string,
     OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,
     YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
+    // CoopID (Эпик 5): без этих трёх на клиенте вход по паролю недоступен —
+    // `loginWithPassword` проверяет `env.COOPID_ISSUER` и отдаёт «войдите по
+    // ключу доступа». Список здесь свой, а не из createEnvObject(): SPA и SSR
+    // получают переменные разными путями, и сводить их в один источник —
+    // отдельная задача. Поэтому при добавлении переменной клиента её нужно
+    // дописать в ОБА middleware (injectEnv + generateConfig) и в
+    // createEnvObject — иначе она просто не доедет до браузера.
+    // 22.08.2026: так и вышло — переменные стояли в контейнере, а до браузера
+    // не доезжали; пайщик после ротации ключа остался без входа вовсе.
+    COOPID_ISSUER: process.env.COOPID_ISSUER as string,
+    COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
+    COOPID_TRUST_ANCHOR_KEY: process.env.COOPID_TRUST_ANCHOR_KEY as string,
   });
 
   // 1. Middleware для инъекции в HTML (основной способ)

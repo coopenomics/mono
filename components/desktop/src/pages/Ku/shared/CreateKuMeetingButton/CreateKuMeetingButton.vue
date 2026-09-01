@@ -1,6 +1,14 @@
 <template lang="pug">
-BaseButton(variant='primary', size='sm', @click='emit("click")')
-  q-icon.q-mr-xs(name='add')
+//- Иконка идёт слотом #icon-left, а не внутрь подписи: в шапке на узком экране
+//- канон скрывает .base-btn__label вместе со всем его содержимым
+BaseButton(
+  variant='primary',
+  size='sm',
+  aria-label='Объявить собрание',
+  @click='emit("click")'
+)
+  template(#icon-left)
+    q-icon(name='add', size='18px')
   | Объявить собрание
 </template>
 

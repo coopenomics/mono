@@ -2,7 +2,8 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
+import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -71,6 +72,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly accountPort: IAccountPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
+    @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
@@ -291,12 +293,28 @@ export class MarketplaceNotificationService implements OnModuleInit {
       } catch {
         /* оставляем braname */
       }
+      // Верификация личности (105-28): неверифицированному получателю напоминаем
+      // взять паспорт — без базового уровня оператор не откроет выдачу.
+      let passportReminder = '';
+      try {
+        const check = await this.verificationPort.checkRequired(
+          event.orderer_account,
+          MARKETPLACE_ISSUE_ACTION_CODE
+        );
+        if (!check.passed) {
+          passportReminder =
+            ' Возьмите с собой паспорт: при первом получении оператор подтвердит вашу личность — это делается один раз.';
+        }
+      } catch {
+        /* напоминание — best-effort, уведомление важнее */
+      }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+        passportReminder,
       };
       await this.notificationSenderService.notifyUser(
         event.orderer_account,

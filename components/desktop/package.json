@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/desktop",
-  "version": "2026.8.19-3",
+  "version": "2026.8.29",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
@@ -27,6 +27,7 @@
     "start": "node -r ./alias-resolver.js dist/ssr/index.js"
   },
   "dependencies": {
+    "@coopenomics/auth": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/sdk": "workspace:*",
     "@dicebear/collection": "^9.0.1",

@@ -7,6 +7,7 @@
       variant='accent'
     ) {{ badgeLabel }}
     q-menu(
+      ref='menuRef',
       class='notification-center-menu',
       anchor='bottom right',
       self='top right',
@@ -49,7 +50,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import type { QMenu } from 'quasar';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { NotificationCenter as NotificationPanel } from 'src/shared/ui/domain/NotificationCenter';
@@ -60,6 +63,8 @@ import { useNotificationInboxStore } from './model';
 const store = useNotificationInboxStore();
 const session = useSessionStore();
 const push = useWebPushNotifications();
+const router = useRouter();
+const menuRef = ref<QMenu | null>(null);
 
 // Локальные алиасы: вложенные под push.* ref'ы в шаблоне не авто-разворачиваются.
 const pushSupport = computed(() => push.support.value);
@@ -96,6 +101,13 @@ function onOpen(): void {
 
 function onOpenNotification(id: string): void {
   void store.markRead(id);
+  // Уведомление с deep-link'ом не просто «прочитывается» — ведёт к действию
+  // (например, «вход с нового устройства» → активные сессии в настройках).
+  const item = store.items.find((i) => i.id === id);
+  if (item?.link) {
+    menuRef.value?.hide();
+    void router.push(item.link);
+  }
 }
 
 function onMarkAllRead(): void {

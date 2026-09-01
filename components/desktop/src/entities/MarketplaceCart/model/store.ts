@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { Classes } from '@coopenomics/sdk'
 import { useGlobalStore } from 'src/shared/store'
+import { useSessionStore } from 'src/entities/Session'
 import { api, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
 
@@ -112,15 +113,17 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
-      const global = useGlobalStore()
-      const wifKey = global.wif?.toString()
-      if (!wifKey) throw new Error('Приватный ключ не найден. Войдите в кооператив заново.')
+      // Заперт кошелёк — спросит PIN-код, а не уронит оформление заказа.
+      const wifKey = await useGlobalStore().ensureSigningKey()
 
+      // Имя подписанта берём из сессии: в контуре удостоверения глобальный стор
+      // пуст, и сессия сама подставляет аккаунт из хранилища ключей.
+      const username = useSessionStore().username
       const payloads = await api.getCheckoutSignablePayloads()
       const signer = new Classes.Document(wifKey)
       const lines: ICheckoutSignedLine[] = []
       for (const p of payloads) {
-        const signed = await signer.signDocument(p.document, global.username, 1)
+        const signed = await signer.signDocument(p.document, username, 1)
         lines.push({
           offer_id: p.offer_id,
           package_id: p.package_id,

@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
+import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
@@ -36,6 +37,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
 @Module({
   imports: [RedisModule, EventsInfrastructureModule, VaultInfrastructureModule, VaultDomainModule],
   providers: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
     DraftRegistrySyncService,
@@ -92,6 +94,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     BlockchainArchiveRetentionService,
   ],
   exports: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
     BlockchainRepeatService,

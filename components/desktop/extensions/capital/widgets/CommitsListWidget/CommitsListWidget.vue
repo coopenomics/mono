@@ -358,7 +358,6 @@ const navigateToProject = (projectHash?: string) => {
   router.push({
     name: 'project-description',
     params: { project_hash: projectHash },
-    query: { _useHistoryBack: 'true' },
   });
 };
 
@@ -367,7 +366,6 @@ const navigateToComponent = (projectHash?: string) => {
   router.push({
     name: 'component-description',
     params: { project_hash: projectHash },
-    query: { _useHistoryBack: 'true' },
   });
 };
 
@@ -379,7 +377,6 @@ const goToIssue = (projectHash: string | undefined, issueHash: string) => {
       project_hash: projectHash,
       issue_hash: issueHash,
     },
-    query: { _useHistoryBack: 'true' },
   });
 };
 

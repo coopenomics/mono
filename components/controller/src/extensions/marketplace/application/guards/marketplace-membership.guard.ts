@@ -62,11 +62,14 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // членом без ролей.
     const bypass = hasServerSecret(request?.headers);
 
-    if (!bypass && !user?.username) {
-      throw new UnauthorizedException('Требуется авторизованный пользователь');
-    }
-
-    if (bypass && !user?.username) {
+    // Обе ветки «пользователя в запросе нет» разбираются в одном условии: так
+    // TypeScript сужает `user` до заполненного, а `username` — до строки для
+    // всего кода ниже (два раздельных `if` он в сужение не складывает).
+    const username = user?.username;
+    if (!user || !username) {
+      if (!bypass) {
+        throw new UnauthorizedException('Требуется авторизованный пользователь');
+      }
       const serviceMember: IMarketplaceCurrentMember = {
         username: '',
         core_roles: [],

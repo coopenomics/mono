@@ -48,6 +48,8 @@ const rawIssueSelector = {
   status: true,
   estimate: true,
   sort_order: true,
+  /** Редакция содержимого — передаётся как base_rev при сохранении */
+  content_rev: true,
   created_by: true,
   submaster: true,
   creators: true,

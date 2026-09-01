@@ -15,6 +15,13 @@ export function useProjectLoader() {
   // Реактивное состояние проекта
   const project: Ref<IProject | null | undefined> = ref(null);
 
+  /**
+   * Попытка загрузки завершилась, а проекта нет — он удалён или недоступен.
+   * Без этого признака страница не отличает «ещё грузится» от «уже никогда
+   * не загрузится» и показывает скелетон бесконечно.
+   */
+  const notFound = ref(false);
+
   // Получаем hash проекта из параметров маршрута
   const projectHash = computed(() => route.params.project_hash as string);
 
@@ -31,16 +38,19 @@ export function useProjectLoader() {
         (loaded as IProject | undefined) ??
         projectStore.getProject(projectHash.value) ??
         null;
+      notFound.value = !project.value;
     } catch (error) {
       console.error('Ошибка при загрузке проекта:', error);
       FailAlert('Не удалось загрузить проект');
       project.value = null;
+      notFound.value = true;
     }
   };
 
   // Watcher для изменения projectHash
   watch(projectHash, async (newHash, oldHash) => {
     if (newHash && newHash !== oldHash) {
+      notFound.value = false;
       await loadProject();
     }
   });
@@ -49,7 +59,10 @@ export function useProjectLoader() {
   watch(
     () => projectStore.entities[projectHash.value],
     (entity) => {
-      if (entity) project.value = entity;
+      if (entity) {
+        project.value = entity;
+        notFound.value = false;
+      }
     },
   );
 
@@ -57,6 +70,7 @@ export function useProjectLoader() {
   return {
     project,
     projectHash,
+    notFound,
     loadProject,
   };
 }

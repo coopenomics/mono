@@ -25,6 +25,7 @@ function makeRepository(overrides: Partial<FavoriteRepository> = {}): FavoriteRe
     remove: jest.fn().mockResolvedValue(undefined),
     findByUserWithTargets: jest.fn().mockResolvedValue([]),
     targetExists: jest.fn().mockResolvedValue(true),
+    removeAllByTargetHash: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -109,6 +110,108 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ target_hash: 'live00', title: 'Живой проект' });
+  });
+
+  // cap.fav.side.05
+  it('за целями ходит только за живыми: удалённая сущность остаётся строкой в проекции с present=false', async () => {
+    const favoritesRepo = {
+      find: jest.fn().mockResolvedValue([
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.COMPONENT,
+          target_hash: 'dead00',
+          created_at: CREATED_AT,
+        },
+      ]),
+    };
+    // Проекция удалённого компонента никуда не делась — её отсекает условие present
+    const projectRepo = { find: jest.fn().mockResolvedValue([]) };
+    const issueRepo = { find: jest.fn().mockResolvedValue([]) };
+    const storyRepo = { find: jest.fn().mockResolvedValue([]) };
+
+    const repository = new FavoriteTypeormRepository(
+      favoritesRepo as never,
+      projectRepo as never,
+      issueRepo as never,
+      storyRepo as never
+    );
+
+    const result = await repository.findByUserWithTargets('voskhod', 'ant');
+
+    expect(result).toEqual([]);
+    expect(projectRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ present: true }) })
+    );
+  });
+
+  // cap.fav.side.09
+  it('задача и артефакт живут офчейн: их не отсекает present, иначе избранное пишется и не читается', async () => {
+    const favoritesRepo = {
+      find: jest.fn().mockResolvedValue([
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.ISSUE,
+          target_hash: 'issue1',
+          created_at: CREATED_AT,
+        },
+        {
+          coopname: 'voskhod',
+          username: 'ant',
+          target_type: FavoriteTargetType.ARTIFACT,
+          target_hash: 'story1',
+          created_at: CREATED_AT,
+        },
+      ]),
+    };
+    const projectRepo = { find: jest.fn().mockResolvedValue([]) };
+    // У офчейн-сущностей present остаётся дефолтным false: флаг ведёт только блокчейн-проекция
+    const issueRepo = {
+      find: jest.fn().mockResolvedValue([
+        { issue_hash: 'issue1', title: 'Задача', project_hash: 'proj1', present: false },
+      ]),
+    };
+    const storyRepo = {
+      find: jest.fn().mockResolvedValue([
+        { story_hash: 'story1', title: 'Артефакт', issue_hash: 'issue1', present: false },
+      ]),
+    };
+
+    const repository = new FavoriteTypeormRepository(
+      favoritesRepo as never,
+      projectRepo as never,
+      issueRepo as never,
+      storyRepo as never
+    );
+
+    const result = await repository.findByUserWithTargets('voskhod', 'ant');
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ target_hash: 'issue1', title: 'Задача' });
+    expect(result[1]).toMatchObject({ target_hash: 'story1', title: 'Артефакт' });
+    expect(issueRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
+    );
+    expect(storyRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
+    );
+  });
+
+  // cap.fav.side.06
+  it('снятие цели с избранного у всех пайщиков идёт по хэшу в нижнем регистре', async () => {
+    const favoritesRepo = { delete: jest.fn().mockResolvedValue(undefined) };
+
+    const repository = new FavoriteTypeormRepository(
+      favoritesRepo as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never,
+      { find: jest.fn() } as never
+    );
+
+    await repository.removeAllByTargetHash('ABC123');
+
+    expect(favoritesRepo.delete).toHaveBeenCalledWith({ target_hash: 'abc123' });
   });
 });
 

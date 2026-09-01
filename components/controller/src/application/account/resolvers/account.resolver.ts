@@ -1,4 +1,7 @@
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Mutation, ResolveField, Parent } from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
+import type { IVaultRepository } from '~/domain/auth-v2/vault/vault-repository.port';
 import { AccountService } from '../services/account.service';
 import { AccountDTO } from '../dto/account.dto';
 import { GetAccountInputDTO } from '../dto/get-account-input.dto';
@@ -19,7 +22,23 @@ export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Acco
 
 @Resolver(() => AccountDTO)
 export class AccountResolver {
-  constructor(private readonly accountService: AccountService) {}
+  constructor(
+    private readonly accountService: AccountService,
+    @Inject(VAULT_REPOSITORY) private readonly vaultRepo: IVaultRepository
+  ) {}
+
+  @ResolveField('has_password', () => Boolean, {
+    description:
+      'Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю.',
+  })
+  async hasPassword(@Parent() account: AccountDTO): Promise<boolean> {
+    // Признак — существование зашифрованного vault-блоба пайщика: без него вход
+    // по паролю невозможен по построению. Поле вычисляется только когда явно
+    // запрошено клиентом — реестры аккаунтов, не выбирающие его, не платят
+    // лишним запросом на строку.
+    const blob = await this.vaultRepo.find({ subject_type: 'participant', subject_id: account.username });
+    return blob !== null;
+  }
 
   @Query(() => AccountDTO, {
     name: 'getAccount',

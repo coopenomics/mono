@@ -464,6 +464,11 @@ export class BaseProjectOutputDTO extends BaseOutputDTO {
   })
   priority!: ProjectPriority;
 
+  @Field(() => Int, {
+    description: 'Редакция содержимого (title/description); передаётся как base_rev при сохранении',
+  })
+  content_rev!: number;
+
   @Field(() => String, {
     description: 'Хеш проекта',
   })
