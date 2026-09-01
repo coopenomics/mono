@@ -182,3 +182,23 @@ cases:
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
     status: passing
 
+  - id: cc.entry.break.06
+    level: backend
+    kind: break
+    scenario: Токен сети просрочен либо возврат пришёл спустя срок начатого входа.
+    expect: >
+      оба случая отклоняются наравне с чужим издателем: срок — такое же
+      утверждение токена, как адресат, а начатый вход живёт десять минут
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.07
+    level: backend
+    kind: break
+    scenario: Заверение кооператива-источника в цепи истекло.
+    expect: >
+      анкета не принимается: истёкшее заверение означает, что подписывать сейчас
+      источник не вправе; сессия заканчивается «перенести не удалось»
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+

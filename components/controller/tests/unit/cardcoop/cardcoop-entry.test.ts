@@ -260,6 +260,28 @@ describe('Вход по карте пайщика', () => {
     await expect(service.session('entry-1')).rejects.toThrow(NotFoundException);
   });
 
+  it('просроченный токен сети не принимается: срок проверяется наравне с издателем', async () => {
+    const { service } = build();
+    const state = new URL(await service.start(API)).searchParams.get('state') as string;
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ id_token: idToken({ exp: Math.floor(Date.now() / 1000) - 60 }) }),
+    } as any);
+
+    await expect(service.callback(API, state, 'code-1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('возврат спустя десять минут отклоняется: начатый вход живёт ровно столько', async () => {
+    // Столько человеку хватает пройти согласие на card.coop; дольше держать начатый вход —
+    // значит копить в памяти пропуска, которыми уже никто не воспользуется.
+    const { service } = build();
+    const state = new URL(await service.start(API)).searchParams.get('state') as string;
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ id_token: idToken() }) } as any);
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60 * 1000);
+
+    await expect(service.callback(API, state, 'code-1')).rejects.toThrow(NotFoundException);
+  });
+
   it('анкета читается ровно один раз: ссылка из истории браузера получает отказ', async () => {
     const deps = repos();
     deps.sessions.set('entry-1', {
@@ -432,6 +454,28 @@ describe('Приём анкеты от кооператива-источника
     await build().handleDenied({ disclosure_id: 'consent-1' });
 
     expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Denied);
+  });
+
+  it('анкета от кооператива с истёкшим заверением не принимается', async () => {
+    // Заверение — то, чем сеть подтверждает право кооператива подписывать. Истекло — значит
+    // подписывать он сейчас не вправе, и анкета его подписи не стоит.
+    chain.getSingleRow = jest.fn(async () => ({
+      subject: 'voskhod',
+      cert_key: certKey,
+      expires_at: '2020-01-01T00:00:00',
+    }));
+    const envelope = signedEnvelope(profilePayload());
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => envelope } as any);
+
+    await build().handleGranted({
+      disclosure_id: 'consent-1',
+      grant: 'grant-jws',
+      from_coopname: 'voskhod',
+      from_disclosure_url: 'https://voskhod.coop/x',
+    });
+
+    expect(deps.sessions.get('entry-1').profile).toBeNull();
+    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Failed);
   });
 
   it('неудача обмена заканчивает сессию, а не оставляет её в ожидании', async () => {
