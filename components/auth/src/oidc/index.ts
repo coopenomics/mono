@@ -45,7 +45,7 @@ export interface LoginResult {
 /**
  * Двухэтапный вход (Story 1.7, обновлён Story 11.2): (1) password через authentik —
  * встроенная форма гонит email+password в flow-executor (сессия), затем
- * `authorization_code`+PKCE молча (`signinSilent`); (2) расшифровка ключа паролём;
+ * `authorization_code`+PKCE молча (prompt=none, обычным запросом); (2) расшифровка ключа паролём;
  * (3) timestamp-signature handshake против controller'а (bind → подпись ключом из
  * keystore → verify).
  *

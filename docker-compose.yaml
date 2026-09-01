@@ -193,6 +193,23 @@ services:
       AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
       # Подставляется blueprint'ом coopid-password-policy в headers-mapping вебхука.
       COOPID_WEBHOOK_TOKEN: ${COOPID_WEBHOOK_TOKEN:-}
+      # Адрес возврата рабочего стола: его читает blueprint провайдера OIDC
+      # (`!Env [COOPID_REDIRECT_URI, …]`). Без проброса blueprint брал дефолтный
+      # порт 8108, и на стенде с другим NGINX_HOST_PORT вход по паролю падал
+      # с redirect_uri mismatch, хотя переменная в .env стояла.
+      COOPID_REDIRECT_URI: ${COOPID_REDIRECT_URI:-http://localhost:8108/auth/callback.html}
+      # Клиент card.coop в CoopID кооператива (блюпринт coopid-cardcoop-client,
+      # Story 7.0 карты пайщика). Секрет генерирует scripts/coopid-gen-secrets.sh
+      # и кладёт в .env — без него блюпринт намеренно не создаёт клиента.
+      # Имя кооператива нужно здесь как слаг источника на стороне card.coop:
+      # адрес возврата собирается из адреса card.coop и этого имени.
+      CARDCOOP_CLIENT_ID: ${CARDCOOP_CLIENT_ID:-cardcoop}
+      CARDCOOP_CLIENT_SECRET: ${CARDCOOP_CLIENT_SECRET:-}
+      CARDCOOP_BASE_URL: ${CARDCOOP_BASE_URL:-https://card.coop}
+      COOPNAME: ${COOPNAME:-voskhod}
+      # Internal-маршрут контроллера с claims членства (тот же shared-токен, что
+      # у вебхука событий). Прод-плейбук подставляет адрес активного бэкенда.
+      COOPID_CLAIMS_URL: ${COOPID_CLAIMS_URL:-http://coopback:2998/coop/internal/participant-claims}
     volumes: &authentik-volumes
       - ./infra/coopid/authentik/blueprints:/blueprints/custom:ro
     secrets: &authentik-secrets

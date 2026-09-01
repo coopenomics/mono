@@ -5,7 +5,7 @@ import type {
   IProjectCapitalClearancePort,
 } from '@coopenomics/innercoop';
 import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort,
-  isEligibleForActiveCoopCalendarBroadcast,
+  isEligibleForParticipantMassNotification,
 } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
@@ -71,7 +71,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
       );
 
       const mappings = accountsPage.items
-        .filter(isEligibleForActiveCoopCalendarBroadcast)
+        .filter(isEligibleForParticipantMassNotification)
         .map((account) => ({
           username: account.username,
           email: account.provider_account?.email?.trim() ?? '',
@@ -105,7 +105,7 @@ export class ChatcoopCalendarEventNotificationService implements ICoopCalendarEv
       seen.add(uname);
       try {
         const account = await this.accountPort.getAccount(uname);
-        if (!isEligibleForActiveCoopCalendarBroadcast(account)) {
+        if (!isEligibleForParticipantMassNotification(account)) {
           continue;
         }
         const email = account.provider_account?.email?.trim() ?? '';

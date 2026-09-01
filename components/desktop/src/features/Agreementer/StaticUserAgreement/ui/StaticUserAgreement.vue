@@ -1,64 +1,49 @@
 <template lang="pug">
 div
   .agreement-pending.t-body(v-if='isPending') Документ на утверждении советом.
-  DocumentHtmlReader(v-else :html='userAgreementHtml')
+  .agreement-pending.t-body(v-else-if='isLoading') Загрузка пользовательского соглашения...
+  .agreement-pending.t-body(v-else-if='error') {{ error }}
+  DocumentHtmlReader(v-else :html='html')
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { Cooperative } from 'cooptypes';
+import { fetchPublicProvision } from 'src/features/Agreementer/StaticPrivacyPolicy/api';
 
 const { info } = useSystemStore();
 
-const userAgreementTemplate = Cooperative.Registry.UserAgreement;
+const html = ref('');
+const error = ref('');
+const isLoading = ref(true);
 
 const isPending = computed(() => {
   const protocol = info?.vars?.user_agreement;
   return !protocol?.protocol_number || !protocol?.protocol_day_month_year;
 });
 
-const userAgreementHtml = computed(() => {
-  if (!info || !info.vars) {
-    return '<div>Загрузка пользовательского соглашения...</div>';
+/**
+ * Текст собирает бэкенд из шаблона в блокчейне — той самой редакции, которую
+ * утвердил совет. Подставлять переменные здесь нельзя: это вторая копия логики
+ * фабрики документов, и она неизбежно разъезжается с подписываемым документом.
+ * Имя подписанта в публичном показе фабрика оставляет прочерком.
+ */
+onMounted(async () => {
+  if (isPending.value) {
+    isLoading.value = false;
+    return;
   }
 
-  const vars = info.vars;
-  const contacts = info.contacts;
-  const chairman = contacts?.chairman;
-  const translation = userAgreementTemplate.translations.ru;
-
-  const replacePlaceholders = (text: string): string => {
-    return text
-      .replace(/\{\{\s*vars\.full_abbr_genitive\s*\}\}/g, vars.full_abbr_genitive || '')
-      .replace(/\{\{\s*vars\.full_abbr\s*\}\}/g, vars.full_abbr || '')
-      .replace(/\{\{\s*vars\.name\s*\}\}/g, vars.name || '')
-      .replace(/\{\{\s*vars\.website\s*\}\}/g, vars.website || '')
-      .replace(/\{\{\s*vars\.user_agreement\.protocol_number\s*\}\}/g, vars.user_agreement?.protocol_number || '')
-      .replace(/\{\{\s*vars\.user_agreement\.protocol_day_month_year\s*\}\}/g, vars.user_agreement?.protocol_day_month_year || '')
-      .replace(/\{\{\s*coop\.short_name\s*\}\}/g, contacts?.full_name || '')
-      .replace(/\{\{\s*coop\.chairman\.last_name\s*\}\}/g, chairman?.last_name || '')
-      .replace(/\{\{\s*coop\.chairman\.first_name\s*\}\}/g, chairman?.first_name || '')
-      .replace(/\{\{\s*coop\.chairman\.middle_name\s*\}\}/g, chairman?.middle_name || '')
-      .replace(/\{\{\s*user\.full_name\s*\}\}/g, '____________________')
-      .replace(/\{\{\s*meta\.created_at\s*\}\}/g, '');
-  };
-
-  const replaceTranslations = (html: string): string => {
-    let result = html;
-    Object.entries(translation).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\%\\s*trans\\s*'${key}'\\s*\\%\\}`, 'g');
-      result = result.replace(regex, value);
-    });
-    return result;
-  };
-
-  let html = userAgreementTemplate.context;
-  html = replaceTranslations(html);
-  html = replacePlaceholders(html);
-
-  return html;
+  try {
+    const provision = await fetchPublicProvision({ registry_id: Cooperative.Registry.UserAgreement.registry_id });
+    html.value = provision.html;
+  } catch (e: any) {
+    error.value = e?.message ?? 'Не удалось загрузить текст пользовательского соглашения';
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 

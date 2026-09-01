@@ -53,7 +53,6 @@ BaseDialog(
 import { computed, ref } from 'vue';
 import { PASSWORD_POLICY_HINT } from '@coopenomics/auth';
 import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import {
   migrationOfferDismissed as dismissed,
@@ -63,7 +62,7 @@ import {
 import MigrationExplainer from './MigrationExplainer.vue';
 
 const session = useSessionStore();
-const { setPassword } = useSetPassword();
+const { setPasswordFromScreen } = useSetPassword();
 
 const step = ref<'intro' | 'form'>('intro');
 const saving = ref(false);
@@ -98,12 +97,14 @@ async function onSetPassword(): Promise<void> {
   if (!isValid.value || saving.value) return;
   saving.value = true;
   try {
-    await setPassword(password.value);
-    dismissed.value = true;
-    reset();
-    SuccessAlert('Пароль установлен — вы уже вошли по нему, работайте дальше.');
-  } catch (e) {
-    FailAlert(e);
+    // Диалог закрываем при любом исходе, кроме сбоя самой установки: если пароль
+    // записан, а перевход не удался, пайщика ведут на вход — держать здесь
+    // форму с кнопкой «Установить» нельзя, повторная установка уже невозможна.
+    const stayed = await setPasswordFromScreen(password.value);
+    if (stayed || session.currentUserAccount?.has_password !== false) {
+      dismissed.value = true;
+      reset();
+    }
   } finally {
     saving.value = false;
   }

@@ -1,8 +1,11 @@
 {
   "name": "@coopenomics/auth",
   "type": "module",
-  "version": "2026.8.22-3",
+  "version": "2026.8.29",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "pnpm@9.9.0",
   "description": "SDK аутентификации CoopID: OIDC, vault, кошелёк и подпись для браузера, Node и desktop",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",

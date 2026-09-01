@@ -69,7 +69,12 @@ const sign = async () => {
   try {
     isSubmitting.value = true
     await signAgreement(props.agreement.type, agreementOnSign.value)
-    await useWalletStore().loadUserWallet({coopname: info.coopname, username: session.username})
+    const walletStore = useWalletStore()
+    // Отмечаем подпись до перечитывания списка: подпись уже в блокчейне, но в
+    // базу узла попадёт лишь после разбора блока индексатором, и ответ сервера
+    // прямо сейчас её ещё не содержит.
+    walletStore.markAgreementSigned(props.agreement.type)
+    await walletStore.loadUserWallet({coopname: info.coopname, username: session.username})
     isSubmitting.value = false
     show.value = false
     SuccessAlert('Документ принят')

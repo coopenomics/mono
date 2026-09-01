@@ -1,5 +1,6 @@
 import { Field, InputType, Int, Float } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsArray, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsArray, IsNumber, IsInt } from 'class-validator';
+import { ContentRevisionOrigin } from '../../../domain/enums/content-revision-origin.enum';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
 
@@ -103,4 +104,22 @@ export class UpdateIssueInputDTO {
   @IsOptional()
   @IsArray({ message: 'Вложения должны быть массивом строк' })
   attachments?: string[];
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии',
+  })
+  @IsOptional()
+  @IsInt({ message: 'base_rev должен быть целым числом' })
+  @Min(0, { message: 'base_rev не может быть отрицательным' })
+  base_rev?: number;
+
+  @Field(() => ContentRevisionOrigin, {
+    nullable: true,
+    description: 'Источник правки для истории редакций (WEB по умолчанию, CLI для blago)',
+  })
+  @IsOptional()
+  @IsEnum(ContentRevisionOrigin, { message: 'Неверный источник правки' })
+  origin?: ContentRevisionOrigin;
 }

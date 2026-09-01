@@ -4,7 +4,7 @@
   .components-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
 
-  .components-scroll-area(v-else)
+  .components-scroll-area(v-else, ref='scrollAreaRef')
     // Список — плоские строки компонентов; таблица здесь не нужна:
     // строка одна на всех уровнях дерева, а под ней раскрывается контент
     // переменной высоты (задачи компонента)
@@ -41,6 +41,13 @@ import { ComponentListRow } from 'app/extensions/capital/widgets/ComponentsListW
 
 type IProjectsFilter = NonNullable<IGetProjectsInput['filter']>;
 
+// Память списка между заходами: скролл и ключ фильтра. Данные ленты — в
+// projectStore.components; возврат «назад» с компонента восстанавливает
+// позицию и пагинацию без перезагрузки. См. тот же приём в ProjectsListWidget.
+const listMemory = { filterKey: '', scrollTop: 0 };
+
+const PAGE_SIZE = 25;
+
 const props = defineProps<{
   coopname?: string;
   expanded: Record<string, boolean>;
@@ -70,6 +77,19 @@ const loading = ref(false);
 const nextPage = ref(1);
 const lastPage = ref(1);
 const sentinelRef = ref<HTMLElement | null>(null);
+const scrollAreaRef = ref<HTMLElement | null>(null);
+
+const filterKey = computed(() =>
+  JSON.stringify([
+    props.coopname,
+    props.statuses,
+    props.priorities,
+    props.master,
+    props.origin,
+    props.sortBy,
+    props.sortOrder,
+  ]),
+);
 let observer: IntersectionObserver | null = null;
 
 const components = computed(() => projectStore.components);
@@ -112,7 +132,7 @@ const loadComponents = async (page = 1, append = false) => {
         filter,
         options: {
           page,
-          limit: 25,
+          limit: PAGE_SIZE,
           sortBy: props.sortBy || '_created_at',
           sortOrder: props.sortOrder || 'DESC',
         },
@@ -166,11 +186,25 @@ const resetList = () => {
 };
 
 onMounted(async () => {
+  const cached = projectStore.components.items || [];
+  if (listMemory.filterKey === filterKey.value && cached.length > 0) {
+    // Возврат на список: лента в сторе — восстанавливаем пагинацию из её
+    // длины и позицию прокрутки, без сетевого запроса
+    nextPage.value = Math.floor(cached.length / PAGE_SIZE) + 1;
+    lastPage.value = projectStore.components.totalPages || 1;
+    emit('dataLoaded', cached.map((c) => c.project_hash));
+    await nextTick();
+    if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = listMemory.scrollTop;
+    await observeSentinel();
+    return;
+  }
   await loadComponents(1, false);
   await observeSentinel();
 });
 
 onBeforeUnmount(() => {
+  listMemory.scrollTop = scrollAreaRef.value?.scrollTop ?? 0;
+  listMemory.filterKey = filterKey.value;
   observer?.disconnect();
   observer = null;
 });

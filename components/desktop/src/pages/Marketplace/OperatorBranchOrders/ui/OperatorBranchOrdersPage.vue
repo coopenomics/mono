@@ -7,17 +7,19 @@
  * участка; на неё же ведёт ссылка из движения в «Экономике участка».
  */
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { OrdersRegistryTable, type OrderRegistryStatusView, type OrderRegistryView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchBranchOrders } from '../api';
 
 const route = useRoute();
-const router = useRouter();
 const store = useOperatorBranchStore();
+const orderOverlay = useQueryOverlay('order');
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
@@ -55,11 +57,10 @@ async function load(): Promise<void> {
   }
 }
 
+// Заказ открывается оверлеем поверх реестра: страница пагинации и фильтр
+// статусов остаются на месте, полная страница — по кнопке в оверлее
 function goToOrder(orderId: string): void {
-  void router.push({
-    name: 'marketplace-pvz-order-detail',
-    params: { coopname: coopname.value, orderId },
-  });
+  orderOverlay.open(orderId);
 }
 
 function onStatusFilterUpdate(value: OrderRegistryStatusView[]): void {
@@ -109,6 +110,12 @@ q-page.operator-orders
       @update:status-filter="onStatusFilterUpdate",
       @order-click="goToOrder",
       @request="onRequest"
+    )
+
+    OrderRegistryOverlay(
+      :coopname="coopname",
+      :show-offer-link="false",
+      full-page-route-name="marketplace-pvz-order-detail"
     )
 </template>
 

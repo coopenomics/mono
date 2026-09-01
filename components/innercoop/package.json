@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/innercoop",
   "type": "module",
-  "version": "2026.8.22-3",
+  "version": "2026.8.29",
   "description": "Порты и DI-токены внутренней связи в контуре одного кооператива: ядро ↔ расширение и расширение ↔ расширение, без прямых зависимостей",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",

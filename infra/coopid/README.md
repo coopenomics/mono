@@ -79,8 +79,9 @@ postgres). Поэтому:
 File-based Docker Secrets из `infra/coopid/secrets/` (каталог в `.gitignore`):
 `coop_cert_key` (secp256k1 PEM — подпись `participant_certificate`),
 `coop_vault_key`, `authentik_secret_key`, bootstrap-пароль/токен `akadmin`,
-`authentik_webhook_token`, `auth_v2_session_binding_secret`, два пароля ролей
-postgres. Суперюзер postgres — inline-пароль в compose, отдельного секрета нет.
+`authentik_webhook_token`, `auth_v2_session_binding_secret`, `cardcoop_client_secret`
+(секрет клиента card.coop — дублируется в `.env`, его читает блюпринт), два пароля
+ролей postgres. Суперюзер postgres — inline-пароль в compose, отдельного секрета нет.
 В `.env`/compose значений секретов нет; контейнеры читают их из `/run/secrets/*`
 (postgres-роли — через init-скрипт, authentik — `file://`, coopback — `*_FILE`).
 На prod секреты раскладывает плейбук с правами `0400`.
@@ -105,6 +106,44 @@ docker compose exec postgres psql -U coop_app_user -d authentik_db -c 'select 1'
 
 Учётка администратора authentik: `akadmin`, пароль — в
 `infra/coopid/secrets/authentik_bootstrap_password`.
+
+## Клиент card.coop (карта пайщика, Story 7.0)
+
+`coopid-cardcoop-client.yaml` заводит в CoopID кооператива confidential-клиента
+`cardcoop` — через него карта пайщика (card.coop при АНО) принимает пайщика
+входом «через свой кооператив». Клиент отдельный от `coopid`: тот обслуживает
+рабочий стол самого кооператива (публичный, неявное согласие), а card.coop —
+сторонний сервис, поэтому здесь секрет на сервере и **явное согласие** пайщика
+на передачу сведений наружу (экран показывается один раз и запоминается).
+
+Состав claims: `sub` (uuid учётной записи), `email`/`email_verified`,
+`coopname`, `coop_username` (имя аккаунта в цепи), `member`, `member_since`,
+`verification_types`. Последние четыре приходят кастомным scope
+`coop:membership`, который в момент выдачи токена спрашивает контроллер
+(`GET /coop/internal/participant-claims`, тот же shared-токен, что у вебхука
+событий). Членство не кэшируется в атрибутах учётной записи намеренно: его
+прекращает кооператив решением в цепи, и проставленный однажды атрибут пережил
+бы исключение пайщика. Недоступность контроллера не рвёт вход — `member`
+приходит `null` («неизвестно»), а не `true`.
+
+Переменные (`.env`, см. `.env.example`):
+
+| Переменная | Назначение |
+|---|---|
+| `CARDCOOP_CLIENT_SECRET` | секрет клиента; генерируется `scripts/coopid-gen-secrets.sh`. **Пустой = клиента нет:** блюпринт намеренно падает, чтобы confidential-клиент не превратился в публичный |
+| `CARDCOOP_CLIENT_ID` | идентификатор клиента, по умолчанию `cardcoop` |
+| `CARDCOOP_BASE_URL` | адрес card.coop; адрес возврата собирается как `<base>/source/oauth/callback/<coopname>/` |
+| `COOPNAME` | имя аккаунта кооператива в цепи — оно же слаг источника входа на card.coop |
+| `COOPID_CLAIMS_URL` | адрес internal-маршрута claims; на проде — публичный адрес активного бэкенда |
+
+`client_id` и `client_secret` передаёт в реестр АНО установка **оператора сети**
+при активации кооператива (FR-E6, story 7.6) — в репозитории их нет и быть не
+должно. Проверка клиента на стенде:
+
+```bash
+# discovery провайдера (issuer per_provider — по слагу приложения)
+curl -s http://127.0.0.1:${AUTHENTIK_HOST_PORT:-9008}/application/o/cardcoop/.well-known/openid-configuration | head -c 400
+```
 
 ## Бэкапы (Story 9.8)
 

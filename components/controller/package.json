@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.8.22-3",
+  "version": "2026.8.29",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "bin": "bin/createNodejsApp.js",
@@ -155,6 +155,7 @@
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "libxmljs2": "^0.37.0",
+    "liquidjs": "^10.29.0",
     "livekit-server-sdk": "^2.15.0",
     "lodash": "^4.17.21",
     "markdown-it": "^14.1.0",
@@ -164,6 +165,7 @@
     "mongoose-sequence": "^6.0.1",
     "morgan": "^1.10.1",
     "node-cron": "^3.0.3",
+    "node-diff3": "3",
     "nodemailer": "^8.0.1",
     "nunjucks": "^3.2.4",
     "passport-jwt": "^4.0.0",

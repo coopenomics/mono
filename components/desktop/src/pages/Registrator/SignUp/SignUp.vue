@@ -54,6 +54,7 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { useLogoutUser } from 'src/features/User/Logout';
 import { useSessionStore } from 'src/entities/Session';
+import { useAccountStore } from 'src/entities/Account';
 import { useAgreementStore } from 'src/entities/Agreement';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 
@@ -71,6 +72,7 @@ const { state, clearUserData, steps } = registratorStore;
 const store = state;
 const agreementer = useAgreementStore();
 const desktops = useDesktopStore();
+const accountStore = useAccountStore();
 const system = useSystemStore();
 const { info } = system;
 
@@ -127,6 +129,50 @@ watch(
   },
 );
 
+/**
+ * Дождаться, пока сервер поднимет `users.status` до `active`.
+ *
+ * Ограничено по времени: если событие приёма потерялось, ждать бесконечно
+ * нельзя — пайщик уже принят цепью, и держать его на форме регистрации хуже,
+ * чем открыть кабинет с чуть отставшим статусом (ближайшее обновление аккаунта
+ * его подтянет).
+ */
+const waitForActiveStatus = async (): Promise<void> => {
+  const deadline = Date.now() + 8000;
+  while (!session.isFullyActive && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const fresh = await accountStore.getAccount(session.username);
+      if (fresh) session.setCurrentUserAccount(fresh);
+    } catch {
+      // Сеть моргнула — повторим на следующем витке, выходить по одной осечке незачем.
+    }
+  }
+};
+
+/**
+ * Увести со страницы регистрации в кабинет.
+ *
+ * `goToDefaultPage` сам по себе не годится: пока статус не `active`, он считает
+ * пайщика неавторизованным и возвращает `signup` — ту самую страницу. Поэтому
+ * если он предлагает остаться здесь же, уходим на маршрут для принятых: право
+ * на кабинет доказано записью пайщика в цепи, а не отставшим полем в базе.
+ */
+const goToCabinet = (): void => {
+  const target = desktops.getDefaultPageRoute();
+  if (target && target.name !== 'signup') {
+    desktops.goToDefaultPage(router);
+    return;
+  }
+  const authorized = info?.settings?.authorized_default_route;
+  void router.push(
+    authorized
+      ? { name: authorized, params: { coopname: info.coopname } }
+      : { name: 'index', params: { coopname: info.coopname } },
+  );
+  desktops.setWorkspaceChanging(false);
+};
+
 const out = async () => {
   const { logout } = await useLogoutUser();
   await logout();
@@ -182,10 +228,25 @@ watch(
         // вызовет loadDesktop. По образцу init-app / EnableButton.
         await desktops.loadDesktop();
 
+        // Ждём, пока статус пайщика догонит цепь.
+        //
+        // Приём советом доходит до нас двумя путями и с разной задержкой:
+        // `participant_account` читается из таблицы цепи и появляется сразу
+        // (дельты эмитятся немедленно), а `users.status = active` выставляет
+        // слушатель события `soviet::addpartcpnt` — а action-события контроллер
+        // эмитит с задержкой в три секунды (`action_emit_delay_ms`).
+        //
+        // В этом промежутке `isFullyActive` ещё false, и `getDefaultPageRoute`
+        // отдаёт `non_authorized_default_route`, равный `signup`. Переход при
+        // этом выполняется — на ту же страницу, где пайщик и стоит, и внешне не
+        // происходит ничего: галочки зелёные, кабинет не открывается, повторять
+        // некому. Так регистрация и вставала намертво.
+        await waitForActiveStatus();
+
         // Теперь выбираем рабочий стол с обновленными данными о роли
         // Передаем ignoreSaved=true чтобы пересчитать на основе новой роли
         desktops.selectDefaultWorkspace(true);
-        desktops.goToDefaultPage(router);
+        goToCabinet();
 
         // Показываем диалог разрешения уведомлений после успешной регистрации
         setTimeout(() => {
@@ -195,7 +256,7 @@ watch(
         console.error('Ошибка при обновлении данных пользователя:', e);
         // В случае ошибки все равно пытаемся перейти
         desktops.selectDefaultWorkspace(true);
-        desktops.goToDefaultPage(router);
+        goToCabinet();
 
         // Показываем диалог разрешения уведомлений даже при ошибке
         setTimeout(() => {
@@ -215,66 +276,6 @@ watch(
       store.step < steps.WaitingRegistration
     ) {
       useInitWalletProcess().run();
-    }
-  },
-);
-
-const registeredAndloggedIn = computed(() => {
-  return (
-    session.isRegistrationComplete &&
-    session.isAuth &&
-    store.step == steps.EmailInput
-  );
-});
-
-watch(
-  () => registeredAndloggedIn,
-  async (newValue) => {
-    if (newValue.value === true) {
-      // Обновляем username в OpenReplay tracker при завершении регистрации и логине
-      updateOpenReplayUser({
-        username: session.username,
-        coopname: info.coopname,
-        cooperativeDisplayName: system.cooperativeDisplayName,
-      });
-
-      // Включаем лоадер для плавного перехода
-      desktops.setWorkspaceChanging(true);
-
-      try {
-        // Принудительно перезагружаем данные пользователя для получения обновленной роли
-        const { run } = useInitWalletProcess();
-        await run(true); // forceReload = true
-
-        // Дожидаемся завершения загрузки данных
-        let attempts = 0;
-        const maxAttempts = 50; // 5 секунд максимум
-
-        while (!session.loadComplete && attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          attempts++;
-        }
-
-        // Теперь выбираем рабочий стол с обновленными данными о роли
-        // Передаем ignoreSaved=true чтобы пересчитать на основе новой роли
-        desktops.selectDefaultWorkspace(true);
-        desktops.goToDefaultPage(router);
-
-        // Показываем диалог разрешения уведомлений после успешной регистрации
-        setTimeout(() => {
-          showDialog();
-        }, 1000);
-      } catch (e) {
-        console.error('Ошибка при обновлении данных пользователя:', e);
-        // В случае ошибки все равно пытаемся перейти
-        desktops.selectDefaultWorkspace(true);
-        desktops.goToDefaultPage(router);
-
-        // Показываем диалог разрешения уведомлений даже при ошибке
-        setTimeout(() => {
-          showDialog();
-        }, 1000);
-      }
     }
   },
 );

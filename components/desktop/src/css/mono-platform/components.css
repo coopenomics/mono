@@ -558,6 +558,29 @@ body {
 .icon-btn:hover { background: var(--p-surface-2); color: var(--p-ink); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* ---- Page shell (раздел на всю высоту экрана) -----------------------
+   Оболочка страницы раздела: на десктопе занимает вьюпорт под шапкой, и
+   прокручивается не она, а лента внутри — так у раздела всегда виден каркас
+   (заголовок, табы), а бежит только содержимое.
+
+   На мобильном фиксация снимается: страница прокручивается окном, как обычный
+   документ. Без этого шапка не могла уехать при прокрутке (reveal у q-header
+   реагирует только на скролл окна), а вложенный скролл внутри скролла ловил
+   инерцию и заставлял ленту дрожать под пальцем.
+   ------------------------------------------------------------------- */
+.page-shell {
+  height: calc(100vh - var(--p-topbar-h));
+  max-height: calc(100vh - var(--p-topbar-h));
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .page-shell {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 /* ---- Page tabs (sub-navigation) -------------------------------------
    Horizontal sub-nav living between the topbar and the content. Scrolls
    horizontally on overflow. Right side is a fixed slot for page-scoped
@@ -570,6 +593,34 @@ body {
   border-bottom: 1px solid var(--p-line);
   background: var(--p-canvas);
   min-height: 52px;
+  /* Полоса табов липнет под шапкой и остаётся на виду всю прокрутку: это
+     основная навигация раздела, уезжать вместе с контентом ей незачем.
+     Отступ сверху равен высоте шапки — ровно под ней. */
+  position: sticky;
+  top: var(--p-topbar-h);
+  z-index: 5;
+  transition: top var(--p-dur-fast);
+}
+/* Шапка уехала (reveal на мобильном) — Quasar обнуляет её вклад в отступ
+   контента, поэтому табы поднимаются к самому верху экрана. Селектор идёт от
+   шапки к контейнеру страницы: в q-layout это соседи. */
+.q-header--hidden ~ .q-page-container .tabbar {
+  top: 0;
+}
+/* Внутри оболочки раздела на широком экране липкость не нужна и вредна:
+   `.page-shell` там сам контейнер прокрутки (overflow: hidden), поэтому sticky
+   отсчитывает `top` от его верха и отталкивает вкладки вниз на высоту шапки —
+   между шапкой и вкладками появлялась пустая полоса. Прокручивается там лента
+   внутри, а вкладки и без липкости всегда на виду. */
+.page-shell > .tabbar {
+  position: static;
+}
+@media (max-width: 600px) {
+  /* На узком экране оболочка прокрутку уже не режет — липкость снова работает
+     от окна, и вкладки держатся под шапкой. */
+  .page-shell > .tabbar {
+    position: sticky;
+  }
 }
 .tabbar__tabs {
   flex: 1;
@@ -584,27 +635,34 @@ body {
   position: relative;
 }
 .tabbar__tabs::-webkit-scrollbar { display: none; }
-/* — fade edges to communicate horizontal scroll — */
-.tabbar__tabs::before,
-.tabbar__tabs::after {
-  content: "";
-  position: sticky;
-  top: 0; bottom: 0;
-  width: 24px;
-  pointer-events: none;
+/* Растворяющих градиентов по краям здесь намеренно нет. Они рисовались слоем
+   ПОВЕРХ табов (sticky, 24px, отрицательный внешний отступ), поэтому текст под
+   слоем шёл притемнённым, а на его правом крае яркость возвращалась скачком —
+   через слово проходила вертикальная линия, стоявшая на месте при прокрутке.
+   Что полосу можно листать, и без них видно по обрезанному крайнему табу. */
+/* Стрелки прокрутки вкладок. Стоят в потоке, а не поверх полосы: слой поверх
+   содержимого уже подводил — притемнял текст и давал скачок яркости на своём
+   крае. Обе появляются вместе, когда вкладки не помещаются; недоступная
+   гаснет, но места не освобождает, чтобы полоса не дёргалась. */
+.tabbar__arrow {
   flex-shrink: 0;
-  z-index: 1;
+  align-self: center;
+  margin: 0 2px;
 }
-.tabbar__tabs::before {
-  left: 0;
-  margin-right: -24px;
-  background: linear-gradient(to right, var(--p-canvas), transparent);
+.tabbar__arrow:first-child { margin-left: var(--p-3); }
+.tabbar__arrow--faded {
+  color: var(--p-ink-4);
+  cursor: default;
 }
-.tabbar__tabs::after {
-  right: 0;
-  margin-left: -24px;
-  background: linear-gradient(to left, var(--p-canvas), transparent);
+.tabbar__arrow--faded:hover {
+  background: transparent;
+  color: var(--p-ink-4);
 }
+/* Стрелки уже отбивают полосу от краёв — двойной отступ у самих вкладок лишний */
+.tabbar__arrow + .tabbar__tabs {
+  padding-left: var(--p-2);
+}
+
 .tab {
   position: relative;
   display: inline-flex;
@@ -624,6 +682,13 @@ body {
   letter-spacing: -0.005em;
 }
 .tab:hover { color: var(--p-ink); }
+/* Иконка таба наследует приглушённый цвет, у активного — акцент */
+.tab__ico {
+  color: var(--p-ink-3);
+}
+.tab--active .tab__ico {
+  color: var(--p-primary);
+}
 .tab__count {
   font-family: var(--p-mono);
   font-size: 11px;
@@ -660,14 +725,34 @@ body {
 /* Мобильный: любые кнопки страницы в полосе табов ужимаются централизованно —
    место делится с табами, полноразмерная кнопка съедает половину строки */
 @media (max-width: 640px) {
+  .tabbar__arrow {
+    width: 28px;
+    height: 28px;
+  }
+  .tabbar__arrow:first-child { margin-left: var(--p-2); }
   .tabbar__actions {
-    padding: 6px var(--p-3);
+    padding: 6px var(--p-2);
     gap: 6px;
+    /* Вертикальная линия слева на узком экране читается как случайная тень и
+       съедает и без того дефицитную ширину — табам нужнее */
+    border-left: 0;
   }
   .tabbar__actions .q-btn {
     font-size: 12px;
     min-height: 28px;
     padding: 2px 10px;
+  }
+  /* Кнопка с иконкой сворачивается до неё одной: «+ Артефакт» занимал треть
+     строки и обрезал соседний таб. Текст остаётся у кнопок без иконки —
+     иначе от них остался бы пустой прямоугольник (см. то же правило шапки). */
+  .tabbar__actions .q-btn:has(.q-icon) .base-btn__label {
+    display: none;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) {
+    padding: 2px 8px;
+  }
+  .tabbar__actions .q-btn:has(.q-icon) .q-btn__content {
+    gap: 0;
   }
 }
 
@@ -1698,12 +1783,23 @@ body {
 .topbar__actions .q-btn .q-btn__content {
   flex-wrap: nowrap;
 }
-/* На мобильном крошка/заголовок страницы не показывается вовсе: от «Проекты ›
-   Компонент…» остаётся обрезанный огрызок, наезжающий на правую группу, а
-   ориентир пользователю дают табы и заголовок контента. Кнопка «Назад»
-   продолжает показываться. */
-.topbar--mobile .topbar__crumb > *:not(.back-button) {
-  display: none;
+/* На мобильном крошка/заголовок страницы не показывается вовсе: даже одиночное
+   имя страницы наезжает на правую группу (колокольчик, тема), а ориентир даёт
+   полоса табов и заголовок контента. Кнопка «Назад» продолжает показываться.
+   Правило завязано на ширину, а не на класс: `topbar--mobile` навешивать
+   некому — это был модификатор HTML-прототипа, и раньше правило не работало. */
+@media (max-width: 600px) {
+  .topbar__crumb > *:not(.back-button) {
+    display: none;
+  }
+  /* Крошка скрыта — правая группа не должна прилипать к бургеру */
+  .topbar__crumb {
+    flex: 0 0 auto;
+  }
+  .topbar {
+    padding: 0 12px;
+    gap: 8px;
+  }
 }
 /* Когда в actions нет ни store-кнопок, ни телепортированных действий
    (остался только пустой teleport-host) — прячем блок, чтобы не появлялся
@@ -1730,41 +1826,6 @@ body {
   align-items: center;
   gap: 4px;
 }
-
-/* Mobile demo modifier — collapses everything except primary + overflow */
-.topbar--mobile {
-  height: 52px;
-  padding: 0 12px;
-  gap: 8px;
-}
-.topbar--mobile .topbar__crumb {
-  font-size: 14px;
-  gap: 6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.topbar--mobile .topbar__crumb b {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  min-width: 0;
-  display: inline-block;
-  max-width: 100%;
-}
-.topbar--mobile .topbar__crumb svg { width: 11px; height: 11px; flex-shrink: 0; }
-.topbar--mobile .topbar__brand { font-size: 14px; gap: 8px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.topbar--mobile .topbar__brand img,
-.topbar--mobile .topbar__brand svg { width: 20px; height: 20px; }
-.topbar--mobile .topbar__brand b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; display: inline-block; max-width: 100%; }
-.topbar--mobile .topbar__brand small { display: none; }
-.topbar--mobile .topbar__actions { gap: 4px; flex-shrink: 0; }
-.topbar--mobile .topbar__actions > .btn:not(.is-mobile-keep) { display: none; }
-.topbar--mobile .topbar__right > :not(:last-child) { display: none; }
-.topbar--mobile .topbar__right { padding-left: 4px; border-left: 0; }
-.topbar--mobile .topbar__actions + .topbar__right { padding-left: 4px; border-left: 0; }
 
 /* ---- Page header ---- */
 .page-head {

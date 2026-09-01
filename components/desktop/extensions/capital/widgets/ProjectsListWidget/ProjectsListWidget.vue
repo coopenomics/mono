@@ -4,7 +4,7 @@
   .projects-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(v-else)
+  .projects-scroll-area(v-else, ref='scrollAreaRef')
     q-table(
       ref='tableRef',
       :rows='projects?.items || []',
@@ -95,7 +95,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
@@ -108,6 +108,18 @@ import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/Tog
 import { Zeus } from '@coopenomics/sdk';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+
+/**
+ * Память списка между заходами (живёт на уровне модуля, переживает unmount).
+ *
+ * Сам виджет при переходе в проект уничтожается вместе со своим локальным
+ * состоянием — из-за этого возврат «назад» раньше сбрасывал ленту на первую
+ * страницу и терял позицию прокрутки. Данные ленты хранит стор; здесь — только
+ * то, чего в сторе нет: позиция скролла и ключ фильтра, под которым лента
+ * загружена. Совпал ключ и стор полон — заход восстанавливает всё как было,
+ * без сетевого запроса; не совпал — обычная загрузка с нуля.
+ */
+const listMemory = { filterKey: '', scrollTop: 0 };
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
 
@@ -138,8 +150,24 @@ const projectStore = useProjectStore();
 
 const loading = ref(false);
 const tableRef = ref(null);
+const scrollAreaRef = ref<HTMLElement | null>(null);
 const nextPage = ref(1);
 const lastPage = ref(1);
+
+// Лента в сторе валидна только для того фильтра, под которым загружена
+const filterKey = computed(() =>
+  JSON.stringify([
+    props.coopname,
+    props.statuses,
+    props.priorities,
+    props.hasIssuesWithStatuses,
+    props.hasIssuesWithPriorities,
+    props.master,
+    props.origin,
+    props.sortBy,
+    props.sortOrder,
+  ]),
+);
 
 // Используем computed для projects, чтобы всегда получать актуальные данные из store
 // Фильтр isProject — защита от кратковременного попадания компонента в items
@@ -209,7 +237,7 @@ const loadProjects = async (page = 1, append = false) => {
       filter,
       options: {
         page,
-        limit: 25, // Фиксированный размер страницы для бесконечного скролла
+        limit: PAGE_SIZE, // Фиксированный размер страницы для бесконечного скролла
         sortBy: props.sortBy || pagination.value.sortBy,
         sortOrder: props.sortOrder || (pagination.value.descending ? 'DESC' : 'ASC'),
       },
@@ -300,9 +328,34 @@ const handleOpenProject = (projectHash: string) => {
 };
 
 
-// Загружаем данные при монтировании
+// PAGE_SIZE держим в одном месте: от него считается и загрузка, и
+// восстановление номера следующей страницы из длины ленты
+const PAGE_SIZE = 25;
+
 onMounted(async () => {
+  const rawItems = projectStore.projects.items || [];
+  if (listMemory.filterKey === filterKey.value && rawItems.length > 0) {
+    // Возврат на список: лента уже в сторе — восстанавливаем пагинацию и
+    // прокрутку, ничего не перезагружая
+    nextPage.value = Math.floor(rawItems.length / PAGE_SIZE) + 1;
+    lastPage.value = projectStore.projects.totalPages || 1;
+    pagination.value.rowsNumber = projectStore.projects.totalCount;
+    emit(
+      'dataLoaded',
+      rawItems.map((project: any) => project.project_hash),
+      rawItems.reduce((sum: number, project: any) => sum + (project.components?.length || 0), 0),
+    );
+    await nextTick();
+    if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = listMemory.scrollTop;
+    return;
+  }
   await loadProjects(1, false);
+});
+
+// Позиция запоминается при уходе со списка (переход в проект уничтожает виджет)
+onBeforeUnmount(() => {
+  listMemory.scrollTop = scrollAreaRef.value?.scrollTop ?? 0;
+  listMemory.filterKey = filterKey.value;
 });
 
 // Следим за изменениями фильтров и сбрасываем состояние

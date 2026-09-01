@@ -1,0 +1,126 @@
+feature: coopid.cardcoop-client
+title: Клиент card.coop в CoopID кооператива (карта пайщика, Story 7.0)
+
+# Кооператив выпускает карту пайщика не сам: пайщик уходит на card.coop и входит
+# там через CoopID своего кооператива. Для этого в authentik кооператива живёт
+# confidential-клиент card.coop, а состав claims отвечает на единственный вопрос
+# внешней стороны: этот человек — действующий пайщик, с какого момента, и какая у
+# него подтверждённая почта. Персональных данных анкеты в claims нет.
+#
+# Ключевое решение проверок: членство спрашивается у контроллера в момент выдачи
+# токена, а не берётся из атрибутов учётной записи authentik. Членство прекращает
+# кооператив решением в цепи, поэтому атрибут пережил бы исключение пайщика.
+# Обратная сторона — отказ контроллера: он обязан давать «неизвестно», а не
+# «член», и не рвать вход.
+
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/claims/**
+    - components/controller/src/application/auth-v2/internal-token.util.ts
+    - infra/coopid/authentik/blueprints/coopid-cardcoop-client.yaml
+
+cases:
+  - id: cid.cc.happy.01
+    level: backend
+    kind: happy
+    scenario: принятый пайщик кооператива запрашивается контуром claims
+    expect: >
+      member=true, дата приёма равна моменту подтверждения начального уровня
+      (запись участника в цепи), уровни верификации те же, что в удостоверении
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.happy.02
+    level: backend
+    kind: happy
+    scenario: у пайщика подтверждённая кооперативом почта
+    expect: >
+      email и email_verified=true — card.coop по ним не шлёт собственного письма
+      подтверждения (FR-A2а)
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.side.01
+    level: backend
+    kind: side
+    scenario: запрошен аккаунт, не принятый в кооператив (кандидат или посторонний)
+    expect: member=false, дата приёма пуста, уровней нет — отказа запроса при этом нет
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.side.02
+    level: backend
+    kind: side
+    scenario: личность сверена по паспорту, но записи участника в цепи нет
+    expect: member=false — членство даёт решение кооператива, а не проверка документов
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.side.03
+    level: backend
+    kind: side
+    scenario: учётной записи пайщика в кооперативе нет, а аккаунт в цепи есть
+    expect: claims без почты (email=null, email_verified=false), запрос не падает
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.side.04
+    level: backend
+    kind: side
+    scenario: почта в кооперативе есть, но не подтверждена
+    expect: почта отдаётся с email_verified=false, а не скрывается — решение о письме за card.coop
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.break.01
+    level: backend
+    kind: break
+    scenario: запрос claims без токена внутреннего контура
+    expect: отказ 401, резолверы не вызываются
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.break.02
+    level: backend
+    kind: break
+    scenario: токен той же длины, но другой
+    expect: отказ — сверка постоянного времени, а не по префиксу
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.break.03
+    level: backend
+    kind: break
+    scenario: контур не настроен — ожидаемый токен в конфигурации пуст
+    expect: не проходит никакой запрос, включая пустой токен
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.break.04
+    level: backend
+    kind: break
+    scenario: запрос claims без имени аккаунта
+    expect: отказ 400, а не пустые claims неизвестно про кого
+    test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    status: passing
+
+  - id: cid.cc.break.05
+    level: backend
+    kind: break
+    scenario: контроллер недоступен в момент выдачи токена внешнему клиенту
+    expect: >
+      claim членства приходит пустым («неизвестно»), а не true; вход на card.coop
+      не рвётся. Проверено на стенде 2026-08-29 при рестарте контроллера;
+      автотеста на выражение authentik нет — писать нечем без стенда
+    test: ~
+    status: missing
+
+  - id: cid.cc.break.06
+    level: backend
+    kind: break
+    scenario: секрет клиента не задан в окружении кооператива
+    expect: >
+      блюпринт не применяется и клиента не создаёт — confidential-клиент с пустым
+      секретом означал бы открытую дверь в кооператив
+    test: ~
+    status: missing

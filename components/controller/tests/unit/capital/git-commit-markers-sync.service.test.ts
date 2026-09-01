@@ -159,4 +159,37 @@ describe('GitCommitMarkersSyncService — мульти-веточный ingest',
     expect(compareMock).toHaveBeenCalledWith('coopenomics', 'mono', 'dev', expect.any(String));
     expect(linkedCommitRepository.insertLinkedCommit).toHaveBeenCalledTimes(1);
   });
+
+  it('переданный HEAD ветки используется как есть — отдельный запрос за ним не идёт', async () => {
+    const head = '7'.repeat(40);
+    const compareMock = jest.fn().mockResolvedValue([]);
+    const { service, githubService, syncStateRepository } = buildService({
+      github: { listCommitsBetweenBaseAndHead: compareMock },
+    });
+
+    await service.syncMarkedCommits({ ...syncArgs('feat/z'), headSha: head });
+
+    expect(githubService.getLatestCommit).not.toHaveBeenCalled();
+    expect(compareMock).toHaveBeenCalledWith('coopenomics', 'mono', 'tip'.padEnd(40, '0'), head);
+    expect(syncStateRepository.setTipSha).toHaveBeenCalledWith(
+      'voskhod',
+      'https://github.com/coopenomics/mono',
+      'feat/z',
+      head
+    );
+  });
+
+  it('HEAD ветки совпал с курсором — ветка не трогается вовсе', async () => {
+    const head = '8'.repeat(40);
+    const compareMock = jest.fn();
+    const { service, syncStateRepository } = buildService({
+      state: { last_synced_tip_sha: head },
+      github: { listCommitsBetweenBaseAndHead: compareMock },
+    });
+
+    await service.syncMarkedCommits({ ...syncArgs('feat/z'), headSha: head });
+
+    expect(compareMock).not.toHaveBeenCalled();
+    expect(syncStateRepository.setTipSha).not.toHaveBeenCalled();
+  });
 });

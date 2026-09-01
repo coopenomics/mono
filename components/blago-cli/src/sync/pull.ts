@@ -46,6 +46,8 @@ interface CapitalProjectRow {
   status?: string | null
   created_at?: Date | string | null
   _updated_at?: Date | string | null
+  /** Редакция содержимого (history of revisions) */
+  content_rev?: number | null
   components?: CapitalProjectRow[] | null
 }
 
@@ -66,6 +68,7 @@ interface CapitalIssueRow {
   fact_by_contributor?: Array<{ contributor_hash: string, hours: number }> | null
   metadata?: unknown
   sort_order?: number | null
+  content_rev?: number | null
   _created_at?: Date | string | null
   _updated_at?: Date | string | null
 }
@@ -81,6 +84,7 @@ interface CapitalStoryRow {
   sort_order?: number | null
   project_hash?: string | null
   issue_hash?: string | null
+  content_rev?: number | null
   _created_at?: Date | string | null
   _updated_at?: Date | string | null
 }
@@ -292,6 +296,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       relativePath: rel,
       content,
       remoteUpdatedAt: toUpdatedIso(p._updated_at),
+      remoteRev: p.content_rev ?? undefined,
       label: `проект ${p.project_hash}`,
     })) || changed
   }
@@ -322,6 +327,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       relativePath: rel,
       content,
       remoteUpdatedAt: toUpdatedIso(i._updated_at),
+      remoteRev: i.content_rev ?? undefined,
       label: `задача ${i.issue_hash}`,
     })) || changed
   }
@@ -361,6 +367,7 @@ export async function runPull(ctx: AuthenticatedContext, options: RunPullOptions
       relativePath: rel,
       content,
       remoteUpdatedAt: toUpdatedIso(s._updated_at),
+      remoteRev: s.content_rev ?? undefined,
       label: `требование ${s.story_hash}`,
     })) || changed
   }

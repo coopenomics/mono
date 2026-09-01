@@ -2,7 +2,8 @@
  * Первый этап входа CoopID (Story 11.2) — password через authentik:
  * (1) встроенная форма гонит email+password в flow-executor authentik и
  * устанавливает сессию (`flow-executor.ts`); (2) `oidc-client-ts` выполняет
- * `authorization_code`+PKCE МОЛЧА (`signinSilent`, prompt=none) — сессия уже есть,
+ * `authorization_code`+PKCE МОЛЧА (prompt=none, обычным запросом — см.
+ * `signinViaFetch`) — сессия уже есть,
  * второго ввода пароля нет. Так клиент видит пароль (нужно для vault, Story 11.3),
  * не нарушая FR29: запрещённый `grant_type=password` не используется, грант —
  * стандартный authorization_code+PKCE (Implicit и ROPC запрещены, RFC 9700).
@@ -20,7 +21,7 @@ interface OidcClientConfig {
   redirectUri: string
   scope: string
   postLogoutRedirectUri?: string
-  /** redirect_uri скрытого silent-iframe для prompt=none authorize (Story 11.2). */
+  /** redirect_uri для prompt=none authorize: страница возврата, с которой читается код. */
   silentRedirectUri?: string
 }
 
@@ -57,6 +58,7 @@ export function coopIdApiUrl(): string {
  * когда пайщик ждёт. Общий экземпляр позволяет прогреть метаданные заранее
  * (`warmUpAuthentik`), пока пайщик ещё печатает.
  */
+
 const managers = new Map<string, UserManager>()
 
 function userManager(issuer: string): UserManager {
@@ -74,13 +76,6 @@ function userManager(issuer: string): UserManager {
     scope: oidcConfig.scope,
     post_logout_redirect_uri: oidcConfig.postLogoutRedirectUri,
     response_type: 'code', // Authorization Code + PKCE; oidc-client-ts включает PKCE по умолчанию.
-    // Библиотека ждёт ответа скрытого кадра десять секунд. Этого мало: кадр
-    // открывается в тот же момент, когда браузер может проверять обновление
-    // service worker'а (проверка запускается как раз на переходе), и пока
-    // рабочий переустанавливается, переход кадра до сети не доходит вовсе.
-    // Двадцать секунд закрывают эту паузу; на удачном входе задержки не
-    // добавляется — кадр отвечает за доли секунды.
-    silentRequestTimeoutInSeconds: 20,
   }
   const um = new UserManager(settings)
   managers.set(authority, um)
@@ -116,9 +111,8 @@ export async function warmUpAuthentik(params: { issuer: string, flowSlug?: strin
  * Проводит первый этап входа и возвращает OIDC-User (id_token/access_token +
  * установленная сессионная cookie authentik, нужная для bind). Story 11.2:
  * (1) встроенная форма → flow-executor authentik устанавливает сессию (фактор 1);
- * (2) `signinSilent` выполняет authorization_code+PKCE молча (сессия уже есть,
- * prompt=none через скрытый iframe `silent_redirect_uri`) — без попапа и без
- * повторного ввода пароля.
+ * (2) authorization_code+PKCE выполняется молча (сессия уже есть, prompt=none) —
+ * без попапа, без кадра и без повторного ввода пароля.
  */
 export async function authenticateWithAuthentik(params: { issuer: string, email: string, password: string, flowSlug?: string }): Promise<User> {
   // Фактор-1: учётные данные уходят в authentik (а не в наш backend) — ROPC не используется.
@@ -141,32 +135,68 @@ export async function authenticateWithAuthentik(params: { issuer: string, email:
   await um.removeUser().catch(() => undefined)
   await um.clearStaleState().catch(() => undefined)
 
-  // Одна повторная попытка. Скрытый кадр — единственное место входа, которое
-  // зависит не только от нас и от authentik, но и от того, чем занят браузер:
-  // его переход перехватывает service worker, и если тот в этот момент
-  // переустанавливается (а он это делает как раз на переходах, особенно вскоре
-  // после релиза), запрос страницы возврата не уходит никуда. Со стороны это
-  // выглядит как «вход просто не сработал», хотя пароль верный и authentik уже
-  // выдал код — ровно тот случай, что ловили на тестнете 22.08.2026.
+  // Код авторизации забираем ОБЫЧНЫМ запросом, а не скрытым кадром.
   //
-  // Повтор занимает доли секунды и к этому моменту рабочий уже сменился, так что
-  // вторая попытка проходит. Побочных эффектов нет: prompt=none только выдаёт
-  // новый код поверх той же сессии, неиспользованный протухает сам.
-  let user: User | null = null
-  let lastError: unknown
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      user = await um.signinSilent()
-      break
-    }
-    catch (e) {
-      lastError = e
-    }
-  }
-  if (!user && lastError) {
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, `Не удалось завершить вход через authentik: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
-  }
+  // Кадр в OIDC существует ради общего случая: у обычного провайдера эндпоинт
+  // authorize живёт на ЧУЖОМ origin, и прочитать его ответ кодом нельзя — CORS
+  // на него не выдаётся, а сессионную куку провайдера надо ещё и приложить.
+  // Кадр обходит это тем, что он навигация, а не запрос: куки уходят сами,
+  // результат возвращается на страницу возврата и оттуда postMessage'ем.
+  // Библиотека общего назначения иначе и не может.
+  //
+  // У нас этого ограничения нет: authentik и рабочий стол стоят за одним nginx
+  // на одном домене (`/if/`, `/application/o/`, `/api/v3/` → authentik, `/` →
+  // стол). Единый origin выбран ради кук, но попутно снял и CORS — значит
+  // authorize можно просто запросить, пройти редирект и прочитать конечный адрес.
+  //
+  // Ради чего меняли: кадр НЕ ПОКАЗЫВАЕТ отказы провайдера. authentik отдаёт
+  // `X-Frame-Options: DENY` на всех своих страницах, поэтому страница ошибки в
+  // кадре не отображается, ответа не приходит, и любой отказ на authorize —
+  // хоть 400, хоть 500 — выглядит одинаково: «IFrame timed out without a
+  // response». На проде 23.08.2026 за этой формулировкой полдня прятался
+  // тривиальный `redirect_uri_no_match` (в authentik был записан кириллический
+  // домен, а браузер шлёт punycode). Запрос отдаёт код ответа как есть, и такой
+  // отказ читается сразу.
+  //
+  // Запасного пути через кадр здесь намеренно НЕТ. Он не спасал: origin, эндпоинт,
+  // куки и сессия те же самые — получив 400 запросом, кадр получит тот же 400 и
+  // только спрячет его за таймаутом, добавив ожидание и склеенное из двух частей
+  // сообщение. Ошибка обновления библиотеки (см. `signinViaFetch`) ловится сборкой
+  // типов, а не пайщиком, — страховать её в рантайме нечем и незачем.
+  const user = await signinViaFetch(um)
   if (!user)
     throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'authentik не вернул сессию после ввода пароля')
   return user
+}
+
+/**
+ * Тихий вход без кадра: authorize с prompt=none обычным запросом с куками, код
+ * — из конечного адреса после редиректов, обмен на токены — библиотекой.
+ *
+ * Внутренние методы библиотеки (`_client`, `_signinEnd`) объявлены protected;
+ * публичного способа «обработать ответ authorize, полученный не кадром» у неё
+ * нет, хотя вся логика (state в хранилище, PKCE, валидация, сборка User)
+ * именно там. Берём их явно и по имени — если в новой версии они переименуются,
+ * это упадёт на сборке типов, а не молча в рантайме.
+ */
+async function signinViaFetch(um: UserManager): Promise<User> {
+  const internals = um as unknown as {
+    _client: { createSigninRequest: (args: Record<string, unknown>) => Promise<{ url: string }> }
+    _signinEnd: (url: string) => Promise<User>
+  }
+  const { url } = await internals._client.createSigninRequest({
+    request_type: 'si:s',
+    redirect_uri: um.settings.silent_redirect_uri,
+    prompt: 'none',
+  })
+
+  // Та же сессия authentik, что установил flow-executor, — поэтому `include`.
+  const response = await fetch(url, { credentials: 'include', redirect: 'follow' })
+  // authentik отвечает 302 на страницу возврата — она статическая и отдаёт 200;
+  // адрес, на котором запрос закончился, и несёт code+state (или error).
+  const finalUrl = response.url
+  if (!finalUrl || !/[?#].*(?:code|error)=/.test(finalUrl))
+    throw new Error(`authentik не вернул код авторизации (ответ ${response.status} на ${finalUrl || url})`)
+
+  return internals._signinEnd(finalUrl)
 }
