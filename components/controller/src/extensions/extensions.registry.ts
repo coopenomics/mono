@@ -278,7 +278,11 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: CardcoopExtensionModule,
     extensionClass: CardcoopExtension,
-    defaults: { enabled: false, config: cardcoopDefaultConfig },
+    // Кооператив получает его сразу и включённым, как стол совета: карта пайщика — часть
+    // членства, а не дополнение к нему. Пока сеть карт не открыта для основной сети,
+    // доступность держит `NON_MAINNET_ONLY`, и туда расширение не поедет (см. фильтр
+    // доступности в составе расширений по умолчанию).
+    defaults: { enabled: true, config: cardcoopDefaultConfig },
     entities: cardcoopEntities,
     ports: cardcoopPorts,
     schema: CardcoopSchema,
