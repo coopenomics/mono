@@ -4964,6 +4964,7 @@ export const ReturnTypes: Record<string,any> = {
 		cardNumber:"String",
 		id:"String",
 		memberships:"CardcoopEntryMembership",
+		networkUrl:"String",
 		outcome:"CardcoopEntryOutcome",
 		status:"CardcoopEntryStatus",
 		username:"String"

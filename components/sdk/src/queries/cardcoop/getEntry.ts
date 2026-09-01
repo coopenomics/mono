@@ -14,6 +14,9 @@ export const entrySelector = Selector('CardcoopEntry')({
     displayName: true,
     memberSince: true,
   },
+  // Адрес сети нужен странице ожидания: кабинет карты человек не открывал — он пришёл
+  // переходом, и без ссылки ему некуда нажать, чтобы подтвердить перенос.
+  networkUrl: true,
 })
 
 /**

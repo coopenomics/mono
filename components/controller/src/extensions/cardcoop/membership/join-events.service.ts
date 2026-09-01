@@ -15,7 +15,7 @@ import { SovietContract } from 'cooptypes';
 import type { InnerChainActionRecord } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopMembershipService } from './membership.service';
 import { chainDate } from './chain-date';
 

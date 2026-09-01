@@ -153,3 +153,34 @@ cases:
       где необработанный отказ промиса убивает node целиком
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
     status: passing
+
+  - id: cc.mbr.break.05
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик вышел, отзыв свидетельства не доставился, пайщик вступил снова.
+    expect: >
+      повторный приём снимает с записи след неудавшегося отзыва: иначе проход
+      повтора продолжал бы отзывать членство действующего пайщика и однажды
+      отозвал бы
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.side.05
+    level: backend
+    kind: side
+    scenario: Держатель удалил карту в сети, кооператив получил об этом уведомление.
+    expect: >
+      записи о карте стираются целиком — свидетельства и ожидающая связка;
+      членство человека в кооперативе не трогается, он остаётся пайщиком без карты
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+
+  - id: cc.mbr.break.06
+    level: backend
+    kind: break
+    scenario: База недоступна в момент забывания удалённой карты.
+    expect: приём уведомления не роняется, причина остаётся в журнале кооператива
+    test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    status: passing
+

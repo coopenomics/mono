@@ -131,10 +131,33 @@ export class CardcoopDisclosureIntakeService {
       const envelope = await this.fetchProfile(notification.from_disclosure_url, notification.grant);
       await this.acceptProfile(session, envelope, notification.from_coopname);
     } catch (error) {
+      // Переносить нечего — и человек обязан это увидеть. Прежде исход оставался только в
+      // журнале, а сессия висела в ожидании: страница опрашивала сервер бесконечно, хотя
+      // всё уже было решено (3B5-54). Причина остаётся здесь, вступающему её знать незачем.
+      session.status = CardcoopEntryStatus.Failed;
+      await this.sessions.save(session);
+
       this.logger.error(
         `Анкета по согласию ${session.disclosureId} не получена: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * Держатель промолчал: сеть погасила запрос по сроку.
+   *
+   * Молчание согласием не считается, и ждать больше нечего: сессия закрывается, а человек
+   * продолжает вступление вручную либо просит согласие заново.
+   *
+   * @param notification — уведомление сети.
+   */
+  async handleExpired(notification: DisclosureDecisionNotification): Promise<void> {
+    const session = await this.byDisclosure(notification.disclosure_id);
+    if (!session) return;
+
+    session.status = CardcoopEntryStatus.Expired;
+    await this.sessions.save(session);
+    this.logger.info(`Согласие ${session.disclosureId} погасло без ответа держателя`);
   }
 
   /**

@@ -95,6 +95,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
 
     if (existing?.state === CardcoopAttestationState.Active) {
       await this.catchUpCardNumber(existing, cardNumber);
+      await this.clearFailedRevoke(existing, username);
       this.logger.info(`Членство пайщика ${username} на карте ${cardId} уже подтверждено — повтор пропущен`);
       return;
     }
@@ -131,6 +132,61 @@ export class CardcoopMembershipService implements OnModuleDestroy {
 
     record.cardNumber = cardNumber;
     await this.attestations.save(record);
+  }
+
+  /**
+   * Снимает с действующей записи след неудавшегося отзыва (3B5-56).
+   *
+   * Проход повтора опознаёт неудавшийся отзыв по паре «запись действующая и с ошибкой
+   * последней доставки». Признак верен ровно до одного случая — повторного вступления:
+   * человек вышел, отзыв не доставился, человек вступил снова. Не сними мы ошибку здесь,
+   * проход продолжал бы отзывать членство действующего пайщика — и однажды отозвал бы.
+   *
+   * @param record — запись с действующим членством.
+   * @param username — пайщик; нужен для внятной строки в журнале.
+   */
+  private async clearFailedRevoke(
+    record: CardcoopAttestationTypeormEntity,
+    username: string
+  ): Promise<void> {
+    if (!record.lastError && !record.revokedAt) return;
+
+    record.lastError = null;
+    record.revokedAt = null;
+    await this.attestations.save(record);
+    this.logger.info(
+      `Членство пайщика ${username} подтверждено заново — след неудавшегося отзыва снят, повторять его больше не нужно`
+    );
+  }
+
+  /**
+   * Забывает карту, удалённую держателем (3B5-60).
+   *
+   * Держатель удалил аккаунт в сети — карты больше нет ни у кого. Отзывать свидетельство
+   * незачем и некому: отзыв адресуется сети, а там от карты уже ничего не осталось. Наши
+   * записи о ней тоже теряют смысл — стол пайщика не должен показывать карту-призрак.
+   *
+   * Членство человека в кооперативе при этом не трогается: он остаётся пайщиком, просто
+   * без карты. Захочет — заведёт новую и свяжет заново.
+   *
+   * @param cardId — карта из уведомления сети.
+   */
+  async forgetCard(cardId: string): Promise<void> {
+    try {
+      const removed = await this.attestations.delete({ cardId });
+      await this.pendingLinks.delete({ cardId });
+
+      this.logger.info(
+        `Карта ${cardId} удалена держателем — записей о ней у кооператива больше нет (свидетельств: ${
+          removed.affected ?? 0
+        })`
+      );
+    } catch (error) {
+      // Вызов приходит из обработчика уведомления, где отказ промиса никем не подхватывается.
+      this.logger.error(
+        `Записи об удалённой карте ${cardId} не стёрты: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**

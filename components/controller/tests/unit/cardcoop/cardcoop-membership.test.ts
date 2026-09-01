@@ -25,8 +25,11 @@ const makeRepo = (rows: any[] = []) => {
       return store.filter((r) => clauses.some((c: any) => Object.entries(c).every(([k, v]) => r[k] === v)));
     }),
     delete: jest.fn(async (where: any) => {
-      const index = store.findIndex((r) => Object.entries(where).every(([k, v]) => r[k] === v));
-      if (index >= 0) store.splice(index, 1);
+      // Удаление по условию, а не по одной строке: карту забывают целиком, и свидетельств
+      // по ней может быть несколько.
+      const matched = store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v));
+      for (const row of matched) store.splice(store.indexOf(row), 1);
+      return { affected: matched.length };
     }),
   };
 };
@@ -202,6 +205,56 @@ describe('Членство пайщика в сети карт', () => {
 
     await expect(build(attestations, makeRepo(), {}).retryUndelivered('https://card.coop')).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Повтор недоставленных'));
+  });
+
+  it('повторный приём снимает след неудавшегося отзыва — иначе его отзовут заново', async () => {
+    // Человек вышел, отзыв не доставился, человек вступил снова. Не сними мы ошибку, проход
+    // повтора продолжал бы отзывать членство действующего пайщика — и однажды отозвал бы
+    // (3B5-56).
+    const record = {
+      username: 'ant',
+      cardId: 'card-1',
+      attestationId: 'att-1',
+      state: CardcoopAttestationState.Active,
+      lastError: 'сеть недоступна',
+      revokedAt: new Date(),
+    };
+    const attestations = makeRepo([record]);
+    const issueMembership = jest.fn();
+
+    await build(attestations, makeRepo(), { issueMembership }).issue('https://card.coop', 'ant', 'card-1', '2026-01-15');
+
+    // Второго свидетельства не выпускается: членство уже подтверждено.
+    expect(issueMembership).not.toHaveBeenCalled();
+    expect(record.lastError).toBeNull();
+    expect(record.revokedAt).toBeNull();
+  });
+
+  it('удалённая держателем карта забывается целиком — призраку в столе взяться неоткуда', async () => {
+    // Держатель удалил аккаунт в сети: карты больше нет ни у кого. Отзывать нечего и некому,
+    // а наши записи о ней только вводят в заблуждение (3B5-60).
+    const attestations = makeRepo([
+      { username: 'ant', cardId: 'card-1', attestationId: 'att-1', state: CardcoopAttestationState.Active },
+      { username: 'petr', cardId: 'card-2', attestationId: 'att-2', state: CardcoopAttestationState.Active },
+    ]);
+    const links = makeRepo([{ username: 'olga', cardId: 'card-1' }]);
+
+    await build(attestations, makeRepo(), {}, links).forgetCard('card-1');
+
+    expect(attestations.store.map((r: any) => r.cardId)).toEqual(['card-2']);
+    expect(links.store).toHaveLength(0);
+  });
+
+  it('сбой при забывании карты не роняет приём уведомления', async () => {
+    const attestations = {
+      ...makeRepo(),
+      delete: jest.fn(async () => {
+        throw new Error('база недоступна');
+      }),
+    };
+
+    await expect(build(attestations, makeRepo(), {}).forgetCard('card-1')).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('card-1'));
   });
 
   it('отклонённый советом выход просто забывается — членство сохраняется', async () => {

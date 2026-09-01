@@ -7,7 +7,7 @@
  * из истории браузера, хоть перебором — получает отказ.
  */
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopEntryService } from '../entry/entry.service';
 import { CardcoopDisclosureIntakeService } from '../entry/disclosure-intake.service';
 import type { CardcoopEntrySessionTypeormEntity } from '../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
@@ -51,7 +51,7 @@ export class CardcoopEntryResolver {
     description: 'Сессия входа по карте пайщика: кто вошёл и на каком шаге быстрая регистрация',
   })
   async entrySession(@Args('data') data: CardcoopEntryInputDTO): Promise<CardcoopEntryDTO> {
-    return toDto(await this.entry.session(data.entry_id));
+    return this.toDto(await this.entry.session(data.entry_id));
   }
 
   /**
@@ -65,7 +65,7 @@ export class CardcoopEntryResolver {
     description: 'Запросить перенос анкеты из выбранного кооператива — решение принимает держатель на card.coop',
   })
   async requestDisclosure(@Args('data') data: CardcoopRequestEntryDisclosureInputDTO): Promise<CardcoopEntryDTO> {
-    return toDto(
+    return this.toDto(
       await this.intake.requestDisclosure(this.extension.config.api_url, data.entry_id, data.from_coopname)
     );
   }
@@ -84,22 +84,29 @@ export class CardcoopEntryResolver {
     const { subjectType, profile } = await this.entry.takeProfile(data.entry_id);
     return { subjectType, profile };
   }
-}
 
-/** Приводит запись сессии к форме GraphQL. */
-function toDto(session: CardcoopEntrySessionTypeormEntity): CardcoopEntryDTO {
-  return {
-    id: session.id,
-    outcome: session.outcome,
-    status: session.status,
-    cardNumber: session.cardNumber,
-    username: session.username,
-    memberships: session.memberships.map(
-      (entry): CardcoopEntryMembershipDTO => ({
-        coopname: String(entry.coopname ?? ''),
-        displayName: String(entry.display_name ?? entry.coopname ?? ''),
-        memberSince: typeof entry.member_since === 'string' ? entry.member_since : null,
-      })
-    ),
-  };
+  /**
+   * Приводит запись сессии к форме GraphQL.
+   *
+   * Адрес сети приезжает вместе с сессией намеренно: страница входа публичная, спросить его
+   * отдельным запросом ей неоткуда, а без него человеку, ждущему согласия, некуда нажать —
+   * кабинет карты открыт не был, он пришёл переходом (3B5-55).
+   */
+  private toDto(session: CardcoopEntrySessionTypeormEntity): CardcoopEntryDTO {
+    return {
+      id: session.id,
+      outcome: session.outcome,
+      status: session.status,
+      cardNumber: session.cardNumber,
+      username: session.username,
+      memberships: session.memberships.map(
+        (entry): CardcoopEntryMembershipDTO => ({
+          coopname: String(entry.coopname ?? ''),
+          displayName: String(entry.display_name ?? entry.coopname ?? ''),
+          memberSince: typeof entry.member_since === 'string' ? entry.member_since : null,
+        })
+      ),
+      networkUrl: this.extension.config.api_url,
+    };
+  }
 }

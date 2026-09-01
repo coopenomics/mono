@@ -5189,6 +5189,8 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
 	memberships?:ValueTypes["CardcoopEntryMembership"],
+	/** Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты */
+	networkUrl?:boolean | `@${string}`,
 	/** Пайщик или кандидат */
 	outcome?:boolean | `@${string}`,
 	/** Состояние быстрой регистрации */
@@ -20205,6 +20207,8 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
 	memberships?:ResolverInputTypes["CardcoopEntryMembership"],
+	/** Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты */
+	networkUrl?:boolean | `@${string}`,
 	/** Пайщик или кандидат */
 	outcome?:boolean | `@${string}`,
 	/** Состояние быстрой регистрации */
@@ -34797,6 +34801,8 @@ export type ModelTypes = {
 	id: string,
 	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
 	memberships: Array<ModelTypes["CardcoopEntryMembership"]>,
+	/** Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты */
+	networkUrl: string,
 	/** Пайщик или кандидат */
 	outcome: ModelTypes["CardcoopEntryOutcome"],
 	/** Состояние быстрой регистрации */
@@ -50303,6 +50309,8 @@ export type GraphQLTypes = {
 	id: string,
 	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
 	memberships: Array<GraphQLTypes["CardcoopEntryMembership"]>,
+	/** Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты */
+	networkUrl: string,
 	/** Пайщик или кандидат */
 	outcome: GraphQLTypes["CardcoopEntryOutcome"],
 	/** Состояние быстрой регистрации */
@@ -62591,6 +62599,8 @@ export enum CardcoopEntryOutcome {
 export enum CardcoopEntryStatus {
 	AwaitingConsent = "AwaitingConsent",
 	Denied = "Denied",
+	Expired = "Expired",
+	Failed = "Failed",
 	ProfileReady = "ProfileReady",
 	Started = "Started"
 }

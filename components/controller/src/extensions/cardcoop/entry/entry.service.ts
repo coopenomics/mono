@@ -13,7 +13,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { LessThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import {
@@ -21,6 +21,7 @@ import {
   CardcoopAttestationTypeormEntity,
 } from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
 import { CardcoopConnectStateTypeormEntity } from '../infrastructure/entities/cardcoop-connect-state.typeorm-entity';
+import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
 import {
   CardcoopEntryOutcome,
   CardcoopEntrySessionTypeormEntity,
@@ -41,6 +42,15 @@ const MAX_PENDING = 10_000;
  * попутно, при каждом новом входе — отдельного расписания ради этого не заводится.
  */
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Сколько ждём решения держателя, прежде чем признать, что его не будет.
+ *
+ * Ровно столько же живёт запрос на стороне сети, поэтому дольше ждать нечего: там он уже
+ * погас. Отсчёт нужен и при исправной сети — уведомление о погашении может не доехать, —
+ * и это единственная защита от бесконечного ожидания у экрана (3B5-54).
+ */
+const CONSENT_WAIT_TTL_MS = 15 * 60 * 1000;
 
 /** Статусы членства в claims card.coop — форма задана сетью. */
 export enum EntryMembershipClaimStatus {
@@ -81,6 +91,8 @@ export class CardcoopEntryService {
     private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
     @InjectRepository(CardcoopEntrySessionTypeormEntity)
     private readonly sessions: Repository<CardcoopEntrySessionTypeormEntity>,
+    @InjectRepository(CardcoopPendingLinkTypeormEntity)
+    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(CardcoopEntryService.name);
@@ -143,23 +155,52 @@ export class CardcoopEntryService {
 
     const claims = await this.exchange(apiUrl, code, trip.verifier);
 
-    // Карта опознаёт пайщика по действующему подтверждению в НАШЕМ журнале: чужим claims о
-    // нашем членстве мы не доверяем и не пользуемся — у нас есть собственная запись.
-    const attestation = await this.attestations.findOne({
-      where: { cardId: claims.sub, state: CardcoopAttestationState.Active },
-    });
+    const known = await this.identify(claims.sub);
 
     const session = this.sessions.create({
       id: randomUUID(),
       cardId: claims.sub,
       cardNumber: claims.card_number,
-      outcome: attestation ? CardcoopEntryOutcome.Member : CardcoopEntryOutcome.Candidate,
-      username: attestation?.username ?? null,
-      memberships: attestation ? [] : this.foreignMemberships(claims.memberships),
+      outcome: known?.member ? CardcoopEntryOutcome.Member : CardcoopEntryOutcome.Candidate,
+      username: known?.username ?? null,
+      // Членства нужны только тому, кого мы не знаем: у человека с учётной записью анкета
+      // уже наша, и предлагать ему перенос значит звать вступать во второй раз.
+      memberships: known ? [] : this.foreignMemberships(claims.memberships),
       status: CardcoopEntryStatus.Started,
     });
 
     return this.sessions.save(session);
+  }
+
+  /**
+   * Узнаём ли мы человека по его карте (3B5-53).
+   *
+   * Опознание идёт по НАШИМ записям: чужим claims о нашем членстве мы не доверяем и не
+   * пользуемся. Записей две, и обе означают «учётная запись у него уже есть»:
+   *
+   * - свидетельство членства в журнале — кроме отозванного: отозванное значит, что человек
+   *   вышел, и вступать ему действительно заново. Недоставленное и отвергнутое сетью
+   *   свидетельство членством быть не перестаёт: это состояние доставки документа, а не
+   *   состояние человека, и считать пайщика кандидатом из-за моргнувшей сети нельзя;
+   * - ожидающая связка кандидата, который принёс карту на вступлении (story 7.5): совет ещё
+   *   не решил, но учётная запись заведена, и второй ей не место.
+   *
+   * Кого не узнали — тому и предлагается быстрая регистрация. Опознавать по совпадению
+   * почты нельзя ни при каких обстоятельствах (FR-A2в): это способ присвоить чужое членство.
+   *
+   * @param cardId — карта из токена сети.
+   * @returns Учётная запись и признак действующего членства; `null` — человек нам неизвестен.
+   */
+  private async identify(cardId: string): Promise<{ username: string; member: boolean } | null> {
+    const attestation = await this.attestations.findOne({
+      where: { cardId, state: Not(CardcoopAttestationState.Revoked) },
+    });
+    if (attestation) return { username: attestation.username, member: true };
+
+    const pending = await this.pendingLinks.findOne({ where: { cardId } });
+    if (pending) return { username: pending.username, member: false };
+
+    return null;
   }
 
   /**
@@ -245,6 +286,24 @@ export class CardcoopEntryService {
   async session(id: string): Promise<CardcoopEntrySessionTypeormEntity> {
     const session = await this.sessions.findOne({ where: { id } });
     if (!session) throw new NotFoundException('Сессия входа не найдена — начните заново');
+
+    if (Date.now() - session.createdAt.getTime() > SESSION_TTL_MS) {
+      // Срок сессии проверяется при чтении, а не только при чистке: чистка идёт на новом
+      // входе, а его может не быть сутками, и просроченная сессия отвечала бы как живая.
+      throw new NotFoundException('Сессия входа истекла — начните заново');
+    }
+
+    // Ожидание решения держателя не бесконечно. На стороне сети запрос к этому моменту уже
+    // погас, и уведомление об этом могло не доехать; без собственного отсчёта человек
+    // остался бы у страницы, которая опрашивает сервер до закрытия вкладки (3B5-54).
+    if (
+      session.status === CardcoopEntryStatus.AwaitingConsent &&
+      Date.now() - session.updatedAt.getTime() > CONSENT_WAIT_TTL_MS
+    ) {
+      session.status = CardcoopEntryStatus.Expired;
+      return this.sessions.save(session);
+    }
+
     return session;
   }
 

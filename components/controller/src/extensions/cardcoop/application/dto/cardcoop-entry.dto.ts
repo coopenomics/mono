@@ -53,6 +53,11 @@ export class CardcoopEntryDTO {
     description: 'Членства карты в других кооперативах — из них выбирается источник анкеты',
   })
   memberships!: CardcoopEntryMembershipDTO[];
+
+  @Field(() => String, {
+    description: 'Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты',
+  })
+  networkUrl!: string;
 }
 
 /** Анкета, полученная от кооператива-источника; выдаётся ровно один раз. */

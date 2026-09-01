@@ -29,7 +29,7 @@ import {
   USER_DIRECTORY_PORT,
   type IUserDirectoryPort,
 } from '@coopenomics/innercoop';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopMembershipService } from '../membership/membership.service';
 import { chainDate } from '../membership/chain-date';
 import { CardcoopDisclosureIntakeService } from '../entry/disclosure-intake.service';
@@ -58,6 +58,10 @@ const LINK_CREATED = 'link.created';
 /** Решения держателя по раскрытию анкеты (story 9.3, ADR-2 card.coop). */
 const DISCLOSURE_GRANTED = 'disclosure.granted';
 const DISCLOSURE_DENIED = 'disclosure.denied';
+const DISCLOSURE_EXPIRED = 'disclosure.expired';
+
+/** Держатель удалил карту: связка и свидетельство больше ни о чём не говорят (3B5-60). */
+const CARD_DELETED = 'card.deleted';
 
 /**
  * Тело уведомления.
@@ -109,17 +113,7 @@ export class CardcoopLinkWebhookController {
   ): Promise<{ accepted: boolean }> {
     await this.verify(notification, signature);
 
-    // Решения держателя по раскрытиям адресованы не кооперативу карты, а получателю анкеты:
-    // проверка принадлежности здесь не нужна — сессию находит идентификатор согласия,
-    // который выдавали нам.
-    if (notification.event === DISCLOSURE_GRANTED) {
-      void this.disclosureIntake.handleGranted(notification as never);
-      return { accepted: true };
-    }
-    if (notification.event === DISCLOSURE_DENIED) {
-      void this.disclosureIntake.handleDenied(notification as never);
-      return { accepted: true };
-    }
+    if (this.routeAside(notification)) return { accepted: true };
 
     if (notification.event !== LINK_CREATED) return { accepted: true };
     if (notification.coopname !== platformSettings().coopname) {
@@ -132,6 +126,41 @@ export class CardcoopLinkWebhookController {
 
     void this.issue(cardId, subject, cardNumber ?? null);
     return { accepted: true };
+  }
+
+  /**
+   * Разводит события, не относящиеся к связке.
+   *
+   * Проверка принадлежности к ним не применяется, и это не упущение:
+   *
+   * - решения по раскрытиям адресованы не кооперативу карты, а получателю анкеты, и сессию
+   *   находит идентификатор согласия, который выдавали нам;
+   * - удаление карты адресовано всем, кто был с ней связан, а стереть у себя чужую карту
+   *   невозможно — своих записей о ней просто нет.
+   *
+   * Обработка идёт своим ходом: ответить сети нужно сразу, а держать её в ожидании, пока мы
+   * ходим к источнику анкеты, незачем — она бы отсчитала таймаут и прислала уведомление ещё раз.
+   *
+   * @param notification — проверенное подписью уведомление.
+   * @returns `true`, если событие обработано здесь и до связки дело не дойдёт.
+   */
+  private routeAside(notification: LinkCreatedNotification): boolean {
+    switch (notification.event) {
+      case DISCLOSURE_GRANTED:
+        void this.disclosureIntake.handleGranted(notification as never);
+        return true;
+      case DISCLOSURE_DENIED:
+        void this.disclosureIntake.handleDenied(notification as never);
+        return true;
+      case DISCLOSURE_EXPIRED:
+        void this.disclosureIntake.handleExpired(notification as never);
+        return true;
+      case CARD_DELETED:
+        if (notification.card_id) void this.membership.forgetCard(notification.card_id);
+        return true;
+      default:
+        return false;
+    }
   }
 
   /**

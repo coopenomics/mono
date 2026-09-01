@@ -9,7 +9,7 @@ import { Controller, Get, Inject, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopEntryService } from '../entry/entry.service';
 
 @Controller('v1/extensions/cardcoop/entry')

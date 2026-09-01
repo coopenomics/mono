@@ -127,3 +127,58 @@ cases:
       каждое состояние страницы объясняет, что происходит и что делать дальше;
       предзаполненная форма вступления показывает перенесённые данные
     status: missing
+
+  - id: cc.entry.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Возврат человека, чьё свидетельство членства застряло в доставке либо
+      отвергнуто сетью, а также кандидата со связкой, ждущей решения совета.
+    expect: >
+      карта опознаёт его по учётной записи: недоставка документа — состояние
+      доставки, а не состояние человека, и вести пайщика во второе вступление
+      нельзя; отозванное свидетельство при этом означает выход и кандидатом
+      человека делает справедливо
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Держатель не ответил на запрос раскрытия, а уведомление сети о погашении
+      не доехало.
+    expect: >
+      ожидание кончается собственным сроком (тем же, что и у запроса в сети), и
+      сессия переходит в «согласия не было»; свежее ожидание не гасится
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.04
+    level: backend
+    kind: break
+    scenario: Обмен гранта на анкету не удался (мёртвый грант, ошибка источника, чужая подпись).
+    expect: >
+      сессия заканчивается состоянием «перенести не удалось» — прежде она висела
+      в ожидании, и страница опрашивала сервер до закрытия вкладки
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.side.03
+    level: backend
+    kind: side
+    scenario: Сеть сообщила, что запрос погас без ответа держателя.
+    expect: сессия закрывается как «согласия не было», регистрация продолжается вручную
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.05
+    level: backend
+    kind: break
+    scenario: Чтение сессии, у которой вышли сутки жизни.
+    expect: >
+      отказ, а не ответ как у живой: чистка идёт при новом входе, а его может не
+      быть сутками — просроченная сессия с анкетой отвечать не должна
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+

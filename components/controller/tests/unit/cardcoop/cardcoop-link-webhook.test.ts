@@ -40,11 +40,13 @@ const build = (
 ) => {
   const issue = overrides.issue ?? jest.fn(async () => undefined);
   const rememberLink = overrides.rememberLink ?? jest.fn(async () => undefined);
+  const forgetCard = jest.fn(async () => undefined);
+  const handleExpired = jest.fn();
   const getPermissionKey = jest.fn(async () => (overrides.chainKey === undefined ? publicKey : overrides.chainKey));
   const controller = new CardcoopLinkWebhookController(
     { config: { api_url: 'https://card.coop' } } as any,
-    { issue, rememberLink } as any,
-    { handleGranted: jest.fn(), handleDenied: jest.fn() } as any,
+    { issue, rememberLink, forgetCard } as any,
+    { handleGranted: jest.fn(), handleDenied: jest.fn(), handleExpired } as any,
     { findBySubject: async () => ({ username: 'ant', email: '', role: 'user' }) } as any,
     {
       // Членство — строка реестра пайщиков (soviet::participants), а не аккаунт регистратора:
@@ -57,7 +59,7 @@ const build = (
     { getPermissionKey } as any,
     logger as any
   );
-  return { controller, issue, rememberLink, getPermissionKey };
+  return { controller, issue, rememberLink, getPermissionKey, forgetCard, handleExpired };
 };
 
 /** Выпуск идёт в фоне — даём микрозадачам отработать. */
@@ -164,6 +166,39 @@ describe('Уведомление о связке карты с кооперат�
     await expect(controller.handleLinkCreated(other, sign(other))).resolves.toEqual({ accepted: true });
     await settle();
     expect(issue).not.toHaveBeenCalled();
+  });
+
+  it('удаление карты держателем стирает записи о ней — призраку в столе взяться неоткуда', async () => {
+    // Событие адресовано всем, кто был с картой связан, поэтому проверки принадлежности
+    // здесь нет: стереть у себя чужую карту невозможно — своих записей о ней просто нет
+    // (3B5-60).
+    const deleted = { event: 'card.deleted', card_id: 'card-1', occurred_at: '2026-09-01T10:00:00.000Z' };
+    const { controller, forgetCard, issue } = build();
+
+    await expect(controller.handleLinkCreated(deleted as never, sign(deleted))).resolves.toEqual({ accepted: true });
+    await settle();
+
+    expect(forgetCard).toHaveBeenCalledWith('card-1');
+    expect(issue).not.toHaveBeenCalled();
+  });
+
+  it('уведомление об удалении без карты ничего не стирает', async () => {
+    const broken = { event: 'card.deleted', occurred_at: '2026-09-01T10:00:00.000Z' };
+    const { controller, forgetCard } = build();
+
+    await expect(controller.handleLinkCreated(broken as never, sign(broken))).resolves.toEqual({ accepted: true });
+    await settle();
+
+    expect(forgetCard).not.toHaveBeenCalled();
+  });
+
+  it('погашение согласия сетью доходит до приёмника анкеты', async () => {
+    const expired = { event: 'disclosure.expired', disclosure_id: 'consent-1' };
+    const { controller, handleExpired } = build();
+
+    await expect(controller.handleLinkCreated(expired as never, sign(expired))).resolves.toEqual({ accepted: true });
+
+    expect(handleExpired).toHaveBeenCalledWith(expect.objectContaining({ disclosure_id: 'consent-1' }));
   });
 
   it('кандидат связал карту до приёма — связка ждёт решения совета, а не теряется', async () => {

@@ -12,7 +12,7 @@ import { Resolver, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard, platformSettings } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopCardService } from './cardcoop-card.service';
 import { CardcoopMyCardDTO } from './dto/cardcoop-my-card.dto';
 

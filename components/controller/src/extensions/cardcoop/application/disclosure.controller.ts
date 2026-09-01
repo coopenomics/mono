@@ -16,7 +16,7 @@ import { Body, Controller, ForbiddenException, HttpCode, HttpStatus, Inject, Pos
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { UseGuards } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopDisclosureService } from '../disclosure/disclosure.service';
 import { CardcoopGrantRejected } from '../disclosure/grant-verifier.service';
 import type { CardcoopDisclosureEnvelope } from '../disclosure/disclosure.types';

@@ -15,16 +15,8 @@
  * Реализует story 7.1 (каркас и конфиг). Отправка подтверждений — 7.2,
  * отзыв — 7.3, выдача анкеты по гранту — 7.8.
  */
-import { Inject, Module } from '@nestjs/common';
-import {
-  BaseExtensionModule,
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainEntity,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
-import { z } from 'zod';
+import { Module } from '@nestjs/common';
+import { CardcoopExtension, Schema, defaultConfig, type IConfig } from './cardcoop.extension';
 import { CardcoopIdentityService } from './identity/identity.service';
 import { CardcoopAttestationService } from './attestation/attestation.service';
 import { CardcoopMembershipService } from './membership/membership.service';
@@ -57,73 +49,9 @@ import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
  * ввод криптографического ключа председателем запрещён: это гарантированные
  * опечатки, мёртвая ротация и канал для подсовывания поддельного ключа.
  */
-/** Подпись поля в форме настроек: председатель видит человеческий текст, а не имя параметра. */
-const describeField = (description: DeserializedDescriptionOfExtension): string => JSON.stringify(description);
-
-export const Schema = z.object({
-  api_url: z
-    .string()
-    .url('Адрес должен быть ссылкой вида https://card.coop')
-    .describe(
-      describeField({
-        label: 'Адрес сети «Карта пайщика»',
-        note: 'Менять не требуется: значение по умолчанию рабочее. Поле оставлено для тестового контура.',
-      })
-    ),
-  // Юридическая половина подключения кооперативов (story 7.6) — функция установки оператора,
-  // а не каждого кооператива. Флаг, а не отдельное расширение: сеть и так примет объявление
-  // только от кооператива, названного оператором в её конфигурации, — включённый по ошибке
-  // флаг даёт отказ в журнале, а не чужие допуски.
-  announce_as_operator: z
-    .boolean()
-    // default: поле появилось после первых установок, и конфиг без него обязан читаться.
-    .default(false)
-    .describe(
-      describeField({
-        label: 'Я — оператор сети (ВОСХОД)',
-        note: 'Объявлять card.coop допуск кооперативов, активированных в цепи. Включается только на установке оператора сети.',
-      })
-    ),
-});
-
-export const defaultConfig = {
-  api_url: 'https://card.coop',
-  announce_as_operator: false,
-};
-
-export type IConfig = z.infer<typeof Schema>;
-
-export class CardcoopExtension extends BaseExtensionModule {
-  constructor(
-    @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
-  ) {
-    super();
-    this.logger.setContext(CardcoopExtension.name);
-  }
-
-  name = 'cardcoop';
-
-  extension!: ExtensionDomainEntity<IConfig>;
-  public configSchemas = Schema;
-  public defaultConfig = defaultConfig;
-
-  /** Читает установленную запись расширения и запоминает конфиг. */
-  async initialize(): Promise<void> {
-    const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error(`Конфигурация расширения ${this.name} не найдена`);
-
-    this.extension = extensionData;
-
-    this.logger.info(`Инициализация ${this.name}`, { api_url: this.config.api_url });
-
-  }
-
-  /** Текущие параметры установки. Обращение до `initialize` — ошибка разработчика. */
-  public get config(): IConfig {
-    return this.extension.config;
-  }
-}
+// Проводник для реестра расширений: сам класс и его параметры живут в `cardcoop.extension.ts`
+// (см. пояснение там), а реестру привычнее спрашивать их у модуля.
+export { CardcoopExtension, Schema, defaultConfig, type IConfig };
 
 @Module({
   imports: [CardcoopDatabaseModule],

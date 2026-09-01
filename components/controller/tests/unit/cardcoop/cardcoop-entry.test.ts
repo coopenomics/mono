@@ -61,10 +61,16 @@ const repos = () => {
     sessions,
     connectState: { findOne: jest.fn(async (): Promise<any> => rpState) },
     attestations: { findOne: jest.fn(async (): Promise<any> => null) },
+    // Связки, ждущие приёма советом (story 7.5): у их владельцев учётная запись уже есть.
+    pendingLinks: { findOne: jest.fn(async (): Promise<any> => null) },
     sessionsRepo: {
       delete: jest.fn(async () => ({ affected: 0 })),
       create: (data: any) => ({ ...data }),
       save: jest.fn(async (row: any) => {
+        // Время создания и правки ведёт база; в тестах оно нужно потому, что по нему
+        // считаются оба срока — жизни сессии и ожидания решения держателя.
+        row.createdAt = row.createdAt ?? new Date();
+        row.updatedAt = new Date();
         sessions.set(row.id, row);
         return row;
       }),
@@ -85,6 +91,7 @@ describe('Вход по карте пайщика', () => {
       deps.connectState as any,
       deps.attestations as any,
       deps.sessionsRepo as any,
+      deps.pendingLinks as any,
       logger as any
     ),
   });
@@ -125,6 +132,53 @@ describe('Вход по карте пайщика', () => {
     expect(session.memberships).toEqual([]);
   });
 
+  it('пайщика с недоставленным свидетельством карта тоже узнаёт: недоставка — состояние документа, не человека', async () => {
+    // Прежде опознание шло только по действующему свидетельству, и пайщик, чьё свидетельство
+    // застряло в доставке, объявлялся кандидатом — то есть ему предлагали вступить второй
+    // раз в кооператив, где он уже состоит (3B5-53).
+    const deps = repos();
+    deps.attestations.findOne = jest.fn(async () => ({ username: 'ant', cardId: CARD, state: 'pending' }));
+    const { service } = build(deps);
+    const state = new URL(await service.start(API)).searchParams.get('state') as string;
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ id_token: idToken() }) } as any);
+
+    const session = await service.callback(API, state, 'code-1');
+
+    expect(session.outcome).toBe(CardcoopEntryOutcome.Member);
+    expect(session.username).toBe('ant');
+  });
+
+  it('кандидат с ожидающей связкой опознан по учётной записи, но пайщиком не назван', async () => {
+    // Человек связал карту на вступлении и ждёт совета (story 7.5): учётная запись у него
+    // уже есть, и второй ей взяться неоткуда — вести его в регистрацию заново нельзя.
+    const deps = repos();
+    deps.pendingLinks.findOne = jest.fn(async () => ({ username: 'olga', cardId: CARD }));
+    const { service } = build(deps);
+    const state = new URL(await service.start(API)).searchParams.get('state') as string;
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ id_token: idToken() }) } as any);
+
+    const session = await service.callback(API, state, 'code-1');
+
+    expect(session.outcome).toBe(CardcoopEntryOutcome.Candidate);
+    expect(session.username).toBe('olga');
+    // Переносить анкету незачем: она у нас уже есть — человек её и заполнял.
+    expect(session.memberships).toEqual([]);
+  });
+
+  it('вышедшего пайщика карта кандидатом и считает: отозванное свидетельство — это выход', async () => {
+    const deps = repos();
+    // Выборка исключает отозванные, поэтому по ней записи не находится вовсе.
+    deps.attestations.findOne = jest.fn(async () => null);
+    const { service } = build(deps);
+    const state = new URL(await service.start(API)).searchParams.get('state') as string;
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ id_token: idToken() }) } as any);
+
+    const session = await service.callback(API, state, 'code-1');
+
+    expect(session.outcome).toBe(CardcoopEntryOutcome.Candidate);
+    expect(session.username).toBeNull();
+  });
+
   it('кандидату остаются только действующие членства ЧУЖИХ кооперативов — источник анкеты из них', async () => {
     const { service } = build();
     const state = new URL(await service.start(API)).searchParams.get('state') as string;
@@ -158,6 +212,54 @@ describe('Вход по карте пайщика', () => {
     await expect(service.callback(API, state, 'code-1')).rejects.toThrow(NotFoundException);
   });
 
+  it('ожидание решения держателя кончается: у бесконечного спиннера нет исхода', async () => {
+    // Пятнадцать минут — тот же срок, что и у запроса на стороне сети: там он уже погас, и
+    // ждать дольше нечего. Без собственного отсчёта страница опрашивала бы сервер до
+    // закрытия вкладки, а человек читал бы это как «сайт завис» (3B5-54).
+    const deps = repos();
+    deps.sessions.set('entry-1', {
+      id: 'entry-1',
+      status: CardcoopEntryStatus.AwaitingConsent,
+      createdAt: new Date(),
+      updatedAt: new Date(Date.now() - 16 * 60 * 1000),
+    });
+    const { service } = build(deps);
+
+    const session = await service.session('entry-1');
+
+    expect(session.status).toBe(CardcoopEntryStatus.Expired);
+  });
+
+  it('свежее ожидание не гасится', async () => {
+    const deps = repos();
+    deps.sessions.set('entry-1', {
+      id: 'entry-1',
+      status: CardcoopEntryStatus.AwaitingConsent,
+      createdAt: new Date(),
+      updatedAt: new Date(Date.now() - 60 * 1000),
+    });
+    const { service } = build(deps);
+
+    await expect(service.session('entry-1')).resolves.toMatchObject({
+      status: CardcoopEntryStatus.AwaitingConsent,
+    });
+  });
+
+  it('просроченная сессия отвечает отказом, а не как живая', async () => {
+    // Чистка идёт при новом входе, а его может не быть сутками: без проверки при чтении
+    // просроченная сессия с анкетой продолжала бы отвечать.
+    const deps = repos();
+    deps.sessions.set('entry-1', {
+      id: 'entry-1',
+      status: CardcoopEntryStatus.Started,
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+      updatedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+    });
+    const { service } = build(deps);
+
+    await expect(service.session('entry-1')).rejects.toThrow(NotFoundException);
+  });
+
   it('анкета читается ровно один раз: ссылка из истории браузера получает отказ', async () => {
     const deps = repos();
     deps.sessions.set('entry-1', {
@@ -167,6 +269,8 @@ describe('Вход по карте пайщика', () => {
       profileType: 'individual',
       profile: { last_name: 'Муравьёв' },
       profileTakenAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     const { service } = build(deps);
 
@@ -202,6 +306,8 @@ describe('Приём анкеты от кооператива-источника
   });
 
   const candidate = () => ({
+    createdAt: new Date(),
+    updatedAt: new Date(),
     id: 'entry-1',
     cardId: CARD,
     outcome: CardcoopEntryOutcome.Candidate,
@@ -302,7 +408,9 @@ describe('Приём анкеты от кооператива-источника
       from_disclosure_url: 'https://voskhod.coop/x',
     });
 
-    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.AwaitingConsent);
+    // Анкетой это не стало — и ожидание на этом кончается: человеку показывается «перенос
+    // не удался», а не бесконечный спиннер (3B5-54).
+    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Failed);
     expect(deps.sessions.get('entry-1').profile).toBeNull();
   });
 
@@ -317,13 +425,35 @@ describe('Приём анкеты от кооператива-источника
       from_disclosure_url: 'https://voskhod.coop/x',
     });
 
-    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.AwaitingConsent);
+    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Failed);
   });
 
   it('отказ держателя переводит сессию в «руками» — регистрация не тупик', async () => {
     await build().handleDenied({ disclosure_id: 'consent-1' });
 
     expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Denied);
+  });
+
+  it('неудача обмена заканчивает сессию, а не оставляет её в ожидании', async () => {
+    // Причины разные — грант умер по дороге, источник ответил ошибкой, подпись не сошлась, —
+    // но для человека исход один: переносить нечего, и он обязан это увидеть (3B5-54).
+    jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 } as any);
+
+    await build().handleGranted({
+      disclosure_id: 'consent-1',
+      grant: 'grant-jws',
+      from_coopname: 'voskhod',
+      from_disclosure_url: 'https://voskhod.coop/x',
+    });
+
+    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Failed);
+    expect(deps.sessions.get('entry-1').profile).toBeNull();
+  });
+
+  it('погашение согласия сетью закрывает сессию: молчание держателя — тоже исход', async () => {
+    await build().handleExpired({ disclosure_id: 'consent-1' });
+
+    expect(deps.sessions.get('entry-1').status).toBe(CardcoopEntryStatus.Expired);
   });
 
   it('уведомление о неизвестном согласии молчит: оно могло пережить сессию', async () => {

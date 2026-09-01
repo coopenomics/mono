@@ -17,7 +17,7 @@ import type { InnerChainActionRecord } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { Inject } from '@nestjs/common';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopMembershipService } from './membership.service';
 
 /** Действия процесса выхода. В `cooptypes` объявлено только начало процесса, остальные — по имени в цепи. */

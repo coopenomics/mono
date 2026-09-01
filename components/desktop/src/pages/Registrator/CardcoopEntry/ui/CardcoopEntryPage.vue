@@ -20,8 +20,10 @@
         <div class="skel" />
       </template>
 
-      <!-- Пайщик: карта опознала, вход — штатными способами (сессий по карте не существует) -->
-      <template v-else-if="entry.outcome === Zeus.CardcoopEntryOutcome.Member">
+      <!-- Карта опознала человека: учётная запись у него уже есть. Вход — штатными
+           способами, сессий по карте не существует. Ветка общая и для пайщика, и для
+           кандидата, ждущего решения совета: вторая учётная запись ему ни к чему (3B5-53). -->
+      <template v-else-if="entry.username">
         <div class="banner banner--info">
           <q-icon class="banner__icon" name="badge" />
           <div class="banner__body">
@@ -37,7 +39,7 @@
       <!-- Кандидат: быстрая регистрация -->
       <template v-else>
         <!-- Выбор кооператива-источника -->
-        <template v-if="entry.status === Zeus.CardcoopEntryStatus.Started && entry.memberships.length > 0">
+        <template v-if="pickingSource && entry.memberships.length > 0">
           <div class="banner banner--info">
             <q-icon class="banner__icon" name="badge" />
             <div class="banner__body">
@@ -68,6 +70,7 @@
             Запросить перенос анкеты
           </BaseButton>
           <BaseButton variant="ghost" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
+          <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
         </template>
 
         <!-- Членств нет: обычная регистрация, карта свяжется по её ходу -->
@@ -80,6 +83,7 @@
             </div>
           </div>
           <BaseButton variant="primary" block @click="goSignUp">Продолжить регистрацию</BaseButton>
+          <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
         </template>
 
         <!-- Ждём решения держателя на card.coop -->
@@ -87,10 +91,11 @@
           <div class="banner banner--info">
             <q-icon class="banner__icon" name="hourglass_top" />
             <div class="banner__body">
-              Подтвердите перенос анкеты в кабинете card.coop — он открыт в вашем аккаунте
-              карты. Эта страница продолжит сама, как только вы разрешите.
+              Откройте кабинет card.coop и подтвердите перенос анкеты. Эта страница продолжит
+              сама, как только вы разрешите.
             </div>
           </div>
+          <BaseButton variant="primary" block @click="openCardcoop">Открыть card.coop</BaseButton>
           <div class="skel" />
           <BaseButton variant="ghost" block @click="goSignUp">Не ждать — заполнить вручную</BaseButton>
         </template>
@@ -110,15 +115,22 @@
           </BaseButton>
         </template>
 
-        <!-- Держатель отказал -->
+        <!-- Ветка закончилась без анкеты: отказ, молчание либо неудавшийся перенос.
+             У каждой из трёх есть конец и понятный следующий шаг (3B5-54). -->
         <template v-else>
           <div class="banner banner--info">
-            <q-icon class="banner__icon" name="block" />
-            <div class="banner__body">
-              Перенос анкеты отклонён. Это не мешает вступлению — заполните анкету вручную.
-            </div>
+            <q-icon class="banner__icon" :name="outcomeIcon" />
+            <div class="banner__body">{{ outcomeText }}</div>
           </div>
           <BaseButton variant="primary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
+          <BaseButton
+            v-if="entry.memberships.length > 0"
+            variant="secondary"
+            block
+            @click="pickAnotherSource"
+          >
+            Попробовать ещё раз
+          </BaseButton>
         </template>
       </template>
     </AuthCard>
@@ -149,20 +161,53 @@ const route = useRoute();
 const router = useRouter();
 const registrator = useRegistratorStore();
 
-const entryId = computed(() => String(route.query.entry ?? ''));
-const failed = computed(() => Boolean(route.query.error) || !entryId.value);
-
 const entry = ref<EntrySession | null>(null);
 const selectedSource = ref<string | null>(null);
 const requesting = ref(false);
 const taking = ref(false);
+/** Сессия не найдена или истекла: показываем то же, что и при сорванном входе. */
+const gone = ref(false);
+
+const entryId = computed(() => String(route.query.entry ?? ''));
+const failed = computed(() => Boolean(route.query.error) || !entryId.value || gone.value);
+
+/** Человек решил выбрать источник заново после отказа или неудачи. */
+const retrying = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Сколько ждём решения держателя, прежде чем перестать опрашивать.
+ *
+ * Столько же живёт запрос на стороне сети: дольше ждать нечего — там он уже погас. Раньше
+ * опрос шёл до закрытия вкладки, и «сайт завис» было единственным объяснением, которое
+ * человек мог себе дать (3B5-54).
+ */
+const POLL_LIMIT_MS = 16 * 60 * 1000;
+let pollStartedAt = 0;
 
 const title = computed(() => {
   if (failed.value) return 'Вход по карте';
-  if (entry.value?.outcome === Zeus.CardcoopEntryOutcome.Member) return 'Мы вас узнали';
+  if (entry.value?.username) return 'Мы вас узнали';
   return 'Быстрая регистрация по карте';
 });
+
+/** Показывать ли выбор кооператива-источника: в начале либо по просьбе повторить. */
+const pickingSource = computed(
+  () => entry.value?.status === Zeus.CardcoopEntryStatus.Started || retrying.value,
+);
+
+/** Чем закончилась ветка переноса — тремя разными исходами, а не одним «отклонено». */
+const outcomeText = computed(() => {
+  if (entry.value?.status === Zeus.CardcoopEntryStatus.Denied)
+    return 'Перенос анкеты отклонён. Это не мешает вступлению — заполните анкету вручную.';
+  if (entry.value?.status === Zeus.CardcoopEntryStatus.Expired)
+    return 'Согласие не подтверждено вовремя — запрос погас. Можно попросить заново или заполнить анкету вручную.';
+  return 'Перенести анкету не удалось. Можно попробовать ещё раз или заполнить её вручную — на вступление это не влияет.';
+});
+
+const outcomeIcon = computed(() =>
+  entry.value?.status === Zeus.CardcoopEntryStatus.Denied ? 'block' : 'schedule',
+);
 const subtitle = computed(() =>
   entry.value?.cardNumber ? `Карта ${entry.value.cardNumber.replace(/(.{4})(?=.)/g, '$1 ')}` : undefined,
 );
@@ -176,16 +221,52 @@ async function load(): Promise<void> {
     entry.value = session;
     // Ожидание решения держателя: страница опрашивает сессию сама — грант приезжает
     // серверу, браузеру ничего не приходит.
-    if (session.status === Zeus.CardcoopEntryStatus.AwaitingConsent && !pollTimer) {
-      pollTimer = setInterval(() => void load(), 3000);
-    }
-    if (session.status !== Zeus.CardcoopEntryStatus.AwaitingConsent && pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
+    if (session.status === Zeus.CardcoopEntryStatus.AwaitingConsent) {
+      retrying.value = false;
+      startPolling();
+    } else {
+      stopPolling();
     }
   } catch {
+    // Сессии нет либо она истекла. Прежде страница показывала вечный скелетон загрузки,
+    // и человек ждал того, чего уже не существует (3B5-59).
+    stopPolling();
     entry.value = null;
+    gone.value = true;
   }
+}
+
+/** Начинает опрос, если он ещё не идёт. */
+function startPolling(): void {
+  if (pollTimer) return;
+  pollStartedAt = Date.now();
+  pollTimer = setInterval(() => {
+    if (Date.now() - pollStartedAt > POLL_LIMIT_MS) {
+      // Сервер закроет сессию по тому же сроку; перестаём спрашивать и показываем исход.
+      stopPolling();
+      void load();
+      return;
+    }
+    void load();
+  }, 3000);
+}
+
+/** Останавливает опрос. */
+function stopPolling(): void {
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+/** Возвращает к выбору источника: отказ по одному кооперативу не закрывает перенос из другого. */
+function pickAnotherSource(): void {
+  selectedSource.value = null;
+  retrying.value = true;
+}
+
+/** Уводит в кабинет карты — там держатель подтверждает перенос. */
+function openCardcoop(): void {
+  if (entry.value?.networkUrl) window.open(entry.value.networkUrl, '_blank', 'noopener');
 }
 
 async function requestDisclosure(): Promise<void> {
@@ -197,7 +278,8 @@ async function requestDisclosure(): Promise<void> {
       { variables: { data: { entry_id: entryId.value, from_coopname: selectedSource.value } } },
     );
     entry.value = session;
-    if (!pollTimer) pollTimer = setInterval(() => void load(), 3000);
+    retrying.value = false;
+    startPolling();
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -232,9 +314,7 @@ function goSignUp(): void {
 }
 
 onMounted(() => void load());
-onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer);
-});
+onUnmounted(() => stopPolling());
 </script>
 
 <style scoped>

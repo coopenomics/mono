@@ -35,6 +35,15 @@ const DELIVERY_ATTEMPTS = 5;
 
 /** Задержка перед повтором, миллисекунды: удваивается до предела. */
 const RETRY_BASE_MS = 1_000;
+
+/**
+ * Сколько ждать ответа сети на один запрос (3B5-58).
+ *
+ * Ограничение обязательно: тем же путём уходит запрос раскрытия из быстрой регистрации, а
+ * там человек ждёт у экрана. Без него зависший узел сети держал бы соединение до системного
+ * таймаута, и пять попыток превращались бы в минуты молчания вместо внятного отказа.
+ */
+const REQUEST_TIMEOUT_MS = 15_000;
 const RETRY_MAX_MS = 30_000;
 
 /** Что нужно знать, чтобы выпустить подтверждение. */
@@ -194,6 +203,7 @@ export class CardcoopAttestationService {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(envelope),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
 
         if (response.ok) {

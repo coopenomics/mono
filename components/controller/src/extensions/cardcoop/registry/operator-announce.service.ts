@@ -26,7 +26,7 @@ import {
   type ILoggerPort,
 } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
-import { CardcoopExtension } from '../cardcoop-extension.module';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import { CardcoopOperatorAnnouncementTypeormEntity } from '../infrastructure/entities/cardcoop-operator-announcement.typeorm-entity';
 import { CardcoopRegistryDocumentType, type CardcoopAdmissionPayload } from './registry.types';
