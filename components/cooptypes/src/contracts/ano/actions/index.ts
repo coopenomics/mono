@@ -15,3 +15,8 @@ export * as Revoke from './revoke'
  * @private
  */
 export * as Migrate from './migrate'
+
+/**
+ * Опубликовать новую версию единой схемы весов репутации (только АНО).
+ */
+export * as Pubrepschema from './pubrepschema'

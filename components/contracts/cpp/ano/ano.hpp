@@ -107,6 +107,17 @@ static constexpr uint64_t ENDORSEMENT_MAX_SECONDS = 31 * 86400;
  */
 static constexpr size_t MAX_CREDENTIAL_SIZE = 2048;
 
+/**
+ * Предел размера JSON схемы весов репутации.
+ *
+ * Действующая схема с описаниями типов занимает около десяти килобайт;
+ * запас впятеро покрывает рост словаря на годы вперёд. Порог, как и у
+ * заверений, — признак того, что в поле кладут не то, что задумано.
+ *
+ * \ingroup public_ano_consts
+ */
+static constexpr size_t MAX_SCHEMA_SIZE = 51200;
+
 } // namespace Ano
 
 class [[eosio::contract(ANO)]] ano : public eosio::contract {
@@ -147,5 +158,16 @@ public:
    * \brief Миграция контракта.
    * \note Авторизация: @ ano @ active.
    */
+  /**
+   * rief Опубликовать новую версию единой схемы весов репутации.
+   *
+   * \param version   номер публикуемой версии — строго следующий по порядку.
+   * \param document  полный JSON схемы (валидируется оффчейн schema-contract).
+   *
+   * 
+ote Авторизация: только АНО — владелец единой схемы сети.
+   */
+  [[eosio::action]] void pubrepschema(uint64_t version, std::string document);
+
   [[eosio::action]] void migrate();
 };
