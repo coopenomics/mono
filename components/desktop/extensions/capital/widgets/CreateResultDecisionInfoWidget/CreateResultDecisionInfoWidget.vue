@@ -210,7 +210,6 @@ const goToIssue = (issueHash: string) => {
       project_hash: projectHash.value,
       issue_hash: issueHash,
     },
-    query: { _useHistoryBack: 'true' },
   });
 };
 

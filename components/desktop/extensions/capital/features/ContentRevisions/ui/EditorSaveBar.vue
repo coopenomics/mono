@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Полоска над редактором: слева состояние, справа текстовая кнопка «Редакции» и «Сохранить»
 .row.items-center.editor-save-bar
-  .col
+  .col.editor-save-bar__status
     .text-caption(:class="statusClass") {{ statusText }}
   .col-auto.row.items-center.no-wrap.q-gutter-xs
     BaseButton(variant="ghost" size="sm" @click="revisionsOpen = true") Редакции
@@ -69,5 +69,17 @@ const statusClass = computed(() => ({
 .editor-save-bar {
   min-height: var(--p-8);
   padding-bottom: var(--p-2);
+}
+/* Колонка статуса обязана уметь сжиматься: без min-width:0 flex-элемент не
+   уходит уже своего содержимого, и длинная подпись («Есть несохранённые
+   изменения») вместе с неразрывным блоком кнопок справа распирала строку
+   шире экрана — на мобильном появлялся горизонтальный скролл всей страницы. */
+.editor-save-bar__status {
+  min-width: 0;
+}
+.editor-save-bar__status > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

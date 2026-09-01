@@ -19,7 +19,6 @@ div
     :filter='requirementsFilter',
     :maxItems='50'
     :permissions='projectPermissions'
-    :detail-route-name='detailRouteName'
     :show-component-scope-badge='true'
   )
 </template>
@@ -33,12 +32,9 @@ import type { IProject, IProjectPermissions } from 'app/extensions/capital/entit
 import { ArtifactsAccessPlaceholder } from 'app/extensions/capital/shared/ui/ArtifactsAccessPlaceholder';
 import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/PendingClearanceButton';
 import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
-import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 const route = useRoute();
 const projectStore = useProjectStore();
-const { routeName } = useCapitalWorkspaceRoutes();
-const detailRouteName = computed(() => routeName('project-requirement-detail'));
 
 const project = ref<IProject | null>(null);
 const projectPermissions = ref<IProjectPermissions | null>(null);

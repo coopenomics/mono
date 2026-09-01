@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto';
 import {
   Body,
   Controller,
@@ -11,6 +10,7 @@ import {
 } from '@nestjs/common';
 import config from '~/config/config';
 import { AuditService, AuditRecord, AuditResult } from './audit/audit.service';
+import { tokenMatches } from './internal-token.util';
 
 /** Payload webhook-mapping'ов authentik (coopid-webhook-body / coopid-oidc-webhook-body). */
 export interface AuthentikWebhookBody {
@@ -88,13 +88,6 @@ export function mapAuthentikEvent(body: AuthentikWebhookBody): AuditRecord | nul
       authentik_created: body.created ?? null,
     },
   };
-}
-
-function tokenMatches(provided: string | undefined, expected: string): boolean {
-  if (!provided || !expected) return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /**

@@ -104,13 +104,15 @@ export class GitHubService {
   }
 
   /**
-   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   * Ветки репозитория вместе с их HEAD-SHA (только чтение; пагинация по 100).
+   * Листинг уже возвращает SHA каждой ветки, поэтому отдельный запрос на ветку не нужен:
+   * на репозитории в 236 веток это разница между ~239 и 3 запросами за один опрос.
    */
-  async listBranches(owner: string, repo: string): Promise<string[]> {
+  async listBranchHeads(owner: string, repo: string): Promise<{ name: string; sha: string }[]> {
     const octokit = this.octokit;
     if (!octokit) throw new Error('GitHub API недоступен');
 
-    const names: string[] = [];
+    const heads: { name: string; sha: string }[] = [];
     let page = 1;
     const perPage = 100;
     for (;;) {
@@ -118,13 +120,56 @@ export class GitHubService {
         const { data } = await octokit.repos.listBranches({ owner, repo, per_page: perPage, page });
         return data;
       });
-      names.push(...rows.map((b) => b.name));
+      heads.push(...rows.map((b) => ({ name: b.name, sha: b.commit.sha })));
       if (rows.length < perPage) {
         break;
       }
       page += 1;
     }
-    return names;
+    return heads;
+  }
+
+  /**
+   * Имена всех веток репозитория (только чтение; пагинация по 100).
+   */
+  async listBranches(owner: string, repo: string): Promise<string[]> {
+    const heads = await this.listBranchHeads(owner, repo);
+    return heads.map((b) => b.name);
+  }
+
+  /**
+   * Ветка репозитория по умолчанию (только чтение).
+   */
+  async getDefaultBranch(owner: string, repo: string): Promise<string | null> {
+    if (!this.octokit) throw new Error('GitHub API недоступен');
+
+    const { data } = await this.withGithubRetry(async () => this.octokit!.repos.get({ owner, repo }));
+    return data.default_branch || null;
+  }
+
+  /**
+   * Базовая ветка обхода для конкретного репозитория: настроенная в Capital, если она в нём есть,
+   * иначе ветка репозитория по умолчанию. Настройка «Ветка GitHub для синхронизации» одна на кооператив,
+   * а репозитории проектов живут с разными канонами (`dev` у mono, `main` у отдельных продуктов), —
+   * без фолбэка репозиторий без такой ветки не синхронизируется вовсе.
+   * @returns имя ветки либо null, если подходящей ветки в репозитории нет.
+   */
+  async resolveExistingBaseBranch(
+    owner: string,
+    repo: string,
+    configuredBranch: string,
+    knownBranchNames?: string[]
+  ): Promise<string | null> {
+    const names = knownBranchNames ?? (await this.listBranches(owner, repo));
+    if (names.includes(configuredBranch)) {
+      return configuredBranch;
+    }
+
+    const fallback = await this.getDefaultBranch(owner, repo);
+    if (fallback && names.includes(fallback)) {
+      return fallback;
+    }
+    return null;
   }
 
   /**

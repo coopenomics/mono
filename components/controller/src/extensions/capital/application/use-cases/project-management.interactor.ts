@@ -34,6 +34,7 @@ import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfa
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
+import { FAVORITE_REPOSITORY, type FavoriteRepository } from '../../domain/repositories/favorite.repository';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -50,7 +51,9 @@ export class ProjectManagementInteractor {
     private readonly projectSyncService: ProjectSyncService,
     private readonly contentRevisionService: ContentRevisionService,
     private readonly segmentSyncService: SegmentSyncService,
-    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService
+    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService,
+    @Inject(FAVORITE_REPOSITORY)
+    private readonly favoriteRepository: FavoriteRepository
   ) {
     this.logger.setContext(ProjectManagementInteractor.name);
   }
@@ -372,6 +375,7 @@ export class ProjectManagementInteractor {
         this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
       }
       await this.projectRepository.softDeleteLocal(data.project_hash);
+      await this.favoriteRepository.removeAllByTargetHash(data.project_hash);
       return {} as InnerTransactResult;
     }
 
@@ -380,6 +384,9 @@ export class ProjectManagementInteractor {
       this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
     }
     const transactResult = await this.capitalBlockchainPort.deleteProject(data);
+    // Снимаем удалённый проект/компонент с избранного у всех пайщиков —
+    // иначе запись повисает и ведёт на несуществующую страницу
+    await this.favoriteRepository.removeAllByTargetHash(data.project_hash);
     return transactResult;
   }
 

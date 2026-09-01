@@ -38,7 +38,7 @@ export class Factory extends DocFactory<RegulationElectronicSignature.Action> {
 
     const translation = template.translations[meta.lang]
 
-    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save)
+    const document: IGeneratedDocument = await super.generatePDF('', template.context, combinedData, translation, meta, options?.skip_save, options?.skip_pdf)
 
     return document
   }

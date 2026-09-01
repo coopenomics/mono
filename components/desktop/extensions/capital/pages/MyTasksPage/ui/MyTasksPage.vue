@@ -45,6 +45,8 @@ router-view(v-if='!isRoot')
     hide-trigger,
     @moved='onAssigned'
   )
+  //- Оверлей задачи поверх списка: список не размонтируется, «назад» его закрывает
+  IssueOverlay
 </template>
 
 <script lang="ts" setup>
@@ -64,7 +66,12 @@ import IssueListRow from 'app/extensions/capital/widgets/IssuesListWidget/ui/Iss
 import { FilterDialogWithButton, SortMenuButton } from 'app/extensions/capital/shared/ui';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useListPreferences } from 'app/extensions/capital/shared/lib';
+import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 
+
+// Задача открывается оверлеем поверх списка (?issue= в адресе)
+const issueOverlay = useQueryOverlay('issue');
 type IIssuesFilter = NonNullable<IGetIssuesInput['filter']>;
 
 const router = useRouter();
@@ -191,14 +198,9 @@ async function reload() {
   }
 }
 
+// Задача — оверлеем поверх списка; полная страница по кнопке в оверлее
 function openIssue(issue: IIssue) {
-  router.push({
-    name: 'my-task-issue-description',
-    params: {
-      coopname: info.coopname,
-      issue_hash: issue.issue_hash,
-    },
-  });
+  issueOverlay.open(issue.issue_hash);
 }
 
 async function openContext(issue: IIssue) {

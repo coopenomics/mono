@@ -866,6 +866,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetProjectWithRelationsInput:{
 
 	},
+	GetPublicProvisionInput:{
+
+	},
 	GetRequestByHashInput:{
 
 	},
@@ -2945,6 +2948,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getProviderSubscriptionById:{
 
+		},
+		getPublicProvision:{
+			data:"GetPublicProvisionInput"
 		},
 		getRegistrationAgreements:{
 			account_type:"AccountType"
@@ -7759,6 +7765,10 @@ export const ReturnTypes: Record<string,any> = {
 		last_name:"String",
 		middle_name:"String"
 	},
+	PublicProvision:{
+		html:"String",
+		title:"String"
+	},
 	Query:{
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
@@ -7888,6 +7898,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProviderConnectionCatalog:"ProviderConnectionCatalog",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
+		getPublicProvision:"PublicProvision",
 		getRecoveryStrategy:"RecoveryStrategy",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",

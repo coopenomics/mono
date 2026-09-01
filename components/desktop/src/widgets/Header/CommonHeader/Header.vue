@@ -1,7 +1,17 @@
 <template lang="pug">
-q-header.app-q-header(:bordered='false')
+//- reveal только на мобильном: при прокрутке вниз шапка уезжает и отдаёт
+//- контенту свои 56px, при прокрутке вверх возвращается. На десктопе она
+//- всегда на месте — там места хватает. Работает на страницах, которые
+//- прокручиваются окном; страницы с фиксированной оболочкой
+//- (`height: 100vh - topbar` + внутренний скролл) окно не двигают, поэтому
+//- на них фиксация снимается медиазапросом — см. .component-page-shell.
+q-header.app-q-header(:bordered='false', :reveal='isMobile')
+  //- Бургер показываем только там, где дровер вообще существует: он живёт
+  //- внутри рабочего стола кооператива (layout рендерит его при
+  //- showDrawer && loggedIn). На страницах вне стола — публичных положениях,
+  //- например, — кнопка открывала бы пустоту.
   AppHeader(
-    :show-menu-button='loggedIn',
+    :show-menu-button='loggedIn && showDrawer',
     @toggle-menu="emit('toggle-left-drawer')"
   )
     template(v-if='!loggedIn && coopTitle', #brand)
@@ -101,19 +111,21 @@ const loggedIn = computed(
   () => session.isRegistrationComplete && session.isAuth,
 );
 
-// Хлебные крошки: путь внутри рабочего стола. route.matched — цепочка
-// совпавших записей от корня стола до листа; берём те, у кого задан
-// meta.title. Первый сегмент — корень рабочего стола («Стол бухгалтера»,
-// «Капитал») — в крошку не выводим: нужен путь ВНУТРИ стола, поэтому при
-// наличии хотя бы одного вложенного уровня отбрасываем его. Для плоской
-// страницы (один уровень) остаётся одна крошка — как было раньше.
+// Заголовок страницы в шапке — ОДНА крошка: имя текущей страницы («Описание
+// компонента», «Задача компонента»). Полная цепочка («Проекты › Компонент ›
+// Описание компонента») отсюда убрана намеренно: она не помещалась даже на
+// широком экране, а на узком последняя крошка схлопывалась в ноль и от пути
+// оставался огрызок со стрелкой в никуда. Ориентир по месту в дереве даёт
+// контент страницы (ProjectPathWidget / ComponentToProjectPathWidget) и полоса
+// табов, а не шапка. На мобильном крошка скрывается целиком — см. правило
+// `.topbar__crumb` в components.css.
 // Detail-страница задаёт своё имя через desktopStore.setPageTitleOverride —
-// оно перекрывает цепочку (крошка одна: название сущности).
+// оно перекрывает имя маршрута (название сущности).
 const crumbs = computed<string[]>(() => {
   if (desktopStore.pageTitleOverride) return [desktopStore.pageTitleOverride];
   const titled = route.matched.filter((r) => r.meta?.title);
-  const trail = titled.length > 1 ? titled.slice(1) : titled;
-  return trail.map((r) => r.meta!.title as string);
+  const current = titled[titled.length - 1];
+  return current ? [current.meta!.title as string] : [];
 });
 
 const coopTitle = computed<string>(() => {

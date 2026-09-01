@@ -70,6 +70,8 @@ export class GitCommitMarkersSyncService {
     /** Базовая (каноническая) ветка репозитория — из настройки «Ветка GitHub для синхронизации». */
     defaultBranch: string;
     githubRepositoryKey: string;
+    /** HEAD ветки, если он уже известен вызывающему (листинг веток отдаёт SHA) — экономит запрос на ветку. */
+    headSha?: string;
     signal?: AbortSignal;
   }): Promise<void> {
     const queueKey = `${args.githubRepositoryKey}@${args.branch}`;
@@ -92,6 +94,7 @@ export class GitCommitMarkersSyncService {
     branch: string;
     defaultBranch: string;
     githubRepositoryKey: string;
+    headSha?: string;
     signal?: AbortSignal;
   }): Promise<void> {
     if (!this.githubService.isAvailable()) {
@@ -110,12 +113,16 @@ export class GitCommitMarkersSyncService {
     };
 
     let headSha: string;
-    try {
-      headSha = await this.githubService.getLatestCommit(ctx.owner, ctx.repo, ctx.branch);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Git маркеры: пропуск синка ${ctx.owner}/${ctx.repo}@${ctx.branch}: ${msg}`);
-      return;
+    if (args.headSha) {
+      headSha = args.headSha;
+    } else {
+      try {
+        headSha = await this.githubService.getLatestCommit(ctx.owner, ctx.repo, ctx.branch);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Git маркеры: пропуск синка ${ctx.owner}/${ctx.repo}@${ctx.branch}: ${msg}`);
+        return;
+      }
     }
     const state = await this.syncStateRepository.getState(ctx.coopname, ctx.githubRepositoryKey, ctx.branch);
 

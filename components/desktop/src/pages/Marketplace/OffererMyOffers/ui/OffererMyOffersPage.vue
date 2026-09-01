@@ -10,6 +10,7 @@ import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import CreateOfferHeaderButton from './CreateOfferHeaderButton.vue';
 import {
   CatalogOfferCard,
@@ -95,8 +96,18 @@ const STATUS_FILTER_OPTIONS: Array<{
   { label: 'Сняты', value: 'WITHDRAWN', slug: 'withdrawn' },
 ];
 
-function isActiveTab(value: MarketplaceOfferStatusView | null): boolean {
-  return statusFilter.value === value;
+// Вкладки-фильтры: ключом служит slug статуса, он же уходит в адресную строку
+const statusTabs = computed<PageTab[]>(() =>
+  STATUS_FILTER_OPTIONS.map((opt) => ({ key: opt.slug, label: opt.label })),
+);
+
+const activeStatusSlug = computed<string>(
+  () => STATUS_FILTER_OPTIONS.find((opt) => opt.value === statusFilter.value)?.slug ?? 'all',
+);
+
+function onStatusTab(tab: PageTab): void {
+  const option = STATUS_FILTER_OPTIONS.find((opt) => opt.slug === tab.key);
+  if (option) setFilter(option);
 }
 
 function setFilter(option: (typeof STATUS_FILTER_OPTIONS)[number]): void {
@@ -259,16 +270,13 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
       hide-reset
     )
 
-    nav.tabbar.my-offers__tabs
-      .tabbar__tabs
-        button.tab(
-          v-for="opt in STATUS_FILTER_OPTIONS",
-          :key="opt.slug",
-          type="button",
-          :class="{ 'tab--active': isActiveTab(opt.value) }",
-          @click="setFilter(opt)"
-        )
-          span {{ opt.label }}
+    //- Вкладки здесь не навигация, а фильтр по статусу: активная задаётся
+    //- ключом, переход выполняет сама страница
+    PageTabs(
+      :tabs="statusTabs",
+      :active-key="activeStatusSlug",
+      @select="onStatusTab"
+    )
 
     //- Скелетон вместо спиннера: каркас карточек проявляется сразу, без
     //- дёргания. Только на первичной загрузке — polling обновляет молча.

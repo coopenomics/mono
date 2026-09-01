@@ -189,3 +189,16 @@ cases:
       хэшу проекта
     test: components/boot/src/tests/marketplace-writeoff.test.ts
     status: passing
+
+  - id: mkt.wof.ui.01
+    level: ui
+    kind: side
+    scenario: >
+      Администратор открывает проект списания из ленты «На повестке» или
+      «Архив», копирует адрес и открывает его заново
+    expect: >
+      карточка проекта открывается сразу (?writeoff=<id> в адресе), лента под
+      ней сохраняет вкладку и позицию; «назад» закрывает карточку, а не уводит
+      со страницы
+    status: missing
+

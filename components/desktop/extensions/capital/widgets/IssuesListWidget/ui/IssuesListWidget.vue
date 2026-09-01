@@ -4,7 +4,7 @@
 // Вложенный compact — без --fill, белое-на-белом визуально невидимо.
 .list-surface(:class="{ 'list-surface--fill': !compact }")
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
-  .issues-scroll-area(v-if='!compact')
+  .issues-scroll-area(v-if='!compact', ref='scrollAreaRef')
     // Полоска-добавлялка — только мастеру (can_manage_issues)
     CreateIssueButton(
       v-if='canManageIssues',
@@ -83,7 +83,7 @@
 
 </template>
 <script lang="ts" setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import {
   type IIssue,
   useIssueStore,
@@ -92,6 +92,12 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
+
+// Память списка между заходами: скролл и ключ фильтра (данные ленты — в
+// сторе, per-project). Возврат «назад» с задачи восстанавливает позицию и
+// пагинацию без перезагрузки; чужой фильтр — сброс. См. тот же приём в
+// ProjectsListWidget (listMemory).
+const listMemory = { filterKey: '', scrollTop: 0 };
 
 const props = defineProps<{
   projectHash: string;
@@ -122,6 +128,22 @@ const onLoading = ref(false);
 const tableRef = ref(null);
 const nextPage = ref(1);
 const lastPage = ref(0);
+const scrollAreaRef = ref<HTMLElement | null>(null);
+
+const pageSize = computed(() => (props.compact ? 50 : 5));
+
+const filterKey = computed(() =>
+  JSON.stringify([
+    props.projectHash,
+    props.statuses,
+    props.priorities,
+    props.creators,
+    props.master,
+    props.sortBy,
+    props.sortOrder,
+    props.compact,
+  ]),
+);
 
 // Пагинация для виртуального скролла (полноэкранный режим)
 const pagination = ref({
@@ -250,7 +272,7 @@ const loadIssues = async (page = 1, append = false) => {
       filter,
       options: {
         page,
-        limit: props.compact ? 50 : 5, // В компактном режиме загружаем больше, в полноэкранном - постранично
+        limit: pageSize.value, // В компактном режиме загружаем больше, в полноэкранном — постранично
         sortBy: props.sortBy || '_created_at',
         sortOrder: props.sortOrder || 'DESC',
       },
@@ -279,9 +301,24 @@ const handleIssueClick = (issue: IIssue) => {
   emit('issueClick', issue);
 };
 
-// Инициализация
+// Инициализация: возврат на список восстанавливает ленту из стора,
+// пагинацию и прокрутку — без перезагрузки и сетевого запроса
 onMounted(async () => {
+  const cached = issues.value;
+  if (listMemory.filterKey === filterKey.value && (cached?.items.length ?? 0) > 0) {
+    nextPage.value = Math.floor(cached!.items.length / pageSize.value) + 1;
+    lastPage.value = cached!.totalPages || 1;
+    pagination.value.rowsNumber = cached!.totalCount;
+    await nextTick();
+    if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = listMemory.scrollTop;
+    return;
+  }
   await loadIssues(1, false);
+});
+
+onBeforeUnmount(() => {
+  listMemory.scrollTop = scrollAreaRef.value?.scrollTop ?? 0;
+  listMemory.filterKey = filterKey.value;
 });
 
 </script>

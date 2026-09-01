@@ -127,6 +127,12 @@ stack_check_coopid_databases() {
 # ── Подъём ───────────────────────────────────────────────────────────────────
 
 stack_up_infra() {
+  # Секреты CoopID лежат вне git (infra/coopid/secrets в .gitignore), а компоуз
+  # монтирует их bind-mount'ом: на стенде, где их ни разу не генерировали, подъём
+  # падает ещё на создании контейнеров — «bind source path does not exist». Гоняем
+  # генератор перед каждым подъёмом: он идемпотентен и существующие файлы не трогает.
+  bash "$STACK_ROOT/scripts/coopid-gen-secrets.sh" || true
+
   echo "▸ Поднимаем базы и файловое хранилище..."
   docker compose up -d $STACK_INFRA_SERVICES
   stack_wait_infra

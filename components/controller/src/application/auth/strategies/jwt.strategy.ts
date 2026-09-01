@@ -9,6 +9,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { TOKEN_REPOSITORY, TokenRepository } from '~/domain/token/repositories/token.repository';
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 import { VaultService } from '~/application/auth-v2/vault/vault.service';
+import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
 
 /**
  * Сколько помнить ответ «перешёл ли пайщик на пароль». Проверка стоит на каждом
@@ -26,7 +27,8 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: TokenRepository,
-    private readonly vault: VaultService
+    private readonly vault: VaultService,
+    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -94,6 +96,18 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
     const user = await resolveUserBySub(payload.sub, this.userRepository, this.userDomainService);
 
     await this.assertSessionAlive(payload.sid, user.username);
+
+    // След захода — здесь и только здесь. Это единственная точка, через которую
+    // проходит КАЖДЫЙ авторизованный запрос пайщика и в которой он уже опознан.
+    //
+    // Считать активность по таблице токенов нельзя: она фиксирует выдачу токена,
+    // то есть вход, а срок жизни токена в поставочной конфигурации измеряется
+    // сотнями дней — пайщик, работающий в кабинете ежедневно, оставил бы там одну
+    // строку за всё время.
+    //
+    // Намеренно БЕЗ await: запись следа не должна добавлять пайщику ожидания на
+    // каждом запросе, а сама она молчалива и ошибку наружу не выпускает.
+    void this.activity.markActive(user.username);
 
     // Возвращаем объект в формате, совместимом с IMonoAccount
     return {

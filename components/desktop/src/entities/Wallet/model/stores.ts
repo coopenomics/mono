@@ -40,6 +40,23 @@ interface IWalletStore {
   methods: Ref<IPaymentMethodData[]>;
   agreements: Ref<IUserAgreement[]>;
   /**
+   * Удалось ли хоть раз получить подписи пайщика с сервера. Пустой список —
+   * это «пайщик ничего не подписал», и по нему интерфейс требует подписей;
+   * неудачная выборка выглядит точно так же, поэтому её нельзя выдавать за
+   * пустоту. Пока здесь false, о подписях достоверно не известно ничего.
+   */
+  agreementsLoaded: Ref<boolean>;
+  /**
+   * Типы соглашений, подписанных в этой сессии, но ещё не пришедших с сервера.
+   * Подпись уходит в блокчейн, а список подписей читается из базы узла, куда
+   * запись попадает после того, как индексатор разберёт блок, — около секунды
+   * спустя. Всё это время сервер честно отвечает, что подписи нет, и без
+   * такой отметки интерфейс просил бы подписать только что подписанное.
+   */
+  recentlySignedTypes: Ref<string[]>;
+  /** Отметить тип подписанным до того, как подпись доедет с сервера. */
+  markAgreementSigned: (type: string) => void;
+  /**
    * Подписано ли пайщиком главное соглашение цифрового кошелька. Пока оно не
    * подписано, кошелёк не активен — операции взноса и возврата недоступны
    * (так же скрыта карточка кошелька в столе пайщика).
@@ -71,6 +88,26 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const _program_wallets_base = ref<ExtendedProgramWalletData[]>([]);
   const methods = ref<IPaymentMethodData[]>([]);
   const agreements = ref<IUserAgreement[]>([]);
+  const agreementsLoaded = ref(false);
+  const _recentlySigned = ref<Record<string, number>>({});
+
+  /**
+   * Отметка живёт ограниченное время: если подпись по какой-то причине не
+   * доедет, интерфейс обязан снова попросить её, а не молчать вечно. Минуты
+   * хватает с запасом — индексация занимает около секунды.
+   */
+  const RECENTLY_SIGNED_TTL_MS = 60_000;
+
+  const recentlySignedTypes = computed<string[]>(() => {
+    const now = Date.now();
+    return Object.entries(_recentlySigned.value)
+      .filter(([, expiresAt]) => expiresAt > now)
+      .map(([type]) => type);
+  });
+
+  const markAgreementSigned = (type: string) => {
+    _recentlySigned.value = { ..._recentlySigned.value, [type]: Date.now() + RECENTLY_SIGNED_TTL_MS };
+  };
   const _patches = ref<IWalletPatch[]>([]);
 
   const isWalletAgreementSigned = computed<boolean>(() =>
@@ -147,7 +184,23 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws.value = unwrap(withdrawsRes, []);
     _program_wallets_base.value = unwrap(programWalletsRes, []);
     methods.value = unwrap(methodsRes, []);
-    agreements.value = unwrap(agreementsRes, []);
+    /**
+     * Подписи не проходят через unwrap: его запасное значение — пустой список,
+     * а пустой список подписей интерфейс читает как «ничего не подписано» и
+     * снова просит подписать уже подписанное. Упавшую выборку оставляем без
+     * последствий: прежние данные достовернее пустоты, а если их ещё не было,
+     * состояние так и останется «неизвестно» до успешной загрузки.
+     */
+    if (agreementsRes.status === 'fulfilled') {
+      agreements.value = agreementsRes.value ?? [];
+      agreementsLoaded.value = true;
+      // Пришедшие с сервера подписи больше не нуждаются в местной отметке.
+      const arrived = new Set(agreements.value.map((a) => a.type));
+      const pending = Object.entries(_recentlySigned.value).filter(([type]) => !arrived.has(type));
+      _recentlySigned.value = Object.fromEntries(pending);
+    } else {
+      console.error(agreementsRes.reason);
+    }
     user_wallets.value = unwrap(userWalletsRes, []);
     // Серверная правда выигрывает — все наложенные оптимистичные патчи
     // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
@@ -162,6 +215,9 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     withdraws,
     methods,
     agreements,
+    agreementsLoaded,
+    recentlySignedTypes: recentlySignedTypes as unknown as Ref<string[]>,
+    markAgreementSigned,
     isWalletAgreementSigned,
     loadUserWallet,
     applyOptimisticPatch,

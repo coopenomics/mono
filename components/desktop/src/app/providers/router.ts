@@ -8,11 +8,12 @@ import {
 } from 'vue-router';
 import { routes } from 'src/app/providers/routes';
 import { env } from 'src/shared/config';
+import { normalizeEntryUrl, resolveRouterMode } from 'src/shared/lib/navigation';
 
 // Helper function to determine router history mode
 function getHistoryMode() {
   if (env.SERVER) return createMemoryHistory;
-  return env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory;
+  return resolveRouterMode() === 'history' ? createWebHistory : createWebHashHistory;
 }
 
 // Диагностический логгер первого холодного старта. Грепается по слову BOOTRACE.
@@ -28,6 +29,14 @@ function bootraceTs(): string {
 
 // Main route export
 export default route(function () {
+  // Конвертер ссылок платформы: адрес приводится к режиму роутера ДО того, как
+  // роутер прочитает location. Раньше это жило в App.onMounted — то есть после
+  // первой навигации: на ссылке вида `/#/coop/capital/…` history-роутер успевал
+  // сматчить `/`, гард навигации уводил на дефолтный стол, и починить адрес было
+  // уже нечем (pathname больше не корневой). Отсюда «ссылка с решёткой открывает
+  // чужой стол» при рабочей ссылке без решётки.
+  normalizeEntryUrl();
+
   const Router = createRouter({
     history: getHistoryMode()(env.VUE_ROUTER_BASE),
     routes, // Базовые маршруты

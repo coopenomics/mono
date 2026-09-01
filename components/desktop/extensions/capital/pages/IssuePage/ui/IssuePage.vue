@@ -1,5 +1,5 @@
 <template lang="pug">
-.issue-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+.issue-page-shell.page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
   PageTabs(
     v-if="issue"
     :tabs="issueTabs"
@@ -17,7 +17,15 @@
           q-icon(name="add", size="18px")
         | Артефакт
 
-  .issue-page-skeleton(v-if="!issue")
+  .issue-page-missing(v-if="issueNotFound")
+    EmptyState(
+      title="Задача недоступна"
+      body="Она удалена или закрыта для вас. Ссылку из избранного можно снять звёздочкой в списке."
+    )
+      template(#icon)
+        q-icon(name="assignment_late" size="32px")
+
+  .issue-page-skeleton(v-else-if="!issue")
     .issue-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .issue-page-skeleton__main
@@ -129,12 +137,12 @@ import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
-import { useBackButton } from 'src/shared/lib/navigation'
+import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
-import { BaseButton } from 'src/shared/ui/base'
+import { BaseButton, EmptyState } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
-import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
-import { ConflictDialog, extractContentConflict, type IContentConflict } from 'app/extensions/capital/features/ContentRevisions'
+import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue'
+import { ConflictDialog } from 'app/extensions/capital/features/ContentRevisions'
 import { IssueSidebarWidget } from 'app/extensions/capital/widgets'
 import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor'
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget'
@@ -173,7 +181,7 @@ const saveSidebarWidth = (width: number) => {
 }
 
 const isMobileLayout = isMobile
-const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
+
 
 const issueHash = computed(() => route.params.issue_hash as string)
 const isMyTaskContext = computed(() =>
@@ -249,14 +257,12 @@ const issueTabs = computed(() => {
         project_hash: projectHash.value,
         issue_hash: issueHash.value,
       }
-  const currentBackRoute = route.query._backRoute as string
-  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {}
 
   return [
-    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params, query } },
-    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params, query } },
-    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params, query } },
-    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params, query } },
+    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params } },
+    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params } },
+    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params } },
+    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params } },
   ]
 })
 
@@ -291,51 +297,20 @@ const loadParentInfo = async () => {
 
 const handleFieldChange = () => {}
 
-// Конфликт редакций: сервер не смог слить автоматически — показываем обе версии
-const conflict = ref<IContentConflict | null>(null)
-const conflictOpen = ref(false)
-
-/**
- * Автосохранение задачи с редакцией: base_rev = content_rev, с которого начата правка.
- * Сервер сливает параллельные правки и возвращает итоговый текст — подменяем его в редакторе;
- * настоящий конфликт открывает диалог выбора.
- */
-const saveIssueContent = async (patch: { title?: string; description?: string }) => {
-  if (!issue.value) return
-  const baseRev = issue.value.content_rev
-  try {
-    const updated = await debounceSave(
-      { issue_hash: issue.value.issue_hash, ...patch, base_rev: baseRev },
-      projectHash.value || '',
-    )
-    if (updated && issue.value) {
-      issue.value.content_rev = updated.content_rev
-      if (patch.description !== undefined && updated.description !== patch.description) {
-        issue.value.description = updated.description ?? ''
-      }
-      if (patch.title !== undefined && updated.title !== patch.title) {
-        issue.value.title = updated.title
-      }
-    }
+// Автосохранение с редакциями — общий composable: та же машина работает в
+// оверлее задачи, поведение правки обязано совпадать
+const {
+  isAutoSaving,
+  autoSaveError,
+  conflict,
+  conflictOpen,
+  saveIssueContent,
+  applyConflictResolution,
+} = useIssueContentSave(issue, projectHash, {
+  onSaved: () => {
     logsRefreshTrigger.value++
-  } catch (error) {
-    const c = extractContentConflict(error)
-    if (c) {
-      conflict.value = c
-      conflictOpen.value = true
-      return
-    }
-    console.error('Failed to save issue content:', error)
-  }
-}
-
-const applyConflictResolution = async (value: { title: string; description: string; base_rev: number }) => {
-  if (!issue.value) return
-  issue.value.title = value.title
-  issue.value.description = value.description
-  issue.value.content_rev = value.base_rev
-  await saveIssueContent({ title: value.title, description: value.description })
-}
+  },
+})
 
 const handleTitleUpdate = async (value: string) => {
   if (!issue.value) return
@@ -348,48 +323,28 @@ const handleDescriptionChange = async () => {
   await saveIssueContent({ description: issue.value.description ?? '' })
 }
 
+// Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
+// ссылке — на список задач компонента-владельца или в свой контекст my-*
 useBackButton({
   text: 'Назад',
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
-    if (isMyTaskContext.value) {
-      router.push({ name: 'capital-my-tasks', params: { coopname: route.params.coopname } })
-      return
-    }
-    if (isMyProjectsContext.value) {
-      if (projectHash.value) {
-        router.push({
-          name: capitalRouteName('component-tasks', route),
-          params: { coopname: route.params.coopname, project_hash: projectHash.value },
-        })
-        return
-      }
-      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } })
-      return
-    }
-    const backRoute = route.query._backRoute as string
-    if (backRoute) {
-      const storedRoute = sessionStorage.getItem(backRoute)
-      if (storedRoute) {
-        try {
-          const routeData = JSON.parse(storedRoute)
-          router.push({
-            name: routeData.name,
-            params: routeData.params,
-            query: routeData.query,
-          })
-          sessionStorage.removeItem(backRoute)
-          return
-        } catch (error) {
-          console.warn('Failed to parse stored route:', error)
-        }
-      }
-      router.push({ name: backRoute })
-    } else {
-      router.back()
-    }
+    const fallback = isMyTaskContext.value
+      ? { name: 'capital-my-tasks', params: { coopname: route.params.coopname } }
+      : projectHash.value
+        ? {
+            name: capitalRouteName('component-tasks', route),
+            params: { coopname: route.params.coopname, project_hash: projectHash.value },
+          }
+        : { name: 'capital-my-projects', params: { coopname: route.params.coopname } }
+    goBackOr(router, fallback)
   },
 })
+
+// Попытка загрузки завершилась, а задачи нет — она удалена или недоступна.
+// Без этого признака страница не отличает «ещё грузится» от «уже никогда
+// не загрузится» и крутит скелетон бесконечно.
+const issueNotFound = ref(false)
 
 const loadIssue = async () => {
   try {
@@ -398,9 +353,11 @@ const loadIssue = async () => {
     if (issue.value?.description) {
       issue.value.description = ensureMarkdownFormat(issue.value.description)
     }
+    issueNotFound.value = !issue.value
   } catch (error) {
     console.error('Ошибка при загрузке задачи:', error)
     FailAlert('Не удалось загрузить задачу')
+    issueNotFound.value = true
   }
 }
 
@@ -478,11 +435,6 @@ const handleIssueMoved = ({
       project_hash: toProjectHash,
       issue_hash: updatedIssue.issue_hash,
     },
-    query: isMyTaskContext.value
-      ? { _backRoute: 'capital-my-tasks' }
-      : isMyProjectsContext.value
-        ? {}
-        : { ...route.query },
   })
 }
 
@@ -504,6 +456,7 @@ provide(ISSUE_PAGE_KEY, {
 
 watch(routeIssueKey, async (_key, prev) => {
   if (prev === undefined) return
+  issueNotFound.value = false
   await loadIssue()
   await loadParentInfo()
 })
@@ -539,13 +492,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
-.issue-page-shell {
-  height: calc(100vh - var(--p-topbar-h));
-  max-height: calc(100vh - var(--p-topbar-h));
-  overflow: hidden;
-}
-
 // Рабочая плоскость: контент на --p-surface, табы на --p-canvas
 .page-surface {
   background: var(--p-surface);
@@ -568,6 +514,16 @@ onMounted(async () => {
   min-height: 0;
   min-width: 0;
   width: 100%;
+}
+
+.issue-page-missing {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--p-6);
+  background: var(--p-surface);
 }
 
 .issue-page-skeleton {
