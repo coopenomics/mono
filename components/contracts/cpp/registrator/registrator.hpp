@@ -69,8 +69,41 @@ public:
   [[eosio::action]] void regcoop(eosio::name coopname, eosio::name username, org_data params, document2 document);
   [[eosio::action]] void delcoop(eosio::name registrator, eosio::name coopname);  
   [[eosio::action]] void stcoopstatus(eosio::name coopname, eosio::name username, eosio::name status);
+
+  /**
+   * \brief Указать оператора, обслуживающего кооператив.
+   *
+   * Родитель в реестре кооперативов — это оператор, развернувший установку, а не
+   * учредитель: кооперативы друг друга не учреждают. Пустой родитель означает
+   * собственную установку.
+   *
+   * \note Авторизация: @p operator_name; при смене оператора — дополнительно
+   *       прежний оператор либо провайдер.
+   */
+  [[eosio::action]] void setoperator(eosio::name coopname, eosio::name operator_name);
+
+  /**
+   * \brief Снять оператора с кооператива: он снова держит установку сам.
+   *
+   * \note Авторизация: сам кооператив, его оператор либо провайдер.
+   */
+  [[eosio::action]] void deloperator(eosio::name coopname);
   
   [[eosio::action]] void verificate(eosio::name username, eosio::name procedure);
+
+  /**
+   * \brief Верификация личности пайщика на кооперативном участке.
+   *
+   * \note Авторизация: председатель кооперативного участка или его доверенное лицо (@p verificator).
+   */
+  [[eosio::action]] void verifyacc(eosio::name coopname, eosio::name braname, eosio::name verificator, eosio::name username, eosio::name procedure);
+
+  /**
+   * \brief Отзыв верификации личности пайщика, проведённой кооперативным участком.
+   *
+   * \note Авторизация: председатель кооператива (@p chairman) либо сам кооператив.
+   */
+  [[eosio::action]] void unverifyacc(eosio::name coopname, eosio::name chairman, eosio::name username, eosio::name procedure);
 
   [[eosio::action]] void newaccount(
       eosio::name coopname, eosio::name referer,

@@ -6,6 +6,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
@@ -253,9 +254,36 @@ const pickupToIssueCount = computed(
   () => pickupOrders.value.filter((o) => o.status === 'ACCEPTED_TO_COOP').length,
 );
 
+// Верификация личности получателя (105-28): без базового уровня (паспорт
+// сверен на КУ) сервер не откроет выдачу. Вердикт приезжает с лентой
+// (`orderer_verification_passed`); перед открытием выдачи оператор один раз
+// сверяет паспорт и подтверждает личность — дальше пайщик ходит без документа.
+const verifyDialogOpen = ref(false);
+const pickupNeedsVerification = computed(() =>
+  pickupOrders.value.some((o) => o.orderer_verification_passed === false),
+);
+const pickupOrdererName = computed(
+  () => pickupOrders.value.find((o) => o.orderer_name)?.orderer_name ?? '',
+);
+
+// Личность подтверждена — перечитываем ленту (заказы получателя больше не
+// заблокированы) и открываем выдачу, ради которой сверка и затевалась.
+async function onPickupVerified(): Promise<void> {
+  try {
+    await load();
+    startOpen(pickupOrders.value);
+  } catch (e) {
+    FailAlert(e);
+  }
+}
+
 // Из QR-резолва: открыть выдачу разом по всем готовым позициям пайщика.
 function startPickupIssuance(): void {
   pickupDialogOpen.value = false;
+  if (pickupNeedsVerification.value) {
+    verifyDialogOpen.value = true;
+    return;
+  }
   startOpen(pickupOrders.value);
 }
 
@@ -308,7 +336,11 @@ async function resolvePickup(): Promise<void> {
   for (let attempt = 0; attempt <= PICKUP_RESOLVE_RETRIES; attempt += 1) {
     if (!loading.value) await load();
     if (pickupToIssueCount.value > 0) {
-      startOpen(pickupOrders.value);
+      if (pickupNeedsVerification.value) {
+        verifyDialogOpen.value = true;
+      } else {
+        startOpen(pickupOrders.value);
+      }
       return;
     }
     if (attempt < PICKUP_RESOLVE_RETRIES) await wait(PICKUP_RESOLVE_DELAY_MS);
@@ -456,6 +488,17 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   )
 
   ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', @scanned='onQrScanned')
+
+  //- Верификация личности получателя (единожды): без неё сервер не откроет
+  //- выдачу. Оператор сверяет с паспортом данные пайщика, которые сервер
+  //- отдаёт только на время сверки.
+  VerifyIdentityDialog(
+    v-model='verifyDialogOpen',
+    :username='pickupAccount',
+    :full-name='pickupOrdererName',
+    :braname='braname',
+    @verified='onPickupVerified'
+  )
 
   //- Резолв кода получения, когда открывать нечего: позиции ждут подтверждения
   //- пайщика либо заказов нет — оператор может предложить докладку со склада.
@@ -611,6 +654,27 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     display: flex;
     flex-direction: column;
     gap: var(--p-3, 12px);
+  }
+
+  &__verify {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    align-items: flex-start;
+  }
+
+  &__verify-hint {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__verify-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    width: 100%;
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__resolve-account {

@@ -95,3 +95,6 @@
 #include "table_apps_pricings.hpp"
 #include "table_apps_globals.hpp"
 #include "table_apps_clients.hpp"
+
+// ano (цепочка доверия)
+#include "table_ano_endorsements.hpp"

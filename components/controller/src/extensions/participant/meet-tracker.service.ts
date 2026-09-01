@@ -155,8 +155,8 @@ export class MeetTrackerService {
           trackedMeet = this.getUpdatedTrackedMeet(trackedMeet, meetData, extendedStatus);
 
           if (!this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
-            await this.workflowNotificationService.sendEndNotification(trackedMeet);
-            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
+            const delivered = await this.workflowNotificationService.sendEndNotification(trackedMeet);
+            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = delivered;
             if (!closedMeetIds.includes(meetID)) {
               closedMeetIds.push(meetID);
               await this.persistTrackedState();
@@ -179,8 +179,8 @@ export class MeetTrackerService {
           let trackedMeet = this.extensionConfig.config.trackedMeets[trackedMeetIndex];
           trackedMeet = this.getUpdatedTrackedMeet(trackedMeet, meetData, extendedStatus);
           if (!this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification) {
-            await this.workflowNotificationService.sendEndNotification(trackedMeet);
-            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = true;
+            const delivered = await this.workflowNotificationService.sendEndNotification(trackedMeet);
+            this.extensionConfig.config.trackedMeets[trackedMeetIndex].notifications.endNotification = delivered;
           }
           continue;
         }
@@ -225,19 +225,19 @@ export class MeetTrackerService {
             if (isRestart) {
               // Это рестарт собрания, отправляем уведомление о новой дате
               this.logger.info(`Обнаружен рестарт собрания №${meetID}, новый hash: ${meetHash}`);
-              await this.workflowNotificationService.sendRestartNotification(newTrackedMeet);
-              newTrackedMeet.notifications.restartNotification = true;
+              newTrackedMeet.notifications.restartNotification =
+                await this.workflowNotificationService.sendRestartNotification(newTrackedMeet);
             } else {
               // Это новое собрание, отправляем начальное уведомление ТОЛЬКО если оно сразу в WAITING_FOR_OPENING
               this.logger.info(`Обнаружено новое собрание: ${meetHash} (№${meetID}) со статусом WAITING_FOR_OPENING`);
-              await this.workflowNotificationService.sendInitialNotification(newTrackedMeet);
-              newTrackedMeet.notifications.initialNotification = true;
+              newTrackedMeet.notifications.initialNotification =
+                await this.workflowNotificationService.sendInitialNotification(newTrackedMeet);
             }
           } else if (extendedStatus === ExtendedMeetStatus.VOTING_IN_PROGRESS) {
             // Собрание уже началось, отправляем уведомление о начале
             this.logger.info(`Обнаружено активное собрание: ${meetHash} (№${meetID}) со статусом VOTING_IN_PROGRESS`);
-            await this.workflowNotificationService.sendStartNotification(newTrackedMeet);
-            newTrackedMeet.notifications.startNotification = true;
+            newTrackedMeet.notifications.startNotification =
+              await this.workflowNotificationService.sendStartNotification(newTrackedMeet);
           }
           // Для собраний в статусе CREATED не отправляем уведомления
 
@@ -266,8 +266,8 @@ export class MeetTrackerService {
             extendedStatus === ExtendedMeetStatus.WAITING_FOR_OPENING &&
             !trackedMeet.notifications.restartNotification
           ) {
-            await this.workflowNotificationService.sendRestartNotification(trackedMeet);
-            trackedMeet.notifications.restartNotification = true;
+            trackedMeet.notifications.restartNotification =
+              await this.workflowNotificationService.sendRestartNotification(trackedMeet);
           }
 
           // При переходе с created на waitingForOpening отправляем начальное уведомление
@@ -276,14 +276,14 @@ export class MeetTrackerService {
             extendedStatus === ExtendedMeetStatus.WAITING_FOR_OPENING &&
             !trackedMeet.notifications.initialNotification
           ) {
-            await this.workflowNotificationService.sendInitialNotification(trackedMeet);
-            trackedMeet.notifications.initialNotification = true;
+            trackedMeet.notifications.initialNotification =
+              await this.workflowNotificationService.sendInitialNotification(trackedMeet);
           }
 
           // При переходе в VOTING_IN_PROGRESS отправляем уведомление о начале собрания
           if (extendedStatus === ExtendedMeetStatus.VOTING_IN_PROGRESS && !trackedMeet.notifications.startNotification) {
-            await this.workflowNotificationService.sendStartNotification(trackedMeet);
-            trackedMeet.notifications.startNotification = true;
+            trackedMeet.notifications.startNotification =
+              await this.workflowNotificationService.sendStartNotification(trackedMeet);
           }
         }
 
@@ -300,8 +300,8 @@ export class MeetTrackerService {
 
           // Проверяем, наступило ли время отправки уведомления
           if (now >= notificationTime) {
-            await this.workflowNotificationService.sendThreeDaysBeforeStartNotification(trackedMeet);
-            trackedMeet.notifications.threeDaysBeforeStart = true;
+            trackedMeet.notifications.threeDaysBeforeStart =
+              await this.workflowNotificationService.sendThreeDaysBeforeStartNotification(trackedMeet);
           }
         }
 
@@ -314,8 +314,8 @@ export class MeetTrackerService {
 
           // Проверяем, наступило ли время отправки уведомления
           if (now >= notificationTime) {
-            await this.workflowNotificationService.sendOneDayBeforeEndNotification(trackedMeet);
-            trackedMeet.notifications.oneDayBeforeEnd = true;
+            trackedMeet.notifications.oneDayBeforeEnd =
+              await this.workflowNotificationService.sendOneDayBeforeEndNotification(trackedMeet);
           }
         }
       }

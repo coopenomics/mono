@@ -1,99 +1,88 @@
-import { ref, type Ref } from 'vue';
+import { ref } from 'vue';
 import type { Mutations } from '@coopenomics/sdk';
 import { api } from '../api';
 import { FailAlert } from 'src/shared/api/alerts';
+import type { IProject } from 'app/extensions/capital/entities/Project/model';
+import { extractContentConflict, type IContentConflict } from 'app/extensions/capital/features/ContentRevisions';
 
-export type IEditProjectInput =
-  Mutations.Capital.EditProject.IInput['data'];
+export type IEditProjectInput = Mutations.Capital.EditProject.IInput['data'];
 
-export function useEditProject() {
-  const initialEditProjectInput: IEditProjectInput = {
-    coopname: '',
-    project_hash: '',
-    title: '',
-    description: '',
-    invite: '',
-    meta: '',
-    data: '',
+/**
+ * Полный вход мутации editProject из текущего проекта: контракт `editproj` заменяет все поля,
+ * поэтому invite/meta/data всегда берём из проекта (пустая строка стирала бы видео и шаблон),
+ * а base_rev = content_rev — сервер сливает правку с параллельными изменениями.
+ */
+export function buildEditProjectInput(
+  project: Pick<IProject, 'project_hash' | 'title' | 'description' | 'invite' | 'meta' | 'data' | 'content_rev'> & {
+    coopname?: string | null;
+  },
+  overrides: Partial<IEditProjectInput> = {},
+): IEditProjectInput {
+  return {
+    project_hash: project.project_hash || '',
+    title: project.title || '',
+    description: project.description || '',
+    invite: project.invite || '',
+    coopname: project.coopname || '',
+    meta: project.meta || '',
+    data: project.data || '',
+    base_rev: project.content_rev ?? undefined,
+    ...overrides,
   };
+}
 
-  const editProjectInput = ref<IEditProjectInput>({
-    ...initialEditProjectInput,
-  });
+export type SaveProjectResult = { ok: true } | { ok: false; conflict: IContentConflict };
 
-  // Состояния для авто-сохранения
-  const isAutoSaving = ref(false);
-  const autoSaveError = ref<string | null>(null);
-
-  // Таймер для debounce
-  let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  // Универсальная функция для сброса объекта к начальному состоянию
-  function resetInput(
-    input: Ref<IEditProjectInput>,
-    initial: IEditProjectInput,
-  ) {
-    Object.assign(input.value, initial);
-  }
+/**
+ * Сохранение проекта/компонента по кнопке (автосохранения нет: каждое сохранение — транзакция в цепь).
+ * Конфликт редакций возвращается результатом, прочие ошибки — FailAlert + throw.
+ */
+export function useEditProject() {
+  const isSaving = ref(false);
+  const saveError = ref<string | null>(null);
+  const conflict = ref<IContentConflict | null>(null);
 
   async function editProject(data: IEditProjectInput) {
-    const transaction = await api.editProject(data);
-
-    // Сбрасываем editProjectInput после выполнения editProject
-    resetInput(editProjectInput, initialEditProjectInput);
-
-    return transaction;
+    return await api.editProject(data);
   }
 
-  // Функция debounce для отложенного сохранения
-  function debounceSave(data: IEditProjectInput, delay = 2000) {
-    // Очищаем предыдущий таймер
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout);
-    }
-
-    // Устанавливаем новый таймер
-    autoSaveTimeout = setTimeout(async () => {
-      await performAutoSave(data);
-    }, delay);
-  }
-
-  // Выполнение авто-сохранения
-  async function performAutoSave(data: IEditProjectInput) {
-    if (isAutoSaving.value) return;
-
+  async function save(data: IEditProjectInput): Promise<SaveProjectResult> {
+    isSaving.value = true;
+    saveError.value = null;
     try {
-      isAutoSaving.value = true;
-      autoSaveError.value = null;
-
-      await editProject(data);
+      await api.editProject(data);
+      return { ok: true };
     } catch (error) {
-      console.error('Auto-save failed:', error);
-      autoSaveError.value = 'Ошибка авто-сохранения';
-      FailAlert('Не удалось автоматически сохранить изменения');
+      const c = extractContentConflict(error);
+      if (c) {
+        conflict.value = c;
+        return { ok: false, conflict: c };
+      }
+      saveError.value = 'Ошибка сохранения';
+      FailAlert(error);
+      throw error;
     } finally {
-      isAutoSaving.value = false;
+      isSaving.value = false;
     }
   }
 
-  // Функция для немедленного сохранения (отменяет debounce)
+  /** Сохранить и бросить ошибку при конфликте (для простых форм: название, видео) */
   async function saveImmediately(data: IEditProjectInput) {
-    // Очищаем таймер debounce
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout);
-      autoSaveTimeout = null;
+    const result = await save(data);
+    if (!result.ok) {
+      throw new Error('Документ изменён параллельно: обновите страницу и повторите');
     }
-
-    return await performAutoSave(data);
   }
 
   return {
     editProject,
-    editProjectInput,
-    // Авто-сохранение
-    debounceSave,
+    save,
     saveImmediately,
-    isAutoSaving,
-    autoSaveError,
+    isSaving,
+    saveError,
+    conflict,
+    // Совместимость со старыми вызовами индикатора
+    isAutoSaving: isSaving,
+    autoSaveError: saveError,
   };
 }

@@ -28,6 +28,11 @@ export interface FavoriteRepository {
   findByUserWithTargets(coopname: string, username: string): Promise<IFavoriteWithTarget[]>;
   /** Существует ли цель указанного типа (для валидации добавления) */
   targetExists(target_type: FavoriteTargetType, target_hash: string): Promise<boolean>;
+  /**
+   * Снятие цели с избранного у всех пайщиков — вызывается при удалении
+   * проекта, компонента, задачи или артефакта, чтобы записи не повисали.
+   */
+  removeAllByTargetHash(target_hash: string): Promise<void>;
 }
 
 export const FAVORITE_REPOSITORY = Symbol('FavoriteRepository');

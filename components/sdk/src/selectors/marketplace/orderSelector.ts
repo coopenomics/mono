@@ -36,6 +36,7 @@ export const rawOrderSelector = {
   order_hash: true,
   orderer_account: true,
   orderer_name: true,
+  orderer_verification_passed: true,
   offer_id: true,
   offer_hash: true,
   product_name: true,

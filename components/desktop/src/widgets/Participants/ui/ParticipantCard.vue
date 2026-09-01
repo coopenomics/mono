@@ -37,7 +37,9 @@
     .participant-card__body(v-show='expanded')
       ParticipantDetails(
         :participant='participant',
-        @update='onUpdate'
+        :naming='naming',
+        @update='onUpdate',
+        @verification-changed='emit("verification-changed")'
       )
 </template>
 
@@ -47,6 +49,7 @@ import moment from 'src/shared/lib/utils/dates/moment';
 import ParticipantDetails from './ParticipantDetails.vue';
 import { getName } from 'src/shared/lib/utils';
 import { getAccountStatusBadge } from 'src/entities/Account';
+import type { VerificationNaming } from 'src/shared/lib/verification';
 import {
   type IAccount,
   type IIndividualData,
@@ -57,10 +60,13 @@ import {
 const props = defineProps<{
   participant: IAccount;
   expanded?: boolean;
+  /** Как называть верификатора и участок в подписи уровня. */
+  naming?: VerificationNaming;
 }>();
 
 const emit = defineEmits<{
   'toggle-expand': [];
+  'verification-changed': [];
   update: [
     participant: IAccount,
     newData: IIndividualData | IOrganizationData | IEntrepreneurData,

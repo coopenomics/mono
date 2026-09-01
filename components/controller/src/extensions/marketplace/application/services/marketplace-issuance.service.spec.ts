@@ -78,6 +78,11 @@ function buildMocks(
     buildDocumentAggregate: jest.fn(),
   } as any;
 
+  const verificationPort = {
+    checkRequired: jest.fn().mockResolvedValue({ passed: true, missing: [] }),
+    getVerificationTypes: jest.fn().mockResolvedValue([]),
+  } as any;
+
   const eventBus = { emit: jest.fn() } as any;
 
   const logger = {
@@ -88,7 +93,7 @@ function buildMocks(
     warn: jest.fn(),
   } as any;
 
-  return { orderRepo, inventoryRepo, offerRepo, chainPort, assetConfig, documentDomainService, eventBus, logger };
+  return { orderRepo, inventoryRepo, offerRepo, chainPort, assetConfig, documentDomainService, verificationPort, eventBus, logger };
 }
 
 function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceIssuanceService {
@@ -99,6 +104,7 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceIssuance
     mocks.chainPort,
     mocks.assetConfig,
     mocks.documentDomainService,
+    mocks.verificationPort,
     mocks.eventBus,
     mocks.logger
   );
@@ -112,6 +118,25 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
   // акт на 10 не должен ни формироваться, ни подписываться.
 
   describe('openIssuance', () => {
+    it('отклоняет выдачу неверифицированному получателю (гейт verification_rules)', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      mocks.verificationPort.checkRequired.mockResolvedValue({ passed: false, missing: ['passport_onsite'] });
+      const service = buildService(mocks);
+      await expect(
+        service.openIssuance({
+          coopname: 'voskhod',
+          chairman_account: 'chairman',
+          order_id: 'order-1',
+          actual_quantity: 5,
+          actual_unit_price: '100.0000',
+          signed_document: signedDocumentStub,
+        })
+      ).rejects.toThrow(/верификацию личности/);
+      // Проверяется именно получатель заказа, а не подписант акта.
+      expect(mocks.verificationPort.checkRequired).toHaveBeenCalledWith('orderer1', 'marketplace.issue_property');
+      expect(mocks.chainPort.signIss1).not.toHaveBeenCalled();
+    });
+
     it('отклоняет выдачу больше принятого на склад', async () => {
       const service = buildService(buildMocks({ 'order-1': 5 }));
       await expect(

@@ -7,5 +7,10 @@ export interface OtpInputProps {
   disabled?: boolean;
   /** autofocus на первую ячейку при монтировании */
   autofocus?: boolean;
+  /**
+   * Скрывать введённое точками. Код из письма показывают открыто — его для того и
+   * прислали; PIN-код же вводят при посторонних, и на экране ему не место.
+   */
+  masked?: boolean;
   name?: string;
 }

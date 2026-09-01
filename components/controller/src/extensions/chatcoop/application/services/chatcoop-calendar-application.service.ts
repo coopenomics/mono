@@ -101,7 +101,7 @@ export class ChatCoopCalendarApplicationService {
     const roomKind = room?.kind ?? 'members';
     const projectHash = roomKind === 'capital_project' ? room?.projectHash ?? null : null;
     const frontendBase = platformSettings().frontendUrl.replace(/\/$/, '');
-    const eventUrl = `${frontendBase}/#/${platformSettings().coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
+    const eventUrl = `${frontendBase}/${platformSettings().coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
     return {
       title: ev.title,
       description: ev.description,
@@ -211,7 +211,7 @@ export class ChatCoopCalendarApplicationService {
     for (const ev of all) {
       const room = await this.managedRooms.findByMatrixRoomId(ev.matrixRoomId);
       const roomLabel = room?.displayLabel ?? ev.matrixRoomId;
-      const deepLink = `${frontendBase}/#/${coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
+      const deepLink = `${frontendBase}/${coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
       const descParts = [
         ev.description ? escapeIcsText(ev.description) : '',
         escapeIcsText(`Комната: ${roomLabel}`),

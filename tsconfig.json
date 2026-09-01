@@ -1,14 +1,35 @@
 {
   "files": [],
   "references": [
-    { "path": "./components/controller" },
-    { "path": "./components/desktop" },
-    { "path": "./components/sdk" },
-    { "path": "./components/cooptypes" },
-    { "path": "./components/notifications" },
-    { "path": "./components/factory" },
-    { "path": "./components/parser" },
-    { "path": "./components/boot" },
-    { "path": "./components/migrator" }
+    {
+      "path": "./components/auth"
+    },
+    {
+      "path": "./components/controller"
+    },
+    {
+      "path": "./components/desktop"
+    },
+    {
+      "path": "./components/sdk"
+    },
+    {
+      "path": "./components/cooptypes"
+    },
+    {
+      "path": "./components/notifications"
+    },
+    {
+      "path": "./components/factory"
+    },
+    {
+      "path": "./components/parser"
+    },
+    {
+      "path": "./components/boot"
+    },
+    {
+      "path": "./components/migrator"
+    }
   ]
 }

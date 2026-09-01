@@ -39,3 +39,14 @@ export async function setToIndexedDB(dbName: string, storeName: string, key: str
     return db.put(storeName, value, key);
   }
 }
+
+export async function deleteFromIndexedDB(dbName: string, storeName: string, key: string) {
+  if (!process.env.CLIENT) {
+    return;
+  }
+
+  const db = await openIndexedDB(dbName, storeName);
+  if (db) {
+    return db.delete(storeName, key);
+  }
+}

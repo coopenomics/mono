@@ -12,11 +12,14 @@ import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { PageHint } from 'src/shared/ui/domain';
 import { OrdersRegistryTable, type OrderRegistryStatusView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchAllOrders } from '../api';
 import type { AdminOrderView } from '../types';
 
 const { info } = useSystemStore();
 const router = useRouter();
+const orderOverlay = useQueryOverlay('order');
 
 const items = ref<AdminOrderView[]>([]);
 const loading = ref(false);
@@ -64,11 +67,10 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   void load();
 }
 
+// Заказ открывается оверлеем поверх реестра: страница пагинации и фильтр
+// статусов остаются на месте, полная страница — по кнопке в оверлее
 function goToOrder(orderId: string): void {
-  void router.push({
-    name: 'marketplace-admin-order-detail',
-    params: { coopname: info.coopname, orderId },
-  });
+  orderOverlay.open(orderId);
 }
 
 // Переход на карточку предложения (имущества) на столе администратора —
@@ -99,6 +101,12 @@ q-page.admin-orders
     @update:status-filter="onStatusFilterUpdate",
     @request="onRequest",
     @order-click="goToOrder",
+    @offer-click="goToOffer"
+  )
+
+  OrderRegistryOverlay(
+    :coopname="info.coopname",
+    full-page-route-name="marketplace-admin-order-detail",
     @offer-click="goToOffer"
   )
 </template>

@@ -328,6 +328,47 @@ await sendPOST('/v1/graphql', { query: QUERY, variables });
 
 **Кейс 2026-05-28:** при сомнении в каноне пошёл искать его во внешнем HTML/auth-prototype вместо репозитория — перевёрстал не туда, переделывал. SoT — репо (`tokens.css` + `_dev/ui`) и skill `/mono-desktop-canon`, не внешние файлы.
 
+## Переменная клиента desktop живёт в ЧЕТЫРЁХ файлах — правим все сразу
+
+Фронт не читает `.env` напрямую: он берёт `window.__APP_CONFIG__`, а его собирают
+**четыре независимых списка ключей**. Пропустил один — переменная стоит в
+контейнере, а до браузера не доезжает, и фича молча выключена.
+
+| Файл | Когда работает |
+|---|---|
+| `components/desktop/src/shared/config/createEnvObject.ts` | сборка клиента (`process.env` инлайнится) |
+| `components/desktop/src-ssr/middlewares/injectEnv.ts` | SSR: инъекция `<script>` в `<head>` |
+| `components/desktop/src-ssr/middlewares/generateConfig.ts` | SSR: отдача `/config.js` |
+| `components/docs-harness/lib/desktop-config.mjs` (`KEYS`) | **SPA-dev на стендах mono-ai-N** — пишет `desktop/public/config.js` |
+
+Плюс сами значения — в `components/desktop/.env` (и в примере `.env-example`,
+см. правило про примеры ниже).
+
+Четвёртый список легко забыть: он не в desktop, а в harness, и именно он
+действует на dev-стендах — там `quasar dev --mode spa`, SSR-middleware не
+работают, а `public/` Vite отдаёт статикой раньше fallback'а. Пустые значения
+генератор пропускает: `КЛЮЧ=` из примера иначе перекрыл бы пустой строкой
+дефолт, вшитый в пакет.
+
+**Кейс 2026-08-22/23 (CoopID).** `COOPID_ISSUER`/`COOPID_CLIENT_ID` дописали в
+три места из четырёх. На форме входа висело «Вход по паролю станет доступен
+после подключения авторизации кооператива» — при том что переменные стояли и в
+`.env`, и внутри контейнера. Рестарт desktop не помогал и помочь не мог:
+`/config.js` перехватывался статикой из harness. Проверка одной командой:
+
+```bash
+curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <КЛЮЧ>
+```
+
+Пусто — переменная не доехала, и дело не в контейнере, а в списке ключей.
+
+**Тот же принцип шире: конфигурационные файлы ведутся комплектом.** Добавил
+переменную — прошёл по всему комплекту сразу, а не по тому файлу, где сегодня
+болит: `.env` стендов, корневой `.env.example`, `components/controller/.env-example`,
+`components/desktop/.env-example`, `docker-compose.yaml` (проброс в сервис) и
+четыре списка выше. Полкомплекта = переменная, которая есть у меня и отсутствует
+у всех остальных после деплоя.
+
 ## Frontend desktop — English имена
 
 В `components/desktop/` и любом Vue/TS frontend коде **все имена идентификаторов — английские**:

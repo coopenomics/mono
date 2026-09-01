@@ -18,11 +18,15 @@ import { workflow as approvalResponseWorkflow } from './approval-response';
 import { workflow as newInitialPaymentRequestWorkflow } from './new-initial-payment-request';
 import { workflow as newDepositPaymentRequestWorkflow } from './new-deposit-payment-request';
 import { workflow as resetKeyWorkflow } from './reset-key';
+import { workflow as newDeviceLoginWorkflow } from './new-device-login';
+import { workflow as loginEmailCodeWorkflow } from './login-email-code';
+import { workflow as securityEventWorkflow } from './security-event';
 import { workflow as inviteWorkflow } from './invite';
 import { workflow as emailVerificationWorkflow } from './email-verification';
 import { workflow as membershipExitConfirmationWorkflow } from './membership-exit-confirmation';
 import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
+import { workflow as endorsementExpiringWorkflow } from './endorsement-expiring';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
 import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketplace-apl-supplier-sign-request';
@@ -77,11 +81,15 @@ export * as ApprovalResponse from './approval-response';
 export * as NewInitialPaymentRequest from './new-initial-payment-request';
 export * as NewDepositPaymentRequest from './new-deposit-payment-request';
 export * as ResetKey from './reset-key';
+export * as NewDeviceLogin from './new-device-login';
+export * as LoginEmailCode from './login-email-code';
+export * as SecurityEvent from './security-event';
 export * as Invite from './invite';
 export * as EmailVerification from './email-verification';
 export * as MembershipExitConfirmation from './membership-exit-confirmation';
 export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
+export * as EndorsementExpiring from './endorsement-expiring';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
 export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-sign-request';
@@ -133,11 +141,15 @@ export const allWorkflows: WorkflowDefinition[] = [
   newInitialPaymentRequestWorkflow,
   newDepositPaymentRequestWorkflow,
   resetKeyWorkflow,
+  newDeviceLoginWorkflow,
+  loginEmailCodeWorkflow,
+  securityEventWorkflow,
   inviteWorkflow,
   emailVerificationWorkflow,
   membershipExitConfirmationWorkflow,
   serverProvisionedWorkflow,
   decisionExpiredWorkflow,
+  endorsementExpiringWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
   marketplaceAplSupplierSignRequestWorkflow,

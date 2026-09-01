@@ -1,5 +1,5 @@
 <template lang="pug">
-.identity-panel(:class='compact ? "identity-panel--compact" : "identity-panel--full"')
+.identity-panel(:class='[compact ? "identity-panel--compact" : "identity-panel--full", { "identity-panel--flat": flat }]')
   Avatar.identity-panel__avatar(
     :name='identity.fullName',
     :src='identity.avatar',
@@ -48,6 +48,7 @@ import type { IdentityPanelProps, IdentityStatus } from './IdentityPanel.types';
 
 const props = withDefaults(defineProps<IdentityPanelProps>(), {
   compact: false,
+  flat: false,
 });
 
 const STATUS_VARIANT: Record<IdentityStatus, 'pos' | 'neg' | 'warn'> = {
@@ -93,6 +94,13 @@ const hasFullMeta = computed((): boolean => {
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 12px);
+}
+
+.identity-panel--flat {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .identity-panel__avatar {

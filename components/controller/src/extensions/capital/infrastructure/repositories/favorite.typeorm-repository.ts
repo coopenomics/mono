@@ -77,10 +77,14 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
       favorites.filter((f) => types.includes(f.target_type)).map((f) => f.target_hash);
 
     const [projects, issues, stories] = await Promise.all([
-      this.findTargets(this.projectRepo, 'project_hash', ['parent_hash', 'title'], hashesOf(
-        FavoriteTargetType.PROJECT,
-        FavoriteTargetType.COMPONENT
-      )),
+      // Проект и компонент живут в цепи: удаление приходит дельтой и гасит present
+      this.findTargets(
+        this.projectRepo,
+        'project_hash',
+        ['parent_hash', 'title'],
+        hashesOf(FavoriteTargetType.PROJECT, FavoriteTargetType.COMPONENT),
+        { onlyPresent: true }
+      ),
       this.findTargets(this.issueRepo, 'issue_hash', ['project_hash', 'title'], hashesOf(
         FavoriteTargetType.ISSUE
       )),
@@ -105,16 +109,32 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
     return targets;
   }
 
+  /**
+   * Живые цели избранного.
+   *
+   * `present` — флаг блокчейн-проекции: дельта об удалении гасит его, а строка
+   * в таблице остаётся, поэтому у проектов и компонентов удалённую цель нужно
+   * отсеивать явно. У задач и артефактов этого флага нет: они офчейн, никто
+   * никогда не ставит им `present = true` (дефолт колонки в базе — false), а
+   * удаляются они физически, вместе с записями избранного через
+   * removeAllByTargetHash. Фильтр по present выбрасывал их все до одной:
+   * запись в избранное ложилась, но обратно не читалась — звёздочка не
+   * загоралась, и клик снова слал «добавить».
+   */
   private findTargets<T extends { title: string }>(
     repo: Repository<T>,
     hashColumn: keyof T & string,
     extraColumns: Array<keyof T & string>,
-    hashes: string[]
+    hashes: string[],
+    options: { onlyPresent?: boolean } = {}
   ): Promise<T[]> {
     if (hashes.length === 0) return Promise.resolve([]);
     return repo.find({
       select: [hashColumn, ...extraColumns] as never,
-      where: { [hashColumn]: In(hashes) } as never,
+      where: {
+        [hashColumn]: In(hashes),
+        ...(options.onlyPresent ? { present: true } : {}),
+      } as never,
     });
   }
 
@@ -123,11 +143,15 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
     switch (target_type) {
       case FavoriteTargetType.PROJECT:
       case FavoriteTargetType.COMPONENT:
-        return (await this.projectRepo.countBy({ project_hash: hash })) > 0;
+        return (await this.projectRepo.countBy({ project_hash: hash, present: true })) > 0;
       case FavoriteTargetType.ISSUE:
         return (await this.issueRepo.countBy({ issue_hash: hash })) > 0;
       case FavoriteTargetType.ARTIFACT:
         return (await this.storyRepo.countBy({ story_hash: hash })) > 0;
     }
+  }
+
+  async removeAllByTargetHash(target_hash: string): Promise<void> {
+    await this.repo.delete({ target_hash: target_hash.toLowerCase() });
   }
 }

@@ -16,6 +16,8 @@ div
         :is-private='project?.origin === "local" || component.origin === "local"',
         @issue-click='handleIssueClick'
       )
+  //- Оверлей задачи поверх списка: список не размонтируется, «назад» его закрывает
+  IssueOverlay
 </template>
 
 <script lang="ts" setup>
@@ -27,7 +29,12 @@ import { ComponentsListWidget } from 'app/extensions/capital/widgets/ComponentsL
 import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidget';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
 
+
+// Задача открывается оверлеем поверх списка (?issue= в адресе)
+const overlay = useQueryOverlay('issue');
 const router = useRouter();
 const { routeName } = useCapitalWorkspaceRoutes();
 
@@ -58,14 +65,9 @@ const handleComponentToggle = (componentHash: string) => {
 };
 
 // Обработчик клика по задаче
+// Задача — оверлеем поверх списка; полная страница по кнопке в оверлее
 const handleIssueClick = (issue: IIssue) => {
-  router.push({
-    name: routeName('component-issue-description'),
-    params: {
-      project_hash: issue.project_hash,
-      issue_hash: issue.issue_hash,
-    },
-  });
+  overlay.open(issue.issue_hash);
 };
 
 

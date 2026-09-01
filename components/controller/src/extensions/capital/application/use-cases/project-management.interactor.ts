@@ -19,6 +19,9 @@ import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { ProjectSyncService } from '../syncers/project-sync.service';
+import { ContentRevisionService } from '../services/content-revision.service';
+import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
+import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
@@ -31,6 +34,7 @@ import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfa
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
+import { FAVORITE_REPOSITORY, type FavoriteRepository } from '../../domain/repositories/favorite.repository';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -45,8 +49,11 @@ export class ProjectManagementInteractor {
     private readonly projectRepository: ProjectRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly projectSyncService: ProjectSyncService,
+    private readonly contentRevisionService: ContentRevisionService,
     private readonly segmentSyncService: SegmentSyncService,
-    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService
+    private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService,
+    @Inject(FAVORITE_REPOSITORY)
+    private readonly favoriteRepository: FavoriteRepository
   ) {
     this.logger.setContext(ProjectManagementInteractor.name);
   }
@@ -153,12 +160,28 @@ export class ProjectManagementInteractor {
   /**
    * Редактирование проекта в CAPITAL контракте
    */
-  async editProject(data: EditProjectDomainInput): Promise<InnerTransactResult> {
+  async editProject(data: EditProjectDomainInput, author = 'system'): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    if (!project) {
+      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+    }
+    // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService).
+    // Слитый текст уже записан в БД; для блокчейн-проекта он же уходит в цепь, при провале — откат.
+    const write = await this.contentRevisionService.prepareWrite({
+      entity_type: ContentEntityType.PROJECT,
+      entity_hash: project.project_hash,
+      author,
+      origin: (data.origin as ContentRevisionOrigin) ?? ContentRevisionOrigin.WEB,
+      base_rev: data.base_rev,
+      restored_from_rev: data.restored_from_rev,
+      incoming: { title: data.title, description: data.description },
+    });
+    const merged: EditProjectDomainInput = { ...data, title: write.title, description: write.description };
+
     if (isLocalProject(project)) {
       await this.projectRepository.updateLocalContent(data.project_hash, {
-        title: data.title,
-        description: data.description,
+        title: merged.title,
+        description: merged.description,
         invite: data.invite,
         meta: data.meta,
         data: data.data,
@@ -167,7 +190,19 @@ export class ProjectManagementInteractor {
     }
 
     assertBlockchainProject(project, 'редактирование');
-    const transactResult = await this.capitalBlockchainPort.editProject(data);
+    let transactResult: InnerTransactResult;
+    try {
+      transactResult = await this.capitalBlockchainPort.editProject(merged);
+    } catch (error) {
+      if (write.changed) {
+        await this.contentRevisionService.rollbackWrite(
+          ContentEntityType.PROJECT,
+          project.project_hash,
+          write.content_rev
+        );
+      }
+      throw error;
+    }
 
     try {
       await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
@@ -340,6 +375,7 @@ export class ProjectManagementInteractor {
         this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
       }
       await this.projectRepository.softDeleteLocal(data.project_hash);
+      await this.favoriteRepository.removeAllByTargetHash(data.project_hash);
       return {} as InnerTransactResult;
     }
 
@@ -348,6 +384,9 @@ export class ProjectManagementInteractor {
       this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
     }
     const transactResult = await this.capitalBlockchainPort.deleteProject(data);
+    // Снимаем удалённый проект/компонент с избранного у всех пайщиков —
+    // иначе запись повисает и ведёт на несуществующую страницу
+    await this.favoriteRepository.removeAllByTargetHash(data.project_hash);
     return transactResult;
   }
 

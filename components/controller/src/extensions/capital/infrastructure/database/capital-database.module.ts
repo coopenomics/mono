@@ -12,6 +12,7 @@ import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
 import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
 import { CommentTypeormEntity } from '../entities/comment.typeorm-entity';
 import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
+import { ContentRevisionTypeormEntity } from '../entities/content-revision.typeorm-entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
@@ -54,6 +55,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       IssueTypeormEntity,
       CommentTypeormEntity,
       StoryTypeormEntity,
+      ContentRevisionTypeormEntity,
       VoteTypeormEntity,
       DebtTypeormEntity,
       ResultTypeormEntity,

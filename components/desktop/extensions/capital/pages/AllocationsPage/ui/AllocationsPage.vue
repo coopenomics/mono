@@ -212,7 +212,6 @@ function openComponent(row: AllocationRow): void {
   router.push({
     name: 'component-description',
     params: { project_hash: row.project_hash },
-    query: { _backRoute: 'capital-allocations' },
   });
 }
 

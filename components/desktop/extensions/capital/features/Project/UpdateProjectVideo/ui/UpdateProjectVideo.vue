@@ -13,7 +13,7 @@ q-input(
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
-import { useEditProject } from '../../EditProject'
+import { buildEditProjectInput, useEditProject } from '../../EditProject'
 
 interface Props {
   project: IProject | null | undefined
@@ -54,16 +54,6 @@ const updateVideo = async () => {
   const meta = getMeta(props.project)
   meta.video = videoIframe.value
 
-  const updateData = {
-    project_hash: props.project.project_hash || '',
-    title: props.project.title || '',
-    description: props.project.description || '',
-    invite: props.project.invite || '',
-    coopname: (props.project as any).coopname || '',
-    meta: JSON.stringify(meta),
-    data: props.project.data || '',
-  }
-
-  await saveImmediately(updateData)
+  await saveImmediately(buildEditProjectInput(props.project, { meta: JSON.stringify(meta) }))
 }
 </script>

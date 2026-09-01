@@ -1,5 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsOptional, IsEnum, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsInt } from 'class-validator';
+import { ContentRevisionOrigin } from '../../../domain/enums/content-revision-origin.enum';
 import { StoryStatus } from '../../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../../domain/enums/story-content-format.enum';
 
@@ -70,4 +71,22 @@ export class UpdateStoryInputDTO {
   @IsOptional()
   @Min(0, { message: 'Порядок сортировки не может быть отрицательным' })
   sort_order?: number;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии',
+  })
+  @IsOptional()
+  @IsInt({ message: 'base_rev должен быть целым числом' })
+  @Min(0, { message: 'base_rev не может быть отрицательным' })
+  base_rev?: number;
+
+  @Field(() => ContentRevisionOrigin, {
+    nullable: true,
+    description: 'Источник правки для истории редакций (WEB по умолчанию, CLI для blago)',
+  })
+  @IsOptional()
+  @IsEnum(ContentRevisionOrigin, { message: 'Неверный источник правки' })
+  origin?: ContentRevisionOrigin;
 }

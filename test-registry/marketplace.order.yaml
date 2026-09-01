@@ -12,6 +12,11 @@ title: Заказ пайщика — оформление, приём и отк�
 # расширение не должно знать, чем именно пишется лог. Сменились только тип
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
+# Правка 2026-08-20 (верификация личности, 105-28): display-сервис заказов
+# опционально подмешивает вердикт верификации получателя
+# (withOrdererVerification → orderer_verification_passed) для лент выдачи.
+# Существующие поля и набор случаев этого слайса не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts

@@ -437,3 +437,14 @@ cases:
     test: components/controller/tests/unit/capital/segments-role.test.ts
     status: passing
 
+  - id: cap.res.ui.01
+    level: ui
+    kind: side
+    scenario: >
+      Стол результатов открыт на телефоне, пайщик прокручивает список вниз.
+    expect: >
+      верхняя шапка уезжает и освобождает место, полоса вкладок остаётся
+      прилипшей к верху экрана и позволяет перейти в соседний раздел без
+      прокрутки обратно
+    status: missing
+

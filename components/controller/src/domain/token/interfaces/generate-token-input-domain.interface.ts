@@ -8,4 +8,10 @@ export interface GenerateTokenInputDomainInterface {
   expires: Date;
   type: TokenType;
   secret?: string;
+  /**
+   * Сессия, которой принадлежит токен (id строки refresh-токена). Попадает в claim
+   * `sid` и позволяет завершение сессии сделать действенным: без него access-токен
+   * ничем не связан с сессией и продолжает работать после её отзыва.
+   */
+  sessionId?: string;
 }

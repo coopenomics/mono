@@ -215,12 +215,17 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       });
     }
 
-    // Возвращение ошибки в формате GraphQL
+    // Возвращение ошибки в формате GraphQL.
+    // Доменные GraphQLError с собственными extensions (например CONTENT_CONFLICT с обеими версиями текста)
+    // сохраняют их: клиент различает такие ошибки по code и читает payload.
+    const domainExtensions =
+      exception instanceof GraphQLError && exception.extensions ? exception.extensions : {};
     return new GraphQLError(message, {
       extensions: {
         code: statusCode,
         isExecutionError: true, // Флаг для отличия execution ошибок от validation ошибок
         ...(process.env.NODE_ENV === 'development' && { stacktrace: exception.stack }),
+        ...domainExtensions,
       },
     });
   }

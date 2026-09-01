@@ -12,7 +12,10 @@
  *   (c) member и chairman дают расширенный core_roles + marketplace_roles;
  *   (d) status != active → ForbiddenException (HTTP 403);
  *   (e) no user → UnauthorizedException (HTTP 401);
- *   (f) server-secret bypass — guard true, currentMember не выставлен.
+ *   (f) server-secret bypass без пользователя — guard true, currentMember
+ *       заполнен служебным членом без ролей (резолверу с
+ *       @CurrentMarketplaceMember нужен непустой контекст), источники ролей
+ *       не опрашиваются.
  */
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 
@@ -130,16 +133,30 @@ describe('MarketplaceMembershipGuard', () => {
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('server-secret bypass → true, currentMember не выставляется, supplierRegistry/kuChairman не дёргаются', async () => {
+  it('server-secret bypass без пользователя → true, currentMember служебный, supplierRegistry/kuChairman не дёргаются', async () => {
     const ws = makeSupplierRegistryService(true);
     const ku = makeKuChairmanService(false);
     const guard = new MarketplaceMembershipGuard(ws, ku);
     const req = { headers: { 'server-secret': 'test-secret' } };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
-    expect((ctx as any)._gqlCtx.currentMember).toBeUndefined();
+    // Пустым контекст оставлять нельзя: резолвер с @CurrentMarketplaceMember
+    // упал бы на «guard не отработал» вместо того, чтобы отработать.
+    expect((ctx as any)._gqlCtx.currentMember).toEqual({
+      username: '',
+      core_roles: [],
+      marketplace_roles: [],
+    });
     expect(ws.isOfferer).not.toHaveBeenCalled();
     expect(ku.isKuChairman).not.toHaveBeenCalled();
+  });
+
+  it('server-secret bypass с пользователем не в статусе active → пропускает и заполняет членство', async () => {
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(false));
+    const req = { user: { username: 'ant', role: 'user', status: 'registered' }, headers: { 'server-secret': 'test-secret' } };
+    const ctx = makeCtx(req);
+    await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
+    expect((ctx as any)._gqlCtx.currentMember.username).toBe('ant');
   });
 
   it('isKuChairman=true → marketplace_roles содержит operator', async () => {

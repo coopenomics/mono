@@ -22,8 +22,9 @@ export const useSignDocument = () => {
   ): Promise<Cooperative.Document.ISignedDocument2> => {
     if (!document) throw new Error('Документ на подпись не предоставлен');
 
-    const wifKey = globalStore.wif?.toString();
-    if (!wifKey) throw new Error('Приватный ключ не установлен');
+    // Запертый кошелёк здесь не ошибка, а повод спросить PIN-код: ключ
+    // поднимется, отсчёт получаса начнётся заново, подпись состоится.
+    const wifKey = await globalStore.ensureSigningKey();
 
     // Используем класс из SDK для подписи
     const docSigner = new Classes.Document(wifKey);
@@ -68,8 +69,7 @@ export class DigitalDocument {
     const globalStore = useGlobalStore();
     if (!this.data) throw new Error('Ошибка генерации документа');
 
-    const wifKey = globalStore.wif?.toString();
-    if (!wifKey) throw new Error('Приватный ключ не установлен');
+    const wifKey = await globalStore.ensureSigningKey();
 
     // Используем класс из SDK для подписи
     const docSigner = new Classes.Document(wifKey);

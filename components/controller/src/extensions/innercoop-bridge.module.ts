@@ -44,6 +44,7 @@ import {
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_CERTIFICATE_PORT,
+  VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
@@ -91,6 +92,8 @@ import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/pro
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
 import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
 import { UserCertificateInnercoopAdapter } from '~/infrastructure/innercoop/user-certificate-innercoop.adapter';
+import { VerificationInnercoopAdapter } from '~/infrastructure/innercoop/verification-innercoop.adapter';
+import { AuthV2Module } from '~/application/auth-v2/auth-v2.module';
 import { AgreementCatalogInnercoopAdapter } from '~/infrastructure/innercoop/agreement-catalog-innercoop.adapter';
 import { ExtensionConfigInnercoopAdapter } from '~/infrastructure/innercoop/extension-config-innercoop.adapter';
 import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain-resources-innercoop.adapter';
@@ -163,6 +166,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     RegistrationModule,
     // Отсюда берётся сборка сертификата подписанта для порта.
     UserModule,
+    // Отсюда берутся уровни верификации и правила их применения для порта.
+    AuthV2Module,
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
@@ -191,6 +196,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     MutationLogInnercoopAdapter,
     CandidateInnercoopAdapter,
     UserCertificateInnercoopAdapter,
+    VerificationInnercoopAdapter,
     AgreementCatalogInnercoopAdapter,
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
@@ -357,6 +363,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: UserCertificateInnercoopAdapter,
     },
     {
+      provide: VERIFICATION_PORT,
+      useExisting: VerificationInnercoopAdapter,
+    },
+    {
       provide: AGREEMENT_CATALOG_PORT,
       useExisting: AgreementCatalogInnercoopAdapter,
     },
@@ -448,6 +458,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
     USER_CERTIFICATE_PORT,
+    VERIFICATION_PORT,
     AGREEMENT_CATALOG_PORT,
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,

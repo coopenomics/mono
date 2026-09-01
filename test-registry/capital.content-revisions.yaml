@@ -1,0 +1,121 @@
+feature: capital.content-revisions
+title: История редакций и серверное слияние — проекты, компоненты, задачи, артефакты
+
+# Каждая успешная запись title/description проекта/компонента, задачи и артефакта
+# становится редакцией (capital_content_revisions, rev монотонный на сущность).
+# Клиент присылает base_rev — редакцию, с которой начал; сервер под FOR UPDATE
+# сливает правку с текущим текстом трёхсторонне (diff3 для markdown/mermaid,
+# «изменил один» для XML-диаграмм). Чистое слияние — сохраняется и возвращается
+# слитый текст; настоящий конфликт — ошибка CONTENT_CONFLICT с обеими версиями,
+# ничего не записано. Откат — обычная запись с origin=RESTORE (остаётся в истории).
+# Первичный снимок rev=1 сеется миграцией и лениво сервисом.
+#
+# Ту же историю редакций ведёт blago-cli при синхронизации файлов
+# (`components/blago-cli/src/sync/{push,merge3,sync-entity-file}.ts`) — в
+# sources их нет намеренно: уровни реестра это уровни тестов
+# (contract/backend/ui), а сам каталог blago-cli не входит в значимые корни
+# гейта, так что связать код с фичей через него всё равно не выйдет.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/services/content-revision.service.ts
+    - components/controller/src/extensions/capital/application/services/content-revision-api.service.ts
+    - components/controller/src/extensions/capital/application/resolvers/content-revision.resolver.ts
+    - components/controller/src/extensions/capital/domain/utils/content-merge.util.ts
+    - components/controller/src/extensions/capital/domain/errors/content-conflict.error.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/content-revision.typeorm-entity.ts
+    - components/controller/migrations/V2.5.5__capital_content_revisions_backfill.ts
+  ui:
+    - components/desktop/extensions/capital/features/ContentRevisions/**
+    - components/desktop/extensions/capital/pages/ProjectDescriptionPage/**
+    - components/desktop/extensions/capital/pages/ComponentDescriptionPage/**
+
+cases:
+  - id: cap.rev.happy.01
+    level: backend
+    kind: happy
+    scenario: две правки в разных местах markdown относительно одной базы
+    expect: сливаются без конфликта, merged=true, обе правки в результате
+    test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    status: written
+
+  - id: cap.rev.side.01
+    level: backend
+    kind: side
+    scenario: одна строка изменена по-разному с двух сторон
+    expect: конфликт с маркерами ours/base/theirs, ничего не потеряно
+    test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    status: written
+
+  - id: cap.rev.side.02
+    level: backend
+    kind: side
+    scenario: заголовок изменён по-разному двумя авторами
+    expect: title_conflict=true
+    test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    status: written
+
+  - id: cap.rev.side.03
+    level: backend
+    kind: side
+    scenario: BPMN/DRAWIO правлены параллельно
+    expect: построчное слияние не применяется — конфликт; правил один — берётся его версия
+    test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    status: written
+
+  - id: cap.rev.side.04
+    level: backend
+    kind: side
+    scenario: клиент прислал текст, равный текущему серверному (повторное сохранение)
+    expect: редакция не создаётся, content_rev не растёт
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    status: written
+
+  - id: cap.rev.side.05
+    level: backend
+    kind: side
+    scenario: сущность с content_rev=0 (создана до фичи) получает первую запись через API
+    expect: лениво сеется rev=1 из текущего текста, запись становится rev=2
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    status: written
+
+  - id: cap.rev.break.01
+    level: backend
+    kind: break
+    scenario: блокчейн-проект — транзакция editproj упала после подготовки редакции
+    expect: rollbackWrite возвращает текст и content_rev к предыдущей редакции, снимок удалён
+    test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    status: written
+
+  - id: cap.rev.side.06
+    level: backend
+    kind: side
+    scenario: просмотр истории артефакта без допуска к проекту
+    expect: отказ «Недостаточно прав для просмотра истории редакций»
+    status: missing
+
+  - id: cap.rev.happy.02
+    level: ui
+    kind: happy
+    scenario: проект/компонент — правка описания, кнопка «Сохранить», окно «Редакции» показывает новую запись
+    expect: без кнопки на сервер ничего не уходит; в списке редакций появляется запись с автором
+    status: missing
+
+  - id: cap.rev.side.07
+    level: ui
+    kind: side
+    scenario: откат к прежней редакции из окна «Редакции»
+    expect: содержимое редактора заменено, в истории новая запись RESTORE со ссылкой на исходную
+    status: missing
+
+  - id: cap.rev.ui.03
+    level: ui
+    kind: side
+    scenario: >
+      Артефакт с несохранёнными правками открыт на телефоне: слева подпись
+      состояния, справа «Редакции», избранное и «Сохранить».
+    expect: >
+      строка укладывается в ширину экрана, длинная подпись обрезается
+      многоточием, горизонтальной прокрутки страницы не возникает
+    status: missing
+

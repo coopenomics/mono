@@ -65,13 +65,12 @@ registerRoute(
   }),
 );
 
-// Cache Google Fonts with a Cache First strategy
+// Шрифты хостятся на своём домене (/fonts) — Cache First на год
 registerRoute(
-  ({ request }) =>
-    request.url.includes('fonts.googleapis.com') ||
-    request.url.includes('fonts.gstatic.com'),
+  ({ request, url }) =>
+    request.destination === 'font' || url.pathname.startsWith('/fonts/'),
   new CacheFirst({
-    cacheName: 'google-fonts',
+    cacheName: 'self-hosted-fonts',
     plugins: [
       new ExpirationPlugin({
         maxEntries: 30,

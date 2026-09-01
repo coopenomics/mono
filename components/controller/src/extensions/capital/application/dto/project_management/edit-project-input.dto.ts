@@ -1,5 +1,6 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsBoolean, IsOptional } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { IsNotEmpty, IsString, IsOptional, IsInt, Min, IsEnum } from 'class-validator';
+import { ContentRevisionOrigin } from '../../../domain/enums/content-revision-origin.enum';
 import type { EditProjectDomainInput } from '../../../domain/actions/edit-project-domain-input.interface';
 
 /**
@@ -36,4 +37,22 @@ export class EditProjectInputDTO implements EditProjectDomainInput {
   @Field(() => String, { description: 'Новые данные/шаблон проекта' })
   @IsString({ message: 'Данные/шаблон проекта должны быть строкой' })
   data!: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии',
+  })
+  @IsOptional()
+  @IsInt({ message: 'base_rev должен быть целым числом' })
+  @Min(0, { message: 'base_rev не может быть отрицательным' })
+  base_rev?: number;
+
+  @Field(() => ContentRevisionOrigin, {
+    nullable: true,
+    description: 'Источник правки для истории редакций (WEB по умолчанию, CLI для blago)',
+  })
+  @IsOptional()
+  @IsEnum(ContentRevisionOrigin, { message: 'Неверный источник правки' })
+  origin?: ContentRevisionOrigin;
 }

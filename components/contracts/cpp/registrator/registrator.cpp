@@ -26,9 +26,13 @@
 #include "src/coop/delcoop.cpp"
 #include "src/coop/regcoop.cpp"
 #include "src/coop/stcoopstatus.cpp"
+#include "src/coop/setoperator.cpp"
+#include "src/coop/deloperator.cpp"
 #include "src/coop/enabranches.cpp"
 #include "src/coop/disbranches.cpp"
 #include "src/coop/updatecoop.cpp"
 #include "src/coop/decparticpnt.cpp"
 
 #include "src/verification/verificate.cpp"
+#include "src/verification/verifyacc.cpp"
+#include "src/verification/unverifyacc.cpp"

@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { readFileForUpload } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -82,34 +83,15 @@ async function openFile(file: IExpenseFile): Promise<void> {
   }
 }
 
-async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function toBase64(buffer: ArrayBuffer): string {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 async function upload(file: File): Promise<void> {
   try {
     uploading.value = true;
-    const buffer = await file.arrayBuffer();
     await api.uploadExpenseFile({
       coopname: system.info.coopname,
       proposal_hash: props.proposalHash,
       item_hash: props.itemHash,
       kind: Zeus.ExpenseFileKind.CLOSING_DOC,
-      mime_type: file.type,
-      size_bytes: file.size,
-      checksum_sha256: await sha256Hex(buffer),
-      content_base64: toBase64(buffer),
-      original_filename: file.name,
+      ...(await readFileForUpload(file)),
     });
     SuccessAlert('Закрывающий документ приложен');
     await refresh();

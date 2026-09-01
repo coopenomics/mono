@@ -255,11 +255,11 @@ export class MarketplaceEconomyService {
   }
 
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {
-    // Человеку это поле известно как «кооперативная наценка» (стол
-    // администратора) — сообщение об ошибке должно говорить его словами.
+    // Человеку это поле известно как «наценка» (стол администратора) —
+    // сообщение об ошибке должно говорить его словами.
     const membership_fee_percent = this.toContractPercent(
       feePercentHuman,
-      'Кооперативная наценка'
+      'Наценка'
     );
     try {
       await this.chainPort.setFee({ coopname, membership_fee_percent });

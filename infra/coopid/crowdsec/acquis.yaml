@@ -1,0 +1,11 @@
+# ВНИМАНИЕ (2026-08-09): конфиг пока НЕ используется — сервис crowdsec убран из
+# dev-компоуза вместе с caddy, чьи логи он и разбирал. Файл сохранён намеренно:
+# защита edge никуда не делась как задача, но её место — на прод-edge (L7-nginx),
+# а не в dev-компоузе. При возврате: переписать источник на access-лог nginx
+# (type: nginx) и решить, на каком уровне ставить bouncer.
+# Источники логов для crowdsec: JSON access-лог caddy (shared volume caddy_logs).
+# Активные блокировки (bouncer в caddy) подключаются в Story 9.2.
+filenames:
+  - /var/log/caddy/access.log
+labels:
+  type: caddy
