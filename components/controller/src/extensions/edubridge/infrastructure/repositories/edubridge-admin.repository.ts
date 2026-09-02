@@ -34,7 +34,11 @@ export class EdubridgeAdminRepository {
     return Boolean(r.affected);
   }
 
-  /** Реестр пайщиков приложения: агрегаты по обучающимся и подпискам. */
+  /**
+   * Реестр пайщиков приложения: агрегаты по обучающимся и подпискам.
+   * Подзапросы берут кооператив параметром, а не `l.coopname`: колонка не в
+   * GROUP BY, и Postgres отвечал «Subquery uses ungrouped column l.coopname».
+   */
   async memberRows(coopname: string, search?: string): Promise<MemberRow[]> {
     const qb = this.learners
       .createQueryBuilder('l')
@@ -45,7 +49,7 @@ export class EdubridgeAdminRepository {
           sub
             .select('COUNT(*)')
             .from(EdubridgeEnrollmentEntity, 'e')
-            .where('e.coopname = l.coopname AND e.member_username = l.member_username AND e.status = :active', { active: EduEnrollmentStatus.ACTIVE }),
+            .where('e.coopname = :coopname AND e.member_username = l.member_username AND e.status = :active', { active: EduEnrollmentStatus.ACTIVE }),
         'active_enrollments'
       )
       .addSelect(
@@ -53,7 +57,7 @@ export class EdubridgeAdminRepository {
           sub
             .select('COUNT(*)')
             .from(EdubridgeEnrollmentEntity, 'e2')
-            .where('e2.coopname = l.coopname AND e2.member_username = l.member_username AND e2.access_state = :att', { att: EduAccessState.NEEDS_ATTENTION }),
+            .where('e2.coopname = :coopname AND e2.member_username = l.member_username AND e2.access_state = :att', { att: EduAccessState.NEEDS_ATTENTION }),
         'attention_count'
       )
       .where('l.coopname = :coopname', { coopname })
