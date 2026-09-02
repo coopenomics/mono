@@ -1,0 +1,56 @@
+feature: coopid.flow-ui
+title: Экраны потоков CoopID в столе — вход, согласие, код, отказ (105-30)
+# Стол рисует стадии authentik сам (как card.coop, ADR-0003): authentik остаётся
+# исполнителем, /if/flow/<slug>/ возвращается nginx стенда на /flow/<slug>.
+sources:
+  ui:
+    - components/desktop/src/shared/api/authentik-flow.ts
+    - components/desktop/src/features/CoopidFlow/**
+    - components/desktop/src/pages/Registrator/CoopidFlow/**
+    - infra/coopid/nginx/dev.conf
+cases:
+  - id: coopid.flow.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Сторонний сервис (card.coop) просит согласие пайщика на передачу данных.
+    expect: >
+      экран согласия в карточке стола: заголовок «<сервис> запрашивает доступ», права
+      по-русски (стандартные переведены, безымянные скрыты), «Разрешить» отвечает
+      меткой token; после согласия поток уводит по адресу из xak-flow-redirect
+    test: ''
+    status: missing
+
+  - id: coopid.flow.happy.02
+    level: ui
+    kind: happy
+    scenario: >
+      Вход в CoopID: опознание → пароль → (код) → вход.
+    expect: >
+      стадии identification, password, authenticator-validate показаны своими экранами;
+      user-login проходится молча; успешный POST исполнителя (302 на себя) идёт с
+      redirect: follow
+    test: ''
+    status: missing
+
+  - id: coopid.flow.side.01
+    level: ui
+    kind: side
+    scenario: >
+      Родной адрес потока /if/flow/<slug>/?next=… открыт в браузере.
+    expect: >
+      nginx стенда возвращает 302 на /flow/<slug> с той же строкой запроса; /if/admin и
+      прочее под /if/ по-прежнему у authentik
+    test: ''
+    status: missing
+
+  - id: coopid.flow.break.01
+    level: ui
+    kind: break
+    scenario: >
+      Поток отказал (access-denied / flow-error) либо стадия столу неизвестна.
+    expect: >
+      отказ показан баннером с причиной из потока; вошедшему — «вы уже вошли» и кнопка в
+      стол; неизвестная стадия — понятный экран с «Начать заново», не тупик
+    test: ''
+    status: missing
