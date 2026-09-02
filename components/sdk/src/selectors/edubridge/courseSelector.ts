@@ -9,6 +9,7 @@ const rawCatalogCourseSelector = {
   description: true,
   syllabus: true,
   schedule: true,
+  image_url: true,
   teacher_usernames: true,
   fee_month: true,
   fee_year: true,

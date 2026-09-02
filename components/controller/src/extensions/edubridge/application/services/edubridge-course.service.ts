@@ -2,10 +2,19 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
 import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
 import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
-import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduPlatformCourseDTO, EduTeacherOptionDTO, EduUpdateCourseInputDTO } from '../dto/edu-course.dto';
+import type {
+  EduCatalogSubjectDTO,
+  EduCourseImageUploadInputDTO,
+  EduCourseInputDTO,
+  EduPlatformCourseDTO,
+  EduTeacherOptionDTO,
+  EduUpdateCourseInputDTO,
+} from '../dto/edu-course.dto';
+import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,7 +38,8 @@ export class EdubridgeCourseService {
   constructor(
     private readonly courses: EdubridgeCourseRepository,
     private readonly teachers: EdubridgeTeacherRepository,
-    private readonly skillspace: SkillspaceConnector
+    private readonly skillspace: SkillspaceConnector,
+    private readonly images: EdubridgeCourseImagesService
   ) {}
 
   /**
@@ -85,26 +95,64 @@ export class EdubridgeCourseService {
     return course;
   }
 
-  async create(coopname: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
+  async create(coopname: string, actor: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
     await this.validate(coopname, input);
+    const image = await this.resolveImage(coopname, actor, input.image, null);
     const entity = this.courses.create({
       coopname,
       ...this.fields(input),
+      image,
       status: EduCourseStatus.DRAFT,
     });
-    return this.courses.save(entity);
+    try {
+      return await this.courses.save(entity);
+    } catch (e) {
+      if (image) await this.images.deleteImage(image.bucket_key);
+      throw e;
+    }
   }
 
-  async update(coopname: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
+  async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
     const course = await this.get(coopname, input.id);
     await this.validate(coopname, input);
-    Object.assign(course, this.fields(input));
+    const previous = course.image;
+    const image = await this.resolveImage(coopname, actor, input.image, previous);
+    Object.assign(course, this.fields(input), { image });
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
     if (input.external_ref !== undefined && input.external_ref !== course.external_ref) {
       course.external_title_seen = null;
       course.external_checked_at = null;
     }
-    return this.courses.save(course);
+    const saved = await this.courses.save(course);
+    // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
+    if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
+    return saved;
+  }
+
+  /**
+   * Обложка в мутации: `undefined` — не трогать, `null` — убрать, `bucket_key` —
+   * оставить прежнюю (только свою), `base64` — загрузить новую.
+   */
+  private async resolveImage(
+    coopname: string,
+    actor: string,
+    input: EduCourseImageUploadInputDTO | null | undefined,
+    current: EduCourseImage | null
+  ): Promise<EduCourseImage | null> {
+    if (input === undefined) return current;
+    if (input === null) return null;
+    if (input.bucket_key) {
+      if (current?.bucket_key !== input.bucket_key) throw new BadRequestException('Ключ изображения не принадлежит этому курсу');
+      return current;
+    }
+    if (!input.base64 || !input.mime_type) throw new BadRequestException('Пустое изображение: нет содержимого файла или его типа');
+    const bytes = Buffer.from(input.base64, 'base64');
+    if (!bytes.length) throw new BadRequestException('Не удалось декодировать изображение');
+    try {
+      return await this.images.putImage({ bytes, contentType: input.mime_type, coopname, ownerAccount: actor });
+    } catch (e) {
+      throw new BadRequestException((e as Error)?.message || 'Не удалось сохранить изображение');
+    }
   }
 
   async setStatus(coopname: string, id: string, status: EduCourseStatus): Promise<EdubridgeCourseEntity> {

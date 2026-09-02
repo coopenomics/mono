@@ -1,6 +1,13 @@
 import { Column, CreateDateColumn, Entity, Generated, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 
+/** Снимок объекта bucket'а `edubridge:images`; ссылка на чтение подписывается при отдаче. */
+export interface EduCourseImage {
+  bucket_key: string;
+  content_hash: string;
+  mime_type: string;
+}
+
 /** Курс каталога: предмет → класс, карточка, привязка к курсу площадки. Off-chain. */
 @Entity({ name: 'edubridge_courses' })
 @Index('IDX_edubridge_courses_coop_status', ['coopname', 'status'])
@@ -35,6 +42,10 @@ export class EdubridgeCourseEntity {
 
   @Column({ type: 'text', default: '' })
   public schedule!: string;
+
+  /** Обложка карточки курса; `null` — без изображения. */
+  @Column({ type: 'jsonb', nullable: true })
+  public image!: EduCourseImage | null;
 
   /**
    * Преподаватели курса — учётные имена пайщиков с подписанным договором УХД.

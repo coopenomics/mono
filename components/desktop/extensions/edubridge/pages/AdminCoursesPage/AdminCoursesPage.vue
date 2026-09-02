@@ -10,23 +10,26 @@
     row-key="id"
     :loading="loading && !items.length"
     hover
-    min-width="720px"
+    min-width="1080px"
   )
     template(#cell-title="{ row }")
-      .text-weight-medium {{ row.title }}
-      .t-muted.t-sm {{ row.subject }} · {{ row.grade }}
+      .row.no-wrap.items-center
+        .edu-courses__thumb.q-mr-md
+          q-img(v-if="row.image_url" :src="row.image_url" :ratio="4 / 3" fit="cover" no-spinner)
+          .edu-courses__thumb-empty(v-else)
+            q-icon(name="image" size="18px")
+        .col.ellipsis
+          .text-weight-medium.ellipsis {{ row.title }}
+          .t-muted.t-sm.ellipsis {{ row.subject }} · {{ row.grade }}
     template(#cell-carrier="{ row }")
-      | {{ carrierLabel(row.carrier) }}
-      .t-muted.t-sm.t-mono(v-if="row.external_ref") {{ row.external_ref }}
+      div {{ carrierLabel(row.carrier) }}
+      .t-muted.t-sm.t-mono.ellipsis(v-if="row.external_ref" :title="row.external_ref") {{ row.external_ref }}
     template(#cell-fee_month="{ row }") {{ formatAsset2Digits(row.fee_month) }}
     template(#cell-fee_year="{ row }") {{ formatAsset2Digits(row.fee_year) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
     template(#cell-actions="{ row }")
-      .row.no-wrap.justify-end.q-gutter-xs
-        BaseButton(variant="ghost" size="sm" icon-only aria-label="Изменить" @click="edit(row)")
-          template(#icon-left)
-            q-icon(name="edit" size="18px")
+      .row.no-wrap.justify-end.items-center.q-gutter-xs
         BaseButton(
           v-if="row.status !== Zeus.EduCourseStatus.PUBLISHED"
           variant="secondary" size="sm"
@@ -38,7 +41,10 @@
           variant="ghost" size="sm"
           :loading="busyId === row.id"
           @click="setStatus(row, Zeus.EduCourseStatus.DRAFT)"
-        ) Снять с публикации
+        ) Снять
+        BaseButton(variant="ghost" size="sm" icon-only aria-label="Изменить" @click="edit(row)")
+          template(#icon-left)
+            q-icon(name="edit" size="18px")
 
   EmptyState(v-if="!loading && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
@@ -69,13 +75,15 @@ const busyId = ref<string | null>(null);
 const dialogOpen = ref(false);
 const editing = ref<ICourse | null>(null);
 
+// При `table-layout: fixed` колонка без ширины получает остаток: min-width
+// таблицы держит ей ≥ 300px, иначе ячейки наезжали друг на друга.
 const columns: BaseTableColumn<ICourse>[] = [
   { key: 'title', label: 'Курс', sortable: true },
-  { key: 'carrier', label: 'Площадка', width: '160px' },
-  { key: 'fee_month', label: 'В месяц', numeric: true, width: '120px' },
-  { key: 'fee_year', label: 'В год', numeric: true, width: '120px' },
+  { key: 'carrier', label: 'Площадка', width: '200px' },
+  { key: 'fee_month', label: 'В месяц', numeric: true, width: '130px', nowrap: true },
+  { key: 'fee_year', label: 'В год', numeric: true, width: '130px', nowrap: true },
   { key: 'status', label: 'Состояние', width: '140px' },
-  { key: 'actions', label: '', align: 'right', width: '260px' },
+  { key: 'actions', label: '', align: 'right', width: '180px' },
 ];
 
 const statusOf = (s: string) => COURSE_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
@@ -128,3 +136,20 @@ onMounted(() => {
   void load();
 });
 </script>
+
+<style scoped>
+.edu-courses__thumb {
+  flex: 0 0 64px;
+  width: 64px;
+  border-radius: var(--p-r-sm);
+  overflow: hidden;
+  background: var(--p-surface-2);
+}
+.edu-courses__thumb-empty {
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-ink-3);
+}
+</style>

@@ -4,24 +4,7 @@
     | Каталог курсов кооператива. Выберите предмет и класс, откройте карточку —
     | там расписание, преподаватель, размер членского взноса и учебная программа.
 
-  .row.q-col-gutter-md.q-mb-md
-    .col-12.col-md-4
-      BaseSelect(
-        v-model="subject"
-        label="Предмет"
-        :options="subjectOptions"
-        clearable
-        @update:model-value="onSubjectChange"
-      )
-    .col-12.col-md-4
-      BaseSelect(
-        v-model="grade"
-        label="Класс"
-        :options="gradeOptions"
-        :disabled="!subject"
-        clearable
-        @update:model-value="reload"
-      )
+  FilterBar.q-mb-md(hide-search :filters="filters" :model-value="filterValues" @update:model-value="onFilters" @reset="onFilters({})")
 
   CardListSkeleton(v-if="loading && !items.length" :count="6")
 
@@ -35,14 +18,7 @@
 
   .row.q-col-gutter-md(v-else)
     .col-12.col-sm-6.col-lg-4(v-for="course in items" :key="course.id")
-      BaseCard.edu-course-card(variant="default" @click="openCourse(course.id)")
-        .edu-course-card__head
-          .text-subtitle1.text-weight-medium {{ course.title }}
-          BaseChip(variant="neutral" size="sm") {{ course.subject }} · {{ course.grade }}
-        .t-muted.t-sm.q-mt-xs(v-if="course.schedule") {{ course.schedule }}
-        .edu-course-card__fees.q-mt-md
-          DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" align="vertical")
-          DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" align="vertical")
+      CourseCard(:course="course" @open="openCourse(course.id)")
 
   .row.justify-center.q-mt-lg(v-if="hasMore")
     BaseButton(variant="secondary" :loading="loading" @click="loadMore") Показать ещё
@@ -52,14 +28,14 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseChip, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { DataRow, PageHint } from 'src/shared/ui/domain';
+import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { FilterBar, PageHint, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain';
 import { fetchCatalog, fetchCatalogSubjects, type ICatalogCourse, type ICatalogSubject } from '../../entities/Course';
+import { CourseCard } from '../../widgets/CourseCard';
 
 /**
- * Каталог курсов — витрина, открытая посетителю до вступления.
- * Иерархия предмет → класс — двумя селектами поверх одного списка: бэкенд
+ * Каталог курсов — витрина стола родителя, открытая посетителю до вступления.
+ * Иерархия предмет → класс — двумя фильтрами поверх одного списка: бэкенд
  * отдаёт пары «предмет/класс», по которым есть опубликованные курсы.
  */
 const PAGE_SIZE = 24;
@@ -75,11 +51,16 @@ const loading = ref(false);
 const currentPage = ref(1);
 const totalPages = ref(0);
 
-const subjectOptions = computed(() => subjects.value.map((s) => ({ value: s.subject, label: s.subject })));
-const gradeOptions = computed(() => {
-  const found = subjects.value.find((s) => s.subject === subject.value);
-  return (found?.grades ?? []).map((g) => ({ value: g, label: g }));
-});
+const filters = computed<FilterDefinition[]>(() => [
+  { key: 'subject', label: 'Предмет', type: 'select', options: subjects.value.map((s) => ({ value: s.subject, label: s.subject })) },
+  {
+    key: 'grade',
+    label: 'Класс',
+    type: 'select',
+    options: (subjects.value.find((s) => s.subject === subject.value)?.grades ?? []).map((g) => ({ value: g, label: g })),
+  },
+]);
+const filterValues = computed<FilterValues>(() => ({ subject: subject.value, grade: grade.value }));
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 async function load(page: number): Promise<void> {
@@ -99,13 +80,13 @@ async function load(page: number): Promise<void> {
   }
 }
 
-function reload(): void {
+// Класс имеет смысл только внутри предмета: сменили предмет — класс сбрасывается.
+function onFilters(values: FilterValues): void {
+  const nextSubject = (values.subject as string | null | undefined) ?? null;
+  const nextGrade = (values.grade as string | null | undefined) ?? null;
+  grade.value = nextSubject === subject.value ? nextGrade : null;
+  subject.value = nextSubject;
   void load(1);
-}
-
-function onSubjectChange(): void {
-  grade.value = null;
-  reload();
 }
 
 function loadMore(): void {
@@ -122,23 +103,6 @@ onMounted(async () => {
   } catch (e) {
     FailAlert(e);
   }
-  reload();
+  void load(1);
 });
 </script>
-
-<style scoped>
-.edu-course-card {
-  cursor: pointer;
-  height: 100%;
-}
-.edu-course-card__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-.edu-course-card__fees {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--p-3);
-}
-</style>

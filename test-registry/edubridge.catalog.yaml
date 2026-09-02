@@ -92,3 +92,17 @@ cases:
     expect: "BadRequest с подсказкой про реестр школы; edubridgePlatformCourses отдаёт курсы школы с их группами (для GetCourse/очного — пусто). Прецедент 2026-09-02: владелец вписал UUID из адреса конструктора модуля, выдача ушла в needs_attention."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
     status: written
+  - id: edu.catalog.side.07
+    level: backend
+    kind: side
+    scenario: "Обложка курса в мутации: base64 декодируется и кладётся в bucket, в курсе остаётся ключ; без поля image обложка не меняется; null убирает и удаляет старый объект; bucket_key чужого курса и пустой base64 — отказ до bucket'а; отказ bucket'а по MIME → 400 с его текстом."
+    expect: "Изображение уходит в FILE_STORAGE_PORT (edubridge:images), URL считается лениво резолвером image_url."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: written
+  - id: edu.catalog.ui.02
+    level: ui
+    kind: happy
+    scenario: "Стол родителя: каталог с фильтрами предмет/класс, карточки с обложкой или заглушкой; страница курса с обложкой и условиями участия; конструктор курса (стол администратора) загружает обложку через FileUploader с превью и снятием; таблица курсов с миниатюрой без наезжающих колонок."
+    expect: "Столы называются «Стол администратора», «Стол родителя», «Стол преподавателя»; каталог — в столе родителя."
+    test: ~
+    status: missing

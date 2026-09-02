@@ -48,3 +48,7 @@ export const CARRIERS_BY_DIRECTION: Record<Zeus.EduCourseDirection, Zeus.EduAcce
 
 /** Носители, у которых есть идентификатор курса на площадке. */
 export const PLATFORM_CARRIERS: Zeus.EduAccessCarrier[] = [Zeus.EduAccessCarrier.SKILLSPACE, Zeus.EduAccessCarrier.GETCOURSE];
+
+/** Обложка курса: те же пределы, что у bucket'а `edubridge:images` на сервере. */
+export const COURSE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
+export const COURSE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EdubridgeDatabaseModule } from '../infrastructure/database/edubridge-database.module';
 import { ACCESS_CARRIER_CONNECTORS } from '../domain/connectors/access-carrier.connector';
@@ -43,6 +45,8 @@ import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.serv
 import { EdubridgeLearnerService } from './services/edubridge-learner.service';
 import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
 import { EdubridgeCourseService } from './services/edubridge-course.service';
+import { EdubridgeCourseImagesService } from './services/edubridge-course-images.service';
+import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } from './resolvers/edubridge-course-fields.resolver';
 
 /** Слой приложения: резолверы, сервисы, доступ, провайдер грантов, политики. */
 @Module({
@@ -77,6 +81,9 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     AccessCarrierRegistry,
     EdubridgeOwnerDirectory,
     // Сервисы
+    // Обложки курсов — bucket ядра (`FILE_STORAGE_PORT`), как изображения товара в «Столе заказов».
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [EdubridgeCourseImagesService]),
+    EdubridgeCourseImagesService,
     EdubridgeCourseService,
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
@@ -93,6 +100,8 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeNotificationListener,
     // Резолверы
     EdubridgeCatalogResolver,
+    EdubridgeCatalogCourseFieldsResolver,
+    EdubridgeCourseFieldsResolver,
     EdubridgeCourseAdminResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,

@@ -12,7 +12,9 @@ import {
   EduUpdateCourseInputDTO,
   PaginatedEduCoursesDTO,
 } from '../dto/edu-course.dto';
+import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
+import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeCourseService } from '../services/edubridge-course.service';
 import { EduAccessCarrier } from '../../domain/enums';
 
@@ -57,15 +59,15 @@ export class EdubridgeCourseAdminResolver {
   @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduCourse', 'manage')
-  async edubridgeCreateCourse(@Args('data') data: EduCourseInputDTO): Promise<EduCourseDTO> {
-    return new EduCourseDTO(await this.courses.create(platformSettings().coopname, data));
+  async edubridgeCreateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduCourseInputDTO): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.create(platformSettings().coopname, m.username as string, data));
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeUpdateCourse', description: 'Изменить курс' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduCourse', 'manage')
-  async edubridgeUpdateCourse(@Args('data') data: EduUpdateCourseInputDTO): Promise<EduCourseDTO> {
-    return new EduCourseDTO(await this.courses.update(platformSettings().coopname, data));
+  async edubridgeUpdateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduUpdateCourseInputDTO): Promise<EduCourseDTO> {
+    return new EduCourseDTO(await this.courses.update(platformSettings().coopname, m.username as string, data));
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeSetCourseStatus', description: 'Опубликовать, снять с публикации или архивировать курс' })

@@ -19,7 +19,12 @@ function make(contracts: string[] = ['teach']) {
     listCourses: jest.fn(async () => [{ id: COURSE_UUID, name: 'Тестовый курс [coop]', slug: 'testovyj-kurs-coop' }, { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой' }]),
     listGroups: jest.fn(async () => [{ id: GROUP_UUID, courseId: COURSE_UUID, name: 'Группа А', studentsCount: 1 }]),
   } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace), courses, teachers, saved };
+  const images = {
+    putImage: jest.fn(async (i: any) => ({ bucket_key: `courses/voskhod/${i.bytes.length}.jpg`, content_hash: 'h', mime_type: i.contentType })),
+    getReadUrl: jest.fn(async (k: string) => `https://x/${k}`),
+    deleteImage: jest.fn(async () => undefined),
+  } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images), courses, teachers, images, saved };
 }
 
 const base = {
@@ -36,7 +41,7 @@ const base = {
 describe('EdubridgeCourseService — конструктор курса', () => {
   it('онлайн-платформа + Skillspace + идентификатор + преподаватель с договором: курс создаётся черновиком', async () => {
     const { service, saved } = make();
-    const course = await service.create('voskhod', { ...base, teacher_usernames: ['teach'] });
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] });
     expect(course.status).toBe(EduCourseStatus.DRAFT);
     expect(course.teacher_usernames).toEqual(['teach']);
     expect(saved).toHaveLength(1);
@@ -49,17 +54,17 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     [EduCourseDirection.ONSITE, EduAccessCarrier.GETCOURSE],
   ])('носитель не по направлению (%s + %s) — отказ', async (direction, carrier) => {
     const { service } = make();
-    await expect(service.create('voskhod', { ...base, direction, carrier })).rejects.toThrow(/недопустим для направления/);
+    await expect(service.create('voskhod', 'ant', { ...base, direction, carrier })).rejects.toThrow(/недопустим для направления/);
   });
 
   it('площадка без идентификатора курса — отказ', async () => {
     const { service } = make();
-    await expect(service.create('voskhod', { ...base, external_ref: '  ' })).rejects.toThrow(/идентификатор курса/);
+    await expect(service.create('voskhod', 'ant', { ...base, external_ref: '  ' })).rejects.toThrow(/идентификатор курса/);
   });
 
   it('очное обучение: идентификатор площадки не нужен и не сохраняется', async () => {
     const { service } = make();
-    const course = await service.create('voskhod', {
+    const course = await service.create('voskhod', 'ant', {
       ...base,
       direction: EduCourseDirection.ONSITE,
       carrier: EduAccessCarrier.ONSITE,
@@ -70,7 +75,7 @@ describe('EdubridgeCourseService — конструктор курса', () => {
 
   it.each(['131851', '77dc07a8-d949-40c1-ae20-b8c9314df709x', `${COURSE_UUID}:12`])('Skillspace: не UUID курса/группы (%s) — отказ с подсказкой про реестр школы', async (ref) => {
     const { service } = make();
-    await expect(service.create('voskhod', { ...base, external_ref: ref })).rejects.toThrow(/UUID курса из реестра школы/);
+    await expect(service.create('voskhod', 'ant', { ...base, external_ref: ref })).rejects.toThrow(/UUID курса из реестра школы/);
   });
 
   it('platformCourses: курсы школы с их группами; для других носителей — пусто', async () => {
@@ -85,12 +90,12 @@ describe('EdubridgeCourseService — конструктор курса', () => {
 
   it('преподаватель без договора УХД — отказ с именем', async () => {
     const { service } = make(['teach']);
-    await expect(service.create('voskhod', { ...base, teacher_usernames: ['teach', 'stranger'] })).rejects.toThrow(/stranger/);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'stranger'] })).rejects.toThrow(/stranger/);
   });
 
   it('несколько преподавателей с договорами — сохраняются все', async () => {
     const { service } = make(['a', 'b']);
-    const course = await service.create('voskhod', { ...base, teacher_usernames: ['a', 'b'] });
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['a', 'b'] });
     expect(course.teacher_usernames).toEqual(['a', 'b']);
   });
 
@@ -103,9 +108,45 @@ describe('EdubridgeCourseService — конструктор курса', () => {
 
   it('обновление с новым идентификатором площадки сбрасывает сверку', async () => {
     const { service } = make();
-    const course = await service.update('voskhod', { ...base, id: 'C1', external_ref: `${COURSE_UUID}:${GROUP_UUID}` });
+    const course = await service.update('voskhod', 'ant', { ...base, id: 'C1', external_ref: `${COURSE_UUID}:${GROUP_UUID}` });
     expect(course.external_ref).toBe(`${COURSE_UUID}:${GROUP_UUID}`);
     expect(course.external_title_seen).toBeNull();
     expect(course.external_checked_at).toBeNull();
+  });
+});
+
+describe('EdubridgeCourseService — обложка курса', () => {
+  const png = Buffer.from('png-bytes').toString('base64');
+
+  it('новая обложка: base64 декодируется, кладётся в bucket, в курсе остаётся только ключ', async () => {
+    const { service, images } = make();
+    const course = await service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/png' } });
+    expect(images.putImage).toHaveBeenCalledWith(expect.objectContaining({ contentType: 'image/png', coopname: 'voskhod', ownerAccount: 'ant' }));
+    expect(course.image).toEqual(expect.objectContaining({ mime_type: 'image/png', bucket_key: expect.stringContaining('courses/voskhod/') }));
+  });
+
+  it('без поля image обложка не меняется; null — убирает и удаляет старый объект', async () => {
+    const { service, courses, images } = make();
+    const old = { bucket_key: 'courses/voskhod/old.jpg', content_hash: 'o', mime_type: 'image/jpeg' };
+    courses.findById = jest.fn(async (_c: string, id: string) => ({ id, external_ref: '', status: EduCourseStatus.DRAFT, image: old }));
+    const kept = await service.update('voskhod', 'ant', { ...base, id: 'C1' });
+    expect(kept.image).toEqual(old);
+    expect(images.deleteImage).not.toHaveBeenCalled();
+    const removed = await service.update('voskhod', 'ant', { ...base, id: 'C1', image: null });
+    expect(removed.image).toBeNull();
+    expect(images.deleteImage).toHaveBeenCalledWith('courses/voskhod/old.jpg');
+  });
+
+  it('bucket_key чужого курса не принимается; пустой base64 — отказ до bucket\'а', async () => {
+    const { service, images } = make();
+    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', image: { bucket_key: 'courses/voskhod/foreign.jpg' } })).rejects.toThrow(/не принадлежит/);
+    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: '', mime_type: 'image/png' } })).rejects.toThrow(/Пустое изображение/);
+    expect(images.putImage).not.toHaveBeenCalled();
+  });
+
+  it('отказ bucket\'а (не тот MIME) превращается в 400 с его текстом', async () => {
+    const { service, images } = make();
+    images.putImage = jest.fn(async () => { throw new Error('Поддерживаются только изображения JPEG, PNG и WEBP; получен image/gif.'); });
+    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/gif' } })).rejects.toThrow(/JPEG, PNG и WEBP/);
   });
 });

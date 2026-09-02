@@ -634,9 +634,13 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduContributionStatus: "enum" as const,
 	EduCourseDirection: "enum" as const,
+	EduCourseImageUploadInput:{
+
+	},
 	EduCourseInput:{
 		carrier:"EduAccessCarrier",
-		direction:"EduCourseDirection"
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput"
 	},
 	EduCourseStatus: "enum" as const,
 	EduCoursesFilterInput:{
@@ -691,7 +695,8 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduUpdateCourseInput:{
 		carrier:"EduAccessCarrier",
-		direction:"EduCourseDirection"
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput"
 	},
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
@@ -5420,6 +5425,7 @@ export const ReturnTypes: Record<string,any> = {
 		fee_year:"String",
 		grade:"String",
 		id:"ID",
+		image_url:"String",
 		schedule:"String",
 		subject:"String",
 		syllabus:"String",
@@ -5467,6 +5473,7 @@ export const ReturnTypes: Record<string,any> = {
 		fee_year:"String",
 		grade:"String",
 		id:"ID",
+		image_url:"String",
 		schedule:"String",
 		sort_order:"Int",
 		status:"EduCourseStatus",

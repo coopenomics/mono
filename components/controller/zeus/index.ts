@@ -6723,6 +6723,7 @@ export type ValueTypes = {
 	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
+	image_url?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Предмет */
@@ -6831,6 +6832,7 @@ export type ValueTypes = {
 	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
+	image_url?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
@@ -6852,6 +6854,14 @@ export type ValueTypes = {
 }>;
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseImageUploadInput"]: {
+	/** Содержимое нового изображения в base64 */
+	base64?: string | undefined | null | Variable<any, string>,
+	/** Ключ уже сохранённого изображения — оставить его */
+	bucket_key?: string | undefined | null | Variable<any, string>,
+	/** MIME-тип нового изображения: image/jpeg, image/png или image/webp */
+	mime_type?: string | undefined | null | Variable<any, string>
+};
 	["EduCourseInput"]: {
 	/** Носитель доступа */
 	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
@@ -6867,6 +6877,8 @@ export type ValueTypes = {
 	fee_year: string | Variable<any, string>,
 	/** Класс */
 	grade: string | Variable<any, string>,
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -7152,6 +7164,8 @@ export type ValueTypes = {
 	grade: string | Variable<any, string>,
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -22267,6 +22281,7 @@ export type ResolverInputTypes = {
 	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
+	image_url?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Предмет */
@@ -22371,6 +22386,7 @@ export type ResolverInputTypes = {
 	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
+	image_url?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
@@ -22391,6 +22407,14 @@ export type ResolverInputTypes = {
 }>;
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseImageUploadInput"]: {
+	/** Содержимое нового изображения в base64 */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — оставить его */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения: image/jpeg, image/png или image/webp */
+	mime_type?: string | undefined | null
+};
 	["EduCourseInput"]: {
 	/** Носитель доступа */
 	carrier: ResolverInputTypes["EduAccessCarrier"],
@@ -22406,6 +22430,8 @@ export type ResolverInputTypes = {
 	fee_year: string,
 	/** Класс */
 	grade: string,
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -22679,6 +22705,8 @@ export type ResolverInputTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -37357,6 +37385,7 @@ export type ModelTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
+	image_url?: string | undefined | null,
 	/** Расписание занятий */
 	schedule: string,
 	/** Предмет */
@@ -37454,6 +37483,7 @@ export type ModelTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
+	image_url?: string | undefined | null,
 	/** Расписание занятий */
 	schedule: string,
 	/** Порядок в каталоге */
@@ -37472,6 +37502,14 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseImageUploadInput"]: {
+	/** Содержимое нового изображения в base64 */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — оставить его */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения: image/jpeg, image/png или image/webp */
+	mime_type?: string | undefined | null
+};
 	["EduCourseInput"]: {
 	/** Носитель доступа */
 	carrier: ModelTypes["EduAccessCarrier"],
@@ -37487,6 +37525,8 @@ export type ModelTypes = {
 	fee_year: string,
 	/** Класс */
 	grade: string,
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -37741,6 +37781,8 @@ export type ModelTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -43260,7 +43302,7 @@ export type ModelTypes = {
 	edubridgeSignAct: ModelTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
 	edubridgeSignAnnex: ModelTypes["EduAssignment"],
-	/** Подписать договор участия в хозяйственной деятельности */
+	/** Подписать договор участия в хозяйственной деятельности (первая подпись — преподаватель) */
 	edubridgeSignContract: ModelTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: ModelTypes["EduOnboardingState"],
@@ -53485,6 +53527,7 @@ export type GraphQLTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
+	image_url?: string | undefined | null,
 	/** Расписание занятий */
 	schedule: string,
 	/** Предмет */
@@ -53593,6 +53636,7 @@ export type GraphQLTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
+	image_url?: string | undefined | null,
 	/** Расписание занятий */
 	schedule: string,
 	/** Порядок в каталоге */
@@ -53613,6 +53657,14 @@ export type GraphQLTypes = {
 };
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]: EduCourseDirection;
+	["EduCourseImageUploadInput"]: {
+		/** Содержимое нового изображения в base64 */
+	base64?: string | undefined | null,
+	/** Ключ уже сохранённого изображения — оставить его */
+	bucket_key?: string | undefined | null,
+	/** MIME-тип нового изображения: image/jpeg, image/png или image/webp */
+	mime_type?: string | undefined | null
+};
 	["EduCourseInput"]: {
 		/** Носитель доступа */
 	carrier: GraphQLTypes["EduAccessCarrier"],
@@ -53628,6 +53680,8 @@ export type GraphQLTypes = {
 	fee_year: string,
 	/** Класс */
 	grade: string,
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -53913,6 +53967,8 @@ export type GraphQLTypes = {
 	grade: string,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
+	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
+	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -59814,7 +59870,7 @@ export type GraphQLTypes = {
 	edubridgeSignAct: GraphQLTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
 	edubridgeSignAnnex: GraphQLTypes["EduAssignment"],
-	/** Подписать договор участия в хозяйственной деятельности */
+	/** Подписать договор участия в хозяйственной деятельности (первая подпись — преподаватель) */
 	edubridgeSignContract: GraphQLTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
 	edubridgeSignOffer: GraphQLTypes["EduOnboardingState"],
@@ -65931,6 +65987,7 @@ type ZEUS_VARIABLES = {
 	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
+	["EduCourseImageUploadInput"]: ValueTypes["EduCourseImageUploadInput"];
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];

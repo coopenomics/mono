@@ -13,6 +13,26 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
       BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
     .col-12
       BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
+    .col-12
+      .t-sm.t-muted.q-mb-xs Обложка курса
+      .row.q-col-gutter-md.items-start
+        .col-12.col-md-5
+          .edu-course-form__preview
+            q-img(v-if="previewUrl" :src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
+            .edu-course-form__placeholder(v-else)
+              q-icon(name="image" size="32px")
+              .t-sm.q-mt-xs Без обложки
+          BaseButton.q-mt-sm(v-if="previewUrl" variant="ghost" size="sm" type="button" @click="removeImage") Убрать обложку
+        .col-12.col-md-7
+          FileUploader(
+            :model-value="imageFile"
+            :accept="COURSE_IMAGE_ACCEPT"
+            :max-size="COURSE_IMAGE_MAX_BYTES"
+            title="Загрузить обложку"
+            hint="JPEG, PNG или WEBP до 10 МБ. Показывается в каталоге и на странице курса."
+            @update:model-value="onImagePicked"
+            @error="onImageError"
+          )
     .col-12.col-md-6
       BaseInput(v-model="feeMonth" label="Членский взнос в месяц" type="number" :suffix="symbol" required)
     .col-12.col-md-6
@@ -73,15 +93,18 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { formatToAsset } from 'src/shared/lib/utils';
+import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
 import { BaseButton, BaseChip, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
+  COURSE_IMAGE_ACCEPT,
+  COURSE_IMAGE_MAX_BYTES,
   DIRECTION_LABELS,
   PLATFORM_CARRIERS,
   createCourse,
@@ -99,6 +122,8 @@ import {
  * Skillspace/GetCourse, закрытое сообщество — Telegram/ВКонтакте, очное — очно;
  * идентификатор курса на площадке нужен только площадкам с API. Преподаватели
  * выбираются из пайщиков с подписанным договором УХД, их может быть несколько.
+ * Обложка уходит base64 внутри той же мутации, как изображения товара в
+ * «Столе заказов»; без изменений поле не передаётся, снятая — `null`.
  */
 const props = defineProps<{ course?: ICourse | null }>();
 const emit = defineEmits<{ saved: [course: ICourse]; cancel: [] }>();
@@ -125,6 +150,38 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   external_ref: '',
   sort_order: 0,
 });
+
+// Обложка: новый файл (превью — object URL), снятие, либо без изменений.
+const imageFile = ref<File | null>(null);
+const imageRemoved = ref(false);
+const objectUrl = ref<string | null>(null);
+const previewUrl = computed(() => objectUrl.value ?? (imageRemoved.value ? null : (props.course?.image_url ?? null)));
+
+function releaseObjectUrl(): void {
+  if (objectUrl.value) URL.revokeObjectURL(objectUrl.value);
+  objectUrl.value = null;
+}
+function onImagePicked(value: File | File[] | null): void {
+  const file = Array.isArray(value) ? (value[0] ?? null) : value;
+  releaseObjectUrl();
+  imageFile.value = file;
+  imageRemoved.value = false;
+  if (file) objectUrl.value = URL.createObjectURL(file);
+}
+function onImageError(e: FileUploaderError): void {
+  FailAlert(new Error(e.message));
+}
+function removeImage(): void {
+  releaseObjectUrl();
+  imageFile.value = null;
+  imageRemoved.value = true;
+}
+async function imagePayload(): Promise<ICreateCourseInput['image']> {
+  if (imageFile.value) return { base64: await fileToBase64(imageFile.value), mime_type: imageFile.value.type };
+  if (imageRemoved.value) return null;
+  return undefined;
+}
+onBeforeUnmount(releaseObjectUrl);
 
 // Суммы в поле — числом, в цепь уходят asset-строкой «1000.0000 RUB».
 const feeMonth = ref('');
@@ -163,6 +220,9 @@ watch(
     });
     feeMonth.value = fromAsset(c.fee_month);
     feeYear.value = fromAsset(c.fee_year);
+    releaseObjectUrl();
+    imageFile.value = null;
+    imageRemoved.value = false;
     if (c.carrier === Zeus.EduAccessCarrier.SKILLSPACE) {
       const [course = '', group = ''] = c.external_ref.split(':');
       skillspaceCourseId.value = course || null;
@@ -240,6 +300,7 @@ async function submit(): Promise<void> {
   try {
     const data: ICreateCourseInput = {
       ...form,
+      image: await imagePayload(),
       external_ref: isPlatform.value ? form.external_ref : '',
       fee_month: toAsset(feeMonth.value),
       fee_year: toAsset(feeYear.value),
@@ -262,3 +323,20 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.edu-course-form__preview {
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  overflow: hidden;
+  background: var(--p-surface-2);
+}
+.edu-course-form__placeholder {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-ink-3);
+}
+</style>

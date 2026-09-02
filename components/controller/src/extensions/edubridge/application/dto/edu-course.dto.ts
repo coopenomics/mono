@@ -1,8 +1,10 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { ArrayUnique, IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Min } from 'class-validator';
+import { ArrayUnique, IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Length, Matches, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { createPaginationResult } from '@coopenomics/extension-kit';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
 import './edu-enums.registration';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
@@ -35,6 +37,12 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Расписание занятий' })
   schedule!: string;
 
+  /** Ключ обложки в bucket'е; ссылку `image_url` подписывает резолвер поля. */
+  image_record: EduCourseImage | null = null;
+
+  @Field(() => String, { nullable: true, description: 'Обложка курса — подписанная ссылка с ограниченным сроком; null — без изображения' })
+  image_url!: string | null;
+
   @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
   teacher_usernames!: string[];
 
@@ -52,6 +60,7 @@ export class EduCatalogCourseDTO {
     this.description = e.description;
     this.syllabus = e.syllabus;
     this.schedule = e.schedule;
+    this.image_record = e.image ?? null;
     this.teacher_usernames = e.teacher_usernames ?? [];
     this.fee_month = e.fee_month;
     this.fee_year = e.fee_year;
@@ -128,6 +137,31 @@ export class EduCoursesFilterInputDTO extends EduCatalogFilterInputDTO {
   status?: EduCourseStatus;
 }
 
+/**
+ * Обложка курса в мутации: новое изображение — `base64` + `mime_type`;
+ * оставить прежнее — `bucket_key`. Как у изображений товара «Стола заказов».
+ */
+@InputType('EduCourseImageUploadInput')
+export class EduCourseImageUploadInputDTO {
+  @Field(() => String, { nullable: true, description: 'Содержимое нового изображения в base64' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  base64?: string;
+
+  @Field(() => String, { nullable: true, description: 'MIME-тип нового изображения: image/jpeg, image/png или image/webp' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  mime_type?: string;
+
+  @Field(() => String, { nullable: true, description: 'Ключ уже сохранённого изображения — оставить его' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  bucket_key?: string;
+}
+
 @InputType('EduCourseInput')
 export class EduCourseInputDTO {
   @Field(() => String, { description: 'Название курса' })
@@ -159,6 +193,12 @@ export class EduCourseInputDTO {
   @IsOptional()
   @IsString()
   schedule?: string;
+
+  @Field(() => EduCourseImageUploadInputDTO, { nullable: true, description: 'Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EduCourseImageUploadInputDTO)
+  image?: EduCourseImageUploadInputDTO | null;
 
   @Field(() => [String], { nullable: true, description: 'Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности' })
   @IsOptional()
