@@ -88,6 +88,7 @@ import { ExtensionDatabaseInnercoopAdapter } from '~/infrastructure/innercoop/ex
 import { RealtimeChannelInnercoopAdapter } from '~/infrastructure/innercoop/realtime-channel-innercoop.adapter';
 import { CouncilInnercoopAdapter } from '~/infrastructure/innercoop/council-innercoop.adapter';
 import { UserDirectoryInnercoopAdapter } from '~/infrastructure/innercoop/user-directory-innercoop.adapter';
+import { AuthentikAdminAdapter } from '~/infrastructure/auth-v2/authentik-admin.adapter';
 import { ProgramAgreementInnercoopAdapter } from '~/infrastructure/innercoop/program-agreement-innercoop.adapter';
 import { MutationLogInnercoopAdapter } from '~/infrastructure/innercoop/mutation-log-innercoop.adapter';
 import { CandidateInnercoopAdapter } from '~/infrastructure/innercoop/candidate-innercoop.adapter';
@@ -192,6 +193,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     RealtimeChannelInnercoopAdapter,
     CouncilInnercoopAdapter,
     UserDirectoryInnercoopAdapter,
+    // Справочник ищет пайщика по uuid учётки CoopID через admin-API authentik.
+    AuthentikAdminAdapter,
     ProgramAgreementInnercoopAdapter,
     MutationLogInnercoopAdapter,
     CandidateInnercoopAdapter,
