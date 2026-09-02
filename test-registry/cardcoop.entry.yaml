@@ -80,6 +80,17 @@ cases:
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
     status: passing
 
+  - id: cc.entry.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Председатель выключил «Вход с помощью карты пайщика» в настройках расширения.
+    expect: >
+      cardcoopEntryAvailable отвечает false даже при реквизитах клиента от сети —
+      кнопка на форме входа исчезает, остаётся вход по паролю и ключу
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
   - id: cc.entry.side.01
     level: backend
     kind: side

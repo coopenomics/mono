@@ -92,8 +92,18 @@ describe('Вход по карте пайщика', () => {
       deps.attestations as any,
       deps.sessionsRepo as any,
       deps.pendingLinks as any,
-      logger as any
+      logger as any,
+      { config: { entry_enabled: (deps as { entryEnabled?: boolean }).entryEnabled ?? true } } as any
     ),
+  });
+
+  it('выключатель в настройках убирает вход по карте даже при реквизитах от сети', async () => {
+    // Председатель оставляет только вход по паролю и ключу (решение владельца 02.09.2026).
+    const deps = repos() as any;
+    deps.entryEnabled = false;
+    const { service } = build(deps);
+
+    await expect(service.available()).resolves.toBe(false);
   });
 
   it('начало входа уводит на card.coop с PKCE и нашим клиентом', async () => {

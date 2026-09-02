@@ -2,10 +2,12 @@ import { CardcoopConnectService } from '~/extensions/cardcoop/registry/connect.s
 import { CardcoopOperatorAnnounceService } from '~/extensions/cardcoop/registry/operator-announce.service';
 import { CardcoopRegistryDocumentType } from '~/extensions/cardcoop/registry/registry.types';
 
+// Имя кооператива установки подменяется по тесту: оператор сети определяется именем.
+let mockCoopname = 'voskhod';
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
   platformSettings: () => ({
-    coopname: 'voskhod',
+    coopname: mockCoopname,
     backendUrl: 'https://voskhod.coop/backend/',
     blockchain: { chainId: 'chain-1' },
   }),
@@ -199,6 +201,7 @@ describe('Объявление допуска оператором сети', ()
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCoopname = 'voskhod';
     announcementRows = new Map();
     deliverDocument = jest.fn(async () => ({ delivered: true, status: 200 }));
     attestationService = {
@@ -220,7 +223,16 @@ describe('Объявление допуска оператором сети', ()
     expect(announcementRows.get('zarya')?.delivered).toBe(true);
   });
 
+  it('оператор определяется именем кооператива: флаг в настройках не нужен', async () => {
+    // Поле скрыто (решение владельца 02.09.2026); установка voskhod объявляет допуски сама.
+    await build(false).handleCoopStatus(activation());
+
+    expect(deliverDocument).toHaveBeenCalledTimes(1);
+    expect(deliverDocument.mock.calls[0][1].payload.coopname).toBe('voskhod');
+  });
+
   it('без флага оператора установка молчит — событие цепи видят все, объявляет один', async () => {
+    mockCoopname = 'zarya';
     await build(false).handleCoopStatus(activation());
 
     expect(deliverDocument).not.toHaveBeenCalled();
@@ -264,6 +276,7 @@ describe('Объявление допуска оператором сети', ()
   });
 
   it('без флага оператора самодопуск не объявляется', async () => {
+    mockCoopname = 'zarya';
     await build(false).resendUndelivered();
 
     expect(deliverDocument).not.toHaveBeenCalled();

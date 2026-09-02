@@ -10,6 +10,14 @@
 import type { CardcoopDocumentPayload } from '../attestation/attestation.types';
 
 /** Тип документа реестра. */
+/**
+ * Оператор сети — единственный, чьи объявления допуска сеть принимает.
+ *
+ * То же имя стоит умолчанием на стороне card.coop (NETWORK_OPERATOR_COOPNAME); установка с этим
+ * именем кооператива объявляет допуски сама, без флага в настройках (решение владельца 02.09.2026).
+ */
+export const NETWORK_OPERATOR_COOPNAME = 'voskhod';
+
 export enum CardcoopRegistryDocumentType {
   /** Оператор сети допускает кооператив. */
   Admission = 'coop_admission',

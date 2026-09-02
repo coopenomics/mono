@@ -104,6 +104,18 @@ cases:
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
     status: passing
 
+  - id: cc.announce.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Установка кооператива voskhod без флага «я — оператор» в настройках.
+    expect: >
+      оператор сети определяется именем кооператива (NETWORK_OPERATOR_COOPNAME),
+      допуски объявляются без флага; поле скрыто из формы настроек (visible: false),
+      остаётся для тестового контура; чужой кооператив без флага молчит
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
   - id: cc.announce.happy.01
     level: backend
     kind: happy

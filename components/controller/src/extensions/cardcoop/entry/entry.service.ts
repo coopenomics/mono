@@ -11,6 +11,7 @@
  * подключении (story 7.6): в браузере не появляется ни секрет, ни токен.
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { CardcoopExtension } from '../cardcoop.extension';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Not, Repository } from 'typeorm';
@@ -93,17 +94,20 @@ export class CardcoopEntryService {
     private readonly sessions: Repository<CardcoopEntrySessionTypeormEntity>,
     @InjectRepository(CardcoopPendingLinkTypeormEntity)
     private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly extension: CardcoopExtension
   ) {
     this.logger.setContext(CardcoopEntryService.name);
   }
 
   /**
-   * Доступен ли вход по карте: сеть выдала реквизиты клиента при подключении.
+   * Доступен ли вход по карте: включён в настройках и сеть выдала реквизиты клиента при подключении.
    *
    * @returns `true`, если кнопке входа есть куда вести.
    */
   async available(): Promise<boolean> {
+    // Председатель может убрать кнопку настройкой, даже когда реквизиты от сети есть.
+    if (this.extension.config.entry_enabled === false) return false;
     const state = await this.connectState.findOne({ where: { id: 'self' } });
     return Boolean(state?.rpClientId && state.rpClientSecret && state.rpIssuer);
   }

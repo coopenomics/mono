@@ -104,6 +104,17 @@ cases:
     test: ''
     status: missing
 
+  - id: cc.card.ui.02
+    level: ui
+    kind: side
+    scenario: >
+      Председатель открывает раздел «Пайщик» в столе председателя.
+    expect: >
+      «Карта пайщика» стоит первой вкладкой, как у пайщика: председатель — тоже
+      пайщик, и карта у него на том же месте (владелец искал её там 02.09.2026)
+    test: ''
+    status: missing
+
   - id: cc.card.side.05
     level: backend
     kind: side
