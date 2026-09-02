@@ -1,13 +1,8 @@
 <template lang="pug">
 .cardcoop-page
-  //- Одна подсказка на страницу: зачем эта карта вообще нужна. Человек видит её первый
-  //- раз и без объяснения принимает за ещё один пластик кооператива.
-  PageHint(storage-key='cardcoop:card:banner-dismissed')
-    | Карта пайщика — общая для всей кооперативной сети. Она подтверждает участие в нашем
-    | кооперативе и, если вы состоите в других, собирает членства в одном месте. Анкету и
-    | документы карта не хранит — они остаются здесь.
-
-  BaseCard(title='Карта пайщика')
+  //- Заголовок и подсказка страницы не дублируются: заголовок уже в шапке, главное
+  //- действие («Выпустить карту» / «Открыть карту») тоже там (канон стола).
+  BaseCard
     //- Пока состояние едет с сервера, на его месте каркас той же формы: спиннер поверх
     //- содержимого дёргает экран, а «карта не выпущена» на секунду читается как ответ.
     template(v-if='loading')
@@ -35,41 +30,33 @@
         :value='formatToHumanDate(card.memberSince)'
       )
 
-      .cardcoop-page__actions
-        BaseButton(variant='secondary', @click='openCard')
-          template(#icon-left)
-            q-icon(name='open_in_new', size='18px')
-          | Открыть мою карту
-
     template(v-else)
       EmptyState(
         title='Карта ещё не выпущена',
-        body='Выпуск занимает минуту: вы перейдёте в сеть карт и войдёте через свою учётную запись кооператива. Заполнять анкету заново не нужно.'
+        body='Карта пайщика одна на всю кооперативную сеть: она подтверждает членство в нашем кооперативе и собирает членства в других. Нажмите «Выпустить карту пайщика» — вы перейдёте в сеть карт и войдёте через кооператив, анкету заново заполнять не нужно.'
       )
         template(#icon)
           q-icon(name='badge', size='28px')
-
-      .cardcoop-page__actions
-        BaseButton(variant='primary', @click='openCard')
-          template(#icon-left)
-            q-icon(name='badge', size='18px')
-          | Выпустить карту пайщика
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
-import { BaseButton, BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base';
-import { DataRow, PageHint } from 'src/shared/ui/domain';
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
+import { BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain';
+import { useHeaderActions } from 'src/shared/hooks';
 import { cardcoopCardApi, type ICardcoopCard } from 'src/entities/CardcoopCard';
 import { formatToHumanDate } from 'src/shared/lib/utils/dates';
 import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip/BaseChip.types';
+import { cardcoopHeaderState } from '../model/header';
+import CardcoopHeaderActions from './CardcoopHeaderActions.vue';
 
 /**
  * Карта пайщика в столе кооператива (story 7.4 / 3B5-32, FR-E4).
  *
  * Главный вход в выпуск карты: человек уже аутентифицирован в кооперативе, и ему остаётся
  * один переход. Состояние берётся из журнала самого кооператива, а не из сети, — стол
- * обязан работать, когда card.coop недоступен (NFR-3).
+ * обязан работать, когда card.coop недоступен (NFR-3). Кнопка выпуска/открытия — в шапке
+ * страницы (решение владельца 02.09.2026): подсказки и повторного заголовка на странице нет.
  */
 const card = ref<ICardcoopCard | null>(null);
 const loading = ref(true);
@@ -99,12 +86,27 @@ const openCard = (): void => {
   if (card.value?.enterUrl) window.open(card.value.enterUrl, '_blank', 'noopener');
 };
 
+const { registerAction } = useHeaderActions();
+
+watchEffect(() => {
+  cardcoopHeaderState.value = {
+    issued: Boolean(card.value?.issued),
+    loading: loading.value,
+    onOpen: openCard,
+  };
+});
+
 onMounted(async () => {
+  registerAction({ id: 'cardcoop-actions', component: CardcoopHeaderActions, order: 1 });
   try {
     card.value = await cardcoopCardApi.loadMyCard();
   } finally {
     loading.value = false;
   }
+});
+
+onBeforeUnmount(() => {
+  cardcoopHeaderState.value = null;
 });
 </script>
 
@@ -113,11 +115,5 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--p-4);
-  }
 }
 </style>
