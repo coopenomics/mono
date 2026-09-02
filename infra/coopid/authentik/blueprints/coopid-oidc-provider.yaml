@@ -119,3 +119,27 @@ entries:
       slug: coopid
       provider: !KeyOf coopid-provider
       meta_description: Удостоверение пайщика — единый вход кооператива
+
+  # ── Заголовки встроенных потоков ─────────────────────────────────────────
+  # Экраны потоков рисует стол (105-30), а заголовок берёт у потока; у встроенных
+  # потоков authentik он английский («Welcome to authentik!»). Имена — свои.
+  - identifiers:
+      slug: default-authentication-flow
+    model: authentik_flows.flow
+    attrs:
+      title: Вход в кооператив
+  - identifiers:
+      slug: default-source-authentication
+    model: authentik_flows.flow
+    attrs:
+      title: Вход через внешний сервис
+  - identifiers:
+      slug: default-source-enrollment
+    model: authentik_flows.flow
+    attrs:
+      title: Регистрация через внешний сервис
+  - identifiers:
+      slug: default-invalidation-flow
+    model: authentik_flows.flow
+    attrs:
+      title: Выход
