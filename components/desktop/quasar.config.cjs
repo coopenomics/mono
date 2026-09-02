@@ -138,6 +138,10 @@ module.exports = configure(function (ctx) {
             'api-dev.coopenomics.world',
             'localhost',
             '127.0.0.1',
+            // Стенды разработки живут только во внутреннем контуре под именами
+            // voskhod-test-N.int.coopenomics.world — ведущая точка у Vite значит
+            // «домен и все его поддомены», так что новый стенд ничего настраивать не должен.
+            '.int.coopenomics.world',
             // Публичные имена прочих стендов — из окружения, а не правкой кода под каждый:
             // DESKTOP_EXTRA_ALLOWED_HOSTS=voskhod-dev-4.coopenomics.world,ещё.один.
             ...String(process.env.DESKTOP_EXTRA_ALLOWED_HOSTS || '')
