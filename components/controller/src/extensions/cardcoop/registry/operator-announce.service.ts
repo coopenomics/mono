@@ -30,7 +30,8 @@ import { platformSettings } from '@coopenomics/extension-kit';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import { CardcoopOperatorAnnouncementTypeormEntity } from '../infrastructure/entities/cardcoop-operator-announcement.typeorm-entity';
-import { CardcoopRegistryDocumentType, NETWORK_OPERATOR_COOPNAME, type CardcoopAdmissionPayload } from './registry.types';
+import { CardcoopRegistryDocumentType, type CardcoopAdmissionPayload } from './registry.types';
+import { isNetworkOperator } from './operator';
 
 const CONTRACT = RegistratorContract.contractName.production;
 
@@ -110,15 +111,8 @@ export class CardcoopOperatorAnnounceService {
    * отвергалось «не допущен оператором», пока запись не завели руками). Объявляется один
    * раз: доставленное повторно не отправляется.
    */
-  /**
-   * Эта установка — оператор сети: по имени кооператива либо по флагу в настройках.
-   *
-   * Имя главнее флага: оператор один, и требовать от него ставить галочку значило бы
-   * держать в настройках поле, которое всем прочим включать нельзя. Флаг остаётся для
-   * тестового контура, где оператором назначают другой кооператив.
-   */
   private isOperator(): boolean {
-    return this.extension.config.announce_as_operator || platformSettings().coopname === NETWORK_OPERATOR_COOPNAME;
+    return isNetworkOperator(this.extension.config);
   }
 
   private async announceSelf(): Promise<void> {

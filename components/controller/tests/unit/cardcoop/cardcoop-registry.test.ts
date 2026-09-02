@@ -1,6 +1,7 @@
 import { CardcoopConnectService } from '~/extensions/cardcoop/registry/connect.service';
 import { CardcoopOperatorAnnounceService } from '~/extensions/cardcoop/registry/operator-announce.service';
 import { CardcoopRegistryDocumentType } from '~/extensions/cardcoop/registry/registry.types';
+import { CardcoopWebhookKeyService } from '~/extensions/cardcoop/registry/webhook-key.service';
 
 // Имя кооператива установки подменяется по тесту: оператор сети определяется именем.
 let mockCoopname = 'voskhod';
@@ -290,5 +291,76 @@ describe('Объявление допуска оператором сети', ()
     await build(true).handleCoopStatus(activation());
 
     expect(deliverDocument.mock.calls[0][1].payload.display_name).toBe('zarya');
+  });
+});
+
+describe('Публикация ключа уведомлений сети в цепи', () => {
+  // Один и тот же ключ в двух написаниях: цепь отдаёт EOS…, сеть — PUB_K1_….
+  const NETWORK_KEY = 'PUB_K1_8AmBWMxDSrMfdqJTZRwXujKJca3DMUxGaNrrj5LFTZF6pHnSNo';
+  const NETWORK_KEY_LEGACY = 'EOS8AmBWMxDSrMfdqJTZRwXujKJca3DMUxGaNrrj5LFTZF6sYVJRj';
+  const OTHER_KEY = 'PUB_K1_7ND3npXaNAcQ4RuxVjWoFAEZnjCKj8fYkjybMuZgkJVqMgWszg';
+  let transact: jest.Mock;
+  let fetchMock: jest.Mock;
+
+  const build = (opts: { onChain?: string | null; announce?: boolean; wif?: string | null } = {}) => {
+    transact = jest.fn(async () => ({}));
+    const chain = { initialize: jest.fn(), transact };
+    const credential = { getPermissionKey: jest.fn(async () => opts.onChain ?? null) };
+    const vault = { getWif: jest.fn(async () => (opts.wif === undefined ? 'WIF' : opts.wif)) };
+    const extension = { config: { api_url: 'https://card.coop', announce_as_operator: opts.announce ?? false } };
+    return new CardcoopWebhookKeyService(extension as any, credential as any, chain as any, vault as any, logger as any);
+  };
+  const network = (status = 200, body: unknown = { publicKey: NETWORK_KEY }) => {
+    fetchMock = jest.fn(async () => ({ ok: status < 400, status, json: async () => body }));
+    (globalThis as any).fetch = fetchMock;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCoopname = 'voskhod';
+  });
+
+  it('ключ сети расходится с цепью — оператор публикует его разрешением cardcoop у ano', async () => {
+    network();
+    await expect(build({ onChain: OTHER_KEY }).ensurePublished('https://card.coop')).resolves.toEqual({ published: true });
+
+    const action = transact.mock.calls[0][0];
+    expect(action.name).toBe('updateauth');
+    expect(action.authorization).toEqual([{ actor: 'ano', permission: 'active' }]);
+    expect(action.data).toMatchObject({ account: 'ano', permission: 'cardcoop', parent: 'active' });
+    expect(action.data.auth.keys).toEqual([{ key: NETWORK_KEY, weight: 1 }]);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://card.coop/v1/webhooks/public-key');
+  });
+
+  it('в цепи ещё нет разрешения — публикуется', async () => {
+    network();
+    await expect(build({ onChain: null }).ensurePublished('https://card.coop')).resolves.toEqual({ published: true });
+    expect(transact).toHaveBeenCalledTimes(1);
+  });
+
+  it('тот же ключ в другом написании — ничего не переписывается', async () => {
+    network();
+    await expect(build({ onChain: NETWORK_KEY_LEGACY }).ensurePublished('https://card.coop')).resolves.toEqual({ published: false });
+    expect(transact).not.toHaveBeenCalled();
+  });
+
+  it('не оператор — в цепь не ходит и ключ у сети не спрашивает', async () => {
+    network();
+    mockCoopname = 'zarya';
+    await expect(build({ onChain: null }).ensurePublished('https://card.coop')).resolves.toEqual({ published: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('сеть не ответила — старт не падает, публикация ждёт следующего раза', async () => {
+    network(503, {});
+    await expect(build({ onChain: null }).ensurePublished('https://card.coop')).resolves.toEqual({ published: false });
+    expect(transact).not.toHaveBeenCalled();
+  });
+
+  it('без ключа оператора публиковать нечем — предупреждение, не сбой', async () => {
+    network();
+    await expect(build({ onChain: null, wif: null }).ensurePublished('https://card.coop')).resolves.toEqual({ published: false });
+    expect(transact).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
   });
 });

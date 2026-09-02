@@ -29,6 +29,7 @@ import { CardcoopLinkWebhookController } from './application/link-webhook.contro
 import { CardcoopDisclosureController } from './application/disclosure.controller';
 import { CardcoopConnectService } from './registry/connect.service';
 import { CardcoopOperatorAnnounceService } from './registry/operator-announce.service';
+import { CardcoopWebhookKeyService } from './registry/webhook-key.service';
 import { CardcoopEntryService } from './entry/entry.service';
 import { CardcoopDisclosureIntakeService } from './entry/disclosure-intake.service';
 import { CardcoopEntryController } from './application/entry.controller';
@@ -69,6 +70,7 @@ export { CardcoopExtension, Schema, defaultConfig, type IConfig };
     CardcoopDisclosureService,
     CardcoopConnectService,
     CardcoopOperatorAnnounceService,
+    CardcoopWebhookKeyService,
     CardcoopEntryService,
     CardcoopDisclosureIntakeService,
     CardcoopEntryResolver,
@@ -80,6 +82,7 @@ export class CardcoopExtensionModule {
     private readonly cardcoopExtension: CardcoopExtension,
     private readonly connect: CardcoopConnectService,
     private readonly operatorAnnounce: CardcoopOperatorAnnounceService,
+    private readonly webhookKey: CardcoopWebhookKeyService,
     private readonly membership: CardcoopMembershipService
   ) {}
 
@@ -94,6 +97,8 @@ export class CardcoopExtensionModule {
     const apiUrl = this.cardcoopExtension.config.api_url;
     void (async () => {
       await this.operatorAnnounce.resendUndelivered();
+      // Ключ уведомлений сети — до подключения: первое уведомление о связке может прийти сразу.
+      await this.webhookKey.ensurePublished(apiUrl);
       await this.connect.connectIfChanged(apiUrl);
       this.connect.startRetries(apiUrl);
     })();

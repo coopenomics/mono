@@ -116,6 +116,30 @@ cases:
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
     status: passing
 
+  - id: cc.webhook-key.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Установка оператора стартует; ключ уведомлений сети в цепи отсутствует или не тот (3B5-51).
+    expect: >
+      оператор берёт открытый ключ с GET /v1/webhooks/public-key сети и публикует его
+      updateauth разрешением cardcoop у ano (полномочие ano@active, подпись оператора по
+      делегированным правам) — до самоподключения; после pnpm run reboot ключ доезжает сам
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
+  - id: cc.webhook-key.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Ключ в цепи совпадает (в другом написании), установка не оператор, сеть не ответила,
+      ключа оператора нет.
+    expect: >
+      совпадающий ключ не переписывается; не оператор в цепь и в сеть не ходит; отказ сети и
+      отсутствие ключа — предупреждение в журнале, старт не падает
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
   - id: cc.announce.happy.01
     level: backend
     kind: happy
